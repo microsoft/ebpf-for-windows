@@ -18,7 +18,7 @@ NTSTATUS
 NmrRegisterProvider(
     _In_ NPI_PROVIDER_CHARACTERISTICS* provider_characteristics,
     _In_opt_ __drv_aliasesMem void* provider_context,
-    _Out_ PHANDLE nmr_provider_handle)
+    _Out_ HANDLE* nmr_provider_handle)
 {
     return STATUS_NO_MEMORY;
 }

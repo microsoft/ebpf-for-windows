@@ -4,8 +4,8 @@
 #include "netebpfext_platform.h"
 #include "kernel_thunk.h"
 
-ULONG
-__cdecl DbgPrintEx(_In_ ULONG component_id, _In_ ULONG level, _In_z_ _Printf_format_string_ PCSTR format, ...)
+unsigned long __cdecl DbgPrintEx(
+    _In_ unsigned long component_id, _In_ unsigned long level, _In_z_ _Printf_format_string_ PCSTR format, ...)
 {
     return -1;
 }
@@ -33,34 +33,36 @@ ExReleaseRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref)
 
 void
 ExAcquirePushLockExclusiveEx(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags)
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
+    _In_ unsigned long flags)
 {
     return;
 }
 
 void
 ExAcquirePushLockSharedEx(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags)
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
+    _In_ unsigned long flags)
 {
     return;
 }
 
 void
 ExReleasePushLockExclusiveEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags)
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ unsigned long flags)
 {
     return;
 }
 
 void
 ExReleasePushLockSharedEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags)
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ unsigned long flags)
 {
     return;
 }
 
 void*
-ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ SIZE_T number_of_bytes, _In_ ULONG tag)
+ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_bytes, _In_ unsigned long tag)
 {
     return NULL;
 }
@@ -86,7 +88,7 @@ FatalListEntryError(_In_ void* p1, _In_ void* p2, _In_ void* p3)
 MDL*
 IoAllocateMdl(
     _In_opt_ __drv_aliasesMem void* virtual_address,
-    _In_ ULONG length,
+    _In_ unsigned long length,
     _In_ BOOLEAN secondary_buffer,
     _In_ BOOLEAN charge_quota,
     _Inout_opt_ IRP* irp)
@@ -155,14 +157,17 @@ MmBuildMdlForNonPagedPool(_Inout_ MDL* memory_descriptor_list)
 void*
 MmGetSystemAddressForMdlSafe(
     _Inout_ MDL* mdl,
-    _In_ ULONG page_priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
+    _In_ unsigned long page_priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
 )
 {
     return NULL;
 }
 
 NTSTATUS
-RtlULongAdd(_In_ ULONG augend, _In_ ULONG addend, _Out_ _Deref_out_range_(==, augend + addend) ULONG* result)
+RtlULongAdd(
+    _In_ unsigned long augend,
+    _In_ unsigned long addend,
+    _Out_ _Deref_out_range_(==, augend + addend) unsigned long* result)
 {
     return STATUS_NO_MEMORY;
 }

@@ -73,75 +73,75 @@ DEFINE_GUID(FWPM_CONDITION_INTERFACE_INDEX, 0x667fd755, 0xd695, 0x434a, 0x8a, 0x
 typedef struct FWPS_INCOMING_METADATA_VALUES0_
 {
     // Bitmask representing which values are set.
-    UINT32 currentMetadataValues;
+    uint32_t currentMetadataValues;
     // Internal flags;
-    UINT32 flags;
+    uint32_t flags;
     // Reserved for system use.
-    UINT64 reserved;
+    uint64_t reserved;
     // Discard module and reason.
     FWPS_DISCARD_METADATA0 discardMetadata;
     // Flow Handle.
-    UINT64 flowHandle;
+    uint64_t flowHandle;
     // IP Header size.
-    UINT32 ipHeaderSize;
+    uint32_t ipHeaderSize;
     // Transport Header size
-    UINT32 transportHeaderSize;
+    uint32_t transportHeaderSize;
     // Process Path.
     FWP_BYTE_BLOB* processPath;
     // Token used for authorization.
-    UINT64 token;
+    uint64_t token;
     // Process Id.
-    UINT64 processId;
+    uint64_t processId;
     // Source and Destination interface indices for discard indications.
-    UINT32 sourceInterfaceIndex;
-    UINT32 destinationInterfaceIndex;
+    uint32_t sourceInterfaceIndex;
+    uint32_t destinationInterfaceIndex;
     // Compartment Id for injection APIs.
-    ULONG compartmentId;
+    unsigned long compartmentId;
     // Fragment data for inbound fragments.
     FWPS_INBOUND_FRAGMENT_METADATA0 fragmentMetadata;
     // Path MTU for outbound packets (to enable calculation of fragments).
-    ULONG pathMtu;
+    unsigned long pathMtu;
     // Completion handle (required in order to be able to pend at this layer).
     HANDLE completionHandle;
     // Endpoint handle for use in outbound transport layer injection.
-    UINT64 transportEndpointHandle;
+    uint64_t transportEndpointHandle;
     // Remote scope id for use in outbound transport layer injection.
     SCOPE_ID remoteScopeId;
     // Socket control data (and length) for use in outbound transport layer injection.
     WSACMSGHDR* controlData;
-    ULONG controlDataLength;
+    unsigned long controlDataLength;
     // Direction for the current packet. Only specified for ALE re-authorization.
     FWP_DIRECTION packetDirection;
 #if (NTDDI_VERSION >= NTDDI_WIN6SP1)
     // Raw IP header (and length) if the packet is sent with IP header from a RAW socket.
     void* headerIncludeHeader;
-    ULONG headerIncludeHeaderLength;
+    unsigned long headerIncludeHeaderLength;
 #if (NTDDI_VERSION >= NTDDI_WIN7)
     IP_ADDRESS_PREFIX destinationPrefix;
-    UINT16 frameLength;
-    UINT64 parentEndpointHandle;
-    UINT32 icmpIdAndSequence;
+    uint16_t frameLength;
+    uint64_t parentEndpointHandle;
+    uint32_t icmpIdAndSequence;
     // PID of the process that will be accepting the redirected connection
-    DWORD localRedirectTargetPID;
+    unsigned long localRedirectTargetPID;
     // original destination of a redirected connection
     SOCKADDR* originalDestination;
 #if (NTDDI_VERSION >= NTDDI_WIN8)
     HANDLE redirectRecords;
     // Bitmask representing which L2 values are set.
-    UINT32 currentL2MetadataValues;
+    uint32_t currentL2MetadataValues;
     // L2 layer flags;
-    UINT32 l2Flags;
-    UINT32 ethernetMacHeaderSize;
-    UINT32 wiFiOperationMode;
+    uint32_t l2Flags;
+    uint32_t ethernetMacHeaderSize;
+    uint32_t wiFiOperationMode;
 
 #if (NDIS_SUPPORT_NDIS630)
     NDIS_SWITCH_PORT_ID vSwitchSourcePortId;
     NDIS_SWITCH_NIC_INDEX vSwitchSourceNicIndex;
     NDIS_SWITCH_PORT_ID vSwitchDestinationPortId;
 #else
-    UINT32 padding0;
-    USHORT padding1;
-    UINT32 padding2;
+    uint32_t padding0;
+    uint16_t padding1;
+    uint32_t padding2;
 #endif // (NDIS_SUPPORT_NDIS630)
     HANDLE vSwitchPacketContext;
 #endif // (NTDDI_VERSION >= NTDDI_WIN8)
@@ -150,7 +150,7 @@ typedef struct FWPS_INCOMING_METADATA_VALUES0_
 #if (NTDDI_VERSION >= NTDDI_WIN8)
     void* subProcessTag;
     // Reserved for system use.
-    UINT64 reserved1;
+    uint64_t reserved1;
 #endif
 } FWPS_INCOMING_METADATA_VALUES0;
 
@@ -288,7 +288,7 @@ typedef struct FWPS_CALLOUT3_
     // FwpmCalloutAdd0.
     GUID calloutKey;
     // flags
-    UINT32 flags;
+    uint32_t flags;
     // Pointer to the classification function.
     FWPS_CALLOUT_CLASSIFY_FN3 classifyFn;
     // Pointer to the notification function.
@@ -755,14 +755,17 @@ typedef enum FWPS_FIELDS_INBOUND_MAC_FRAME_NATIVE_
 #define FWPS_INJECTION_TYPE_L2 0x00000010
 
 NTSTATUS
-FwpmFilterDeleteById0(_In_ HANDLE engine_handle, _In_ UINT64 id);
+FwpmFilterDeleteById0(_In_ HANDLE engine_handle, _In_ uint64_t id);
 
 NTSTATUS
-FwpmTransactionBegin0(_In_ _Acquires_lock_(_Curr_) HANDLE engine_handle, _In_ UINT32 flags);
+FwpmTransactionBegin0(_In_ _Acquires_lock_(_Curr_) HANDLE engine_handle, _In_ uint32_t flags);
 
 NTSTATUS
 FwpmFilterAdd0(
-    _In_ HANDLE engine_handle, _In_ const FWPM_FILTER0* filter, _In_opt_ PSECURITY_DESCRIPTOR sd, _Out_opt_ UINT64* id);
+    _In_ HANDLE engine_handle,
+    _In_ const FWPM_FILTER0* filter,
+    _In_opt_ PSECURITY_DESCRIPTOR sd,
+    _Out_opt_ uint64_t* id);
 
 NTSTATUS
 FwpmTransactionCommit0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle);
@@ -771,22 +774,22 @@ NTSTATUS
 FwpmTransactionAbort0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle);
 
 NTSTATUS
-FwpsCalloutRegister3(_Inout_ void* device_object, _In_ const FWPS_CALLOUT3* callout, _Out_opt_ UINT32* callout_id);
+FwpsCalloutRegister3(_Inout_ void* device_object, _In_ const FWPS_CALLOUT3* callout, _Out_opt_ uint32_t* callout_id);
 
 NTSTATUS
 FwpmCalloutAdd0(
     _In_ HANDLE engine_handle,
     _In_ const FWPM_CALLOUT0* callout,
     _In_opt_ PSECURITY_DESCRIPTOR sd,
-    _Out_opt_ UINT32* id);
+    _Out_opt_ uint32_t* id);
 
 NTSTATUS
-FwpsCalloutUnregisterById0(_In_ const UINT32 callout_id);
+FwpsCalloutUnregisterById0(_In_ const uint32_t callout_id);
 
 NTSTATUS
 FwpmEngineOpen0(
     _In_opt_ const wchar_t* server_name,
-    _In_ UINT32 authn_service,
+    _In_ uint32_t authn_service,
     _In_opt_ SEC_WINNT_AUTH_IDENTITY_W* auth_identity,
     _In_opt_ const FWPM_SESSION0* session,
     _Out_ HANDLE* engine_handle);
@@ -795,7 +798,7 @@ NTSTATUS
 FwpmSubLayerAdd0(_In_ HANDLE engine_handle, _In_ const FWPM_SUBLAYER0* sub_layer, _In_opt_ PSECURITY_DESCRIPTOR sd);
 
 NTSTATUS
-FwpsInjectionHandleCreate0(_In_opt_ ADDRESS_FAMILY address_family, _In_ UINT32 flags, _Out_ HANDLE* injection_handle);
+FwpsInjectionHandleCreate0(_In_opt_ ADDRESS_FAMILY address_family, _In_ uint32_t flags, _Out_ HANDLE* injection_handle);
 
 NTSTATUS
 FwpmEngineClose0(_Inout_ HANDLE engine_handle);
@@ -804,20 +807,21 @@ NTSTATUS
 FwpsInjectionHandleDestroy0(_In_ HANDLE injection_handle);
 
 NTSTATUS
-FwpsFlowRemoveContext0(_In_ UINT64 flowI_id, _In_ UINT16 layer_id, _In_ UINT32 callout_id);
+FwpsFlowRemoveContext0(_In_ uint64_t flowI_id, _In_ uint16_t layer_id, _In_ uint32_t callout_id);
 
 NTSTATUS
 
-FwpsFlowAssociateContext0(_In_ UINT64 flowI_id, _In_ UINT16 layer_id, _In_ UINT32 callout_id, _In_ UINT64 flow_context);
+FwpsFlowAssociateContext0(
+    _In_ uint64_t flowI_id, _In_ uint16_t layer_id, _In_ uint32_t callout_id, _In_ uint64_t flow_context);
 
 NTSTATUS
 FwpsAllocateNetBufferAndNetBufferList0(
     _In_ NDIS_HANDLE pool_handle,
-    _In_ USHORT context_size,
-    _In_ USHORT context_backfill,
+    _In_ uint16_t context_size,
+    _In_ uint16_t context_backfill,
     _In_opt_ MDL* mdl_chain,
-    _In_ ULONG data_offset,
-    _In_ SIZE_T data_length,
+    _In_ unsigned long data_offset,
+    _In_ size_t data_length,
     _Outptr_ NET_BUFFER_LIST** net_buffer_list);
 
 void
@@ -827,8 +831,8 @@ NTSTATUS
 FwpsInjectMacReceiveAsync0(
     _In_ HANDLE injection_handle,
     _In_opt_ HANDLE injection_context,
-    _In_ UINT32 flags,
-    _In_ UINT16 layer_id,
+    _In_ uint32_t flags,
+    _In_ uint16_t layer_id,
     _In_ IF_INDEX interface_index,
     _In_ NDIS_PORT_NUMBER ndis_port_number,
     _Inout_ NET_BUFFER_LIST* net_buffer_lists,
@@ -836,22 +840,22 @@ FwpsInjectMacReceiveAsync0(
     _In_opt_ HANDLE completion_context);
 
 void
-FwpsFreeCloneNetBufferList0(_In_ NET_BUFFER_LIST* net_buffer_list, _In_ ULONG free_clone_flags);
+FwpsFreeCloneNetBufferList0(_In_ NET_BUFFER_LIST* net_buffer_list, _In_ unsigned long free_clone_flags);
 
 NTSTATUS
 FwpsAllocateCloneNetBufferList0(
     _Inout_ NET_BUFFER_LIST* original_net_buffer_list,
     _In_opt_ NDIS_HANDLE net_buffer_list_pool_handle,
     _In_opt_ NDIS_HANDLE net_buffer_pool_handle,
-    _In_ ULONG allocate_clone_flags,
+    _In_ unsigned long allocate_clone_flags,
     _Outptr_ NET_BUFFER_LIST** net_buffer_list);
 
 NTSTATUS
 FwpsInjectMacSendAsync0(
     _In_ HANDLE injection_handle,
     _In_opt_ HANDLE injection_context,
-    _In_ UINT32 flags,
-    _In_ UINT16 layer_id,
+    _In_ uint32_t flags,
+    _In_ uint16_t layer_id,
     _In_ IF_INDEX interface_index,
     _In_ NDIS_PORT_NUMBER ndis_port_number,
     _Inout_ NET_BUFFER_LIST* net_buffer_lists,

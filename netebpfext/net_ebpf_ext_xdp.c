@@ -305,7 +305,7 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32
     old_net_buffer = NET_BUFFER_LIST_FIRST_NB(old_nbl);
 
     // Allocate buffer for the cloned NBL, accounting for any unused header.
-    status = RtlULongAdd(old_net_buffer->DataLength, unused_header_length, (ULONG*)&cloned_net_buffer_length);
+    status = RtlULongAdd(old_net_buffer->DataLength, unused_header_length, (unsigned long*)&cloned_net_buffer_length);
     if (!NT_SUCCESS(status))
         goto Exit;
 

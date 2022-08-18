@@ -5,11 +5,10 @@
 
 typedef struct _NPI_REGISTRATION_INSTANCE
 {
-    USHORT Version;
-    USHORT Size;
+    uint16_t Size;
     PNPIID NpiId;
     PNPI_MODULEID ModuleId;
-    ULONG Number;
+    unsigned long Number;
     const void* NpiSpecificCharacteristics;
 } NPI_REGISTRATION_INSTANCE, *PNPI_REGISTRATION_INSTANCE;
 
@@ -26,13 +25,13 @@ typedef NPI_PROVIDER_ATTACH_CLIENT_FN* PNPI_PROVIDER_ATTACH_CLIENT_FN;
 typedef NTSTATUS(NPI_PROVIDER_DETACH_CLIENT_FN)(_In_ void* ProviderBindingContext);
 typedef NPI_PROVIDER_DETACH_CLIENT_FN* PNPI_PROVIDER_DETACH_CLIENT_FN;
 
-typedef VOID(NPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN)(_In_ void* ProviderBindingContext);
+typedef void(NPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN)(_In_ void* ProviderBindingContext);
 typedef NPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN* PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN;
 
 typedef struct _NPI_PROVIDER_CHARACTERISTICS
 {
-    USHORT Version;
-    USHORT Length;
+    uint16_t Version;
+    uint16_t Length;
     PNPI_PROVIDER_ATTACH_CLIENT_FN ProviderAttachClient;
     PNPI_PROVIDER_DETACH_CLIENT_FN ProviderDetachClient;
     PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN ProviderCleanupBindingContext;
@@ -55,4 +54,4 @@ NTSTATUS
 NmrRegisterProvider(
     _In_ NPI_PROVIDER_CHARACTERISTICS* provider_characteristics,
     _In_opt_ __drv_aliasesMem void* provider_context,
-    _Out_ PHANDLE nmr_provider_handle);
+    _Out_ HANDLE* nmr_provider_handle);

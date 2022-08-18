@@ -5,14 +5,20 @@
 #include "fw_thunk.h"
 
 NTSTATUS
-FwpmFilterDeleteById0(_In_ HANDLE engine_handle, _In_ UINT64 id) { return STATUS_NO_MEMORY; }
+FwpmFilterDeleteById0(_In_ HANDLE engine_handle, _In_ uint64_t id) { return STATUS_NO_MEMORY; }
 
 NTSTATUS
-FwpmTransactionBegin0(_In_ _Acquires_lock_(_Curr_) HANDLE engine_handle, _In_ UINT32 flags) { return STATUS_NO_MEMORY; }
+FwpmTransactionBegin0(_In_ _Acquires_lock_(_Curr_) HANDLE engine_handle, _In_ uint32_t flags)
+{
+    return STATUS_NO_MEMORY;
+}
 
 NTSTATUS
 FwpmFilterAdd0(
-    _In_ HANDLE engine_handle, _In_ const FWPM_FILTER0* filter, _In_opt_ PSECURITY_DESCRIPTOR sd, _Out_opt_ UINT64* id)
+    _In_ HANDLE engine_handle,
+    _In_ const FWPM_FILTER0* filter,
+    _In_opt_ PSECURITY_DESCRIPTOR sd,
+    _Out_opt_ uint64_t* id)
 {
     return STATUS_NO_MEMORY;
 }
@@ -24,7 +30,7 @@ NTSTATUS
 FwpmTransactionAbort0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle) { return STATUS_NO_MEMORY; }
 
 NTSTATUS
-FwpsCalloutRegister3(_Inout_ void* device_object, _In_ const FWPS_CALLOUT3* callout, _Out_opt_ UINT32* callout_id)
+FwpsCalloutRegister3(_Inout_ void* device_object, _In_ const FWPS_CALLOUT3* callout, _Out_opt_ uint32_t* callout_id)
 {
     return STATUS_NO_MEMORY;
 }
@@ -34,18 +40,18 @@ FwpmCalloutAdd0(
     _In_ HANDLE engine_handle,
     _In_ const FWPM_CALLOUT0* callout,
     _In_opt_ PSECURITY_DESCRIPTOR sd,
-    _Out_opt_ UINT32* id)
+    _Out_opt_ uint32_t* id)
 {
     return STATUS_NO_MEMORY;
 }
 
 NTSTATUS
-FwpsCalloutUnregisterById0(_In_ const UINT32 callout_id) { return STATUS_NO_MEMORY; }
+FwpsCalloutUnregisterById0(_In_ const uint32_t callout_id) { return STATUS_NO_MEMORY; }
 
 NTSTATUS
 FwpmEngineOpen0(
     _In_opt_ const wchar_t* server_name,
-    _In_ UINT32 authn_service,
+    _In_ uint32_t authn_service,
     _In_opt_ SEC_WINNT_AUTH_IDENTITY_W* auth_identity,
     _In_opt_ const FWPM_SESSION0* session,
     _Out_ HANDLE* engine_handle)
@@ -60,7 +66,7 @@ FwpmSubLayerAdd0(_In_ HANDLE engine_handle, _In_ const FWPM_SUBLAYER0* sub_layer
 }
 
 NTSTATUS
-FwpsInjectionHandleCreate0(_In_opt_ ADDRESS_FAMILY address_family, _In_ UINT32 flags, _Out_ HANDLE* injection_handle)
+FwpsInjectionHandleCreate0(_In_opt_ ADDRESS_FAMILY address_family, _In_ uint32_t flags, _Out_ HANDLE* injection_handle)
 {
     return STATUS_NO_MEMORY;
 }
@@ -72,11 +78,15 @@ NTSTATUS
 FwpsInjectionHandleDestroy0(_In_ HANDLE injection_handle) { return STATUS_NO_MEMORY; }
 
 NTSTATUS
-FwpsFlowRemoveContext0(_In_ UINT64 flow_id, _In_ UINT16 layer_id, _In_ UINT32 callout_id) { return STATUS_NO_MEMORY; }
+FwpsFlowRemoveContext0(_In_ uint64_t flow_id, _In_ UINT16 layer_id, _In_ uint32_t callout_id)
+{
+    return STATUS_NO_MEMORY;
+}
 
 NTSTATUS
 
-FwpsFlowAssociateContext0(_In_ UINT64 flow_id, _In_ UINT16 layer_id, _In_ UINT32 callout_id, _In_ UINT64 flowContext)
+FwpsFlowAssociateContext0(
+    _In_ uint64_t flow_id, _In_ UINT16 layer_id, _In_ uint32_t callout_id, _In_ uint64_t flowContext)
 {
     return STATUS_NO_MEMORY;
 }
@@ -84,11 +94,11 @@ FwpsFlowAssociateContext0(_In_ UINT64 flow_id, _In_ UINT16 layer_id, _In_ UINT32
 NTSTATUS
 FwpsAllocateNetBufferAndNetBufferList0(
     _In_ NDIS_HANDLE pool_handle,
-    _In_ USHORT context_size,
-    _In_ USHORT context_backfill,
+    _In_ uint16_t context_size,
+    _In_ uint16_t context_backfill,
     _In_opt_ MDL* mdl_chain,
-    _In_ ULONG data_offset,
-    _In_ SIZE_T data_length,
+    _In_ unsigned long data_offset,
+    _In_ size_t data_length,
     _Outptr_ NET_BUFFER_LIST** net_buffer_list)
 {
     return STATUS_NO_MEMORY;
@@ -104,7 +114,7 @@ NTSTATUS
 FwpsInjectMacReceiveAsync0(
     _In_ HANDLE injection_handle,
     _In_opt_ HANDLE injection_context,
-    _In_ UINT32 flags,
+    _In_ uint32_t flags,
     _In_ UINT16 layer_id,
     _In_ IF_INDEX interface_index,
     _In_ NDIS_PORT_NUMBER ndis_port_number,
@@ -116,7 +126,7 @@ FwpsInjectMacReceiveAsync0(
 }
 
 void
-FwpsFreeCloneNetBufferList0(_In_ NET_BUFFER_LIST* net_buffer_list, _In_ ULONG free_clone_flags)
+FwpsFreeCloneNetBufferList0(_In_ NET_BUFFER_LIST* net_buffer_list, _In_ unsigned long free_clone_flags)
 {
     return;
 }
@@ -126,7 +136,7 @@ FwpsAllocateCloneNetBufferList0(
     _Inout_ NET_BUFFER_LIST* original_net_buffer_list,
     _In_opt_ NDIS_HANDLE net_buffer_list_pool_handle,
     _In_opt_ NDIS_HANDLE net_buffer_pool_handle,
-    _In_ ULONG allocate_clone_flags,
+    _In_ unsigned long allocate_clone_flags,
     _Outptr_ NET_BUFFER_LIST** net_buffer_list)
 {
     return STATUS_NO_MEMORY;
@@ -136,7 +146,7 @@ NTSTATUS
 FwpsInjectMacSendAsync0(
     _In_ HANDLE injection_handle,
     _In_opt_ HANDLE injection_context,
-    _In_ UINT32 flags,
+    _In_ uint32_t flags,
     _In_ UINT16 layer_id,
     _In_ IF_INDEX interface_index,
     _In_ NDIS_PORT_NUMBER ndis_port_number,

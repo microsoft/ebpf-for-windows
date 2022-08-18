@@ -88,7 +88,7 @@ typedef _Enum_is_bitflag_ enum _WORK_QUEUE_TYPE {
     CustomPriorityWorkQueue = 32
 } WORK_QUEUE_TYPE;
 
-typedef UCHAR KIRQL;
+typedef uint8_t KIRQL;
 
 typedef KIRQL* PKIRQL;
 
@@ -104,8 +104,8 @@ typedef enum _MM_PAGE_PRIORITY
 
 // Functions
 
-ULONG
-__cdecl DbgPrintEx(_In_ ULONG component_id, _In_ ULONG level, _In_z_ _Printf_format_string_ PCSTR format, ...);
+unsigned long __cdecl DbgPrintEx(
+    _In_ unsigned long component_id, _In_ unsigned long level, _In_z_ _Printf_format_string_ PCSTR format, ...);
 
 void
 ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref);
@@ -121,22 +121,24 @@ ExReleaseRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref);
 
 void
 ExAcquirePushLockExclusiveEx(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags);
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
+    _In_ unsigned long flags);
 
 void
 ExAcquirePushLockSharedEx(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags);
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
+    _In_ unsigned long flags);
 
 void
 ExReleasePushLockExclusiveEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags);
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ unsigned long flags);
 
 void
 ExReleasePushLockSharedEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags);
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ unsigned long flags);
 
 void*
-ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ SIZE_T number_of_bytes, _In_ ULONG tag);
+ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_bytes, _In_ unsigned long tag);
 
 void
 ExFreePool(void* P);
@@ -150,7 +152,7 @@ FatalListEntryError(_In_ void* p1, _In_ void* p2, _In_ void* p3);
 MDL*
 IoAllocateMdl(
     _In_opt_ __drv_aliasesMem void* virtual_address,
-    _In_ ULONG length,
+    _In_ unsigned long length,
     _In_ BOOLEAN secondary_buffer,
     _In_ BOOLEAN charge_quota,
     _Inout_opt_ IRP* irp);
@@ -192,11 +194,14 @@ MmBuildMdlForNonPagedPool(_Inout_ MDL* memory_descriptor_list);
 void*
 MmGetSystemAddressForMdlSafe(
     _Inout_ MDL* mdl,
-    _In_ ULONG page_priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
+    _In_ unsigned long page_priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
 );
 
 NTSTATUS
-RtlULongAdd(_In_ ULONG augend, _In_ ULONG addend, _Out_ _Deref_out_range_(==, augend + addend) ULONG* result);
+RtlULongAdd(
+    _In_ unsigned long augend,
+    _In_ unsigned long addend,
+    _Out_ _Deref_out_range_(==, augend + addend) unsigned long* result);
 
 // Inline functions
 _Must_inspect_result_ BOOLEAN CFORCEINLINE
@@ -207,9 +212,9 @@ IsListEmpty(_In_ const LIST_ENTRY* list_head)
 
 FORCEINLINE
 void
-InsertTailList(_Inout_ PLIST_ENTRY list_head, _Out_ __drv_aliasesMem PLIST_ENTRY entry)
+InsertTailList(_Inout_ LIST_ENTRY* list_head, _Out_ __drv_aliasesMem LIST_ENTRY* entry)
 {
-    PLIST_ENTRY PrevEntry;
+    LIST_ENTRY* PrevEntry;
     PrevEntry = list_head->Blink;
     if (PrevEntry->Flink != list_head) {
         FatalListEntryError((void*)PrevEntry, (void*)list_head, (void*)PrevEntry->Flink);
@@ -224,10 +229,10 @@ InsertTailList(_Inout_ PLIST_ENTRY list_head, _Out_ __drv_aliasesMem PLIST_ENTRY
 
 FORCEINLINE
 BOOLEAN
-RemoveEntryList(_In_ PLIST_ENTRY entry)
+RemoveEntryList(_In_ LIST_ENTRY* entry)
 {
-    PLIST_ENTRY PrevEntry;
-    PLIST_ENTRY NextEntry;
+    LIST_ENTRY* PrevEntry;
+    LIST_ENTRY* NextEntry;
 
     NextEntry = entry->Flink;
     PrevEntry = entry->Blink;
@@ -242,18 +247,18 @@ RemoveEntryList(_In_ PLIST_ENTRY entry)
 
 FORCEINLINE
 void
-InitializeListHead(_Out_ PLIST_ENTRY list_head)
+InitializeListHead(_Out_ LIST_ENTRY* list_head)
 {
     list_head->Flink = list_head->Blink = list_head;
     return;
 }
 
 FORCEINLINE
-PLIST_ENTRY
-RemoveHeadList(_Inout_ PLIST_ENTRY list_head)
+LIST_ENTRY*
+RemoveHeadList(_Inout_ LIST_ENTRY* list_head)
 {
-    PLIST_ENTRY entry;
-    PLIST_ENTRY NextEntry;
+    LIST_ENTRY* entry;
+    LIST_ENTRY* NextEntry;
 
     entry = list_head->Flink;
 
