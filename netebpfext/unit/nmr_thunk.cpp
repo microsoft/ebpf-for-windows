@@ -5,20 +5,20 @@
 #include "nmr_thunk.h"
 
 void
-NmrProviderDetachClientComplete(_In_ HANDLE NmrBindingHandle)
+NmrProviderDetachClientComplete(_In_ HANDLE nmr_binding_handle)
 {}
 
 NTSTATUS
-NmrDeregisterProvider(_In_ HANDLE NmrProviderHandle) { return STATUS_NO_MEMORY; }
+NmrDeregisterProvider(_In_ HANDLE nmr_provider_handle) { return STATUS_NO_MEMORY; }
 
 NTSTATUS
-NmrWaitForProviderDeregisterComplete(_In_ HANDLE NmrProviderHandle) { return STATUS_NO_MEMORY; }
+NmrWaitForProviderDeregisterComplete(_In_ HANDLE nmr_provider_handle) { return STATUS_NO_MEMORY; }
 
 NTSTATUS
 NmrRegisterProvider(
-    _In_ NPI_PROVIDER_CHARACTERISTICS* ProviderCharacteristics,
-    _In_opt_ __drv_aliasesMem void* ProviderContext,
-    _Out_ PHANDLE NmrProviderHandle)
+    _In_ NPI_PROVIDER_CHARACTERISTICS* provider_characteristics,
+    _In_opt_ __drv_aliasesMem void* provider_context,
+    _Out_ PHANDLE nmr_provider_handle)
 {
     return STATUS_NO_MEMORY;
 }

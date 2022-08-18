@@ -129,7 +129,7 @@ typedef struct FWPS_INCOMING_METADATA_VALUES0_
     HANDLE redirectRecords;
     // Bitmask representing which L2 values are set.
     UINT32 currentL2MetadataValues;
-    // L2 layer Flags;
+    // L2 layer flags;
     UINT32 l2Flags;
     UINT32 ethernetMacHeaderSize;
     UINT32 wiFiOperationMode;
@@ -287,7 +287,7 @@ typedef struct FWPS_CALLOUT3_
     // Uniquely identifies the callout. This must be the same GUID supplied to
     // FwpmCalloutAdd0.
     GUID calloutKey;
-    // Flags
+    // flags
     UINT32 flags;
     // Pointer to the classification function.
     FWPS_CALLOUT_CLASSIFY_FN3 classifyFn;
@@ -755,105 +755,105 @@ typedef enum FWPS_FIELDS_INBOUND_MAC_FRAME_NATIVE_
 #define FWPS_INJECTION_TYPE_L2 0x00000010
 
 NTSTATUS
-FwpmFilterDeleteById0(_In_ HANDLE engineHandle, _In_ UINT64 id);
+FwpmFilterDeleteById0(_In_ HANDLE engine_handle, _In_ UINT64 id);
 
 NTSTATUS
-FwpmTransactionBegin0(_In_ _Acquires_lock_(_Curr_) HANDLE engineHandle, _In_ UINT32 flags);
+FwpmTransactionBegin0(_In_ _Acquires_lock_(_Curr_) HANDLE engine_handle, _In_ UINT32 flags);
 
 NTSTATUS
 FwpmFilterAdd0(
-    _In_ HANDLE engineHandle, _In_ const FWPM_FILTER0* filter, _In_opt_ PSECURITY_DESCRIPTOR sd, _Out_opt_ UINT64* id);
+    _In_ HANDLE engine_handle, _In_ const FWPM_FILTER0* filter, _In_opt_ PSECURITY_DESCRIPTOR sd, _Out_opt_ UINT64* id);
 
 NTSTATUS
-FwpmTransactionCommit0(_In_ _Releases_lock_(_Curr_) HANDLE engineHandle);
+FwpmTransactionCommit0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle);
 
 NTSTATUS
-FwpmTransactionAbort0(_In_ _Releases_lock_(_Curr_) HANDLE engineHandle);
+FwpmTransactionAbort0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle);
 
 NTSTATUS
-FwpsCalloutRegister3(_Inout_ void* deviceObject, _In_ const FWPS_CALLOUT3* callout, _Out_opt_ UINT32* calloutId);
+FwpsCalloutRegister3(_Inout_ void* device_object, _In_ const FWPS_CALLOUT3* callout, _Out_opt_ UINT32* callout_id);
 
 NTSTATUS
 FwpmCalloutAdd0(
-    _In_ HANDLE engineHandle,
+    _In_ HANDLE engine_handle,
     _In_ const FWPM_CALLOUT0* callout,
     _In_opt_ PSECURITY_DESCRIPTOR sd,
     _Out_opt_ UINT32* id);
 
 NTSTATUS
-FwpsCalloutUnregisterById0(_In_ const UINT32 calloutId);
+FwpsCalloutUnregisterById0(_In_ const UINT32 callout_id);
 
 NTSTATUS
 FwpmEngineOpen0(
-    _In_opt_ const wchar_t* serverName,
-    _In_ UINT32 authnService,
-    _In_opt_ SEC_WINNT_AUTH_IDENTITY_W* authIdentity,
+    _In_opt_ const wchar_t* server_name,
+    _In_ UINT32 authn_service,
+    _In_opt_ SEC_WINNT_AUTH_IDENTITY_W* auth_identity,
     _In_opt_ const FWPM_SESSION0* session,
-    _Out_ HANDLE* engineHandle);
+    _Out_ HANDLE* engine_handle);
 
 NTSTATUS
-FwpmSubLayerAdd0(_In_ HANDLE engineHandle, _In_ const FWPM_SUBLAYER0* subLayer, _In_opt_ PSECURITY_DESCRIPTOR sd);
+FwpmSubLayerAdd0(_In_ HANDLE engine_handle, _In_ const FWPM_SUBLAYER0* sub_layer, _In_opt_ PSECURITY_DESCRIPTOR sd);
 
 NTSTATUS
-FwpsInjectionHandleCreate0(_In_opt_ ADDRESS_FAMILY addressFamily, _In_ UINT32 flags, _Out_ HANDLE* injectionHandle);
+FwpsInjectionHandleCreate0(_In_opt_ ADDRESS_FAMILY address_family, _In_ UINT32 flags, _Out_ HANDLE* injection_handle);
 
 NTSTATUS
-FwpmEngineClose0(_Inout_ HANDLE engineHandle);
+FwpmEngineClose0(_Inout_ HANDLE engine_handle);
 
 NTSTATUS
-FwpsInjectionHandleDestroy0(_In_ HANDLE injectionHandle);
+FwpsInjectionHandleDestroy0(_In_ HANDLE injection_handle);
 
 NTSTATUS
-FwpsFlowRemoveContext0(_In_ UINT64 flowId, _In_ UINT16 layerId, _In_ UINT32 calloutId);
+FwpsFlowRemoveContext0(_In_ UINT64 flowI_id, _In_ UINT16 layer_id, _In_ UINT32 callout_id);
 
 NTSTATUS
 
-FwpsFlowAssociateContext0(_In_ UINT64 flowId, _In_ UINT16 layerId, _In_ UINT32 calloutId, _In_ UINT64 flowContext);
+FwpsFlowAssociateContext0(_In_ UINT64 flowI_id, _In_ UINT16 layer_id, _In_ UINT32 callout_id, _In_ UINT64 flow_context);
 
 NTSTATUS
 FwpsAllocateNetBufferAndNetBufferList0(
-    _In_ NDIS_HANDLE poolHandle,
-    _In_ USHORT contextSize,
-    _In_ USHORT contextBackFill,
-    _In_opt_ MDL* mdlChain,
-    _In_ ULONG dataOffset,
-    _In_ SIZE_T dataLength,
-    _Outptr_ NET_BUFFER_LIST** netBufferList);
+    _In_ NDIS_HANDLE pool_handle,
+    _In_ USHORT context_size,
+    _In_ USHORT context_backfill,
+    _In_opt_ MDL* mdl_chain,
+    _In_ ULONG data_offset,
+    _In_ SIZE_T data_length,
+    _Outptr_ NET_BUFFER_LIST** net_buffer_list);
 
 void
-FwpsFreeNetBufferList0(_In_ NET_BUFFER_LIST* netBufferList);
+FwpsFreeNetBufferList0(_In_ NET_BUFFER_LIST* net_buffer_list);
 
 NTSTATUS
 FwpsInjectMacReceiveAsync0(
-    _In_ HANDLE injectionHandle,
-    _In_opt_ HANDLE injectionContext,
+    _In_ HANDLE injection_handle,
+    _In_opt_ HANDLE injection_context,
     _In_ UINT32 flags,
-    _In_ UINT16 layerId,
-    _In_ IF_INDEX interfaceIndex,
-    _In_ NDIS_PORT_NUMBER NdisPortNumber,
-    _Inout_ NET_BUFFER_LIST* netBufferLists,
-    _In_ void* completionFn,
-    _In_opt_ HANDLE completionContext);
+    _In_ UINT16 layer_id,
+    _In_ IF_INDEX interface_index,
+    _In_ NDIS_PORT_NUMBER ndis_port_number,
+    _Inout_ NET_BUFFER_LIST* net_buffer_lists,
+    _In_ void* completion_function,
+    _In_opt_ HANDLE completion_context);
 
 void
-FwpsFreeCloneNetBufferList0(_In_ NET_BUFFER_LIST* netBufferList, _In_ ULONG freeCloneFlags);
+FwpsFreeCloneNetBufferList0(_In_ NET_BUFFER_LIST* net_buffer_list, _In_ ULONG free_clone_flags);
 
 NTSTATUS
 FwpsAllocateCloneNetBufferList0(
-    _Inout_ NET_BUFFER_LIST* originalNetBufferList,
-    _In_opt_ NDIS_HANDLE netBufferListPoolHandle,
-    _In_opt_ NDIS_HANDLE netBufferPoolHandle,
-    _In_ ULONG allocateCloneFlags,
-    _Outptr_ NET_BUFFER_LIST** netBufferList);
+    _Inout_ NET_BUFFER_LIST* original_net_buffer_list,
+    _In_opt_ NDIS_HANDLE net_buffer_list_pool_handle,
+    _In_opt_ NDIS_HANDLE net_buffer_pool_handle,
+    _In_ ULONG allocate_clone_flags,
+    _Outptr_ NET_BUFFER_LIST** net_buffer_list);
 
 NTSTATUS
 FwpsInjectMacSendAsync0(
-    _In_ HANDLE injectionHandle,
-    _In_opt_ HANDLE injectionContext,
+    _In_ HANDLE injection_handle,
+    _In_opt_ HANDLE injection_context,
     _In_ UINT32 flags,
-    _In_ UINT16 layerId,
-    _In_ IF_INDEX interfaceIndex,
-    _In_ NDIS_PORT_NUMBER NdisPortNumber,
-    _Inout_ NET_BUFFER_LIST* netBufferLists,
-    _In_ void* completionFn,
-    _In_opt_ HANDLE completionContext);
+    _In_ UINT16 layer_id,
+    _In_ IF_INDEX interface_index,
+    _In_ NDIS_PORT_NUMBER ndis_port_number,
+    _Inout_ NET_BUFFER_LIST* net_buffer_lists,
+    _In_ void* completion_function,
+    _In_opt_ HANDLE completion_context);

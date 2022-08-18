@@ -10,7 +10,7 @@
 #define ExReleasePushLockExclusive(Lock) ExReleasePushLockExclusiveEx(Lock, EX_DEFAULT_PUSH_LOCK_FLAGS)
 #define ExReleasePushLockShared(Lock) ExReleasePushLockSharedEx(Lock, EX_DEFAULT_PUSH_LOCK_FLAGS)
 #define KdPrintEx(_x_) DbgPrintEx _x_
-#define KeAcquireSpinLock(SpinLock, OldIrql) *(OldIrql) = KeAcquireSpinLockRaiseToDpc(SpinLock)
+#define KeAcquireSpinLock(spin_lock, OldIrql) *(OldIrql) = KeAcquireSpinLockRaiseToDpc(spin_lock)
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 #define PAGED_CODE()
 #define STATUS_SUCCESS 0
@@ -31,7 +31,7 @@ typedef struct _EX_RUNDOWN_REF
 } EX_RUNDOWN_REF;
 typedef struct _IO_WORKITEM IO_WORKITEM, *PIO_WORKITEM;
 typedef void
-IO_WORKITEM_ROUTINE(_In_ DEVICE_OBJECT* DeviceObject, _In_opt_ void* Context);
+IO_WORKITEM_ROUTINE(_In_ DEVICE_OBJECT* device_object, _In_opt_ void* context);
 
 //
 // Pool Allocation routines (in pool.c)
@@ -105,71 +105,71 @@ typedef enum _MM_PAGE_PRIORITY
 // Functions
 
 ULONG
-__cdecl DbgPrintEx(_In_ ULONG ComponentId, _In_ ULONG Level, _In_z_ _Printf_format_string_ PCSTR Format, ...);
+__cdecl DbgPrintEx(_In_ ULONG component_id, _In_ ULONG level, _In_z_ _Printf_format_string_ PCSTR format, ...);
 
 void
-ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* RunRef);
+ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref);
 
 void
-ExWaitForRundownProtectionRelease(_Inout_ EX_RUNDOWN_REF* RunRef);
+ExWaitForRundownProtectionRelease(_Inout_ EX_RUNDOWN_REF* rundown_ref);
 
 BOOLEAN
-ExAcquireRundownProtection(_Inout_ EX_RUNDOWN_REF* RunRef);
+ExAcquireRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref);
 
 void
-ExReleaseRundownProtection(_Inout_ EX_RUNDOWN_REF* RunRef);
+ExReleaseRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref);
 
 void
 ExAcquirePushLockExclusiveEx(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* PushLock, _In_ ULONG Flags);
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags);
 
 void
 ExAcquirePushLockSharedEx(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* PushLock, _In_ ULONG Flags);
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags);
 
 void
 ExReleasePushLockExclusiveEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* PushLock, _In_ ULONG Flags);
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags);
 
 void
 ExReleasePushLockSharedEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* PushLock, _In_ ULONG Flags);
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags);
 
 void*
-ExAllocatePoolUninitialized(_In_ POOL_TYPE PoolType, _In_ SIZE_T NumberOfBytes, _In_ ULONG Tag);
+ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ SIZE_T number_of_bytes, _In_ ULONG tag);
 
 void
 ExFreePool(void* P);
 
 void
-ExInitializePushLock(_Out_ EX_PUSH_LOCK* PushLock);
+ExInitializePushLock(_Out_ EX_PUSH_LOCK* push_lock);
 
 void
 FatalListEntryError(_In_ void* p1, _In_ void* p2, _In_ void* p3);
 
 MDL*
 IoAllocateMdl(
-    _In_opt_ __drv_aliasesMem void* VirtualAddress,
-    _In_ ULONG Length,
-    _In_ BOOLEAN SecondaryBuffer,
-    _In_ BOOLEAN ChargeQuota,
-    _Inout_opt_ IRP* Irp);
+    _In_opt_ __drv_aliasesMem void* virtual_address,
+    _In_ ULONG length,
+    _In_ BOOLEAN secondary_buffer,
+    _In_ BOOLEAN charge_quota,
+    _Inout_opt_ IRP* irp);
 
 PIO_WORKITEM
-IoAllocateWorkItem(_In_ DEVICE_OBJECT* DeviceObject);
+IoAllocateWorkItem(_In_ DEVICE_OBJECT* device_object);
 
 void
 IoQueueWorkItem(
-    _Inout_ __drv_aliasesMem IO_WORKITEM* IoWorkItem,
-    _In_ IO_WORKITEM_ROUTINE* WorkerRoutine,
-    _In_ WORK_QUEUE_TYPE QueueType,
-    _In_opt_ __drv_aliasesMem void* Context);
+    _Inout_ __drv_aliasesMem IO_WORKITEM* io_work_item,
+    _In_ IO_WORKITEM_ROUTINE* worker_routine,
+    _In_ WORK_QUEUE_TYPE queue_type,
+    _In_opt_ __drv_aliasesMem void* context);
 
 void
-IoFreeWorkItem(_In_ __drv_freesMem(Mem) PIO_WORKITEM IoWorkItem);
+IoFreeWorkItem(_In_ __drv_freesMem(Mem) PIO_WORKITEM io_work_item);
 
 void
-IoFreeMdl(MDL* Mdl);
+IoFreeMdl(MDL* mdl);
 
 void
 KeEnterCriticalRegion(void);
@@ -178,62 +178,61 @@ void
 KeLeaveCriticalRegion(void);
 
 void
-KeInitializeSpinLock(_Out_ PKSPIN_LOCK SpinLock);
+KeInitializeSpinLock(_Out_ PKSPIN_LOCK spin_lock);
 
 KIRQL
-KeAcquireSpinLockRaiseToDpc(_Inout_ PKSPIN_LOCK SpinLock);
+KeAcquireSpinLockRaiseToDpc(_Inout_ PKSPIN_LOCK spin_lock);
 
 void
-KeReleaseSpinLock(_Inout_ PKSPIN_LOCK SpinLock, _In_ _IRQL_restores_ KIRQL NewIrql);
+KeReleaseSpinLock(_Inout_ PKSPIN_LOCK spin_lock, _In_ _IRQL_restores_ KIRQL new_irql);
 
 void
-MmBuildMdlForNonPagedPool(_Inout_ MDL* MemoryDescriptorList);
+MmBuildMdlForNonPagedPool(_Inout_ MDL* memory_descriptor_list);
 
 void*
 MmGetSystemAddressForMdlSafe(
-    _Inout_ MDL* Mdl,
-    _In_ ULONG Priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
+    _Inout_ MDL* mdl,
+    _In_ ULONG page_priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
 );
 
 NTSTATUS
-RtlULongAdd(
-    _In_ ULONG ulAugend, _In_ ULONG ulAddend, _Out_ _Deref_out_range_(==, ulAugend + ulAddend) ULONG* pulResult);
+RtlULongAdd(_In_ ULONG augend, _In_ ULONG addend, _Out_ _Deref_out_range_(==, augend + addend) ULONG* result);
 
 // Inline functions
 _Must_inspect_result_ BOOLEAN CFORCEINLINE
-IsListEmpty(_In_ const LIST_ENTRY* ListHead)
+IsListEmpty(_In_ const LIST_ENTRY* list_head)
 {
-    return (BOOLEAN)(ListHead->Flink == ListHead);
+    return (BOOLEAN)(list_head->Flink == list_head);
 }
 
 FORCEINLINE
 void
-InsertTailList(_Inout_ PLIST_ENTRY ListHead, _Out_ __drv_aliasesMem PLIST_ENTRY Entry)
+InsertTailList(_Inout_ PLIST_ENTRY list_head, _Out_ __drv_aliasesMem PLIST_ENTRY entry)
 {
     PLIST_ENTRY PrevEntry;
-    PrevEntry = ListHead->Blink;
-    if (PrevEntry->Flink != ListHead) {
-        FatalListEntryError((void*)PrevEntry, (void*)ListHead, (void*)PrevEntry->Flink);
+    PrevEntry = list_head->Blink;
+    if (PrevEntry->Flink != list_head) {
+        FatalListEntryError((void*)PrevEntry, (void*)list_head, (void*)PrevEntry->Flink);
     }
 
-    Entry->Flink = ListHead;
-    Entry->Blink = PrevEntry;
-    PrevEntry->Flink = Entry;
-    ListHead->Blink = Entry;
+    entry->Flink = list_head;
+    entry->Blink = PrevEntry;
+    PrevEntry->Flink = entry;
+    list_head->Blink = entry;
     return;
 }
 
 FORCEINLINE
 BOOLEAN
-RemoveEntryList(_In_ PLIST_ENTRY Entry)
+RemoveEntryList(_In_ PLIST_ENTRY entry)
 {
     PLIST_ENTRY PrevEntry;
     PLIST_ENTRY NextEntry;
 
-    NextEntry = Entry->Flink;
-    PrevEntry = Entry->Blink;
-    if ((NextEntry->Blink != Entry) || (PrevEntry->Flink != Entry)) {
-        FatalListEntryError((void*)PrevEntry, (void*)Entry, (void*)NextEntry);
+    NextEntry = entry->Flink;
+    PrevEntry = entry->Blink;
+    if ((NextEntry->Blink != entry) || (PrevEntry->Flink != entry)) {
+        FatalListEntryError((void*)PrevEntry, (void*)entry, (void*)NextEntry);
     }
 
     PrevEntry->Flink = NextEntry;
@@ -243,28 +242,28 @@ RemoveEntryList(_In_ PLIST_ENTRY Entry)
 
 FORCEINLINE
 void
-InitializeListHead(_Out_ PLIST_ENTRY ListHead)
+InitializeListHead(_Out_ PLIST_ENTRY list_head)
 {
-    ListHead->Flink = ListHead->Blink = ListHead;
+    list_head->Flink = list_head->Blink = list_head;
     return;
 }
 
 FORCEINLINE
 PLIST_ENTRY
-RemoveHeadList(_Inout_ PLIST_ENTRY ListHead)
+RemoveHeadList(_Inout_ PLIST_ENTRY list_head)
 {
-    PLIST_ENTRY Entry;
+    PLIST_ENTRY entry;
     PLIST_ENTRY NextEntry;
 
-    Entry = ListHead->Flink;
+    entry = list_head->Flink;
 
-    NextEntry = Entry->Flink;
-    if ((Entry->Blink != ListHead) || (NextEntry->Blink != Entry)) {
-        FatalListEntryError((void*)ListHead, (void*)Entry, (void*)NextEntry);
+    NextEntry = entry->Flink;
+    if ((entry->Blink != list_head) || (NextEntry->Blink != entry)) {
+        FatalListEntryError((void*)list_head, (void*)entry, (void*)NextEntry);
     }
 
-    ListHead->Flink = NextEntry;
-    NextEntry->Blink = ListHead;
+    list_head->Flink = NextEntry;
+    NextEntry->Blink = list_head;
 
-    return Entry;
+    return entry;
 }

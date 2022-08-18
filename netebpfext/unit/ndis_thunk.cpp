@@ -5,7 +5,7 @@
 #include "ndis_thunk.h"
 
 PNDIS_GENERIC_OBJECT
-NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* DriverObject, _In_ ULONG Tag, _In_ USHORT Size) { return NULL; }
+NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* DriverObject, _In_ ULONG tag, _In_ USHORT Size) { return NULL; }
 
 NDIS_HANDLE
 NdisAllocateNetBufferListPool(_In_opt_ NDIS_HANDLE NdisHandle, _In_ NET_BUFFER_LIST_POOL_PARAMETERS const* Parameters)

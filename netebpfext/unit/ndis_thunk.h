@@ -43,7 +43,7 @@ typedef struct _NET_BUFFER_LIST
 typedef void* PNDIS_GENERIC_OBJECT;
 
 PNDIS_GENERIC_OBJECT
-NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* DriverObject, _In_ ULONG Tag, _In_ USHORT Size);
+NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* DriverObject, _In_ ULONG tag, _In_ USHORT Size);
 
 NDIS_HANDLE
 NdisAllocateNetBufferListPool(_In_opt_ NDIS_HANDLE NdisHandle, _In_ NET_BUFFER_LIST_POOL_PARAMETERS const* Parameters);

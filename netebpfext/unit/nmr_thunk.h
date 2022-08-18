@@ -14,8 +14,8 @@ typedef struct _NPI_REGISTRATION_INSTANCE
 } NPI_REGISTRATION_INSTANCE, *PNPI_REGISTRATION_INSTANCE;
 
 typedef NTSTATUS(NPI_PROVIDER_ATTACH_CLIENT_FN)(
-    _In_ HANDLE NmrBindingHandle,
-    _In_ void* ProviderContext,
+    _In_ HANDLE nmr_binding_handle,
+    _In_ void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* ClientRegistrationInstance,
     _In_ void* ClientBindingContext,
     _In_ const void* ClientDispatch,
@@ -43,16 +43,16 @@ typedef GUID NPIID;
 typedef const NPIID* PNPIID;
 
 void
-NmrProviderDetachClientComplete(_In_ HANDLE NmrBindingHandle);
+NmrProviderDetachClientComplete(_In_ HANDLE nmr_binding_handle);
 
 NTSTATUS
-NmrDeregisterProvider(_In_ HANDLE NmrProviderHandle);
+NmrDeregisterProvider(_In_ HANDLE nmr_provider_handle);
 
 NTSTATUS
-NmrWaitForProviderDeregisterComplete(_In_ HANDLE NmrProviderHandle);
+NmrWaitForProviderDeregisterComplete(_In_ HANDLE nmr_provider_handle);
 
 NTSTATUS
 NmrRegisterProvider(
-    _In_ NPI_PROVIDER_CHARACTERISTICS* ProviderCharacteristics,
-    _In_opt_ __drv_aliasesMem void* ProviderContext,
-    _Out_ PHANDLE NmrProviderHandle);
+    _In_ NPI_PROVIDER_CHARACTERISTICS* provider_characteristics,
+    _In_opt_ __drv_aliasesMem void* provider_context,
+    _Out_ PHANDLE nmr_provider_handle);

@@ -5,62 +5,62 @@
 #include "kernel_thunk.h"
 
 ULONG
-__cdecl DbgPrintEx(_In_ ULONG ComponentId, _In_ ULONG Level, _In_z_ _Printf_format_string_ PCSTR Format, ...)
+__cdecl DbgPrintEx(_In_ ULONG component_id, _In_ ULONG level, _In_z_ _Printf_format_string_ PCSTR format, ...)
 {
     return -1;
 }
 
 void
-ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* RunRef)
+ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref)
 {
     return;
 }
 
 void
-ExWaitForRundownProtectionRelease(_Inout_ EX_RUNDOWN_REF* RunRef)
+ExWaitForRundownProtectionRelease(_Inout_ EX_RUNDOWN_REF* rundown_ref)
 {
     return;
 }
 
 BOOLEAN
-ExAcquireRundownProtection(_Inout_ EX_RUNDOWN_REF* RunRef) { return FALSE; }
+ExAcquireRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref) { return FALSE; }
 
 void
-ExReleaseRundownProtection(_Inout_ EX_RUNDOWN_REF* RunRef)
+ExReleaseRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref)
 {
     return;
 }
 
 void
 ExAcquirePushLockExclusiveEx(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* PushLock, _In_ ULONG Flags)
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags)
 {
     return;
 }
 
 void
 ExAcquirePushLockSharedEx(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* PushLock, _In_ ULONG Flags)
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags)
 {
     return;
 }
 
 void
 ExReleasePushLockExclusiveEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* PushLock, _In_ ULONG Flags)
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags)
 {
     return;
 }
 
 void
 ExReleasePushLockSharedEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* PushLock, _In_ ULONG Flags)
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ ULONG flags)
 {
     return;
 }
 
 void*
-ExAllocatePoolUninitialized(_In_ POOL_TYPE PoolType, _In_ SIZE_T NumberOfBytes, _In_ ULONG Tag)
+ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ SIZE_T number_of_bytes, _In_ ULONG tag)
 {
     return NULL;
 }
@@ -72,7 +72,7 @@ ExFreePool(void* P)
 }
 
 void
-ExInitializePushLock(_Out_ EX_PUSH_LOCK* PushLock)
+ExInitializePushLock(_Out_ EX_PUSH_LOCK* push_lock)
 {
     return;
 }
@@ -85,36 +85,36 @@ FatalListEntryError(_In_ void* p1, _In_ void* p2, _In_ void* p3)
 
 MDL*
 IoAllocateMdl(
-    _In_opt_ __drv_aliasesMem void* VirtualAddress,
-    _In_ ULONG Length,
-    _In_ BOOLEAN SecondaryBuffer,
-    _In_ BOOLEAN ChargeQuota,
-    _Inout_opt_ IRP* Irp)
+    _In_opt_ __drv_aliasesMem void* virtual_address,
+    _In_ ULONG length,
+    _In_ BOOLEAN secondary_buffer,
+    _In_ BOOLEAN charge_quota,
+    _Inout_opt_ IRP* irp)
 {
     return NULL;
 }
 
 PIO_WORKITEM
-IoAllocateWorkItem(_In_ DEVICE_OBJECT* DeviceObject) { return NULL; }
+IoAllocateWorkItem(_In_ DEVICE_OBJECT* device_object) { return NULL; }
 
 void
 IoQueueWorkItem(
-    _Inout_ __drv_aliasesMem IO_WORKITEM* IoWorkItem,
-    _In_ IO_WORKITEM_ROUTINE* WorkerRoutine,
-    _In_ WORK_QUEUE_TYPE QueueType,
-    _In_opt_ __drv_aliasesMem void* Context)
+    _Inout_ __drv_aliasesMem IO_WORKITEM* io_workitem,
+    _In_ IO_WORKITEM_ROUTINE* worker_routine,
+    _In_ WORK_QUEUE_TYPE queue_type,
+    _In_opt_ __drv_aliasesMem void* context)
 {
     return;
 }
 
 void
-IoFreeWorkItem(_In_ __drv_freesMem(Mem) PIO_WORKITEM IoWorkItem)
+IoFreeWorkItem(_In_ __drv_freesMem(Mem) PIO_WORKITEM io_workitem)
 {
     return;
 }
 
 void
-IoFreeMdl(MDL* Mdl)
+IoFreeMdl(MDL* mdl)
 {
     return;
 }
@@ -132,37 +132,37 @@ KeLeaveCriticalRegion(void)
 }
 
 void
-KeInitializeSpinLock(_Out_ PKSPIN_LOCK SpinLock)
+KeInitializeSpinLock(_Out_ PKSPIN_LOCK spin_lock)
 {
     return;
 }
 
 KIRQL
-KeAcquireSpinLockRaiseToDpc(_Inout_ PKSPIN_LOCK SpinLock) { return 0; }
+KeAcquireSpinLockRaiseToDpc(_Inout_ PKSPIN_LOCK spin_lock) { return 0; }
 
 void
-KeReleaseSpinLock(_Inout_ PKSPIN_LOCK SpinLock, _In_ _IRQL_restores_ KIRQL NewIrql)
+KeReleaseSpinLock(_Inout_ PKSPIN_LOCK spin_lock, _In_ _IRQL_restores_ KIRQL new_irql)
 {
     return;
 }
 
 void
-MmBuildMdlForNonPagedPool(_Inout_ MDL* MemoryDescriptorList)
+MmBuildMdlForNonPagedPool(_Inout_ MDL* memory_descriptor_list)
 {
     return;
 }
 
 void*
 MmGetSystemAddressForMdlSafe(
-    _Inout_ MDL* Mdl,
-    _In_ ULONG Priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
+    _Inout_ MDL* mdl,
+    _In_ ULONG page_priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
 )
 {
     return NULL;
 }
 
 NTSTATUS
-RtlULongAdd(_In_ ULONG ulAugend, _In_ ULONG ulAddend, _Out_ _Deref_out_range_(==, ulAugend + ulAddend) ULONG* pulResult)
+RtlULongAdd(_In_ ULONG augend, _In_ ULONG addend, _Out_ _Deref_out_range_(==, augend + addend) ULONG* result)
 {
     return STATUS_NO_MEMORY;
 }
