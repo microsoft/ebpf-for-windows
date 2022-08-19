@@ -30,11 +30,11 @@ connection_test(
     _In_ receiver_socket_t& receiver_socket,
     uint32_t protocol)
 {
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("cgroup_sock_addr.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
-    REQUIRE(result == 0);
+    struct bpf_object_open_opts opts = {0};
+    struct bpf_object* object = bpf_object__open_file("cgroup_sock_addr.o", &opts);
     REQUIRE(object != nullptr);
+    // Load the programs.
+    REQUIRE(bpf_object__load(object) == 0);
 
     const char* connect_program_name = (address_family == AF_INET) ? "authorize_connect4" : "authorize_connect6";
     bpf_program* connect_program = bpf_object__find_program_by_name(object, connect_program_name);
@@ -80,7 +80,7 @@ connection_test(
     // Attach the connect program at BPF_CGROUP_INET4_CONNECT.
     bpf_attach_type connect_attach_type =
         (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
-    result =
+    int result =
         bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(connect_program)), 0, connect_attach_type, 0);
     REQUIRE(result == 0);
 
@@ -159,19 +159,19 @@ TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
-    struct bpf_object* object;
-    int program_fd;
     bpf_prog_info program_info;
     uint32_t program_info_size = sizeof(program_info);
 
-    int result = bpf_prog_load_deprecated("cgroup_sock_addr.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
-    REQUIRE(result == 0);
+    struct bpf_object_open_opts opts = {0};
+    struct bpf_object* object = bpf_object__open_file("cgroup_sock_addr.o", &opts);
     REQUIRE(object != nullptr);
+    // Load the programs.
+    REQUIRE(bpf_object__load(object) == 0);
 
     bpf_program* connect4_program = bpf_object__find_program_by_name(object, "authorize_connect4");
     REQUIRE(connect4_program != nullptr);
 
-    result = bpf_prog_attach(
+    int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect4_program)),
         UNSPECIFIED_COMPARTMENT_ID,
         BPF_CGROUP_INET4_CONNECT,
@@ -252,11 +252,11 @@ connection_monitor_test(
     uint32_t protocol,
     bool disconnect)
 {
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("sockops.o", BPF_PROG_TYPE_SOCK_OPS, &object, &program_fd);
-    REQUIRE(result == 0);
+    struct bpf_object_open_opts opts = {0};
+    struct bpf_object* object = bpf_object__open_file("sockops.o", &opts);
     REQUIRE(object != nullptr);
+    // Load the programs.
+    REQUIRE(bpf_object__load(object) == 0);
 
     // Ring buffer event callback context.
     std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
@@ -332,7 +332,7 @@ connection_monitor_test(
     receiver_socket.post_async_receive();
 
     // Attach the sockops program.
-    result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
+    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
     REQUIRE(result == 0);
 
     // Send loopback message to test port.
@@ -428,16 +428,16 @@ TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
 
 TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 {
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("sockops.o", BPF_PROG_TYPE_SOCK_OPS, &object, &program_fd);
-    REQUIRE(result == 0);
+    struct bpf_object_open_opts opts = {0};
+    struct bpf_object* object = bpf_object__open_file("sockops.o", &opts);
     REQUIRE(object != nullptr);
+    // Load the programs.
+    REQUIRE(bpf_object__load(object) == 0);
 
     bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
     REQUIRE(_program != nullptr);
 
-    result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
+    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
     REQUIRE(result == 0);
 
     bpf_object__close(object);
