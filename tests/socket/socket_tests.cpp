@@ -30,8 +30,7 @@ connection_test(
     _In_ receiver_socket_t& receiver_socket,
     uint32_t protocol)
 {
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("cgroup_sock_addr.o", &opts);
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -162,8 +161,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     bpf_prog_info program_info;
     uint32_t program_info_size = sizeof(program_info);
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("cgroup_sock_addr.o", &opts);
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -252,8 +250,7 @@ connection_monitor_test(
     uint32_t protocol,
     bool disconnect)
 {
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("sockops.o", &opts);
+    struct bpf_object* object = bpf_object__open("sockops.o");
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -428,8 +425,7 @@ TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
 
 TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 {
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("sockops.o", &opts);
+    struct bpf_object* object = bpf_object__open("sockops.o");
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);

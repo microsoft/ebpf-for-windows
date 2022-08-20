@@ -99,6 +99,37 @@ bpf_prog_load(
 }
 
 int
+bpf_prog_load_deprecated(const char* file_name, enum bpf_prog_type type, struct bpf_object** object, int* program_fd)
+{
+    *object = nullptr;
+
+    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(type);
+
+    if (program_type == nullptr) {
+        return libbpf_err(-EINVAL);
+    }
+
+    const char* log_buffer;
+    struct bpf_object* new_object;
+    ebpf_result_t result =
+        ebpf_object_open(file_name, nullptr, nullptr, program_type, nullptr, &new_object, &log_buffer);
+    free((void*)log_buffer);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_result_err(result);
+    }
+
+    result = ebpf_object_load(new_object);
+    if (result != EBPF_SUCCESS) {
+        ebpf_object_close(new_object);
+        return libbpf_result_err(result);
+    }
+    struct bpf_program* program = bpf_object__next_program(new_object, nullptr);
+    *program_fd = bpf_program__fd(program);
+    *object = new_object;
+    return 0;
+}
+
+int
 bpf_program__fd(const struct bpf_program* program)
 {
     return (int)ebpf_program_get_fd(program);

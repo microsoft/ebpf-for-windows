@@ -315,8 +315,7 @@ TEST_CASE("libbpf program", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("droppacket.o", &opts);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
     REQUIRE(object != nullptr);
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
@@ -359,8 +358,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
     _test_helper_libbpf test_helper;
     const char* pin_path = "\\temp\\test";
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("droppacket.o", &opts);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
     REQUIRE(object != nullptr);
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
@@ -498,8 +496,7 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
     bpf_prog_info program_info[2];
 
     for (int i = 0; i < 2; i++) {
-        struct bpf_object_open_opts opts = {0};
-        object[i] = bpf_object__open_file("droppacket.o", &opts);
+        object[i] = bpf_object__open("droppacket.o");
         REQUIRE(object[i] != nullptr);
         // Load the program(s).
         REQUIRE(bpf_object__load(object[i]) == 0);
@@ -523,8 +520,7 @@ TEST_CASE("libbpf map", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("droppacket.o", &opts);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -656,7 +652,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(errno == EINVAL);
 
     // Invalid options - bad inner_map_fd.
-    bpf_map_create_opts map_create_opts{
+    bpf_map_create_opts opts{
         sizeof(opts),         // sz
         0,                    // btf_fd
         0,                    // btf_key_type_id
@@ -668,24 +664,24 @@ TEST_CASE("libbpf map", "[libbpf]")
         0,                    // numa_node
         0,                    // map_ifindex
     };
-    result = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, "bad_opts", 1, 1, 1, &map_create_opts);
+    result = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, "bad_opts", 1, 1, 1, &opts);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
     // Invalid options - bad flags.
-    map_create_opts = {
-        sizeof(map_create_opts), // sz
-        0,                       // btf_fd
-        0,                       // btf_key_type_id
-        0,                       // btf_value_type_id
-        0,                       // btf_vmlinux_value_type_id
-        0,                       // inner_map_fd
-        UINT32_MAX,              // map_flags
-        0,                       // map_extra
-        0,                       // numa_node
-        0,                       // map_ifindex
+    opts = {
+        sizeof(opts), // sz
+        0,            // btf_fd
+        0,            // btf_key_type_id
+        0,            // btf_value_type_id
+        0,            // btf_vmlinux_value_type_id
+        0,            // inner_map_fd
+        UINT32_MAX,   // map_flags
+        0,            // map_extra
+        0,            // numa_node
+        0,            // map_ifindex
     };
-    result = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, "bad_opts", 1, 1, 1, &map_create_opts);
+    result = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, "bad_opts", 1, 1, 1, &opts);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
@@ -810,8 +806,7 @@ TEST_CASE("libbpf map binding", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("droppacket.o", &opts);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -866,8 +861,7 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
     _test_helper_libbpf test_helper;
     const char* pin_path = "\\temp\\test";
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("droppacket.o", &opts);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -964,8 +958,7 @@ TEST_CASE("libbpf obj pinning", "[libbpf]")
     _test_helper_libbpf test_helper;
     const char* pin_path = "\\temp\\test";
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("droppacket.o", &opts);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -1003,8 +996,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file(filename, &opts);
+    struct bpf_object* object = bpf_object__open(filename);
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -1107,8 +1099,7 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
     const char* file_name =
         (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_multiple_um.dll" : "tail_call_multiple.o");
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file(file_name, &opts);
+    struct bpf_object* object = bpf_object__open(file_name);
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -1197,8 +1188,7 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_um.dll" : "tail_call.o");
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* xdp_object = bpf_object__open_file(file_name, &opts);
+    struct bpf_object* xdp_object = bpf_object__open(file_name);
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
@@ -1210,7 +1200,7 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
     // the individual dll, instead of the combined DLL. This helps in testing the DLL stub which is generated
     // bpf2c.exe tool.
     const char* another_file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
-    struct bpf_object* bind_object = bpf_object__open_file(another_file_name, &opts);
+    struct bpf_object* bind_object = bpf_object__open(another_file_name);
     REQUIRE(bind_object != nullptr);
     // Load the program(s).
     REQUIRE(bpf_object__load(bind_object) == 0);
@@ -1250,15 +1240,14 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* xdp_object = bpf_object__open_file("droppacket.o", &opts);
+    struct bpf_object* xdp_object = bpf_object__open("droppacket.o");
     REQUIRE(xdp_object != nullptr);
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
     struct bpf_program* xdp_program = bpf_object__find_program_by_name(xdp_object, "DropPacket");
     int xdp_program_fd = bpf_program__fd(const_cast<const bpf_program*>(xdp_program));
 
-    struct bpf_object* bind_object = bpf_object__open_file("bindmonitor.o", &opts);
+    struct bpf_object* bind_object = bpf_object__open("bindmonitor.o");
     REQUIRE(bind_object != nullptr);
     // Load the program(s).
     REQUIRE(bpf_object__load(bind_object) == 0);
@@ -1301,8 +1290,7 @@ _enumerate_program_ids_test(ebpf_execution_type_t execution_type)
 
     // Load a file with multiple programs.
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_um.dll" : "tail_call.o");
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* xdp_object = bpf_object__open_file(file_name, &opts);
+    struct bpf_object* xdp_object = bpf_object__open(file_name);
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
@@ -1407,8 +1395,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* xdp_object = bpf_object__open_file(file_name, &opts);
+    struct bpf_object* xdp_object = bpf_object__open(file_name);
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
@@ -1463,8 +1450,7 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_v2_um.dll" : "map_in_map_v2.o");
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* xdp_object = bpf_object__open_file(file_name, &opts);
+    struct bpf_object* xdp_object = bpf_object__open(file_name);
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
@@ -1517,8 +1503,7 @@ _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* xdp_object = bpf_object__open_file(file_name, &opts);
+    struct bpf_object* xdp_object = bpf_object__open(file_name);
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
@@ -1779,8 +1764,7 @@ TEST_CASE("bpf_prog_attach", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    // Test calling bpf_object__open_file with null opts.
-    struct bpf_object* object = bpf_object__open_file("cgroup_sock_addr.o", nullptr);
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
     REQUIRE(object != nullptr);
 
     struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");

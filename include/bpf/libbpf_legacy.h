@@ -136,6 +136,35 @@ __declspec(deprecated("Use bpf_object__close() instead.")) int bpf_object__unloa
  */
 
 /**
+ * @brief Load (but do not attach) eBPF maps and programs from an ELF file.
+ *
+ * @param[in] file Path name to an ELF file.
+ * @param[in] type Program type to use for loading eBPF programs.  If BPF_PROG_TYPE_UNKNOWN,
+ * the program type is derived from the section prefix in the ELF file.
+ * @param[out] pobj Pointer to where to store the eBPF object loaded. The caller
+ * is expected to call bpf_object__close() to free the object.
+ * @param[out] prog_fd Returns a file descriptor for the first program.
+ * The caller should not call _close() on the fd, but should instead use
+ * bpf_object__close() on the object returned.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @deprecated Use bpf_object__open() and bpf_object__load() instead.
+ *
+ * @exception EACCES The program failed verification.
+ * @exception EINVAL One or more parameters are incorrect.
+ * @exception ENOMEM Out of memory.
+ *
+ * @sa bpf_load_program
+ * @sa bpf_load_program_xattr
+ * @sa bpf_object__close
+ * @sa bpf_program__attach
+ */
+__declspec(deprecated("Use bpf_object__open() and bpf_object__load() instead.")) int bpf_prog_load_deprecated(
+    const char* file, enum bpf_prog_type type, struct bpf_object** pobj, int* prog_fd);
+
+/**
  * @brief Get the next program for a given eBPF object.
  *
  * @param[in] prog Previous program, or NULL to get the first program.
