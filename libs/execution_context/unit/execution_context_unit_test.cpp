@@ -801,7 +801,7 @@ std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
         {
             BPF_MAP_TYPE_ARRAY_OF_MAPS,
             4,
-            20,
+            4,
             10,
             1,
         },
@@ -820,7 +820,7 @@ std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
         {
             BPF_MAP_TYPE_HASH_OF_MAPS,
             4,
-            20,
+            4,
             10,
             1,
         },
@@ -848,7 +848,7 @@ std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
         {
             BPF_MAP_TYPE_PROG_ARRAY,
             4,
-            20,
+            4,
             10,
         },
     },
