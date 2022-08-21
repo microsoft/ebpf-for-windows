@@ -55,7 +55,7 @@ jobs:
         Remove-Item @("clang_rt.*", "concrt*", "msvc*", "ucrt*", "vc*") -ErrorAction SilentlyContinue
 
     - name: Run OSSAR (Open Source Static Analysis Runner)
-      uses: github/ossar-action@c757d32d66bea728bc64e67e7d6de9696f7f37d3
+      uses: github/ossar-action@5871e59f2d6785d1290e82568cbe9e236814adcb
       id: ossar
 
     - name: Upload results to Security tab
