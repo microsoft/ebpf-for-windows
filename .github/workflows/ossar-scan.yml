@@ -36,7 +36,7 @@ jobs:
 
     steps:
     # Checking out the branch is needed to correctly log security alerts.
-    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
+    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       with:
         # Only check out main repo, not submodules.
         ref: ${{ github.event.workflow_run.head_branch }}
