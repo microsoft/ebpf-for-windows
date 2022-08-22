@@ -1929,25 +1929,47 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     int map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
 
-    // Fetch info about the map and verify it matches what we'd expect.
-    bpf_map_info map_info;
-    uint32_t map_info_size = sizeof(map_info);
-    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info, &map_info_size) == 0);
-    REQUIRE(map_info_size == sizeof(map_info));
-    REQUIRE(map_info.type == BPF_MAP_TYPE_ARRAY);
-    REQUIRE(map_info.key_size == sizeof(uint32_t));
-    REQUIRE(map_info.value_size == sizeof(uint64_t));
-    REQUIRE(map_info.max_entries == 1);
-    REQUIRE(strcmp(map_info.name, map_name) == 0);
+    // Fetch info about the maps and verify it matches what we'd expect.
+    bpf_map_info map_info[2];
+    uint32_t map_info_size = sizeof(map_info[0]);
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info[0], &map_info_size) == 0);
+    REQUIRE(map_info_size == sizeof(map_info[0]));
+    REQUIRE(map_info[0].type == BPF_MAP_TYPE_ARRAY);
+    REQUIRE(map_info[0].key_size == sizeof(uint32_t));
+    REQUIRE(map_info[0].value_size == sizeof(uint64_t));
+    REQUIRE(map_info[0].max_entries == 1);
+    REQUIRE(strcmp(map_info[0].name, map_name) == 0);
+
+    map = bpf_object__next_map(object, map);
+    REQUIRE(map != nullptr);
+    map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+    map_name = bpf_map__name(map);
+    REQUIRE(map_name != nullptr);
+
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info[1], &map_info_size) == 0);
+    REQUIRE(map_info_size == sizeof(map_info[1]));
+    REQUIRE(map_info[1].type == BPF_MAP_TYPE_ARRAY);
+    REQUIRE(map_info[1].key_size == sizeof(uint32_t));
+    REQUIRE(map_info[1].value_size == sizeof(uint32_t));
+    REQUIRE(map_info[1].max_entries == 1);
+    REQUIRE(strcmp(map_info[1].name, map_name) == 0);
 
     // Fetch info about the program and verify it matches what we'd expect.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {0};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(strcmp(program_info.name, program_name) == 0);
     REQUIRE(program_info.nr_map_ids == 2);
     REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
+
+    // Fetch info about the maps and verify it matches what we'd expect.
+    ebpf_id_t map_ids[2] = {0};
+    program_info.map_ids = (uintptr_t)map_ids;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(map_ids[0] == map_info[0].id);
+    REQUIRE(map_ids[1] == map_info[1].id);
 
     // Fetch info about the attachment and verify it matches what we'd expect.
     uint32_t link_id;

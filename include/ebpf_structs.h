@@ -370,6 +370,7 @@ struct bpf_prog_info
     ebpf_id_t id;                ///< Program ID.
     enum bpf_prog_type type;     ///< Program type, if a cross-platform type.
     uint32_t nr_map_ids;         ///< Number of maps associated with this program.
+    uintptr_t map_ids;           ///< Pointer to caller-allocated array to fill map IDs into.
     char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated program name.
 
     // Windows-specific fields.
