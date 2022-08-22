@@ -64,7 +64,7 @@ target_compile_definitions("NetEbpfExt" PRIVATE
 # an interface target that just exports the include directory.
 add_library("NetEbpfExt_headers" INTERFACE)
 target_include_directories("NetEbpfExt_headers" SYSTEM INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/.."
 )
 
 codeSign("NetEbpfExt")
