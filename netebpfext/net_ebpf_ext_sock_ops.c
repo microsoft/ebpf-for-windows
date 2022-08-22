@@ -541,8 +541,9 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         goto Exit;
 
 Exit:
-
-    DEREFERENCE_FILTER_CONTEXT(&filter_context->base);
+    if (filter_context) {
+        DEREFERENCE_FILTER_CONTEXT(&filter_context->base);
+    }
     if (local_flow_context != NULL)
         ExFreePool(local_flow_context);
     if (attached_client != NULL)
