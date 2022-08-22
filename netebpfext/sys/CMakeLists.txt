@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 wdk_add_driver("NetEbpfExt" WINVER "${EBPFFORWINDOWS_WDK_WINVER}" KMDF "${EBPFFORWINDOWS_WDK_KMDF_VERSION}"
+  ../guid.c
+
   ../net_ebpf_ext.h
   ../net_ebpf_ext.c
 
@@ -37,6 +39,8 @@ target_include_directories("NetEbpfExt" PRIVATE
   "${CMAKE_SOURCE_DIR}/include/kernel"
   "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
+  "${CMAKE_SOURCE_DIR}/netebpfext/sys"
+  "${CMAKE_SOURCE_DIR}/netebpfext"
 )
 
 target_link_directories("NetEbpfExt" PRIVATE
