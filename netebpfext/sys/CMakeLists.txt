@@ -2,32 +2,32 @@
 # SPDX-License-Identifier: MIT
 
 wdk_add_driver("NetEbpfExt" WINVER "${EBPFFORWINDOWS_WDK_WINVER}" KMDF "${EBPFFORWINDOWS_WDK_KMDF_VERSION}"
-  net_ebpf_ext.h
-  net_ebpf_ext.c
+  ../net_ebpf_ext.h
+  ../net_ebpf_ext.c
 
-  net_ebpf_ext_bind.h
-  net_ebpf_ext_bind.c
+  ../net_ebpf_ext_bind.h
+  ../net_ebpf_ext_bind.c
 
-  net_ebpf_ext_hook_provider.h
-  net_ebpf_ext_hook_provider.c
+  ../net_ebpf_ext_hook_provider.h
+  ../net_ebpf_ext_hook_provider.c
 
-  net_ebpf_ext_prog_info_provider.h
-  net_ebpf_ext_prog_info_provider.c
+  ../net_ebpf_ext_prog_info_provider.h
+  ../net_ebpf_ext_prog_info_provider.c
 
-  net_ebpf_ext_sock_addr.h
-  net_ebpf_ext_sock_addr.c
+  ../net_ebpf_ext_sock_addr.h
+  ../net_ebpf_ext_sock_addr.c
 
-  net_ebpf_ext_xdp.h
-  net_ebpf_ext_xdp.c
+  ../net_ebpf_ext_xdp.h
+  ../net_ebpf_ext_xdp.c
 
-  net_ebpf_ext_sock_ops.h
-  net_ebpf_ext_sock_ops.c
+  ../net_ebpf_ext_sock_ops.h
+  ../net_ebpf_ext_sock_ops.c
 
-  net_ebpf_ext_program_info.h
+  ../net_ebpf_ext_program_info.h
   resource.h
 
-  net_ebpf_ext_tracelog.c
-  net_ebpf_ext_tracelog.h
+  ../net_ebpf_ext_tracelog.c
+  ../net_ebpf_ext_tracelog.h
 
   net_ebpf_ext_drv.c
 )
