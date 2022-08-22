@@ -17,7 +17,7 @@ typedef struct _NET_BUFFER_LIST_POOL_PARAMETERS
     /*
         Parameters.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
         Parameters.Header.Revision = NET_BUFFER_LIST_POOL_PARAMETERS_REVISION_1;
-        Parameters.Header.Size = sizeof(Parameters);
+        Parameters.Header.size = sizeof(Parameters);
     */
     NDIS_OBJECT_HEADER Header;
     uint8_t ProtocolId;
@@ -43,35 +43,35 @@ typedef struct _NET_BUFFER_LIST
 typedef void* PNDIS_GENERIC_OBJECT;
 
 PNDIS_GENERIC_OBJECT
-NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* DriverObject, _In_ unsigned long tag, _In_ uint16_t Size);
+NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* driver_object, _In_ unsigned long tag, _In_ uint16_t size);
 
 NDIS_HANDLE
-NdisAllocateNetBufferListPool(_In_opt_ NDIS_HANDLE NdisHandle, _In_ NET_BUFFER_LIST_POOL_PARAMETERS const* Parameters);
+NdisAllocateNetBufferListPool(_In_opt_ NDIS_HANDLE ndis_handle, _In_ NET_BUFFER_LIST_POOL_PARAMETERS const* parameters);
 
 void
-NdisFreeNetBufferListPool(_In_ __drv_freesMem(mem) NDIS_HANDLE PoolHandle);
+NdisFreeNetBufferListPool(_In_ __drv_freesMem(mem) NDIS_HANDLE pool_handle);
 
 void
-NdisFreeGenericObject(_In_ PNDIS_GENERIC_OBJECT NdisObject);
+NdisFreeGenericObject(_In_ PNDIS_GENERIC_OBJECT ndis_object);
 
 void*
 NdisGetDataBuffer(
-    _In_ NET_BUFFER* NetBuffer,
-    _In_ unsigned long BytesNeeded,
-    _Out_writes_bytes_all_opt_(BytesNeeded) void* Storage,
-    _In_ unsigned long AlignMultiple,
-    _In_ unsigned long AlignOffset);
+    _In_ NET_BUFFER* net_buffer,
+    _In_ unsigned long bytes_needed,
+    _Out_writes_bytes_all_opt_(bytes_needed) void* storage,
+    _In_ unsigned long align_multiple,
+    _In_ unsigned long align_offset);
 
 NDIS_STATUS
 NdisRetreatNetBufferDataStart(
-    _In_ NET_BUFFER* NetBuffer,
-    _In_ unsigned long DataOffsetDelta,
-    _In_ unsigned long DataBackFill,
-    _In_opt_ void* AllocateMdlHandler);
+    _In_ NET_BUFFER* net_buffer,
+    _In_ unsigned long data_offset_delta,
+    _In_ unsigned long data_back_fill,
+    _In_opt_ void* allocate_mdl_handler);
 
 void
 NdisAdvanceNetBufferDataStart(
-    _In_ NET_BUFFER* NetBuffer,
-    _In_ unsigned long DataOffsetDelta,
-    _In_ BOOLEAN FreeMdl,
-    _In_opt_ void* FreeMdlHandler);
+    _In_ NET_BUFFER* net_buffer,
+    _In_ unsigned long data_offset_delta,
+    _In_ BOOLEAN free_mdl,
+    _In_opt_ void* free_mdl_handler);

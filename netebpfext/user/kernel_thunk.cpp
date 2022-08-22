@@ -61,7 +61,10 @@ typedef ULONG PFN_NUMBER;
 unsigned long __cdecl DbgPrintEx(
     _In_ unsigned long component_id, _In_ unsigned long level, _In_z_ _Printf_format_string_ PCSTR format, ...)
 {
-    return -1;
+    UNREFERENCED_PARAMETER(component_id);
+    UNREFERENCED_PARAMETER(level);
+    UNREFERENCED_PARAMETER(format);
+    return MAXULONG32;
 }
 
 void
@@ -108,6 +111,7 @@ _Acquires_exclusive_lock_(push_lock->lock) void ExAcquirePushLockExclusiveEx(
     _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
     _In_ unsigned long flags)
 {
+    UNREFERENCED_PARAMETER(flags);
     AcquireSRWLockExclusive(&push_lock->lock);
     return;
 }
@@ -116,6 +120,7 @@ _Acquires_shared_lock_(push_lock->lock) void ExAcquirePushLockSharedEx(
     _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
     _In_ unsigned long flags)
 {
+    UNREFERENCED_PARAMETER(flags);
     AcquireSRWLockShared(&push_lock->lock);
     return;
 }
@@ -123,6 +128,7 @@ _Acquires_shared_lock_(push_lock->lock) void ExAcquirePushLockSharedEx(
 _Releases_exclusive_lock_(push_lock->lock) void ExReleasePushLockExclusiveEx(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ unsigned long flags)
 {
+    UNREFERENCED_PARAMETER(flags);
     ReleaseSRWLockExclusive(&push_lock->lock);
     return;
 }
@@ -130,6 +136,7 @@ _Releases_exclusive_lock_(push_lock->lock) void ExReleasePushLockExclusiveEx(
 _Releases_shared_lock_(push_lock->lock) void ExReleasePushLockSharedEx(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ unsigned long flags)
 {
+    UNREFERENCED_PARAMETER(flags);
     ReleaseSRWLockShared(&push_lock->lock);
     return;
 }
@@ -137,6 +144,8 @@ _Releases_shared_lock_(push_lock->lock) void ExReleasePushLockSharedEx(
 void*
 ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_bytes, _In_ unsigned long tag)
 {
+    UNREFERENCED_PARAMETER(pool_type);
+    UNREFERENCED_PARAMETER(tag);
     return ebpf_allocate(number_of_bytes);
 }
 
@@ -155,6 +164,9 @@ ExInitializePushLock(_Out_ EX_PUSH_LOCK* push_lock)
 void
 FatalListEntryError(_In_ void* p1, _In_ void* p2, _In_ void* p3)
 {
+    UNREFERENCED_PARAMETER(p1);
+    UNREFERENCED_PARAMETER(p2);
+    UNREFERENCED_PARAMETER(p3);
     throw std::runtime_error("FatalListEntryError");
 }
 
@@ -216,6 +228,7 @@ IoQueueWorkItem(
     _In_ WORK_QUEUE_TYPE queue_type,
     _In_opt_ __drv_aliasesMem void* context)
 {
+    UNREFERENCED_PARAMETER(queue_type);
     io_workitem->routine = worker_routine;
     io_workitem->context = context;
     ebpf_queue_preemptible_work_item(io_workitem->work_item);
@@ -274,6 +287,7 @@ _Requires_lock_held_(*spin_lock) _Releases_lock_(*spin_lock) _IRQL_requires_(DIS
 void
 MmBuildMdlForNonPagedPool(_Inout_ MDL* memory_descriptor_list)
 {
+    UNREFERENCED_PARAMETER(memory_descriptor_list);
     return;
 }
 
@@ -283,6 +297,7 @@ MmGetSystemAddressForMdlSafe(
     _In_ unsigned long page_priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
 )
 {
+    UNREFERENCED_PARAMETER(page_priority);
     return ((PVOID)((PUCHAR)(mdl)->start_va + (mdl)->byte_offset));
 }
 
@@ -292,5 +307,6 @@ RtlULongAdd(
     _In_ unsigned long addend,
     _Out_ _Deref_out_range_(==, augend + addend) unsigned long* result)
 {
-    return STATUS_NO_MEMORY;
+    *result = augend + addend;
+    return STATUS_SUCCESS;
 }
