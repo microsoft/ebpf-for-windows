@@ -23,11 +23,11 @@ typedef void* DRIVER_OBJECT;
 
 typedef struct _EX_PUSH_LOCK
 {
-    char padding;
+    SRWLOCK lock;
 } EX_PUSH_LOCK;
 typedef struct _EX_RUNDOWN_REF
 {
-    char padding;
+    struct _ebpf_rundown_ref* inner;
 } EX_RUNDOWN_REF;
 typedef struct _IO_WORKITEM IO_WORKITEM, *PIO_WORKITEM;
 typedef void
@@ -119,22 +119,18 @@ ExAcquireRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref);
 void
 ExReleaseRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref);
 
-void
-ExAcquirePushLockExclusiveEx(
+_Acquires_exclusive_lock_(push_lock->lock) void ExAcquirePushLockExclusiveEx(
     _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
     _In_ unsigned long flags);
 
-void
-ExAcquirePushLockSharedEx(
+_Acquires_shared_lock_(push_lock->lock) void ExAcquirePushLockSharedEx(
     _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
     _In_ unsigned long flags);
 
-void
-ExReleasePushLockExclusiveEx(
+_Releases_exclusive_lock_(push_lock->lock) void ExReleasePushLockExclusiveEx(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ unsigned long flags);
 
-void
-ExReleasePushLockSharedEx(
+_Releases_shared_lock_(push_lock->lock) void ExReleasePushLockSharedEx(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ unsigned long flags);
 
 void*
@@ -182,11 +178,11 @@ KeLeaveCriticalRegion(void);
 void
 KeInitializeSpinLock(_Out_ PKSPIN_LOCK spin_lock);
 
-KIRQL
-KeAcquireSpinLockRaiseToDpc(_Inout_ PKSPIN_LOCK spin_lock);
+_Requires_lock_not_held_(*spin_lock) _Acquires_lock_(*spin_lock) _IRQL_requires_max_(DISPATCH_LEVEL) KIRQL
+    KeAcquireSpinLockRaiseToDpc(_Inout_ PKSPIN_LOCK spin_lock);
 
-void
-KeReleaseSpinLock(_Inout_ PKSPIN_LOCK spin_lock, _In_ _IRQL_restores_ KIRQL new_irql);
+_Requires_lock_held_(*spin_lock) _Releases_lock_(*spin_lock) _IRQL_requires_(DISPATCH_LEVEL) void KeReleaseSpinLock(
+    _Inout_ PKSPIN_LOCK spin_lock, _In_ _IRQL_restores_ KIRQL new_irql);
 
 void
 MmBuildMdlForNonPagedPool(_Inout_ MDL* memory_descriptor_list);

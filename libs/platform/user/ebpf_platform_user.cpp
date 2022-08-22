@@ -754,6 +754,15 @@ Done:
     return result;
 }
 
+void
+ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* work_item)
+{
+    if (work_item) {
+        CloseThreadpoolWork(work_item->work);
+        ebpf_free(work_item);
+    }
+}
+
 typedef struct _ebpf_timer_work_item
 {
     TP_TIMER* threadpool_timer;
