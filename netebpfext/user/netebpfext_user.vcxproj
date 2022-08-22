@@ -28,6 +28,7 @@
     <ProjectGuid>{630bb78f-6211-41d8-8e3a-096e22e169ef}</ProjectGuid>
     <RootNamespace>netebpfextunit</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>netebpfext_user</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -44,13 +45,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -120,7 +121,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;USER_MODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\user;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\unit;$(SolutionDir)libs\thunk;$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\user;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\user;$(SolutionDir)libs\thunk;$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:strictStrings- %(AdditionalOptions)</AdditionalOptions>
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
@@ -138,7 +139,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\user;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\unit;$(SolutionDir)libs\thunk;$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\user;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\user;$(SolutionDir)libs\thunk;$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes</AdditionalIncludeDirectories>
       <CompileAs>CompileAsCpp</CompileAs>
       <AdditionalOptions>/Zc:strictStrings- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -166,7 +167,6 @@
     <ClCompile Include="fw_thunk.cpp" />
     <ClCompile Include="kernel_thunk.cpp" />
     <ClCompile Include="ndis_thunk.cpp" />
-    <ClCompile Include="netebpfext_unit.cpp" />
     <ClCompile Include="nmr_thunk.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -184,17 +184,6 @@
     <ClInclude Include="ndis_thunk.h" />
     <ClInclude Include="netebpfext_platform.h" />
     <ClInclude Include="nmr_thunk.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\external\Catch2\build\src\Catch2WithMain.vcxproj">
-      <Project>{8bd3552a-2cfb-4a59-ab15-2031b97ada1e}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\libs\api_common\api_common.vcxproj">
-      <Project>{e79382b2-fed9-4cd4-9498-dbddd6c46c91}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\libs\platform\user\platform_user.vcxproj">
-      <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

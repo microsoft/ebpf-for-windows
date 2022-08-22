@@ -166,7 +166,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "verifier_fuzzer", "tests\li
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core_helper_fuzzer", "tests\libfuzzer\core_helper_fuzzer\core_helper_fuzzer.vcxproj", "{88A3E85F-669F-4CEA-8207-2E1545528D62}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netebpfext_unit", "netebpfext\unit\netebpfext_unit.vcxproj", "{630BB78F-6211-41D8-8E3A-096E22E169EF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netebpfext_user", "netebpfext\user\netebpfext_user.vcxproj", "{630BB78F-6211-41D8-8E3A-096E22E169EF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1651,7 +1651,7 @@ Global
 		{A0A0D663-DCF7-4BB1-9DDB-7964C3C31603} = {E184CBC2-4B62-499F-8A4A-F15A5A182259}
 		{DCF12929-B975-4874-A80F-9EAF1CC5A5A0} = {E184CBC2-4B62-499F-8A4A-F15A5A182259}
 		{88A3E85F-669F-4CEA-8207-2E1545528D62} = {E184CBC2-4B62-499F-8A4A-F15A5A182259}
-		{630BB78F-6211-41D8-8E3A-096E22E169EF} = {492C9B22-9237-4996-9E33-CA14D3533616}
+		{630BB78F-6211-41D8-8E3A-096E22E169EF} = {69CDB6A1-434D-4BC9-9BFF-D12DF7EDBB6B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3D5F862D-74C6-4357-9F95-0B152E33B7B8}

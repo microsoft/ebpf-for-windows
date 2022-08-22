@@ -19,9 +19,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="netebpfext_unit.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\net_ebpf_ext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
