@@ -55,18 +55,18 @@ jobs:
       LD_FLAGS: ${{inputs.ld_flags}}
 
     steps:
-    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
+    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       with:
         submodules: 'recursive'
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true
-      uses: github/codeql-action/init@2ca79b6fa8d3ec278944088b4aa5f46912db5d63
+      uses: github/codeql-action/init@7fee4ca032ac341c12486c4c06822c5221c76533
       with:
         languages: 'cpp'
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@becb80cf9a036187bb1e07e74eb64e25850d757a
+      uses: microsoft/setup-msbuild@ab534842b4bdf384b8aaf93765dc6f721d9f5fab
 
     - name: Install tools
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -201,4 +201,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true
-      uses: github/codeql-action/analyze@2ca79b6fa8d3ec278944088b4aa5f46912db5d63
+      uses: github/codeql-action/analyze@7fee4ca032ac341c12486c4c06822c5221c76533
