@@ -121,6 +121,9 @@ _ebpf_ext_attach_wait_for_rundown(_Inout_ net_ebpf_ext_hook_client_rundown_t* ru
 }
 
 IO_WORKITEM_ROUTINE _net_ebpf_extension_detach_client_completion;
+#if !defined(__cplusplus)
+#pragma alloc_text(PAGE, _net_ebpf_extension_detach_client_completion)
+#endif
 
 /**
  * @brief IO work item routine callback that waits on client rundown to complete.
