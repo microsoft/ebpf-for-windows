@@ -83,7 +83,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "platform_kernel", "libs\pla
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EbpfCore", "ebpfcore\EbpfCore.vcxproj", "{97E52ABB-2F1E-4AD2-AEFD-6EB7FDC0A41D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetEbpfExt", "netebpfext\sys\netebpfext.vcxproj", "{55499E36-37D4-4F86-B694-9F2990315758}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netebpfext", "netebpfext\sys\netebpfext.vcxproj", "{55499E36-37D4-4F86-B694-9F2990315758}"
 	ProjectSection(ProjectDependencies) = postProject
 		{FA9BB88D-8259-40C1-9422-BDEDF9E9CE68} = {FA9BB88D-8259-40C1-9422-BDEDF9E9CE68}
 	EndProjectSection

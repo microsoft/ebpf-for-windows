@@ -33,5 +33,5 @@ NmrRegisterProvider(
     UNREFERENCED_PARAMETER(provider_characteristics);
     UNREFERENCED_PARAMETER(provider_context);
     UNREFERENCED_PARAMETER(nmr_provider_handle);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }

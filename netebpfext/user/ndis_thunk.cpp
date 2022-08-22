@@ -62,7 +62,7 @@ NdisRetreatNetBufferDataStart(
     UNREFERENCED_PARAMETER(data_offset_delta);
     UNREFERENCED_PARAMETER(data_back_fill);
     UNREFERENCED_PARAMETER(allocate_mdl_handler);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 void
