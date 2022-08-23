@@ -14,14 +14,14 @@ NTSTATUS
 NmrDeregisterProvider(_In_ HANDLE nmr_provider_handle)
 {
     UNREFERENCED_PARAMETER(nmr_provider_handle);
-    return STATUS_SUCCESS;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
 NmrWaitForProviderDeregisterComplete(_In_ HANDLE nmr_provider_handle)
 {
     UNREFERENCED_PARAMETER(nmr_provider_handle);
-    return STATUS_SUCCESS;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS

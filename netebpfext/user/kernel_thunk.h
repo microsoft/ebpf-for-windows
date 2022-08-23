@@ -138,7 +138,7 @@ void*
 ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_bytes, _In_ unsigned long tag);
 
 void
-ExFreePool(void* P);
+ExFreePool(void* p);
 
 void
 ExInitializePushLock(_Out_ EX_PUSH_LOCK* push_lock);

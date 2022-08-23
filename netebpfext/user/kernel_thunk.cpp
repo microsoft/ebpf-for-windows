@@ -71,7 +71,6 @@ void
 ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref)
 {
     rundown_ref->inner = new ebpf_rundown_ref();
-    return;
 }
 
 void
@@ -81,7 +80,6 @@ ExWaitForRundownProtectionRelease(_Inout_ EX_RUNDOWN_REF* rundown_ref)
     std::unique_lock<std::mutex> l(rundown.lock);
     rundown.rundown_in_progress = true;
     rundown_ref->inner->cv.wait(l, [&] { return rundown.count == 0; });
-    return;
 }
 
 BOOLEAN
@@ -113,7 +111,6 @@ _Acquires_exclusive_lock_(push_lock->lock) void ExAcquirePushLockExclusiveEx(
 {
     UNREFERENCED_PARAMETER(flags);
     AcquireSRWLockExclusive(&push_lock->lock);
-    return;
 }
 
 _Acquires_shared_lock_(push_lock->lock) void ExAcquirePushLockSharedEx(
@@ -122,7 +119,6 @@ _Acquires_shared_lock_(push_lock->lock) void ExAcquirePushLockSharedEx(
 {
     UNREFERENCED_PARAMETER(flags);
     AcquireSRWLockShared(&push_lock->lock);
-    return;
 }
 
 _Releases_exclusive_lock_(push_lock->lock) void ExReleasePushLockExclusiveEx(
@@ -130,7 +126,6 @@ _Releases_exclusive_lock_(push_lock->lock) void ExReleasePushLockExclusiveEx(
 {
     UNREFERENCED_PARAMETER(flags);
     ReleaseSRWLockExclusive(&push_lock->lock);
-    return;
 }
 
 _Releases_shared_lock_(push_lock->lock) void ExReleasePushLockSharedEx(
@@ -138,7 +133,6 @@ _Releases_shared_lock_(push_lock->lock) void ExReleasePushLockSharedEx(
 {
     UNREFERENCED_PARAMETER(flags);
     ReleaseSRWLockShared(&push_lock->lock);
-    return;
 }
 
 void*
@@ -232,7 +226,6 @@ IoQueueWorkItem(
     io_workitem->routine = worker_routine;
     io_workitem->context = context;
     ebpf_queue_preemptible_work_item(io_workitem->work_item);
-    return;
 }
 
 void
@@ -242,7 +235,6 @@ IoFreeWorkItem(_In_ __drv_freesMem(Mem) PIO_WORKITEM io_workitem)
         ebpf_free_preemptible_work_item(io_workitem->work_item);
         ebpf_free(io_workitem);
     }
-    return;
 }
 
 void
@@ -253,15 +245,11 @@ IoFreeMdl(MDL* mdl)
 
 void
 KeEnterCriticalRegion(void)
-{
-    return;
-}
+{}
 
 void
 KeLeaveCriticalRegion(void)
-{
-    return;
-}
+{}
 
 void
 KeInitializeSpinLock(_Out_ PKSPIN_LOCK spin_lock)
@@ -288,7 +276,6 @@ void
 MmBuildMdlForNonPagedPool(_Inout_ MDL* memory_descriptor_list)
 {
     UNREFERENCED_PARAMETER(memory_descriptor_list);
-    return;
 }
 
 void*

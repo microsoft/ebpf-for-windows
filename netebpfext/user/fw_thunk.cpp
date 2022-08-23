@@ -9,7 +9,7 @@ FwpmFilterDeleteById0(_In_ HANDLE engine_handle, _In_ uint64_t id)
 {
     UNREFERENCED_PARAMETER(engine_handle);
     UNREFERENCED_PARAMETER(id);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -17,7 +17,7 @@ FwpmTransactionBegin0(_In_ _Acquires_lock_(_Curr_) HANDLE engine_handle, _In_ ui
 {
     UNREFERENCED_PARAMETER(engine_handle);
     UNREFERENCED_PARAMETER(flags);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -31,21 +31,21 @@ FwpmFilterAdd0(
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(sd);
     UNREFERENCED_PARAMETER(id);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
 FwpmTransactionCommit0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle)
 {
     UNREFERENCED_PARAMETER(engine_handle);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
 FwpmTransactionAbort0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle)
 {
     UNREFERENCED_PARAMETER(engine_handle);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -54,7 +54,7 @@ FwpsCalloutRegister3(_Inout_ void* device_object, _In_ const FWPS_CALLOUT3* call
     UNREFERENCED_PARAMETER(device_object);
     UNREFERENCED_PARAMETER(callout);
     UNREFERENCED_PARAMETER(callout_id);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -68,14 +68,14 @@ FwpmCalloutAdd0(
     UNREFERENCED_PARAMETER(callout);
     UNREFERENCED_PARAMETER(sd);
     UNREFERENCED_PARAMETER(id);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
 FwpsCalloutUnregisterById0(_In_ const uint32_t callout_id)
 {
     UNREFERENCED_PARAMETER(callout_id);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -91,7 +91,7 @@ FwpmEngineOpen0(
     UNREFERENCED_PARAMETER(auth_identity);
     UNREFERENCED_PARAMETER(session);
     UNREFERENCED_PARAMETER(engine_handle);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -100,7 +100,7 @@ FwpmSubLayerAdd0(_In_ HANDLE engine_handle, _In_ const FWPM_SUBLAYER0* sub_layer
     UNREFERENCED_PARAMETER(engine_handle);
     UNREFERENCED_PARAMETER(sub_layer);
     UNREFERENCED_PARAMETER(sd);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -109,21 +109,21 @@ FwpsInjectionHandleCreate0(_In_opt_ ADDRESS_FAMILY address_family, _In_ uint32_t
     UNREFERENCED_PARAMETER(address_family);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(injection_handle);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
 FwpmEngineClose0(_Inout_ HANDLE engine_handle)
 {
     UNREFERENCED_PARAMETER(engine_handle);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
 FwpsInjectionHandleDestroy0(_In_ HANDLE injection_handle)
 {
     UNREFERENCED_PARAMETER(injection_handle);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -132,7 +132,7 @@ FwpsFlowRemoveContext0(_In_ uint64_t flow_id, _In_ UINT16 layer_id, _In_ uint32_
     UNREFERENCED_PARAMETER(flow_id);
     UNREFERENCED_PARAMETER(layer_id);
     UNREFERENCED_PARAMETER(callout_id);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -143,7 +143,7 @@ FwpsFlowAssociateContext0(
     UNREFERENCED_PARAMETER(layer_id);
     UNREFERENCED_PARAMETER(callout_id);
     UNREFERENCED_PARAMETER(flowContext);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -163,14 +163,13 @@ FwpsAllocateNetBufferAndNetBufferList0(
     UNREFERENCED_PARAMETER(data_offset);
     UNREFERENCED_PARAMETER(data_length);
     UNREFERENCED_PARAMETER(net_buffer_list);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 void
 FwpsFreeNetBufferList0(_In_ NET_BUFFER_LIST* net_buffer_list)
 {
     UNREFERENCED_PARAMETER(net_buffer_list);
-    return;
 }
 
 NTSTATUS
@@ -194,7 +193,7 @@ FwpsInjectMacReceiveAsync0(
     UNREFERENCED_PARAMETER(net_buffer_lists);
     UNREFERENCED_PARAMETER(completion_function);
     UNREFERENCED_PARAMETER(completion_context);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 void
@@ -202,7 +201,6 @@ FwpsFreeCloneNetBufferList0(_In_ NET_BUFFER_LIST* net_buffer_list, _In_ unsigned
 {
     UNREFERENCED_PARAMETER(net_buffer_list);
     UNREFERENCED_PARAMETER(free_clone_flags);
-    return;
 }
 
 NTSTATUS
@@ -219,7 +217,7 @@ FwpsAllocateCloneNetBufferList0(
     UNREFERENCED_PARAMETER(net_buffer_pool_handle);
     UNREFERENCED_PARAMETER(allocate_clone_flags);
     UNREFERENCED_PARAMETER(net_buffer_list);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -243,5 +241,5 @@ FwpsInjectMacSendAsync0(
     UNREFERENCED_PARAMETER(net_buffer_lists);
     UNREFERENCED_PARAMETER(completion_function);
     UNREFERENCED_PARAMETER(completion_context);
-    return STATUS_NO_MEMORY;
+    return STATUS_NOT_IMPLEMENTED;
 }

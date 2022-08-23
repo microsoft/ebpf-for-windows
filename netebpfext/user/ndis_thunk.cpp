@@ -25,14 +25,12 @@ void
 NdisFreeNetBufferListPool(_In_ __drv_freesMem(mem) NDIS_HANDLE pool_handle)
 {
     UNREFERENCED_PARAMETER(pool_handle);
-    return;
 }
 
 void
 NdisFreeGenericObject(_In_ PNDIS_GENERIC_OBJECT ndis_object)
 {
     UNREFERENCED_PARAMETER(ndis_object);
-    return;
 }
 
 void*
@@ -76,5 +74,4 @@ NdisAdvanceNetBufferDataStart(
     UNREFERENCED_PARAMETER(data_offset_delta);
     UNREFERENCED_PARAMETER(free_mdl);
     UNREFERENCED_PARAMETER(free_mdl_handler);
-    return;
 }
