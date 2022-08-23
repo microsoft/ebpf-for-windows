@@ -35,6 +35,20 @@
 
 const int nonexistent_fd = 12345678;
 
+TEST_CASE("libbpf load program", "[libbpf][deprecated]")
+{
+    _test_helper_libbpf test_helper;
+    struct bpf_object* object;
+    int program_fd;
+#pragma warning(suppress : 4996) // deprecated
+    int result = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    bpf_object__close(object);
+}
+
 TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
