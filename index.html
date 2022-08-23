@@ -74,9 +74,9 @@ eBPF Program Reference</h1>
 <p>A number of hooks are currently exposed to eBPF programs that include <a class="el" href="ebpf__nethooks_8h.html">ebpf_nethooks.h</a>. Refer to the list of <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> values for details.</p>
 <p>eBPF programs can also call helper APIs to do additional processing. There are two types of helpers: </p><ul>
 <li>
-Helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> which are accessible to all program types. </li>
+Helpers that are accessible to all program types, defined in <a class="el" href="bpf__helper__defs_8h.html">bpf_helper_defs.h</a>. </li>
 <li>
-Helpers specific to a given program type and declared in other headers. </li>
+Helpers specific to a given program type and declared in other headers, such as <a class="el" href="ebpf__nethooks_8h.html">ebpf_nethooks.h</a>. </li>
 </ul>
 <p>The documentation for each program type will list which helper header files can be used for that program type. Similarly such documentation for each <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> value will give the API prototype to implement, and the list of supported attach types that can be used when attaching an eBPF program. Most program types have only a single attach type, but some may support multiple places to which the same type of program can be attached.</p>
 <h1><a class="anchor" id="api"></a>
