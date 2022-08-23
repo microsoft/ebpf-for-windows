@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#pragma warning(push)
+#pragma warning(disable : 4201) // nonstandard extension used: nameless struct/union
+
 /**
  * @name Map-related functions
  * @{
@@ -181,3 +184,5 @@ __declspec(deprecated("Use bpf_prog_load() instead.")) int bpf_load_program_xatt
     const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz);
 
 /** @} */
+
+#pragma warning(pop)
