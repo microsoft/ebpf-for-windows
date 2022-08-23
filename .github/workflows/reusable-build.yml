@@ -55,18 +55,18 @@ jobs:
       LD_FLAGS: ${{inputs.ld_flags}}
 
     steps:
-    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
+    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       with:
         submodules: 'recursive'
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true
-      uses: github/codeql-action/init@2ca79b6fa8d3ec278944088b4aa5f46912db5d63
+      uses: github/codeql-action/init@7fee4ca032ac341c12486c4c06822c5221c76533
       with:
         languages: 'cpp'
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@becb80cf9a036187bb1e07e74eb64e25850d757a
+      uses: microsoft/setup-msbuild@ab534842b4bdf384b8aaf93765dc6f721d9f5fab
 
     - name: Install tools
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -75,7 +75,7 @@ jobs:
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache nuget packages
-      uses: actions/cache@f4278025ab0f432ce369118909e46deec636f50c
+      uses: actions/cache@a7c34adf76222e77931dedbf4a45b2e4648ced19
       env:
         cache-name: cache-nuget-modules
       with:
@@ -87,7 +87,7 @@ jobs:
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
     - name: Cache verifier project
-      uses: actions/cache@f4278025ab0f432ce369118909e46deec636f50c
+      uses: actions/cache@a7c34adf76222e77931dedbf4a45b2e4648ced19
       env:
         cache-name: cache-verifier-project
       with:
@@ -131,7 +131,7 @@ jobs:
     # The subequent tests will directly get these when they download the build artifacts. In case
     # a test fails, the .o files used for the test will be available in the uploaded build artifacts.
     - name: Download demo repository artifacts
-      uses: dawidd6/action-download-artifact@6765a42d86407a3d532749069ac03705ad82ebc6
+      uses: dawidd6/action-download-artifact@ea71f332a90fd52416b1629b933dcf7e0ccd421d
       with:
         github_token: ${{secrets.GITHUB_TOKEN}}
         workflow: cicd.yml
@@ -201,4 +201,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true
-      uses: github/codeql-action/analyze@2ca79b6fa8d3ec278944088b4aa5f46912db5d63
+      uses: github/codeql-action/analyze@7fee4ca032ac341c12486c4c06822c5221c76533
