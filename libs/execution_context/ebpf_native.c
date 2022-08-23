@@ -54,6 +54,7 @@ typedef struct _ebpf_native_module
     size_t program_count;
     ebpf_handle_t client_binding_handle;
     ebpf_list_entry_t list_entry;
+    ebpf_preemptible_work_item_t* unloading_work_item;
 } ebpf_native_module_t;
 
 static GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -148,6 +149,8 @@ _ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
     module->map_count = 0;
     module->programs = NULL;
     module->program_count = 0;
+
+    ebpf_free_preemptible_work_item(module->unloading_work_item);
 
     ebpf_free(module->service_name);
     ebpf_lock_destroy(&module->lock);
@@ -1316,7 +1319,6 @@ ebpf_native_unload(_In_ const GUID* module_id)
     wchar_t* service_name = NULL;
     size_t service_name_length;
     bool queue_work_item = false;
-    ebpf_preemptible_work_item_t* work_item = NULL;
 
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
@@ -1359,7 +1361,8 @@ ebpf_native_unload(_In_ const GUID* module_id)
 
     // Create a work item if we are running at DISPATCH.
     if (!ebpf_is_preemptible()) {
-        result = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_native_unload_work_item, service_name);
+        result = ebpf_allocate_preemptible_work_item(
+            &module->unloading_work_item, _ebpf_native_unload_work_item, service_name);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
@@ -1373,7 +1376,7 @@ ebpf_native_unload(_In_ const GUID* module_id)
     lock_acquired = false;
 
     if (queue_work_item) {
-        ebpf_queue_preemptible_work_item(work_item);
+        ebpf_queue_preemptible_work_item(module->unloading_work_item);
     } else {
         ebpf_native_unload_driver(service_name);
     }
