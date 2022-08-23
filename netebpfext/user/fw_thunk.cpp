@@ -85,7 +85,7 @@ typedef class _fwp_engine
     std::unordered_map<size_t, FWPM_SUBLAYER0> fwpm_sub_layers;
 } fwp_engine;
 
-std::unique_ptr<fwp_engine> _engine;
+static std::unique_ptr<fwp_engine> _engine;
 
 typedef struct _fwp_injection_handle
 {
@@ -93,7 +93,7 @@ typedef struct _fwp_injection_handle
     uint32_t flags;
 } fwp_injection_handle;
 
-std::unique_ptr<fwp_injection_handle> _injection_handle;
+static std::unique_ptr<fwp_injection_handle> _injection_handle;
 
 NTSTATUS
 FwpmFilterDeleteById0(_In_ HANDLE engine_handle, _In_ uint64_t id)

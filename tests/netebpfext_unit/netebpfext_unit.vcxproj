@@ -148,6 +148,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="netebpfext_unit.cpp" />
+    <ClCompile Include="netebpf_ext_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\external\Catch2\build\src\Catch2.vcxproj">
@@ -165,6 +166,9 @@
     <ProjectReference Include="..\..\netebpfext\user\netebpfext_user.vcxproj">
       <Project>{630bb78f-6211-41d8-8e3a-096e22e169ef}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="netebpf_ext_helper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
