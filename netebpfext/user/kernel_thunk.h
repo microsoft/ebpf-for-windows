@@ -19,8 +19,9 @@
 #define STATUS_NOT_IMPLEMENTED ((NTSTATUS)0xC0000002L)
 
 // Typedefs
-typedef void* DEVICE_OBJECT;
-typedef void* DRIVER_OBJECT;
+typedef struct _DEVICE_OBJECT DEVICE_OBJECT;
+
+typedef struct _DRIVER_OBJECT DRIVER_OBJECT;
 
 typedef struct _EX_PUSH_LOCK
 {

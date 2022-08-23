@@ -4,33 +4,53 @@
 #include "netebpfext_platform.h"
 #include "ndis_thunk.h"
 
+typedef struct _NDIS_GENERIC_OBJECT
+{
+    DRIVER_OBJECT* driver_object;
+    unsigned long tag;
+} NDIS_GENERIC_OBJECT, *PNDIS_GENERIC_OBJECT;
+
+typedef struct _NDIS_BUFFER_LIST_POOL
+{
+    NDIS_HANDLE ndis_handle;
+    NET_BUFFER_LIST_POOL_PARAMETERS parameters;
+} NDIS_BUFFER_LIST_POOL;
+
 PNDIS_GENERIC_OBJECT
 NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* driver_object, _In_ unsigned long tag, _In_ uint16_t size)
 {
-    UNREFERENCED_PARAMETER(driver_object);
-    UNREFERENCED_PARAMETER(tag);
-    UNREFERENCED_PARAMETER(size);
-    return NULL;
+    PNDIS_GENERIC_OBJECT object =
+        reinterpret_cast<NDIS_GENERIC_OBJECT*>(ebpf_allocate(sizeof(NDIS_GENERIC_OBJECT) + size));
+    if (object) {
+        object->driver_object = driver_object;
+        object->tag = tag;
+    }
+
+    return object;
 }
 
 NDIS_HANDLE
 NdisAllocateNetBufferListPool(_In_opt_ NDIS_HANDLE ndis_handle, _In_ NET_BUFFER_LIST_POOL_PARAMETERS const* parameters)
 {
-    UNREFERENCED_PARAMETER(ndis_handle);
-    UNREFERENCED_PARAMETER(parameters);
-    return NULL;
+    NDIS_BUFFER_LIST_POOL* pool =
+        reinterpret_cast<NDIS_BUFFER_LIST_POOL*>(ebpf_allocate(sizeof(NDIS_BUFFER_LIST_POOL)));
+    if (pool) {
+        pool->ndis_handle = ndis_handle;
+        pool->parameters = *parameters;
+    }
+    return pool;
 }
 
 void
 NdisFreeNetBufferListPool(_In_ __drv_freesMem(mem) NDIS_HANDLE pool_handle)
 {
-    UNREFERENCED_PARAMETER(pool_handle);
+    ebpf_free(pool_handle);
 }
 
 void
 NdisFreeGenericObject(_In_ PNDIS_GENERIC_OBJECT ndis_object)
 {
-    UNREFERENCED_PARAMETER(ndis_object);
+    ebpf_free(ndis_object);
 }
 
 void*

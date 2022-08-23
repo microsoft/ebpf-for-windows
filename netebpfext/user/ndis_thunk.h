@@ -40,7 +40,7 @@ typedef struct _NET_BUFFER_LIST
     NET_BUFFER* FirstNetBuffer;
 } NET_BUFFER_LIST, *PNET_BUFFER_LIST;
 
-typedef void* PNDIS_GENERIC_OBJECT;
+typedef struct _NDIS_GENERIC_OBJECT NDIS_GENERIC_OBJECT, *PNDIS_GENERIC_OBJECT;
 
 PNDIS_GENERIC_OBJECT
 NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* driver_object, _In_ unsigned long tag, _In_ uint16_t size);

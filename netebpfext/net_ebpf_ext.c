@@ -507,7 +507,7 @@ net_ebpf_ext_uninitialize_ndis_handles()
         NdisFreeNetBufferListPool(_net_ebpf_ext_nbl_pool_handle);
 
     if (_net_ebpf_ext_ndis_handle != NULL)
-        NdisFreeGenericObject(_net_ebpf_ext_ndis_handle);
+        NdisFreeGenericObject((NDIS_GENERIC_OBJECT*)_net_ebpf_ext_ndis_handle);
 }
 
 NTSTATUS
