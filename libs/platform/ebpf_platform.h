@@ -452,6 +452,14 @@ extern "C"
     ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item);
 
     /**
+     * @brief Free a preemptible work item.
+     *
+     * @param[in] work_item Pointer to the work item to free.
+     */
+    void
+    ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* work_item);
+
+    /**
      * @brief Allocate a timer to run a non-preemptible work item.
      *
      * @param[out] timer Pointer to memory that will contain timer on success.

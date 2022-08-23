@@ -7,7 +7,7 @@
  *
  */
 
-#define INITGUID
+#include "net_ebpf_ext.h"
 
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_addr.h"
@@ -47,7 +47,7 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_sock_addr_w
 
 typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
 {
-    net_ebpf_extension_wfp_filter_context_t;
+    net_ebpf_extension_wfp_filter_context_t base;
     uint32_t compartment_id;
 } net_ebpf_extension_sock_addr_wfp_filter_context_t;
 
@@ -151,7 +151,7 @@ net_ebpf_extension_sock_addr_on_client_attach(
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-        &filter_context->filter_ids);
+        &filter_context->base.filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -175,7 +175,7 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
         (net_ebpf_extension_sock_addr_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
             detaching_client);
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters(1, filter_context->filter_ids);
+    net_ebpf_extension_delete_wfp_filters(1, filter_context->base.filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
@@ -226,7 +226,8 @@ net_ebpf_ext_sock_addr_register_providers()
             &_ebpf_sock_addr_hook_provider_moduleid[i], &_net_ebpf_extension_sock_addr_hook_provider_data[i]};
 
         _net_ebpf_sock_addr_hook_provider_data[i].supported_program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
-        _net_ebpf_sock_addr_hook_provider_data[i].bpf_attach_type = _net_ebpf_extension_sock_addr_bpf_attach_types[i];
+        _net_ebpf_sock_addr_hook_provider_data[i].bpf_attach_type =
+            (bpf_attach_type_t)_net_ebpf_extension_sock_addr_bpf_attach_types[i];
         _net_ebpf_sock_addr_hook_provider_data[i].link_type = BPF_LINK_TYPE_CGROUP;
         _net_ebpf_extension_sock_addr_hook_provider_data[i].version = EBPF_ATTACH_PROVIDER_DATA_VERSION;
         _net_ebpf_extension_sock_addr_hook_provider_data[i].data = &_net_ebpf_sock_addr_hook_provider_data[i];
@@ -391,7 +392,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     if (filter_context == NULL)
         goto Exit;
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     if (attached_client == NULL)
         goto Exit;
 

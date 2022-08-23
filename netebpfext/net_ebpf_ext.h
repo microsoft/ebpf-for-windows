@@ -16,26 +16,12 @@ Environment:
 
 #pragma once
 
-#include <ntddk.h>
-#pragma warning(push)
-#pragma warning(disable : 28253) // Inconsistent annotation for '_umul128'
-#include <ntintsafe.h>
-#pragma warning(pop)
-
-#define INITGUID
-
-#include <fwpmk.h>
-
-#pragma warning(push)
-#pragma warning(disable : 4201) // unnamed struct/union
-#include <fwpsk.h>
-#pragma warning(pop)
+#include "framework.h"
+#include "netebpfext_platform.h"
 
 #include <guiddef.h>
 #include <netioapi.h>
 #include <netiodef.h>
-#include <ntddk.h>
-
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"

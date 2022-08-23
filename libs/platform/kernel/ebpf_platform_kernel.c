@@ -532,6 +532,15 @@ Done:
 }
 
 void
+ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* work_item)
+{
+    if (work_item) {
+        IoFreeWorkItem(work_item->io_work_item);
+        ebpf_free(work_item);
+    }
+}
+
+void
 ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item)
 {
     IoQueueWorkItem(work_item->io_work_item, _ebpf_preemptible_routine, DelayedWorkQueue, work_item);

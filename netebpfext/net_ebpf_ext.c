@@ -237,7 +237,7 @@ net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp
 net_ebpf_extension_hook_id_t
 net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
 {
-    net_ebpf_extension_hook_id_t hook_id = 0;
+    net_ebpf_extension_hook_id_t hook_id = (net_ebpf_extension_hook_id_t)0;
 
     switch (wfp_layer_id) {
     case FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE:
