@@ -5,7 +5,8 @@
 #include <mutex>
 
 #include "netebpfext_platform.h"
-#include "kernel_thunk.h"
+
+#include "kernel_um.h"
 
 typedef struct _ebpf_rundown_ref
 {

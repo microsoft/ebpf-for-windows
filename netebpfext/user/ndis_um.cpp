@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #include "netebpfext_platform.h"
-#include "ndis_thunk.h"
 
 typedef struct _NDIS_GENERIC_OBJECT
 {
