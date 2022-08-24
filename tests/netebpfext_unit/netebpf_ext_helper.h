@@ -70,6 +70,7 @@ typedef class _netebpf_ext_helper
         _program_info_client_detach_provider,
         _program_info_client_cleanup_binding_context,
         {
+            0,
             sizeof(NPI_REGISTRATION_INSTANCE),
             &EBPF_PROGRAM_INFO_EXTENSION_IID,
             &module_id,

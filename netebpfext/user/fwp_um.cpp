@@ -5,7 +5,6 @@
 #include <mutex>
 
 #include "netebpfext_platform.h"
-#include "fw_thunk.h"
 
 typedef class _fwp_engine
 {

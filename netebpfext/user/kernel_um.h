@@ -3,6 +3,9 @@
 
 #pragma once
 
+#include <synchapi.h>
+#include <winnt.h>
+
 // Defines
 #define EX_DEFAULT_PUSH_LOCK_FLAGS 0
 #define ExAcquirePushLockExclusive(Lock) ExAcquirePushLockExclusiveEx(Lock, EX_DEFAULT_PUSH_LOCK_FLAGS)

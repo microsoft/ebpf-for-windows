@@ -46,16 +46,16 @@
     <ClCompile Include="..\guid.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="fw_thunk.cpp">
+    <ClCompile Include="fwp_um.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="kernel_thunk.cpp">
+    <ClCompile Include="kernel_um.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ndis_thunk.cpp">
+    <ClCompile Include="ndis_um.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="nmr_thunk.cpp">
+    <ClCompile Include="nmr_um.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -90,16 +90,10 @@
     <ClInclude Include="netebpfext_platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="fw_thunk.h">
+    <ClInclude Include="kernel_um.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="kernel_thunk.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="nmr_thunk.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ndis_thunk.h">
+    <ClInclude Include="ndis.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

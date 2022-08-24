@@ -7,7 +7,6 @@
 #include <map>
 
 #include "netebpfext_platform.h"
-#include "nmr_thunk.h"
 
 class _waitable_ref_count
 {
@@ -145,7 +144,7 @@ _add_binding(HANDLE client_handle, HANDLE provider_handle)
 
 NTSTATUS
 NmrRegisterProvider(
-    _In_ NPI_PROVIDER_CHARACTERISTICS* provider_characteristics,
+    _In_ const NPI_PROVIDER_CHARACTERISTICS* provider_characteristics,
     _In_opt_ __drv_aliasesMem void* provider_context,
     _Out_ HANDLE* nmr_provider_handle)
 {
@@ -224,7 +223,9 @@ NmrWaitForProviderDeregisterComplete(_In_ HANDLE nmr_provider_handle)
 
 NTSTATUS
 NmrRegisterClient(
-    _In_ NPI_CLIENT_CHARACTERISTICS* client_characteristics, _In_ void* client_context, _Out_ HANDLE* nmr_client_handle)
+    _In_ const NPI_CLIENT_CHARACTERISTICS* client_characteristics,
+    _In_opt_ __drv_aliasesMem void* client_context,
+    _Out_ HANDLE* nmr_client_handle)
 {
     HANDLE handle = reinterpret_cast<HANDLE>(_nmr_next_handle++);
     auto& client = _nmr_client_registrations[handle];
