@@ -1783,8 +1783,8 @@ TEST_CASE("bpf_prog_attach", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("cgroup_sock_addr.o", &opts);
+    // Test calling bpf_object__open_file with null opts.
+    struct bpf_object* object = bpf_object__open_file("cgroup_sock_addr.o", nullptr);
     REQUIRE(object != nullptr);
 
     struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");
@@ -1819,8 +1819,7 @@ TEST_CASE("bpf_link__pin", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("droppacket.o", &opts);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
     REQUIRE(object != nullptr);
 
     struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
