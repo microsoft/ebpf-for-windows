@@ -4,7 +4,9 @@
 #pragma once
 
 #define _NDIS_
-#include "kernel_thunk.h"
+#include "kernel_um.h"
+#include <ndis/objectheader.h>
+#include <ndis/types.h>
 
 #define NET_BUFFER_FIRST_MDL(_NB) ((_NB)->MdlChain)
 #define NDIS_STATUS_SUCCESS ((NDIS_STATUS)STATUS_SUCCESS)

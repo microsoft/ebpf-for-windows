@@ -98,10 +98,10 @@
     <ClCompile Include="..\net_ebpf_ext_sock_ops.c" />
     <ClCompile Include="..\net_ebpf_ext_tracelog.c" />
     <ClCompile Include="..\net_ebpf_ext_xdp.c" />
-    <ClCompile Include="fw_thunk.cpp" />
-    <ClCompile Include="kernel_thunk.cpp" />
-    <ClCompile Include="ndis_thunk.cpp" />
-    <ClCompile Include="nmr_thunk.cpp" />
+    <ClCompile Include="fwp_um.cpp" />
+    <ClCompile Include="kernel_um.cpp" />
+    <ClCompile Include="ndis_um.cpp" />
+    <ClCompile Include="nmr_um.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\net_ebpf_ext.h" />
@@ -113,8 +113,8 @@
     <ClInclude Include="..\net_ebpf_ext_sock_ops.h" />
     <ClInclude Include="..\net_ebpf_ext_tracelog.h" />
     <ClInclude Include="..\net_ebpf_ext_xdp.h" />
-    <ClInclude Include="kernel_thunk.h" />
-    <ClInclude Include="ndis_thunk.h" />
+    <ClInclude Include="kernel_um.h" />
+    <ClInclude Include="ndis.h" />
     <ClInclude Include="netebpfext_platform.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
