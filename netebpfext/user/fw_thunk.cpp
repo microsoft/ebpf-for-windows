@@ -1,14 +1,109 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <unordered_map>
+#include <mutex>
+
 #include "netebpfext_platform.h"
 #include "fw_thunk.h"
 
+typedef class _fwp_engine
+{
+  public:
+    _fwp_engine() = default;
+
+    uint32_t
+    add_fwpm_callout(const FWPM_CALLOUT0* callout)
+    {
+        std::unique_lock l(lock);
+        uint32_t id = next_id++;
+        fwpm_callouts.insert({id, *callout});
+        return id;
+    }
+
+    bool
+    remove_fwpm_callout(size_t id)
+    {
+        std::unique_lock l(lock);
+        return fwpm_callouts.erase(id) == 1;
+    }
+
+    uint32_t
+    add_fwps_callout(const FWPS_CALLOUT3* callout)
+    {
+        std::unique_lock l(lock);
+        uint32_t id = next_id++;
+        fwps_callouts.insert({id, *callout});
+        return id;
+    }
+
+    bool
+    remove_fwps_callout(size_t id)
+    {
+        std::unique_lock l(lock);
+        return fwps_callouts.erase(id) == 1;
+    }
+
+    uint32_t
+    add_fwpm_filter(const FWPM_FILTER0* filter)
+    {
+        std::unique_lock l(lock);
+        uint32_t id = next_id++;
+        fwpm_filters.insert({id, *filter});
+        return id;
+    }
+
+    bool
+    remove_fwpm_filter(size_t id)
+    {
+        std::unique_lock l(lock);
+        return fwpm_filters.erase(id) == 1;
+    }
+
+    uint32_t
+    add_fwpm_sub_layer(const FWPM_SUBLAYER0* sub_layer)
+    {
+        std::unique_lock l(lock);
+        uint32_t id = next_id++;
+        fwpm_sub_layers.insert({id, *sub_layer});
+        return id;
+    }
+
+    bool
+    remove_fwpm_sub_layer(size_t id)
+    {
+        std::unique_lock l(lock);
+        return fwpm_sub_layers.erase(id) == 1;
+    }
+
+  private:
+    std::mutex lock;
+    uint32_t next_id = 1;
+    std::unordered_map<size_t, FWPS_CALLOUT3> fwps_callouts;
+    std::unordered_map<size_t, FWPM_CALLOUT0> fwpm_callouts;
+    std::unordered_map<size_t, FWPM_FILTER0> fwpm_filters;
+    std::unordered_map<size_t, FWPM_SUBLAYER0> fwpm_sub_layers;
+} fwp_engine;
+
+static std::unique_ptr<fwp_engine> _engine;
+
+typedef struct _fwp_injection_handle
+{
+    ADDRESS_FAMILY address_family;
+    uint32_t flags;
+} fwp_injection_handle;
+
+static std::unique_ptr<fwp_injection_handle> _injection_handle;
+
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmFilterDeleteById0(_In_ HANDLE engine_handle, _In_ uint64_t id)
 {
-    UNREFERENCED_PARAMETER(engine_handle);
-    UNREFERENCED_PARAMETER(id);
-    return STATUS_NOT_IMPLEMENTED;
+    auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
+
+    if (engine.remove_fwpm_filter(id)) {
+        return STATUS_SUCCESS;
+    } else {
+        return STATUS_INVALID_PARAMETER;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
@@ -16,7 +111,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
 {
     UNREFERENCED_PARAMETER(engine_handle);
     UNREFERENCED_PARAMETER(flags);
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmFilterAdd0(
@@ -25,32 +120,45 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmFilterAdd0(
     _In_opt_ PSECURITY_DESCRIPTOR sd,
     _Out_opt_ uint64_t* id)
 {
-    UNREFERENCED_PARAMETER(engine_handle);
-    UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(sd);
-    UNREFERENCED_PARAMETER(id);
-    return STATUS_NOT_IMPLEMENTED;
+
+    auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
+
+    auto id_returned = engine.add_fwpm_filter(filter);
+
+    if (id) {
+        *id = id_returned;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmTransactionCommit0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle)
 {
     UNREFERENCED_PARAMETER(engine_handle);
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmTransactionAbort0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle)
 {
     UNREFERENCED_PARAMETER(engine_handle);
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
     FwpsCalloutRegister3(_Inout_ void* device_object, _In_ const FWPS_CALLOUT3* callout, _Out_opt_ uint32_t* callout_id)
 {
     UNREFERENCED_PARAMETER(device_object);
-    UNREFERENCED_PARAMETER(callout);
-    UNREFERENCED_PARAMETER(callout_id);
-    return STATUS_NOT_IMPLEMENTED;
+
+    auto& engine = *_engine.get();
+
+    auto id_returned = engine.add_fwps_callout(callout);
+
+    if (callout_id) {
+        *callout_id = id_returned;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmCalloutAdd0(
@@ -59,17 +167,26 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmCalloutAdd0(
     _In_opt_ PSECURITY_DESCRIPTOR sd,
     _Out_opt_ uint32_t* id)
 {
-    UNREFERENCED_PARAMETER(engine_handle);
-    UNREFERENCED_PARAMETER(callout);
+    auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
+
+    auto id_returned = engine.add_fwpm_callout(callout);
+
+    if (id) {
+        *id = id_returned;
+    }
     UNREFERENCED_PARAMETER(sd);
-    UNREFERENCED_PARAMETER(id);
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsCalloutUnregisterById0(_In_ const uint32_t callout_id)
 {
-    UNREFERENCED_PARAMETER(callout_id);
-    return STATUS_NOT_IMPLEMENTED;
+    auto& engine = *_engine.get();
+
+    if (engine.remove_fwps_callout(callout_id)) {
+        return STATUS_SUCCESS;
+    } else {
+        return STATUS_INVALID_PARAMETER;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineOpen0(
@@ -83,38 +200,51 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineOpen0(
     UNREFERENCED_PARAMETER(authn_service);
     UNREFERENCED_PARAMETER(auth_identity);
     UNREFERENCED_PARAMETER(session);
-    UNREFERENCED_PARAMETER(engine_handle);
-    return STATUS_NOT_IMPLEMENTED;
+
+    if (!_engine)
+        _engine = std::make_unique<_fwp_engine>();
+
+    *engine_handle = _engine.get();
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
     FwpmSubLayerAdd0(_In_ HANDLE engine_handle, _In_ const FWPM_SUBLAYER0* sub_layer, _In_opt_ PSECURITY_DESCRIPTOR sd)
 {
-    UNREFERENCED_PARAMETER(engine_handle);
-    UNREFERENCED_PARAMETER(sub_layer);
     UNREFERENCED_PARAMETER(sd);
-    return STATUS_NOT_IMPLEMENTED;
+    auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
+
+    engine.add_fwpm_sub_layer(sub_layer);
+
+    return STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineClose0(_Inout_ HANDLE engine_handle)
+{
+    if (engine_handle != _engine.get()) {
+        return STATUS_INVALID_PARAMETER;
+    } else {
+        return STATUS_SUCCESS;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsInjectionHandleCreate0(
     _In_opt_ ADDRESS_FAMILY address_family, _In_ uint32_t flags, _Out_ HANDLE* injection_handle)
 {
-    UNREFERENCED_PARAMETER(address_family);
-    UNREFERENCED_PARAMETER(flags);
-    UNREFERENCED_PARAMETER(injection_handle);
-    return STATUS_NOT_IMPLEMENTED;
-}
+    _injection_handle = std::make_unique<_fwp_injection_handle>(address_family, flags);
+    *injection_handle = _injection_handle.get();
 
-_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineClose0(_Inout_ HANDLE engine_handle)
-{
-    UNREFERENCED_PARAMETER(engine_handle);
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsInjectionHandleDestroy0(_In_ HANDLE injection_handle)
 {
-    UNREFERENCED_PARAMETER(injection_handle);
-    return STATUS_NOT_IMPLEMENTED;
+    if (injection_handle != _injection_handle.get()) {
+        return STATUS_INVALID_PARAMETER;
+    } else {
+        _injection_handle.reset();
+        return STATUS_SUCCESS;
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
@@ -160,17 +290,17 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void FwpsFreeNetBufferList0(_In_ NET_BUFFER_
     UNREFERENCED_PARAMETER(net_buffer_list);
 }
 
-NTSTATUS
-FwpsInjectMacReceiveAsync0(
-    _In_ HANDLE injection_handle,
-    _In_opt_ HANDLE injection_context,
-    _In_ uint32_t flags,
-    _In_ UINT16 layer_id,
-    _In_ IF_INDEX interface_index,
-    _In_ NDIS_PORT_NUMBER ndis_port_number,
-    _Inout_ NET_BUFFER_LIST* net_buffer_lists,
-    _In_ void* completion_function,
-    _In_opt_ HANDLE completion_context)
+_IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) _Must_inspect_result_ NTSTATUS
+    FwpsInjectMacReceiveAsync0(
+        _In_ HANDLE injection_handle,
+        _In_opt_ HANDLE injection_context,
+        _In_ uint32_t flags,
+        _In_ UINT16 layer_id,
+        _In_ IF_INDEX interface_index,
+        _In_ NDIS_PORT_NUMBER ndis_port_number,
+        _Inout_ NET_BUFFER_LIST* net_buffer_lists,
+        _In_ FWPS_INJECT_COMPLETE completion_function,
+        _In_opt_ HANDLE completion_context)
 {
     UNREFERENCED_PARAMETER(injection_handle);
     UNREFERENCED_PARAMETER(injection_context);
@@ -216,7 +346,7 @@ _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) _Must_ins
         _In_ IF_INDEX interface_index,
         _In_ NDIS_PORT_NUMBER ndis_port_number,
         _Inout_ NET_BUFFER_LIST* net_buffer_lists,
-        _In_ void* completion_function,
+        _In_ FWPS_INJECT_COMPLETE completion_function,
         _In_opt_ HANDLE completion_context)
 {
     UNREFERENCED_PARAMETER(injection_handle);
