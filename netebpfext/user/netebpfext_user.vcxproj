@@ -113,7 +113,6 @@
     <ClInclude Include="..\net_ebpf_ext_sock_ops.h" />
     <ClInclude Include="..\net_ebpf_ext_tracelog.h" />
     <ClInclude Include="..\net_ebpf_ext_xdp.h" />
-    <ClInclude Include="fw_thunk.h" />
     <ClInclude Include="kernel_thunk.h" />
     <ClInclude Include="ndis_thunk.h" />
     <ClInclude Include="netebpfext_platform.h" />

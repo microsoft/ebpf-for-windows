@@ -90,9 +90,6 @@
     <ClInclude Include="netebpfext_platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="fw_thunk.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="kernel_thunk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
