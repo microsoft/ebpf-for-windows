@@ -69,7 +69,7 @@ jobs:
 
     # Checking out the branch is needed to gather correct code coverage data.
     steps:
-    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
+    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       # Only check out source code if code coverage is being gathered.
       if: inputs.code_coverage == true
       with:
@@ -77,7 +77,7 @@ jobs:
         ref: ${{ github.event.workflow_run.head_branch }}
 
     # Perform shallow checkout for self-hosted runner.
-    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
+    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       if: inputs.environment == 'ebpf_cicd_tests'
       with:
         ref: ${{ github.event.workflow_run.head_branch }}

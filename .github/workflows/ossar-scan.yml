@@ -36,7 +36,7 @@ jobs:
 
     steps:
     # Checking out the branch is needed to correctly log security alerts.
-    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
+    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       with:
         # Only check out main repo, not submodules.
         ref: ${{ github.event.workflow_run.head_branch }}
@@ -59,6 +59,6 @@ jobs:
       id: ossar
 
     - name: Upload results to Security tab
-      uses: github/codeql-action/upload-sarif@2ca79b6fa8d3ec278944088b4aa5f46912db5d63
+      uses: github/codeql-action/upload-sarif@7fee4ca032ac341c12486c4c06822c5221c76533
       with:
         sarif_file: ${{ steps.ossar.outputs.sarifFile }}

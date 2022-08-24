@@ -115,6 +115,7 @@ add_executable("bpftool"
   bpftool/src/map.c
   bpftool/src/net.c
   bpftool/src/prog.c
+  bpftool/src/windows/platform.c
 )
 
 target_include_directories("bpftool" PRIVATE
