@@ -801,7 +801,7 @@ std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
         {
             BPF_MAP_TYPE_ARRAY_OF_MAPS,
             4,
-            20,
+            4,
             10,
             1,
         },
@@ -820,7 +820,7 @@ std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
         {
             BPF_MAP_TYPE_HASH_OF_MAPS,
             4,
-            20,
+            4,
             10,
             1,
         },
@@ -848,7 +848,7 @@ std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
         {
             BPF_MAP_TYPE_PROG_ARRAY,
             4,
-            20,
+            4,
             10,
         },
     },
@@ -1164,6 +1164,24 @@ TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
     create_map_request->ebpf_map_definition = _map_definitions["BPF_MAP_TYPE_HASH_OF_MAPS"];
     create_map_request->inner_map_handle = program_handles[0];
     REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_MAP, request, reply) == EBPF_INVALID_OBJECT);
+
+    // Array of maps with incorrect value size.
+    create_map_request->ebpf_map_definition = _map_definitions["BPF_MAP_TYPE_ARRAY_OF_MAPS"];
+    create_map_request->ebpf_map_definition.value_size = 1;
+    create_map_request->inner_map_handle = map_handles["BPF_MAP_TYPE_HASH"];
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_MAP, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // Hash of maps with incorrect key size.
+    create_map_request->ebpf_map_definition = _map_definitions["BPF_MAP_TYPE_HASH_OF_MAPS"];
+    create_map_request->ebpf_map_definition.value_size = 1;
+    create_map_request->inner_map_handle = map_handles["BPF_MAP_TYPE_HASH"];
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_MAP, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // Array of programs with incorrect key size.
+    create_map_request->ebpf_map_definition = _map_definitions["BPF_MAP_TYPE_PROG_ARRAY"];
+    create_map_request->ebpf_map_definition.value_size = 1;
+    create_map_request->inner_map_handle = program_handles[0];
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_MAP, request, reply) == EBPF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
