@@ -33,7 +33,7 @@ _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_
 
 static NTSTATUS
 _net_ebpf_ext_filter_change_notify(
-    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter);
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
 
 typedef struct _net_ebpf_ext_wfp_callout_state
 {
@@ -630,7 +630,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
 
 static NTSTATUS
 _net_ebpf_ext_filter_change_notify(
-    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter)
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter)
 {
     NET_EBPF_EXT_LOG_ENTRY();
 

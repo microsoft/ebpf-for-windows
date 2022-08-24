@@ -3,6 +3,7 @@
 
 #pragma once
 
+#define _NDIS_
 #include "kernel_thunk.h"
 
 #define NET_BUFFER_FIRST_MDL(_NB) ((_NB)->MdlChain)
