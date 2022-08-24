@@ -129,7 +129,7 @@ _add_binding(HANDLE client_handle, HANDLE provider_handle)
     binding->client_handle = client_handle;
     binding->provider_handle = provider_handle;
 
-    // During this callout, the client will callback into the NMR to set dispatch tables etc.
+    // During this callout, the client will call back into the NMR to set dispatch tables etc.
     client_status = client.characteristics.ClientAttachProvider(
         binding.get(), client.context, &provider.characteristics.ProviderRegistrationInstance);
 
