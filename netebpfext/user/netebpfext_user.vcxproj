@@ -117,7 +117,6 @@
     <ClInclude Include="kernel_thunk.h" />
     <ClInclude Include="ndis_thunk.h" />
     <ClInclude Include="netebpfext_platform.h" />
-    <ClInclude Include="nmr_thunk.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

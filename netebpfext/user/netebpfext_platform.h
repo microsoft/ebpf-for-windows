@@ -13,8 +13,8 @@
 #include <iphlpapi.h>
 #include <winnt.h>
 #include <netiodef.h>
+#include <../km/netioddk.h>
 
 #include "fw_thunk.h"
 #include "kernel_thunk.h"
 #include "ndis_thunk.h"
-#include "nmr_thunk.h"

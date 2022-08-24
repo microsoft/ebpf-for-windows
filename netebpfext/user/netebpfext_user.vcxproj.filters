@@ -96,9 +96,6 @@
     <ClInclude Include="kernel_thunk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="nmr_thunk.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ndis_thunk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
