@@ -219,8 +219,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
     return STATUS_SUCCESS;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsInjectionHandleCreate0(
-    _In_opt_ ADDRESS_FAMILY address_family, _In_ uint32_t flags, _Out_ HANDLE* injection_handle)
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineClose0(_Inout_ HANDLE engine_handle)
 {
     if (engine_handle != _engine.get()) {
         return STATUS_INVALID_PARAMETER;
@@ -229,7 +228,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsInjectionHandleCreate0(
     }
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineClose0(_Inout_ HANDLE engine_handle)
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsInjectionHandleCreate0(
+    _In_opt_ ADDRESS_FAMILY address_family, _In_ uint32_t flags, _Out_ HANDLE* injection_handle)
 {
     _injection_handle = std::make_unique<_fwp_injection_handle>(address_family, flags);
     *injection_handle = _injection_handle.get();
@@ -290,17 +290,17 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void FwpsFreeNetBufferList0(_In_ NET_BUFFER_
     UNREFERENCED_PARAMETER(net_buffer_list);
 }
 
-NTSTATUS
-FwpsInjectMacReceiveAsync0(
-    _In_ HANDLE injection_handle,
-    _In_opt_ HANDLE injection_context,
-    _In_ uint32_t flags,
-    _In_ UINT16 layer_id,
-    _In_ IF_INDEX interface_index,
-    _In_ NDIS_PORT_NUMBER ndis_port_number,
-    _Inout_ NET_BUFFER_LIST* net_buffer_lists,
-    _In_ void* completion_function,
-    _In_opt_ HANDLE completion_context)
+_IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) _Must_inspect_result_ NTSTATUS
+    FwpsInjectMacReceiveAsync0(
+        _In_ HANDLE injection_handle,
+        _In_opt_ HANDLE injection_context,
+        _In_ uint32_t flags,
+        _In_ UINT16 layer_id,
+        _In_ IF_INDEX interface_index,
+        _In_ NDIS_PORT_NUMBER ndis_port_number,
+        _Inout_ NET_BUFFER_LIST* net_buffer_lists,
+        _In_ FWPS_INJECT_COMPLETE completion_function,
+        _In_opt_ HANDLE completion_context)
 {
     UNREFERENCED_PARAMETER(injection_handle);
     UNREFERENCED_PARAMETER(injection_context);
@@ -346,7 +346,7 @@ _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) _Must_ins
         _In_ IF_INDEX interface_index,
         _In_ NDIS_PORT_NUMBER ndis_port_number,
         _Inout_ NET_BUFFER_LIST* net_buffer_lists,
-        _In_ void* completion_function,
+        _In_ FWPS_INJECT_COMPLETE completion_function,
         _In_opt_ HANDLE completion_context)
 {
     UNREFERENCED_PARAMETER(injection_handle);

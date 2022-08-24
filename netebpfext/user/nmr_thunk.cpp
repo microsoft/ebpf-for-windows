@@ -51,15 +51,15 @@ class _waitable_ref_count
 
 typedef struct _NMR_PROVIDER_REGISTRATION
 {
-    NPI_PROVIDER_CHARACTERISTICS characteristics;
-    void* context;
+    NPI_PROVIDER_CHARACTERISTICS characteristics = {};
+    void* context = nullptr;
     _waitable_ref_count ref_count;
 } NMR_PROVIDER_REGISTRATION;
 
 typedef struct _NMR_CLIENT_REGISTRATION
 {
-    NPI_CLIENT_CHARACTERISTICS characteristics;
-    void* context;
+    NPI_CLIENT_CHARACTERISTICS characteristics = {};
+    void* context = nullptr;
     _waitable_ref_count ref_count;
 } NMR_CLIENT_REGISTRATION;
 
