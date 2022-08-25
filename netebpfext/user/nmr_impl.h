@@ -95,10 +95,9 @@ typedef class _nmr
      * @param[in] client_dispatch Client's dispatch table.
      * @param[out] provider_binding_context Provider's per binding context.
      * @param[out] provider_dispatch Provider's dispatch table.
-     * @return NTSTATUS return from ProviderAttachClient.
-     * STATUS_SUCCESS The client module was successfully attached to the provider module.
-     * STATUS_NOINTERFACE The provider module did not attach to the client module.
-     * Other status codes An error occurred.
+     * @retval STATUS_SUCCESS The client module was successfully attached to the provider module.
+     * @retval STATUS_NOINTERFACE The provider module did not attach to the client module.
+     * @retval Other status codes An error occurred.
      */
     NTSTATUS
     client_attach_provider(

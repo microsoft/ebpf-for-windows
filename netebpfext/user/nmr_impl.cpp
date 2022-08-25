@@ -116,7 +116,7 @@ _nmr::client_attach_provider(
 std::optional<_nmr::pending_action_t>
 _nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& provider)
 {
-    // Match on NPI ID
+    // Match on NPI ID.
     if (*client.characteristics.ClientRegistrationInstance.NpiId !=
         *provider.characteristics.ProviderRegistrationInstance.NpiId) {
         return std::nullopt;
@@ -225,7 +225,7 @@ _nmr::remove(_Inout_ collection_t& collection, _In_ collection_t::value_type::fi
         throw std::runtime_error("invalid handle");
     }
 
-    // Wait for bindings to reach zero if requested
+    // Wait for bindings to reach zero if requested.
     if (it->second.bindings > 0) {
         bindings_changed.wait(l, [&]() { return it->second.bindings == 0; });
     }
