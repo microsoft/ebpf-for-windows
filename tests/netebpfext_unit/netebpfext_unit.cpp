@@ -7,14 +7,33 @@
 #include "catch_wrapper.hpp"
 #include "netebpf_ext_helper.h"
 
-TEST_CASE("start_stop_test", "[netebpfext]")
+TEST_CASE("query program info", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
+    std::vector<GUID> expected_guids = {
+        EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_PROGRAM_TYPE_XDP, EBPF_PROGRAM_TYPE_BIND};
+    std::vector<std::string> expected_program_names = {"sock_addr", "sockops", "bind", "xdp"};
 
-    // Get list of program info providers (attach points and helper functions.
+    auto guid_less = [](const GUID& lhs, const GUID& rhs) { return memcmp(&lhs, &rhs, sizeof(lhs)) < 0; };
+
+    // Get list of program info providers (attach points and helper functions).
     std::vector<GUID> guids = helper.program_info_provider_guids();
-    REQUIRE(guids.size() > 0);
+
+    // Make sure they match
+    std::sort(expected_guids.begin(), expected_guids.end(), guid_less);
+    std::sort(guids.begin(), guids.end(), guid_less);
+    REQUIRE(guids == expected_guids);
+
+    // Get the names of the program types.
+    std::vector<std::string> program_names;
     for (const auto& guid : guids) {
-        helper.get_program_info_provider_data(guid);
+        ebpf_extension_data_t extension_data = helper.get_program_info_provider_data(guid);
+        auto& program_data = *reinterpret_cast<ebpf_program_data_t*>(extension_data.data);
+        program_names.push_back(program_data.program_info->program_type_descriptor.name);
     }
+
+    // Make sure they match.
+    std::sort(expected_program_names.begin(), expected_program_names.end());
+    std::sort(program_names.begin(), program_names.end());
+    REQUIRE(expected_program_names == program_names);
 }
