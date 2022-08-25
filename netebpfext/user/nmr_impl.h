@@ -28,7 +28,7 @@ typedef class _nmr
      *
      * @param[in] characteristics Characteristics of the provider.
      * @param[in] context Context passed to the provider.
-     * @return nmr_handle
+     * @return Handle to the provider registration.
      */
     nmr_provider_handle
     register_provider(_In_ const NPI_PROVIDER_CHARACTERISTICS& characteristics, _In_opt_ const void* context);
@@ -56,7 +56,7 @@ typedef class _nmr
      *
      * @param[in] characteristics Characteristics of the client.
      * @param[in] context Context passed to the client.
-     * @return nmr_handle
+     * @return Handle to the client registration.
      */
     nmr_client_handle
     register_client(_In_ const NPI_CLIENT_CHARACTERISTICS& characteristics, _In_opt_ const void* context);
