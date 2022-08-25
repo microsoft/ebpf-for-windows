@@ -292,7 +292,7 @@ _nmr::perform_unbind(
                 handles_to_unbind.push_back(binding_handle);
             }
         }
-        // If the initiator is a provider, the the target must be a client.
+        // If the initiator is a provider, then the target must be a client.
         if constexpr (std::is_same<initiator_collection_t::value_type::second_type, provider_registration>::value) {
             if (&binding.provider == &initiator) {
                 handles_to_unbind.push_back(binding_handle);
