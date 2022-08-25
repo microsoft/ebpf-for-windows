@@ -38,9 +38,56 @@ typedef enum _ebpf_pool_tag
 static KDEFERRED_ROUTINE _ebpf_deferred_routine;
 static KDEFERRED_ROUTINE _ebpf_timer_routine;
 
+static ebpf_lock_t _ebpf_backtrace_lock;
+static ebpf_hash_table_t* _ebpf_backtrace_table = NULL;
+
+#define EBPF_BACKTRACE_DEPTH 16
+
+static void*
+_ebpf_stack_trace_alloc(size_t size)
+{
+    ebpf_assert(size);
+    void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size, EBPF_POOL_TAG);
+    if (p)
+        memset(p, 0, size);
+    return p;
+}
+
+static void
+_ebpf_stack_trace_free(_Frees_ptr_opt_ void* memory)
+{
+    if (memory)
+        ExFreePool(memory);
+}
+
+inline static uint32_t
+_ebpf_capture_back_trace()
+{
+    uintptr_t back_trace[EBPF_BACKTRACE_DEPTH] = {0};
+    unsigned long back_trace_hash = 0;
+    RtlCaptureStackBackTrace(0, EBPF_BACKTRACE_DEPTH, (void**)back_trace, &back_trace_hash);
+    ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_backtrace_lock);
+    // Insert only if it doesn't already exist.
+    ebpf_hash_table_update(
+        _ebpf_backtrace_table,
+        (const uint8_t*)&back_trace_hash,
+        (uint8_t*)&back_trace,
+        EBPF_HASH_TABLE_OPERATION_INSERT);
+    ebpf_lock_unlock(&_ebpf_backtrace_lock, state);
+    return back_trace_hash;
+}
+
 ebpf_result_t
 ebpf_platform_initiate()
 {
+    ebpf_hash_table_create(
+        &_ebpf_backtrace_table,
+        _ebpf_stack_trace_alloc,
+        _ebpf_stack_trace_free,
+        sizeof(uint32_t),
+        EBPF_BACKTRACE_DEPTH * sizeof(uintptr_t),
+        64,
+        NULL);
     return EBPF_SUCCESS;
 }
 
@@ -48,15 +95,23 @@ void
 ebpf_platform_terminate()
 {
     KeFlushQueuedDpcs();
+    ebpf_hash_table_destroy(_ebpf_backtrace_table);
+    _ebpf_backtrace_table = NULL;
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
 {
     ebpf_assert(size);
-    void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size, EBPF_POOL_TAG);
-    if (p)
+
+    void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size + sizeof(uint32_t), EBPF_POOL_TAG);
+    if (p) {
+        // Store the hash of the backtrace at the start of the allocation.
+        uint32_t* back_trace_hash = (uint32_t*)p;
+        *back_trace_hash = _ebpf_capture_back_trace();
+        p = back_trace_hash + 1;
         memset(p, 0, size);
+    }
     return p;
 }
 
@@ -76,8 +131,12 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
 void
 ebpf_free(_Frees_ptr_opt_ void* memory)
 {
-    if (memory)
-        ExFreePool(memory);
+    if (memory) {
+        // Adjust start of block to account for hash.
+        uint32_t* back_trace_hash = (uint32_t*)memory;
+        back_trace_hash--;
+        ExFreePool(back_trace_hash);
+    }
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
