@@ -4,7 +4,7 @@
 #include "nmr_impl.h"
 
 _nmr::nmr_provider_handle
-_nmr::register_provider(const NPI_PROVIDER_CHARACTERISTICS& characteristics, _In_opt_ void* context)
+_nmr::register_provider(_In_ const NPI_PROVIDER_CHARACTERISTICS& characteristics, _In_opt_ const void* context)
 {
     // Add the provider to the list of providers.
     nmr_provider_handle provider_handle = add(providers, characteristics, context);
@@ -14,7 +14,7 @@ _nmr::register_provider(const NPI_PROVIDER_CHARACTERISTICS& characteristics, _In
 }
 
 bool
-_nmr::deregister_provider(nmr_provider_handle provider_handle)
+_nmr::deregister_provider(_In_ nmr_provider_handle provider_handle)
 {
     // Remove the provider from the list of providers.
     deactivate(providers, provider_handle);
@@ -29,14 +29,14 @@ _nmr::deregister_provider(nmr_provider_handle provider_handle)
 }
 
 void
-_nmr::wait_for_deregister_provider(nmr_provider_handle provider_handle)
+_nmr::wait_for_deregister_provider(_In_ nmr_provider_handle provider_handle)
 {
     // Wait for the unbind to complete.
     remove(providers, provider_handle);
 }
 
 _nmr::nmr_client_handle
-_nmr::register_client(const NPI_CLIENT_CHARACTERISTICS& characteristics, _In_opt_ void* context)
+_nmr::register_client(_In_ const NPI_CLIENT_CHARACTERISTICS& characteristics, _In_opt_ const void* context)
 {
     // Add the client to the list of clients.
     nmr_client_handle client_handle = add(clients, characteristics, context);
@@ -46,7 +46,7 @@ _nmr::register_client(const NPI_CLIENT_CHARACTERISTICS& characteristics, _In_opt
 }
 
 bool
-_nmr::deregister_client(nmr_client_handle client_handle)
+_nmr::deregister_client(_In_ nmr_client_handle client_handle)
 {
     // Remove the client from the list of clients.
     deactivate(clients, client_handle);
@@ -61,14 +61,14 @@ _nmr::deregister_client(nmr_client_handle client_handle)
 }
 
 void
-_nmr::wait_for_deregister_client(nmr_client_handle client_handle)
+_nmr::wait_for_deregister_client(_In_ nmr_client_handle client_handle)
 {
     // Wait for the unbind to complete.
     remove(clients, client_handle);
 }
 
 void
-_nmr::binding_detach_complete(nmr_binding_handle binding_handle)
+_nmr::binding_detach_complete(_In_ nmr_binding_handle binding_handle)
 {
     // Signal the detach complete.
     unbind_complete(binding_handle);
@@ -76,11 +76,11 @@ _nmr::binding_detach_complete(nmr_binding_handle binding_handle)
 
 NTSTATUS
 _nmr::client_attach_provider(
-    nmr_binding_handle binding_handle,
-    _In_ __drv_aliasesMem void* client_binding_context,
+    _In_ nmr_binding_handle binding_handle,
+    _In_ __drv_aliasesMem const void* client_binding_context,
     _In_ const void* client_dispatch,
-    _Out_ void** provider_binding_context,
-    _Out_ const void** provider_dispatch)
+    _Outptr_ const void** provider_binding_context,
+    _Outptr_ const void** provider_dispatch)
 {
     std::unique_lock l(lock);
     // Resolve the binding_handle to the binding.
@@ -97,12 +97,12 @@ _nmr::client_attach_provider(
 
     // Call the provider's attach client.
     NTSTATUS status = binding.provider.characteristics.ProviderAttachClient(
-        binding_handle,
-        binding.provider.context,
+        const_cast<void*>(binding_handle),
+        const_cast<void*>(binding.provider.context),
         &binding.client.characteristics.ClientRegistrationInstance,
-        client_binding_context,
+        const_cast<void*>(client_binding_context),
         client_dispatch,
-        &binding.provider_binding_context,
+        const_cast<void**>(&binding.provider_binding_context),
         &binding.provider_dispatch);
 
     // If successful, save the provider's per binding context and dispatch table.
@@ -114,7 +114,7 @@ _nmr::client_attach_provider(
 }
 
 std::optional<_nmr::pending_action_t>
-_nmr::bind(client_registration& client, provider_registration& provider)
+_nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& provider)
 {
     // Match on NPI ID
     if (*client.characteristics.ClientRegistrationInstance.NpiId !=
@@ -136,7 +136,9 @@ _nmr::bind(client_registration& client, provider_registration& provider)
 
     return {[&client, &provider, h, this]() {
         NTSTATUS status = client.characteristics.ClientAttachProvider(
-            h, client.context, &provider.characteristics.ProviderRegistrationInstance);
+            const_cast<HANDLE>(h),
+            const_cast<void*>(client.context),
+            &provider.characteristics.ProviderRegistrationInstance);
         if (!NT_SUCCESS(status)) {
             unbind_complete(h);
         }
@@ -144,7 +146,7 @@ _nmr::bind(client_registration& client, provider_registration& provider)
 }
 
 void
-_nmr::unbind_complete(nmr_binding_handle binding_handle)
+_nmr::unbind_complete(_In_ nmr_binding_handle binding_handle)
 {
     std::unique_lock l(lock);
     auto it = bindings.find(binding_handle);
@@ -154,10 +156,10 @@ _nmr::unbind_complete(nmr_binding_handle binding_handle)
     auto& binding = it->second;
 
     // Notify the client that that the binding context can be freed.
-    binding.client.characteristics.ClientCleanupBindingContext(binding.client_binding_context);
+    binding.client.characteristics.ClientCleanupBindingContext(const_cast<void*>(binding.client_binding_context));
 
     // Notify the provider that that the binding context can be freed.
-    binding.provider.characteristics.ProviderCleanupBindingContext(binding.provider_binding_context);
+    binding.provider.characteristics.ProviderCleanupBindingContext(const_cast<void*>(binding.provider_binding_context));
 
     binding.provider.bindings--;
     binding.client.bindings--;
@@ -168,7 +170,7 @@ _nmr::unbind_complete(nmr_binding_handle binding_handle)
 }
 
 bool
-_nmr::unbind(nmr_binding_handle binding_handle)
+_nmr::unbind(_In_ nmr_binding_handle binding_handle)
 {
     std::unique_lock l(lock);
     auto it = bindings.find(binding_handle);
@@ -178,9 +180,10 @@ _nmr::unbind(nmr_binding_handle binding_handle)
 
     auto& binding = it->second;
     l.unlock();
-    NTSTATUS client_detach_status = binding.client.characteristics.ClientDetachProvider(binding.client_binding_context);
+    NTSTATUS client_detach_status =
+        binding.client.characteristics.ClientDetachProvider(const_cast<void*>(binding.client_binding_context));
     NTSTATUS provider_detach_status =
-        binding.provider.characteristics.ProviderDetachClient(binding.provider_binding_context);
+        binding.provider.characteristics.ProviderDetachClient(const_cast<void*>(binding.provider_binding_context));
     if (NT_SUCCESS(client_detach_status) && NT_SUCCESS(provider_detach_status)) {
         unbind_complete(binding_handle);
         return false;
@@ -190,7 +193,7 @@ _nmr::unbind(nmr_binding_handle binding_handle)
 
 template <typename collection_t, typename characteristics_t>
 collection_t::value_type::first_type
-_nmr::add(collection_t& collection, characteristics_t& characteristics, void* context)
+_nmr::add(_Inout_ collection_t& collection, _In_ const characteristics_t& characteristics, _In_ const void* context)
 {
     std::unique_lock l(lock);
     auto handle = reinterpret_cast<collection_t::value_type::first_type>(next_handle++);
@@ -200,7 +203,7 @@ _nmr::add(collection_t& collection, characteristics_t& characteristics, void* co
 
 template <typename collection_t>
 void
-_nmr::deactivate(collection_t& collection, collection_t::value_type::first_type handle)
+_nmr::deactivate(_Inout_ collection_t& collection, _Inout_ collection_t::value_type::first_type handle)
 {
     std::unique_lock l(lock);
     auto it = collection.find(handle);
@@ -214,7 +217,7 @@ _nmr::deactivate(collection_t& collection, collection_t::value_type::first_type 
 
 template <typename collection_t>
 void
-_nmr::remove(collection_t& collection, collection_t::value_type::first_type handle)
+_nmr::remove(_Inout_ collection_t& collection, _In_ collection_t::value_type::first_type handle)
 {
     std::unique_lock l(lock);
     auto it = collection.find(handle);
@@ -233,9 +236,9 @@ _nmr::remove(collection_t& collection, collection_t::value_type::first_type hand
 template <typename initiator_collection_t, typename target_collection_t>
 void
 _nmr::perform_bind(
-    initiator_collection_t& initiator_collection,
-    initiator_collection_t::value_type::first_type initiator_handle,
-    target_collection_t& target_collection)
+    _Inout_ initiator_collection_t& initiator_collection,
+    _In_ initiator_collection_t::value_type::first_type initiator_handle,
+    _Inout_ target_collection_t& target_collection)
 {
     // Queue up the bind for each target to performed outside the lock.
     std::vector<pending_action_t> pending_actions;
@@ -270,7 +273,8 @@ _nmr::perform_bind(
 template <typename initiator_collection_t>
 bool
 _nmr::perform_unbind(
-    initiator_collection_t& initiator_collection, initiator_collection_t::value_type::first_type initiator_handle)
+    _Inout_ initiator_collection_t& initiator_collection,
+    _In_ initiator_collection_t::value_type::first_type initiator_handle)
 {
     bool pending = false;
     std::vector<nmr_binding_handle> handles_to_unbind;
@@ -288,7 +292,7 @@ _nmr::perform_unbind(
                 handles_to_unbind.push_back(binding_handle);
             }
         }
-        // If the inititor is a provider, the the target must be a client.
+        // If the initiator is a provider, the the target must be a client.
         if constexpr (std::is_same<initiator_collection_t::value_type::second_type, provider_registration>::value) {
             if (&binding.provider == &initiator) {
                 handles_to_unbind.push_back(binding_handle);

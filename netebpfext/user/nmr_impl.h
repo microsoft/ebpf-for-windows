@@ -31,25 +31,25 @@ typedef class _nmr
      * @return nmr_handle
      */
     nmr_provider_handle
-    register_provider(const NPI_PROVIDER_CHARACTERISTICS& characteristics, _In_opt_ void* context);
+    register_provider(_In_ const NPI_PROVIDER_CHARACTERISTICS& characteristics, _In_opt_ const void* context);
 
     /**
      * @brief Deregister a provider.
      *
      * @param[in] provider_handle Handle to the provider.
-     * @return true Caller needs to wait for the deregistering to complete.
-     * @return false Dergistering is complete.
+     * @retval true Caller needs to wait for the deregistration to complete.
+     * @retval false Deregistration is complete.
      */
     bool
-    deregister_provider(nmr_provider_handle provider_handle);
+    deregister_provider(_In_ nmr_provider_handle provider_handle);
 
     /**
-     * @brief Wait for a deregistering to complete.
+     * @brief Wait for deregistration to complete.
      *
      * @param[in] provider_handle Handle to the provider.
      */
     void
-    wait_for_deregister_provider(nmr_provider_handle provider_handle);
+    wait_for_deregister_provider(_In_ nmr_provider_handle provider_handle);
 
     /**
      * @brief Register a client.
@@ -59,25 +59,25 @@ typedef class _nmr
      * @return nmr_handle
      */
     nmr_client_handle
-    register_client(const NPI_CLIENT_CHARACTERISTICS& characteristics, _In_ void* context);
+    register_client(_In_ const NPI_CLIENT_CHARACTERISTICS& characteristics, _In_opt_ const void* context);
 
     /**
-     * @brief Dergister a client.
+     * @brief Deregister a client.
      *
      * @param[in] client_handle Handle to the client.
-     * @return true Caller needs to wait for the deregistering to complete.
-     * @return false Dergistering is complete.
+     * @retval true Caller needs to wait for the deregistration to complete.
+     * @retval false Deregistration is complete.
      */
     bool
-    deregister_client(nmr_client_handle client_handle);
+    deregister_client(_In_ nmr_client_handle client_handle);
 
     /**
-     * @brief Wait for a deregistering to complete.
+     * @brief Wait for deregistration to complete.
      *
      * @param[in] client_handle Handle to the client.
      */
     void
-    wait_for_deregister_client(nmr_client_handle client_handle);
+    wait_for_deregister_client(_In_ nmr_client_handle client_handle);
 
     /**
      * @brief Signal that a detach is complete.
@@ -85,7 +85,7 @@ typedef class _nmr
      * @param[in] binding_handle NMR binding handle.
      */
     void
-    binding_detach_complete(nmr_client_handle binding_handle);
+    binding_detach_complete(_In_ nmr_client_handle binding_handle);
 
     /**
      * @brief Callback from the client to complete an attach.
@@ -96,28 +96,31 @@ typedef class _nmr
      * @param[out] provider_binding_context Provider's per binding context.
      * @param[out] provider_dispatch Provider's dispatch table.
      * @return NTSTATUS return from ProviderAttachClient.
+     * STATUS_SUCCESS The client module was successfully attached to the provider module.
+     * STATUS_NOINTERFACE The provider module did not attach to the client module.
+     * Other status codes An error occurred.
      */
     NTSTATUS
     client_attach_provider(
-        nmr_binding_handle binding_handle,
-        _In_ __drv_aliasesMem void* client_binding_context,
+        _In_ nmr_binding_handle binding_handle,
+        _In_ __drv_aliasesMem const void* client_binding_context,
         _In_ const void* client_dispatch,
-        _Out_ void** provider_binding_context,
-        _Out_ const void** provider_dispatch);
+        _Outptr_ const void** provider_binding_context,
+        _Outptr_ const void** provider_dispatch);
 
   private:
     struct client_registration
     {
-        NPI_CLIENT_CHARACTERISTICS characteristics = {};
-        void* context = nullptr;
+        const NPI_CLIENT_CHARACTERISTICS characteristics = {};
+        const void* context = nullptr;
         size_t bindings = 0;
         bool deregistering = false;
     };
 
     struct provider_registration
     {
-        NPI_PROVIDER_CHARACTERISTICS characteristics = {};
-        void* context = nullptr;
+        const NPI_PROVIDER_CHARACTERISTICS characteristics = {};
+        const void* context = nullptr;
         size_t bindings = 0;
         bool deregistering = false;
     };
@@ -126,14 +129,14 @@ typedef class _nmr
     {
         provider_registration& provider;
         client_registration& client;
-        void* provider_binding_context = nullptr;
+        const void* provider_binding_context = nullptr;
         const void* provider_dispatch = nullptr;
-        void* client_binding_context = nullptr;
+        const void* client_binding_context = nullptr;
         const void* client_dispatch = nullptr;
     };
     typedef std::function<void()> pending_action_t;
 
-    // The NMR operations are mostly symetric with respect to providers and
+    // The NMR operations are mostly symmetric with respect to providers and
     // clients. As a result, the operations are implemented as a single set
     // templated function with the template parameter being the type of the
     // NMR entity being acted on (provider or client).
@@ -141,72 +144,73 @@ typedef class _nmr
     /**
      * @brief Add a provider or client to the correct collection.
      *
-     * @param[in] collection Collection to add to.
+     * @param[in,out] collection Collection to add to.
      * @param[in] characteristics Characteristics of the provider or client.
      * @param[in] context Context handle to return to the caller.
-     * @return nmr_handle Handle to the provider or client.
+     * @return Handle to the provider or client.
      */
     template <typename collection_t, typename characteristics_t>
     collection_t::value_type::first_type
-    add(collection_t& collection, characteristics_t& characteristics, void* context);
+    add(_Inout_ collection_t& collection, _In_ const characteristics_t& characteristics, _In_opt_ const void* context);
 
     /**
      * @brief Begin the process of deregistering a provider or client.
      *
-     * @param[in] collection Collection to deregister from.
+     * @param[in,out] collection Collection to deregister from.
      * @param[in] handle Handle to the provider or client.
      */
     template <typename collection_t>
     void
-    deactivate(collection_t& collection, collection_t::value_type::first_type handle);
+    deactivate(_Inout_ collection_t& collection, _In_ collection_t::value_type::first_type handle);
 
     /**
      * @brief Finish removing a provider or client from the correct collection.
      *
-     * @param[in] collection Collection to remove from.
+     * @param[in,out] collection Collection to remove from.
      * @param[in] handle Handle to the provider or client.
      */
     template <typename collection_t>
     void
-    remove(collection_t& collection, collection_t::value_type::first_type handle);
+    remove(_Inout_ collection_t& collection, _In_ collection_t::value_type::first_type handle);
 
     /**
-     * @brief Perform the a bind using an entry from the initiator_collection
+     * @brief Perform a bind using an entry from the initiator_collection
      * and all entries from the target_collection.
      *
-     * @param[in] initiator_collection Collection containing the initiator (can be either provider or client).
+     * @param[in,out] initiator_collection Collection containing the initiator (can be either provider or client).
      * @param[in] handle Handle to the initiator.
-     * @param[in] target_collection Collection containing all the targets (can be either provider or client).
+     * @param[in,out] target_collection Collection containing all the targets (can be either provider or client).
      */
     template <typename initiator_collection_t, typename target_collection_t>
     void
     perform_bind(
-        initiator_collection_t& initiator_collection,
-        initiator_collection_t::value_type::first_type initiator_handle,
-        target_collection_t& target_collection);
+        _Inout_ initiator_collection_t& initiator_collection,
+        _In_ initiator_collection_t::value_type::first_type initiator_handle,
+        _Inout_ target_collection_t& target_collection);
 
     /**
      * @brief Unbind a provider or client from all other providers or clients.
      *
-     * @param[in] initiator_collection Collection containing the initiator (can be either provider or client).
+     * @param[in,out] initiator_collection Collection containing the initiator (can be either provider or client).
      * @param[in] handle Handle to the initiator  (can be either provider or client)..
-     * @return true One or more bindings returned pending.
-     * @return false All bindings where successfully removed.
+     * @retval true One or more bindings returned pending.
+     * @retval false All bindings where successfully removed.
      */
     template <typename initiator_collection_t>
     bool
     perform_unbind(
-        initiator_collection_t& initiator_collection, initiator_collection_t::value_type::first_type initiator_handle);
+        _Inout_ initiator_collection_t& initiator_collection,
+        _In_ initiator_collection_t::value_type::first_type initiator_handle);
 
     /**
      * @brief Attempt to bind a client to a provider.
      *
-     * @param[in] client Client to attempt to bind.
-     * @param[in] provider Provider to attempt to bind to.
+     * @param[in,out] client Client to attempt to bind.
+     * @param[in,out] provider Provider to attempt to bind to.
      * @return Contains a function to perform the bind if successful.
      */
     std::optional<pending_action_t>
-    bind(client_registration& client, provider_registration& provider);
+    bind(_Inout_ client_registration& client, _Inout_ provider_registration& provider);
 
     /**
      * @brief Finish the process of unbinding a client from a provider.
@@ -214,17 +218,17 @@ typedef class _nmr
      * @param[in] binding_handle Binding handle to unbind.
      */
     void
-    unbind_complete(nmr_binding_handle binding_handle);
+    unbind_complete(_In_ nmr_binding_handle binding_handle);
 
     /**
      * @brief Start the process of unbinding a client from a provider.
      *
      * @param[in] binding_handle Binding handle to unbind.
-     * @return true Either the client or provider returned pending.
-     * @return false Both the client and provider returned successfully.
+     * @retval true Either the client or provider returned pending.
+     * @retval false Both the client and provider returned successfully.
      */
     bool
-    unbind(nmr_binding_handle binding_handle);
+    unbind(_In_ nmr_binding_handle binding_handle);
 
     std::map<nmr_binding_handle, binding> bindings;
     std::map<nmr_provider_handle, provider_registration> providers;
