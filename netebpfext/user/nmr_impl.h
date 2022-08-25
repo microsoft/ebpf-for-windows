@@ -191,7 +191,7 @@ typedef class _nmr
      * @brief Unbind a provider or client from all other providers or clients.
      *
      * @param[in,out] initiator_collection Collection containing the initiator (can be either provider or client).
-     * @param[in] handle Handle to the initiator  (can be either provider or client)..
+     * @param[in] handle Handle to the initiator (can be either provider or client).
      * @retval true One or more bindings returned pending.
      * @retval false All bindings where successfully removed.
      */
