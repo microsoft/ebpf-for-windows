@@ -75,7 +75,55 @@ typedef class _fwp_engine
         return fwpm_sub_layers.erase(id) == 1;
     }
 
+    FWP_ACTION_TYPE
+    classify_packet(_In_ const GUID* layer_guid)
+    {
+        std::unique_lock l(lock);
+        const GUID* callout_key = get_callout_key_from_layer_guid(layer_guid);
+        if (callout_key == nullptr) {
+            return FWP_ACTION_CALLOUT_UNKNOWN;
+        }
+        const FWPS_CALLOUT3* callout = get_callout_from_key(callout_key);
+        if (callout_key == nullptr) {
+            return FWP_ACTION_CALLOUT_UNKNOWN;
+        }
+        FWPS_CLASSIFY_OUT0 result = {};
+        FWPS_INCOMING_VALUES incoming_fixed_values = {};
+        FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
+        callout->classifyFn(
+            &incoming_fixed_values,
+            &incoming_metadata_values,
+            nullptr, // layerData,
+            nullptr, // classifyContext,
+            nullptr, // filter,
+            0,       // flowContext,
+            &result);
+        return result.actionType;
+    }
+
   private:
+    _Ret_maybenull_ const GUID*
+    get_callout_key_from_layer_guid(_In_ const GUID* layer_guid)
+    {
+        for (auto& [first, callout] : fwpm_callouts) {
+            if (callout.applicableLayer == *layer_guid) {
+                return &callout.calloutKey;
+            }
+        }
+        return nullptr;
+    }
+
+    _Ret_maybenull_ const FWPS_CALLOUT3*
+    get_callout_from_key(_In_ const GUID* callout_key)
+    {
+        for (auto& [first, callout] : fwps_callouts) {
+            if (callout.calloutKey == *callout_key) {
+                return &callout;
+            }
+        }
+        return nullptr;
+    }
+
     std::mutex lock;
     uint32_t next_id = 1;
     std::unordered_map<size_t, FWPS_CALLOUT3> fwps_callouts;
@@ -359,3 +407,6 @@ _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) _Must_ins
     UNREFERENCED_PARAMETER(completion_context);
     return STATUS_NOT_IMPLEMENTED;
 }
+
+FWP_ACTION_TYPE
+FwThunkClassifyPacket(_In_ const GUID* layer_guid) { return _engine->classify_packet(layer_guid); }

@@ -37,3 +37,19 @@ TEST_CASE("query program info", "[netebpfext]")
     std::sort(program_names.begin(), program_names.end());
     REQUIRE(expected_program_names == program_names);
 }
+
+TEST_CASE("start_stop_test2", "[netebpfext]")
+{
+    netebpf_ext_helper_t helper;
+
+    ebpf_extension_data_t program_type_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_XDP);
+    REQUIRE(program_type_data.size == sizeof(ebpf_program_data_t));
+    auto program_data = (ebpf_program_data_t*)program_type_data.data;
+    REQUIRE(program_data->program_info->program_type_descriptor.bpf_prog_type == BPF_PROG_TYPE_XDP);
+
+    // Register a logical eBPF program.
+    // TODO
+
+    FWP_ACTION_TYPE result = FwThunkClassifyPacket(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+}
