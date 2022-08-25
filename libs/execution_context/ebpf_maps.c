@@ -420,6 +420,11 @@ _create_object_array_map(
 
     *map = NULL;
 
+    if (map_definition->value_size != sizeof(ebpf_id_t)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
     result = _create_array_map_with_map_struct_size(sizeof(ebpf_core_object_map_t), map_definition, &local_map);
     if (result != EBPF_SUCCESS)
         goto Exit;
@@ -781,6 +786,11 @@ _create_object_hash_map(
     ebpf_result_t result = EBPF_SUCCESS;
 
     EBPF_LOG_ENTRY();
+
+    if (map_definition->value_size != sizeof(ebpf_id_t)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     *map = NULL;
 
