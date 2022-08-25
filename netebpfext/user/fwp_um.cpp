@@ -1,138 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <unordered_map>
-#include <mutex>
-
 #include "netebpfext_platform.h"
+#include "fwp_um.h"
 
-typedef class _fwp_engine
-{
-  public:
-    _fwp_engine() = default;
-
-    uint32_t
-    add_fwpm_callout(const FWPM_CALLOUT0* callout)
-    {
-        std::unique_lock l(lock);
-        uint32_t id = next_id++;
-        fwpm_callouts.insert({id, *callout});
-        return id;
-    }
-
-    bool
-    remove_fwpm_callout(size_t id)
-    {
-        std::unique_lock l(lock);
-        return fwpm_callouts.erase(id) == 1;
-    }
-
-    uint32_t
-    add_fwps_callout(const FWPS_CALLOUT3* callout)
-    {
-        std::unique_lock l(lock);
-        uint32_t id = next_id++;
-        fwps_callouts.insert({id, *callout});
-        return id;
-    }
-
-    bool
-    remove_fwps_callout(size_t id)
-    {
-        std::unique_lock l(lock);
-        return fwps_callouts.erase(id) == 1;
-    }
-
-    uint32_t
-    add_fwpm_filter(const FWPM_FILTER0* filter)
-    {
-        std::unique_lock l(lock);
-        uint32_t id = next_id++;
-        fwpm_filters.insert({id, *filter});
-        return id;
-    }
-
-    bool
-    remove_fwpm_filter(size_t id)
-    {
-        std::unique_lock l(lock);
-        return fwpm_filters.erase(id) == 1;
-    }
-
-    uint32_t
-    add_fwpm_sub_layer(const FWPM_SUBLAYER0* sub_layer)
-    {
-        std::unique_lock l(lock);
-        uint32_t id = next_id++;
-        fwpm_sub_layers.insert({id, *sub_layer});
-        return id;
-    }
-
-    bool
-    remove_fwpm_sub_layer(size_t id)
-    {
-        std::unique_lock l(lock);
-        return fwpm_sub_layers.erase(id) == 1;
-    }
-
-    FWP_ACTION_TYPE
-    classify_packet(_In_ const GUID* layer_guid)
-    {
-        std::unique_lock l(lock);
-        const GUID* callout_key = get_callout_key_from_layer_guid(layer_guid);
-        if (callout_key == nullptr) {
-            return FWP_ACTION_CALLOUT_UNKNOWN;
-        }
-        const FWPS_CALLOUT3* callout = get_callout_from_key(callout_key);
-        if (callout_key == nullptr) {
-            return FWP_ACTION_CALLOUT_UNKNOWN;
-        }
-        FWPS_CLASSIFY_OUT0 result = {};
-        FWPS_INCOMING_VALUES incoming_fixed_values = {};
-        FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
-        callout->classifyFn(
-            &incoming_fixed_values,
-            &incoming_metadata_values,
-            nullptr, // layerData,
-            nullptr, // classifyContext,
-            nullptr, // filter,
-            0,       // flowContext,
-            &result);
-        return result.actionType;
-    }
-
-  private:
-    _Ret_maybenull_ const GUID*
-    get_callout_key_from_layer_guid(_In_ const GUID* layer_guid)
-    {
-        for (auto& [first, callout] : fwpm_callouts) {
-            if (callout.applicableLayer == *layer_guid) {
-                return &callout.calloutKey;
-            }
-        }
-        return nullptr;
-    }
-
-    _Ret_maybenull_ const FWPS_CALLOUT3*
-    get_callout_from_key(_In_ const GUID* callout_key)
-    {
-        for (auto& [first, callout] : fwps_callouts) {
-            if (callout.calloutKey == *callout_key) {
-                return &callout;
-            }
-        }
-        return nullptr;
-    }
-
-    std::mutex lock;
-    uint32_t next_id = 1;
-    std::unordered_map<size_t, FWPS_CALLOUT3> fwps_callouts;
-    std::unordered_map<size_t, FWPM_CALLOUT0> fwpm_callouts;
-    std::unordered_map<size_t, FWPM_FILTER0> fwpm_filters;
-    std::unordered_map<size_t, FWPM_SUBLAYER0> fwpm_sub_layers;
-} fwp_engine;
-
-static std::unique_ptr<fwp_engine> _engine;
+std::unique_ptr<_fwp_engine> _fwp_engine::_engine;
 
 typedef struct _fwp_injection_handle
 {
@@ -197,7 +69,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
 {
     UNREFERENCED_PARAMETER(device_object);
 
-    auto& engine = *_engine.get();
+    auto& engine = *_fwp_engine::get()->get();
 
     auto id_returned = engine.add_fwps_callout(callout);
 
@@ -227,7 +99,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmCalloutAdd0(
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsCalloutUnregisterById0(_In_ const uint32_t callout_id)
 {
-    auto& engine = *_engine.get();
+    auto& engine = *_fwp_engine::get()->get();
 
     if (engine.remove_fwps_callout(callout_id)) {
         return STATUS_SUCCESS;
@@ -248,10 +120,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineOpen0(
     UNREFERENCED_PARAMETER(auth_identity);
     UNREFERENCED_PARAMETER(session);
 
-    if (!_engine)
-        _engine = std::make_unique<_fwp_engine>();
-
-    *engine_handle = _engine.get();
+    *engine_handle = _fwp_engine::get()->get();
     return STATUS_SUCCESS;
 }
 
@@ -268,7 +137,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineClose0(_Inout_ HANDLE engine_handle)
 {
-    if (engine_handle != _engine.get()) {
+    if (engine_handle != _fwp_engine::get()->get()) {
         return STATUS_INVALID_PARAMETER;
     } else {
         return STATUS_SUCCESS;
@@ -407,6 +276,3 @@ _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) _Must_ins
     UNREFERENCED_PARAMETER(completion_context);
     return STATUS_NOT_IMPLEMENTED;
 }
-
-FWP_ACTION_TYPE
-FwThunkClassifyPacket(_In_ const GUID* layer_guid) { return _engine->classify_packet(layer_guid); }

@@ -50,6 +50,6 @@ TEST_CASE("start_stop_test2", "[netebpfext]")
     // Register a logical eBPF program.
     // TODO
 
-    FWP_ACTION_TYPE result = FwThunkClassifyPacket(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE);
+    FWP_ACTION_TYPE result = helper.classify_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE);
     REQUIRE(result == FWP_ACTION_PERMIT);
 }
