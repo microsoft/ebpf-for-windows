@@ -24,11 +24,7 @@ typedef class _netebpf_ext_helper
     get_program_info_provider_data(const GUID& program_info_provider);
 
     FWP_ACTION_TYPE
-    classify_packet(_In_ const GUID* layer_guid)
-    {
-        // TODO call into fwp_um.cpp
-        return _fwp_engine::get()->classify_packet(layer_guid);
-    }
+    classify_packet(_In_ const GUID* layer_guid) { return _fwp_engine::get()->classify_packet(layer_guid); }
 
   private:
     bool trace_initiated = false;
