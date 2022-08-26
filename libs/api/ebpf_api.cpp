@@ -3256,6 +3256,17 @@ ebpf_get_program_type_by_name(
     EBPF_RETURN_RESULT(result);
 }
 
+ebpf_result_t
+ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    EBPF_LOG_ENTRY();
+
+    result = get_program_type_info(program_info);
+
+    EBPF_RETURN_RESULT(result);
+}
+
 _Ret_maybenull_ const ebpf_program_type_t*
 ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) noexcept
 {

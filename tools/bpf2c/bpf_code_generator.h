@@ -218,9 +218,14 @@ class bpf_code_generator
      * @param[in] section_name Section in the ELF file to parse.
      * @param[in] program_type Program type GUID for the section.
      * @param[in] attach_type Expected attach type GUID for the section.
+     * @param[in] program_info_hash Optional bytes containing hash of the program info.
      */
     void
-    parse(const unsafe_string& section_name, const GUID& program_type, const GUID& attach_type);
+    parse(
+        const unsafe_string& section_name,
+        const GUID& program_type,
+        const GUID& attach_type,
+        const std::optional<std::vector<uint8_t>>& program_info_hash);
 
     /**
      * @brief Parse global data (currently map information) in the eBPF file.
@@ -276,6 +281,7 @@ class bpf_code_generator
         unsafe_string program_name;
         GUID program_type = {0};
         GUID expected_attach_type = {0};
+        std::optional<std::vector<uint8_t>> program_info_hash;
         // Indices of the maps used in this section.
         std::set<size_t> referenced_map_indices;
         std::map<unsafe_string, helper_function_t> helper_functions;
@@ -302,9 +308,13 @@ class bpf_code_generator
      *
      * @param[in] program_type Program type GUID.
      * @param[in] attach_type Attach type GUID.
+     * @param[in] program_info_hash Hash of the program information used to verify this program.
      */
     void
-    set_program_and_attach_type(const GUID& program_type, const GUID& attach_type);
+    set_program_and_attach_type_and_hash(
+        const GUID& program_type,
+        const GUID& attach_type,
+        const std::optional<std::vector<uint8_t>>& program_info_hash);
 
     /**
      * @brief Extract the helper function and map relocation data from the eBPF file.
