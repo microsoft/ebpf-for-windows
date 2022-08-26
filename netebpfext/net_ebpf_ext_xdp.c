@@ -680,6 +680,4 @@ Done:
 
     if (!NT_SUCCESS(status))
         NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
-
-    return;
 }
