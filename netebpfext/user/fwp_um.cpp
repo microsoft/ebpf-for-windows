@@ -6,8 +6,9 @@
 
 std::unique_ptr<_fwp_engine> _fwp_engine::_engine;
 
+// Attempt to classify a test packet at a given WFP layer on a given interface index.
 FWP_ACTION_TYPE
-_fwp_engine::classify_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
+_fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
 {
     std::unique_lock l(lock);
     const GUID* callout_key = get_callout_key_from_layer_guid(layer_guid);
@@ -35,7 +36,6 @@ _fwp_engine::classify_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
     }
     NET_BUFFER_LIST* nbl = NdisAllocateNetBufferList(nbl_pool_handle, 0, 0);
     if (nbl) {
-        // TODO: maybe use combined NDIS function?
         ULONG data = 0;
         MDL* mdl_chain = IoAllocateMdl(&data, sizeof(data), false, false, nullptr);
         if (mdl_chain) {

@@ -24,9 +24,9 @@ typedef class _netebpf_ext_helper
     get_program_info_provider_data(const GUID& program_info_provider);
 
     FWP_ACTION_TYPE
-    classify_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
+    classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
     {
-        return _fwp_engine::get()->classify_packet(layer_guid, if_index);
+        return _fwp_engine::get()->classify_test_packet(layer_guid, if_index);
     }
 
   private:
