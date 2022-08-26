@@ -82,14 +82,19 @@ attach_netebpf_extension(
 NTSTATUS
 detach_netebpf_extension(_In_ void* client_binding_context)
 {
-    UNREFERENCED_PARAMETER(client_binding_context);
+    auto test_client_context = (test_client_context_t*)client_binding_context;
+    UNREFERENCED_PARAMETER(test_client_context);
+
+    // Return STATUS_SUCCESS if all callbacks we implement are done, or return
+    // STATUS_PENDING if we will call NmrProviderDetachClientComplete() when done.
     return STATUS_SUCCESS;
 }
 
 void
 netebpf_cleanup_binding_context(_In_ void* client_binding_context)
 {
-    UNREFERENCED_PARAMETER(client_binding_context);
+    auto test_client_context = (test_client_context_t*)client_binding_context;
+    UNREFERENCED_PARAMETER(test_client_context);
 }
 
 TEST_CASE("start_stop_test2", "[netebpfext]")
