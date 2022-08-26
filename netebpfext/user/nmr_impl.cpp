@@ -77,9 +77,11 @@ _nmr::binding_detach_client_complete(_In_ nmr_binding_handle binding_handle)
     }
 
     _nmr::binding& binding = it->second;
+    printf("DEBUG: %p WORK_ITEM Client unbind complete\n", binding_handle);
 
-    binding.client_dispatch = nullptr;
-    bool complete = (binding.provider_dispatch == nullptr);
+    ASSERT(binding.client_binding_status == binding_status::UnbindPending);
+    binding.client_binding_status = UnbindComplete;
+    bool complete = (binding.provider_binding_status == binding_status::UnbindComplete);
     l.unlock();
     if (complete) {
         // Signal the detach complete.
@@ -97,9 +99,11 @@ _nmr::binding_detach_provider_complete(_In_ nmr_binding_handle binding_handle)
     }
 
     _nmr::binding& binding = it->second;
+    printf("DEBUG %p: WORK_ITEM Provider unbind complete\n", binding_handle);
 
-    binding.provider_dispatch = nullptr;
-    bool complete = (binding.client_dispatch == nullptr);
+    ASSERT(binding.provider_binding_status == binding_status::UnbindPending);
+    binding.provider_binding_status = UnbindComplete;
+    bool complete = (binding.client_binding_status == binding_status::UnbindComplete);
     l.unlock();
     if (complete) {
         // Signal the detach complete.
@@ -187,6 +191,7 @@ _nmr::unbind_complete(_In_ nmr_binding_handle binding_handle)
         throw std::runtime_error("invalid handle");
     }
     auto& binding = it->second;
+    printf("DEBUG: %p Finishing unbind\n", binding_handle);
 
     // Notify the client that that the binding context can be freed.
     binding.client.characteristics.ClientCleanupBindingContext(const_cast<void*>(binding.client_binding_context));
@@ -200,10 +205,11 @@ _nmr::unbind_complete(_In_ nmr_binding_handle binding_handle)
 
     // Notify the client or provider to check if they have any pending bindings.
     bindings_changed.notify_all();
+    printf("DEBUG: %p Finished unbind\n", binding_handle);
 }
 
 bool
-_nmr::unbind(_In_ nmr_binding_handle binding_handle)
+_nmr::begin_unbind(_In_ nmr_binding_handle binding_handle)
 {
     std::unique_lock l(lock);
     auto it = bindings.find(binding_handle);
@@ -211,18 +217,29 @@ _nmr::unbind(_In_ nmr_binding_handle binding_handle)
         throw std::runtime_error("invalid handle");
     }
 
+    printf("DEBUG: %p Begin unbind\n", binding_handle);
     auto& binding = it->second;
+    ASSERT(binding.client_binding_status == Ready && binding.provider_binding_status == Ready);
     NTSTATUS client_detach_provider_status =
         binding.client.characteristics.ClientDetachProvider(const_cast<void*>(binding.client_binding_context));
     NTSTATUS provider_detach_client_status =
         binding.provider.characteristics.ProviderDetachClient(const_cast<void*>(binding.provider_binding_context));
-    if (client_detach_provider_status != STATUS_PENDING) {
-        binding.provider_dispatch = nullptr;
-    }
-    if (provider_detach_client_status != STATUS_PENDING) {
-        binding.client_dispatch = nullptr;
-    }
-    bool complete = ((binding.client_dispatch == nullptr) && (binding.provider_dispatch == nullptr));
+    binding.provider_binding_status = (client_detach_provider_status == STATUS_PENDING)
+                                          ? binding_status::UnbindPending
+                                          : binding_status::UnbindComplete;
+    binding.client_binding_status = (provider_detach_client_status == STATUS_PENDING) ? binding_status::UnbindPending
+                                                                                      : binding_status::UnbindComplete;
+    printf(
+        "DEBUG: %p Provider unbind is %s\n",
+        binding_handle,
+        binding.provider_binding_status == binding_status::UnbindComplete ? "Complete" : "Pending");
+    printf(
+        "DEBUG: %p Client unbind is %s\n",
+        binding_handle,
+        binding.client_binding_status == binding_status::UnbindComplete ? "Complete" : "Pending");
+    bool complete =
+        ((binding.client_binding_status == binding_status::UnbindComplete) &&
+         (binding.provider_binding_status == binding_status::UnbindComplete));
     l.unlock();
     if (complete) {
         unbind_complete(binding_handle);
@@ -341,7 +358,7 @@ _nmr::perform_unbind(
     }
     l.unlock();
     for (auto& binding_handle : handles_to_unbind) {
-        pending |= unbind(binding_handle);
+        pending |= begin_unbind(binding_handle);
     }
     return pending;
 }
