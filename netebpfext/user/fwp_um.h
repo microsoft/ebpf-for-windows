@@ -75,30 +75,7 @@ typedef class _fwp_engine
     }
 
     FWP_ACTION_TYPE
-    classify_packet(_In_ const GUID* layer_guid)
-    {
-        std::unique_lock l(lock);
-        const GUID* callout_key = get_callout_key_from_layer_guid(layer_guid);
-        if (callout_key == nullptr) {
-            return FWP_ACTION_CALLOUT_UNKNOWN;
-        }
-        const FWPS_CALLOUT3* callout = get_callout_from_key(callout_key);
-        if (callout_key == nullptr) {
-            return FWP_ACTION_CALLOUT_UNKNOWN;
-        }
-        FWPS_CLASSIFY_OUT0 result = {};
-        FWPS_INCOMING_VALUES incoming_fixed_values = {};
-        FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
-        callout->classifyFn(
-            &incoming_fixed_values,
-            &incoming_metadata_values,
-            nullptr, // layerData,
-            nullptr, // classifyContext,
-            nullptr, // filter,
-            0,       // flowContext,
-            &result);
-        return result.actionType;
-    }
+    classify_packet(_In_ const GUID* layer_guid, _In_ void* provider_binding_context, NET_IFINDEX if_index);
 
     static _fwp_engine*
     get()
@@ -109,6 +86,17 @@ typedef class _fwp_engine
     }
 
   private:
+    _Ret_maybenull_ const FWPM_FILTER*
+    get_fwpm_filter_with_context()
+    {
+        for (auto& [first, filter] : fwpm_filters) {
+            if (filter.rawContext != 0) {
+                return &filter;
+            }
+        }
+        return nullptr;
+    }
+
     _Ret_maybenull_ const GUID*
     get_callout_key_from_layer_guid(_In_ const GUID* layer_guid)
     {

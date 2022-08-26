@@ -6,6 +6,62 @@
 
 std::unique_ptr<_fwp_engine> _fwp_engine::_engine;
 
+FWP_ACTION_TYPE
+_fwp_engine::classify_packet(_In_ const GUID* layer_guid, _In_ void* provider_binding_context, NET_IFINDEX if_index)
+{
+    UNREFERENCED_PARAMETER(provider_binding_context); // TODO: remove?
+
+    std::unique_lock l(lock);
+    const GUID* callout_key = get_callout_key_from_layer_guid(layer_guid);
+    if (callout_key == nullptr) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    const FWPS_CALLOUT3* callout = get_callout_from_key(callout_key);
+    if (callout == nullptr) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    FWPS_CLASSIFY_OUT0 result = {};
+    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_MAX] = {};
+    FWPS_INCOMING_VALUES incoming_fixed_values = {.incomingValue = incomingValue};
+    incoming_fixed_values.incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32 = if_index;
+    FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
+    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context();
+    if (!fwpm_filter) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    FWPS_FILTER fwps_filter = {.context = fwpm_filter->rawContext};
+    NET_BUFFER_LIST_POOL_PARAMETERS pool_parameters = {};
+    HANDLE nbl_pool_handle = NdisAllocateNetBufferListPool(nullptr, &pool_parameters);
+    if (!nbl_pool_handle) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    NET_BUFFER_LIST* nbl = NdisAllocateNetBufferList(nbl_pool_handle, 0, 0);
+    if (nbl) {
+        // TODO: maybe use combined NDIS function?
+        ULONG data = 0;
+        MDL* mdl_chain = IoAllocateMdl(&data, sizeof(data), false, false, nullptr);
+        if (mdl_chain) {
+            NET_BUFFER* nb = NdisAllocateNetBuffer(nbl_pool_handle, mdl_chain, 0, sizeof(data));
+            if (nb) {
+                nbl->FirstNetBuffer = nb;
+                callout->classifyFn(
+                    &incoming_fixed_values,
+                    &incoming_metadata_values,
+                    nbl,
+                    nullptr, // classifyContext,
+                    &fwps_filter,
+                    0, // flowContext,
+                    &result);
+                NdisFreeNetBuffer(nb);
+            }
+            IoFreeMdl(mdl_chain);
+        }
+        NdisFreeNetBufferList(nbl);
+    }
+    NdisFreeNetBufferListPool(nbl_pool_handle);
+    return result.actionType;
+}
+
 typedef struct _fwp_injection_handle
 {
     ADDRESS_FAMILY address_family;

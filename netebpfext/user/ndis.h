@@ -51,6 +51,18 @@ NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* driver_object, _In_ unsigned l
 NDIS_HANDLE
 NdisAllocateNetBufferListPool(_In_opt_ NDIS_HANDLE ndis_handle, _In_ NET_BUFFER_LIST_POOL_PARAMETERS const* parameters);
 
+PNET_BUFFER_LIST
+NdisAllocateNetBufferList(_In_ NDIS_HANDLE nbl_pool_handle, _In_ USHORT context_size, _In_ USHORT context_backfill);
+
+_Must_inspect_result_ __drv_allocatesMem(mem) NET_BUFFER* NdisAllocateNetBuffer(
+    _In_ NDIS_HANDLE pool_handle, _In_opt_ MDL* mdl_chain, _In_ ULONG data_offset, _In_ SIZE_T data_length);
+
+VOID
+NdisFreeNetBuffer(_In_ __drv_freesMem(mem) NET_BUFFER* net_buffer);
+
+VOID
+NdisFreeNetBufferList(_In_ __drv_freesMem(mem) NET_BUFFER_LIST* net_buffer_list);
+
 void
 NdisFreeNetBufferListPool(_In_ __drv_freesMem(mem) NDIS_HANDLE pool_handle);
 

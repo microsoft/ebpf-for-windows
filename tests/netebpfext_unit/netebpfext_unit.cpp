@@ -41,6 +41,7 @@ TEST_CASE("query program info", "[netebpfext]")
 typedef struct _test_client_context
 {
     bpf_attach_type_t desired_attach_type;
+    void* provider_binding_context;
 } test_client_context_t;
 
 NTSTATUS
@@ -49,20 +50,19 @@ attach_netebpf_extension(
     _In_ PVOID client_context,
     _In_ PNPI_REGISTRATION_INSTANCE provider_registration_instance)
 {
-    void* provider_binding_context;
     const void* provider_dispatch_table;
     ebpf_extension_dispatch_table_t client_dispatch_table = {};
     auto provider_characteristics =
         (const ebpf_extension_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
     auto provider_data = (const ebpf_attach_provider_data_t*)provider_characteristics->data;
-    auto test_client_context = (const test_client_context_t*)client_context;
+    auto test_client_context = (test_client_context_t*)client_context;
     if (provider_data->bpf_attach_type == test_client_context->desired_attach_type) {
         REQUIRE(
             NmrClientAttachProvider(
                 nmr_binding_handle,
                 nullptr, // client_binding_context,
                 &client_dispatch_table,
-                &provider_binding_context,
+                &test_client_context->provider_binding_context,
                 &provider_dispatch_table) == STATUS_SUCCESS);
     }
     return STATUS_SUCCESS;
@@ -90,6 +90,7 @@ TEST_CASE("start_stop_test2", "[netebpfext]")
     HANDLE nmr_client_handle;
     REQUIRE(NmrRegisterClient(&client_characteristics, &client_context, &nmr_client_handle) == STATUS_SUCCESS);
 
-    FWP_ACTION_TYPE result = helper.classify_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE);
+    FWP_ACTION_TYPE result =
+        helper.classify_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, client_context.provider_binding_context, if_index);
     REQUIRE(result == FWP_ACTION_PERMIT);
 }

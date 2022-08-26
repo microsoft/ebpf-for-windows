@@ -24,7 +24,10 @@ typedef class _netebpf_ext_helper
     get_program_info_provider_data(const GUID& program_info_provider);
 
     FWP_ACTION_TYPE
-    classify_packet(_In_ const GUID* layer_guid) { return _fwp_engine::get()->classify_packet(layer_guid); }
+    classify_packet(_In_ const GUID* layer_guid, _In_ void* provider_binding_context, NET_IFINDEX if_index)
+    {
+        return _fwp_engine::get()->classify_packet(layer_guid, provider_binding_context, if_index);
+    }
 
   private:
     bool trace_initiated = false;
