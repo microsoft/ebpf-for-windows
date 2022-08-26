@@ -116,8 +116,7 @@ TEST_CASE("start_stop_test2", "[netebpfext]")
     HANDLE nmr_client_handle;
     REQUIRE(NmrRegisterClient(&client_characteristics, &client_context, &nmr_client_handle) == STATUS_SUCCESS);
 
-    FWP_ACTION_TYPE result =
-        helper.classify_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, client_context.provider_binding_context, if_index);
+    FWP_ACTION_TYPE result = helper.classify_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     NmrDeregisterClient(nmr_client_handle);

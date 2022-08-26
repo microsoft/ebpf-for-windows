@@ -75,7 +75,7 @@ typedef class _fwp_engine
     }
 
     FWP_ACTION_TYPE
-    classify_packet(_In_ const GUID* layer_guid, _In_ void* provider_binding_context, NET_IFINDEX if_index);
+    classify_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index);
 
     static _fwp_engine*
     get()

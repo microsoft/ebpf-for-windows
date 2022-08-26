@@ -7,10 +7,8 @@
 std::unique_ptr<_fwp_engine> _fwp_engine::_engine;
 
 FWP_ACTION_TYPE
-_fwp_engine::classify_packet(_In_ const GUID* layer_guid, _In_ void* provider_binding_context, NET_IFINDEX if_index)
+_fwp_engine::classify_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
 {
-    UNREFERENCED_PARAMETER(provider_binding_context); // TODO: remove?
-
     std::unique_lock l(lock);
     const GUID* callout_key = get_callout_key_from_layer_guid(layer_guid);
     if (callout_key == nullptr) {
