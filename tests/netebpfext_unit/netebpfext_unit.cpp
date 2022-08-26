@@ -97,7 +97,7 @@ netebpf_cleanup_binding_context(_In_ void* client_binding_context)
     UNREFERENCED_PARAMETER(test_client_context);
 }
 
-TEST_CASE("start_stop_test2", "[netebpfext]")
+TEST_CASE("classify_packet", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
 
