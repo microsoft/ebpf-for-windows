@@ -46,10 +46,44 @@ NdisFreeNetBufferListPool(_In_ __drv_freesMem(mem) NDIS_HANDLE pool_handle)
     ebpf_free(pool_handle);
 }
 
+PNET_BUFFER_LIST
+NdisAllocateNetBufferList(_In_ NDIS_HANDLE nbl_pool_handle, _In_ USHORT context_size, _In_ USHORT context_backfill)
+{
+    UNREFERENCED_PARAMETER(nbl_pool_handle);
+    UNREFERENCED_PARAMETER(context_size);
+    UNREFERENCED_PARAMETER(context_backfill);
+    return reinterpret_cast<NET_BUFFER_LIST*>(ebpf_allocate(sizeof(NET_BUFFER_LIST)));
+}
+
+VOID
+NdisFreeNetBufferList(_In_ __drv_freesMem(mem) NET_BUFFER_LIST* net_buffer_list)
+{
+    ebpf_free(net_buffer_list);
+}
+
 void
 NdisFreeGenericObject(_In_ PNDIS_GENERIC_OBJECT ndis_object)
 {
     ebpf_free(ndis_object);
+}
+
+_Must_inspect_result_ __drv_allocatesMem(mem) NET_BUFFER* NdisAllocateNetBuffer(
+    _In_ NDIS_HANDLE pool_handle, _In_opt_ MDL* mdl_chain, _In_ ULONG data_offset, _In_ SIZE_T data_length)
+{
+    UNREFERENCED_PARAMETER(pool_handle);
+    UNREFERENCED_PARAMETER(data_offset);
+    NET_BUFFER* nb = reinterpret_cast<NET_BUFFER*>(ebpf_allocate(sizeof(*nb) + data_length));
+    if (nb) {
+        nb->DataLength = (unsigned long)data_length;
+        nb->MdlChain = mdl_chain;
+    }
+    return nb;
+}
+
+VOID
+NdisFreeNetBuffer(_In_ __drv_freesMem(mem) NET_BUFFER* net_buffer)
+{
+    ebpf_free(net_buffer);
 }
 
 void*
@@ -61,11 +95,14 @@ NdisGetDataBuffer(
     _In_ unsigned long align_offset)
 {
     UNREFERENCED_PARAMETER(net_buffer);
-    UNREFERENCED_PARAMETER(bytes_needed);
     UNREFERENCED_PARAMETER(storage);
     UNREFERENCED_PARAMETER(align_multiple);
     UNREFERENCED_PARAMETER(align_offset);
-    return NULL;
+    ULONG size = MmGetMdlByteCount(net_buffer->MdlChain);
+    if (size >= bytes_needed) {
+        return MmGetSystemAddressForMdlSafe(net_buffer->MdlChain, NormalPagePriority);
+    }
+    return nullptr;
 }
 
 NDIS_STATUS

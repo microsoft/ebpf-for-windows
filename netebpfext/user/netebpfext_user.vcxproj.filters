@@ -102,5 +102,8 @@
     <ClInclude Include="nmr_impl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="fwp_um.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

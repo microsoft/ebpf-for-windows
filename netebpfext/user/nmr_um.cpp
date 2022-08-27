@@ -42,7 +42,7 @@ void
 NmrProviderDetachClientComplete(_In_ HANDLE nmr_binding_handle)
 {
     try {
-        _nmr.binding_detach_complete(nmr_binding_handle);
+        _nmr.binding_detach_client_complete(nmr_binding_handle);
     } catch (std::bad_alloc) {
         return;
     }
@@ -91,7 +91,7 @@ void
 NmrClientDetachProviderComplete(_In_ HANDLE nmr_binding_handle)
 {
     try {
-        _nmr.binding_detach_complete(nmr_binding_handle);
+        _nmr.binding_detach_provider_complete(nmr_binding_handle);
     } catch (std::bad_alloc) {
         return;
     }

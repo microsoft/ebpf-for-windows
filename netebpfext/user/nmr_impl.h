@@ -80,12 +80,20 @@ typedef class _nmr
     wait_for_deregister_client(_In_ nmr_client_handle client_handle);
 
     /**
-     * @brief Signal that a detach is complete.
+     * @brief Signal that a client detach is complete.
      *
      * @param[in] binding_handle NMR binding handle.
      */
     void
-    binding_detach_complete(_In_ nmr_client_handle binding_handle);
+    binding_detach_client_complete(_In_ nmr_binding_handle binding_handle);
+
+    /**
+     * @brief Signal that a provider detach is complete.
+     *
+     * @param[in] binding_handle NMR binding handle.
+     */
+    void
+    binding_detach_provider_complete(_In_ nmr_binding_handle binding_handle);
 
     /**
      * @brief Callback from the client to complete an attach.
@@ -124,14 +132,23 @@ typedef class _nmr
         bool deregistering = false;
     };
 
+    enum binding_status
+    {
+        Ready = 0,
+        UnbindPending,
+        UnbindComplete
+    };
+
     struct binding
     {
         provider_registration& provider;
         client_registration& client;
         const void* provider_binding_context = nullptr;
         const void* provider_dispatch = nullptr;
+        binding_status provider_binding_status = Ready;
         const void* client_binding_context = nullptr;
         const void* client_dispatch = nullptr;
+        binding_status client_binding_status = Ready;
     };
     typedef std::function<void()> pending_action_t;
 
@@ -227,7 +244,7 @@ typedef class _nmr
      * @retval false Both the client and provider returned successfully.
      */
     bool
-    unbind(_In_ nmr_binding_handle binding_handle);
+    begin_unbind(_In_ nmr_binding_handle binding_handle);
 
     std::map<nmr_binding_handle, binding> bindings;
     std::map<nmr_provider_handle, provider_registration> providers;

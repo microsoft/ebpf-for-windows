@@ -731,9 +731,6 @@ _ebpf_preemptible_routine(_Inout_ PTP_CALLBACK_INSTANCE instance, _In_opt_ PVOID
 
     ebpf_preemptible_work_item_t* work_item = (ebpf_preemptible_work_item_t*)parameter;
     work_item->work_item_routine(work_item->work_item_context);
-
-    ebpf_free(work_item->work_item_context);
-    ebpf_free(work_item);
 }
 
 void

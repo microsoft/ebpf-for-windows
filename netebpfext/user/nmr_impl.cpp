@@ -68,10 +68,45 @@ _nmr::wait_for_deregister_client(_In_ nmr_client_handle client_handle)
 }
 
 void
-_nmr::binding_detach_complete(_In_ nmr_binding_handle binding_handle)
+_nmr::binding_detach_client_complete(_In_ nmr_binding_handle binding_handle)
 {
-    // Signal the detach complete.
-    unbind_complete(binding_handle);
+    std::unique_lock l(lock);
+    auto it = bindings.find(binding_handle);
+    if (it == bindings.end()) {
+        throw std::runtime_error("invalid handle");
+    }
+
+    _nmr::binding& binding = it->second;
+
+    ASSERT(binding.client_binding_status == binding_status::UnbindPending);
+    binding.client_binding_status = UnbindComplete;
+    bool complete = (binding.provider_binding_status == binding_status::UnbindComplete);
+    l.unlock();
+    if (complete) {
+        // Signal the detach complete.
+        unbind_complete(binding_handle);
+    }
+}
+
+void
+_nmr::binding_detach_provider_complete(_In_ nmr_binding_handle binding_handle)
+{
+    std::unique_lock l(lock);
+    auto it = bindings.find(binding_handle);
+    if (it == bindings.end()) {
+        throw std::runtime_error("invalid handle");
+    }
+
+    _nmr::binding& binding = it->second;
+
+    ASSERT(binding.provider_binding_status == binding_status::UnbindPending);
+    binding.provider_binding_status = UnbindComplete;
+    bool complete = (binding.client_binding_status == binding_status::UnbindComplete);
+    l.unlock();
+    if (complete) {
+        // Signal the detach complete.
+        unbind_complete(binding_handle);
+    }
 }
 
 NTSTATUS
@@ -170,7 +205,7 @@ _nmr::unbind_complete(_In_ nmr_binding_handle binding_handle)
 }
 
 bool
-_nmr::unbind(_In_ nmr_binding_handle binding_handle)
+_nmr::begin_unbind(_In_ nmr_binding_handle binding_handle)
 {
     std::unique_lock l(lock);
     auto it = bindings.find(binding_handle);
@@ -179,12 +214,23 @@ _nmr::unbind(_In_ nmr_binding_handle binding_handle)
     }
 
     auto& binding = it->second;
-    l.unlock();
-    NTSTATUS client_detach_status =
+    if (binding.client_binding_status != Ready || binding.provider_binding_status != Ready) {
+        return true;
+    }
+    NTSTATUS client_detach_provider_status =
         binding.client.characteristics.ClientDetachProvider(const_cast<void*>(binding.client_binding_context));
-    NTSTATUS provider_detach_status =
+    NTSTATUS provider_detach_client_status =
         binding.provider.characteristics.ProviderDetachClient(const_cast<void*>(binding.provider_binding_context));
-    if (NT_SUCCESS(client_detach_status) && NT_SUCCESS(provider_detach_status)) {
+    binding.provider_binding_status = (client_detach_provider_status == STATUS_PENDING)
+                                          ? binding_status::UnbindPending
+                                          : binding_status::UnbindComplete;
+    binding.client_binding_status = (provider_detach_client_status == STATUS_PENDING) ? binding_status::UnbindPending
+                                                                                      : binding_status::UnbindComplete;
+    bool complete =
+        ((binding.client_binding_status == binding_status::UnbindComplete) &&
+         (binding.provider_binding_status == binding_status::UnbindComplete));
+    l.unlock();
+    if (complete) {
         unbind_complete(binding_handle);
         return false;
     }
@@ -301,7 +347,7 @@ _nmr::perform_unbind(
     }
     l.unlock();
     for (auto& binding_handle : handles_to_unbind) {
-        pending |= unbind(binding_handle);
+        pending |= begin_unbind(binding_handle);
     }
     return pending;
 }

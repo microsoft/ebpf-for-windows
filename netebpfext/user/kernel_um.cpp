@@ -22,8 +22,8 @@ typedef struct _MDL
     size_t size;
     uint64_t flags;
     void* start_va;
-    size_t byte_offset;
-    size_t byte_count;
+    unsigned long byte_offset;
+    unsigned long byte_count;
 } MDL, *PMDL;
 
 typedef struct _IO_WORKITEM
@@ -44,7 +44,13 @@ typedef ULONG PFN_NUMBER;
     (((((size)-1) >> PAGE_SHIFT) +                                                                      \
       (((((ULONG)(size - 1) & (PAGE_SIZE - 1)) + (PtrToUlong(Va) & (PAGE_SIZE - 1)))) >> PAGE_SHIFT)) + \
      1L)
-#define MmGetMdlByteCount(mdl) ((mdl)->byte_count)
+
+unsigned long
+MmGetMdlByteCount(_In_ MDL* mdl)
+{
+    return mdl->byte_count;
+}
+
 #define MmGetMdlByteOffset(mdl) ((mdl)->byte_offset)
 #define MmGetMdlBaseVa(mdl) ((mdl)->start_va)
 #define MmGetMdlVirtualAddress(mdl) ((PVOID)((PCHAR)((mdl)->start_va) + (mdl)->byte_offset))

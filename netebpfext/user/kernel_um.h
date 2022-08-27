@@ -192,6 +192,9 @@ _Requires_lock_held_(*spin_lock) _Releases_lock_(*spin_lock) _IRQL_requires_(DIS
 void
 MmBuildMdlForNonPagedPool(_Inout_ MDL* memory_descriptor_list);
 
+unsigned long
+MmGetMdlByteCount(_In_ MDL* mdl);
+
 void*
 MmGetSystemAddressForMdlSafe(
     _Inout_ MDL* mdl,

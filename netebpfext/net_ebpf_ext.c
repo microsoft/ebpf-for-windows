@@ -5,7 +5,7 @@
 
 Abstract:
 
-   This file implements the classifyFn, notifiFn, and flowDeleteFn callouts
+   This file implements the classifyFn, notifyFn, and flowDeleteFn callouts
    functions for:
    Layer 2 network receive
    Resource Acquire
