@@ -49,6 +49,7 @@ on:
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
   contents: read  # Required by actions/checkout to fetch code.
+  issues: write # Required to create issues.
 
 jobs:
   run_test:
@@ -70,8 +71,6 @@ jobs:
     # Checking out the branch is needed to gather correct code coverage data.
     steps:
     - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
-      # Only check out source code if code coverage is being gathered.
-      if: inputs.code_coverage == true
       with:
         submodules: 'recursive'
         ref: ${{ github.event.workflow_run.head_branch }}
@@ -294,3 +293,16 @@ jobs:
     - name: Mark run as failed if crash dumps are found
       if: steps.check_dumps.outputs.files_exists == 'true'
       run: exit 1
+
+    - name: Create or update an issue if the workflow fails
+      if: failure() && ${{github.branch}} == 'main'
+      uses: ./.github/workflows/create-or-update-issue.yml
+      with:
+        title: Workflow failed - ${{env.NAME}}
+        body: |
+          [Failed Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          [Codebase](https://github.com/${{ github.repository }}/tree/${{ github.sha }})
+          Test name -     `${{ github.workflow }}`
+          Job -           `${{ github.job }}`
+          status -        `${{ job.status }}`
+        labels: bug,ci/cd
