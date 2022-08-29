@@ -47,6 +47,8 @@ static TOKEN_VALUE _ebpf_pinned_type_enum[] = {
     {L"all", PT_ALL},
 };
 
+std::vector<struct bpf_object*> _ebpf_objects;
+
 bool
 _prog_type_supports_interface(bpf_prog_type prog_type)
 {
@@ -244,6 +246,7 @@ handle_ebpf_add_program(
     std::cout << "Loaded with ID " << info.id << std::endl;
 
     ebpf_link_close(link);
+    _ebpf_objects.push_back(object);
 
     return ERROR_SUCCESS;
 }
@@ -286,6 +289,27 @@ _unpin_program_by_id(ebpf_id_t id)
         Platform::_close(fd);
     }
     return status;
+}
+
+static std::vector<struct bpf_object*>::const_iterator
+_find_object_with_program(ebpf_id_t id)
+{
+    for (auto object = _ebpf_objects.begin(); object != _ebpf_objects.end(); object++) {
+        bpf_program* program;
+        bpf_object__for_each_program(program, *object)
+        {
+            int program_fd = bpf_program__fd(program);
+            struct bpf_prog_info info;
+            uint32_t info_size = sizeof(info);
+            if (bpf_obj_get_info_by_fd(program_fd, &info, &info_size) < 0) {
+                continue;
+            }
+            if (info.id == id) {
+                return object;
+            }
+        }
+    }
+    return _ebpf_objects.end();
 }
 
 DWORD
@@ -337,25 +361,10 @@ handle_ebpf_delete_program(
 
     // Remove from our list of programs to release our own reference if we took one.
     // If there are no other references to the program, it will be unloaded.
-    bpf_object* object;
-    bpf_object* next_object;
-#pragma warning(suppress : 4996) // deprecated
-    bpf_object__for_each_safe(object, next_object)
-    {
-        bpf_program* program;
-        bpf_object__for_each_program(program, object)
-        {
-            program_fd = bpf_program__fd(program);
-            struct bpf_prog_info info;
-            uint32_t info_size = sizeof(info);
-            if (bpf_obj_get_info_by_fd(program_fd, &info, &info_size) < 0) {
-                continue;
-            }
-            if (info.id == id) {
-                bpf_object__close(object);
-                break;
-            }
-        }
+    std::vector<struct bpf_object*>::const_iterator object = _find_object_with_program(id);
+    if (object != _ebpf_objects.end()) {
+        bpf_object__close(*object);
+        _ebpf_objects.erase(object);
     }
 
     // TODO: see if the program is still loaded, in which case some other process holds
