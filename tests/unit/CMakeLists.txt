@@ -4,7 +4,7 @@
 add_executable("unit_tests"
   ../../libs/execution_context/unit/execution_context_unit_test.cpp
   libbpf_test.cpp
-  
+
   ../../libs/platform/unit/platform_unit_test.cpp
 
   ../end_to_end/netsh_test.cpp
@@ -17,7 +17,7 @@ add_executable("unit_tests"
 
   ../end_to_end/test_helper.hpp
   ../end_to_end/test_helper.cpp
-  
+
   wer_report_test_wrapper.cpp
 )
 

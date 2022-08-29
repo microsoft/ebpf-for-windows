@@ -41,15 +41,15 @@ function(generateTemplate source_file_name)
   add_custom_command(
     OUTPUT
       "${template_path}"
-  
+
     COMMAND
       "${powershell_path}" -NonInteractive -ExecutionPolicy Unrestricted "${CMAKE_SOURCE_DIR}/scripts/escape_text.ps1" "${CMAKE_CURRENT_SOURCE_DIR}/${source_file_name}.c" "${template_path}"
-  
+
     VERBATIM
-  
+
     COMMENT
       "ebpf-for-windows - Generating: ${source_file_name}"
-  
+
     WORKING_DIRECTORY
       "${CMAKE_CURRENT_BINARY_DIR}"
   )
