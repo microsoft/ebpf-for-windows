@@ -37,30 +37,30 @@ Copy the build output to the host of the test VM and run the following in powers
 4. `Set-ExecutionPolicy unrestricted -Force`
 5. `Setup_ebpf_cicd_tests.ps1`
 
-## Installing eBPF with host-process container 
+## Installing eBPF with host-process container
 
 The following instructions will build an ebpf-for-windows image and deploy a daemonset referencing the image. This is the easiest way
-to install eBPF on all Windows nodes in a Kubernetes cluster. 
+to install eBPF on all Windows nodes in a Kubernetes cluster.
 
 1. Deploy the binaries to `C:\Temp` on the machine (Windows Host) where you built the binaries.
    Start an admin Powershell on the Windows Host and do `.\scripts\deploy-ebpf`.
-   
-2. Build ebpf-for-windows image. 
-     
+
+2. Build ebpf-for-windows image.
+
     a.  To build the image on the Windows Host, make sure docker is installed. [install docker on Windows Server](https://docs.microsoft.com/en-us/virtualization/windowscontainers/quick-start/set-up-environment?tabs=Windows-Server/).
 Start an admin Powershell on the Windows Host and run `.\images\build-images.ps1` and provide parameters for `repository`, `tag` and `OSVersion`.
-   
+
     b.  To build the image on a Linux machine (e.g. Ubuntu), make sure docker is installed. [install docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
 
     * Run the following Powershell command on the Windows Host to create zip files containing the binaries.
       ```
       Compress-Archive -Update -Path C:\temp -DestinationPath ebpf-for-windows-c-temp.zip
       ```
-      
+
    * Copy `images\*` and `ebpf-for-windows-c-temp.zip` from the Windows Host to a directory on the Linux machine (e.g. `$HOME/ebpf-for-windows-image`).
-   
+
    * Run `$HOME/ebpf-for-windows-image/build-images.sh` and provide parameters for `repositry`, `tag` and `OSVersion`.
-   
+
 3. Push the ebpf-for-windows image to your repository.
 
 4. Update `manifests/Kubernetes/ebpf-for-windows-daemonset.yaml` with the container image pointing to your image path. Run the following command:
