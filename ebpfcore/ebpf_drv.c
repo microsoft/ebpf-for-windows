@@ -241,6 +241,7 @@ _ebpf_driver_io_device_control(
     const struct _ebpf_operation_header* user_request = NULL;
     struct _ebpf_operation_header* user_reply = NULL;
     bool async = false;
+    bool wdf_request_ref_acquired = false;
 
     device = WdfIoQueueGetDevice(queue);
 
@@ -309,6 +310,7 @@ _ebpf_driver_io_device_control(
                     WdfObjectReference(request);
                     async_context = request;
                     WdfRequestMarkCancelable(request, _ebpf_driver_io_device_control_cancel);
+                    wdf_request_ref_acquired = true;
                 }
 
                 status = ebpf_result_to_ntstatus(ebpf_core_invoke_protocol_handler(
@@ -333,10 +335,11 @@ _ebpf_driver_io_device_control(
 
 Done:
     if (status != STATUS_PENDING) {
-        if (async) {
+        if (wdf_request_ref_acquired) {
             ebpf_assert(status != STATUS_SUCCESS);
             // Async operation failed. Remove cancellable marker.
             (void)WdfRequestUnmarkCancelable(request);
+            WdfObjectDereference(request);
         }
         WdfRequestCompleteWithInformation(request, status, output_buffer_length);
     }
