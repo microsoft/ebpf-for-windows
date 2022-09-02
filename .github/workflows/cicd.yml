@@ -26,7 +26,8 @@ concurrency:
 permissions:
   contents: read
   checks: read  # Required by reusable-test.yml to check build status.
-  security-events: write # Required by codeql task
+  security-events: write # Required by codeql task.
+  issues: write # Required to create issues.
 
 jobs:
   # Jobs to run on pull, push, and schedule.
