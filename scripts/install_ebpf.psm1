@@ -81,6 +81,16 @@ function Register-eBPFComponents
     netsh add helper ebpfnetsh.dll 2>&1 | Write-Log
 }
 
+function Enable-KMDFVerifier
+{
+    # Install drivers.
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        New-Item -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Force -ErrorAction Stop
+        New-ItemProperty -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Name "VerifierOn" -Value 1 -PropertyType DWord -Force -ErrorAction Stop
+        New-ItemProperty -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Name "TrackHandles" -Value "*" -PropertyType MultiString -Force  -ErrorAction Stop
+    }
+}
+
 #
 # Start service and drivers.
 #
@@ -120,7 +130,8 @@ function Update-eBPFStore
 
 function Install-eBPFComponents
 {
-    param([parameter(Mandatory=$false)] [bool] $Tracing = $false)
+    param([parameter(Mandatory=$false)] [bool] $Tracing = $false,
+          [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
 
     # Stop eBPF Components
     Stop-eBPFComponents
@@ -138,6 +149,11 @@ function Install-eBPFComponents
 
     # Register all components.
     Register-eBPFComponents
+
+    if ($KMDFVerifier) {
+        # Enable KMDF verifier and tag tracking.
+        Enable-KMDFVerifier
+    }
 
     # Start all components.
     Start-eBPFComponents -Tracing $Tracing
