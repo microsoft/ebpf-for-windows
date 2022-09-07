@@ -3,6 +3,9 @@
 If you just want to install eBPF for Windows on a machine to experiment with,
 jump down to [Installing eBPF for Windows](#installing-ebpf-for-windows).
 
+If you just want to compile, but not run, eBPF programs and applications that interact with them,
+jump down to [Using eBPF in development](#using-ebpf-in-development).
+
 ## Building eBPF for Windows
 
 ### Prerequisites
@@ -310,3 +313,19 @@ To view all trace events from the network eBPF extension (`netebpfext.sys`), use
 2) View the session in real-time on stdout: ```tracefmt -rt NetEbpfExtTrace -displayonly -jsonMeta 0```.  This will
    continue until you break out of the executable with Ctrl-C.
 3) Close the trace session: ```tracelog -stop NetEbpfExtTrace```
+
+## Using eBPF in Development
+
+If you are developing eBPF programs and applications that interact with them,
+your Visual Studio development will need to reference the eBPF for Windows project as follows.
+
+If using Visual Studio as your IDE, your project can add a reference to the
+[eBPF-for-Windows](https://www.nuget.org/packages/eBPF-for-Windows) nuget package.
+(You can also manually download the nuget package from the
+[latest release](https://github.com/microsoft/ebpf-for-windows/releases).)
+
+If you [installed eBPF for Windows via the MSI](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md)
+and checked the Development checkbox, installation was completed for you.
+Otherwise, after installing the nuget package, as a one-time operation, you will
+currently need to run the `export_program_info.exe` tool to complete the install. This
+tool can be found in your project's `packages\eBPF-for-Windows\build\native\bin` directory.
