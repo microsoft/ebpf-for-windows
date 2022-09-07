@@ -131,7 +131,7 @@ jobs:
     # The subequent tests will directly get these when they download the build artifacts. In case
     # a test fails, the .o files used for the test will be available in the uploaded build artifacts.
     - name: Download demo repository artifacts
-      uses: dawidd6/action-download-artifact@ea71f332a90fd52416b1629b933dcf7e0ccd421d
+      uses: dawidd6/action-download-artifact@7847792dd435a50521b8e3bd3576dae7459d1fa8
       with:
         github_token: ${{secrets.GITHUB_TOKEN}}
         workflow: cicd.yml
