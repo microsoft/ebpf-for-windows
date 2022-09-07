@@ -20,6 +20,7 @@
   <files>
     <file src="..\..\x64\Release\Convert-BpfToNative.ps1"     target="build\native\bin"                    />
     <file src="..\..\x64\Release\bpf2c.exe"                   target="build\native\bin"                    />
+    <file src="..\..\x64\Release\export_program_info.exe"     target="build\native\bin"                    />
     <file src="..\..\x64\Release\ebpfapi.dll"                 target="build\native\bin"                    />
     <file src="..\..\x64\Release\ebpfapi.lib"                 target="build\native\lib"                    />
     <file src="..\..\include\**\*.*"                          target="build\native\include"                />
