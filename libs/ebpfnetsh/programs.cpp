@@ -746,6 +746,25 @@ handle_ebpf_show_programs(
                     std::cout << "Program type   : " << program_type_name << "\n";
                     std::cout << "Mode           : " << execution_type_name << "\n";
                     std::cout << "# map IDs      : " << info.nr_map_ids << "\n";
+
+                    if (info.nr_map_ids > 0) {
+                        ebpf_id_t* map_ids = (ebpf_id_t*)malloc(info.nr_map_ids * sizeof(ebpf_id_t));
+                        if (map_ids == nullptr) {
+                            break;
+                        }
+                        info.map_ids = (uintptr_t)map_ids;
+                        error = bpf_obj_get_info_by_fd(program_fd, &info, &info_size);
+                        if (error < 0) {
+                            break;
+                        }
+                        std::cout << "map IDs        : " << map_ids[0] << "\n";
+                        for (uint32_t i = 1; i < info.nr_map_ids; i++) {
+                            std::cout << "                 " << map_ids[i] << "\n";
+                        }
+
+                        free(map_ids);
+                    }
+
                     std::cout << "# pinned paths : " << info.pinned_path_count << "\n";
                     std::cout << "# links        : " << info.link_count << "\n";
                 }
