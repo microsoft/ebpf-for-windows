@@ -507,7 +507,7 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
     struct bpf_object* object[2];
     struct bpf_program* program[2];
     int program_fd[2];
-    bpf_prog_info program_info[2];
+    bpf_prog_info program_info[2] = {0};
 
     for (int i = 0; i < 2; i++) {
         object[i] = bpf_object__open("droppacket.o");
