@@ -1105,21 +1105,17 @@ ebpf_program_get_info(
         __try {
             ebpf_probe_for_write(map_ids, length, sizeof(ebpf_id_t));
 
-            // For each map associated with this program:
             for (uint32_t i = 0; i < program->count_of_maps; i++) {
                 if (i == max_nr_map_ids) {
-                    // Prepare to return error but still fill in the other fields
-                    // below especially nr_map_ids so the caller could call again
-                    // with the right number if desired.
-                    result = EBPF_INSUFFICIENT_BUFFER;
-                    break;
+                    // No more space left.
+                    EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
                 } else {
                     ebpf_map_t* map = program->maps[i];
                     map_ids[i] = ebpf_map_get_id(map);
                 }
             }
         } __except (EXCEPTION_EXECUTE_HANDLER) {
-            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+            EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
         }
     }
 

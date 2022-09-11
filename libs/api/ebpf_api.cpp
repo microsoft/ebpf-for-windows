@@ -1455,7 +1455,7 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache) noexcep
     // Set the inner map ID if we have a real inner map fd.
     map->map_definition.inner_map_id = EBPF_ID_NONE;
     if (map_cache.verifier_map_descriptor.inner_map_fd != ebpf_fd_invalid) {
-        struct bpf_map_info info;
+        struct bpf_map_info info = {0};
         uint32_t info_size = (uint32_t)sizeof(info);
         if (ebpf_object_get_info_by_fd(map_cache.verifier_map_descriptor.inner_map_fd, &info, &info_size) ==
             EBPF_SUCCESS) {
@@ -1486,7 +1486,7 @@ _initialize_ebpf_maps_native(
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
-        struct bpf_map_info info;
+        struct bpf_map_info info = {0};
         uint32_t info_size = (uint32_t)sizeof(info);
         result = ebpf_object_get_info(map_handles[i], &info, &info_size);
         if (result != EBPF_SUCCESS) {
@@ -2238,7 +2238,7 @@ _ebpf_validate_map(_In_ ebpf_map_t* map, fd_t original_map_fd) noexcept
     EBPF_LOG_ENTRY();
     ebpf_assert(map);
     // Validate that the existing map definition matches with this new map.
-    struct bpf_map_info info;
+    struct bpf_map_info info = {0};
     fd_t inner_map_info_fd = ebpf_fd_invalid;
     uint32_t info_size = (uint32_t)sizeof(info);
     ebpf_result_t result = ebpf_object_get_info_by_fd(original_map_fd, &info, &info_size);

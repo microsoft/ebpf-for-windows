@@ -101,9 +101,10 @@ extern "C"
     inline void
     ebpf_probe_for_write(_Out_writes_bytes_(length) void* address, size_t length, unsigned long alignment)
     {
-        UNREFERENCED_PARAMETER(address);
+        if (((uintptr_t)address % alignment) != 0) {
+            RaiseException(STATUS_DATATYPE_MISALIGNMENT, 0, 0, NULL);
+        }
         UNREFERENCED_PARAMETER(length);
-        UNREFERENCED_PARAMETER(alignment);
     }
 
 #ifdef __cplusplus

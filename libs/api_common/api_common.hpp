@@ -128,6 +128,10 @@ ebpf_result_to_errno(ebpf_result_t result)
         error = EACCES;
         break;
 
+    case EBPF_INVALID_POINTER:
+        error = EFAULT;
+        break;
+
     default:
         error = EOTHER;
         break;

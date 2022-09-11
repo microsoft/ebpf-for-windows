@@ -1971,6 +1971,17 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(map_ids[0] == map_info[1].id);
     REQUIRE(map_ids[1] == map_info[0].id);
 
+    // Try again with nr_map_ids set to get only partial.
+    map_ids[0] = map_ids[1] = 0;
+    program_info.nr_map_ids = 1;
+    program_info.map_ids = (uintptr_t)map_ids;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == -EFAULT);
+    REQUIRE(map_ids[0] == map_info[1].id);
+
+    // Try again with an invalid pointer.
+    program_info.map_ids++;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == -EFAULT);
+
     // Fetch info about the attachment and verify it matches what we'd expect.
     uint32_t link_id;
     REQUIRE(bpf_link_get_next_id(0, &link_id) == 0);

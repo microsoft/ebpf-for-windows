@@ -102,7 +102,7 @@ query_map_definition(
     _Out_ uint32_t* max_entries,
     _Out_ ebpf_id_t* inner_map_id) noexcept
 {
-    bpf_map_info info;
+    bpf_map_info info = {0};
     uint32_t info_size = sizeof(info);
     ebpf_result_t result = ebpf_object_get_info(handle, &info, &info_size);
     if (result == EBPF_SUCCESS) {
