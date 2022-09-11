@@ -237,7 +237,7 @@ handle_ebpf_add_program(
     }
 
     // Get the ID and display it.
-    struct bpf_prog_info info;
+    struct bpf_prog_info info = {};
     uint32_t info_size = sizeof(info);
     if (bpf_obj_get_info_by_fd(program_fd, &info, &info_size) < 0) {
         std::cerr << "error " << errno << ": loaded program but could not get ID" << std::endl;
@@ -273,7 +273,7 @@ _unpin_program_by_id(ebpf_id_t id)
         if (fd < 0) {
             continue;
         }
-        bpf_prog_info info;
+        bpf_prog_info info = {};
         uint32_t info_size = sizeof(info);
         if (bpf_obj_get_info_by_fd(fd, &info, &info_size) == 0) {
             if (id == info.id) {
@@ -299,7 +299,7 @@ _find_object_with_program(ebpf_id_t id)
         bpf_object__for_each_program(program, *object)
         {
             int program_fd = bpf_program__fd(program);
-            struct bpf_prog_info info;
+            struct bpf_prog_info info = {};
             uint32_t info_size = sizeof(info);
             if (bpf_obj_get_info_by_fd(program_fd, &info, &info_size) < 0) {
                 continue;
@@ -677,7 +677,7 @@ handle_ebpf_show_programs(
         }
         program_fd = bpf_prog_get_fd_by_id(program_id);
 
-        struct bpf_prog_info info;
+        struct bpf_prog_info info = {};
         uint32_t info_size = (uint32_t)sizeof(info);
         int error = bpf_obj_get_info_by_fd(program_fd, &info, &info_size);
         if (error < 0) {

@@ -1539,7 +1539,7 @@ _initialize_ebpf_programs_native(
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
-        struct bpf_prog_info info;
+        struct bpf_prog_info info = {};
         uint32_t info_size = (uint32_t)sizeof(info);
         result = ebpf_object_get_info(program_handles[i], &info, &info_size);
         if (result != EBPF_SUCCESS) {
