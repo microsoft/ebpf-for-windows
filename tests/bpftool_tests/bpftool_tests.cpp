@@ -81,7 +81,10 @@ TEST_CASE("prog load map_in_map.o", "[prog][load]")
     output = run_command("bpftool prog show", &result);
     REQUIRE(result == 0);
     std::string id = std::to_string(atoi(output.c_str()));
-    REQUIRE(output == id + ": xdp  name lookup  \n\n");
+    size_t offset = output.find(" map_ids ");
+    REQUIRE(offset > 0);
+    std::string map_id = std::to_string(atoi(output.substr(offset + 9).c_str()));
+    REQUIRE(output == id + ": xdp  name lookup  \n  map_ids " + map_id + "\n");
 
     output = run_command(("bpftool prog pin id " + id + " pin2").c_str(), &result);
     REQUIRE(output == "");
@@ -123,7 +126,12 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     output = run_command("bpftool prog show", &result);
     REQUIRE(result == 0);
     std::string id = std::to_string(atoi(output.c_str()));
-    REQUIRE(output == id + ": xdp  name DropPacket  \n\n");
+    size_t offset = output.find(" map_ids ");
+    REQUIRE(offset > 0);
+    std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
+    offset = output.find(",");
+    std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
+    REQUIRE(output == id + ": xdp  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
     // Try attaching to an interface by friendly name.
     output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(), &result);
