@@ -280,6 +280,14 @@ extern "C"
     ebpf_result_t
     ebpf_map_peek_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags);
 
+    /**
+     * @brief Get the ID of a given map.
+     *
+     * @param[in] map Map to get ID of.
+     * @returns Map ID.
+     */
+    ebpf_id_t
+    ebpf_map_get_id(_In_ const ebpf_map_t* map);
 #ifdef __cplusplus
 }
 #endif

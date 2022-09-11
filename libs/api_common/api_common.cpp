@@ -62,7 +62,7 @@ get_file_size(const char* filename, size_t* byte_code_size) noexcept
 ebpf_result_t
 ebpf_object_get_info(
     ebpf_handle_t handle,
-    _Out_writes_bytes_to_(*info_size, *info_size) void* info,
+    _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
     _Inout_ uint32_t* info_size) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -74,7 +74,7 @@ ebpf_object_get_info(
         return EBPF_INVALID_FD;
     }
 
-    ebpf_protocol_buffer_t request_buffer(sizeof(ebpf_operation_get_object_info_request_t));
+    ebpf_protocol_buffer_t request_buffer(sizeof(ebpf_operation_get_object_info_request_t) + *info_size);
     ebpf_protocol_buffer_t reply_buffer(EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info) + *info_size);
     auto request = reinterpret_cast<ebpf_operation_get_object_info_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_get_object_info_reply_t*>(reply_buffer.data());
@@ -82,6 +82,7 @@ ebpf_object_get_info(
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_OBJECT_INFO;
     request->handle = handle;
+    memcpy(request->info, info, *info_size);
 
     ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
     if (result == EBPF_SUCCESS) {

@@ -1084,30 +1084,60 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 ebpf_result_t
 ebpf_program_get_info(
     _In_ const ebpf_program_t* program,
-    _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
+    _In_reads_(*info_size) const uint8_t* input_buffer,
+    _Out_writes_to_(*info_size, *info_size) uint8_t* output_buffer,
     _Inout_ uint16_t* info_size)
 {
     EBPF_LOG_ENTRY();
-    struct bpf_prog_info* info = (struct bpf_prog_info*)buffer;
-    if (*info_size < sizeof(*info)) {
+    const struct bpf_prog_info* input_info = (const struct bpf_prog_info*)input_buffer;
+    struct bpf_prog_info* output_info = (struct bpf_prog_info*)output_buffer;
+    if (*info_size < sizeof(*output_info)) {
         EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
     }
 
-    info->id = program->object.id;
+    ebpf_result_t result = EBPF_SUCCESS;
+    if (input_info->map_ids != 0 && input_info->nr_map_ids > 0) {
+        // Fill in map ids before we overwrite the info buffer.
+        uint32_t max_nr_map_ids = input_info->nr_map_ids;
+        size_t length = max_nr_map_ids * sizeof(ebpf_id_t);
+        ebpf_id_t* map_ids = (ebpf_id_t*)input_info->map_ids;
+
+        __try {
+            ebpf_probe_for_write(map_ids, length, sizeof(ebpf_id_t));
+
+            // For each map associated with this program:
+            for (uint32_t i = 0; i < program->count_of_maps; i++) {
+                if (i == max_nr_map_ids) {
+                    // Prepare to return error but still fill in the other fields
+                    // below especially nr_map_ids so the caller could call again
+                    // with the right number if desired.
+                    result = EBPF_INSUFFICIENT_BUFFER;
+                    break;
+                } else {
+                    ebpf_map_t* map = program->maps[i];
+                    map_ids[i] = ebpf_map_get_id(map);
+                }
+            }
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        }
+    }
+
+    output_info->id = program->object.id;
     strncpy_s(
-        info->name,
-        sizeof(info->name),
+        output_info->name,
+        sizeof(output_info->name),
         (char*)program->parameters.program_name.value,
         program->parameters.program_name.length);
-    info->nr_map_ids = program->count_of_maps;
-    info->type = _ebpf_program_get_bpf_prog_type(program);
-    info->type_uuid = *ebpf_program_type_uuid(program);
-    info->attach_type_uuid = *ebpf_expected_attach_type(program);
-    info->pinned_path_count = program->object.pinned_path_count;
-    info->link_count = program->link_count;
+    output_info->nr_map_ids = program->count_of_maps;
+    output_info->type = _ebpf_program_get_bpf_prog_type(program);
+    output_info->type_uuid = *ebpf_program_type_uuid(program);
+    output_info->attach_type_uuid = *ebpf_expected_attach_type(program);
+    output_info->pinned_path_count = program->object.pinned_path_count;
+    output_info->link_count = program->link_count;
 
-    *info_size = sizeof(*info);
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+    *info_size = sizeof(*output_info);
+    EBPF_RETURN_RESULT(result);
 }
 
 ebpf_result_t

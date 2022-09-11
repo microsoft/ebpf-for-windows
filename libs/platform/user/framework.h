@@ -98,6 +98,14 @@ extern "C"
         list_to_append->Blink = list_end;
     }
 
+    inline void
+    ebpf_probe_for_write(_Out_writes_bytes_(length) void* address, size_t length, unsigned long alignment)
+    {
+        UNREFERENCED_PARAMETER(address);
+        UNREFERENCED_PARAMETER(length);
+        UNREFERENCED_PARAMETER(alignment);
+    }
+
 #ifdef __cplusplus
 }
 #endif

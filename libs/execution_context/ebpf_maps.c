@@ -2308,3 +2308,9 @@ ebpf_map_peek_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_
     memcpy(value, return_value, map->ebpf_map_definition.value_size);
     return EBPF_SUCCESS;
 }
+
+ebpf_id_t
+ebpf_map_get_id(_In_ const ebpf_map_t* map)
+{
+    return map->object.id;
+}

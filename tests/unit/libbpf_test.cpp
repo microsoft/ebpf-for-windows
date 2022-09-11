@@ -1968,8 +1968,8 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     ebpf_id_t map_ids[2] = {0};
     program_info.map_ids = (uintptr_t)map_ids;
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
-    REQUIRE(map_ids[0] == map_info[0].id);
-    REQUIRE(map_ids[1] == map_info[1].id);
+    REQUIRE(map_ids[0] == map_info[1].id);
+    REQUIRE(map_ids[1] == map_info[0].id);
 
     // Fetch info about the attachment and verify it matches what we'd expect.
     uint32_t link_id;
