@@ -176,7 +176,7 @@ TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]")
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
@@ -203,7 +203,7 @@ TEST_CASE("valid bpf_prog_load", "[libbpf]")
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
@@ -236,7 +236,7 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
@@ -313,7 +313,7 @@ TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]")
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
@@ -507,7 +507,7 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
     struct bpf_object* object[2];
     struct bpf_program* program[2];
     int program_fd[2];
-    bpf_prog_info program_info[2] = {0};
+    bpf_prog_info program_info[2] = {};
 
     for (int i = 0; i < 2; i++) {
         object[i] = bpf_object__open("droppacket.o");
@@ -1272,7 +1272,7 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
     int map_fd = bpf_map__fd(map);
     REQUIRE(map_fd >= 0);
 
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(callee_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
@@ -1956,7 +1956,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(strcmp(map_info[1].name, map_name) == 0);
 
     // Fetch info about the program and verify it matches what we'd expect.
-    bpf_prog_info program_info = {0};
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
@@ -2028,7 +2028,7 @@ TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
     REQUIRE(program_fd > 0);
 
     // Fetch info about the program and verify it matches what we'd expect.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
