@@ -158,7 +158,7 @@ TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
 
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
