@@ -1119,6 +1119,7 @@ ebpf_program_get_info(
         }
     }
 
+    memset(output_info, 0, sizeof(*output_info));
     output_info->id = program->object.id;
     strncpy_s(
         output_info->name,
