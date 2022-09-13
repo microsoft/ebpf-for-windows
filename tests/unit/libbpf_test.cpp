@@ -181,6 +181,7 @@ TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]")
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(program_info.map_ids == 0);
 
     REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
 
@@ -208,6 +209,7 @@ TEST_CASE("valid bpf_prog_load", "[libbpf]")
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(program_info.map_ids == 0);
     REQUIRE(strcmp(program_info.name, "name") == 0);
 
     REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
@@ -241,6 +243,7 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(program_info.map_ids == 0);
     REQUIRE(strcmp(program_info.name, "name") == 0);
 
     REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
@@ -318,6 +321,7 @@ TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]")
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 1);
+    REQUIRE(program_info.map_ids == 0);
 
     REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
 
@@ -1962,6 +1966,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(strcmp(program_info.name, program_name) == 0);
     REQUIRE(program_info.nr_map_ids == 2);
+    REQUIRE(program_info.map_ids == 0);
     REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
 
     // Fetch info about the maps and verify it matches what we'd expect.
@@ -2034,6 +2039,7 @@ TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(strcmp(program_info.name, "authorize_connect4") == 0);
     REQUIRE(program_info.nr_map_ids == 1);
+    REQUIRE(program_info.map_ids == 0);
     REQUIRE(program_info.type == BPF_PROG_TYPE_CGROUP_SOCK_ADDR);
 
     // Fetch info about the attachment and verify it matches what we'd expect.
