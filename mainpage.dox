@@ -19,8 +19,8 @@
  *
  *  eBPF programs can also call helper APIs to do additional processing.  There are two types of helpers:
  *  <ul>
- *   <li>Helpers defined in bpf_helpers.h which are accessible to all program types.
- *   <li>Helpers specific to a given program type and declared in other headers.
+ *   <li>Helpers that are accessible to all program types, defined in bpf_helper_defs.h.
+ *   <li>Helpers specific to a given program type and declared in other headers, such as ebpf_nethooks.h.
  *  </ul>
  *  The documentation for each program type will list which helper header files can be used for that program type.
  *  Similarly such documentation for each \ref bpf_prog_type value will give the API prototype to implement, and the list

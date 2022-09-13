@@ -59,7 +59,7 @@ TEST_CASE("prog help", "[prog][help]")
                   "       bpftool prog help\n"
                   "\n"
                   "       PROG := { id PROG_ID | pinned FILE | name PROG_NAME }\n"
-                  "       TYPE := { bind | xdp }\n"
+                  "       TYPE := { bind | cgroup/connect4 | cgroup/connect6 | xdp }\n"
                   "       OPTIONS := { {-j|--json} [{-p|--pretty}] | {-d|--debug} | {-l|--legacy} |\n"
                   "                    {-m|--mapcompat} | \n");
     REQUIRE(result == 0);

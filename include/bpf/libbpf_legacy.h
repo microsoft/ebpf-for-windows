@@ -161,8 +161,8 @@ __declspec(deprecated("Use bpf_object__close() instead.")) int bpf_object__unloa
  * @sa bpf_object__close
  * @sa bpf_program__attach
  */
-int
-bpf_prog_load_deprecated(const char* file, enum bpf_prog_type type, struct bpf_object** pobj, int* prog_fd);
+__declspec(deprecated("Use bpf_object__open() and bpf_object__load() instead.")) int bpf_prog_load_deprecated(
+    const char* file, enum bpf_prog_type type, struct bpf_object** pobj, int* prog_fd);
 
 /**
  * @brief Get the next program for a given eBPF object.

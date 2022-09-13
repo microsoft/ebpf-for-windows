@@ -347,7 +347,7 @@ bpf_object__open(const char* path);
  * @brief Open a file without loading the programs.
  *
  * @param[in] path File name to open.
- * @param[opts] opts Options to use when opening the object.
+ * @param[opts] opts Options to use when opening the object, or NULL pointer for default.
  *
  * @returns Pointer to an eBPF object, or NULL on failure.
  */

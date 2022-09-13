@@ -28,7 +28,7 @@ Write-Host "ebpf-for-windows installation completed. Show program..."
 netsh ebpf show program
 
 # Sleep until the container is required to exit explicitly. This is for dev only.
-# TODO: If this container is running as an init container of a daemonset, 
+# TODO: If this container is running as an init container of a daemonset,
 # this section is not required.
 $filePath = 'C:\exit-ebpfwin-install-container.txt'
 while (-not (Test-Path -Path $filePath)) {

@@ -100,6 +100,9 @@
     <ClCompile Include="..\..\external\bpftool\libbpf\src\libbpf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\external\bpftool\src\windows\platform.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\external\bpftool\src\skeleton\pid_iter.h">
@@ -118,6 +121,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\external\bpftool\src\xlated_dumper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\external\bpftool\src\windows\platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

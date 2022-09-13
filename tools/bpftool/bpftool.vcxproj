@@ -88,6 +88,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\external\bpftool\src\windows\platform.c" />
     <ClCompile Include="..\..\external\bpftool\src\xlated_dumper.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -100,6 +101,7 @@
     <ClInclude Include="..\..\external\bpftool\src\main.h" />
     <ClInclude Include="..\..\external\bpftool\src\netlink_dumper.h" />
     <ClInclude Include="..\..\external\bpftool\src\skeleton\pid_iter.h" />
+    <ClInclude Include="..\..\external\bpftool\src\windows\platform.h" />
     <ClInclude Include="..\..\external\bpftool\src\xlated_dumper.h" />
   </ItemGroup>
   <ItemGroup>

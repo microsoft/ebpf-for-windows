@@ -35,6 +35,20 @@
 
 const int nonexistent_fd = 12345678;
 
+TEST_CASE("libbpf load program", "[libbpf][deprecated]")
+{
+    _test_helper_libbpf test_helper;
+    struct bpf_object* object;
+    int program_fd;
+#pragma warning(suppress : 4996) // deprecated
+    int result = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    bpf_object__close(object);
+}
+
 TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
@@ -315,12 +329,10 @@ TEST_CASE("libbpf program", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
-    REQUIRE(result == 0);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
     REQUIRE(object != nullptr);
-    REQUIRE(program_fd != ebpf_fd_invalid);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
 
     const char* name = bpf_object__name(object);
     REQUIRE(strcmp(name, "droppacket.o") == 0);
@@ -338,7 +350,7 @@ TEST_CASE("libbpf program", "[libbpf]")
     REQUIRE(strcmp(name, "DropPacket") == 0);
 
     int fd2 = bpf_program__fd(program);
-    REQUIRE(fd2 == program_fd);
+    REQUIRE(fd2 != ebpf_fd_invalid);
 
     size_t size = bpf_program__insn_cnt(program);
     REQUIRE(size == 47);
@@ -360,17 +372,16 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
     _test_helper_libbpf test_helper;
     const char* pin_path = "\\temp\\test";
 
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
-    REQUIRE(result == 0);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
     REQUIRE(object != nullptr);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
 
     struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
     REQUIRE(program != nullptr);
 
     // Try to pin the program.
-    result = bpf_program__pin(program, pin_path);
+    int result = bpf_program__pin(program, pin_path);
     REQUIRE(result == 0);
 
     // Make sure a duplicate pin fails.
@@ -499,11 +510,14 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
     bpf_prog_info program_info[2];
 
     for (int i = 0; i < 2; i++) {
-        REQUIRE(bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object[i], &program_fd[i]) == 0);
+        object[i] = bpf_object__open("droppacket.o");
         REQUIRE(object[i] != nullptr);
+        // Load the program(s).
+        REQUIRE(bpf_object__load(object[i]) == 0);
 
         program[i] = bpf_object__find_program_by_name(object[i], "DropPacket");
         REQUIRE(program[i] != nullptr);
+        program_fd[i] = bpf_program__fd(const_cast<const bpf_program*>(program[i]));
 
         uint32_t program_info_size = sizeof(program_info[i]);
         REQUIRE(bpf_obj_get_info_by_fd(program_fd[i], &program_info[i], &program_info_size) == 0);
@@ -520,11 +534,9 @@ TEST_CASE("libbpf map", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
-    REQUIRE(result == 0);
-    REQUIRE(object != nullptr);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
 
     // Get the first map.
     struct bpf_map* map = bpf_object__next_map(object, nullptr);
@@ -554,11 +566,13 @@ TEST_CASE("libbpf map", "[libbpf]")
     uint64_t value;
     uint32_t index = 2; // Past end of array.
 
-    result = bpf_map_lookup_elem(map_fd, &index, &value);
+    int result = bpf_map_lookup_elem(map_fd, &index, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
     // Wrong fd type.
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
+    int program_fd = bpf_program__fd(const_cast<const bpf_program*>(program));
     result = bpf_map_lookup_elem(program_fd, &index, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
@@ -806,13 +820,13 @@ TEST_CASE("libbpf map binding", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
-    REQUIRE(result == 0);
-    REQUIRE(object != nullptr);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
+
     struct bpf_program* program = bpf_object__next_program(object, nullptr);
     REQUIRE(program != nullptr);
+    int program_fd = bpf_program__fd(const_cast<const bpf_program*>(program));
 
     // Create a map.
     int map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 2, nullptr);
@@ -861,11 +875,9 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
     _test_helper_libbpf test_helper;
     const char* pin_path = "\\temp\\test";
 
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
-    REQUIRE(result == 0);
-    REQUIRE(object != nullptr);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
 
     struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
@@ -873,7 +885,7 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
     REQUIRE(bpf_map__is_pinned(map) == false);
 
     // Try to pin the map.
-    result = bpf_map__pin(map, pin_path);
+    int result = bpf_map__pin(map, pin_path);
     REQUIRE(result == 0);
 
     REQUIRE(bpf_map__is_pinned(map) == true);
@@ -960,11 +972,9 @@ TEST_CASE("libbpf obj pinning", "[libbpf]")
     _test_helper_libbpf test_helper;
     const char* pin_path = "\\temp\\test";
 
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
-    REQUIRE(result == 0);
-    REQUIRE(object != nullptr);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
 
     struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
@@ -972,7 +982,7 @@ TEST_CASE("libbpf obj pinning", "[libbpf]")
     int map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
 
-    result = bpf_obj_pin(map_fd, pin_path);
+    int result = bpf_obj_pin(map_fd, pin_path);
     REQUIRE(result == 0);
 
     // Linux lacks a bpf_object_unpin, so call the ebpf_ variety.
@@ -1000,11 +1010,9 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    struct bpf_object* object;
-    int program_fd;
-    int error = bpf_prog_load_deprecated(filename, BPF_PROG_TYPE_XDP, &object, &program_fd);
-    REQUIRE(error == 0);
-    REQUIRE(object != nullptr);
+    struct bpf_object* object = bpf_object__open(filename);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
 
     struct bpf_program* caller = bpf_object__find_program_by_name(object, "caller");
     REQUIRE(caller != nullptr);
@@ -1028,7 +1036,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
 
     // First do some negative tests.
     int index = 10;
-    error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
+    int error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
     REQUIRE(error < 0);
     REQUIRE(errno == -error);
     index = 0;
@@ -1102,16 +1110,12 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    struct bpf_object* object;
-    int program_fd;
-    int index;
-
     const char* file_name =
         (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_multiple_um.dll" : "tail_call_multiple.o");
 
-    int error = bpf_prog_load_deprecated(file_name, BPF_PROG_TYPE_XDP, &object, &program_fd);
-    REQUIRE(error == 0);
-    REQUIRE(object != nullptr);
+    struct bpf_object* object = bpf_object__open(file_name);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
 
     struct bpf_program* caller = bpf_object__find_program_by_name(object, "caller");
     REQUIRE(caller != nullptr);
@@ -1135,8 +1139,8 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
     REQUIRE(map_fd >= 0);
 
     // Store callee0 at index 0.
-    index = 0;
-    error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee0_fd, 0);
+    int index = 0;
+    int error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee0_fd, 0);
     REQUIRE(error == 0);
 
     // Store callee1 at index 9.
@@ -1197,26 +1201,23 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    struct bpf_object* xdp_object;
-    int xdp_object_fd;
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_um.dll" : "tail_call.o");
-    int error = bpf_prog_load_deprecated(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
-    REQUIRE(error == 0);
-    REQUIRE(xdp_object != nullptr);
+    struct bpf_object* xdp_object = bpf_object__open(file_name);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(xdp_object) == 0);
 
     struct bpf_map* map = bpf_object__next_map(xdp_object, nullptr);
     REQUIRE(map != nullptr);
 
     // Load a program of any other type.
-    struct bpf_object* bind_object;
-    int bind_object_fd;
     // Note: We are deliberately using "bindmonitor_um.dll" here as we want the programs to be loaded from
     // the individual dll, instead of the combined DLL. This helps in testing the DLL stub which is generated
     // bpf2c.exe tool.
     const char* another_file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
-    error = bpf_prog_load_deprecated(another_file_name, BPF_PROG_TYPE_BIND, &bind_object, &bind_object_fd);
-    REQUIRE(error == 0);
+    struct bpf_object* bind_object = bpf_object__open(another_file_name);
     REQUIRE(bind_object != nullptr);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(bind_object) == 0);
 
     struct bpf_program* callee = bpf_object__find_program_by_name(bind_object, "BindMonitor");
     REQUIRE(callee != nullptr);
@@ -1237,7 +1238,7 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
     // Verify that we cannot add a BIND program fd to a prog_array map already
     // associated with an XDP program.
     int index = 0;
-    error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
+    int error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
     REQUIRE(error < 0);
     REQUIRE(errno == EBADF);
 
@@ -1253,17 +1254,19 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    struct bpf_object* xdp_object;
-    int xdp_object_fd;
-    int error = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
-    REQUIRE(error == 0);
+    struct bpf_object* xdp_object = bpf_object__open("droppacket.o");
     REQUIRE(xdp_object != nullptr);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(xdp_object) == 0);
+    struct bpf_program* xdp_program = bpf_object__find_program_by_name(xdp_object, "DropPacket");
+    int xdp_program_fd = bpf_program__fd(const_cast<const bpf_program*>(xdp_program));
 
-    struct bpf_object* bind_object;
-    int bind_object_fd;
-    error = bpf_prog_load_deprecated("bindmonitor.o", BPF_PROG_TYPE_BIND, &bind_object, &bind_object_fd);
-    REQUIRE(error == 0);
+    struct bpf_object* bind_object = bpf_object__open("bindmonitor.o");
     REQUIRE(bind_object != nullptr);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(bind_object) == 0);
+    struct bpf_program* bind_program = bpf_object__find_program_by_name(bind_object, "BindMonitor");
+    int bind_program_fd = bpf_program__fd(const_cast<const bpf_program*>(bind_program));
 
     // Create a map.
     int map_fd = bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 2, nullptr);
@@ -1272,11 +1275,11 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     // Since the map is not yet associated with a program, the first program fd
     // we add will become the PROG_ARRAY's program type.
     int index = 0;
-    error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&xdp_object_fd, 0);
+    int error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&xdp_program_fd, 0);
     REQUIRE(error == 0);
 
     // Adding an entry with a different program type should fail.
-    error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&bind_object_fd, 0);
+    error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&bind_program_fd, 0);
     REQUIRE(error < 0);
     REQUIRE(errno == EBADF);
 
@@ -1300,12 +1303,10 @@ _enumerate_program_ids_test(ebpf_execution_type_t execution_type)
     REQUIRE(errno == ENOENT);
 
     // Load a file with multiple programs.
-    struct bpf_object* xdp_object;
-    int xdp_object_fd;
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_um.dll" : "tail_call.o");
-    int error = bpf_prog_load_deprecated(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
-    REQUIRE(error == 0);
-    REQUIRE(xdp_object != nullptr);
+    struct bpf_object* xdp_object = bpf_object__open(file_name);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(xdp_object) == 0);
 
     // Now enumerate the IDs.
     REQUIRE(bpf_prog_get_next_id(0, &id1) == 0);
@@ -1407,12 +1408,10 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    struct bpf_object* xdp_object;
-    int xdp_object_fd;
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
-    int error = bpf_prog_load_deprecated(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
-    REQUIRE(error == 0);
-    REQUIRE(xdp_object != nullptr);
+    struct bpf_object* xdp_object = bpf_object__open(file_name);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(xdp_object) == 0);
 
     struct bpf_program* caller = bpf_object__find_program_by_name(xdp_object, "lookup");
     REQUIRE(caller != nullptr);
@@ -1430,7 +1429,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     // Add a value to the inner map.
     int inner_value = 42;
     uint32_t inner_key = 0;
-    error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
+    int error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
     REQUIRE(error == 0);
 
     // Add inner map to outer map.
@@ -1464,12 +1463,10 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    struct bpf_object* xdp_object;
-    int xdp_object_fd;
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_v2_um.dll" : "map_in_map_v2.o");
-    int error = bpf_prog_load_deprecated(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
-    REQUIRE(error == 0);
-    REQUIRE(xdp_object != nullptr);
+    struct bpf_object* xdp_object = bpf_object__open(file_name);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(xdp_object) == 0);
 
     struct bpf_program* caller = bpf_object__find_program_by_name(xdp_object, "lookup");
     REQUIRE(caller != nullptr);
@@ -1487,7 +1484,7 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     // Add a value to the inner map.
     int inner_value = 42;
     uint32_t inner_key = 0;
-    error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
+    int error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
     REQUIRE(error == 0);
 
     // Add inner map to outer map.
@@ -1519,12 +1516,10 @@ _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
     _test_helper_end_to_end test_helper;
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    struct bpf_object* xdp_object;
-    int xdp_object_fd;
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
-    int error = bpf_prog_load_deprecated(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
-    REQUIRE(error == 0);
-    REQUIRE(xdp_object != nullptr);
+    struct bpf_object* xdp_object = bpf_object__open(file_name);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(xdp_object) == 0);
 
     struct bpf_map* outer_map = bpf_object__find_map_by_name(xdp_object, "outer_map");
     REQUIRE(outer_map != nullptr);
@@ -1538,7 +1533,7 @@ _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
 
     // Try to add the array map to the outer map.
     __u32 outer_key = 0;
-    error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
+    int error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error < 0);
     REQUIRE(errno == EINVAL);
 
@@ -1783,8 +1778,7 @@ TEST_CASE("bpf_prog_attach", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("cgroup_sock_addr.o", &opts);
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
     REQUIRE(object != nullptr);
 
     struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");
@@ -1819,8 +1813,7 @@ TEST_CASE("bpf_link__pin", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    struct bpf_object_open_opts opts = {0};
-    struct bpf_object* object = bpf_object__open_file("droppacket.o", &opts);
+    struct bpf_object* object = bpf_object__open("droppacket.o");
     REQUIRE(object != nullptr);
 
     struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
