@@ -156,7 +156,9 @@ $source_directory="."
     "test_utility_helpers_um.pdb",
     "test_utility_helpers.sys",
     "unit_tests.exe",
-    "unit_tests.pdb")
+    "unit_tests.pdb",
+    "xdp_tests.exe",
+    "xdp_tests.pdb")
 
 [System.Collections.ArrayList]$built_files= $built_runtime_files
 [System.Collections.ArrayList]$source_files= $source_script_files
