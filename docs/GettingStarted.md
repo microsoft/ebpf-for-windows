@@ -85,12 +85,12 @@ This will build the following binaries:
 * `ebpfsvc.exe`: A user-mode service that verifies and loads an eBPF program in the execution context.
 * `unit_tests.exe`: A collection of tests using the Catch framework.  These tests are also run as part
                   of the Github CI/CD so should always pass.
-* `api_test.exe`: A collection of tests that exercises eBPF user mode APIs. This requires EbpSvc service to be running,
-                and EbpCore and NetEbpfExt drivers to be loaded.
+* `api_test.exe`: A collection of tests that exercises eBPF user mode APIs. This requires EbpfSvc service to be running,
+                and EbpfCore and NetEbpfExt drivers to be loaded.
 * `sample_ebpf_ext.sys`: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
 * `sample_ext_app.exe`: A sample application for testing the sample extension driver.
-* `xdp_tests.exe`: Application for testing various XDP functionalities.  This requires the EbpSvc service to be running,
-                and the EbpCore and NetEbpfExt drivers to be loaded on a remote system to test.
+* `xdp_tests.exe`: Application for testing various XDP functionalities.  This requires the EbpfSvc service to be running,
+                and the EbpfCore and NetEbpfExt drivers to be loaded on a remote system to test.
 * `socket_tests.exe`: Application for testing the eBPF extension that implements the BPF_CGROUP_SOCK_ADDR program type and related attach types.
 
 and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
