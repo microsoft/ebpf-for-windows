@@ -66,7 +66,7 @@ proxy_v4(bpf_sock_addr_t* ctx)
 
     bpf_printk("anusa: ctx: %u, %u", ctx->user_ip4, ctx->user_port);
 
-    if (ctx->protocol != IPPROTO_TCP) {
+    if (ctx->protocol != IPPROTO_TCP && ctx->protocol != IPPROTO_UDP) {
         return BPF_SOCK_ADDR_VERDICT_PROCEED;
     }
 
@@ -127,4 +127,11 @@ int
 blockall_v4(bpf_sock_addr_t* ctx)
 {
     return BPF_SOCK_ADDR_VERDICT_REJECT;
+}
+
+SEC("cgroup/connect4/allowall")
+int
+allowall_v4(bpf_sock_addr_t* ctx)
+{
+    return BPF_SOCK_ADDR_VERDICT_PROCEED;
 }

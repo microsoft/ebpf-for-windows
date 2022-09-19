@@ -381,6 +381,28 @@ _net_ebpf_ext_sock_addr_get_redirect_handle(uint64_t filter_id, _Out_ HANDLE* re
     return status;
 }
 
+static long
+_get_initial_reference_count(uint32_t protocol, uint32_t verdict)
+{
+    long reference_count;
+
+    ASSERT(protocol == IPPROTO_TCP || protocol == IPPROTO_UDP);
+    if (protocol == IPPROTO_TCP) {
+        if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
+            // In case of ALLOW / REDIRECT, AUTH callout will be called twice.
+            reference_count = 2;
+        } else {
+            // In case of BLOCK, AUTH callout will be called only once.
+            reference_count = 1;
+        }
+    } else {
+        // In case of UDP, AUTH callout is always called only once.
+        reference_count = 1;
+    }
+
+    return reference_count;
+}
+
 static void
 _net_ebpf_ext_initialize_connection_context(
     _In_ const bpf_sock_addr_t* original_sock_addr,
@@ -396,7 +418,10 @@ _net_ebpf_ext_initialize_connection_context(
     connection_context->verdict = verdict;
     connection_context->transport_endpoint_handle = transport_endpoint_handle;
     // One reference count for each time AUTH_CONNECT will be called for this connection.
-    connection_context->reference_count = 2;
+
+    // TODO: For UDP, what if the socket is closed after connect, and a send is never done?
+    //       In that case, we need to somehow know that socket is closed.
+    connection_context->reference_count = _get_initial_reference_count(original_sock_addr->protocol, verdict);
 }
 
 static NTSTATUS
@@ -722,7 +747,8 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 
 Exit:
     classify_output->actionType = action;
-    if (filter->flags & FWPS_FILTER_FLAG_CLEAR_ACTION_RIGHT || action == FWP_ACTION_BLOCK) {
+    // Clear FWPS_RIGHT_ACTION_WRITE only when it is a hard block.
+    if (action == FWP_ACTION_BLOCK) {
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
         // TODO: It looks like if the connection is blocked, we do not get a second call for AUTH.
         // That leaks connection_context memory.
@@ -969,13 +995,13 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     action = FWP_ACTION_PERMIT;
 
-    // TODO: Should we return block here? Or wait till auth_connect?
     // TODO: What to do for redirection by multiple callouts (FWP_CONDITION_FLAG_IS_REAUTHORIZE).
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/network/using-bind-or-connect-redirection#handling-connect-redirection-from-multiple-callouts
 
 Exit:
     classify_output->actionType = action;
-    if (filter->flags & FWPS_FILTER_FLAG_CLEAR_ACTION_RIGHT || action == FWP_ACTION_BLOCK) {
+    // Clear FWPS_RIGHT_ACTION_WRITE only when it is a hard block.
+    if (action == FWP_ACTION_BLOCK) {
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
     }
     if (commit_layer_data) {

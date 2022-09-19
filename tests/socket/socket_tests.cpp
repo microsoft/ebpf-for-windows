@@ -308,6 +308,27 @@ TEST_CASE("blockall", "[sock_addr_tests]")
     bpf_object__close(object);
 }
 
+TEST_CASE("allowall", "[sock_addr_tsockests]")
+{
+    struct bpf_object* object;
+    int program_fd;
+    int result = bpf_prog_load_deprecated("cgroup_sock_addr2.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+
+    bpf_program* allow4_program = bpf_object__find_program_by_name(object, "allowall_v4");
+    REQUIRE(allow4_program != nullptr);
+
+    result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(allow4_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
+    REQUIRE(result == 0);
+
+    printf("Sleeping for infinite time.\n");
+    Sleep(INFINITE);
+
+    bpf_object__close(object);
+}
+
 TEST_CASE("lbnat", "[sock_addr_tests]")
 {
     struct bpf_object* object;
