@@ -252,12 +252,39 @@ Other useful options include:
 4.	`Test_name` to run a single test
 
 ### xdp_tests.exe
-This application tests various XDP functionalities. It has the following tests:
-1. Reflection Test: This tests the XDP_TX functionality. The following steps show how to run the test:
-   1. On the system under test, install eBPF binaries (`.\scripts\setup-ebpf.ps1`).
-   2. Load the test eBPF program by running the following commands: `netsh`, `ebpf`, `add program reflect_packet.o xdp` and note the ID.
-   3. From a remote host, run xdp_tests.exe and in `--remote-ip` parameter pass an IPv4 or IPv6 address of an Ethernet-like interface on the system under test in string format.
-   4. Unload the program from system under test by running `delete program <id>` on the netsh prompt, where <id> is the ID noted above.
+This application tests various XDP functionalities. These tests require two hosts to run. There are three variations of the XDP tests.
+
+#### Reflection Test
+This tests the XDP_TX functionality.
+1. On the first host:
+   1. Install eBPF binaries (`.\scripts\setup-ebpf.ps1`).
+   2. Load the test eBPF program by running the following command: `netsh ebpf add program reflect_packet.o xdp` and note the ID.
+2. On the second host:
+  1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall.
+  2. Run `xdp_tests.exe xdp_reflect_test --remote_ip <IP on the first host>`.
+
+#### Encapsulation Test
+This uses `bpf_xdp_adjust_head` helper function to encapsulate an outer IP header to a packet.
+1. On the first host:
+   1. Install eBPF binaries (`.\scripts\setup-ebpf.ps1`).
+   2. Load the test eBPF program by running the following command: `netsh ebpf add program encap_reflect_packet.o xdp` and note the ID.
+2. On the remote host:
+  1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall.
+  2. Run `xdp_tests.exe xdp_encap_reflect_test --remote_ip <IP on the first host>`.
+
+#### Decapsulation Test
+This uses `bpf_xdp_adjust_head` helper function to decapsulate an outer IP header from a packet.
+1. On *both* the test machines, install eBPF binaries (`.\scripts\setup-ebpf.ps1`).
+2. On the first host load the first test eBPF program by running the following command: `netsh ebpf add program encap_reflect_packet.o xdp` and note the ID.
+3. On the second host:
+  1. Load the second test eBPF program by running the following command: `netsh ebpf add program decap_permit_packet.o xdp` and note the ID.
+  2. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall.
+  3. Run `xdp_tests.exe xdp_reflect_test --remote_ip <IP on the first host>`.
+
+**Note:** For the `--remote-ip` parameter to `xdp_tests.exe` program run on the second host, pass an IPv4 or IPv6 address of an Ethernet-like interface on the first host in string format.<br>
+**Note:** To allow inbound traffic to `xdp_tests.exe` run `New-NetFirewallRule -DisplayName "XDP_Test" -Program "<Full path to xdp_tests.exe>" -Direction Inbound -Action Allow`.<br>
+**Note:** After the tests complete, unload the eBPF programs from both host machines by running `delete program <id>` on the netsh prompt, where <id> is the ID noted when the eBPF programs were loaded.<br>
+***Advanced:*** The eBPF program can be attached to a specific interface by passing `interface=<IfIndex>` parameter either to the netsh `add program` or `set program` commands.
 
 ### socket_tests.exe
 This application loads the `cgroup_sock_addr.o` eBPF program and attaches to hooks to handle various socket operations. Currently it tests authorizing ingress and egress connections based on entries in a map passed to the program.
