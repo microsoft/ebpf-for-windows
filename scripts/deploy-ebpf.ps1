@@ -25,7 +25,7 @@ $source_directory="."
     "VCRUNTIME140D.dll")
 
 [System.Collections.ArrayList]$source_msi_files=@(
-    "ebpf-for-windows-0.3.0.msi")
+    "ebpf-for-windows-0.4.0.msi")
 
 [System.Collections.ArrayList]$source_script_files=@(
     "scripts\common.psm1",

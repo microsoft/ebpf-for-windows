@@ -61,7 +61,7 @@ jobs:
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true
-      uses: github/codeql-action/init@b398f525a5587552e573b247ac661067fafa920b
+      uses: github/codeql-action/init@904260d7d935dff982205cbdb42025ce30b7a34f
       with:
         languages: 'cpp'
 
@@ -169,7 +169,7 @@ jobs:
       if: matrix.configurations == 'Release' && inputs.generate_release_package == true
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        cmake -S tools\setup -B build\setup -DEBPFFORWINDOWS_PROGRAM_DATA="${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\package_data" "-DEBPFFORWINDOWS_VERSION=0.3.0" -DCPACK_GENERATOR=WIX
+        cmake -S tools\setup -B build\setup -DEBPFFORWINDOWS_PROGRAM_DATA="${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\package_data" "-DEBPFFORWINDOWS_VERSION=0.4.0" -DCPACK_GENERATOR=WIX
         cmake --build build\setup --target package
 
     - name: Locate the packages
@@ -201,4 +201,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true
-      uses: github/codeql-action/analyze@b398f525a5587552e573b247ac661067fafa920b
+      uses: github/codeql-action/analyze@904260d7d935dff982205cbdb42025ce30b7a34f
