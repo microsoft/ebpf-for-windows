@@ -226,7 +226,10 @@ bpf_code_generator::program_sections()
 
 void
 bpf_code_generator::parse(
-    const bpf_code_generator::unsafe_string& section_name, const GUID& program_type, const GUID& attach_type)
+    const bpf_code_generator::unsafe_string& section_name,
+    const GUID& program_type,
+    const GUID& attach_type,
+    const std::optional<std::vector<uint8_t>>& program_info_hash)
 {
     current_section = &sections[section_name];
     get_register_name(0);
@@ -234,16 +237,18 @@ bpf_code_generator::parse(
     get_register_name(10);
 
     set_pe_section_name(section_name);
-    set_program_and_attach_type(program_type, attach_type);
+    set_program_and_attach_type_and_hash(program_type, attach_type, program_info_hash);
     extract_program(section_name);
     extract_relocations_and_maps(section_name);
 }
 
 void
-bpf_code_generator::set_program_and_attach_type(const GUID& program_type, const GUID& attach_type)
+bpf_code_generator::set_program_and_attach_type_and_hash(
+    const GUID& program_type, const GUID& attach_type, const std::optional<std::vector<uint8_t>>& program_info_hash)
 {
     memcpy(&current_section->program_type, &program_type, sizeof(GUID));
     memcpy(&current_section->expected_attach_type, &attach_type, sizeof(GUID));
+    current_section->program_info_hash = program_info_hash;
 }
 
 void
@@ -909,6 +914,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         // Emit the program and attach type GUID.
         std::string program_type_name = program_name.c_identifier() + "_program_type_guid";
         std::string attach_type_name = program_name.c_identifier() + "_attach_type_guid";
+        std::string program_info_hash_name = program_name.c_identifier() + "_program_info_hash";
 
         auto guid_declaration =
             format_string("static GUID %s = %s;", program_type_name, format_guid(&section.program_type, false));
@@ -930,6 +936,20 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                                  attach_type_name,
                                  format_guid(&section.expected_attach_type, true))
                           << std::endl;
+        }
+
+        if (section.program_info_hash.has_value()) {
+            output_stream << "static const uint8_t " << program_info_hash_name << "[] = {" << std::endl;
+            for (size_t i = 0; i < section.program_info_hash.value().size(); i++) {
+                if (i % 16 == 0) {
+                    output_stream << INDENT "";
+                }
+                output_stream << std::to_string(section.program_info_hash.value().at(i)) << ", ";
+                if (i % 16 == 15) {
+                    output_stream << std::endl;
+                }
+            }
+            output_stream << INDENT "};" << std::endl;
         }
 
         if (section.referenced_map_indices.size() > 0) {
@@ -1018,6 +1038,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto helper_array_name = helper_count ? (program_name.c_identifier() + "_helpers") : "NULL";
             auto program_type_guid_name = program_name.c_identifier() + "_program_type_guid";
             auto attach_type_guid_name = program_name.c_identifier() + "_attach_type_guid";
+            auto program_info_hash_name = program_name.c_identifier() + "_program_info_hash";
             output_stream << INDENT "{" << std::endl;
             output_stream << INDENT INDENT << "0," << std::endl;
             output_stream << INDENT INDENT << program_name.c_identifier() << "," << std::endl;
@@ -1031,6 +1052,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT INDENT << program.output.size() << "," << std::endl;
             output_stream << INDENT INDENT "&" << program_type_guid_name << "," << std::endl;
             output_stream << INDENT INDENT "&" << attach_type_guid_name << "," << std::endl;
+            if (program.program_info_hash.has_value()) {
+                output_stream << INDENT INDENT << program_info_hash_name << "," << std::endl;
+                output_stream << INDENT INDENT << program.program_info_hash.value().size() << "," << std::endl;
+            }
             output_stream << INDENT "}," << std::endl;
         }
         output_stream << "};" << std::endl;

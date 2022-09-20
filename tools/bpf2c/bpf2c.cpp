@@ -19,6 +19,7 @@
 #undef max
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
+#include "ebpf_program_types.h"
 #include "ElfWrapper.h"
 
 #define elf_everparse_error ElfEverParseError
@@ -36,9 +37,24 @@ const char bpf2c_dll[] =
 #include "bpf2c_dll.template"
     ;
 
-class _hash
+typedef class _hash
 {
   public:
+    typedef std::vector<std::tuple<const uint8_t*, size_t>> byte_range_t;
+    template <typename T>
+    static void
+    append_byte_range(byte_range_t& byte_range, const T& value)
+    {
+        if constexpr (std::is_same<T, const char*>::value) {
+            byte_range.push_back({reinterpret_cast<const uint8_t*>(value), strlen(value)});
+        } else if constexpr (std::is_same<T, const std::string>::value || std::is_same<T, std::string>::value) {
+            byte_range.push_back({reinterpret_cast<const uint8_t*>(value.data()), value.size()});
+        } else if constexpr (std::is_pointer<T>::value) {
+            throw std::runtime_error("Can't hash pointer");
+        } else {
+            byte_range.push_back({reinterpret_cast<const uint8_t*>(&value), sizeof(value)});
+        }
+    }
     _hash(const std::string& algorithm)
     {
         HRESULT hr;
@@ -57,6 +73,14 @@ class _hash
     std::vector<uint8_t>
     hash_string(const std::string& data)
     {
+        byte_range_t byte_range;
+        append_byte_range(byte_range, data);
+        return hash_byte_ranges(byte_range);
+    }
+
+    std::vector<uint8_t>
+    hash_byte_ranges(const byte_range_t& byte_ranges)
+    {
         uint32_t hash_length;
         std::vector<uint8_t> hash;
         BCRYPT_HASH_HANDLE hash_handle;
@@ -65,14 +89,13 @@ class _hash
         if (!SUCCEEDED(hr)) {
             throw std::runtime_error(std::string("BCryptCreateHash failed with HR=") + std::to_string(hr));
         }
-        hr = BCryptHashData(
-            hash_handle,
-            reinterpret_cast<uint8_t*>(const_cast<char*>(data.data())),
-            static_cast<unsigned long>(data.size()),
-            0);
-        if (!SUCCEEDED(hr)) {
-            BCryptDestroyHash(hash_handle);
-            throw std::runtime_error(std::string("BCryptHashData failed with HR=") + std::to_string(hr));
+
+        for (const auto& [data, length] : byte_ranges) {
+            hr = BCryptHashData(hash_handle, const_cast<uint8_t*>(data), static_cast<unsigned long>(length), 0);
+            if (!SUCCEEDED(hr)) {
+                BCryptDestroyHash(hash_handle);
+                throw std::runtime_error(std::string("BCryptHashData failed with HR=") + std::to_string(hr));
+            }
         }
 
         unsigned long bytes_written;
@@ -99,7 +122,7 @@ class _hash
 
   private:
     BCRYPT_ALG_HANDLE algorithm_handle;
-};
+} hash_t;
 
 void
 emit_skeleton(const std::string& c_name, const std::string& code)
@@ -135,6 +158,39 @@ elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _
 {
     std::cerr << "Failed parsing in struct " << struct_name << " field " << field_name << " reason " << reason
               << std::endl;
+}
+
+std::vector<uint8_t>
+get_program_info_type_hash(const std::string& algorithm)
+{
+    std::map<uint32_t, size_t> helper_id_ordering;
+    const ebpf_program_info_t* program_info;
+    ebpf_result_t result = ebpf_get_program_info_from_verifier(&program_info);
+    if (result != EBPF_SUCCESS) {
+        throw std::runtime_error(std::string("Failed to get program information"));
+    }
+
+    hash_t::byte_range_t byte_range;
+    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.name);
+    hash_t::append_byte_range(byte_range, *program_info->program_type_descriptor.context_descriptor);
+    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.program_type);
+    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.bpf_prog_type);
+    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.is_privileged);
+    hash_t::append_byte_range(byte_range, program_info->count_of_helpers);
+    for (size_t index = 0; index < program_info->count_of_helpers; index++) {
+        helper_id_ordering[program_info->helper_prototype[index].helper_id] = index;
+    }
+    // Hash helper ids in increasing helper_id order
+    for (auto [helper_id, index] : helper_id_ordering) {
+        hash_t::append_byte_range(byte_range, program_info->helper_prototype[index].helper_id);
+        hash_t::append_byte_range(byte_range, program_info->helper_prototype[index].name);
+        hash_t::append_byte_range(byte_range, program_info->helper_prototype[index].return_type);
+        for (size_t argument = 0; argument < _countof(program_info->helper_prototype[index].arguments); argument++) {
+            hash_t::append_byte_range(byte_range, program_info->helper_prototype[index].arguments[argument]);
+        }
+    }
+    hash_t hash(algorithm);
+    return hash.hash_byte_ranges(byte_range);
 }
 
 int
@@ -292,6 +348,7 @@ main(int argc, char** argv)
             const char* report = nullptr;
             const char* error_message = nullptr;
             ebpf_api_verifier_stats_t stats;
+            std::optional<std::vector<uint8_t>> program_info_hash;
             if (verify_programs && ebpf_api_elf_verify_section_from_memory(
                                        data.c_str(),
                                        data.size(),
@@ -306,7 +363,10 @@ main(int argc, char** argv)
                     std::string("Verification failed for ") + section.raw() + std::string(" with error ") +
                     std::string(error_message) + std::string("\n Report:\n") + std::string(report));
             }
-            generator.parse(section, program_type, attach_type);
+            if (verify_programs && (hash_algorithm != "none")) {
+                program_info_hash = get_program_info_type_hash(hash_algorithm);
+            }
+            generator.parse(section, program_type, attach_type, program_info_hash);
         }
 
         for (const auto& section : sections) {
