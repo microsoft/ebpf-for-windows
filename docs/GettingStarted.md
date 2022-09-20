@@ -257,33 +257,33 @@ This application tests various XDP functionalities. These tests require two host
 #### Reflection Test
 This tests the XDP_TX functionality.
 1. On the first host:
-   1. Install eBPF binaries (`.\scripts\setup-ebpf.ps1`).
+   1. [Install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
    2. Load the test eBPF program by running the following command: `netsh ebpf add program reflect_packet.o xdp` and note the ID.
 2. On the second host:
-  1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall.
-  2. Run `xdp_tests.exe xdp_reflect_test --remote_ip <IP on the first host>`.
+   1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
+   2. Run `xdp_tests.exe xdp_reflect_test --remote_ip <IP on the first host>`. See **Note 2** below.
 
 #### Encapsulation Test
 This uses `bpf_xdp_adjust_head` helper function to encapsulate an outer IP header to a packet.
 1. On the first host:
-   1. Install eBPF binaries (`.\scripts\setup-ebpf.ps1`).
+   1. [Install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
    2. Load the test eBPF program by running the following command: `netsh ebpf add program encap_reflect_packet.o xdp` and note the ID.
-2. On the remote host:
-  1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall.
-  2. Run `xdp_tests.exe xdp_encap_reflect_test --remote_ip <IP on the first host>`.
+2. On the second host:
+   1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
+   2. Run `xdp_tests.exe xdp_encap_reflect_test --remote_ip <IP on the first host>`. See **Note 2** below.
 
 #### Decapsulation Test
 This uses `bpf_xdp_adjust_head` helper function to decapsulate an outer IP header from a packet.
-1. On *both* the test machines, install eBPF binaries (`.\scripts\setup-ebpf.ps1`).
+1. On *both* the test machines, [install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
 2. On the first host load the first test eBPF program by running the following command: `netsh ebpf add program encap_reflect_packet.o xdp` and note the ID.
 3. On the second host:
-  1. Load the second test eBPF program by running the following command: `netsh ebpf add program decap_permit_packet.o xdp` and note the ID.
-  2. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall.
-  3. Run `xdp_tests.exe xdp_reflect_test --remote_ip <IP on the first host>`.
+   1. Load the second test eBPF program by running the following command: `netsh ebpf add program decap_permit_packet.o xdp` and note the ID.
+   2. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
+   3. Run `xdp_tests.exe xdp_reflect_test --remote_ip <IP on the first host>`. See **Note 2** below.
 
-**Note:** For the `--remote-ip` parameter to `xdp_tests.exe` program run on the second host, pass an IPv4 or IPv6 address of an Ethernet-like interface on the first host in string format.<br>
-**Note:** To allow inbound traffic to `xdp_tests.exe` run `New-NetFirewallRule -DisplayName "XDP_Test" -Program "<Full path to xdp_tests.exe>" -Direction Inbound -Action Allow`.<br>
-**Note:** After the tests complete, unload the eBPF programs from both host machines by running `delete program <id>` on the netsh prompt, where <id> is the ID noted when the eBPF programs were loaded.<br>
+**Note 1:** To allow inbound traffic to `xdp_tests.exe`, in a Windows Powershell with administrative privilege, run `New-NetFirewallRule -DisplayName "XDP_Test" -Program "<Full path to xdp_tests.exe>" -Direction Inbound -Action Allow`.<br>
+**Note 2:** For the `--remote-ip` parameter to `xdp_tests.exe` program that is run on the second host, pass an IPv4 or IPv6 address of an Ethernet-like interface on the first host in string format.<br>
+**Note 3:** After completion of each test variation, unload the eBPF programs from both host machines by running `delete program <id>` on the netsh prompt, where `<id>` is the ID noted when the eBPF programs were loaded.<br>
 ***Advanced:*** The eBPF program can be attached to a specific interface by passing `interface=<IfIndex>` parameter either to the netsh `add program` or `set program` commands.
 
 ### socket_tests.exe
@@ -302,7 +302,7 @@ To capture a trace in a file use the following commands:
 
 ### Viewing traces in real-time
 To view traces in real-time, the `tracelog.exe` and `tracefmt.exe` commands from the WDK can be used.
-If you are running eBPF for Windows in a VM, you can either install the full WDK in the VM (see the Prequisites
+If you are running eBPF for Windows in a VM, you can either install the full WDK in the VM (see the Pre-requisites
 section above) or just copy the two executables into the VM.
 
 To view all eBPF trace events that would be captured to a file, use the following commands:
