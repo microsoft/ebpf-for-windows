@@ -258,7 +258,7 @@ This application tests various XDP functionalities. These tests require two host
 This tests the XDP_TX functionality.
 1. On the first host:
    1. [Install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
-   2. Load the test eBPF program by running the following command: `netsh ebpf add program reflect_packet.o xdp` and note the ID.
+   2. Load the test eBPF program by running the following command: `netsh ebpf add program reflect_packet.o xdp` and note the ID. See **Note 3** below.
 2. On the second host:
    1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
    2. Run `xdp_tests.exe xdp_reflect_test --remote_ip <IP on the first host>`. See **Note 2** below.
@@ -267,17 +267,17 @@ This tests the XDP_TX functionality.
 This uses `bpf_xdp_adjust_head` helper function to encapsulate an outer IP header to a packet.
 1. On the first host:
    1. [Install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
-   2. Load the test eBPF program by running the following command: `netsh ebpf add program encap_reflect_packet.o xdp` and note the ID.
+   2. Load the test eBPF program by running the following command: `netsh ebpf add program encap_reflect_packet.o xdp` and note the ID. See **Note 3** below.
 2. On the second host:
    1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
    2. Run `xdp_tests.exe xdp_encap_reflect_test --remote_ip <IP on the first host>`. See **Note 2** below.
 
 #### Decapsulation Test
 This uses `bpf_xdp_adjust_head` helper function to decapsulate an outer IP header from a packet.
-1. On *both* the test machines, [install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
-2. On the first host load the first test eBPF program by running the following command: `netsh ebpf add program encap_reflect_packet.o xdp` and note the ID.
+1. On *both* the hosts, [install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
+2. On the first host load the first test eBPF program by running the following command: `netsh ebpf add program encap_reflect_packet.o xdp` and note the ID. See **Note 3** below.
 3. On the second host:
-   1. Load the second test eBPF program by running the following command: `netsh ebpf add program decap_permit_packet.o xdp` and note the ID.
+   1. Load the second test eBPF program by running the following command: `netsh ebpf add program decap_permit_packet.o xdp` and note the ID. See **Note 3** below.
    2. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
    3. Run `xdp_tests.exe xdp_reflect_test --remote_ip <IP on the first host>`. See **Note 2** below.
 
@@ -302,7 +302,7 @@ To capture a trace in a file use the following commands:
 
 ### Viewing traces in real-time
 To view traces in real-time, the `tracelog.exe` and `tracefmt.exe` commands from the WDK can be used.
-If you are running eBPF for Windows in a VM, you can either install the full WDK in the VM (see the Pre-requisites
+If you are running eBPF for Windows in a VM, you can either install the full WDK in the VM (see the Prerequisites
 section above) or just copy the two executables into the VM.
 
 To view all eBPF trace events that would be captured to a file, use the following commands:
