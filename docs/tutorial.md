@@ -280,20 +280,20 @@ the directory you used for part 1:
 
              Section    Type  # Maps    Size
 ====================  ======  ======  ======
-               .text     xdp       0       2
+               .text  unspec       0       2
 
 > netsh ebpf show sections bpf-d.o
 
              Section    Type  # Maps    Size
 ====================  ======  ======  ======
-               .text     xdp       0       2
+               .text  unspec       0       2
 
 > netsh ebpf show sections bpf2.o
 
              Section    Type  # Maps    Size
 ====================  ======  ======  ======
-              myprog     xdp       0       2
-             another     xdp       0       2
+              myprog  unspec       0       2
+             another  unspec       0       2
 ```
 
 Notice that it only lists non-empty TEXT sections, whereas `llvm-objdump -h`
@@ -307,7 +307,7 @@ things out for readability, but feel free to abbreviate to save typing.
 **Step 2)** Run the verifier on our sample program
 
 ```
-> netsh ebpf show verification bpf.o
+> netsh ebpf show verification bpf.o type=xdp
 
 Verification succeeded
 Program terminates within 6 instructions
@@ -319,7 +319,7 @@ as the eBPF program to verify.  If we try the same on an object file with
 multiple such sections, we get this:
 
 ```
-> netsh ebpf show verification bpf2.o
+> netsh ebpf show verification bpf2.o type=xdp
 
 Verification succeeded
 Program terminates within 6 instructions
@@ -330,12 +330,12 @@ which was "myprog" in the section listing.  We can explicitly
 specify the section to use as follows:
 
 ```
-> netsh ebpf show verification bpf2.o myprog
+> netsh ebpf show verification bpf2.o myprog type=xdp
 
 Verification succeeded
 Program terminates within 6 instructions
 
-> netsh ebpf show verification bpf2.o another
+> netsh ebpf show verification bpf2.o another type=xdp
 
 Verification succeeded
 Program terminates within 6 instructions
@@ -413,7 +413,7 @@ We can view verbose output to see what the verifier is actually doing,
 using the "level=verbose" option to "show verification":
 
 ```
-> netsh ebpf show verification bpf.o level=verbose
+> netsh ebpf show verification bpf.o type=xdp level=verbose
 
 Pre-invariant : [
     instruction_count=0,
@@ -743,7 +743,7 @@ and the return value.
 ;     return result;
        5:       exit
 
-> netsh ebpf show verification helpers.o
+> netsh ebpf show verification helpers.o type=xdp
 Verification failed
 
 Verification report:
