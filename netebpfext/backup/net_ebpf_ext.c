@@ -5,7 +5,7 @@
 
 Abstract:
 
-   This file implements the classifyFn, notifyFn, and flowDeleteFn callouts
+   This file implements the classifyFn, notifiFn, and flowDeleteFn callouts
    functions for:
    Layer 2 network receive
    Resource Acquire
@@ -33,7 +33,7 @@ _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_
 
 NTSTATUS
 net_ebpf_ext_filter_change_notify(
-    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter);
 
 typedef struct _net_ebpf_ext_wfp_callout_state
 {
@@ -281,7 +281,7 @@ net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp
 net_ebpf_extension_hook_id_t
 net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
 {
-    net_ebpf_extension_hook_id_t hook_id = (net_ebpf_extension_hook_id_t)0;
+    net_ebpf_extension_hook_id_t hook_id = 0;
 
     switch (wfp_layer_id) {
     case FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE:
@@ -325,13 +325,6 @@ net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
         break;
     case FWPS_LAYER_ALE_CONNECT_REDIRECT_V6:
         hook_id = EBPF_HOOK_ALE_CONNECT_REDIRECT_V6;
-        break;
-    case FWPS_LAYER_ALE_ENDPOINT_CLOSURE_V4:
-        hook_id = EBPF_HOOK_ALE_ENDPOINT_CLOSURE_V4;
-        break;
-    case FWPS_LAYER_ALE_ENDPOINT_CLOSURE_V6:
-        hook_id = EBPF_HOOK_ALE_ENDPOINT_CLOSURE_V6;
-        break;
     default:
         ASSERT(FALSE);
         break;
@@ -392,7 +385,11 @@ net_ebpf_extension_add_wfp_filters(
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmTransactionBegin", status);
+        KdPrintEx(
+            (DPFLTR_IHVDRIVER_ID,
+             DPFLTR_INFO_LEVEL,
+             "NetEbpfExt: FwpmTransactionBegin failed with error %.2X\n",
+             status));
         goto Exit;
     }
     is_in_transaction = TRUE;
@@ -414,13 +411,14 @@ net_ebpf_extension_add_wfp_filters(
         filter.rawContext = (uint64_t)(uintptr_t)filter_context;
 
         status = FwpmFilterAdd(_fwp_engine_handle, &filter, NULL, &local_filter_ids[index]);
+
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,
-                "FwpmFilterAdd",
-                status,
-                "Failed to add filter",
-                (char*)filter_parameter->name);
+            KdPrintEx(
+                (DPFLTR_IHVDRIVER_ID,
+                 DPFLTR_INFO_LEVEL,
+                 "NetEbpfExt: FwpmFilterAdd for %S failed with error %.2X\n",
+                 filter_parameter->name,
+                 status));
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
@@ -428,7 +426,11 @@ net_ebpf_extension_add_wfp_filters(
 
     status = FwpmTransactionCommit(_fwp_engine_handle);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmTransactionCommit", status);
+        KdPrintEx(
+            (DPFLTR_IHVDRIVER_ID,
+             DPFLTR_INFO_LEVEL,
+             "NetEbpfExt: FwpmTransactionCommit failed with error %.2X\n",
+             status));
         goto Exit;
     }
     is_in_transaction = FALSE;
@@ -473,12 +475,12 @@ _net_ebpf_ext_register_wfp_callout(_Inout_ net_ebpf_ext_wfp_callout_state_t* cal
 
     status = FwpsCalloutRegister(device_object, &callout_register_state, &callout_state->assigned_callout_id);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,
-            "FwpsCalloutRegister",
-            status,
-            "Failed to register callout",
-            (char*)callout_state->name);
+        KdPrintEx(
+            (DPFLTR_IHVDRIVER_ID,
+             DPFLTR_INFO_LEVEL,
+             "NetEbpfExt: FwpsCalloutRegister for %S failed with error %.2X\n",
+             callout_state->name,
+             status));
         goto Exit;
     }
     was_callout_registered = TRUE;
@@ -491,13 +493,14 @@ _net_ebpf_ext_register_wfp_callout(_Inout_ net_ebpf_ext_wfp_callout_state_t* cal
     callout_add_state.applicableLayer = *callout_state->layer_guid;
 
     status = FwpmCalloutAdd(_fwp_engine_handle, &callout_add_state, NULL, NULL);
+
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,
-            "FwpmCalloutAdd",
-            status,
-            "Failed to add callout",
-            (char*)callout_state->name);
+        KdPrintEx(
+            (DPFLTR_IHVDRIVER_ID,
+             DPFLTR_INFO_LEVEL,
+             "NetEbpfExt: FwpmCalloutAdd for %S failed with error %.2X\n",
+             callout_state->name,
+             status));
         goto Exit;
     }
 
@@ -505,13 +508,8 @@ Exit:
 
     if (!NT_SUCCESS(status)) {
         if (was_callout_registered) {
-            status = FwpsCalloutUnregisterById(callout_state->assigned_callout_id);
-            if (!NT_SUCCESS(status)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpsCalloutUnregisterById", status);
-            } else {
-                callout_state->assigned_callout_id = 0;
-            }
+            FwpsCalloutUnregisterById(callout_state->assigned_callout_id);
+            callout_state->assigned_callout_id = 0;
         }
     }
 
@@ -530,7 +528,6 @@ net_ebpf_ext_initialize_ndis_handles(_In_ const DRIVER_OBJECT* driver_object)
         NdisAllocateGenericObject((DRIVER_OBJECT*)driver_object, NET_EBPF_EXTENSION_POOL_TAG, 0);
     if (_net_ebpf_ext_ndis_handle == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "NdisAllocateGenericObject", status);
         goto Exit;
     }
 
@@ -559,7 +556,7 @@ net_ebpf_ext_uninitialize_ndis_handles()
         NdisFreeNetBufferListPool(_net_ebpf_ext_nbl_pool_handle);
 
     if (_net_ebpf_ext_ndis_handle != NULL)
-        NdisFreeGenericObject((NDIS_GENERIC_OBJECT*)_net_ebpf_ext_ndis_handle);
+        NdisFreeGenericObject(_net_ebpf_ext_ndis_handle);
 }
 
 NTSTATUS
@@ -572,8 +569,6 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
 {
     NTSTATUS status = STATUS_SUCCESS;
     FWPM_SUBLAYER ebpf_hook_sub_layer;
-
-    UNREFERENCED_PARAMETER(device_object);
 
     BOOLEAN is_engined_opened = FALSE;
     BOOLEAN is_in_transaction = FALSE;
@@ -593,14 +588,19 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
 
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &_fwp_engine_handle);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmEngineOpen", status);
+        KdPrintEx(
+            (DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "NetEbpfExt: FwpmEngineOpen failed with error %.2X\n", status));
         goto Exit;
     }
     is_engined_opened = TRUE;
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmTransactionBegin", status);
+        KdPrintEx(
+            (DPFLTR_IHVDRIVER_ID,
+             DPFLTR_INFO_LEVEL,
+             "NetEbpfExt: FwpmTransactionBegin failed with error %.2X\n",
+             status));
         goto Exit;
     }
     is_in_transaction = TRUE;
@@ -615,45 +615,46 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
 
     status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpf_hook_sub_layer, NULL);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmSubLayerAdd", status);
+        KdPrintEx(
+            (DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "NetEbpfExt: FwpmSubLayerAdd failed with error %.2X\n", status));
         goto Exit;
     }
 
     for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
         status = _net_ebpf_ext_register_wfp_callout(&_net_ebpf_ext_wfp_callout_states[index], device_object);
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_MESSAGE_STRING(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,
-                "_net_ebpf_ext_register_wfp_callout() failed to register callout",
-                 _net_ebpf_ext_wfp_callout_state[index].name,
+            KdPrintEx(
+                (DPFLTR_IHVDRIVER_ID,
+                 DPFLTR_INFO_LEVEL,
+                 "NetEbpfExt: _net_ebpf_ext_register_wfp_callout failed for %S with "
+                 "error %.2X\n",
+                 _net_ebpf_ext_wfp_callout_states[index].name,
+                 status));
             goto Exit;
         }
     }
 
     status = FwpmTransactionCommit(_fwp_engine_handle);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmTransactionCommit", status);
+        KdPrintEx(
+            (DPFLTR_IHVDRIVER_ID,
+             DPFLTR_INFO_LEVEL,
+             "NetEbpfExt: FwpmTransactionCommit failed with error %.2X\n",
+             status));
         goto Exit;
     }
     is_in_transaction = FALSE;
 
     // Create L2 injection handle.
     status = FwpsInjectionHandleCreate(AF_LINK, FWPS_INJECTION_TYPE_L2, &_net_ebpf_ext_l2_injection_handle);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpsInjectionHandleCreate", status);
+    if (!NT_SUCCESS(status))
         goto Exit;
-    }
 
 Exit:
 
     if (!NT_SUCCESS(status)) {
         if (is_in_transaction) {
-            status = FwpmTransactionAbort(_fwp_engine_handle);
-            if (!NT_SUCCESS(status)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmTransactionAbort", status);
-            }
+            FwpmTransactionAbort(_fwp_engine_handle);
         }
     }
 
@@ -678,7 +679,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
 
 NTSTATUS
 net_ebpf_ext_filter_change_notify(
-    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter)
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter)
 {
     NET_EBPF_EXT_LOG_ENTRY();
 

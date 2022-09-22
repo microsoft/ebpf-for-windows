@@ -7,7 +7,7 @@
  *
  */
 
-#include "net_ebpf_ext.h"
+#define INITGUID
 
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_addr.h"
@@ -46,7 +46,6 @@ typedef struct _net_ebpf_extension_connection_context
     bpf_sock_addr_t redirected_addr;
     bool redirected;
     uint32_t verdict;
-    IPPROTO protocol;
     uint64_t transport_endpoint_handle;
     volatile long reference_count;
 } net_ebpf_extension_connection_context_t;
@@ -114,14 +113,8 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_connect_filter_paramete
      &EBPF_HOOK_ALE_AUTH_CONNECT_V4_CALLOUT,
      L"net eBPF sock_addr hook",
      L"net eBPF sock_addr hook WFP filter"},
-
     {&FWPM_LAYER_ALE_CONNECT_REDIRECT_V4,
      &EBPF_HOOK_ALE_CONNECT_REDIRECT_V4_CALLOUT,
-     L"net eBPF sock_addr hook",
-     L"net eBPF sock_addr hook WFP filter"},
-
-    {&FWPM_LAYER_ALE_ENDPOINT_CLOSURE_V4,
-     &EBPF_HOOK_ALE_ENDPOINT_CLOSURE_V4_CALLOUT,
      L"net eBPF sock_addr hook",
      L"net eBPF sock_addr hook WFP filter"}};
 
@@ -133,11 +126,6 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_connect_filter_paramete
 
     {&FWPM_LAYER_ALE_CONNECT_REDIRECT_V6,
      &EBPF_HOOK_ALE_CONNECT_REDIRECT_V6_CALLOUT,
-     L"net eBPF sock_addr hook",
-     L"net eBPF sock_addr hook WFP filter"},
-
-    {&FWPM_LAYER_ALE_ENDPOINT_CLOSURE_V6,
-     &EBPF_HOOK_ALE_ENDPOINT_CLOSURE_V6_CALLOUT,
      L"net eBPF sock_addr hook",
      L"net eBPF sock_addr hook WFP filter"}};
 
@@ -174,7 +162,7 @@ const net_ebpf_extension_wfp_filter_parameters_array_t _net_ebpf_extension_sock_
 
 typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
 {
-    net_ebpf_extension_wfp_filter_context_t base;
+    net_ebpf_extension_wfp_filter_context_t;
     uint32_t compartment_id;
 } net_ebpf_extension_sock_addr_wfp_filter_context_t;
 
@@ -279,7 +267,7 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-        &filter_context->base.filter_ids);
+        &filter_context->filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -303,7 +291,7 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
         (net_ebpf_extension_sock_addr_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
             detaching_client);
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters(1, filter_context->base.filter_ids);
+    net_ebpf_extension_delete_wfp_filters(1, filter_context->filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
@@ -405,56 +393,6 @@ _net_ebpf_ext_sock_addr_get_redirect_handle(uint64_t filter_id, _Out_ HANDLE* re
     return status;
 }
 
-//
-// Lifetime management of endpoint context is different for TCP and UDP.
-//
-// In case of TCP, when action is:
-// 1. BLOCK, AUTH callout is called once. Initial ref = 1.
-// 2. ALLOW / REDIRECT, AUTH callout is called twice. Initial ref = 2.
-//
-// In case of UDP, it is possible that the user mode app creates and
-// connects a socket but never sends a packet. Hence there is no guarantee
-// that AUTH callout will be called. For UDP, context lifetime is managed
-// via ENDPOINT_CLOSURE callout. Initial ref = 1.
-static long
-_get_initial_reference_count(uint32_t protocol, uint32_t verdict)
-{
-    long reference_count;
-
-    ASSERT(protocol == IPPROTO_TCP || protocol == IPPROTO_UDP);
-    if (protocol == IPPROTO_TCP) {
-        if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
-            // In case of ALLOW / REDIRECT, AUTH callout will be called twice.
-            reference_count = 2;
-        } else {
-            // In case of BLOCK, AUTH callout will be called only once.
-            reference_count = 1;
-        }
-    } else {
-        // In case of UDP, initial ref is always 1.
-        reference_count = 1;
-    }
-
-    return reference_count;
-}
-
-static void
-_net_ebpf_ext_reinitialize_connection_context(
-    _In_ const bpf_sock_addr_t* original_sock_addr,
-    _In_ const bpf_sock_addr_t* redirected_sock_addr,
-    bool redirected,
-    uint32_t verdict,
-    uint64_t transport_endpoint_handle,
-    _Out_ net_ebpf_extension_connection_context_t* connection_context)
-{
-    RtlCopyMemory(&connection_context->original_addr, original_sock_addr, sizeof(bpf_sock_addr_t));
-    RtlCopyMemory(&connection_context->redirected_addr, redirected_sock_addr, sizeof(bpf_sock_addr_t));
-    connection_context->protocol = original_sock_addr->protocol;
-    connection_context->redirected = redirected;
-    connection_context->verdict = verdict;
-    connection_context->transport_endpoint_handle = transport_endpoint_handle;
-}
-
 static void
 _net_ebpf_ext_initialize_connection_context(
     _In_ const bpf_sock_addr_t* original_sock_addr,
@@ -464,10 +402,13 @@ _net_ebpf_ext_initialize_connection_context(
     uint64_t transport_endpoint_handle,
     _Out_ net_ebpf_extension_connection_context_t* connection_context)
 {
-    _net_ebpf_ext_reinitialize_connection_context(
-        original_sock_addr, redirected_sock_addr, redirected, verdict, transport_endpoint_handle, connection_context);
-
-    connection_context->reference_count = _get_initial_reference_count(original_sock_addr->protocol, verdict);
+    RtlCopyMemory(&connection_context->original_addr, original_sock_addr, sizeof(bpf_sock_addr_t));
+    RtlCopyMemory(&connection_context->redirected_addr, redirected_sock_addr, sizeof(bpf_sock_addr_t));
+    connection_context->redirected = redirected;
+    connection_context->verdict = verdict;
+    connection_context->transport_endpoint_handle = transport_endpoint_handle;
+    // One reference count for each time AUTH_CONNECT will be called for this connection.
+    connection_context->reference_count = 2;
 }
 
 static NTSTATUS
@@ -536,9 +477,7 @@ net_ebpf_ext_sock_addr_register_providers()
             &_ebpf_sock_addr_hook_provider_moduleid[i], &_net_ebpf_extension_sock_addr_hook_provider_data[i]};
 
         _net_ebpf_sock_addr_hook_provider_data[i].supported_program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
-        _net_ebpf_sock_addr_hook_provider_data[i].bpf_attach_type =
-            (bpf_attach_type_t)_net_ebpf_extension_sock_addr_bpf_attach_types[i];
-        _net_ebpf_sock_addr_hook_provider_data[i].link_type = BPF_LINK_TYPE_CGROUP;
+        _net_ebpf_sock_addr_hook_provider_data[i].bpf_attach_type = _net_ebpf_extension_sock_addr_bpf_attach_types[i];
         _net_ebpf_extension_sock_addr_hook_provider_data[i].version = EBPF_ATTACH_PROVIDER_DATA_VERSION;
         _net_ebpf_extension_sock_addr_hook_provider_data[i].data = &_net_ebpf_sock_addr_hook_provider_data[i];
         _net_ebpf_extension_sock_addr_hook_provider_data[i].size = sizeof(ebpf_attach_provider_data_t);
@@ -791,35 +730,17 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 
     action = (result == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "net_ebpf_extension_sock_addr_authorize_connection_classify",
-        connection_context->transport_endpoint_handle,
-        connection_context->protocol,
-        connection_context->verdict);
-
 Exit:
     classify_output->actionType = action;
-    // Clear FWPS_RIGHT_ACTION_WRITE only when it is a hard block.
-    if (action == FWP_ACTION_BLOCK) {
+    if (filter->flags & FWPS_FILTER_FLAG_CLEAR_ACTION_RIGHT || action == FWP_ACTION_BLOCK) {
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
         // TODO: It looks like if the connection is blocked, we do not get a second call for AUTH.
         // That leaks connection_context memory.
     }
-
-    if (connection_context != NULL) {
-        // Release reference for query.
-        DEREFERENCE_CONNECTION_CONTEXT(connection_context);
-
-        // Do not release reference in case of UDP. For UDP, the
-        // reference will be released in endpoint_closure callout.
-        if (connection_context->protocol == IPPROTO_TCP) {
-            // Release the AUTH reference.
-            DEREFERENCE_CONNECTION_CONTEXT(connection_context);
-        }
-    }
-
+    // Release reference for query.
+    DEREFERENCE_CONNECTION_CONTEXT(connection_context);
+    // Release the AUTH reference.
+    DEREFERENCE_CONNECTION_CONTEXT(connection_context);
     return;
 }
 
@@ -875,8 +796,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     FWPS_CONNECT_REQUEST* connect_request = NULL;
     net_ebpf_ext_redirection_record_t* redirect_record = NULL;
     net_ebpf_extension_connection_context_t* connection_context = NULL;
-    bool existing_connection_context = false;
-    // net_ebpf_extension_connection_context_t* existing_connection_context = NULL;
     bool address_changed = false;
     bool redirected = false;
     FWP_ACTION_TYPE action = FWP_ACTION_BLOCK;
@@ -914,7 +833,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "Connection redireced by self, ignoring",
+            "Connection redireced by self, ingnoring",
             filter->filterId,
             (uint64_t)sock_addr_ctx.compartment_id);
 
@@ -923,15 +842,11 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         return;
     }
 
-    // In case of UDP, since the same socket can be used to send packets to different
-    // destinations, it is possible to already have a connection context present in the
-    // list. Update the connection context with the new information in such a case.
-    status =
-        _net_ebpf_ext_get_connection_context(incoming_metadata_values->transportEndpointHandle, &connection_context);
-    ASSERT(sock_addr_ctx_original.protocol == IPPROTO_UDP || status == STATUS_NOT_FOUND);
-    if (connection_context != NULL) {
-        existing_connection_context = true;
-    }
+    // Sanity check. We should not have a connection context with same endpoint handle
+    // already present.
+    ASSERT(
+        _net_ebpf_ext_get_connection_context(incoming_metadata_values->transportEndpointHandle, &connection_context) ==
+        STATUS_NOT_FOUND);
 
     // Acquire classify handle.
     status = FwpsAcquireClassifyHandle((void*)classify_context, 0, &classify_handle);
@@ -1004,15 +919,13 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
     memset(redirect_record, 0, sizeof(net_ebpf_ext_redirection_record_t));
 
+    connection_context = (net_ebpf_extension_connection_context_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_extension_connection_context_t), NET_EBPF_EXTENSION_POOL_TAG);
     if (connection_context == NULL) {
-        connection_context = (net_ebpf_extension_connection_context_t*)ExAllocatePoolUninitialized(
-            NonPagedPoolNx, sizeof(net_ebpf_extension_connection_context_t), NET_EBPF_EXTENSION_POOL_TAG);
-        if (connection_context == NULL) {
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            goto Exit;
-        }
-        memset(connection_context, 0, sizeof(net_ebpf_extension_connection_context_t));
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
     }
+    memset(connection_context, 0, sizeof(net_ebpf_extension_connection_context_t));
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, &sock_addr_ctx, &result) != EBPF_SUCCESS) {
         status = STATUS_UNSUCCESSFUL;
@@ -1039,16 +952,13 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
                 INETADDR_SET_ADDRESS((PSOCKADDR)&connect_request->remoteAddressAndPort, address);
             }
 
-            // TODO: Do we need redirect record?
             _net_ebpf_ext_populate_redirect_record(&sock_addr_ctx_original, redirect_record);
             connect_request->localRedirectContext = redirect_record;
             connect_request->localRedirectContextSize = sizeof(net_ebpf_ext_redirection_record_t);
             free_redirect_record = false;
 
             if (INETADDR_ISLOOPBACK((PSOCKADDR)&connect_request->remoteAddressAndPort)) {
-                // Connection is being redirected to loopback. Set a dummy target
-                // process id and local redirect handle.
-                connect_request->localRedirectTargetPID = TARGET_PROCESS_ID;
+                // Connection is being redirected to loopback. Set local redirect handle.
                 connect_request->localRedirectHandle = redirect_handle;
             }
         } else {
@@ -1058,48 +968,24 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
     }
 
-    if (existing_connection_context) {
-        _net_ebpf_ext_reinitialize_connection_context(
-            &sock_addr_ctx_original,
-            &sock_addr_ctx,
-            redirected,
-            result,
-            incoming_metadata_values->transportEndpointHandle,
-            connection_context);
-    } else {
-        _net_ebpf_ext_initialize_connection_context(
-            &sock_addr_ctx_original,
-            &sock_addr_ctx,
-            redirected,
-            result,
-            incoming_metadata_values->transportEndpointHandle,
-            connection_context);
-
-        _net_ebpf_ext_insert_connection_context_to_list(connection_context);
-    }
-
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "net_ebpf_extension_sock_addr_redirect_connection_classify",
-        connection_context->transport_endpoint_handle,
-        connection_context->protocol,
-        connection_context->verdict);
-
-    if (existing_connection_context) {
-        // Release the query reference.
-        DEREFERENCE_CONNECTION_CONTEXT(connection_context);
-    }
+    _net_ebpf_ext_initialize_connection_context(
+        &sock_addr_ctx_original,
+        &sock_addr_ctx,
+        redirected,
+        result,
+        incoming_metadata_values->transportEndpointHandle,
+        connection_context);
+    _net_ebpf_ext_insert_connection_context_to_list(connection_context);
 
     action = FWP_ACTION_PERMIT;
 
+    // TODO: Should we return block here? Or wait till auth_connect?
     // TODO: What to do for redirection by multiple callouts (FWP_CONDITION_FLAG_IS_REAUTHORIZE).
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/network/using-bind-or-connect-redirection#handling-connect-redirection-from-multiple-callouts
 
 Exit:
     classify_output->actionType = action;
-    // Clear FWPS_RIGHT_ACTION_WRITE only when it is a hard block.
-    if (action == FWP_ACTION_BLOCK) {
+    if (filter->flags & FWPS_FILTER_FLAG_CLEAR_ACTION_RIGHT || action == FWP_ACTION_BLOCK) {
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
     }
     if (commit_layer_data) {
@@ -1109,7 +995,7 @@ Exit:
         FwpsReleaseClassifyHandle(classify_handle);
     }
     if (!NT_SUCCESS(status)) {
-        if (connection_context && !existing_connection_context) {
+        if (connection_context) {
             ExFreePool(connection_context);
         }
         if (redirect_record) {
@@ -1132,11 +1018,14 @@ net_ebpf_ext_endpoint_closure_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
+    // uint32_t result;
     NTSTATUS status;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
+    bpf_sock_addr_t sock_addr_ctx = {0};
+    uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     net_ebpf_extension_connection_context_t* connection_context = NULL;
 
-    UNREFERENCED_PARAMETER(incoming_fixed_values);
+    UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
@@ -1148,6 +1037,8 @@ net_ebpf_ext_endpoint_closure_classify(
     if (filter_context == NULL)
         goto Exit;
 
+    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, &sock_addr_ctx);
+
     // Get the connection context for this connection.
     status =
         _net_ebpf_ext_get_connection_context(incoming_metadata_values->transportEndpointHandle, &connection_context);
@@ -1156,24 +1047,11 @@ net_ebpf_ext_endpoint_closure_classify(
         goto Exit;
     }
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "net_ebpf_ext_endpoint_closure_classify",
-        connection_context->transport_endpoint_handle,
-        connection_context->protocol,
-        connection_context->verdict);
-
 Exit:
-    if (connection_context != NULL) {
-        // Release reference for query.
-        DEREFERENCE_CONNECTION_CONTEXT(connection_context);
-
-        if (connection_context->protocol == IPPROTO_UDP) {
-            // Release the initial reference.
-            DEREFERENCE_CONNECTION_CONTEXT(connection_context);
-        }
-    }
+    // Release reference for query.
+    DEREFERENCE_CONNECTION_CONTEXT(connection_context);
+    // Release the initial reference.
+    DEREFERENCE_CONNECTION_CONTEXT(connection_context);
 
     return;
 }
