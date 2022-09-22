@@ -297,15 +297,6 @@ TEST_CASE("BE/LE", "[raw_bpf_code_gen][negative]")
     verify_invalid_opcode_sequence({{EBPF_OP_BE, 0, 0, 0, 15}}, "invalid operand at offset 0");
 }
 
-TEST_CASE("div/mod by imm 0", "[raw_bpf_code_gen][negative]")
-{
-    // Division by immediate value of 0 is invalid.
-    verify_invalid_opcode_sequence(
-        {{EBPF_OP_DIV_IMM, 0, 0, 0, 0}}, "invalid instruction - constant division by zero at offset 0");
-    verify_invalid_opcode_sequence(
-        {{EBPF_OP_MOD_IMM, 0, 0, 0, 0}}, "invalid instruction - constant division by zero at offset 0");
-}
-
 TEST_CASE("unknown op-class", "[raw_bpf_code_gen][negative]")
 {
     // EBPF_CLS_JMP+1 isn't a valid op class

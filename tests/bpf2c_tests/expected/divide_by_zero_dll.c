@@ -155,11 +155,11 @@ divide_by_zero(void* context)
     // EBPF_OP_DIV64_REG pc=10 dst=r6 src=r1 offset=0 imm=0
 #line 32 "sample/divide_by_zero.c"
     if (r1 == 0) {
-        division_by_zero(10);
-        return 0xffffffffffffffffui64;
-    }
+        r6 = 0;
+    } else {
 #line 32 "sample/divide_by_zero.c"
-    r6 /= r1;
+        r6 /= r1;
+    }
 label_1:
     // EBPF_OP_MOV64_REG pc=11 dst=r0 src=r6 offset=0 imm=0
 #line 35 "sample/divide_by_zero.c"

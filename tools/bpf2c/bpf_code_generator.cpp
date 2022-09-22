@@ -509,11 +509,6 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 source = "IMMEDIATE(" + std::to_string(inst.imm) + ")";
             bool is64bit = (inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU64;
             AluOperations operation = static_cast<AluOperations>(inst.opcode >> 4);
-            std::string check_div_by_zero = format_string(
-                "if (%s == 0) {\n" INDENT INDENT "division_by_zero(%s);\n" INDENT INDENT
-                "return 0xffffffffffffffffui64;\n" INDENT "}",
-                source,
-                std::to_string(i));
             std::string swap_function;
             switch (operation) {
             case AluOperations::Add:
@@ -526,17 +521,13 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(format_string("%s *= %s;", destination, source));
                 break;
             case AluOperations::Div:
-                if (inst.opcode & EBPF_SRC_REG) {
-                    output.lines.push_back(check_div_by_zero);
-                } else if (inst.imm == 0) {
-                    throw bpf_code_generator_exception(
-                        "invalid instruction - constant division by zero", output.instruction_offset);
-                }
+                output.lines.push_back(
+                    format_string("if (%s == 0) {\n" INDENT INDENT "%s = 0;\n" INDENT "} else {", source, destination));
                 if (is64bit)
-                    output.lines.push_back(format_string("%s /= %s;", destination, source));
+                    output.lines.push_back(format_string(INDENT "%s /= %s;\n" INDENT "}", destination, source));
                 else
-                    output.lines.push_back(
-                        format_string("%s = (uint32_t)%s / (uint32_t)%s;", destination, destination, source));
+                    output.lines.push_back(format_string(
+                        INDENT "%s = (uint32_t)%s / (uint32_t)%s;\n" INDENT "}", destination, destination, source));
                 break;
             case AluOperations::Or:
                 output.lines.push_back(format_string("%s |= %s;", destination, source));
@@ -557,17 +548,12 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(format_string("%s = -(int64_t)%s;", destination, destination));
                 break;
             case AluOperations::Mod:
-                if (inst.opcode & EBPF_SRC_REG) {
-                    output.lines.push_back(check_div_by_zero);
-                } else if (inst.imm == 0) {
-                    throw bpf_code_generator_exception(
-                        "invalid instruction - constant division by zero", output.instruction_offset);
-                }
+                output.lines.push_back(format_string("if (%s != 0) {", source));
                 if (is64bit)
-                    output.lines.push_back(format_string("%s %%= %s;", destination, source));
+                    output.lines.push_back(format_string(INDENT "%s %%= %s;\n" INDENT "}", destination, source));
                 else
-                    output.lines.push_back(
-                        format_string("%s = (uint32_t)%s %% (uint32_t)%s;", destination, destination, source));
+                    output.lines.push_back(format_string(
+                        INDENT "%s = (uint32_t)%s %% (uint32_t)%s;\n" INDENT "}", destination, destination, source));
                 break;
             case AluOperations::Xor:
                 output.lines.push_back(format_string("%s ^= %s;", destination, source));
