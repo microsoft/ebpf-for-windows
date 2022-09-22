@@ -521,13 +521,16 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(format_string("%s *= %s;", destination, source));
                 break;
             case AluOperations::Div:
-                output.lines.push_back(
-                    format_string("if (%s == 0) {\n" INDENT INDENT "%s = 0;\n" INDENT "} else {", source, destination));
                 if (is64bit)
-                    output.lines.push_back(format_string(INDENT "%s /= %s;\n" INDENT "}", destination, source));
+                    output.lines.push_back(
+                        format_string("%s = %s ? (%s / %s) : 0;", destination, source, destination, source));
                 else
                     output.lines.push_back(format_string(
-                        INDENT "%s = (uint32_t)%s / (uint32_t)%s;\n" INDENT "}", destination, destination, source));
+                        "%s = (uint32_t)%s ? (uint32_t)%s / (uint32_t)%s : 0;",
+                        destination,
+                        source,
+                        destination,
+                        source));
                 break;
             case AluOperations::Or:
                 output.lines.push_back(format_string("%s |= %s;", destination, source));
@@ -548,12 +551,17 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(format_string("%s = -(int64_t)%s;", destination, destination));
                 break;
             case AluOperations::Mod:
-                output.lines.push_back(format_string("if (%s != 0) {", source));
                 if (is64bit)
-                    output.lines.push_back(format_string(INDENT "%s %%= %s;\n" INDENT "}", destination, source));
+                    output.lines.push_back(format_string(
+                        "%s = %s ? (%s %% %s): %s ;", destination, source, destination, source, destination));
                 else
                     output.lines.push_back(format_string(
-                        INDENT "%s = (uint32_t)%s %% (uint32_t)%s;\n" INDENT "}", destination, destination, source));
+                        "%s = (uint32_t)%s ? ((uint32_t)%s %% (uint32_t)%s) : (uint32_t)%s;",
+                        destination,
+                        source,
+                        destination,
+                        source,
+                        destination));
                 break;
             case AluOperations::Xor:
                 output.lines.push_back(format_string("%s ^= %s;", destination, source));
@@ -1105,7 +1113,8 @@ bpf_code_generator::format_string(
     const std::string insert_1,
     const std::string insert_2,
     const std::string insert_3,
-    const std::string insert_4)
+    const std::string insert_4,
+    const std::string insert_5)
 {
     std::string output(200, '\0');
     if (insert_2.empty()) {
@@ -1116,10 +1125,20 @@ bpf_code_generator::format_string(
         auto count = snprintf(output.data(), output.size(), format.c_str(), insert_1.c_str(), insert_2.c_str());
         if (count < 0)
             throw bpf_code_generator_exception("Error formatting string");
-    }
-    if (insert_4.empty()) {
+    } else if (insert_4.empty()) {
         auto count = snprintf(
             output.data(), output.size(), format.c_str(), insert_1.c_str(), insert_2.c_str(), insert_3.c_str());
+        if (count < 0)
+            throw bpf_code_generator_exception("Error formatting string");
+    } else if (insert_5.empty()) {
+        auto count = snprintf(
+            output.data(),
+            output.size(),
+            format.c_str(),
+            insert_1.c_str(),
+            insert_2.c_str(),
+            insert_3.c_str(),
+            insert_4.c_str());
         if (count < 0)
             throw bpf_code_generator_exception("Error formatting string");
     } else {
@@ -1130,7 +1149,8 @@ bpf_code_generator::format_string(
             insert_1.c_str(),
             insert_2.c_str(),
             insert_3.c_str(),
-            insert_4.c_str());
+            insert_4.c_str(),
+            insert_5.c_str());
         if (count < 0)
             throw bpf_code_generator_exception("Error formatting string");
     }
