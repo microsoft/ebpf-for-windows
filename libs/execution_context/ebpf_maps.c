@@ -10,8 +10,6 @@
 #include "ebpf_program.h"
 #include "ebpf_ring_buffer.h"
 
-#define PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
-
 typedef struct _ebpf_core_map
 {
     ebpf_core_object_t object;
@@ -239,7 +237,7 @@ _create_array_map_with_map_struct_size(
     }
 
     size_t full_map_size;
-    retval = ebpf_safe_size_t_add(PAD_CACHE(map_struct_size), map_data_size, &full_map_size);
+    retval = ebpf_safe_size_t_add(EBPF_PAD_CACHE(map_struct_size), map_data_size, &full_map_size);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -252,7 +250,7 @@ _create_array_map_with_map_struct_size(
     memset(local_map, 0, full_map_size);
 
     local_map->ebpf_map_definition = *map_definition;
-    local_map->data = ((uint8_t*)local_map) + PAD_CACHE(map_struct_size);
+    local_map->data = ((uint8_t*)local_map) + EBPF_PAD_CACHE(map_struct_size);
 
     *map = local_map;
 
@@ -1165,7 +1163,7 @@ static ebpf_result_t
 _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
-    uint32_t max_cpu = map->ebpf_map_definition.value_size / PAD_CACHE(map->original_value_size);
+    uint32_t max_cpu = map->ebpf_map_definition.value_size / EBPF_PAD_8(map->original_value_size);
 
     if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].per_cpu)) {
         return EBPF_SUCCESS;
@@ -1176,7 +1174,7 @@ _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
     if (current_cpu > max_cpu) {
         return EBPF_INVALID_ARGUMENT;
     }
-    (*value) += PAD_CACHE((size_t)map->original_value_size) * current_cpu;
+    (*value) += EBPF_PAD_8((size_t)map->original_value_size) * current_cpu;
     return EBPF_SUCCESS;
 }
 
@@ -1889,7 +1887,7 @@ ebpf_map_create(
     }
 
     if (ebpf_map_metadata_tables[type].per_cpu) {
-        local_map_definition.value_size = cpu_count * PAD_CACHE(local_map_definition.value_size);
+        local_map_definition.value_size = cpu_count * EBPF_PAD_8(local_map_definition.value_size);
     }
 
     if (map_name->length >= BPF_OBJ_NAME_LEN) {
