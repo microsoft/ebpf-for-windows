@@ -387,7 +387,7 @@ _ebpf_program_attach_by_id(ebpf_id_t program_id, ebpf_attach_type_t attach_type,
     }
 
     if (interface_parameter != nullptr) {
-        struct bpf_prog_info info;
+        struct bpf_prog_info info = {};
         uint32_t info_size = sizeof(info);
         if (bpf_obj_get_info_by_fd(program_fd, &info, &info_size) < 0) {
             result = EBPF_INVALID_ARGUMENT;

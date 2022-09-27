@@ -1096,7 +1096,7 @@ ebpf_program_get_info(
     }
 
     ebpf_result_t result = EBPF_SUCCESS;
-    if (input_info->map_ids != 0 && input_info->nr_map_ids > 0) {
+    if ((input_info->map_ids != 0) && (input_info->nr_map_ids > 0) && (program->count_of_maps > 0)) {
         // Fill in map ids before we overwrite the info buffer.
         uint32_t max_nr_map_ids = input_info->nr_map_ids;
         size_t length = max_nr_map_ids * sizeof(ebpf_id_t);
