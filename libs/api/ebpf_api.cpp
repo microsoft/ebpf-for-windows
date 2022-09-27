@@ -412,7 +412,7 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ cons
         goto Exit;
     }
     assert(value_size != 0);
-    if (type == BPF_MAP_TYPE_PERCPU_ARRAY || type == BPF_MAP_TYPE_PERCPU_HASH || type == BPF_MAP_TYPE_LRU_PERCPU_HASH) {
+    if (BPF_MAP_TYPE_PER_CPU(type)) {
         value_size = EBPF_PAD_8(value_size) * libbpf_num_possible_cpus();
     }
 
@@ -550,7 +550,7 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
     assert(value_size != 0);
     assert(type != 0);
 
-    if (type == BPF_MAP_TYPE_PERCPU_ARRAY || type == BPF_MAP_TYPE_PERCPU_HASH || type == BPF_MAP_TYPE_LRU_PERCPU_HASH) {
+    if (BPF_MAP_TYPE_PER_CPU(type)) {
         value_size = EBPF_PAD_8(value_size) * libbpf_num_possible_cpus();
     }
 
