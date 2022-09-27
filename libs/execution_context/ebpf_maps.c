@@ -184,6 +184,7 @@ _get_map_program_type(_In_ const ebpf_core_object_t* object)
 
 typedef struct _ebpf_map_metadata_table
 {
+    ebpf_map_type_t map_type;
     ebpf_result_t (*create_map)(
         _In_ const ebpf_map_definition_in_memory_t* map_definition,
         ebpf_handle_t inner_map_handle,
@@ -207,7 +208,7 @@ typedef struct _ebpf_map_metadata_table
     int key_history : 1;
 } ebpf_map_metadata_table_t;
 
-ebpf_map_metadata_table_t ebpf_map_metadata_tables[];
+const ebpf_map_metadata_table_t ebpf_map_metadata_tables[];
 
 const ebpf_map_definition_in_memory_t*
 ebpf_map_get_definition(_In_ const ebpf_map_t* map)
@@ -1612,13 +1613,13 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
+const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
     {
-        // BPF_MAP_TYPE_UNSPECIFIED
+        BPF_MAP_TYPE_UNSPEC,
         NULL,
     },
     {
-        // BPF_MAP_TYPE_HASH
+        BPF_MAP_TYPE_HASH,
         _create_hash_map,
         _delete_hash_map,
         NULL,
@@ -1635,7 +1636,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         false, // Key history,
     },
     {
-        // BPF_MAP_TYPE_ARRAY
+        BPF_MAP_TYPE_ARRAY,
         _create_array_map,
         _delete_array_map,
         NULL,
@@ -1652,7 +1653,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         false, // Key history,
     },
     {
-        // BPF_MAP_TYPE_PROG_ARRAY
+        BPF_MAP_TYPE_PROG_ARRAY,
         _create_object_array_map,
         _delete_program_array_map,
         _associate_program_with_prog_array_map,
@@ -1669,7 +1670,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         false, // Key history,
     },
     {
-        // BPF_MAP_TYPE_PERCPU_HASH
+        BPF_MAP_TYPE_PERCPU_HASH,
         _create_hash_map,
         _delete_hash_map,
         NULL,
@@ -1686,7 +1687,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         false, // Key history,
     },
     {
-        // BPF_MAP_TYPE_PERCPU_ARRAY
+        BPF_MAP_TYPE_PERCPU_ARRAY,
         _create_array_map,
         _delete_array_map,
         NULL,
@@ -1703,7 +1704,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         false, // Key history,
     },
     {
-        // BPF_MAP_TYPE_HASH_OF_MAPS
+        BPF_MAP_TYPE_HASH_OF_MAPS,
         _create_object_hash_map,
         _delete_object_hash_map,
         NULL,
@@ -1720,7 +1721,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         false, // Key history,
     },
     {
-        // BPF_MAP_TYPE_ARRAY_OF_MAPS
+        BPF_MAP_TYPE_ARRAY_OF_MAPS,
         _create_object_array_map,
         _delete_map_array_map,
         NULL,
@@ -1737,7 +1738,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         false, // Key history,
     },
     {
-        // BPF_MAP_TYPE_LRU_HASH
+        BPF_MAP_TYPE_LRU_HASH,
         _create_lru_hash_map,
         _delete_lru_hash_map,
         NULL,
@@ -1755,7 +1756,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
     },
     // LPM_TRIE is currently a hash-map with special behavior for find.
     {
-        // BPF_MAP_TYPE_LPM_TRIE
+        BPF_MAP_TYPE_LPM_TRIE,
         _create_lpm_map,
         _delete_hash_map,
         NULL,
@@ -1772,7 +1773,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         false, // Key history,
     },
     {
-        // BPF_MAP_TYPE_QUEUE
+        BPF_MAP_TYPE_QUEUE,
         _create_queue_map,
         _delete_circular_map,
         NULL,
@@ -1789,7 +1790,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         false, // Key history,
     },
     {
-        // BPF_MAP_TYPE_LRU_PERCPU_HASH
+        BPF_MAP_TYPE_LRU_PERCPU_HASH,
         _create_lru_hash_map,
         _delete_lru_hash_map,
         NULL,
@@ -1806,7 +1807,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         true,  // Key history,
     },
     {
-        // BPF_MAP_TYPE_STACK
+        BPF_MAP_TYPE_STACK,
         _create_stack_map,
         _delete_circular_map,
         NULL,
@@ -1823,7 +1824,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         false, // Key history,
     },
     {
-        // BPF_MAP_TYPE_RINGBUF
+        BPF_MAP_TYPE_RINGBUF,
         _create_ring_buffer_map,
         _delete_ring_buffer_map,
         NULL,
@@ -1873,6 +1874,9 @@ ebpf_map_create(
         goto Exit;
     }
 
+    ebpf_assert(type == ebpf_map_metadata_tables[type].map_type);
+    ebpf_assert(BPF_MAP_TYPE_PER_CPU(type) == !!(ebpf_map_metadata_tables[type].per_cpu));
+
     if (ebpf_map_definition->key_size == 0 && !(ebpf_map_metadata_tables[type].zero_length_key)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
@@ -1914,7 +1918,7 @@ ebpf_map_create(
         goto Exit;
     }
 
-    ebpf_map_metadata_table_t* table = &ebpf_map_metadata_tables[local_map->ebpf_map_definition.type];
+    const ebpf_map_metadata_table_t* table = &ebpf_map_metadata_tables[local_map->ebpf_map_definition.type];
     ebpf_object_get_program_type_t get_program_type = (table->get_object_from_entry) ? _get_map_program_type : NULL;
     result = ebpf_object_initialize(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, get_program_type);
     if (result != EBPF_SUCCESS) {
