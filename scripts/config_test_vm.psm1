@@ -171,7 +171,7 @@ function Export-BuildArtifactsToVMs
 {
     param([Parameter(Mandatory=$True)] $VMList)
 
-    $msiFileName = "ebpf-for-windows-0.2.0.msi"
+    $msiFileName = "ebpf-for-windows-0.4.0.msi"
 
     foreach($VM in $VMList) {
         $VMName = $VM.Name
@@ -277,8 +277,10 @@ function Install-eBPFComponentsOnVM
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
+        $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+        Import-Module "$WorkingDirectory\install_ebpf.psm1" -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         Enable-KMDFVerifier
-        msiexec.exe /i "$env:SystemDrive\$WorkingDirectory\ebpf-for-windows.msi" /quiet /qn /l*v $LogFileName 2>&1 | Write-Log
+        msiexec.exe /i "$WorkingDirectory\ebpf-for-windows.msi" /quiet /qn /l*v $LogFileName 2>&1 | Write-Log
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
