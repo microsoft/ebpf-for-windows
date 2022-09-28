@@ -445,9 +445,9 @@ get_map_descriptor_windows(int original_fd)
 const ebpf_attach_type_t*
 get_attach_type_windows(const std::string& section)
 {
-    for (const auto& t : _windows_section_definitions) {
-        if (section.find(t.get()->section_prefix) == 0)
-            return t.get()->attach_type;
+    const ebpf_section_definition_t* definition = _get_section_definition(section);
+    if (definition != nullptr) {
+        return definition->attach_type;
     }
 
     return &EBPF_ATTACH_TYPE_UNSPECIFIED;
