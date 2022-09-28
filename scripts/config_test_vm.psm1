@@ -279,6 +279,11 @@ function Install-eBPFComponentsOnVM
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
 
+        dir $WorkingDirectory
+        dir $ScriptRoot
+
+        Import-Module $ScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+
         $EbpfDrivers =
         @{
             "EbpfCore" = "ebpfcore.sys";
