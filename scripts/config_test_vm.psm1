@@ -266,6 +266,23 @@ function Import-ResultsFromVM
     Move-Item $LogFileName -Destination ".\TestLogs" -Force -ErrorAction Ignore 2>&1 | Write-Log
 }
 
+$EbpfDrivers =
+@{
+    "EbpfCore" = "ebpfcore.sys";
+    "NetEbpfExt" = "netebpfext.sys";
+    "SampleEbpfExt" = "sample_ebpf_ext.sys"
+}
+
+function Enable-KMDFVerifier
+{
+    # Install drivers.
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        New-Item -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Force -ErrorAction Stop
+        New-ItemProperty -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Name "VerifierOn" -Value 1 -PropertyType DWord -Force -ErrorAction Stop
+        New-ItemProperty -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Name "TrackHandles" -Value "*" -PropertyType MultiString -Force  -ErrorAction Stop
+    }
+}
+
 function Install-eBPFComponentsOnVM
 {
     param([parameter(Mandatory=$true)] [string] $VMName)
@@ -278,7 +295,6 @@ function Install-eBPFComponentsOnVM
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-        Import-Module "$ScriptRoot\install_ebpf.psm1" -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         Enable-KMDFVerifier
         msiexec.exe /i "$WorkingDirectory\ebpf-for-windows.msi" /quiet /qn /l*v $LogFileName 2>&1 | Write-Log
     } -ArgumentList ($PSScriptRoot, "eBPF", $LogFileName) -ErrorAction Stop

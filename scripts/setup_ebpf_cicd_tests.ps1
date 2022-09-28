@@ -8,7 +8,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json")
 
 Get-Location
-Push-Location $WorkingDirectory\scripts
+Push-Location $PSScriptRoot
 Get-Location
 Push-Location $WorkingDirectory
 Get-Location
