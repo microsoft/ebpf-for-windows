@@ -18,7 +18,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ebpf-for-windows.nuspec">
+    <CustomBuild Include="ebpf-for-windows.nuspec.in">
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>

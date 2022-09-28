@@ -6,7 +6,7 @@
   <metadata>
     <title>eBPF for Windows SDK</title>
     <id>eBPF-for-Windows</id>
-    <version>0.4.0</version>
+    <version>{version}</version>
     <authors>eBPF for Windows Contributors</authors>
     <owners>eBPF for Windows Contributors</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -18,16 +18,16 @@
   </metadata>
 
   <files>
-    <file src="..\..\x64\Release\Convert-BpfToNative.ps1"     target="build\native\bin"                    />
-    <file src="..\..\x64\Release\bpf2c.exe"                   target="build\native\bin"                    />
-    <file src="..\..\x64\Release\export_program_info.exe"     target="build\native\bin"                    />
-    <file src="..\..\x64\Release\ebpfapi.dll"                 target="build\native\bin"                    />
-    <file src="..\..\x64\Release\ebpfapi.lib"                 target="build\native\lib"                    />
+    <file src="Convert-BpfToNative.ps1"                       target="build\native\bin"                    />
+    <file src="bpf2c.exe"                                     target="build\native\bin"                    />
+    <file src="export_program_info.exe"                       target="build\native\bin"                    />
+    <file src="ebpfapi.dll"                                   target="build\native\bin"                    />
+    <file src="ebpfapi.lib"                                   target="build\native\lib"                    />
     <file src="..\..\include\**\*.*"                          target="build\native\include"                />
     <file src="..\..\external\bpftool\libbpf\include\**\*.*"  target="build\native\include\libbpf\include" />
     <file src="..\..\external\bpftool\libbpf\src\**\*.h"      target="build\native\include\libbpf\src"     />
     <file src="..\..\external\ebpf-verifier\src\ebpf_base.h"  target="build\native\include"                />
-    <file src="README.md"                                     target="."                                   />
-    <file src="ebpf-for-windows.props"                        target="build\native"                        />
+    <file src="..\..\tools\nuget\README.md"                   target="."                                   />
+    <file src="..\..\tools\nuget\ebpf-for-windows.props"      target="build\native"                        />
   </files>
 </package>

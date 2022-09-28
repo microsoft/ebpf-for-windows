@@ -25,7 +25,7 @@ $source_directory="."
     "VCRUNTIME140D.dll")
 
 [System.Collections.ArrayList]$source_msi_files=@(
-    "ebpf-for-windows-0.4.0.msi")
+    "ebpf-for-windows-{version}.msi")
 
 [System.Collections.ArrayList]$source_script_files=@(
     "scripts\common.psm1",
@@ -227,7 +227,7 @@ OPTIONS:
     }
 }
 
-$build_directory="$source_directory\x64\Debug"
+$build_directory="$PSScriptRoot"
 if ($vm -eq $null) {
    Write-Host "Copying files from `"$build_directory`" to `"$destination_directory`""
 

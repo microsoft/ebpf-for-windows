@@ -23,6 +23,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <CustomBuild Include="..\deploy-ebpf.ps1.in">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pushd $(SolutionDir)
+powershell scripts\Set-Version.ps1 -InputFile $(SolutionRoot)scripts\deploy-ebpf.ps1.in -OutputFile $(OutDir)deploy-ebpf.ps1
+popd
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)deploy-ebpf.ps1</Outputs>
+    </CustomBuild>
     <None Include="..\pre-commit">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">echo copy %(FullPath) $(SolutionDir).git\hooks</Command>
