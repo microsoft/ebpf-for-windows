@@ -184,6 +184,7 @@ function Export-BuildArtifactsToVMs
     $filesToCopy =
     @{
         "common.psm1" = "$PSScriptRoot\common.psm1";
+        "run_driver_tests.psm1" = "$PSScriptRoot\run_driver_tests.psm1";
         "vm_run_tests.psm1" = "$PSScriptRoot\vm_run_tests.psm1";
         "ebpf-for-windows.msi" = "$WorkingDirectory\ebpf-for-windows-0.4.0.msi";
     }
