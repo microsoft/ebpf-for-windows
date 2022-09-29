@@ -156,7 +156,10 @@
     <ClInclude Include="..\..\tools\bpf2c\btf.h" />
     <ClInclude Include="..\..\tools\bpf2c\btf_parser.h" />
     <ClInclude Include="bpf_assembler.h" />
-    <ClInclude Include="test_helpers.h" />
+    <CopyFileToFolders Include="test_helpers.h">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\ebpfapi\ebpfapi.vcxproj">

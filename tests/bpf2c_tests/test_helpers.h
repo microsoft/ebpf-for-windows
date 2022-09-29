@@ -6,10 +6,15 @@
 #include <cstdint>
 #include <map>
 
+#if !defined(UNREFERENCED_PARAMETER)
+#define UNREFERENCED_PARAMETER(P) (P)
+#endif
+
 static uint64_t
 gather_bytes(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
-    return ((uint64_t)a << 32) | ((uint32_t)b << 24) | ((uint32_t)c << 16) | ((uint16_t)d << 8) | e;
+    return ((uint64_t)(a & 0xff) << 32) | ((uint64_t)(b & 0xff) << 24) | ((uint64_t)(c & 0xff) << 16) |
+           ((uint64_t)(d & 0xff) << 8) | (e & 0xff);
 };
 
 static uint64_t
