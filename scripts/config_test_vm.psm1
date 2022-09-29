@@ -5,6 +5,9 @@ param ([Parameter(Mandatory=$True)] [string] $Admin,
        [Parameter(Mandatory=$True)] [SecureString] $AdminPassword,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
+Write-Log "Admin $Admin"
+Write-Log "AdminPassword $AdminPassword"
+Write-Log "LogFileName $LogFileName"
 
 Get-Location
 
@@ -136,6 +139,10 @@ function Initialize-AllVMs
 {
     param ([Parameter(Mandatory=$True)] $VMList)
 
+    Write-Log "Starting VMList $VMList"
+    Write-Log "Admin $Admin"
+    Write-Log "AdminPassword $AdminPassword"
+
     # Restore the VMs.
     Restore-AllVMs -VMList $VMList
 
@@ -252,7 +259,21 @@ function Import-ResultsFromVM
             param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
                   [Parameter(Mandatory=$True)] [string] $LogFileName,
                   [Parameter(Mandatory=$True)] [string] $EtlFile)
-            Import-Module $PSScriptRoot\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+
+            function Write-Log
+            {
+                [CmdletBinding()]
+                param([parameter(Mandatory=$False, ValueFromPipeline=$true)]$TraceMessage=$null,
+                      [parameter(Mandatory=$False)]$ForegroundColor = [System.ConsoleColor]::White)
+                process
+                {
+                    if (($null -ne $TraceMessage) -and ![System.String]::IsNullOrEmpty($TraceMessage)) {
+                        $timestamp = (Get-Date).ToString('HH:mm:ss')
+                        Write-Host "[$timestamp] :: $TraceMessage"-ForegroundColor $ForegroundColor
+                        Write-Output "[$timestamp] :: $TraceMessage" | Out-File "$env:TEMP\$LogFileName" -Append
+                    }
+                }
+            }
 
             Write-Log ("Stopping ETW tracing, creating file: " + $EtlFile)
             Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", "$WorkingDirectory\$EtlFile") -NoNewWindow -Wait
@@ -274,15 +295,11 @@ function Install-eBPFComponentsOnVM
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-        param([Parameter(Mandatory=$True)] [string] $ScriptRoot,
-              [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+        param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
 
         dir $WorkingDirectory
-        dir $ScriptRoot
-
-        Import-Module $ScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
         $EbpfDrivers =
         @{
@@ -298,8 +315,8 @@ function Install-eBPFComponentsOnVM
             New-ItemProperty -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Name "TrackHandles" -Value "*" -PropertyType MultiString -Force  -ErrorAction Stop
         }
 
-        msiexec.exe /i "$WorkingDirectory\ebpf-for-windows.msi" /quiet /qn /l*v $LogFileName 2>&1 | Write-Log
-    } -ArgumentList ($PSScriptRoot, "eBPF", $LogFileName) -ErrorAction Stop
+        msiexec.exe /i "$WorkingDirectory\ebpf-for-windows.msi" /quiet /qn /l*v $LogFileName
+    } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
 
@@ -319,13 +336,31 @@ function Initialize-NetworkInterfacesOnVMs
             param([Parameter(Mandatory=$True)] $InterfaceList,
                   [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
                   [Parameter(Mandatory=$True)] [string] $LogFileName)
-            Import-Module $PSScriptRoot\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+
+            function Write-Log
+            {
+                [CmdletBinding()]
+                param([parameter(Mandatory=$False, ValueFromPipeline=$true)]$TraceMessage=$null,
+                      [parameter(Mandatory=$False)]$ForegroundColor = [System.ConsoleColor]::White)
+                process
+                {
+                    if (($null -ne $TraceMessage) -and ![System.String]::IsNullOrEmpty($TraceMessage)) {
+                        $timestamp = (Get-Date).ToString('HH:mm:ss')
+                        Write-Host "[$timestamp] :: $TraceMessage"-ForegroundColor $ForegroundColor
+                        Write-Output "[$timestamp] :: $TraceMessage" | Out-File "$env:TEMP\$LogFileName" -Append
+                    }
+                }
+            }
 
             foreach ($Interface in $InterfaceList) {
                 $InterfaceAlias = $Interface.Alias
                 $V4Address = $Interface.V4Address
-                Write-Log "Adding $V4Address on $InterfaceAlias"
+
+                Write-Log "Removing $V4Address on $InterfaceAlias"
                 Remove-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PolicyStore "All" -Confirm:$false -ErrorAction Ignore | Out-Null
+
+                Write-Log "Adding $V4Address on $InterfaceAlias"
+                Write-Log "DEBUG: New-NetIPAddress -ifAlias $InterfaceAlias -IPAddress $V4Address -PrefixLength 24 -ErrorAction Stop | Out-Null"
                 New-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PrefixLength 24 -ErrorAction Stop | Out-Null
                 Write-Log "Address configured."
 
@@ -336,5 +371,7 @@ function Initialize-NetworkInterfacesOnVMs
                 Write-Log "Address configured."
             }
         } -ArgumentList ($Interfaces, "eBPF", $LogFileName) -ErrorAction Stop
+
+        Write-Log "DEBUG2"
     }
 }
