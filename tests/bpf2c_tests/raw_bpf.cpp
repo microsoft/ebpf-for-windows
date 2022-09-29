@@ -6,8 +6,15 @@
 #include "bpf_code_generator.h"
 #include "catch_wrapper.hpp"
 #include "bpf_assembler.h"
+#include "test_helpers.h"
+extern "C"
+{
+#include "ubpf.h"
+}
 
 #define SEPARATOR "\\"
+
+#define UBPF_CODE_SIZE 8192
 
 std::string
 env_or_default(const char* environment_variable, const char* default_value)
@@ -25,12 +32,9 @@ env_or_default(const char* environment_variable, const char* default_value)
     return return_value;
 }
 
-void
-run_test(const std::string& data_file)
+std::tuple<std::string, std::string, std::string, std::vector<ebpf_inst>>
+parse_test_file(const std::string& data_file)
 {
-    std::string cc = env_or_default("CC", "cl.exe");
-    std::string cxxflags = env_or_default("CXXFLAGS", "/EHsc /nologo");
-
     enum class _state
     {
         state_ignore,
@@ -103,6 +107,94 @@ run_test(const std::string& data_file)
     }
     data_out.seekg(0);
     auto instructions = bpf_assembler(data_out);
+    return {prefix, mem, result, instructions};
+}
+
+ubpf_vm*
+prepare_ubpf_vm(const std::vector<ebpf_inst> instructions)
+{
+    auto vm = ubpf_create();
+    char* error = nullptr;
+    REQUIRE(vm != nullptr);
+    for (auto& [key, value] : helper_functions) {
+        REQUIRE(ubpf_register(vm, key, "unnamed", value) == 0);
+    }
+    REQUIRE(ubpf_set_unwind_function_index(vm, 5) == 0);
+
+    REQUIRE(
+        ubpf_load(vm, instructions.data(), static_cast<uint32_t>(instructions.size() * sizeof(ebpf_inst)), &error) ==
+        0);
+    return vm;
+}
+
+void
+run_ubpf_jit_test(const std::string& data_file)
+{
+    auto [prefix, mem, result, instructions] = parse_test_file(data_file);
+    char* error = nullptr;
+    ubpf_vm* vm = prepare_ubpf_vm(instructions);
+    size_t code_size = UBPF_CODE_SIZE;
+    uint8_t* code = reinterpret_cast<uint8_t*>(VirtualAlloc2(
+        GetCurrentProcess(), nullptr, code_size, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE, nullptr, 0));
+    REQUIRE(code != nullptr);
+
+    REQUIRE(ubpf_translate(vm, code, &code_size, &error) == 0);
+
+    ubpf_jit_fn jit = reinterpret_cast<ubpf_jit_fn>(code);
+
+    std::vector<uint8_t> input_buffer;
+
+    if (!mem.empty()) {
+        std::stringstream ss(mem);
+        uint32_t value;
+        while (ss >> std::hex >> value) {
+            input_buffer.push_back(static_cast<uint8_t>(value));
+        }
+    }
+
+    uint64_t expected_result = std::stoull(result, nullptr, 16);
+
+    uint64_t actual_result = jit(input_buffer.data(), input_buffer.size());
+
+    REQUIRE(actual_result == expected_result);
+
+    ubpf_destroy(vm);
+    VirtualFree(jit, 0, MEM_RELEASE);
+}
+
+void
+run_ubpf_interpret_test(const std::string& data_file)
+{
+    auto [prefix, mem, result, instructions] = parse_test_file(data_file);
+    ubpf_vm* vm = prepare_ubpf_vm(instructions);
+
+    std::vector<uint8_t> input_buffer;
+
+    if (!mem.empty()) {
+        std::stringstream ss(mem);
+        uint32_t value;
+        while (ss >> std::hex >> value) {
+            input_buffer.push_back(static_cast<uint8_t>(value));
+        }
+    }
+
+    uint64_t expected_result = std::stoull(result, nullptr, 16);
+
+    uint64_t actual_result;
+    REQUIRE(ubpf_exec(vm, input_buffer.data(), input_buffer.size(), &actual_result) == 0);
+
+    REQUIRE(actual_result == expected_result);
+
+    ubpf_destroy(vm);
+}
+
+void
+run_bpf_code_generator_test(const std::string& data_file)
+{
+    std::string cc = env_or_default("CC", "cl.exe");
+    std::string cxxflags = env_or_default("CXXFLAGS", "/EHsc /nologo");
+
+    auto [prefix, mem, result, instructions] = parse_test_file(data_file);
 
     std::ofstream c_file(std::string(prefix) + std::string(".c"));
     try {
@@ -126,11 +218,21 @@ run_test(const std::string& data_file)
     REQUIRE(system(test_command.c_str()) == 0);
 }
 
-#define DECLARE_TEST(FILE)                                                                                     \
-    TEST_CASE(FILE, "[raw_bpf_code_gen]")                                                                      \
-    {                                                                                                          \
-        run_test(".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "tests" SEPARATOR "" FILE \
-                 ".data");                                                                                     \
+#define DECLARE_TEST(FILE)                                                                                            \
+    TEST_CASE(FILE "_native", "[bpf_code_generator]")                                                                 \
+    {                                                                                                                 \
+        run_bpf_code_generator_test(".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR               \
+                                    "tests" SEPARATOR "" FILE ".data");                                               \
+    }                                                                                                                 \
+    TEST_CASE(FILE "_jit", "[ubpf_jit]")                                                                              \
+    {                                                                                                                 \
+        run_ubpf_jit_test(".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "tests" SEPARATOR       \
+                          "" FILE ".data");                                                                           \
+    }                                                                                                                 \
+    TEST_CASE(FILE "_interpret", "[ubpf_interpret]")                                                                  \
+    {                                                                                                                 \
+        run_ubpf_interpret_test(".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "tests" SEPARATOR \
+                                "" FILE ".data");                                                                     \
     }
 
 // Tests are dependent on the collateral from the https://github.com/iovisor/ubpf project.
@@ -174,13 +276,14 @@ DECLARE_TEST("div32-imm")
 DECLARE_TEST("div32-reg")
 DECLARE_TEST("div64-imm")
 DECLARE_TEST("div64-reg")
+DECLARE_TEST("div-by-zero-imm")
+DECLARE_TEST("div-by-zero-reg")
+DECLARE_TEST("div64-by-zero-reg")
+DECLARE_TEST("div64-by-zero-imm")
 DECLARE_TEST("early-exit")
 // Malformed byte code tests - Verifier rejects prior to bpf2c.
 // DECLARE_TEST("err-call-bad-imm")
 // DECLARE_TEST("err-call-unreg")
-// DECLARE_TEST("err-div-by-zero-imm")
-// DECLARE_TEST("err-div-by-zero-reg")
-// DECLARE_TEST("err-div64-by-zero-reg")
 // DECLARE_TEST("err-endian-size")
 // DECLARE_TEST("err-incomplete-lddw")
 // DECLARE_TEST("err-incomplete-lddw2")
@@ -189,8 +292,6 @@ DECLARE_TEST("early-exit")
 // DECLARE_TEST("err-invalid-reg-src")
 // DECLARE_TEST("err-jmp-lddw")
 // DECLARE_TEST("err-jmp-out")
-// DECLARE_TEST("err-mod-by-zero-reg")
-// DECLARE_TEST("err-mod64-by-zero-reg")
 // DECLARE_TEST("err-stack-oob")
 // DECLARE_TEST("err-too-many-instructions")
 // DECLARE_TEST("err-unknown-opcode")
@@ -242,6 +343,10 @@ DECLARE_TEST("lsh-reg")
 DECLARE_TEST("mod")
 DECLARE_TEST("mod32")
 DECLARE_TEST("mod64")
+DECLARE_TEST("mod-by-zero-imm")
+DECLARE_TEST("mod-by-zero-reg")
+DECLARE_TEST("mod64-by-zero-imm")
+DECLARE_TEST("mod64-by-zero-reg")
 DECLARE_TEST("mov")
 DECLARE_TEST("mul-loop")
 DECLARE_TEST("mul32-imm")

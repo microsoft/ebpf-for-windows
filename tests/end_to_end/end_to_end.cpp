@@ -484,13 +484,7 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
     int hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
 
-    if (execution_type == EBPF_EXECUTION_NATIVE) {
-        REQUIRE(hook_result == 0);
-    } else {
-        // ISSUE: https://github.com/iovisor/ubpf/issues/115
-        // uBPF returns -1 when the program hits a divide by zero error.
-        REQUIRE(hook_result == -1);
-    }
+    REQUIRE(hook_result == 0);
 
     hook.detach_link(link);
     hook.close_link(link);

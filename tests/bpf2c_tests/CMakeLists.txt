@@ -17,6 +17,8 @@ target_include_directories("bpf2c_tests" PRIVATE
   "${CMAKE_SOURCE_DIR}/tools/bpf2c"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"
+  "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
+  "${CMAKE_BINARY_DIR}/external/ubpf/vm/inc"
   "${CMAKE_SOURCE_DIR}/external/ebpf-verifier/src"
 )
 
@@ -35,6 +37,8 @@ target_link_libraries("bpf2c_tests" PRIVATE
   # make a library
   "bpf2c_driver"
   "bpf2c_dll"
+  "ubpf_user"
+  "Mincore.lib"
 )
 
 target_compile_definitions("bpf2c_tests" PRIVATE
