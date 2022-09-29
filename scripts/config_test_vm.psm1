@@ -301,14 +301,13 @@ function Install-eBPFComponentsOnVM
 
         dir $WorkingDirectory
 
+        # Enable driver verifier on the drivers we'll be installing.
         $EbpfDrivers =
         @{
             "EbpfCore" = "ebpfcore.sys";
             "NetEbpfExt" = "netebpfext.sys";
             "SampleEbpfExt" = "sample_ebpf_ext.sys"
         }
-
-        # Install drivers.
         $EbpfDrivers.GetEnumerator() | ForEach-Object {
             New-Item -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Force -ErrorAction Stop
             New-ItemProperty -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Name "VerifierOn" -Value 1 -PropertyType DWord -Force -ErrorAction Stop
@@ -343,11 +342,8 @@ function Initialize-NetworkInterfacesOnVMs
                 $InterfaceAlias = $Interface.Alias
                 $V4Address = $Interface.V4Address
 
-                Write-Log "Removing $V4Address on $InterfaceAlias"
-                Remove-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PolicyStore "All" -Confirm:$false -ErrorAction Ignore | Out-Null
-
                 Write-Log "Adding $V4Address on $InterfaceAlias"
-                Write-Log "DEBUG: New-NetIPAddress -ifAlias $InterfaceAlias -IPAddress $V4Address -PrefixLength 24 -ErrorAction Stop | Out-Null"
+                Remove-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PolicyStore "All" -Confirm:$false -ErrorAction Ignore | Out-Null
                 New-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PrefixLength 24 -ErrorAction Stop | Out-Null
                 Write-Log "Address configured."
 
@@ -356,7 +352,11 @@ function Initialize-NetworkInterfacesOnVMs
                 Remove-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V6Address* -PolicyStore "All" -Confirm:$false -ErrorAction Ignore | Out-Null
                 New-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V6Address -PrefixLength 64 -ErrorAction Stop | Out-Null
                 Write-Log "Address configured."
+                Write-Log "DEBUG1"
             }
+            Write-Log "DEBUG2"
         } -ArgumentList ($Interfaces, "eBPF", $LogFileName) -ErrorAction Stop
+        Write-Log "DEBUG3"
     }
+    Write-Log "DEBUG4"
 }
