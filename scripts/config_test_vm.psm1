@@ -355,9 +355,15 @@ function Initialize-NetworkInterfacesOnVMs
                 Write-Log "Address configured."
                 Write-Log "DEBUG1"
             }
+            Write-Output "DEBUG2a"
             Write-Log "DEBUG2"
+            Write-Output "DEBUG2b"
         } -ArgumentList ($Interfaces, "eBPF", $LogFileName) -ErrorAction Stop
+        Write-Output "DEBUG3a"
         Write-Log "DEBUG3"
+        Write-Output "DEBUG3b"
     }
+    Write-Output "DEBUG4a"
     Write-Log "DEBUG4"
+    Write-Output "DEBUG4b"
 }
