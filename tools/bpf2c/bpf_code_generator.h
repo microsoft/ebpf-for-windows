@@ -367,7 +367,8 @@ class bpf_code_generator
         const std::string insert_1,
         const std::string insert_2 = "",
         const std::string insert_3 = "",
-        const std::string insert_4 = "");
+        const std::string insert_4 = "",
+        const std::string insert_5 = "");
 
 #if defined(_MSC_VER)
     /**
