@@ -178,7 +178,15 @@ function Export-BuildArtifactsToVMs
 {
     param([Parameter(Mandatory=$True)] $VMList)
 
-    $msiFileName = "ebpf-for-windows-0.4.0.msi"
+    $WorkingDirectory = $pwd.ToString()
+
+    # Files to copy, in format destination in VM = source in host.
+    $filesToCopy =
+    @{
+        "common.psm1" = "$PSScriptRoot\common.psm1";
+        "vm_run_tests.psm1" = "$PSScriptRoot\vm_run_tests.psm1";
+        "ebpf-for-windows.msi" = "$WorkingDirectory\ebpf-for-windows-0.4.0.msi";
+    }
 
     foreach($VM in $VMList) {
         $VMName = $VM.Name
@@ -195,9 +203,14 @@ function Export-BuildArtifactsToVMs
             }
             $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
         }
-        Write-Log "Copying $msiFileName to $VMSystemDrive\eBPF on $VMName"
-        Copy-Item -ToSession $VMSession -Path $msiFileName -Destination "$VMSystemDrive\eBPF\ebpf-for-windows.msi" -Force 2>&1 -ErrorAction Stop | Write-Log
-        Write-Log "Copied $msiFileName to $VMSystemDrive\eBPF on $VMName"
+
+        $filesToCopy.GetEnumerator() | ForEach-Object {
+            $srcFile = $_.Value
+            $dstFile = $VMSystemDrive + "\eBPF\" + $_.Name
+            Write-Log "Copying $srcFile to $dstFile on $VMName"
+            Copy-Item -ToSession $VMSession -Path $srcFile -Destination $dstFile -Force 2>&1 -ErrorAction Stop | Write-Log
+            Write-Log "Copied $srcFile to $dstFile on $VMName"
+        }
 
         Write-Log "Export completed." -ForegroundColor Green
     }
@@ -259,25 +272,12 @@ function Import-ResultsFromVM
             param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
                   [Parameter(Mandatory=$True)] [string] $LogFileName,
                   [Parameter(Mandatory=$True)] [string] $EtlFile)
-
-            function Write-Log
-            {
-                [CmdletBinding()]
-                param([parameter(Mandatory=$False, ValueFromPipeline=$true)]$TraceMessage=$null,
-                      [parameter(Mandatory=$False)]$ForegroundColor = [System.ConsoleColor]::White)
-                process
-                {
-                    if (($null -ne $TraceMessage) -and ![System.String]::IsNullOrEmpty($TraceMessage)) {
-                        $timestamp = (Get-Date).ToString('HH:mm:ss')
-                        Write-Host "[$timestamp] :: $TraceMessage"-ForegroundColor $ForegroundColor
-                        Write-Output "[$timestamp] :: $TraceMessage" | Out-File "$env:TEMP\$LogFileName" -Append
-                    }
-                }
-            }
+            $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
             Write-Log ("Stopping ETW tracing, creating file: " + $EtlFile)
             Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", "$WorkingDirectory\$EtlFile") -NoNewWindow -Wait
-        } -ArgumentList ("ebpf", $LogFileName, $EtlFile) -ErrorAction Ignore
+        } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
 
         # Copy ETL from Test VM.
         Write-Log ("Copy $EtlFile from eBPF on $VMName to $pwd\TestLogs")
@@ -336,21 +336,8 @@ function Initialize-NetworkInterfacesOnVMs
             param([Parameter(Mandatory=$True)] $InterfaceList,
                   [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
                   [Parameter(Mandatory=$True)] [string] $LogFileName)
-
-            function Write-Log
-            {
-                [CmdletBinding()]
-                param([parameter(Mandatory=$False, ValueFromPipeline=$true)]$TraceMessage=$null,
-                      [parameter(Mandatory=$False)]$ForegroundColor = [System.ConsoleColor]::White)
-                process
-                {
-                    if (($null -ne $TraceMessage) -and ![System.String]::IsNullOrEmpty($TraceMessage)) {
-                        $timestamp = (Get-Date).ToString('HH:mm:ss')
-                        Write-Host "[$timestamp] :: $TraceMessage"-ForegroundColor $ForegroundColor
-                        Write-Output "[$timestamp] :: $TraceMessage" | Out-File "$env:TEMP\$LogFileName" -Append
-                    }
-                }
-            }
+            $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
             foreach ($Interface in $InterfaceList) {
                 $InterfaceAlias = $Interface.Alias
