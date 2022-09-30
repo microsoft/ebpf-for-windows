@@ -1096,11 +1096,11 @@ ebpf_program_get_info(
     }
 
     ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_id_t* map_ids = (ebpf_id_t*)input_info->map_ids;
     if ((input_info->map_ids != 0) && (input_info->nr_map_ids > 0) && (program->count_of_maps > 0)) {
         // Fill in map ids before we overwrite the info buffer.
         uint32_t max_nr_map_ids = input_info->nr_map_ids;
         size_t length = max_nr_map_ids * sizeof(ebpf_id_t);
-        ebpf_id_t* map_ids = (ebpf_id_t*)input_info->map_ids;
 
         __try {
             ebpf_probe_for_write(map_ids, length, sizeof(ebpf_id_t));
@@ -1127,6 +1127,7 @@ ebpf_program_get_info(
         (char*)program->parameters.program_name.value,
         program->parameters.program_name.length);
     output_info->nr_map_ids = program->count_of_maps;
+    output_info->map_ids = (uintptr_t)map_ids;
     output_info->type = _ebpf_program_get_bpf_prog_type(program);
     output_info->type_uuid = *ebpf_program_type_uuid(program);
     output_info->attach_type_uuid = *ebpf_expected_attach_type(program);
