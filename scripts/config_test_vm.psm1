@@ -5,12 +5,6 @@ param ([Parameter(Mandatory=$True)] [string] $Admin,
        [Parameter(Mandatory=$True)] [SecureString] $AdminPassword,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
-Write-Log "Admin $Admin"
-Write-Log "AdminPassword $AdminPassword"
-Write-Log "LogFileName $LogFileName"
-
-Get-Location
-
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
 $sleepSeconds = 10
@@ -140,10 +134,6 @@ function Start-AllVMs
 function Initialize-AllVMs
 {
     param ([Parameter(Mandatory=$True)] $VMList)
-
-    Write-Log "Starting VMList $VMList"
-    Write-Log "Admin $Admin"
-    Write-Log "AdminPassword $AdminPassword"
 
     # Restore the VMs.
     Restore-AllVMs -VMList $VMList

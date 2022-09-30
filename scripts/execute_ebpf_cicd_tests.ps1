@@ -7,9 +7,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][bool] $Coverage = $true)
 
-Get-Location
 Push-Location $WorkingDirectory
-Get-Location
 
 $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 

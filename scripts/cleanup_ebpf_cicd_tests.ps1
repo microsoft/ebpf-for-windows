@@ -6,9 +6,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $VMListJsonFileName = "vm_list.json")
 
-Get-Location
 Push-Location $WorkingDirectory
-Get-Location
 
 $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 
