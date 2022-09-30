@@ -84,6 +84,9 @@ Data Fields</h2></td></tr>
 <tr class="memitem:ab707e966eb488feaf4268784ddc9735c"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#ab707e966eb488feaf4268784ddc9735c">nr_map_ids</a></td></tr>
 <tr class="memdesc:ab707e966eb488feaf4268784ddc9735c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of maps associated with this program.  <a href="structbpf__prog__info.html#ab707e966eb488feaf4268784ddc9735c">More...</a><br /></td></tr>
 <tr class="separator:ab707e966eb488feaf4268784ddc9735c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a74cb864c0b19997329c32e9859f509e6"><td class="memItemLeft" align="right" valign="top">uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#a74cb864c0b19997329c32e9859f509e6">map_ids</a></td></tr>
+<tr class="memdesc:a74cb864c0b19997329c32e9859f509e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to caller-allocated array to fill map IDs into.  <a href="structbpf__prog__info.html#a74cb864c0b19997329c32e9859f509e6">More...</a><br /></td></tr>
+<tr class="separator:a74cb864c0b19997329c32e9859f509e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a583e0a419308b97503899bac3a3139d2"><td class="memItemLeft" align="right" valign="top">char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#a583e0a419308b97503899bac3a3139d2">name</a> [<a class="el" href="ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e">BPF_OBJ_NAME_LEN</a>]</td></tr>
 <tr class="memdesc:a583e0a419308b97503899bac3a3139d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Null-terminated program name.  <a href="structbpf__prog__info.html#a583e0a419308b97503899bac3a3139d2">More...</a><br /></td></tr>
 <tr class="separator:a583e0a419308b97503899bac3a3139d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -148,6 +151,22 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Number of attached links. </p>
+
+</div>
+</div>
+<a id="a74cb864c0b19997329c32e9859f509e6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a74cb864c0b19997329c32e9859f509e6">&#9670;&nbsp;</a></span>map_ids</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uintptr_t bpf_prog_info::map_ids</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Pointer to caller-allocated array to fill map IDs into. </p>
 
 </div>
 </div>
