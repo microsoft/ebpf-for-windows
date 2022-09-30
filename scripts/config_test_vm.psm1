@@ -13,6 +13,8 @@ Get-Location
 
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
+$sleepSeconds = 10
+
 #
 # VM Initialization functions
 #
@@ -40,9 +42,9 @@ function Wait-AllVMsToInitialize
         }
         if ($ReadyList.Count -ne $VMList.Count) {
             Write-Log ("{0} of {1} VMs are ready." -f $ReadyList.Count, $VMList.Count)
-            # Sleep for 30 seconds.
-            Start-Sleep -seconds 30
-            $totalSleepTime += 30
+            # Sleep for sleepSeconds seconds.
+            Start-Sleep -seconds $sleepSeconds
+            $totalSleepTime += $sleepSeconds
         }
     }
     until (($ReadyList.Count -eq $VMList.Count) -or ($totalSleepTime -gt 5*60))
@@ -70,10 +72,10 @@ function Wait-AllVMsToInitialize
             }
         }
         if ($ReadyList.Count -ne $VMList.Count) {
-            Write-Log "Waiting 30 seconds for $VMName to be responsive."
-            # Sleep for 30 seconds.
-            Start-Sleep -seconds 30
-            $totalSleepTime += 30
+            Write-Log "Waiting $sleepSeconds seconds for $VMName to be responsive."
+            # Sleep for sleepSeconds seconds.
+            Start-Sleep -seconds $sleepSeconds
+            $totalSleepTime += $sleepSeconds
         }
     }
     until (($ReadyList.Count -eq $VMList.Count) -or ($totalSleepTime -gt 5*60))
@@ -180,7 +182,7 @@ function Export-BuildArtifactsToVMs
 
     $WorkingDirectory = $pwd.ToString()
 
-    # Files to copy, in format destination in VM = source in host.
+    # Files to copy, in format "destination in VM" = "source path in host".
     $filesToCopy =
     @{
         "common.psm1" = "$PSScriptRoot\common.psm1";
@@ -329,6 +331,7 @@ function Initialize-NetworkInterfacesOnVMs
         $VMName = $VM.Name
         $Interfaces = $VM.Interfaces
 
+        Write-Output "DEBUG0 $VMName"
         Write-Log "Initializing network interfaces on $VMName"
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
