@@ -34,6 +34,8 @@ extern "C"
 
 #define EBPF_CACHE_LINE_SIZE 64
 #define EBPF_CACHE_ALIGN_POINTER(P) (void*)(((uintptr_t)P + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
+#define EBPF_PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
+#define EBPF_PAD_8(X) ((X + 7) & ~7)
 
     /**
      * @brief A UTF-8 encoded string.

@@ -21,7 +21,5 @@ libbpf_get_error(const void* ptr)
 int
 libbpf_num_possible_cpus(void)
 {
-    SYSTEM_INFO info;
-    GetSystemInfo(&info);
-    return info.dwNumberOfProcessors;
+    return GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
 }

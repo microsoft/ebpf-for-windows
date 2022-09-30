@@ -412,8 +412,14 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ cons
         goto Exit;
     }
     assert(value_size != 0);
+    if (BPF_MAP_TYPE_PER_CPU(type)) {
+        value_size = EBPF_PAD_8(value_size) * libbpf_num_possible_cpus();
+    }
 
     result = _map_lookup_element(map_handle, find_and_delete, key_size, (uint8_t*)key, value_size, (uint8_t*)value);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
 Exit:
     EBPF_RETURN_RESULT(result);
@@ -543,6 +549,10 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
     }
     assert(value_size != 0);
     assert(type != 0);
+
+    if (BPF_MAP_TYPE_PER_CPU(type)) {
+        value_size = EBPF_PAD_8(value_size) * libbpf_num_possible_cpus();
+    }
 
     if ((type == BPF_MAP_TYPE_PROG_ARRAY) || (type == BPF_MAP_TYPE_HASH_OF_MAPS) ||
         (type == BPF_MAP_TYPE_ARRAY_OF_MAPS)) {
