@@ -2221,6 +2221,7 @@ ebpf_map_get_info(
     info->key_size = map->ebpf_map_definition.key_size;
     info->value_size = map->original_value_size;
     info->max_entries = map->ebpf_map_definition.max_entries;
+    info->map_flags = 0;
     if (info->type == BPF_MAP_TYPE_ARRAY_OF_MAPS || info->type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
         info->inner_map_id =
@@ -2307,4 +2308,10 @@ ebpf_map_peek_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_
 
     memcpy(value, return_value, map->ebpf_map_definition.value_size);
     return EBPF_SUCCESS;
+}
+
+ebpf_id_t
+ebpf_map_get_id(_In_ const ebpf_map_t* map)
+{
+    return map->object.id;
 }

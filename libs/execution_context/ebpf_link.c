@@ -221,6 +221,7 @@ ebpf_link_get_info(
         EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
     }
 
+    memset(info, 0, sizeof(*info));
     info->id = link->object.id;
     info->prog_id = (link->program) ? ((ebpf_core_object_t*)link->program)->id : EBPF_ID_NONE;
     info->type = link->link_type;

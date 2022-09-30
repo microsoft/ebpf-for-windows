@@ -451,6 +451,8 @@ TEST_CASE("show programs", "[netsh][programs]")
                   "Program type   : xdp\n"
                   "Mode           : JIT\n"
                   "# map IDs      : 2\n"
+                  "map IDs        : 65538\n"
+                  "                 131073\n"
                   "# pinned paths : 1\n"
                   "# links        : 1\n"
                   "\n"

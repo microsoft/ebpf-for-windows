@@ -1168,7 +1168,7 @@ extern "C"
             EBPF_TRACELOG_EVENT_RETURN,                      \
             TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),       \
             TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE), \
-            TraceLoggingString(__FUNCTION__ "returned"),     \
+            TraceLoggingString(__FUNCTION__ " returned"),    \
             TraceLoggingPointer(local_result, #pointer));    \
         return local_result;                                 \
     } while (false);
@@ -1181,7 +1181,7 @@ extern "C"
             EBPF_TRACELOG_EVENT_RETURN,                      \
             TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),       \
             TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE), \
-            TraceLoggingString(__FUNCTION__ "returned"),     \
+            TraceLoggingString(__FUNCTION__ " returned"),    \
             TraceLoggingBool(!!local_result, #flag));        \
         return local_result;                                 \
     } while (false);
@@ -1194,7 +1194,7 @@ extern "C"
             EBPF_TRACELOG_EVENT_RETURN,                      \
             TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),       \
             TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE), \
-            TraceLoggingString(__FUNCTION__ "returned"),     \
+            TraceLoggingString(__FUNCTION__ " returned"),    \
             TraceLoggingInt32(local_fd, #fd));               \
         return local_fd;                                     \
     } while (false);

@@ -261,7 +261,7 @@ This tests the XDP_TX functionality.
    2. Load the test eBPF program by running the following command: `netsh ebpf add program reflect_packet.o xdp` and note the ID. See **Note 3** below.
 2. On the second host:
    1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
-   2. Run `xdp_tests.exe xdp_reflect_test --remote_ip <IP on the first host>`. See **Note 2** below.
+   2. Run `xdp_tests.exe xdp_reflect_test --remote-ip <IP on the first host>`. See **Note 2** below.
 
 #### Encapsulation Test
 This uses `bpf_xdp_adjust_head` helper function to encapsulate an outer IP header to a packet.
@@ -270,7 +270,7 @@ This uses `bpf_xdp_adjust_head` helper function to encapsulate an outer IP heade
    2. Load the test eBPF program by running the following command: `netsh ebpf add program encap_reflect_packet.o xdp` and note the ID. See **Note 3** below.
 2. On the second host:
    1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
-   2. Run `xdp_tests.exe xdp_encap_reflect_test --remote_ip <IP on the first host>`. See **Note 2** below.
+   2. Run `xdp_tests.exe xdp_encap_reflect_test --remote-ip <IP on the first host>`. See **Note 2** below.
 
 #### Decapsulation Test
 This uses `bpf_xdp_adjust_head` helper function to decapsulate an outer IP header from a packet.
@@ -279,7 +279,7 @@ This uses `bpf_xdp_adjust_head` helper function to decapsulate an outer IP heade
 3. On the second host:
    1. Load the second test eBPF program by running the following command: `netsh ebpf add program decap_permit_packet.o xdp` and note the ID. See **Note 3** below.
    2. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
-   3. Run `xdp_tests.exe xdp_reflect_test --remote_ip <IP on the first host>`. See **Note 2** below.
+   3. Run `xdp_tests.exe xdp_reflect_test --remote-ip <IP on the first host>`. See **Note 2** below.
 
 **Note 1:** To allow inbound traffic to `xdp_tests.exe`, in a Windows Powershell with administrative privilege, run `New-NetFirewallRule -DisplayName "XDP_Test" -Program "<Full path to xdp_tests.exe>" -Direction Inbound -Action Allow`.<br>
 **Note 2:** For the `--remote-ip` parameter to `xdp_tests.exe` program that is run on the second host, pass an IPv4 or IPv6 address of an Ethernet-like interface on the first host in string format.<br>

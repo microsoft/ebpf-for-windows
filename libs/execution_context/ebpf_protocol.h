@@ -333,6 +333,7 @@ typedef struct _ebpf_operation_get_object_info_request
 {
     struct _ebpf_operation_header header;
     ebpf_handle_t handle;
+    uint8_t info[1];
 } ebpf_operation_get_object_info_request_t;
 
 typedef struct _ebpf_operation_get_object_info_reply

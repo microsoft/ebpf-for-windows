@@ -143,6 +143,10 @@ win32_error_code_to_ebpf_result(uint32_t error)
         result = EBPF_CANCELED;
         break;
 
+    case ERROR_NOACCESS:
+        result = EBPF_INVALID_POINTER;
+        break;
+
     default:
         result = EBPF_FAILED;
         break;

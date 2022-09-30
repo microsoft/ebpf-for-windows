@@ -221,6 +221,7 @@ bpf_obj_get(const char* pathname);
  * write into the info.  On output, contains the actual number of bytes written.
  *
  * @retval 0 The operation was successful.
+ * @retval -EFAULT A pointer passed in the input info was invalid.
  * @retval <0 An error occured, and errno was set.
  */
 int

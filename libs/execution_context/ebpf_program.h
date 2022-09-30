@@ -241,7 +241,8 @@ extern "C"
      * @brief Get bpf_prog_info about a program.
      *
      * @param[in] program The program to get info about.
-     * @param[out] buffer Buffer to write bpf_prog_info into.
+     * @param[in] input_buffer Buffer to read bpf_prog_info from.
+     * @param[out] output_buffer Buffer to write bpf_prog_info into.
      * @param[in,out] info_size On input, the size in bytes of the buffer.
      * On output, the number of bytes actually written.
      *
@@ -251,7 +252,8 @@ extern "C"
     ebpf_result_t
     ebpf_program_get_info(
         _In_ const ebpf_program_t* program,
-        _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
+        _In_reads_(*info_size) const uint8_t* input_buffer,
+        _Out_writes_to_(*info_size, *info_size) uint8_t* output_buffer,
         _Inout_ uint16_t* info_size);
 
     /**
