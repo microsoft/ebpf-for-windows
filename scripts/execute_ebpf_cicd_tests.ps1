@@ -23,7 +23,7 @@ $BasicTest = $Config.BasicTest
 
 # Run tests on test VMs.
 foreach ($VM in $BasicTest) {
-    Invoke-CICDTestsOnVM -VMName $VM.Name -Coverage $Coverage
+    Invoke-CICDTestsOnVM -VMName $VM.Name -VerboseLogs $true -Coverage $Coverage
 }
 
 # Run XDP Tests.
