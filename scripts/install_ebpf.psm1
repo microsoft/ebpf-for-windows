@@ -163,17 +163,6 @@ function Install-eBPFComponents
     Update-eBPFStore
 }
 
-function Stop-eBPFComponents
-{
-    # Stop user mode service.
-    Stop-Service "eBPFSvc" -ErrorAction Ignore 2>&1 | Write-Log
-
-    # Stop the drivers.
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        Stop-Service $_.Name -ErrorAction Ignore 2>&1 | Write-Log
-    }
-}
-
 function Uninstall-eBPFComponents
 {
     Stop-eBPFComponents

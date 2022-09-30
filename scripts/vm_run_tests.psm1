@@ -315,7 +315,6 @@ function Stop-eBPFComponentsOnVM
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Stop-eBPFComponents
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop

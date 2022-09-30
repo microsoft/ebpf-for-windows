@@ -32,3 +32,19 @@ function New-Credential
     $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($UserName, $AdminPassword)
     return $Credential
 }
+
+function Stop-eBPFComponents
+{
+    # Stop user mode service.
+    Stop-Service "eBPFSvc" -ErrorAction Ignore 2>&1 | Write-Log
+
+    # Stop the drivers.
+    $EbpfDrivers = @{
+        "EbpfCore" = "ebpfcore.sys";
+        "NetEbpfExt" = "netebpfext.sys";
+        "SampleEbpfExt" = "sample_ebpf_ext.sys"
+    }
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        Stop-Service $_.Name -ErrorAction Ignore 2>&1 | Write-Log
+    }
+}
