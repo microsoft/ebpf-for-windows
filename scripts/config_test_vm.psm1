@@ -342,7 +342,6 @@ function Initialize-NetworkInterfacesOnVMs
             foreach ($Interface in $InterfaceList) {
                 $InterfaceAlias = $Interface.Alias
                 $V4Address = $Interface.V4Address
-
                 Write-Log "Adding $V4Address on $InterfaceAlias"
                 Remove-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PolicyStore "All" -Confirm:$false -ErrorAction Ignore | Out-Null
                 New-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PrefixLength 24 -ErrorAction Stop | Out-Null

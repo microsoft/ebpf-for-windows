@@ -7,7 +7,6 @@ param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
 Push-Location $WorkingDirectory
 
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-Import-Module $PSScriptRoot\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
 $CodeCoverage = 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
 
