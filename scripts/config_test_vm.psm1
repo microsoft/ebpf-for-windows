@@ -307,7 +307,15 @@ function Install-eBPFComponentsOnVM
             New-ItemProperty -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Name "TrackHandles" -Value "*" -PropertyType MultiString -Force  -ErrorAction Stop
         }
 
+        Write-Host "executing on $VMName : msiexec.exe /i '$WorkingDirectory\ebpf-for-windows.msi' /quiet /qn /l*v $LogFileName ADDLOCAL=All" -ForegroundColor Green
         msiexec.exe /i "$WorkingDirectory\ebpf-for-windows.msi" /quiet /qn /l*v $LogFileName ADDLOCAL=All
+        sleep 5
+
+        $EbpfPath = $env:ProgramFiles + "\ebpf-for-windows"
+        $TestingPath = $EbpfPath + "\testing\testing"
+        ls -R $EbpfPath
+        ls -R $TestingPath
+
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
