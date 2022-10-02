@@ -105,7 +105,8 @@ function Invoke-CICDTests
             "socket_tests.exe")
 
         foreach ($Test in $TestList) {
-            Invoke-Test -TestName $Test -VerboseLogs $VerboseLogs -Coverage $Coverage
+            $TestWithPath = $env:ProgramFiles + "\ebpf-for-windows\testing\testing\" + $Test
+            Invoke-Test -TestName $TestWithPath -VerboseLogs $VerboseLogs -Coverage $Coverage
         }
 
         if ($Coverage) {

@@ -31,6 +31,8 @@ function Invoke-CICDTestsOnVM
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
+        ls -R $env:ProgramFiles\ebpf-for-windows
+
         Invoke-CICDTests -VerboseLogs $VerboseLogs -Coverage $Coverage 2>&1 | Write-Log
     } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs, $Coverage) -ErrorAction Stop
 }
