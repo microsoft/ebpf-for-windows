@@ -43,6 +43,8 @@ copy bindmonitor_tailcall.o package_data\testing
 copy bpf.o package_data\testing
 copy bpf_call.o package_data\testing
 copy bpftool.pdb package_data\testing
+copy bpftool_tests.exe package_data\testing
+copy bpftool_tests.pdb package_data\testing
 copy cgroup_sock_addr.o package_data\testing
 copy decap_permit_packet.o package_data\testing
 copy divide_by_zero.o package_data\testing
