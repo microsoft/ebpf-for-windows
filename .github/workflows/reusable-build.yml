@@ -75,7 +75,7 @@ jobs:
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache nuget packages
-      uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+      uses: actions/cache@ac8075791e805656e71b4ba23325ace9e3421120
       env:
         cache-name: cache-nuget-modules
       with:
@@ -87,7 +87,7 @@ jobs:
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
     - name: Cache verifier project
-      uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+      uses: actions/cache@ac8075791e805656e71b4ba23325ace9e3421120
       env:
         cache-name: cache-verifier-project
       with:
