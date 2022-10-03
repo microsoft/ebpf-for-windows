@@ -1,7 +1,7 @@
 # Setup instructions for self-hosted runners
 
 The CI/CD tests for `eBPF for Windows` requires installing kernel drivers, that are not supported in Github-hosted runners.
-That is why self-host runners are needed to run those tests. The `run_tests` job in the `Kernel_Test_VM` Github workflow (`driver_test_vm.yml`) runs on self-host runners that use Hyper-V VMs to deploy the eBPF components and run the CI/CD tests on. Using Hyper-V VMs enable the Github workflow to start from a clean state every time the test runs by restoring the VMs to a "baseline" snapshot.
+That is why self-host runners are needed to run those tests. The `driver` job in the `CI/CD` Github workflow (`cicd.yml`) runs on self-host runners that use Hyper-V VMs to deploy the eBPF components and run the CI/CD tests on. Using Hyper-V VMs enable the Github workflow to start from a clean state every time the test runs by restoring the VMs to a "baseline" snapshot.
 This document discusses the steps to set up such a selfhosted actions-runner that can run the workflow for CI/CD tests on a fork of the eBPF for Windows repo.
 
 1) Install Windows Server 2019 - build 17763.
