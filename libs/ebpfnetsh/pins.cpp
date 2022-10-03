@@ -48,7 +48,7 @@ handle_ebpf_show_pins(
             continue;
         }
 
-        struct bpf_prog_info info;
+        struct bpf_prog_info info = {};
         uint32_t info_size = (uint32_t)sizeof(info);
         if (bpf_obj_get_info_by_fd(program_fd, &info, &info_size) == 0) {
             printf("%7u  Program  %s\n", info.id, path.c_str());

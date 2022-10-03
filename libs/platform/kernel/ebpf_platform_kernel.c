@@ -14,6 +14,8 @@ bool ebpf_fuzzing_enabled = false;
 
 IO_WORKITEM_ROUTINE _ebpf_preemptible_routine;
 
+static uint32_t _ebpf_platform_maximum_processor_count = 0;
+
 extern DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
@@ -41,6 +43,7 @@ static KDEFERRED_ROUTINE _ebpf_timer_routine;
 ebpf_result_t
 ebpf_platform_initiate()
 {
+    _ebpf_platform_maximum_processor_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
     return EBPF_SUCCESS;
 }
 
@@ -400,7 +403,7 @@ ebpf_restore_current_thread_affinity(uintptr_t old_thread_affinity_mask)
     KeRevertToUserAffinityThreadEx(old_thread_affinity_mask);
 }
 
-_Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return KeQueryMaximumProcessorCount(); }
+_Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return _ebpf_platform_maximum_processor_count; }
 
 bool
 ebpf_is_preemptible()
@@ -418,7 +421,7 @@ ebpf_is_non_preemptible_work_item_supported()
 uint32_t
 ebpf_get_current_cpu()
 {
-    return KeGetCurrentProcessorNumber();
+    return KeGetCurrentProcessorNumberEx(NULL);
 }
 
 uint64_t

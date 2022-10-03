@@ -52,13 +52,30 @@
     <CopyFileToFolders Include="..\vm_list.json">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="..\ebpfforwindows.wprp" />
-    <CopyFileToFolders Include="..\ebpf-all.guid" />
-    <CopyFileToFolders Include="..\ebpf-printk.guid" />
+    <CopyFileToFolders Include="..\ebpf-all.guid">
+      <Filter>Source Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\ebpfforwindows.wprp">
+      <Filter>Source Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\ebpf-printk.guid">
+      <Filter>Source Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\net-ebpf-ext.guid">
+      <Filter>Source Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\test_execution.json">
+      <Filter>Source Files</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\pre-commit">
       <Filter>Source Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\deploy-ebpf.ps1.in">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

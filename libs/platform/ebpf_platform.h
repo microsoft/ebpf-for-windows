@@ -34,6 +34,8 @@ extern "C"
 
 #define EBPF_CACHE_LINE_SIZE 64
 #define EBPF_CACHE_ALIGN_POINTER(P) (void*)(((uintptr_t)P + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
+#define EBPF_PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
+#define EBPF_PAD_8(X) ((X + 7) & ~7)
 
     /**
      * @brief A UTF-8 encoded string.
@@ -1166,7 +1168,7 @@ extern "C"
             EBPF_TRACELOG_EVENT_RETURN,                      \
             TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),       \
             TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE), \
-            TraceLoggingString(__FUNCTION__ "returned"),     \
+            TraceLoggingString(__FUNCTION__ " returned"),    \
             TraceLoggingPointer(local_result, #pointer));    \
         return local_result;                                 \
     } while (false);
@@ -1179,7 +1181,7 @@ extern "C"
             EBPF_TRACELOG_EVENT_RETURN,                      \
             TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),       \
             TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE), \
-            TraceLoggingString(__FUNCTION__ "returned"),     \
+            TraceLoggingString(__FUNCTION__ " returned"),    \
             TraceLoggingBool(!!local_result, #flag));        \
         return local_result;                                 \
     } while (false);
@@ -1192,7 +1194,7 @@ extern "C"
             EBPF_TRACELOG_EVENT_RETURN,                      \
             TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),       \
             TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE), \
-            TraceLoggingString(__FUNCTION__ "returned"),     \
+            TraceLoggingString(__FUNCTION__ " returned"),    \
             TraceLoggingInt32(local_fd, #fd));               \
         return local_fd;                                     \
     } while (false);

@@ -46,9 +46,9 @@ _net_ebpf_ext_driver_uninitialize_objects()
 {
     _net_ebpf_ext_driver_unloading_flag = TRUE;
 
-    net_ebpf_extension_uninitialize_wfp_components();
-
     net_ebpf_ext_unregister_providers();
+
+    net_ebpf_extension_uninitialize_wfp_components();
 
     net_ebpf_ext_uninitialize_ndis_handles();
 

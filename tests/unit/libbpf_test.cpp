@@ -176,11 +176,12 @@ TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]")
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(program_info.map_ids == 0);
 
     REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
 
@@ -203,11 +204,12 @@ TEST_CASE("valid bpf_prog_load", "[libbpf]")
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(program_info.map_ids == 0);
     REQUIRE(strcmp(program_info.name, "name") == 0);
 
     REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
@@ -236,11 +238,12 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(program_info.map_ids == 0);
     REQUIRE(strcmp(program_info.name, "name") == 0);
 
     REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
@@ -313,11 +316,12 @@ TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]")
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 1);
+    REQUIRE(program_info.map_ids == 0);
 
     REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
 
@@ -507,7 +511,7 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
     struct bpf_object* object[2];
     struct bpf_program* program[2];
     int program_fd[2];
-    bpf_prog_info program_info[2];
+    bpf_prog_info program_info[2] = {};
 
     for (int i = 0; i < 2; i++) {
         object[i] = bpf_object__open("droppacket.o");
@@ -533,13 +537,38 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
 TEST_CASE("libbpf map", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    std::vector<std::string> expected_map_names = {
+        "HASH_map",
+        "PERCPU_HASH_map",
+        "ARRAY_map",
+        "PERCPU_ARRAY_map",
+        "LRU_HASH_map",
+        "LRU_PERCPU_HASH_map",
+        "QUEUE_map",
+        "STACK_map"};
+    std::vector<bpf_map_type> expected_map_types = {
+        BPF_MAP_TYPE_HASH,
+        BPF_MAP_TYPE_PERCPU_HASH,
+        BPF_MAP_TYPE_ARRAY,
+        BPF_MAP_TYPE_PERCPU_ARRAY,
+        BPF_MAP_TYPE_LRU_HASH,
+        BPF_MAP_TYPE_LRU_PERCPU_HASH,
+        BPF_MAP_TYPE_QUEUE,
+        BPF_MAP_TYPE_STACK};
+    std::vector<struct bpf_map*> maps;
 
-    struct bpf_object* object = bpf_object__open("droppacket.o");
+    struct bpf_object* object = bpf_object__open("map.o");
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
+    // Find all maps.
+    struct bpf_map* map = nullptr;
+    bpf_object__for_each_map(map, object) { maps.push_back(map); };
+
+    REQUIRE(maps.size() == expected_map_names.size());
+
     // Get the first map.
-    struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
 
     // Verify that there are no maps before this.
@@ -550,28 +579,36 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(map2 != nullptr);
     REQUIRE(bpf_object__prev_map(object, map2) == map);
 
-    // Verify that there are no other maps after this.
-    REQUIRE(bpf_object__next_map(object, map2) == nullptr);
-    REQUIRE(bpf_object__prev_map(object, nullptr) == map2);
+    // Verify that there are no other maps after the last map.
+    REQUIRE(bpf_object__next_map(object, maps.back()) == nullptr);
 
-    const char* name = bpf_map__name(map);
-    REQUIRE(strcmp(name, "dropped_packet_map") == 0);
-    REQUIRE(bpf_map__type(map) == BPF_MAP_TYPE_ARRAY);
-    REQUIRE(bpf_map__key_size(map) == 4);
-    REQUIRE(bpf_map__value_size(map) == 8);
-    REQUIRE(bpf_map__max_entries(map) == 1);
-    int map_fd = bpf_map__fd(map);
+    // Verify the map names, types, key size, value size, max entries, and flags.
+    for (size_t i = 0; i < maps.size(); i++) {
+        REQUIRE(bpf_map__name(maps[i]) == expected_map_names[i]);
+        REQUIRE(bpf_map__type(maps[i]) == expected_map_types[i]);
+
+        if (expected_map_types[i] == BPF_MAP_TYPE_QUEUE || expected_map_types[i] == BPF_MAP_TYPE_STACK) {
+            REQUIRE(bpf_map__key_size(maps[i]) == 0);
+        } else {
+            REQUIRE(bpf_map__key_size(maps[i]) == 4);
+        }
+
+        REQUIRE(bpf_map__value_size(maps[i]) == 4);
+        REQUIRE(bpf_map__max_entries(maps[i]) == 10);
+    }
+
+    int map_fd = bpf_map__fd(maps[2]);
     REQUIRE(map_fd > 0);
 
-    uint64_t value;
-    uint32_t index = 2; // Past end of array.
+    uint64_t value = 0;
+    uint32_t index = bpf_map__max_entries(maps[2]) + 10; // Past end of array.
 
     int result = bpf_map_lookup_elem(map_fd, &index, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
     // Wrong fd type.
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_maps");
     int program_fd = bpf_program__fd(const_cast<const bpf_program*>(program));
     result = bpf_map_lookup_elem(program_fd, &index, &value);
     REQUIRE(result < 0);
@@ -644,6 +681,17 @@ TEST_CASE("libbpf map", "[libbpf]")
 
     REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == 0);
     REQUIRE(value == 0);
+
+    // Query value from per-CPUs maps.
+    for (size_t i = 0; i < expected_map_names.size(); i++) {
+        if (expected_map_names[i].find("PERCPU") == std::string::npos) {
+            continue;
+        };
+        std::vector<uint8_t> per_cpu_value(
+            EBPF_PAD_8(bpf_map__value_size(maps[i])) * static_cast<size_t>(libbpf_num_possible_cpus()));
+        REQUIRE(bpf_map_update_elem(bpf_map__fd(maps[i]), &index, per_cpu_value.data(), 0) == 0);
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(maps[i]), &index, per_cpu_value.data()) == 0);
+    }
 
     // Invalid map type.
     result = bpf_map_create(BPF_MAP_TYPE_UNSPEC, "BPF_MAP_TYPE_UNSPEC", 1, 1, 1, NULL);
@@ -1228,7 +1276,7 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
     int map_fd = bpf_map__fd(map);
     REQUIRE(map_fd >= 0);
 
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(callee_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
@@ -1885,25 +1933,59 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     int map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
 
-    // Fetch info about the map and verify it matches what we'd expect.
-    bpf_map_info map_info;
-    uint32_t map_info_size = sizeof(map_info);
-    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info, &map_info_size) == 0);
-    REQUIRE(map_info_size == sizeof(map_info));
-    REQUIRE(map_info.type == BPF_MAP_TYPE_ARRAY);
-    REQUIRE(map_info.key_size == sizeof(uint32_t));
-    REQUIRE(map_info.value_size == sizeof(uint64_t));
-    REQUIRE(map_info.max_entries == 1);
-    REQUIRE(strcmp(map_info.name, map_name) == 0);
+    // Fetch info about the maps and verify it matches what we'd expect.
+    bpf_map_info map_info[2];
+    uint32_t map_info_size = sizeof(map_info[0]);
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info[0], &map_info_size) == 0);
+    REQUIRE(map_info_size == sizeof(map_info[0]));
+    REQUIRE(map_info[0].type == BPF_MAP_TYPE_ARRAY);
+    REQUIRE(map_info[0].key_size == sizeof(uint32_t));
+    REQUIRE(map_info[0].value_size == sizeof(uint64_t));
+    REQUIRE(map_info[0].max_entries == 1);
+    REQUIRE(strcmp(map_info[0].name, map_name) == 0);
+
+    map = bpf_object__next_map(object, map);
+    REQUIRE(map != nullptr);
+    map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+    map_name = bpf_map__name(map);
+    REQUIRE(map_name != nullptr);
+
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info[1], &map_info_size) == 0);
+    REQUIRE(map_info_size == sizeof(map_info[1]));
+    REQUIRE(map_info[1].type == BPF_MAP_TYPE_ARRAY);
+    REQUIRE(map_info[1].key_size == sizeof(uint32_t));
+    REQUIRE(map_info[1].value_size == sizeof(uint32_t));
+    REQUIRE(map_info[1].max_entries == 1);
+    REQUIRE(strcmp(map_info[1].name, map_name) == 0);
 
     // Fetch info about the program and verify it matches what we'd expect.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(strcmp(program_info.name, program_name) == 0);
     REQUIRE(program_info.nr_map_ids == 2);
+    REQUIRE(program_info.map_ids == 0);
     REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
+
+    // Fetch info about the maps and verify it matches what we'd expect.
+    ebpf_id_t map_ids[2] = {0};
+    program_info.map_ids = (uintptr_t)map_ids;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(map_ids[0] == map_info[1].id);
+    REQUIRE(map_ids[1] == map_info[0].id);
+
+    // Try again with nr_map_ids set to get only partial.
+    map_ids[0] = map_ids[1] = 0;
+    program_info.nr_map_ids = 1;
+    program_info.map_ids = (uintptr_t)map_ids;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == -EFAULT);
+    REQUIRE(map_ids[0] == map_info[1].id);
+
+    // Try again with an invalid pointer.
+    program_info.map_ids++;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == -EFAULT);
 
     // Fetch info about the attachment and verify it matches what we'd expect.
     uint32_t link_id;
@@ -1951,12 +2033,13 @@ TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
     REQUIRE(program_fd > 0);
 
     // Fetch info about the program and verify it matches what we'd expect.
-    bpf_prog_info program_info;
+    bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(strcmp(program_info.name, "authorize_connect4") == 0);
     REQUIRE(program_info.nr_map_ids == 1);
+    REQUIRE(program_info.map_ids == 0);
     REQUIRE(program_info.type == BPF_PROG_TYPE_CGROUP_SOCK_ADDR);
 
     // Fetch info about the attachment and verify it matches what we'd expect.

@@ -16,8 +16,8 @@ This method uses a machine that
 has already built the binaries for x64/Debug or x64/Release.
 
 1. Deploy the binaries to `C:\Temp` in your VM, as follows:
-    a. If you built the binaries from inside the VM, then from your ebpf-for-windows directory in the VM, do `.\scripts\deploy-ebpf -l`.  Otherwise,
-    b. If you built the binaries on the host machine, then from your ebpf-for-windows directory on the host machine, start an admin Powershell on the host machine and do `.\scripts\deploy-ebpf`, or to also copy files needed to run various tests, do `.\scripts\deploy-ebpf -t`.
+    a. If you built the binaries from inside the VM, then from your ebpf-for-windows directory in the VM, do `.\x64\debug\deploy-ebpf -l`.  Otherwise,
+    b. If you built the binaries on the host machine, then from your ebpf-for-windows directory on the host machine, start an admin Powershell on the host machine and do `.\x64\debug\deploy-ebpf`, or to also copy files needed to run various tests, do `.\x64\debug\deploy-ebpf -t`.
 
 2. From within the VM, install the binaries as follows:
     1. Start an admin command shell (cmd.exe).
@@ -43,10 +43,10 @@ The following instructions will build an ebpf-for-windows image and deploy a dae
 to install eBPF on all Windows nodes in a Kubernetes cluster.
 
 1. Deploy the binaries to `C:\Temp` on the machine (Windows Host) where you built the binaries.
-   Start an admin Powershell on the Windows Host and do `.\scripts\deploy-ebpf`.
-
-2. Build ebpf-for-windows image.
-
+   Start an admin Powershell on the Windows Host and do `.\x64\debug\deploy-ebpf`.
+   
+2. Build ebpf-for-windows image. 
+     
     a.  To build the image on the Windows Host, make sure docker is installed. [install docker on Windows Server](https://docs.microsoft.com/en-us/virtualization/windowscontainers/quick-start/set-up-environment?tabs=Windows-Server/).
 Start an admin Powershell on the Windows Host and run `.\images\build-images.ps1` and provide parameters for `repository`, `tag` and `OSVersion`.
 

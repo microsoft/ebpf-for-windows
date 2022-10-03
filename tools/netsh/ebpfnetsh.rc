@@ -207,7 +207,7 @@ BEGIN
                             "Shows results of trying to verify an eBPF program.\n"
     HLP_EBPF_SHOW_VERIFICATION_EX "\
 \nUsage: %1!s! [filename=]<string> [[section=]<string>]\
-\n                     [[level=]normal|verbose]\
+\n                     [[type=]<string>] [[level=]normal|verbose]\
 \n\
 \nParameters:\
 \n\

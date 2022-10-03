@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (c) Microsoft Corporation
      SPDX-License-Identifier: MIT
 -->
@@ -142,12 +142,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="ebpf-for-windows.nuspec">
+    <CustomBuild Include="ebpf-for-windows.nuspec.in">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NuGet.exe pack ebpf-for-windows.nuspec -OutputDirectory $(OutDir)</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\nuget\ebpf-for-windows.nuspec.in -OutputFile $(OutDir)ebpf-for-windows.nuspec
+NuGet.exe pack $(OutDir)ebpf-for-windows.nuspec -OutputDirectory $(OutDir)</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">eBPF-for-Windows.2022.4.22.nupkg</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">eBPF-for-Windows.2022.4.22.nupkg</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NuGet.exe pack ebpf-for-windows.nuspec -OutputDirectory $(OutDir)</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\nuget\ebpf-for-windows.nuspec.in -OutputFile $(OutDir)ebpf-for-windows.nuspec
+NuGet.exe pack $(OutDir)ebpf-for-windows.nuspec -OutputDirectory $(OutDir)</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
