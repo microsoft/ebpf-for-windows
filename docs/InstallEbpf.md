@@ -31,11 +31,11 @@ has already built the binaries for x64/Debug or x64/Release.
 Copy the build output to the host of the test VM and run the following in powershell.
 1. `Checkpoint-VM -Name <test-vm-name> -CheckpointName baseline` -- Creates a snapshot of the test VM named **baseline**.
 2. Store the VM administrator credential:
-   1) `Install-Module CredentialManager -force`
-   2) `New-StoredCredential -Target `**`TEST_VM`**` -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine`
+   1) Do `Install-Module CredentialManager -force`
+   2) Do `New-StoredCredential -Target TEST_VM -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine`.  Note that TEST_VM is literal and is used in step 5 below; it need not be the name of any actual test VM.
 3. Modify `vm_list.json` to specify the name of the test VM under `VMList`.
-4. `Set-ExecutionPolicy unrestricted -Force`
-5. `Setup_ebpf_cicd_tests.ps1`
+4. Do `Set-ExecutionPolicy unrestricted -Force`
+5. Do `Setup_ebpf_cicd_tests.ps1`.  This will use the credentials saved with TEST_VM in step 2, to log into each of the VMs named in `vm_list.json`.
 
 ## Installing eBPF with host-process container
 
