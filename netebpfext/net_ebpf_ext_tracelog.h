@@ -55,7 +55,7 @@ net_ebpf_ext_trace_terminate();
         TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),                              \
         TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_FUNCTION_ENTRY_EXIT), \
         TraceLoggingOpcode(WINEVENT_OPCODE_START),                              \
-        TraceLoggingString(__FUNCTION__, "<=="));
+        TraceLoggingString(__FUNCTION__, "Enter"));
 
 #define NET_EBPF_EXT_LOG_EXIT()                                                 \
     TraceLoggingWrite(                                                          \
@@ -64,7 +64,7 @@ net_ebpf_ext_trace_terminate();
         TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),                              \
         TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_FUNCTION_ENTRY_EXIT), \
         TraceLoggingOpcode(WINEVENT_OPCODE_STOP),                               \
-        TraceLoggingString(__FUNCTION__, "==>"));
+        TraceLoggingString(__FUNCTION__, "Exit"));
 
 #define NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(keyword, api, status) \
     TraceLoggingWrite(                                              \

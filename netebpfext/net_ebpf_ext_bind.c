@@ -91,7 +91,7 @@ _net_ebpf_extension_bind_on_client_attach(
         0,
         NULL,
         filter_context,
-        &filter_context->filter_ids);
+        &filter_context->filter_instances);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -111,7 +111,7 @@ _net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_cli
     ASSERT(filter_context != NULL);
 
     // Delete the WFP filters.
-    net_ebpf_extension_delete_wfp_filters(NET_EBPF_BIND_FILTER_COUNT, filter_context->filter_ids);
+    net_ebpf_extension_delete_wfp_filters(NET_EBPF_BIND_FILTER_COUNT, filter_context->filter_instances);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 

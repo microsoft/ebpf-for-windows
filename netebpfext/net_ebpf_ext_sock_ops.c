@@ -159,7 +159,7 @@ net_ebpf_extension_sock_ops_on_client_attach(
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-        &filter_context->base.filter_ids);
+        &filter_context->filter_instances);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -188,7 +188,7 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
     KIRQL irql;
     bool lock_held = FALSE;
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters(NET_EBPF_SOCK_OPS_FILTER_COUNT, filter_context->base.filter_ids);
+    net_ebpf_extension_delete_wfp_filters(NET_EBPF_SOCK_OPS_FILTER_COUNT, filter_context->filter_instances);
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
     lock_held = TRUE;

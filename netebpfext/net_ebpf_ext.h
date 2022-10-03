@@ -36,6 +36,8 @@ Environment:
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
+CONST IN6_ADDR DECLSPEC_SELECTANY in6addr_v4mappedprefix = IN6ADDR_V4MAPPEDPREFIX_INIT;
+
 #define htonl(x) _byteswap_ulong(x)
 #define htons(x) _byteswap_ushort(x)
 #define ntohs(x) htons(x)
@@ -65,9 +67,29 @@ typedef struct _net_ebpf_extension_wfp_filter_parameters
 
 typedef struct _net_ebpf_extension_wfp_filter_parameters_array
 {
+    ebpf_attach_type_t* attach_type;
     uint32_t count;
     net_ebpf_extension_wfp_filter_parameters_t* filter_parameters;
 } net_ebpf_extension_wfp_filter_parameters_array_t;
+
+typedef struct _net_ebpf_extension_wfp_filter_context_list_entry
+{
+    LIST_ENTRY list_entry;
+    const struct _net_ebpf_extension_wfp_filter_context* filter_context;
+} net_ebpf_extension_wfp_filter_context_list_entry_t;
+
+typedef struct _net_ebpf_extension_wfp_filter_instance
+{
+    EX_SPIN_LOCK lock;
+    LIST_ENTRY list_entry;
+    uint32_t filter_context_count;
+    LIST_ENTRY filter_contexts;
+    volatile long reference_count;
+    uint64_t filter_id;
+    uint32_t condition_count;
+    FWPM_FILTER_CONDITION* conditions;
+    GUID layer;
+} net_ebpf_extension_wfp_filter_instance_t;
 
 /**
  * "Base class" for all WFP filter contexts used by net ebpf extension hooks.
@@ -76,7 +98,9 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 {
     volatile long reference_count;                                ///< Reference count.
     const struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
-    uint64_t* filter_ids;                                         ///< Array of WFP filter Ids.
+    const void* custom_data;        ///< Opaque pointer to hook specific data associated for this filter context.
+    uint32_t filter_instance_count; ///< Number of WFP filter instances.
+    net_ebpf_extension_wfp_filter_instance_t** filter_instances; ///< Array of pointers to WFP filter instances.
 } net_ebpf_extension_wfp_filter_context_t;
 
 #define REFERENCE_FILTER_CONTEXT(filter_context) \
@@ -173,7 +197,8 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
  * @param[in]  condition_count Count of filter conditions.
  * @param[in]  conditions Common filter conditions to be applied to each filter.
  * @param[in]  raw_context Caller supplied context to be associated with the WFP filter.
- * @param[out] filter_ids Output buffer where the added filter IDs are stored.
+ * @param[out] filter_instances Output buffer to store the pointers to the filter instances
+               for the added filters.
  *
  * @retval EBPF_SUCCESS The operation completed successfully.
  * @retval EBPF_INVALID_ARGUMENT One or more arguments are invalid.
@@ -185,16 +210,18 @@ net_ebpf_extension_add_wfp_filters(
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
     _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
-    _Outptr_result_buffer_maybenull_(filter_count) uint64_t** filter_ids);
+    _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_extension_wfp_filter_instance_t*** filter_instances);
 
 /**
- * @brief Deletes WFP filters with specified filter IDs.
+ * @brief Deletes ref-counted WFP filters for the specified filter instances.
  *
- * @param[in]  filter_count Count of filters to be added.
- * @param[in]  filter_ids ID of the filter being deleted.
+ * @param[in] filter_count Count of filters to be deleted.
+ * @param[in] filter_instances Array of pointers to the filter instances.
  */
 void
-net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) uint64_t* filter_ids);
+net_ebpf_extension_delete_wfp_filters(
+    uint32_t filter_count,
+    _Frees_ptr_ _In_count_(filter_count) net_ebpf_extension_wfp_filter_instance_t** filter_instances);
 
 // eBPF WFP Sublayer GUID.
 // 7c7b3fb9-3331-436a-98e1-b901df457fff
@@ -262,3 +289,7 @@ net_ebpf_ext_unregister_providers();
 NTSTATUS
 net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter);
+
+ebpf_result_t
+net_ebpf_extension_get_filter_instance_by_id(
+    uint64_t filter_id, _Outptr_ net_ebpf_extension_wfp_filter_instance_t** filter_instance);

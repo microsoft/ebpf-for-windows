@@ -106,9 +106,20 @@ DEFINE_GUID(
     0xee);
 
 /**
- * @brief WFP classifyFn callback for EBPF_HOOK_ALE_AUTH_CONNECT_V4/6_CALLOUT &
- * EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4/6_CALLOUT.
- *
+ * @brief WFP classifyFn callback for EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4/6_CALLOUT.
+ */
+void
+net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output);
+
+/**
+ * @brief WFP classifyFn callback for EBPF_HOOK_ALE_AUTH_CONNECT_V4/6_CALLOUT
  */
 void
 net_ebpf_extension_sock_addr_authorize_connection_classify(
@@ -125,6 +136,16 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
  */
 void
 net_ebpf_extension_sock_addr_redirect_connection_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output);
+
+void
+net_ebpf_extension_sock_addr_redirect_connection_v6_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,
