@@ -292,6 +292,7 @@ function Install-eBPFComponentsOnVM
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
 
+        # TODO: remove the following DEBUG output line.
         dir $WorkingDirectory
 
         # Enable driver verifier on the drivers we'll be installing.
@@ -310,13 +311,16 @@ function Install-eBPFComponentsOnVM
         Write-Host -NoNewLine "Checking credentials: "
         whoami /groups | findstr Label
 
+        # Specify ADDLOCAL=All to install all features, to make sure we get the testing component needed by tests.
         Write-Host "executing : msiexec.exe /i '$WorkingDirectory\ebpf-for-windows.msi' /quiet /qn /l*v '$WorkingDirectory\$LogFileName' ADDLOCAL=All" -ForegroundColor Green
         msiexec.exe /i "$WorkingDirectory\ebpf-for-windows.msi" /quiet /qn /l*v "$WorkingDirectory\$LogFileName" ADDLOCAL=All
         sleep 5
 
         # If the install succeeded, this should show bpftool usage.
+        # TODO: this step currently fails!
         bpftool.exe
 
+        # TODO: remove the following DEBUG output lines.
         $EbpfPath = $env:ProgramFiles + "\ebpf-for-windows"
         $TestingPath = $EbpfPath + "\testing\testing"
         ls -R $EbpfPath
@@ -335,6 +339,7 @@ function Initialize-NetworkInterfacesOnVMs
         $VMName = $VM.Name
         $Interfaces = $VM.Interfaces
 
+        # TODO: remove DEBUG output lines.
         Write-Output "DEBUG0 $VMName"
         Write-Log "Initializing network interfaces on $VMName"
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
