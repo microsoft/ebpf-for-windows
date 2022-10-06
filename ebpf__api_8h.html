@@ -140,9 +140,6 @@ Functions</h2></td></tr>
 <tr class="memitem:abff7c5b1b63aabfc77e14104de4ae3cb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#abff7c5b1b63aabfc77e14104de4ae3cb">ebpf_object_unpin</a> (const char *path)</td></tr>
 <tr class="memdesc:abff7c5b1b63aabfc77e14104de4ae3cb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unpin the object from the specified path.  <a href="ebpf__api_8h.html#abff7c5b1b63aabfc77e14104de4ae3cb">More...</a><br /></td></tr>
 <tr class="separator:abff7c5b1b63aabfc77e14104de4ae3cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af1636518b704a50a14f868545197dca7"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af1636518b704a50a14f868545197dca7">ebpf_api_get_pinned_map</a> (const uint8_t *name, uint32_t name_length, <a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> *handle)</td></tr>
-<tr class="memdesc:af1636518b704a50a14f868545197dca7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find a map given its associated name.  <a href="ebpf__api_8h.html#af1636518b704a50a14f868545197dca7">More...</a><br /></td></tr>
-<tr class="separator:af1636518b704a50a14f868545197dca7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab40d387a3551bff6b316d79f596837ef"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ab40d387a3551bff6b316d79f596837ef">ebpf_api_unlink_program</a> (<a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> link_handle)</td></tr>
 <tr class="memdesc:ab40d387a3551bff6b316d79f596837ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach the eBPF program from the link.  <a href="ebpf__api_8h.html#ab40d387a3551bff6b316d79f596837ef">More...</a><br /></td></tr>
 <tr class="separator:ab40d387a3551bff6b316d79f596837ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -529,50 +526,6 @@ Variables</h2></td></tr>
   <table class="retval">
     <tr><td class="paramname">0</td><td>Verification succeeded. </td></tr>
     <tr><td class="paramname">1</td><td>Verification failed. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="af1636518b704a50a14f868545197dca7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af1636518b704a50a14f868545197dca7">&#9670;&nbsp;</a></span>ebpf_api_get_pinned_map()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t ebpf_api_get_pinned_map </td>
-          <td>(</td>
-          <td class="paramtype">const uint8_t *&#160;</td>
-          <td class="paramname"><em>name</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">uint32_t&#160;</td>
-          <td class="paramname"><em>name_length</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> *&#160;</td>
-          <td class="paramname"><em>handle</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Find a map given its associated name. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">name</td><td>Name to find. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">name_length</td><td>Length in bytes of name to find. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">handle</td><td>Pointer to memory that contains the map handle on success. </td></tr>
   </table>
   </dd>
 </dl>
