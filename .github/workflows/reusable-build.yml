@@ -111,7 +111,7 @@ jobs:
       run: |
         cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
-    - name: Create catch2 project
+    - name: Create ubpf project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
         CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
