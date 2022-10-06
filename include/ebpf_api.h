@@ -183,15 +183,6 @@ extern "C"
     ebpf_object_unpin(_In_z_ const char* path);
 
     /**
-     * @brief Find a map given its associated name.
-     * @param[in] name Name to find.
-     * @param[in] name_length Length in bytes of name to find.
-     * @param[out] handle Pointer to memory that contains the map handle on success.
-     */
-    uint32_t
-    ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle);
-
-    /**
      * @brief Detach the eBPF program from the link.
      *
      * @param[in] link_handle Handle to the link.
