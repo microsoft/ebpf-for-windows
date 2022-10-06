@@ -36,7 +36,6 @@ install(
   FILES
     "${EBPFFORWINDOWS_PROGRAM_DATA}/bpftool.exe"
     "${EBPFFORWINDOWS_PROGRAM_DATA}/bpf2c.exe"
-    "${EBPFFORWINDOWS_PROGRAM_DATA}/ebpfsvc.exe"
     "${EBPFFORWINDOWS_PROGRAM_DATA}/export_program_info.exe"
 
     "${EBPFFORWINDOWS_PROGRAM_DATA}/EbpfApi.dll"
@@ -75,6 +74,21 @@ install(
 
   COMPONENT
     "Runtime"
+)
+
+#
+# JIT support
+#
+
+install(
+  FILES
+    "${EBPFFORWINDOWS_PROGRAM_DATA}/ebpfsvc.exe"
+
+  DESTINATION
+    "."
+
+  COMPONENT
+    "JIT"
 )
 
 #
@@ -141,6 +155,10 @@ include(CPack)
 cpack_add_component("Runtime"
   DISPLAY_NAME "Runtime components"
   REQUIRED
+)
+
+cpack_add_component("JIT"
+  DISPLAY_NAME "JIT support components"
 )
 
 cpack_add_component("Testing"
