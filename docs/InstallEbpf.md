@@ -11,6 +11,16 @@ Do the following from within the VM:
 1. Download the .msi file from the latest [release](https://github.com/microsoft/ebpf-for-windows/releases)
 2. Execute the .msi file you downloaded
 
+The following components are shown in the MSI to select from:
+
+* Runtime: this is the base eBPF runtime, and is required by the other components.  If you select only this
+  component, only [native code generation](NativeCodeGeneration.md) is enabled.
+* JIT: this adds support for JIT-compiled eBPF programs and (in a Debug build only) interpreted eBPF programs.
+* Development: this adds headers and libraries used for development.  If you only want to use eBPF for development
+  rather than running programs, you can [use the NuGet package](GettingStarted.md#using-ebpf-in-development)
+  instead of the MSI.
+* Testing: this adds tests for the eBPF runtime for use by eBPF runtime developers.
+
 ### Method 2 (Install files you built yourself)
 This method uses a machine that
 has already built the binaries for x64/Debug or x64/Release.

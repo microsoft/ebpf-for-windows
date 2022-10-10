@@ -351,7 +351,7 @@ If using Visual Studio as your IDE, your project can add a reference to the
 (You can also manually download the nuget package from the
 [latest release](https://github.com/microsoft/ebpf-for-windows/releases).)
 
-If you [installed eBPF for Windows via the MSI](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md)
+If you [installed eBPF for Windows via the MSI](InstallEbpf.md)
 and checked the Development checkbox, installation was completed for you.
 Otherwise, after installing the nuget package, as a one-time operation, you will
 currently need to run the `export_program_info.exe` tool to complete the install. This

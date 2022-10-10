@@ -111,9 +111,11 @@ function Start-eBPFComponents
         }
     }
 
-    # Start user mode service.
-    Start-Service "eBPFSvc" -ErrorAction Stop | Write-Log
-    Write-Host "eBPFSvc service started."
+    if (Test-Path -Path "ebpfsvc.exe") {
+        # Start user mode service.
+        Start-Service "eBPFSvc" -ErrorAction Stop | Write-Log
+        Write-Host "eBPFSvc service started."
+    }
 }
 
 #
