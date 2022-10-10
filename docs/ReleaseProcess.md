@@ -5,10 +5,9 @@ eBPF for Windows.
 
 Note: Currently releases are not production signed.
 
-1. Update the version number, making sure to follow [Semantic Versioning 2.0](https://semver.org), in the following two files:
-    * .github\workflows\reusable-build.yml
-    * tools\nuget\ebpf-for-windows.nuspec
-    * scripts\deploy-ebpf.ps1
+1. Update the version number, making sure to follow [Semantic Versioning 2.0](https://semver.org), in the following files:
+    * resource\ebpf_version.h
+    * docs\tutorial.md
 2. Create a pull request with the version number changes
 3. Once the build completes on the PR, download the
    "ebpf-for-windows.msi" and "ebpf-for-windows nuget" build artifacts

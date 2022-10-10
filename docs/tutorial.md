@@ -3,7 +3,14 @@
 This tutorial illustrates how eBPF works and in particular how the eBPF verifier works on Windows,
 starting from authoring a new eBPF program in C.
 
-To try out this tutorial yourself, you should first install the [Prerequisites](GettingStarted.md#Prerequisites).
+To try out this tutorial yourself, you will need:
+
+- Clang and nuget from [Prerequisites tools](GettingStarted.md#Prerequisites). 
+- a VM that can [load a Windows driver](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#installing-ebpf-for-windows). 
+  - Follow the [VM install instructions](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/vm-setup.md) to get started quickly.  
+- [eBPF installed](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md) on the VM. Using the MSI installer from a release is the fastest way to get started.
+- ebpf-for-windows nuget package: `nuget install eBPF-for-Windows`
+
 We'll start by understanding the basic structure of eBPF programs and then walk through how to
 apply them in a real use case.
 
@@ -16,7 +23,7 @@ fail if you have an old LLVM version in WSL, i.e., if `llvm-objdump -version`
 shows only LLVM version 3.8.0, it is too old and needs to be upgraded first.)
 However, we'll do this walkthrough assuming one is only using Windows.
 
-**Step 1)** Author a new file by putting some content into a file, say bpf.c:
+**Step 1)** Author a new file by putting some content into a file, say `bpf.c`:
 
 ```
 int func()
@@ -31,12 +38,10 @@ anything.
 **Step 2)** Compile optimized code with clang as follows:
 
 ```
-> clang -I ../../include -target bpf -Werror -O2 -c bpf.c -o bpf.o
+> clang -target bpf -Werror -O2 -c bpf.c -o bpf.o
 ```
 
-but replace `../../include` with the path to the ebpf-for-windows ./include directory.
-
-This will compile bpf.c (into bpf.o in this example) using bpf as the assembly format,
+This will compile `bpf.c` (into `bpf.o` in this example) using bpf as the assembly format,
 since eBPF has its own [instruction set architecture (ISA)](https://github.com/iovisor/bpf-docs/blob/master/eBPF.md).
 
 To see what clang did, we can generate disassembly as follows:
@@ -59,11 +64,11 @@ Since we compiled the program optimized, and without debug info, that's
 all we can get.
 
 **Step 3)** Repeat the above exercise but enable debugging using `-g` and
-for this walkthrough we will put the result into a separate .o file,
-bpf-d.o in this example:
+for this walkthrough we will put the result into a separate `.o` file,
+`bpf-d.o` in this example:
 
 ```
-> clang -I ../../include -target bpf -Werror -g -O2 -c bpf.c -o bpf-d.o
+> clang -target bpf -Werror -g -O2 -c bpf.c -o bpf-d.o
 ```
 
 
@@ -158,7 +163,7 @@ will be put into a section with a specified name, until another such
 pragma is encountered with a different name, or the end of the file is
 reached.  In this way, there can even be multiple sections per source file.
 
-Author a new file, say in "bpf2.c" this time, with another function and a
+Author a new file, say in `bpf2.c` this time, with another function and a
 pragma above each one:
 
 ```
@@ -207,63 +212,7 @@ To dump a specific section (e.g., myprog), use the following:
 > llvm-objdump --triple=bpf -S --section=myprog bpf2.o
 ```
 
-# 3. Compiling eBPF for Windows
-
-**Step 1)** Get the source code:
-
-```
-> git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git
-
-> cd ebpf-for-windows
-```
-
-**Step 2)** Generate a solution:
-
-eBPF for Windows uses the [Prevail eBPF verifier](https://github.com/vbpf/ebpf-verifier) as a submodule
-which uses a cmake-based build, so first we need to generate the Visual Studio project for it:
-
-```
-> cmake -S external\ebpf-verifier -B external\ebpf-verifier\build
-```
-
-This will result in a Visual Studio solution and projects getting generated
-in the specified subdirectory ("external\ebpf-verifier\build").
-
-**Step 3)** Build the solution:
-
-This can be done either from the command line or from within the Visual Studio UI.
-
-To use the command line:
-
-```
-> msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln
-```
-
-Or, to use the Visual Studio UI, open the solution in Visual Studio:
-
-```
-> ebpf-for-windows.sln
-```
-
-Next, right click on the solution in the Solution Explorer and select "Restore NuGet Packages".
-Then set the configuration to Debug and the platform to x64 (if not already set), and
-compile it with "Build->Build Solution".
-
-Building the solution may generate some compiler warnings, but should still
-compile successfully.
-
-
-# 4. Installing the eBPF netsh helper on Windows
-
-Now we're ready to learn how to use eBPF on Windows.  For this tutorial, we only need to install the netsh helper.
-From an Admin command shell, do the following from your ebpf-for-windows directory:
-
-```
-> copy x64\Debug\*.dll %windir%\system32
-> netsh add helper %windir%\system32\ebpfnetsh.dll
-```
-
-# 5. Verifying eBPF programs on Windows
+# 3. Verifying eBPF programs on Windows
 
 Normally verification happens at the time an eBPF program is submitted to be loaded.  That can be done,
 but in this tutorial, we'll just do verification _without_ needing to load the program.  This allows this
@@ -280,20 +229,20 @@ the directory you used for part 1:
 
              Section    Type  # Maps    Size
 ====================  ======  ======  ======
-               .text     xdp       0       2
+               .text  unspec       0       2
 
 > netsh ebpf show sections bpf-d.o
 
              Section    Type  # Maps    Size
 ====================  ======  ======  ======
-               .text     xdp       0       2
+               .text  unspec       0       2
 
 > netsh ebpf show sections bpf2.o
 
              Section    Type  # Maps    Size
 ====================  ======  ======  ======
-              myprog     xdp       0       2
-             another     xdp       0       2
+              myprog  unspec       0       2
+             another  unspec       0       2
 ```
 
 Notice that it only lists non-empty TEXT sections, whereas `llvm-objdump -h`
@@ -307,7 +256,7 @@ things out for readability, but feel free to abbreviate to save typing.
 **Step 2)** Run the verifier on our sample program
 
 ```
-> netsh ebpf show verification bpf.o
+> netsh ebpf show verification bpf.o type=xdp
 
 Verification succeeded
 Program terminates within 6 instructions
@@ -319,7 +268,7 @@ as the eBPF program to verify.  If we try the same on an object file with
 multiple such sections, we get this:
 
 ```
-> netsh ebpf show verification bpf2.o
+> netsh ebpf show verification bpf2.o type=xdp
 
 Verification succeeded
 Program terminates within 6 instructions
@@ -330,12 +279,12 @@ which was "myprog" in the section listing.  We can explicitly
 specify the section to use as follows:
 
 ```
-> netsh ebpf show verification bpf2.o myprog
+> netsh ebpf show verification bpf2.o myprog type=xdp
 
 Verification succeeded
 Program terminates within 6 instructions
 
-> netsh ebpf show verification bpf2.o another
+> netsh ebpf show verification bpf2.o another type=xdp
 
 Verification succeeded
 Program terminates within 6 instructions
@@ -413,7 +362,7 @@ We can view verbose output to see what the verifier is actually doing,
 using the "level=verbose" option to "show verification":
 
 ```
-> netsh ebpf show verification bpf.o level=verbose
+> netsh ebpf show verification bpf.o type=xdp level=verbose
 
 Pre-invariant : [
     instruction_count=0,
@@ -518,9 +467,9 @@ at the last Post-invariant, we see that r0 contains the number 0, r1
 contains a pointer to the ctx (context) with offset 0, r10 points to the
 top of the stack, and nothing is known about the contents of the stack.
 
-# 6. Advanced Topics
+# 4. Advanced Topics
 
-## 6.1. Hooks and arguments
+## 4.1. Hooks and arguments
 
 Hook points are callouts exposed by the system to which eBPF programs can
 attach.  By convention, the section name of the eBPF program in an ELF file
@@ -586,28 +535,51 @@ int my_xdp_parser(xdp_md_t* ctx)
 
 The verifier needs to be enlightened with the same prototype or all
 programs written for that hook will fail verification.  For Windows,
-this info is currently in the [windows_platform_common.cpp](../libs/api_common/windows_platform_common.cpp) file,
-which for the above prototype might have:
+information comes from the registry (HKCU:\Software\eBPF\Providers\SectionData)
+which will look like:
 
 ```
-const EbpfContextDescriptor g_xdp_context_descriptor = {
-    sizeof(xdp_md_t),
-    EBPF_OFFSET_OF(xdp_md_t, data),
-    EBPF_OFFSET_OF(xdp_md_t, data_end),
-    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+> ls HKCU:\Software\eBPF\Providers\SectionData
 
-const EbpfProgramType windows_xdp_program_type =
-    PTYPE("xdp",    // Just for printing messages to users.
-          &g_xdp_context_descriptor,
-          (uint64_t)&EBPF_PROGRAM_TYPE_XDP,
-          {"xdp"}); // Set of section name prefixes for matching.
+
+    Hive: HKEY_CURRENT_USER\Software\eBPF\Providers\SectionData
+
+
+Name                           Property
+----                           --------
+bind                           ProgramType   : {124, 81, 140, 96...}
+                               AttachType    : {4, 126, 112, 185...}
+                               BpfProgType   : 2
+                               BpfAttachType : 2
+cgroup/connect4                ProgramType   : {57, 142, 236, 146...}
+                               AttachType    : {177, 55, 46, 168...}
+                               BpfProgType   : 3
+                               BpfAttachType : 3
+cgroup/connect6                ProgramType   : {57, 142, 236, 146...}
+                               AttachType    : {178, 55, 46, 168...}
+                               BpfProgType   : 3
+                               BpfAttachType : 4
+cgroup/recv_accept4            ProgramType   : {57, 142, 236, 146...}
+                               AttachType    : {179, 55, 46, 168...}
+                               BpfProgType   : 3
+                               BpfAttachType : 5
+cgroup/recv_accept6            ProgramType   : {57, 142, 236, 146...}
+                               AttachType    : {180, 55, 46, 168...}
+                               BpfProgType   : 3
+                               BpfAttachType : 6
+sample_ext                     ProgramType   : {74, 239, 136, 247...}
+                               AttachType    : {75, 239, 136, 247...}
+                               BpfProgType   : 999
+                               BpfAttachType : 8
+sockops                        ProgramType   : {77, 34, 251, 67...}
+                               AttachType    : {205, 2, 125, 131...}
+                               BpfProgType   : 4
+                               BpfAttachType : 7
+xdp                            ProgramType   : {133, 42, 131, 241...}
+                               AttachType    : {239, 216, 224, 133...}
+                               BpfProgType   : 1
+                               BpfAttachType : 1
 ```
-
-Let's look at the code above in more detail.  The EbpfContextDescriptor
-info (i.e., `g_xdp_context_descriptor`) tells the verifier about the format
-of the context structure (i.e., `struct ebpf_xdp_args`). The struct is
-24 bytes long, includes packet data, and so the scalar fields that
-are safe to access start at offset 16.
 
 With the above, our sample program will pass verification:
 
@@ -659,7 +631,7 @@ the component exposing the hook, and the verifier itself, e.g., so that
 the size of the context struct could be `sizeof(xdp_md_t)`
 rather than hardcoding the number 32 in the above example.
 
-## 6.2. Helper functions and arguments
+## 4.2. Helper functions and arguments
 
 Now that we've seen how hooks work, let's look at how calls from an eBPF
 program into helper functions exposed by the system are verified.
@@ -690,8 +662,10 @@ int func()
 Let's compile it and see what it looks like.   Here we compile with `-g`
 to include source line info:
 
+> Note: Replace `.\eBPF-for-Windows.0.5.0\build\native\include\` with the path to the ebpf-for-windows nuget `./include` directory (should be in the directory where you ran `nuget install eBPF-for-Windows`). This is the first time we included header files while building so we need to use the Windows eBPF headers which we get from the nuget package.
+
 ```
-> clang -I ../../include -target bpf -Werror -g -O2 -c helpers.c -o helpers.o
+> clang -I .\eBPF-for-Windows.0.5.0\build\native\include\ -target bpf -Werror -g -O2 -c helpers.c -o helpers.o
 
 > llvm-objdump --triple bpf -S helpers.o
 
@@ -743,7 +717,7 @@ and the return value.
 ;     return result;
        5:       exit
 
-> netsh ebpf show verification helpers.o
+> netsh ebpf show verification helpers.o type=xdp
 Verification failed
 
 Verification report:
@@ -772,7 +746,7 @@ and knows that the program is invalid because it is passing null instead
 of a valid value.  We'll come back to this in section 6.3 to see how to
 use the helper correctly.
 
-## 6.3. Maps
+## 4.3. Maps
 
 Now that we've seen how helpers work, let's move on to
 [maps](https://github.com/iovisor/bcc/blob/master/docs/reference_guide.md#maps),
@@ -799,7 +773,7 @@ CPUs.
 
 
 ```
-#include "../../include/bpf_helpers.h"
+#include "bpf_helpers.h"
 
 SEC("maps")
 struct bpf_map map =
@@ -819,7 +793,7 @@ using the map parameters specified.  We can see the fields encoded
 into the `maps` section as follows:
 
 ```
-> clang -I ../../include -target bpf -Werror -g -O2 -c maponly.c -o maponly.o
+> clang -I -I .\eBPF-for-Windows.0.5.0\build\native\include\ -target bpf -Werror -g -O2 -c maponly.c -o maponly.o
 > llvm-objdump -s -section maps maponly.o
 
 maponly.o:      file format ELF64-BPF
@@ -955,6 +929,34 @@ So, to summarize, the verifier operates on pseudo FDs, not actual
 FDs or addresses.  When the program is actually installed, the relocation
 section will be used to insert the actual map address into the executable
 code.
+
+## 5. Installing eBPF programs
+
+`netsh ebpf` can also install your eBPF program. As an example, the program we created above won't do much but we can install it via:
+
+```
+netsh ebpf add program .\myxdp.o xdp
+```
+
+To see it installed:
+
+```
+> netsh ebpf show programs
+
+    ID  Pins  Links  Mode       Type           Name
+======  ====  =====  =========  =============  ====================
+ 65568     1      1  JIT        xdp            my_xdp_parser
+```
+
+And remove it by the id, which we saw above is 65568:
+
+```
+> netsh ebpf delete program 65568
+```
+
+You can also install and interact with the eBPF programs programmatically. See https://github.com/microsoft/ebpf-for-windows-demo for examples.
+
+Learn more about using eBPF at https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#using-ebpf-for-windows
 
 # 7. Next steps
 

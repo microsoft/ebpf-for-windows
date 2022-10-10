@@ -183,15 +183,6 @@ extern "C"
     ebpf_object_unpin(_In_z_ const char* path);
 
     /**
-     * @brief Find a map given its associated name.
-     * @param[in] name Name to find.
-     * @param[in] name_length Length in bytes of name to find.
-     * @param[out] handle Pointer to memory that contains the map handle on success.
-     */
-    uint32_t
-    ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle);
-
-    /**
      * @brief Detach the eBPF program from the link.
      *
      * @param[in] link_handle Handle to the link.
@@ -412,6 +403,20 @@ extern "C"
     ebpf_result_t
     ebpf_get_next_pinned_program_path(
         _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path);
+
+    typedef struct _ebpf_program_info ebpf_program_info_t;
+
+    /**
+     * @brief Get the set of program information used by the verifier during
+     * the last verification.
+     *
+     * @param[out] program_info Pointer to the program information used to
+     * verify the program.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_OBJECT_NOT_FOUND No program information was found.
+     */
+    ebpf_result_t
+    ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info);
 
 #ifdef __cplusplus
 }

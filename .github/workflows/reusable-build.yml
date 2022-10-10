@@ -61,7 +61,7 @@ jobs:
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true
-      uses: github/codeql-action/init@b398f525a5587552e573b247ac661067fafa920b
+      uses: github/codeql-action/init@e0e5ded33cabb451ae0a9768fc7b0410bad9ad44
       with:
         languages: 'cpp'
 
@@ -75,7 +75,7 @@ jobs:
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache nuget packages
-      uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+      uses: actions/cache@ac8075791e805656e71b4ba23325ace9e3421120
       env:
         cache-name: cache-nuget-modules
       with:
@@ -87,7 +87,7 @@ jobs:
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
     - name: Cache verifier project
-      uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+      uses: actions/cache@ac8075791e805656e71b4ba23325ace9e3421120
       env:
         cache-name: cache-verifier-project
       with:
@@ -111,7 +111,7 @@ jobs:
       run: |
         cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
-    - name: Create catch2 project
+    - name: Create ubpf project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
         CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
@@ -169,7 +169,8 @@ jobs:
       if: matrix.configurations == 'Release' && inputs.generate_release_package == true
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        cmake -S tools\setup -B build\setup -DEBPFFORWINDOWS_PROGRAM_DATA="${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\package_data" "-DEBPFFORWINDOWS_VERSION=0.3.0" -DCPACK_GENERATOR=WIX
+        $version = scripts\Get-Version.ps1
+        cmake -S tools\setup -B build\setup -DEBPFFORWINDOWS_PROGRAM_DATA="${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\package_data" "-DEBPFFORWINDOWS_VERSION=$version" -DCPACK_GENERATOR=WIX
         cmake --build build\setup --target package
 
     - name: Locate the packages
@@ -201,4 +202,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true
-      uses: github/codeql-action/analyze@b398f525a5587552e573b247ac661067fafa920b
+      uses: github/codeql-action/analyze@e0e5ded33cabb451ae0a9768fc7b0410bad9ad44

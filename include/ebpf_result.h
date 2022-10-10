@@ -106,9 +106,12 @@ extern "C"
 
         /// Operation was canceled.
         EBPF_CANCELED, // = 30
+
+        /// Invalid pointer.
+        EBPF_INVALID_POINTER,
     } ebpf_result_t;
 
-#define EBPF_RESULT_COUNT (EBPF_CANCELED + 1)
+#define EBPF_RESULT_COUNT (EBPF_INVALID_POINTER + 1)
 
 #ifdef __cplusplus
 }

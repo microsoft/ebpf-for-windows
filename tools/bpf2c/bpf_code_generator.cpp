@@ -226,7 +226,10 @@ bpf_code_generator::program_sections()
 
 void
 bpf_code_generator::parse(
-    const bpf_code_generator::unsafe_string& section_name, const GUID& program_type, const GUID& attach_type)
+    const bpf_code_generator::unsafe_string& section_name,
+    const GUID& program_type,
+    const GUID& attach_type,
+    const std::optional<std::vector<uint8_t>>& program_info_hash)
 {
     current_section = &sections[section_name];
     get_register_name(0);
@@ -234,16 +237,18 @@ bpf_code_generator::parse(
     get_register_name(10);
 
     set_pe_section_name(section_name);
-    set_program_and_attach_type(program_type, attach_type);
+    set_program_and_attach_type_and_hash(program_type, attach_type, program_info_hash);
     extract_program(section_name);
     extract_relocations_and_maps(section_name);
 }
 
 void
-bpf_code_generator::set_program_and_attach_type(const GUID& program_type, const GUID& attach_type)
+bpf_code_generator::set_program_and_attach_type_and_hash(
+    const GUID& program_type, const GUID& attach_type, const std::optional<std::vector<uint8_t>>& program_info_hash)
 {
     memcpy(&current_section->program_type, &program_type, sizeof(GUID));
     memcpy(&current_section->expected_attach_type, &attach_type, sizeof(GUID));
+    current_section->program_info_hash = program_info_hash;
 }
 
 void
@@ -504,11 +509,6 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 source = "IMMEDIATE(" + std::to_string(inst.imm) + ")";
             bool is64bit = (inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU64;
             AluOperations operation = static_cast<AluOperations>(inst.opcode >> 4);
-            std::string check_div_by_zero = format_string(
-                "if (%s == 0) {\n" INDENT INDENT "division_by_zero(%s);\n" INDENT INDENT
-                "return 0xffffffffffffffffui64;\n" INDENT "}",
-                source,
-                std::to_string(i));
             std::string swap_function;
             switch (operation) {
             case AluOperations::Add:
@@ -521,17 +521,16 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(format_string("%s *= %s;", destination, source));
                 break;
             case AluOperations::Div:
-                if (inst.opcode & EBPF_SRC_REG) {
-                    output.lines.push_back(check_div_by_zero);
-                } else if (inst.imm == 0) {
-                    throw bpf_code_generator_exception(
-                        "invalid instruction - constant division by zero", output.instruction_offset);
-                }
                 if (is64bit)
-                    output.lines.push_back(format_string("%s /= %s;", destination, source));
-                else
                     output.lines.push_back(
-                        format_string("%s = (uint32_t)%s / (uint32_t)%s;", destination, destination, source));
+                        format_string("%s = %s ? (%s / %s) : 0;", destination, source, destination, source));
+                else
+                    output.lines.push_back(format_string(
+                        "%s = (uint32_t)%s ? (uint32_t)%s / (uint32_t)%s : 0;",
+                        destination,
+                        source,
+                        destination,
+                        source));
                 break;
             case AluOperations::Or:
                 output.lines.push_back(format_string("%s |= %s;", destination, source));
@@ -552,17 +551,17 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(format_string("%s = -(int64_t)%s;", destination, destination));
                 break;
             case AluOperations::Mod:
-                if (inst.opcode & EBPF_SRC_REG) {
-                    output.lines.push_back(check_div_by_zero);
-                } else if (inst.imm == 0) {
-                    throw bpf_code_generator_exception(
-                        "invalid instruction - constant division by zero", output.instruction_offset);
-                }
                 if (is64bit)
-                    output.lines.push_back(format_string("%s %%= %s;", destination, source));
+                    output.lines.push_back(format_string(
+                        "%s = %s ? (%s %% %s): %s ;", destination, source, destination, source, destination));
                 else
-                    output.lines.push_back(
-                        format_string("%s = (uint32_t)%s %% (uint32_t)%s;", destination, destination, source));
+                    output.lines.push_back(format_string(
+                        "%s = (uint32_t)%s ? ((uint32_t)%s %% (uint32_t)%s) : (uint32_t)%s;",
+                        destination,
+                        source,
+                        destination,
+                        source,
+                        destination));
                 break;
             case AluOperations::Xor:
                 output.lines.push_back(format_string("%s ^= %s;", destination, source));
@@ -909,6 +908,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         // Emit the program and attach type GUID.
         std::string program_type_name = program_name.c_identifier() + "_program_type_guid";
         std::string attach_type_name = program_name.c_identifier() + "_attach_type_guid";
+        std::string program_info_hash_name = program_name.c_identifier() + "_program_info_hash";
 
         auto guid_declaration =
             format_string("static GUID %s = %s;", program_type_name, format_guid(&section.program_type, false));
@@ -930,6 +930,20 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                                  attach_type_name,
                                  format_guid(&section.expected_attach_type, true))
                           << std::endl;
+        }
+
+        if (section.program_info_hash.has_value()) {
+            output_stream << "static const uint8_t " << program_info_hash_name << "[] = {" << std::endl;
+            for (size_t i = 0; i < section.program_info_hash.value().size(); i++) {
+                if (i % 16 == 0) {
+                    output_stream << INDENT "";
+                }
+                output_stream << std::to_string(section.program_info_hash.value().at(i)) << ", ";
+                if (i % 16 == 15) {
+                    output_stream << std::endl;
+                }
+            }
+            output_stream << INDENT "};" << std::endl;
         }
 
         if (section.referenced_map_indices.size() > 0) {
@@ -1018,6 +1032,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto helper_array_name = helper_count ? (program_name.c_identifier() + "_helpers") : "NULL";
             auto program_type_guid_name = program_name.c_identifier() + "_program_type_guid";
             auto attach_type_guid_name = program_name.c_identifier() + "_attach_type_guid";
+            auto program_info_hash_name = program_name.c_identifier() + "_program_info_hash";
             output_stream << INDENT "{" << std::endl;
             output_stream << INDENT INDENT << "0," << std::endl;
             output_stream << INDENT INDENT << program_name.c_identifier() << "," << std::endl;
@@ -1031,6 +1046,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT INDENT << program.output.size() << "," << std::endl;
             output_stream << INDENT INDENT "&" << program_type_guid_name << "," << std::endl;
             output_stream << INDENT INDENT "&" << attach_type_guid_name << "," << std::endl;
+            if (program.program_info_hash.has_value()) {
+                output_stream << INDENT INDENT << program_info_hash_name << "," << std::endl;
+                output_stream << INDENT INDENT << program.program_info_hash.value().size() << "," << std::endl;
+            }
             output_stream << INDENT "}," << std::endl;
         }
         output_stream << "};" << std::endl;
@@ -1094,7 +1113,8 @@ bpf_code_generator::format_string(
     const std::string insert_1,
     const std::string insert_2,
     const std::string insert_3,
-    const std::string insert_4)
+    const std::string insert_4,
+    const std::string insert_5)
 {
     std::string output(200, '\0');
     if (insert_2.empty()) {
@@ -1105,10 +1125,20 @@ bpf_code_generator::format_string(
         auto count = snprintf(output.data(), output.size(), format.c_str(), insert_1.c_str(), insert_2.c_str());
         if (count < 0)
             throw bpf_code_generator_exception("Error formatting string");
-    }
-    if (insert_4.empty()) {
+    } else if (insert_4.empty()) {
         auto count = snprintf(
             output.data(), output.size(), format.c_str(), insert_1.c_str(), insert_2.c_str(), insert_3.c_str());
+        if (count < 0)
+            throw bpf_code_generator_exception("Error formatting string");
+    } else if (insert_5.empty()) {
+        auto count = snprintf(
+            output.data(),
+            output.size(),
+            format.c_str(),
+            insert_1.c_str(),
+            insert_2.c_str(),
+            insert_3.c_str(),
+            insert_4.c_str());
         if (count < 0)
             throw bpf_code_generator_exception("Error formatting string");
     } else {
@@ -1119,7 +1149,8 @@ bpf_code_generator::format_string(
             insert_1.c_str(),
             insert_2.c_str(),
             insert_3.c_str(),
-            insert_4.c_str());
+            insert_4.c_str(),
+            insert_5.c_str());
         if (count < 0)
             throw bpf_code_generator_exception("Error formatting string");
     }

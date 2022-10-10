@@ -13,5 +13,5 @@
 #endif
 
 #include "git_commit_id.h"
-#define EBPF_VERSION "0.0.0.1"
+#include "ebpf_version.h"
 #define EBPF_PRODUCT_NAME "eBPF for Windows"

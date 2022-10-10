@@ -412,7 +412,8 @@ ebpf_get_next_program_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
  * * struct bpf_prog_info
  *
  * @param[in] bpf_fd File descriptor referring to an eBPF object.
- * @param[out] info Pointer to memory in which to write the info obtained.
+ * @param[in,out] info Pointer to memory in which to write the info obtained.
+ * On input, contains any additional parameters to use.
  * @param[in,out] info_size On input, contains the maximum number of bytes to
  * write into the info.  On output, contains the actual number of bytes written.
  *
@@ -421,7 +422,7 @@ ebpf_get_next_program_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
  */
 ebpf_result_t
 ebpf_object_get_info_by_fd(
-    fd_t bpf_fd, _Out_writes_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size) noexcept;
+    fd_t bpf_fd, _Inout_updates_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size) noexcept;
 
 /**
  * @brief Pin an object to the specified path.

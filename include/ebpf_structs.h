@@ -33,6 +33,9 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_RINGBUF = 13          ///< Ring buffer.
 } ebpf_map_type_t;
 
+#define BPF_MAP_TYPE_PER_CPU(X) \
+    ((X) == BPF_MAP_TYPE_PERCPU_HASH || (X) == BPF_MAP_TYPE_PERCPU_ARRAY || (X) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
+
 static const char* const _ebpf_map_type_names[] = {
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_UNSPEC),
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_HASH),
@@ -367,6 +370,7 @@ struct bpf_prog_info
     ebpf_id_t id;                ///< Program ID.
     enum bpf_prog_type type;     ///< Program type, if a cross-platform type.
     uint32_t nr_map_ids;         ///< Number of maps associated with this program.
+    uintptr_t map_ids;           ///< Pointer to caller-allocated array to fill map IDs into.
     char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated program name.
 
     // Windows-specific fields.

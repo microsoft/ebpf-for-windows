@@ -1508,7 +1508,7 @@ _ebpf_core_protocol_get_object_info(
         result = ebpf_map_get_info((ebpf_map_t*)object, reply->info, &info_size);
         break;
     case EBPF_OBJECT_PROGRAM:
-        result = ebpf_program_get_info((ebpf_program_t*)object, reply->info, &info_size);
+        result = ebpf_program_get_info((ebpf_program_t*)object, request->info, reply->info, &info_size);
         break;
     }
 
@@ -1975,7 +1975,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(get_next_link_id, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(get_next_map_id, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(get_next_program_id, PROTOCOL_ALL_MODES),
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(get_object_info, info, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(get_object_info, info, info, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
         get_next_pinned_program_path, start_path, next_path, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(bind_map, PROTOCOL_ALL_MODES),

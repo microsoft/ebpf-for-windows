@@ -78,6 +78,8 @@ extern "C"
         size_t bpf_instruction_count;
         ebpf_program_type_t* program_type;
         ebpf_attach_type_t* expected_attach_type;
+        const uint8_t* program_info_hash;
+        size_t program_info_hash_length;
     } program_entry_t;
 
     typedef struct _metadata_table
