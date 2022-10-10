@@ -1,10 +1,9 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
-ARG WINDOWS_VERSION=1809
-
+# Base image for Windows nanoserver 1809.
 # The files in this image are copied to $env:CONTAINER_SANDBOX_MOUNT_POINT on the host.
-FROM mcr.microsoft.com/windows/nanoserver:${WINDOWS_VERSION}
+FROM mcr.microsoft.com/windows/nanoserver@sha256:fb16d42712f3599c849723d365a7ddc5fb95e8bf1674d97e9f9cbcb726e7525d
 
 ENV PATH="C:\Program Files\PowerShell;C:\utils;C:\Windows\system32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0;"
 
