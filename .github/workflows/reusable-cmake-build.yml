@@ -45,7 +45,7 @@ jobs:
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache nuget packages
-      uses: actions/cache@ac8075791e805656e71b4ba23325ace9e3421120
+      uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
       env:
         cache-name: cache-nuget-modules
       with:
