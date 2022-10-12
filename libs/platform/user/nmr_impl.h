@@ -8,8 +8,8 @@
 #include <optional>
 #include <vector>
 
-#include <ebpf_platform.h>
-#include <kernel_um.h>
+#include "ebpf_platform.h"
+#include "kernel_um.h"
 #include <netiodef.h>
 #include <../km/netioddk.h>
 

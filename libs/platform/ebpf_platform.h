@@ -1017,8 +1017,6 @@ extern "C"
     void
     ebpf_restore_current_thread_affinity(uintptr_t old_thread_affinity_mask);
 
-    typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
-
     /**
      * @brief Map an ebpf_result_t to a generic NTSTATUS code.
      *

@@ -4,8 +4,7 @@
 #include <condition_variable>
 #include <mutex>
 
-#include "netebpfext_platform.h"
-
+#include "ebpf_platform.h"
 #include "kernel_um.h"
 
 typedef struct _mock_rundown_ref

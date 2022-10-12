@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "netebpfext_platform.h"
 #include "nmr_impl.h"
 
 // TODO(Issue #1134): ebpf_extension_user.c doesn't implement provider unload correctly.
