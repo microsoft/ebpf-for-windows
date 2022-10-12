@@ -29,7 +29,7 @@ typedef struct _MDL
 typedef struct _IO_WORKITEM
 {
     DEVICE_OBJECT* device;
-    ebpf_preemptible_work_item_t* work_item;
+    PTP_WORK work_item;
     IO_WORKITEM_ROUTINE* routine;
     void* context;
 } IO_WORKITEM;
@@ -197,10 +197,12 @@ IoAllocateMdl(
     return mdl;
 }
 
-void
-io_work_item_wrapper(_In_opt_ const void* work_item_context)
+void NTAPI
+io_work_item_wrapper(_Inout_ PTP_CALLBACK_INSTANCE instance, _Inout_opt_ PVOID context, _Inout_ PTP_WORK work)
 {
-    auto work_item = reinterpret_cast<const IO_WORKITEM*>(work_item_context);
+    UNREFERENCED_PARAMETER(instance);
+    UNREFERENCED_PARAMETER(work);
+    auto work_item = reinterpret_cast<const IO_WORKITEM*>(context);
     if (work_item) {
         work_item->routine(work_item->device, work_item->context);
     }
@@ -214,8 +216,8 @@ IoAllocateWorkItem(_In_ DEVICE_OBJECT* device_object)
         return nullptr;
     }
     work_item->device = device_object;
-    ebpf_result_t result = ebpf_allocate_preemptible_work_item(&work_item->work_item, io_work_item_wrapper, work_item);
-    if (result != EBPF_SUCCESS) {
+    work_item->work_item = CreateThreadpoolWork(io_work_item_wrapper, work_item, nullptr);
+    if (work_item->work_item == nullptr) {
         ebpf_free(work_item);
         work_item = nullptr;
     }
@@ -232,14 +234,14 @@ IoQueueWorkItem(
     UNREFERENCED_PARAMETER(queue_type);
     io_workitem->routine = worker_routine;
     io_workitem->context = context;
-    ebpf_queue_preemptible_work_item(io_workitem->work_item);
+    SubmitThreadpoolWork(io_workitem->work_item);
 }
 
 void
 IoFreeWorkItem(_In_ __drv_freesMem(Mem) PIO_WORKITEM io_workitem)
 {
     if (io_workitem) {
-        ebpf_free_preemptible_work_item(io_workitem->work_item);
+        CloseThreadpoolWork(io_workitem->work_item);
         ebpf_free(io_workitem);
     }
 }
