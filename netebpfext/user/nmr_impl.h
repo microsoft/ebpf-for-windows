@@ -120,7 +120,7 @@ typedef class _nmr
     {
         const NPI_CLIENT_CHARACTERISTICS characteristics = {};
         const void* context = nullptr;
-        size_t bindings = 0;
+        volatile long long bindings = 0;
         bool deregistering = false;
     };
 
@@ -128,7 +128,7 @@ typedef class _nmr
     {
         const NPI_PROVIDER_CHARACTERISTICS characteristics = {};
         const void* context = nullptr;
-        size_t bindings = 0;
+        volatile long long bindings = 0;
         bool deregistering = false;
     };
 

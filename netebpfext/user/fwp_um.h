@@ -27,7 +27,7 @@ typedef class _fwp_engine
     }
 
     uint32_t
-    add_fwps_callout(const FWPS_CALLOUT3* callout)
+    register_fwps_callout(const FWPS_CALLOUT3* callout)
     {
         std::unique_lock l(lock);
         uint32_t id = next_id++;

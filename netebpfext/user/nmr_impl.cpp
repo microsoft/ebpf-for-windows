@@ -163,8 +163,8 @@ _nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& p
     }
 
     // Acquire references on both client and provider to prevent them from unloading.
-    client.bindings++;
-    provider.bindings++;
+    _InterlockedIncrement64(&client.bindings);
+    _InterlockedIncrement64(&provider.bindings);
 
     nmr_binding_handle h = reinterpret_cast<nmr_binding_handle>(next_handle++);
     bindings.insert({h, {provider, client}});
@@ -196,8 +196,8 @@ _nmr::unbind_complete(_In_ nmr_binding_handle binding_handle)
     // Notify the provider that that the binding context can be freed.
     binding.provider.characteristics.ProviderCleanupBindingContext(const_cast<void*>(binding.provider_binding_context));
 
-    binding.provider.bindings--;
-    binding.client.bindings--;
+    _InterlockedDecrement64(&binding.provider.bindings);
+    _InterlockedDecrement64(&binding.client.bindings);
     bindings.erase(it);
 
     // Notify the client or provider to check if they have any pending bindings.

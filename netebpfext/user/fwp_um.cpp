@@ -30,33 +30,41 @@ _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_in
     }
     FWPS_FILTER fwps_filter = {.context = fwpm_filter->rawContext};
     NET_BUFFER_LIST_POOL_PARAMETERS pool_parameters = {};
-    HANDLE nbl_pool_handle = NdisAllocateNetBufferListPool(nullptr, &pool_parameters);
+    std::unique_ptr<void, decltype(&NdisFreeNetBufferListPool)> nbl_pool_handle(
+        NdisAllocateNetBufferListPool(nullptr, &pool_parameters), NdisFreeNetBufferListPool);
     if (!nbl_pool_handle) {
         return FWP_ACTION_CALLOUT_UNKNOWN;
     }
-    NET_BUFFER_LIST* nbl = NdisAllocateNetBufferList(nbl_pool_handle, 0, 0);
-    if (nbl) {
-        ULONG data = 0;
-        MDL* mdl_chain = IoAllocateMdl(&data, sizeof(data), false, false, nullptr);
-        if (mdl_chain) {
-            NET_BUFFER* nb = NdisAllocateNetBuffer(nbl_pool_handle, mdl_chain, 0, sizeof(data));
-            if (nb) {
-                nbl->FirstNetBuffer = nb;
-                callout->classifyFn(
-                    &incoming_fixed_values,
-                    &incoming_metadata_values,
-                    nbl,
-                    nullptr, // classifyContext,
-                    &fwps_filter,
-                    0, // flowContext,
-                    &result);
-                NdisFreeNetBuffer(nb);
-            }
-            IoFreeMdl(mdl_chain);
-        }
-        NdisFreeNetBufferList(nbl);
+
+    std::unique_ptr<NET_BUFFER_LIST, decltype(&NdisFreeNetBufferList)> nbl(
+        NdisAllocateNetBufferList(nbl_pool_handle.get(), 0, 0), NdisFreeNetBufferList);
+    if (!nbl) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
     }
-    NdisFreeNetBufferListPool(nbl_pool_handle);
+
+    ULONG data = 0;
+    std::unique_ptr<MDL, decltype(&IoFreeMdl)> mdl_chain(
+        IoAllocateMdl(&data, sizeof(data), FALSE, FALSE, nullptr), IoFreeMdl);
+    if (!mdl_chain) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+
+    std::unique_ptr<NET_BUFFER, decltype(&NdisFreeNetBuffer)> nb(
+        NdisAllocateNetBuffer(nbl_pool_handle.get(), mdl_chain.get(), 0, sizeof(data)), NdisFreeNetBuffer);
+    if (!nb) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+
+    nbl->FirstNetBuffer = nb.get();
+    callout->classifyFn(
+        &incoming_fixed_values,
+        &incoming_metadata_values,
+        nbl.get(),
+        nullptr, // classifyContext,
+        &fwps_filter,
+        0, // flowContext,
+        &result);
+
     return result.actionType;
 }
 
@@ -125,7 +133,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
 
     auto& engine = *_fwp_engine::get()->get();
 
-    auto id_returned = engine.add_fwps_callout(callout);
+    auto id_returned = engine.register_fwps_callout(callout);
 
     if (callout_id) {
         *callout_id = id_returned;
