@@ -190,11 +190,16 @@ _nmr::unbind_complete(_In_ nmr_binding_handle binding_handle)
     }
     auto& binding = it->second;
 
-    // Notify the client that that the binding context can be freed.
-    binding.client.characteristics.ClientCleanupBindingContext(const_cast<void*>(binding.client_binding_context));
+    if (binding.client_binding_context != nullptr) {
+        // Notify the client that that the binding context can be freed.
+        binding.client.characteristics.ClientCleanupBindingContext(const_cast<void*>(binding.client_binding_context));
+    }
 
-    // Notify the provider that that the binding context can be freed.
-    binding.provider.characteristics.ProviderCleanupBindingContext(const_cast<void*>(binding.provider_binding_context));
+    if (binding.provider_binding_context != nullptr) {
+        // Notify the provider that that the binding context can be freed.
+        binding.provider.characteristics.ProviderCleanupBindingContext(
+            const_cast<void*>(binding.provider_binding_context));
+    }
 
     _InterlockedDecrement64(&binding.provider.bindings);
     _InterlockedDecrement64(&binding.client.bindings);

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <Windows.h>
-
 #include <chrono>
 #include <filesystem>
 #include <map>

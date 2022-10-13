@@ -157,8 +157,8 @@ _ebpf_extension_client_detach_provider(void* client_binding_context)
     EBPF_RETURN_NTSTATUS(STATUS_SUCCESS);
 }
 
-void
-_ebpf_extension_client_cleanup_binding_context(void* client_binding_context)
+static void
+_ebpf_extension_client_cleanup_binding_context(_In_ void* client_binding_context)
 {
     EBPF_LOG_ENTRY();
     ebpf_extension_client_binding_context_t* local_client_binding_context =

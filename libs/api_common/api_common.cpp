@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
-#include <Windows.h>
 
 #include "api_common.hpp"
 #include "ebpf_protocol.h"

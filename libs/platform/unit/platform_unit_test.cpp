@@ -3,6 +3,7 @@
 
 // Windows build system requires include of Windows.h before other Windows
 // headers.
+#include <winsock2.h>
 #include <Windows.h>
 
 #include <chrono>

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <windows.h>
+#include "ebpf_platform.h"
 #include "ebpf_api.h"
 #include "platform.h"
 
