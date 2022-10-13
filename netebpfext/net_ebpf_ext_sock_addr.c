@@ -303,7 +303,6 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         (net_ebpf_extension_wfp_filter_parameters_array_t*)net_ebpf_extension_hook_provider_get_custom_data(
             provider_context);
     ASSERT(filter_parameters != NULL);
-
     filter_context->filter_instance_count = filter_parameters->count;
 
     // Add a single WFP filter at the WFP layer corresponding to the hook type, and set the hook NPI client as the
@@ -339,7 +338,7 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
         (net_ebpf_extension_sock_addr_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
             detaching_client);
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters(filter_context->filter_instance_count, filter_context->filter_instances);
+    net_ebpf_extension_delete_wfp_filters((net_ebpf_extension_wfp_filter_context_t*)filter_context);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
@@ -443,30 +442,80 @@ _net_ebpf_ext_sock_addr_get_redirect_handle(uint64_t filter_id, _Out_ HANDLE* re
     return status;
 }
 
+/*
 //
 // Lifetime management of endpoint context is different for TCP and UDP.
 //
 // In case of TCP, when action is:
 // 1. BLOCK, AUTH callout is called once. Initial ref = 1.
 // 2. ALLOW / REDIRECT, AUTH callout is called twice. Initial ref = 2.
+// 3. In case of loopback, AUTH callout is called twice. Initial ref = 2.
 //
 // In case of UDP, it is possible that the user mode app creates and
 // connects a socket but never sends a packet. Hence there is no guarantee
 // that AUTH callout will be called. For UDP, context lifetime is managed
 // via ENDPOINT_CLOSURE callout. Initial ref = 1.
 static long
-_get_initial_reference_count(uint32_t protocol, uint32_t verdict)
+_get_initial_reference_count(uint32_t protocol, bool loopback, uint32_t verdict)
 {
     long reference_count;
 
     ASSERT(protocol == IPPROTO_TCP || protocol == IPPROTO_UDP);
     if (protocol == IPPROTO_TCP) {
-        if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
-            // In case of ALLOW / REDIRECT, AUTH callout will be called twice.
-            reference_count = 2;
-        } else {
-            // In case of BLOCK, AUTH callout will be called only once.
+        if (loopback) {
+            // In case of loopback, AUTH callout will be called once.
             reference_count = 1;
+        } else {
+            if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
+                // In case of ALLOW / REDIRECT, AUTH callout will be called twice.
+                reference_count = 2;
+            }
+            else {
+                // In case of BLOCK, AUTH callout will be called only once.
+                reference_count = 1;
+            }
+        }
+    } else {
+        // In case of UDP, initial ref is always 1.
+        reference_count = 1;
+    }
+
+    return reference_count;
+}
+*/
+
+//
+// Lifetime management of endpoint context is different for TCP and UDP.
+//
+// In case of TCP, when action is:
+// 1. BLOCK, AUTH callout is called once. Initial ref = 1.
+// 2. ALLOW / REDIRECT, AUTH callout is called twice. Initial ref = 2.
+// 3. In case of loopback, AUTH callout is called twice. Initial ref = 2.
+//
+// In case of UDP, it is possible that the user mode app creates and
+// connects a socket but never sends a packet. Hence there is no guarantee
+// that AUTH callout will be called. For UDP, context lifetime is managed
+// via ENDPOINT_CLOSURE callout. Initial ref = 1.
+//
+static long
+_get_initial_reference_count(uint32_t protocol, bool loopback, uint32_t verdict)
+{
+    long reference_count;
+    UNREFERENCED_PARAMETER(loopback);
+
+    ASSERT(protocol == IPPROTO_TCP || protocol == IPPROTO_UDP);
+    if (protocol == IPPROTO_TCP) {
+        if (loopback) {
+            // In case of loopback, AUTH callout will be called once.
+            reference_count = 1;
+        } else {
+            if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
+                // In case of ALLOW / REDIRECT, AUTH callout will be called twice.
+                reference_count = 2;
+            } else {
+                // In case of BLOCK, AUTH callout will be called only once.
+                reference_count = 1;
+            }
         }
     } else {
         // In case of UDP, initial ref is always 1.
@@ -493,6 +542,22 @@ _net_ebpf_ext_reinitialize_connection_context(
     connection_context->transport_endpoint_handle = transport_endpoint_handle;
 }
 
+static bool
+_net_ebpf_ext_is_loopback_address(_In_ const bpf_sock_addr_t* address)
+{
+    SOCKADDR socket_address = {0};
+    socket_address.sa_family = (ADDRESS_FAMILY)address->family;
+    if (socket_address.sa_family == AF_INET) {
+        SOCKADDR_IN* v4_address = (SOCKADDR_IN*)&socket_address;
+        v4_address->sin_addr.S_un.S_addr = address->user_ip4;
+    } else {
+        SOCKADDR_IN6* v6_address = (SOCKADDR_IN6*)&socket_address;
+        memcpy(&v6_address->sin6_addr.u.Byte, &address->user_ip6, 16);
+    }
+
+    return INETADDR_ISLOOPBACK(&socket_address);
+}
+
 static void
 _net_ebpf_ext_initialize_connection_context(
     _In_ const bpf_sock_addr_t* original_sock_addr,
@@ -505,7 +570,8 @@ _net_ebpf_ext_initialize_connection_context(
     _net_ebpf_ext_reinitialize_connection_context(
         original_sock_addr, redirected_sock_addr, redirected, verdict, transport_endpoint_handle, connection_context);
 
-    connection_context->reference_count = _get_initial_reference_count(original_sock_addr->protocol, verdict);
+    connection_context->reference_count = _get_initial_reference_count(
+        original_sock_addr->protocol, _net_ebpf_ext_is_loopback_address(redirected_sock_addr), verdict);
 }
 
 static NTSTATUS
@@ -958,7 +1024,7 @@ _net_ebpf_ext_populate_redirect_record(
 }
 
 static ebpf_result_t
-_net_ebpf_ext_get_attached_client_from_filter_id(
+_net_ebpf_ext_get_attached_client_by_filter_id(
     uint64_t filter_id,
     _In_ const ebpf_attach_type_t* attach_type,
     _Outptr_ net_ebpf_extension_hook_client_t** attached_client)
@@ -1173,7 +1239,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         const GUID* attach_type =
             v4_mapped ? &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT : &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT;
 
-        result = _net_ebpf_ext_get_attached_client_from_filter_id(filter->filterId, attach_type, &attached_client);
+        result = _net_ebpf_ext_get_attached_client_by_filter_id(filter->filterId, attach_type, &attached_client);
         if (result != EBPF_SUCCESS) {
             status = STATUS_INVALID_PARAMETER;
             goto Exit;
@@ -1202,9 +1268,10 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     if (v4_mapped) {
         sock_addr_ctx.family = AF_INET;
-        const uint8_t* v4_ip = IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)sock_addr_ctx.user_ip6);
+        const uint8_t* v4_ip = IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx.user_ip6);
+        uint32_t local_v4_ip = *((uint32_t*)v4_ip);
         memset(sock_addr_ctx.user_ip6, 0, 16);
-        sock_addr_ctx.user_ip4 = *((uint32_t*)v4_ip);
+        sock_addr_ctx.user_ip4 = local_v4_ip;
     }
 
     compartment_id = filter_context->compartment_id;
@@ -1247,7 +1314,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     if (v4_mapped) {
         sock_addr_ctx.family = AF_INET6;
-        IN6_SET_ADDR_V4MAPPED((IN6_ADDR*)sock_addr_ctx.user_ip6, (IN_ADDR*)sock_addr_ctx.user_ip4);
+        IN_ADDR v4_address = *((IN_ADDR*)&sock_addr_ctx.user_ip4);
+        IN6_SET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx.user_ip6, (IN_ADDR*)&v4_address);
     }
 
     if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {

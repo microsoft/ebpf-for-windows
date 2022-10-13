@@ -148,6 +148,7 @@ net_ebpf_extension_sock_ops_on_client_attach(
     if (result != EBPF_SUCCESS)
         goto Exit;
     filter_context->compartment_id = compartment_id;
+    filter_context->filter_instance_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
     KeInitializeSpinLock(&filter_context->lock);
     InitializeListHead(&filter_context->flow_context_list.list_head);
 
@@ -188,7 +189,7 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
     KIRQL irql;
     bool lock_held = FALSE;
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters(NET_EBPF_SOCK_OPS_FILTER_COUNT, filter_context->filter_instances);
+    net_ebpf_extension_delete_wfp_filters((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
     lock_held = TRUE;

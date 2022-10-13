@@ -21,6 +21,16 @@ void
 get_address_from_string(
     std::string& address_string, sockaddr_storage& address, _Out_opt_ ADDRESS_FAMILY* address_family = nullptr);
 
+std::string
+get_string_from_address(_In_ const void* sockaddr, ADDRESS_FAMILY family);
+
+typedef enum _expected_result
+{
+    success,
+    timeout,
+    failure,
+} expected_result_t;
+
 /**
  * @class A dual stack UDP or raw socket bound to wildcard address that is used to receive datagrams.
  */
@@ -33,11 +43,17 @@ typedef class _base_socket
     void
     get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length);
 
+    void
+    get_received_message(_Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message);
+
   protected:
     SOCKET socket;
     int sock_type;
     int protocol;
     uint16_t port;
+    std::vector<char> recv_buffer;
+    uint32_t recv_flags;
+    uint32_t bytes_received = 0;
 
   private:
     sockaddr_storage local_address;
@@ -54,9 +70,21 @@ typedef class _sender_socket : public _base_socket
     virtual void
     send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port) = 0;
     virtual void
+    complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::success) = 0;
+    virtual void
+    post_async_receive(bool error_expected = false);
+    virtual void
+    complete_async_receive(int timeout_in_ms, bool timeout_or_error_expected);
+    virtual void
     cancel_send_message() = 0;
     void
     close();
+
+  protected:
+    // std::vector<char> recv_buffer;
+    // uint32_t recv_flags;
+    // uint32_t bytes_received = 0;
+    WSAOVERLAPPED overlapped;
 } sender_socket_t;
 
 /**
@@ -70,6 +98,8 @@ typedef class _datagram_sender_socket : public _sender_socket
     send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port);
     void
     cancel_send_message();
+    void
+    complete_async_send(int timeout_in_ms, expected_result_t expected_result);
 } datagram_sender_socket_t;
 
 /**
@@ -83,10 +113,11 @@ typedef class _stream_sender_socket : public _sender_socket
     send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port);
     void
     cancel_send_message();
+    void
+    complete_async_send(int timeout_in_ms, expected_result_t expected_result);
 
   private:
     LPFN_CONNECTEX connectex;
-    WSAOVERLAPPED overlapped;
 } stream_sender_socket_t;
 
 /**
@@ -99,11 +130,17 @@ typedef class _receiver_socket : public _base_socket
     ~_receiver_socket();
     void
     complete_async_receive(bool timeout_expected = false);
+    virtual void
+    complete_async_send(int timeout_in_ms) = 0;
+    void
+    complete_async_receive(int timeout_in_ms, bool timeout_expected = false);
     void
     get_received_message(_Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message);
 
     virtual void
     post_async_receive() = 0;
+    virtual void
+    send_async_response(_In_z_ const char* message) = 0;
     virtual void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length) = 0;
     virtual void
@@ -111,9 +148,9 @@ typedef class _receiver_socket : public _base_socket
 
   protected:
     WSAOVERLAPPED overlapped;
-    std::vector<char> recv_buffer;
-    uint32_t recv_flags;
-    uint32_t bytes_received = 0;
+    // std::vector<char> recv_buffer;
+    // uint32_t recv_flags;
+    // uint32_t bytes_received = 0;
 
 } receiver_socket_t;
 
@@ -126,6 +163,10 @@ typedef class _datagram_receiver_socket : public _receiver_socket
     _datagram_receiver_socket(int _sock_type, int _protocol, uint16_t port);
     void
     post_async_receive();
+    void
+    send_async_response(_In_z_ const char* message);
+    void
+    complete_async_send(int timeout_in_ms);
     void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
     void
@@ -146,6 +187,10 @@ typedef class _stream_receiver_socket : public _receiver_socket
     ~_stream_receiver_socket();
     void
     post_async_receive();
+    void
+    send_async_response(_In_z_ const char* message);
+    void
+    complete_async_send(int timeout_in_ms);
     void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
     void

@@ -81,8 +81,10 @@ _net_ebpf_extension_bind_on_client_attach(
 
     result = net_ebpf_extension_wfp_filter_context_create(
         sizeof(net_ebpf_extension_wfp_filter_context_t), attaching_client, &filter_context);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
+    filter_context->filter_instance_count = NET_EBPF_BIND_FILTER_COUNT;
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     result = net_ebpf_extension_add_wfp_filters(
@@ -111,7 +113,7 @@ _net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_cli
     ASSERT(filter_context != NULL);
 
     // Delete the WFP filters.
-    net_ebpf_extension_delete_wfp_filters(NET_EBPF_BIND_FILTER_COUNT, filter_context->filter_instances);
+    net_ebpf_extension_delete_wfp_filters(filter_context);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 

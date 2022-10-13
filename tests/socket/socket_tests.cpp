@@ -35,6 +35,8 @@ connection_test(
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
 
+    printf("reached 1 -- loaded programs\n");
+
     const char* connect_program_name = (address_family == AF_INET) ? "authorize_connect4" : "authorize_connect6";
     bpf_program* connect_program = bpf_object__find_program_by_name(object, connect_program_name);
     REQUIRE(connect_program != nullptr);
@@ -48,20 +50,20 @@ connection_test(
     int local_address_length = 0;
     sender_socket.get_local_address(local_address, local_address_length);
 
-    connection_tuple_t tuple{};
+    connection_tuple_t tuple = {0};
     if (address_family == AF_INET) {
-        tuple.src_ip.ipv4 = htonl(INADDR_LOOPBACK);
         tuple.dst_ip.ipv4 = htonl(INADDR_LOOPBACK);
+        printf("tuple.dst_ip.ipv4 = %x\n", tuple.dst_ip.ipv4);
     } else {
-        memcpy(tuple.src_ip.ipv6, &in6addr_loopback, sizeof(tuple.src_ip.ipv6));
-        memcpy(tuple.dst_ip.ipv6, &in6addr_loopback, sizeof(tuple.src_ip.ipv6));
+        memcpy(tuple.dst_ip.ipv6, &in6addr_loopback, sizeof(tuple.dst_ip.ipv6));
     }
-    tuple.src_port = INETADDR_PORT(local_address);
+    // tuple.src_port = INETADDR_PORT(local_address);
     tuple.dst_port = htons(SOCKET_TEST_PORT);
+    printf("tuple.dst_port = %x\n", tuple.dst_port);
     tuple.protocol = protocol;
-    NET_LUID net_luid = {};
-    net_luid.Info.IfType = IF_TYPE_SOFTWARE_LOOPBACK;
-    tuple.interface_luid = net_luid.Value;
+    // NET_LUID net_luid = {};
+    // net_luid.Info.IfType = IF_TYPE_SOFTWARE_LOOPBACK;
+    // tuple.interface_luid = net_luid.Value;
 
     bpf_map* ingress_connection_policy_map = bpf_object__find_map_by_name(object, "ingress_connection_policy_map");
     REQUIRE(ingress_connection_policy_map != nullptr);
@@ -73,6 +75,8 @@ connection_test(
     REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
     REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
 
+    printf("reached 2 -- updated maps with REJECT\n");
+
     // Post an asynchronous receive on the receiver socket.
     receiver_socket.post_async_receive();
 
@@ -83,6 +87,8 @@ connection_test(
         bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(connect_program)), 0, connect_attach_type, 0);
     REQUIRE(result == 0);
 
+    printf("reached 3 -- attached connect program\n");
+
     // Send loopback message to test port.
     const char* message = "eBPF for Windows!";
     sockaddr_storage destination_address{};
@@ -92,14 +98,20 @@ connection_test(
         IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
+    printf("reached 4 -- attached connect program\n");
+
     // The packet should be blocked by the connect program.
     receiver_socket.complete_async_receive(true);
     // Cancel send operation.
     sender_socket.cancel_send_message();
 
+    printf("reached 5\n");
+
     // Update egress policy to allow packet.
     verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
     REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    printf("reached 6 -- updated egress map to allow\n");
 
     // Attach the receive/accept program at BPF_CGROUP_INET4_RECV_ACCEPT.
     bpf_attach_type recv_accept_attach_type =
@@ -108,20 +120,28 @@ connection_test(
         bpf_program__fd(const_cast<const bpf_program*>(recv_accept_program)), 0, recv_accept_attach_type, 0);
     REQUIRE(result == 0);
 
+    printf("reached 7 -- updated egress map to allow\n");
+
     // Resend the packet. This time, it should be dropped by the receive/accept program.
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
     receiver_socket.complete_async_receive(true);
     // Cancel send operation.
     sender_socket.cancel_send_message();
 
+    printf("reached 8\n");
+
     // Update ingress policy to allow packet.
     verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
     REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    printf("reached 9 -- updated ingress policy to allow\n");
 
     // Resend the packet. This time, it should be allowed by both the programs and the packet should reach loopback the
     // destination.
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
     receiver_socket.complete_async_receive();
+
+    printf("reached 10\n");
 
     bpf_object__close(object);
 }
@@ -244,24 +264,17 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     bpf_object__close(object);
 }
 
-typedef struct _destination_entry
-{
-    uint32_t destination_ip;
-    uint16_t destination_port;
-} destination_entry_t;
-
+/*
 TEST_CASE("proxy", "[sock_addr_tests]")
 {
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("cgroup_sock_addr2.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
-    REQUIRE(result == 0);
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
     REQUIRE(object != nullptr);
+    REQUIRE(bpf_object__load(object) == 0);
 
     bpf_program* connect4_program = bpf_object__find_program_by_name(object, "proxy_v4");
     REQUIRE(connect4_program != nullptr);
 
-    result = bpf_prog_attach(
+    int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
     REQUIRE(result == 0);
 
@@ -286,19 +299,18 @@ TEST_CASE("proxy", "[sock_addr_tests]")
 
     bpf_object__close(object);
 }
+*/
 
 TEST_CASE("proxy_loopback", "[sock_addr_tests]")
 {
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("cgroup_sock_addr2.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
-    REQUIRE(result == 0);
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
     REQUIRE(object != nullptr);
+    REQUIRE(bpf_object__load(object) == 0);
 
     bpf_program* connect4_program = bpf_object__find_program_by_name(object, "proxy_v4");
     REQUIRE(connect4_program != nullptr);
 
-    result = bpf_prog_attach(
+    int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
     REQUIRE(result == 0);
 
@@ -310,7 +322,8 @@ TEST_CASE("proxy_loopback", "[sock_addr_tests]")
     // Insert proxy entry.
     destination_entry_t key = {0};
     destination_entry_t value = {0};
-    key.destination_ip = 0xc8010119; // 25.1.1.200
+    // key.destination_ip = 0xc8010119; // 25.1.1.200
+    key.destination_ip = 0x201010B; // 11.1.1.2
     key.destination_port = htons(4444);
 
     // value.destination_ip = 0x64010119; // 25.1.1.100
@@ -327,16 +340,14 @@ TEST_CASE("proxy_loopback", "[sock_addr_tests]")
 
 TEST_CASE("blockall", "[sock_addr_tests]")
 {
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("cgroup_sock_addr2.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
-    REQUIRE(result == 0);
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
     REQUIRE(object != nullptr);
+    REQUIRE(bpf_object__load(object) == 0);
 
     bpf_program* block4_program = bpf_object__find_program_by_name(object, "blockall_v4");
     REQUIRE(block4_program != nullptr);
 
-    result = bpf_prog_attach(
+    int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(block4_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
     REQUIRE(result == 0);
 
@@ -348,16 +359,14 @@ TEST_CASE("blockall", "[sock_addr_tests]")
 
 TEST_CASE("allowall", "[sock_addr_tsockests]")
 {
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("cgroup_sock_addr2.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
-    REQUIRE(result == 0);
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
     REQUIRE(object != nullptr);
+    REQUIRE(bpf_object__load(object) == 0);
 
     bpf_program* allow4_program = bpf_object__find_program_by_name(object, "allowall_v4");
     REQUIRE(allow4_program != nullptr);
 
-    result = bpf_prog_attach(
+    int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(allow4_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
     REQUIRE(result == 0);
 
@@ -367,13 +376,12 @@ TEST_CASE("allowall", "[sock_addr_tsockests]")
     bpf_object__close(object);
 }
 
+/*
 TEST_CASE("lbnat", "[sock_addr_tests]")
 {
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load_deprecated("cgroup_sock_addr2.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
-    REQUIRE(result == 0);
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
     REQUIRE(object != nullptr);
+    REQUIRE(bpf_object__load(object) == 0);
 
     bpf_program* connect4_program = bpf_object__find_program_by_name(object, "lbnat_v4");
     REQUIRE(connect4_program != nullptr);
@@ -397,7 +405,7 @@ TEST_CASE("lbnat", "[sock_addr_tests]")
     destination_entry_t backend2 = {0x64010119, htons(4444)};
     bpf_map_update_elem(bpf_map__fd(backend_map), &key, &backend2, 0);
 
-    result = bpf_prog_attach(
+    int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
     REQUIRE(result == 0);
 
@@ -406,6 +414,7 @@ TEST_CASE("lbnat", "[sock_addr_tests]")
 
     bpf_object__close(object);
 }
+*/
 
 void
 connection_monitor_test(

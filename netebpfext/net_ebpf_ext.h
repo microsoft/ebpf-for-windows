@@ -213,15 +213,12 @@ net_ebpf_extension_add_wfp_filters(
     _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_extension_wfp_filter_instance_t*** filter_instances);
 
 /**
- * @brief Deletes ref-counted WFP filters for the specified filter instances.
+ * @brief Deletes ref-counted WFP filters for the specified filter context
  *
- * @param[in] filter_count Count of filters to be deleted.
- * @param[in] filter_instances Array of pointers to the filter instances.
+ * @param[in] filter_context Pointer to the filter context.
  */
 void
-net_ebpf_extension_delete_wfp_filters(
-    uint32_t filter_count,
-    _Frees_ptr_ _In_count_(filter_count) net_ebpf_extension_wfp_filter_instance_t** filter_instances);
+net_ebpf_extension_delete_wfp_filters(_In_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
 // eBPF WFP Sublayer GUID.
 // 7c7b3fb9-3331-436a-98e1-b901df457fff

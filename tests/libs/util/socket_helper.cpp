@@ -8,6 +8,8 @@
 #include "catch_wrapper.hpp"
 #include "socket_helper.h"
 
+#define MAXIMUM_IP_BUFFER_SIZE 65
+
 void
 get_address_from_string(
     std::string& address_string, sockaddr_storage& address, _Out_opt_ ADDRESS_FAMILY* address_family)
@@ -32,9 +34,24 @@ get_address_from_string(
     freeaddrinfo(address_info);
 }
 
+std::string
+get_string_from_address(_In_ const void* sockaddr, ADDRESS_FAMILY family)
+{
+    char ip_string[MAXIMUM_IP_BUFFER_SIZE] = {0};
+    if (family == AF_INET) {
+        struct sockaddr_in* addr = (struct sockaddr_in*)sockaddr;
+        InetNtopA(AF_INET, &addr->sin_addr, ip_string, MAXIMUM_IP_BUFFER_SIZE);
+        return std::string(ip_string);
+    } else {
+        struct sockaddr_in6* addr = (struct sockaddr_in6*)sockaddr;
+        InetNtopA(AF_INET6, &addr->sin6_addr, ip_string, MAXIMUM_IP_BUFFER_SIZE);
+        return std::string(ip_string);
+    }
+}
+
 _base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port)
     : socket(INVALID_SOCKET), sock_type(_sock_type), protocol(_protocol), port(_port), local_address{},
-      local_address_size(sizeof(local_address))
+      local_address_size(sizeof(local_address)), recv_buffer(std::vector<char>(1024)), recv_flags(0)
 {
     int error = 0;
 
@@ -74,8 +91,15 @@ _base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_len
     address_length = local_address_size;
 }
 
+void
+_base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message)
+{
+    message_size = bytes_received;
+    message = recv_buffer.data();
+}
+
 _sender_socket::_sender_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _base_socket{_sock_type, _protocol, _port}
+    : _base_socket{_sock_type, _protocol, _port}, overlapped{}
 {}
 
 void
@@ -83,6 +107,78 @@ _sender_socket::close()
 {
     if (socket != INVALID_SOCKET)
         closesocket(socket);
+}
+
+void
+_sender_socket::post_async_receive(bool error_expected)
+{
+    int error = 0;
+
+    WSABUF wsa_recv_buffer{static_cast<ULONG>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+
+    // Create an event handle and set up the overlapped structure.
+    overlapped.hEvent = WSACreateEvent();
+    if (overlapped.hEvent == NULL)
+        FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
+
+    // Post an asynchronous receive on the socket.
+    error = WSARecv(
+        socket,
+        &wsa_recv_buffer,
+        1,
+        reinterpret_cast<LPDWORD>(&bytes_received),
+        reinterpret_cast<LPDWORD>(&recv_flags),
+        &overlapped,
+        nullptr);
+
+    if (error != 0 && !error_expected) {
+        int wsaerr = WSAGetLastError();
+        if (wsaerr != WSA_IO_PENDING)
+            FAIL("_sender_socket::post_async_receive: WSARecv failed with " << wsaerr);
+    }
+}
+
+void
+_sender_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_expected)
+{
+    int error = 0;
+    // Wait for the receiver socket to receive the message.
+    error = WSAWaitForMultipleEvents(1, &overlapped.hEvent, TRUE, timeout_in_ms, TRUE);
+    if (error == WSA_WAIT_EVENT_0) {
+        if (timeout_or_error_expected)
+            FAIL("Receiver socket received a message when timeout was expected.");
+
+        bool result = WSAGetOverlappedResult(
+            socket,
+            &overlapped,
+            reinterpret_cast<LPDWORD>(&bytes_received),
+            FALSE,
+            reinterpret_cast<LPDWORD>(&recv_flags));
+        if (!result && !timeout_or_error_expected) {
+            FAIL("WSARecvFrom on the receiver socket failed with error: " << WSAGetLastError());
+        }
+        WSACloseEvent(overlapped.hEvent);
+        overlapped.hEvent = INVALID_HANDLE_VALUE;
+
+        /*
+        if (!WSAGetOverlappedResult(
+                socket,
+                &overlapped,
+                reinterpret_cast<LPDWORD>(&bytes_received),
+                FALSE,
+                reinterpret_cast<LPDWORD>(&recv_flags)))
+            FAIL("WSARecvFrom on the receiver socket failed with error: " << WSAGetLastError());
+        WSACloseEvent(overlapped.hEvent);
+        overlapped.hEvent = INVALID_HANDLE_VALUE;
+        */
+    } else {
+        if (error == WSA_WAIT_TIMEOUT) {
+            if (!timeout_or_error_expected)
+                FAIL("Receiver socket did not receive any message in 1 second.");
+        } else {
+            FAIL("Waiting on receiver socket failed with " << error);
+        }
+    }
 }
 
 _datagram_sender_socket::_datagram_sender_socket(int _sock_type, int _protocol, uint16_t _port)
@@ -125,8 +221,15 @@ void
 _datagram_sender_socket::cancel_send_message()
 {}
 
+void
+_datagram_sender_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)
+{
+    UNREFERENCED_PARAMETER(timeout_in_ms);
+    UNREFERENCED_PARAMETER(expected_result);
+}
+
 _stream_sender_socket::_stream_sender_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _sender_socket{_sock_type, _protocol, _port}, connectex(nullptr), overlapped{}
+    : _sender_socket{_sock_type, _protocol, _port}, connectex(nullptr)
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP))
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
@@ -168,6 +271,12 @@ _stream_sender_socket::send_message_to_remote_host(
         int wsaerr = WSAGetLastError();
         if (wsaerr != WSA_IO_PENDING)
             FAIL("ConnectEx failed with " << wsaerr);
+        printf("send_message_to_remote_host: IO is pending.\n");
+    } else {
+        // The operation completed synchronously. Close overlapped handle.
+        WSACloseEvent(overlapped.hEvent);
+        overlapped.hEvent = INVALID_HANDLE_VALUE;
+        printf("send_message_to_remote_host: send already completed. Closing overlapped handle\n");
     }
 }
 
@@ -176,10 +285,49 @@ _stream_sender_socket::cancel_send_message()
 {
     CancelIoEx((HANDLE)socket, &overlapped);
     WSACloseEvent(overlapped.hEvent);
+    overlapped.hEvent = INVALID_HANDLE_VALUE;
+}
+
+void
+_stream_sender_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)
+{
+    if (overlapped.hEvent == INVALID_HANDLE_VALUE) {
+        printf("complete_async_send: overlapped event already closed\n");
+        return;
+    }
+
+    int error = 0;
+    uint32_t bytes_sent = 0;
+    uint32_t send_flags = 0;
+    // Wait for the receiver socket to receive the message.
+    error = WSAWaitForMultipleEvents(1, &overlapped.hEvent, TRUE, timeout_in_ms, TRUE);
+    if (error == WSA_WAIT_EVENT_0) {
+        if (expected_result == expected_result_t::timeout) {
+            FAIL("Send on socket succeeded when timeout was expected.");
+        }
+        if (!WSAGetOverlappedResult(
+                socket,
+                &overlapped,
+                reinterpret_cast<LPDWORD>(&bytes_sent),
+                FALSE,
+                reinterpret_cast<LPDWORD>(&send_flags))) {
+            if (expected_result != expected_result_t::failure) {
+                FAIL("WSASend on the socket failed with error: " << WSAGetLastError());
+            }
+        }
+        WSACloseEvent(overlapped.hEvent);
+        overlapped.hEvent = INVALID_HANDLE_VALUE;
+    } else if (error == WSA_WAIT_TIMEOUT) {
+        if (expected_result != expected_result_t::timeout) {
+            FAIL("Async send timed out");
+        }
+    } else {
+        FAIL("Async send complete failed with " << error);
+    }
 }
 
 _receiver_socket::_receiver_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _base_socket{_sock_type, _protocol, _port}, overlapped{}, recv_buffer(std::vector<char>(1024)), recv_flags(0)
+    : _base_socket{_sock_type, _protocol, _port}, overlapped{}
 {
     overlapped.hEvent = INVALID_HANDLE_VALUE;
 }
@@ -191,11 +339,11 @@ _receiver_socket::~_receiver_socket()
 }
 
 void
-_receiver_socket::complete_async_receive(bool timeout_expected)
+_receiver_socket::complete_async_receive(int timeout_in_ms, bool timeout_expected)
 {
     int error = 0;
     // Wait for the receiver socket to receive the message.
-    error = WSAWaitForMultipleEvents(1, &overlapped.hEvent, TRUE, 1000, TRUE);
+    error = WSAWaitForMultipleEvents(1, &overlapped.hEvent, TRUE, timeout_in_ms, TRUE);
     if (error == WSA_WAIT_EVENT_0) {
         if (timeout_expected)
             FAIL("Receiver socket received a message when timeout was expected.");
@@ -209,6 +357,13 @@ _receiver_socket::complete_async_receive(bool timeout_expected)
             FAIL("WSARecvFrom on the receiver socket failed with error: " << WSAGetLastError());
         WSACloseEvent(overlapped.hEvent);
         overlapped.hEvent = INVALID_HANDLE_VALUE;
+        /*
+        if (accept_socket != INVALID_SOCKET) {
+           error = getsockname(accept_socket, (PSOCKADDR)&local_address, &local_address_size);
+            if (error != 0)
+                FAIL("Failed to query local address of accept socket with error: " << WSAGetLastError());
+        }
+        */
     } else {
         if (error == WSA_WAIT_TIMEOUT) {
             if (!timeout_expected)
@@ -220,16 +375,13 @@ _receiver_socket::complete_async_receive(bool timeout_expected)
 }
 
 void
-_receiver_socket::get_received_message(
-    _Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message)
+_receiver_socket::complete_async_receive(bool timeout_expected)
 {
-    message_size = bytes_received;
-    message = recv_buffer.data();
+    complete_async_receive(1000, timeout_expected);
 }
 
 _datagram_receiver_socket::_datagram_receiver_socket(int _sock_type, int _protocol, uint16_t _port)
     : _receiver_socket{_sock_type, _protocol, _port}, sender_address{}, sender_address_size(sizeof(sender_address))
-
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
@@ -272,6 +424,41 @@ _datagram_receiver_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& 
 {
     from = (PSOCKADDR)&sender_address;
     from_length = sender_address_size;
+}
+
+void
+_datagram_receiver_socket::send_async_response(_In_z_ const char* message)
+{
+    int error = 0;
+
+    // Send a response to the sender.
+    // ((PSOCKADDR_IN6)&remote_address)->sin6_port = htons(remote_port);
+    // PSOCKADDR sender_address = nullptr;
+    // int sender_address_length = 0;
+    // get_sender_address(sender_address, &sender_address_length);
+    std::vector<char> send_buffer(message, message + strlen(message));
+    WSABUF wsa_send_buffer{static_cast<ULONG>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
+    uint32_t bytes_sent = 0;
+    uint32_t send_flags = 0;
+    error = WSASendTo(
+        socket,
+        &wsa_send_buffer,
+        1,
+        reinterpret_cast<LPDWORD>(&bytes_sent),
+        send_flags,
+        (PSOCKADDR)&sender_address,
+        sizeof(sender_address),
+        nullptr,
+        nullptr);
+
+    if (error != 0)
+        FAIL("send_async_response failed with " << WSAGetLastError());
+}
+
+void
+_datagram_receiver_socket::complete_async_send(int timeout_in_ms)
+{
+    UNREFERENCED_PARAMETER(timeout_in_ms);
 }
 
 void
@@ -345,6 +532,54 @@ _stream_receiver_socket::post_async_receive()
         int wsaerr = WSAGetLastError();
         if (wsaerr != WSA_IO_PENDING)
             FAIL("AcceptEx failed with " << wsaerr);
+    }
+}
+
+void
+_stream_receiver_socket::send_async_response(_In_z_ const char* message)
+{
+    // Send a message to the remote host using the sender socket.
+    // ((PSOCKADDR_IN6)&remote_address)->sin6_port = htons(remote_port);
+    std::vector<char> send_buffer(message, message + strlen(message));
+    WSABUF wsa_send_buffer{static_cast<ULONG>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
+    uint32_t bytes_sent = 0;
+    overlapped.hEvent = WSACreateEvent();
+    int32_t error =
+        WSASend(accept_socket, &wsa_send_buffer, 1, reinterpret_cast<LPDWORD>(&bytes_sent), 0, &overlapped, NULL);
+    if (error != 0) {
+        int wsaerr = WSAGetLastError();
+        FAIL("send_async_response failed with " << wsaerr);
+    }
+}
+
+void
+_stream_receiver_socket::complete_async_send(int timeout_in_ms)
+{
+    int error = 0;
+    uint32_t bytes_sent = 0;
+    uint32_t send_flags = 0;
+    // Wait for the receiver socket to receive the message.
+    error = WSAWaitForMultipleEvents(1, &overlapped.hEvent, TRUE, timeout_in_ms, TRUE);
+    if (error == WSA_WAIT_EVENT_0) {
+
+        if (!WSAGetOverlappedResult(
+                socket,
+                &overlapped,
+                reinterpret_cast<LPDWORD>(&bytes_sent),
+                FALSE,
+                reinterpret_cast<LPDWORD>(&send_flags)))
+            FAIL("WSASend on the receiver socket failed with error: " << WSAGetLastError());
+        WSACloseEvent(overlapped.hEvent);
+        overlapped.hEvent = INVALID_HANDLE_VALUE;
+        /*
+        if (accept_socket != INVALID_SOCKET) {
+           error = getsockname(accept_socket, (PSOCKADDR)&local_address, &local_address_size);
+            if (error != 0)
+                FAIL("Failed to query local address of accept socket with error: " << WSAGetLastError());
+        }
+        */
+    } else {
+        FAIL("Waiting on receiver socket failed with " << error);
     }
 }
 

@@ -33,3 +33,9 @@ typedef struct _audit_entry
     bool outbound : 1;
     bool connected : 1;
 } audit_entry_t;
+
+typedef struct _destination_entry
+{
+    ip_address_t destination_ip;
+    uint16_t destination_port;
+} destination_entry_t;

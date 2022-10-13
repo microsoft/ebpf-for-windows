@@ -38,6 +38,10 @@ NTSTATUS
 net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
 
+static ebpf_result_t
+_net_ebpf_extension_remove_filter_context_from_filter_instance(
+    _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context, uint64_t filter_id);
+
 typedef struct _net_ebpf_ext_wfp_callout_state
 {
     const GUID* callout_guid;
@@ -379,16 +383,17 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
     return callout_id;
 }
 void
-net_ebpf_extension_delete_wfp_filters(
-    uint32_t filter_count,
-    _Frees_ptr_ _In_count_(filter_count) net_ebpf_extension_wfp_filter_instance_t** filter_instances)
+net_ebpf_extension_delete_wfp_filters(_In_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     NET_EBPF_EXT_LOG_ENTRY();
-    for (uint32_t index = 0; index < filter_count; index++) {
-        net_ebpf_ext_release_filter_instance_reference(filter_instances[index]);
-        filter_instances[index] = NULL;
+    for (uint32_t index = 0; index < filter_context->filter_instance_count; index++) {
+        _net_ebpf_extension_remove_filter_context_from_filter_instance(
+            filter_context, filter_context->filter_instances[index]->filter_id);
+        // net_ebpf_ext_release_filter_instance_reference(filter_instances[index]);
+        filter_context->filter_instances[index] = NULL;
     }
-    ExFreePool(filter_instances);
+    ExFreePool(filter_context->filter_instances);
+    filter_context->filter_instances = NULL;
     NET_EBPF_EXT_LOG_EXIT();
 }
 
@@ -542,6 +547,82 @@ Exit:
             ExFreePool(context_list_entry);
         }
     }
+    return result;
+}
+
+/**
+ * @brief Find the filter instance corresponding to the provided filter id.
+ *        If found, remove the provided filter context from the filter instance
+ *        and release the reference to the filter instance.
+ *
+ * @param[in] filter_context Pointer to the filter context.
+ * @param[in] filter_id Filter Id corresponding to the filter instance.
+ *
+ * @return Status of the operation.
+ */
+static ebpf_result_t
+_net_ebpf_extension_remove_filter_context_from_filter_instance(
+    _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context, uint64_t filter_id)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    KIRQL old_irql;
+    net_ebpf_extension_wfp_filter_instance_t* matching_instance = NULL;
+    net_ebpf_extension_wfp_filter_context_list_entry_t* context_list_entry = NULL;
+    bool list_lock_acquired = false;
+
+    // First find the matching filter instance based on the filter id.
+    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock);
+    list_lock_acquired = true;
+
+    LIST_ENTRY* list_entry = _net_ebpf_ext_filter_instance_list.Flink;
+    while (list_entry != &_net_ebpf_ext_filter_instance_list) {
+        net_ebpf_extension_wfp_filter_instance_t* entry =
+            CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_instance_t, list_entry);
+
+        list_entry = list_entry->Flink;
+
+        if (entry->filter_id == filter_id) {
+            matching_instance = entry;
+            break;
+        }
+    }
+
+    if (matching_instance == NULL) {
+        result = EBPF_OBJECT_NOT_FOUND;
+        goto Exit;
+    }
+
+    // Iterate over all the filter contexts and find the matching one.
+    ExAcquireSpinLockExclusiveAtDpcLevel(&matching_instance->lock);
+    list_entry = matching_instance->filter_contexts.Flink;
+    bool found = false;
+    while (list_entry != &(matching_instance->filter_contexts)) {
+        context_list_entry =
+            CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_context_list_entry_t, list_entry);
+        if (context_list_entry->filter_context == filter_context) {
+            found = true;
+            RemoveEntryList(&context_list_entry->list_entry);
+            ExFreePool(context_list_entry);
+            break;
+        }
+        list_entry = list_entry->Flink;
+    }
+    ExReleaseSpinLockExclusiveFromDpcLevel(&matching_instance->lock);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock, old_irql);
+    list_lock_acquired = false;
+
+    if (!found) {
+        result = EBPF_OBJECT_NOT_FOUND;
+        goto Exit;
+    } else {
+        net_ebpf_ext_release_filter_instance_reference(matching_instance);
+    }
+
+Exit:
+    if (list_lock_acquired) {
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock, old_irql);
+    }
+
     return result;
 }
 
