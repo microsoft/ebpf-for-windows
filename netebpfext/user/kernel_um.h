@@ -32,7 +32,7 @@ typedef struct _EX_PUSH_LOCK
 } EX_PUSH_LOCK;
 typedef struct _EX_RUNDOWN_REF
 {
-    struct _ebpf_rundown_ref* inner;
+    struct _mock_rundown_ref* inner;
 } EX_RUNDOWN_REF;
 typedef struct _IO_WORKITEM IO_WORKITEM, *PIO_WORKITEM;
 typedef void

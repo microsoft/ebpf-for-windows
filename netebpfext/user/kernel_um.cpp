@@ -8,13 +8,13 @@
 
 #include "kernel_um.h"
 
-typedef struct _ebpf_rundown_ref
+typedef struct _mock_rundown_ref
 {
     std::mutex lock;
     std::condition_variable cv;
     size_t count = 0;
     bool rundown_in_progress = false;
-} ebpf_rundown_ref;
+} mock_rundown_ref;
 
 typedef struct _MDL
 {
@@ -77,7 +77,7 @@ unsigned long __cdecl DbgPrintEx(
 void
 ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref)
 {
-    rundown_ref->inner = new ebpf_rundown_ref();
+    rundown_ref->inner = new mock_rundown_ref();
 }
 
 void
@@ -107,7 +107,7 @@ ExReleaseRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref)
 {
     auto& rundown = *rundown_ref->inner;
     std::unique_lock<std::mutex> l(rundown.lock);
-    ebpf_assert(rundown.count > 0);
+    assert(rundown.count > 0);
     rundown.count--;
     rundown.cv.notify_all();
 }
@@ -147,13 +147,13 @@ ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_byte
 {
     UNREFERENCED_PARAMETER(pool_type);
     UNREFERENCED_PARAMETER(tag);
-    return ebpf_allocate(number_of_bytes);
+    return malloc(number_of_bytes);
 }
 
 void
 ExFreePool(void* p)
 {
-    ebpf_free(p);
+    free(p);
 }
 
 void
@@ -185,7 +185,7 @@ IoAllocateMdl(
     UNREFERENCED_PARAMETER(charge_quota);
     UNREFERENCED_PARAMETER(irp);
 
-    mdl = reinterpret_cast<MDL*>(ebpf_allocate(sizeof(MDL)));
+    mdl = reinterpret_cast<MDL*>(malloc(sizeof(MDL)));
     if (mdl == NULL) {
         return mdl;
     }
@@ -211,14 +211,14 @@ io_work_item_wrapper(_Inout_ PTP_CALLBACK_INSTANCE instance, _Inout_opt_ PVOID c
 PIO_WORKITEM
 IoAllocateWorkItem(_In_ DEVICE_OBJECT* device_object)
 {
-    auto work_item = reinterpret_cast<IO_WORKITEM*>(ebpf_allocate(sizeof(IO_WORKITEM)));
+    auto work_item = reinterpret_cast<IO_WORKITEM*>(malloc(sizeof(IO_WORKITEM)));
     if (!work_item) {
         return nullptr;
     }
     work_item->device = device_object;
     work_item->work_item = CreateThreadpoolWork(io_work_item_wrapper, work_item, nullptr);
     if (work_item->work_item == nullptr) {
-        ebpf_free(work_item);
+        free(work_item);
         work_item = nullptr;
     }
     return work_item;
@@ -242,14 +242,14 @@ IoFreeWorkItem(_In_ __drv_freesMem(Mem) PIO_WORKITEM io_workitem)
 {
     if (io_workitem) {
         CloseThreadpoolWork(io_workitem->work_item);
-        ebpf_free(io_workitem);
+        free(io_workitem);
     }
 }
 
 void
 IoFreeMdl(MDL* mdl)
 {
-    ebpf_free(mdl);
+    free(mdl);
 }
 
 void
@@ -263,22 +263,24 @@ KeLeaveCriticalRegion(void)
 void
 KeInitializeSpinLock(_Out_ PKSPIN_LOCK spin_lock)
 {
-    auto lock = reinterpret_cast<ebpf_lock_t*>(spin_lock);
-    ebpf_lock_create(lock);
+    auto lock = reinterpret_cast<SRWLOCK*>(spin_lock);
+    *lock = SRWLOCK_INIT;
 }
 
 _Requires_lock_not_held_(*spin_lock) _Acquires_lock_(*spin_lock) _IRQL_requires_max_(DISPATCH_LEVEL) KIRQL
     KeAcquireSpinLockRaiseToDpc(_Inout_ PKSPIN_LOCK spin_lock)
 {
-    auto lock = reinterpret_cast<ebpf_lock_t*>(spin_lock);
-    return ebpf_lock_lock(lock);
+    auto lock = reinterpret_cast<SRWLOCK*>(spin_lock);
+    AcquireSRWLockExclusive(lock);
+    return 0;
 }
 
 _Requires_lock_held_(*spin_lock) _Releases_lock_(*spin_lock) _IRQL_requires_(DISPATCH_LEVEL) void KeReleaseSpinLock(
     _Inout_ PKSPIN_LOCK spin_lock, _In_ _IRQL_restores_ KIRQL new_irql)
 {
-    auto lock = reinterpret_cast<ebpf_lock_t*>(spin_lock);
-    ebpf_lock_unlock(lock, new_irql);
+    UNREFERENCED_PARAMETER(new_irql);
+    auto lock = reinterpret_cast<SRWLOCK*>(spin_lock);
+    ReleaseSRWLockExclusive(lock);
 }
 
 void

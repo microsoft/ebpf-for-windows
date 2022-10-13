@@ -18,8 +18,7 @@ typedef struct _NDIS_BUFFER_LIST_POOL
 PNDIS_GENERIC_OBJECT
 NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* driver_object, _In_ unsigned long tag, _In_ uint16_t size)
 {
-    PNDIS_GENERIC_OBJECT object =
-        reinterpret_cast<NDIS_GENERIC_OBJECT*>(ebpf_allocate(sizeof(NDIS_GENERIC_OBJECT) + size));
+    PNDIS_GENERIC_OBJECT object = reinterpret_cast<NDIS_GENERIC_OBJECT*>(malloc(sizeof(NDIS_GENERIC_OBJECT) + size));
     if (object) {
         object->driver_object = driver_object;
         object->tag = tag;
@@ -31,8 +30,7 @@ NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* driver_object, _In_ unsigned l
 NDIS_HANDLE
 NdisAllocateNetBufferListPool(_In_opt_ NDIS_HANDLE ndis_handle, _In_ NET_BUFFER_LIST_POOL_PARAMETERS const* parameters)
 {
-    NDIS_BUFFER_LIST_POOL* pool =
-        reinterpret_cast<NDIS_BUFFER_LIST_POOL*>(ebpf_allocate(sizeof(NDIS_BUFFER_LIST_POOL)));
+    NDIS_BUFFER_LIST_POOL* pool = reinterpret_cast<NDIS_BUFFER_LIST_POOL*>(malloc(sizeof(NDIS_BUFFER_LIST_POOL)));
     if (pool) {
         pool->ndis_handle = ndis_handle;
         pool->parameters = *parameters;
@@ -43,7 +41,7 @@ NdisAllocateNetBufferListPool(_In_opt_ NDIS_HANDLE ndis_handle, _In_ NET_BUFFER_
 void
 NdisFreeNetBufferListPool(_In_ __drv_freesMem(mem) NDIS_HANDLE pool_handle)
 {
-    ebpf_free(pool_handle);
+    free(pool_handle);
 }
 
 PNET_BUFFER_LIST
@@ -52,19 +50,19 @@ NdisAllocateNetBufferList(_In_ NDIS_HANDLE nbl_pool_handle, _In_ USHORT context_
     UNREFERENCED_PARAMETER(nbl_pool_handle);
     UNREFERENCED_PARAMETER(context_size);
     UNREFERENCED_PARAMETER(context_backfill);
-    return reinterpret_cast<NET_BUFFER_LIST*>(ebpf_allocate(sizeof(NET_BUFFER_LIST)));
+    return reinterpret_cast<NET_BUFFER_LIST*>(malloc(sizeof(NET_BUFFER_LIST)));
 }
 
 VOID
 NdisFreeNetBufferList(_In_ __drv_freesMem(mem) NET_BUFFER_LIST* net_buffer_list)
 {
-    ebpf_free(net_buffer_list);
+    free(net_buffer_list);
 }
 
 void
 NdisFreeGenericObject(_In_ PNDIS_GENERIC_OBJECT ndis_object)
 {
-    ebpf_free(ndis_object);
+    free(ndis_object);
 }
 
 _Must_inspect_result_ __drv_allocatesMem(mem) NET_BUFFER* NdisAllocateNetBuffer(
@@ -72,7 +70,7 @@ _Must_inspect_result_ __drv_allocatesMem(mem) NET_BUFFER* NdisAllocateNetBuffer(
 {
     UNREFERENCED_PARAMETER(pool_handle);
     UNREFERENCED_PARAMETER(data_offset);
-    NET_BUFFER* nb = reinterpret_cast<NET_BUFFER*>(ebpf_allocate(sizeof(*nb) + data_length));
+    NET_BUFFER* nb = reinterpret_cast<NET_BUFFER*>(malloc(sizeof(*nb) + data_length));
     if (nb) {
         nb->DataLength = (unsigned long)data_length;
         nb->MdlChain = mdl_chain;
@@ -83,7 +81,7 @@ _Must_inspect_result_ __drv_allocatesMem(mem) NET_BUFFER* NdisAllocateNetBuffer(
 VOID
 NdisFreeNetBuffer(_In_ __drv_freesMem(mem) NET_BUFFER* net_buffer)
 {
-    ebpf_free(net_buffer);
+    free(net_buffer);
 }
 
 void*
