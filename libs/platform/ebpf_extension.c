@@ -111,7 +111,7 @@ _ebpf_extension_client_attach_provider(
         (ebpf_extension_client_binding_context_t*)ebpf_allocate(sizeof(ebpf_extension_client_binding_context_t));
 
     if (!local_client_binding_context) {
-        status = STATUS_NOINTERFACE;
+        status = STATUS_NO_MEMORY;
         goto Done;
     }
 

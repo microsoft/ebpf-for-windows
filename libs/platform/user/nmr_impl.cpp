@@ -174,7 +174,10 @@ _nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& p
             const_cast<HANDLE>(h),
             const_cast<void*>(client.context),
             &provider.characteristics.ProviderRegistrationInstance);
-        if (!NT_SUCCESS(status)) {
+
+        // Clean up the binding on a failure, but only on an actual match
+        // since other non-matching providers will result in STATUS_NOINTERFACE.
+        if (!NT_SUCCESS(status) && (status != STATUS_NOINTERFACE)) {
             unbind_complete(h);
         }
     }};
@@ -223,9 +226,13 @@ _nmr::begin_unbind(_In_ nmr_binding_handle binding_handle)
         return true;
     }
     NTSTATUS client_detach_provider_status =
-        binding.client.characteristics.ClientDetachProvider(const_cast<void*>(binding.client_binding_context));
+        (binding.client_binding_context)
+            ? binding.client.characteristics.ClientDetachProvider(const_cast<void*>(binding.client_binding_context))
+            : STATUS_SUCCESS;
     NTSTATUS provider_detach_client_status =
-        binding.provider.characteristics.ProviderDetachClient(const_cast<void*>(binding.provider_binding_context));
+        (binding.provider_binding_context)
+            ? binding.provider.characteristics.ProviderDetachClient(const_cast<void*>(binding.provider_binding_context))
+            : STATUS_SUCCESS;
     binding.provider_binding_status = (client_detach_provider_status == STATUS_PENDING)
                                           ? binding_status::UnbindPending
                                           : binding_status::UnbindComplete;
