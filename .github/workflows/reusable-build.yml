@@ -66,7 +66,7 @@ jobs:
         languages: 'cpp'
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@ab534842b4bdf384b8aaf93765dc6f721d9f5fab
+      uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506
 
     - name: Install tools
       working-directory: ${{env.GITHUB_WORKSPACE}}
