@@ -143,6 +143,19 @@ jobs:
         search_artifacts: false
         skip_unpack: true
 
+    - name: Download demo repository artifacts
+      uses: dawidd6/action-download-artifact@7847792dd435a50521b8e3bd3576dae7459d1fa8
+      with:
+        github_token: ${{secrets.GITHUB_TOKEN}}
+        workflow: CICD.yml
+        workflow_conclusion: success
+        name: bpf_conformance-${{ matrix.configurations }}
+        path: ${{github.workspace}}\x64\${{ matrix.configurations }}\bpf_conformance
+        repo: Alan-Jowett/bpf_conformance
+        check_artifacts:  false
+        search_artifacts: false
+        skip_unpack: false
+
     - name: Extract artifacts to build path
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
