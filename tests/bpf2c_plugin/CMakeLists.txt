@@ -3,20 +3,18 @@
 
 add_executable("bpf2c_plugin"
   bpf2c_plugin.cpp
+  ../../tools/bpf2c/bpf_code_generator.h
+  ../../tools/bpf2c/bpf_code_generator.cpp
 )
 
 target_include_directories("bpf2c_plugin" PRIVATE
   "${CMAKE_SOURCE_DIR}/include"
-  "${CMAKE_SOURCE_DIR}/libs/api"
-  "${CMAKE_SOURCE_DIR}/tests/end_to_end"
-  "${CMAKE_SOURCE_DIR}/tests/libs/util"
-  "${CMAKE_SOURCE_DIR}/tests/libs/common"
-  "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
-  "${CMAKE_SOURCE_DIR}/libs/execution_context"
-  "${CMAKE_SOURCE_DIR}/libs/Platform"
-  "${CMAKE_SOURCE_DIR}/libs/Platform/user"
-  "${CMAKE_SOURCE_DIR}/libs/thunk"
-  "${CMAKE_SOURCE_DIR}/netebpfext"
+  "${CMAKE_SOURCE_DIR}/tools/bpf2c"
+  "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_BINARY_DIR}/external/ubpf/vm"
+  "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
+  "${CMAKE_BINARY_DIR}/external/ubpf/vm/inc"
+  "${CMAKE_SOURCE_DIR}/external/ebpf-verifier/src"
 )
 
 target_link_libraries("bpf2c_plugin" PRIVATE
@@ -45,7 +43,7 @@ function(generateTemplate source_file_name)
       "${template_path}"
 
     COMMAND
-      "${powershell_path}" -NonInteractive -ExecutionPolicy Unrestricted "${CMAKE_SOURCE_DIR}/scripts/escape_text.ps1" "${CMAKE_CURRENT_SOURCE_DIR}/${source_file_name}.c" "${template_path}"
+      "${powershell_path}" -NonInteractive -ExecutionPolicy Unrestricted "${CMAKE_SOURCE_DIR}/scripts/escape_text.ps1" "${CMAKE_CURRENT_SOURCE_DIR}/${source_file_name}.cpp" "${template_path}"
 
     VERBATIM
 
@@ -70,7 +68,7 @@ function(generateTemplate source_file_name)
   )
 endfunction()
 
-generateTemplate("bpf2c_test.cpp")
+generateTemplate("bpf2c_test")
 target_link_libraries("bpf2c_plugin" PRIVATE
   "bpf2c_test"
 )
