@@ -141,7 +141,7 @@ jobs:
         repo: microsoft/ebpf-for-windows-demo
         check_artifacts:  false
         search_artifacts: false
-        skip_unpack: false
+        skip_unpack: true
 
     - name: Extract artifacts to build path
       working-directory: ${{env.GITHUB_WORKSPACE}}
