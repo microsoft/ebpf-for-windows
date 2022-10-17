@@ -66,7 +66,7 @@ jobs:
         languages: 'cpp'
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@ab534842b4bdf384b8aaf93765dc6f721d9f5fab
+      uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506
 
     - name: Install tools
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -75,7 +75,7 @@ jobs:
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache nuget packages
-      uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+      uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
       env:
         cache-name: cache-nuget-modules
       with:
@@ -87,7 +87,7 @@ jobs:
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
     - name: Cache verifier project
-      uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+      uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
       env:
         cache-name: cache-verifier-project
       with:
