@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <wdm.h>
+#include "net_ebpf_ext.h"
+
 #include "net_ebpf_ext_hook_provider.h"
 #include "ebpf_extension_uuids.h"
 
@@ -120,7 +121,9 @@ _ebpf_ext_attach_wait_for_rundown(_Inout_ net_ebpf_ext_hook_client_rundown_t* ru
 }
 
 IO_WORKITEM_ROUTINE _net_ebpf_extension_detach_client_completion;
+#if !defined(__cplusplus)
 #pragma alloc_text(PAGE, _net_ebpf_extension_detach_client_completion)
+#endif
 
 /**
  * @brief IO work item routine callback that waits on client rundown to complete.
@@ -130,7 +133,7 @@ IO_WORKITEM_ROUTINE _net_ebpf_extension_detach_client_completion;
  *
  */
 void
-_net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, _In_opt_ void* context)
+_net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, _In_opt_ void* context)
 {
     net_ebpf_extension_hook_client_t* hook_client = (net_ebpf_extension_hook_client_t*)context;
     PIO_WORKITEM work_item;
@@ -243,7 +246,7 @@ net_ebpf_extension_hook_check_attach_parameter(
                 (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(link, net_ebpf_extension_hook_client_t, link);
 
             const ebpf_extension_data_t* next_client_data = next_client->client_data;
-            void* next_client_attach_parameter =
+            const void* next_client_attach_parameter =
                 (next_client_data->data == NULL) ? wild_card_attach_parameter : next_client_data->data;
             if (((memcmp(wild_card_attach_parameter, next_client_attach_parameter, attach_parameter_size) == 0)) ||
                 (memcmp(attach_parameter, next_client_attach_parameter, attach_parameter_size) == 0)) {
@@ -314,7 +317,7 @@ _net_ebpf_extension_hook_provider_attach_client(
     hook_client->nmr_binding_handle = nmr_binding_handle;
     hook_client->client_module_id = client_registration_instance->ModuleId->Guid;
     hook_client->client_binding_context = client_binding_context;
-    hook_client->client_data = client_registration_instance->NpiSpecificCharacteristics;
+    hook_client->client_data = (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics;
     client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
     if (client_dispatch_table == NULL) {
         status = STATUS_INVALID_PARAMETER;

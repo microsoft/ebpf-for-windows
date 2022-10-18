@@ -6,8 +6,7 @@
  *
  */
 
-#define INITGUID
-
+#include "net_ebpf_ext.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_xdp.h"
 
@@ -56,7 +55,7 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_xdp_wfp_fil
 
 typedef struct _net_ebpf_extension_xdp_wfp_filter_context
 {
-    net_ebpf_extension_wfp_filter_context_t;
+    net_ebpf_extension_wfp_filter_context_t base;
     uint32_t if_index;
 } net_ebpf_extension_xdp_wfp_filter_context_t;
 
@@ -161,7 +160,7 @@ net_ebpf_extension_xdp_on_client_attach(
         (if_index == 0) ? 0 : 1,
         (if_index == 0) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-        &filter_context->filter_ids);
+        &filter_context->base.filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -188,7 +187,7 @@ _net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_clie
     NET_EBPF_EXT_LOG_ENTRY();
 
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters(NET_EBPF_XDP_FILTER_COUNT, filter_context->filter_ids);
+    net_ebpf_extension_delete_wfp_filters(NET_EBPF_XDP_FILTER_COUNT, filter_context->base.filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 
     NET_EBPF_EXT_LOG_EXIT();
@@ -269,7 +268,7 @@ net_ebpf_ext_xdp_unregister_providers()
  */
 typedef struct _net_ebpf_xdp_md
 {
-    xdp_md_t;
+    xdp_md_t base;
     NET_BUFFER_LIST* original_nbl;
     NET_BUFFER_LIST* cloned_nbl;
 } net_ebpf_xdp_md_t;
@@ -299,19 +298,19 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32
         goto Exit;
     }
 
-    old_data = net_xdp_ctx->data;
+    old_data = (uint8_t*)net_xdp_ctx->base.data;
 
     old_nbl = (net_xdp_ctx->cloned_nbl != NULL) ? net_xdp_ctx->cloned_nbl : net_xdp_ctx->original_nbl;
     ASSERT(old_nbl != NULL);
     old_net_buffer = NET_BUFFER_LIST_FIRST_NB(old_nbl);
 
     // Allocate buffer for the cloned NBL, accounting for any unused header.
-    status = RtlULongAdd(old_net_buffer->DataLength, unused_header_length, (ULONG*)&cloned_net_buffer_length);
+    status = RtlULongAdd(old_net_buffer->DataLength, unused_header_length, (unsigned long*)&cloned_net_buffer_length);
     if (!NT_SUCCESS(status))
         goto Exit;
 
     packet_buffer =
-        (void*)ExAllocatePoolUninitialized(NonPagedPoolNx, cloned_net_buffer_length, NET_EBPF_EXTENSION_POOL_TAG);
+        (uint8_t*)ExAllocatePoolUninitialized(NonPagedPoolNx, cloned_net_buffer_length, NET_EBPF_EXTENSION_POOL_TAG);
     if (packet_buffer == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
@@ -324,8 +323,8 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32
     } else {
         // This is the case when we received a NB with more than one MDL. Get contiguous data buffer
         // from NB and copy to packet_buffer at the offset after any unused header.
-        uint8_t* buffer =
-            NdisGetDataBuffer(old_net_buffer, old_net_buffer->DataLength, packet_buffer + unused_header_length, 1, 0);
+        uint8_t* buffer = (uint8_t*)NdisGetDataBuffer(
+            old_net_buffer, old_net_buffer->DataLength, packet_buffer + unused_header_length, 1, 0);
         if (buffer == NULL) {
             status = STATUS_INSUFFICIENT_RESOURCES;
             goto Exit;
@@ -333,8 +332,8 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32
     }
 
     // Adjust the XDP context data pointers.
-    net_xdp_ctx->data = packet_buffer;
-    net_xdp_ctx->data_end = packet_buffer + cloned_net_buffer_length;
+    net_xdp_ctx->base.data = packet_buffer;
+    net_xdp_ctx->base.data_end = packet_buffer + cloned_net_buffer_length;
 
     // Create a MDL with the packet buffer.
     mdl_chain = IoAllocateMdl(packet_buffer, cloned_net_buffer_length, FALSE, FALSE, NULL);
@@ -374,7 +373,7 @@ _net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl)
 {
     NET_BUFFER* net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
     MDL* mdl_chain = NET_BUFFER_FIRST_MDL(net_buffer);
-    uint8_t* buffer = MmGetSystemAddressForMdlSafe(mdl_chain, NormalPagePriority);
+    uint8_t* buffer = (uint8_t*)MmGetSystemAddressForMdlSafe(mdl_chain, NormalPagePriority);
     if (buffer != NULL)
         ExFreePool(buffer);
     IoFreeMdl(mdl_chain);
@@ -415,9 +414,9 @@ _net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta)
             return_value = -1;
             goto Exit;
         }
-        packet_buffer = NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, 1, 0);
+        packet_buffer = (uint8_t*)NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, 1, 0);
         if (packet_buffer != NULL)
-            net_xdp_ctx->data = packet_buffer;
+            net_xdp_ctx->base.data = packet_buffer;
         else {
             // Data in net_buffer not contiguous.
             // Restore net_buffer.
@@ -428,9 +427,9 @@ _net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta)
     } else {
         // delta > 0.
         NdisAdvanceNetBufferDataStart(net_buffer, delta, FALSE, NULL);
-        packet_buffer = NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, 1, 0);
+        packet_buffer = (uint8_t*)NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, 1, 0);
         ASSERT(packet_buffer != NULL);
-        net_xdp_ctx->data = packet_buffer;
+        net_xdp_ctx->base.data = packet_buffer;
     }
 
 Exit:
@@ -445,7 +444,7 @@ Exit:
 //
 
 static void
-_net_ebpf_ext_l2_receive_inject_complete(_In_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
+_net_ebpf_ext_l2_receive_inject_complete(_In_ void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
 {
     UNREFERENCED_PARAMETER(context);
     UNREFERENCED_PARAMETER(dispatch_level);
@@ -486,7 +485,7 @@ Exit:
 }
 
 static void
-_net_ebpf_ext_l2_inject_send_complete(_In_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
+_net_ebpf_ext_l2_inject_send_complete(_In_ void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
 {
     if ((BOOLEAN)(uintptr_t)context == FALSE)
         // Free clone allocated using _net_ebpf_ext_allocate_cloned_nbl.
@@ -593,7 +592,7 @@ net_ebpf_ext_layer_2_classify(
     if (filter_context == NULL)
         goto Done;
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     if (attached_client == NULL)
         goto Done;
 
@@ -607,12 +606,12 @@ net_ebpf_ext_layer_2_classify(
         goto Done;
     }
 
-    net_xdp_ctx.ingress_ifindex =
+    net_xdp_ctx.base.ingress_ifindex =
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
 
     client_if_index = filter_context->if_index;
-    ASSERT((client_if_index == 0) || (client_if_index == net_xdp_ctx.ingress_ifindex));
-    if (client_if_index != 0 && client_if_index != net_xdp_ctx.ingress_ifindex) {
+    ASSERT((client_if_index == 0) || (client_if_index == net_xdp_ctx.base.ingress_ifindex));
+    if (client_if_index != 0 && client_if_index != net_xdp_ctx.base.ingress_ifindex) {
         // The client is not interested in this ingress ifindex.
         goto Done;
     }
@@ -626,7 +625,7 @@ net_ebpf_ext_layer_2_classify(
         goto Done;
     }
 
-    packet_buffer = NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, sizeof(uint16_t), 0);
+    packet_buffer = (uint8_t*)NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, sizeof(uint16_t), 0);
     if (!packet_buffer) {
         // Data in net_buffer not contiguous.
         // Allocate a cloned NBL with contiguous data.
@@ -634,8 +633,8 @@ net_ebpf_ext_layer_2_classify(
         if (!NT_SUCCESS(status))
             goto Done;
     } else {
-        net_xdp_ctx.data = packet_buffer;
-        net_xdp_ctx.data_end = packet_buffer + net_buffer->DataLength;
+        net_xdp_ctx.base.data = packet_buffer;
+        net_xdp_ctx.base.data_end = packet_buffer + net_buffer->DataLength;
     }
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_ctx, &result) == EBPF_SUCCESS) {
@@ -681,6 +680,4 @@ Done:
 
     if (!NT_SUCCESS(status))
         NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
-
-    return;
 }
