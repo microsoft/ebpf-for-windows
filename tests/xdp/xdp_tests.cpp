@@ -23,7 +23,7 @@ TEST_CASE("xdp_encap_reflect_test", "[xdp_tests]")
     get_address_from_string(_remote_ip, remote_address, &address_family);
     REQUIRE((address_family == AF_INET || address_family == AF_INET6));
     int protocol = (address_family == AF_INET) ? IPPROTO_IPV4 : IPPROTO_IPV6;
-    // Create a RAW receiver socket with protocol being IPV4 or IPV6 based on the address family of the remote host.
+    // Create a RAW receiver socket with protocol being IPv4 or IPv6 based on the address family of the remote host.
     datagram_receiver_socket_t datagram_receiver_socket(SOCK_RAW, protocol, _reflection_port);
     // Post an asynchronous receive on the receiver socket.
     datagram_receiver_socket.post_async_receive();

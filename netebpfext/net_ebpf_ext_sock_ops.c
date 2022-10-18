@@ -7,7 +7,7 @@
  *
  */
 
-#define INITGUID
+#include "net_ebpf_ext.h"
 
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_ops.h"
@@ -51,7 +51,7 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_sock_ops_wf
 
 typedef struct _net_ebpf_extension_sock_ops_wfp_filter_context
 {
-    net_ebpf_extension_wfp_filter_context_t;
+    net_ebpf_extension_wfp_filter_context_t base;
     uint32_t compartment_id; ///< Compartment Id condition value for the filters (if any).
     KSPIN_LOCK lock;         ///< Lock for synchronization.
     _Guarded_by_(lock) net_ebpf_extension_sock_ops_wfp_flow_context_list_t
@@ -159,7 +159,7 @@ net_ebpf_extension_sock_ops_on_client_attach(
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-        &filter_context->filter_ids);
+        &filter_context->base.filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -188,7 +188,7 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
     KIRQL irql;
     bool lock_held = FALSE;
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters(NET_EBPF_SOCK_OPS_FILTER_COUNT, filter_context->filter_ids);
+    net_ebpf_extension_delete_wfp_filters(NET_EBPF_SOCK_OPS_FILTER_COUNT, filter_context->base.filter_ids);
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
     lock_held = TRUE;
@@ -263,6 +263,8 @@ NTSTATUS
 net_ebpf_ext_sock_ops_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
+    const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
+        &_ebpf_sock_ops_hook_provider_moduleid, &_net_ebpf_extension_sock_ops_hook_provider_data};
 
     status = _net_ebpf_sock_ops_update_store_entries();
     if (!NT_SUCCESS(status)) {
@@ -285,8 +287,6 @@ net_ebpf_ext_sock_ops_register_providers()
     _net_ebpf_sock_ops_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_SOCK_OPS;
     _net_ebpf_sock_ops_hook_provider_data.bpf_attach_type = BPF_CGROUP_SOCK_OPS;
     _net_ebpf_sock_ops_hook_provider_data.link_type = BPF_LINK_TYPE_CGROUP;
-    const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &_ebpf_sock_ops_hook_provider_moduleid, &_net_ebpf_extension_sock_ops_hook_provider_data};
 
     // Set the attach type as the provider module id.
     _ebpf_sock_ops_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS;
@@ -405,7 +405,7 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     if (filter_context == NULL)
         goto Exit;
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     if (attached_client == NULL)
         goto Exit;
 
@@ -424,7 +424,7 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     memset(local_flow_context, 0, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t));
 
     // Associate the filter context with the filter context.
-    REFERENCE_FILTER_CONTEXT(filter_context);
+    REFERENCE_FILTER_CONTEXT(&filter_context->base);
     local_flow_context->filter_context = filter_context;
 
     sock_ops_context = &local_flow_context->context;
@@ -519,7 +519,7 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         // Since the hook client is detached, exit the function.
         goto Exit;
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     if (attached_client == NULL)
         // This means that the eBPF program is detached and there is nothing to notify.
         goto Exit;
@@ -541,8 +541,9 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         goto Exit;
 
 Exit:
-
-    DEREFERENCE_FILTER_CONTEXT(filter_context);
+    if (filter_context) {
+        DEREFERENCE_FILTER_CONTEXT(&filter_context->base);
+    }
     if (local_flow_context != NULL)
         ExFreePool(local_flow_context);
     if (attached_client != NULL)

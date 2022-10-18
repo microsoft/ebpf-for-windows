@@ -5,7 +5,7 @@
 
 Abstract:
 
-   This file implements the classifyFn, notifiFn, and flowDeleteFn callouts
+   This file implements the classifyFn, notifyFn, and flowDeleteFn callouts
    functions for:
    Layer 2 network receive
    Resource Acquire
@@ -33,7 +33,7 @@ _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_
 
 static NTSTATUS
 _net_ebpf_ext_filter_change_notify(
-    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter);
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
 
 typedef struct _net_ebpf_ext_wfp_callout_state
 {
@@ -237,7 +237,7 @@ net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp
 net_ebpf_extension_hook_id_t
 net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
 {
-    net_ebpf_extension_hook_id_t hook_id = 0;
+    net_ebpf_extension_hook_id_t hook_id = (net_ebpf_extension_hook_id_t)0;
 
     switch (wfp_layer_id) {
     case FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE:
@@ -507,7 +507,7 @@ net_ebpf_ext_uninitialize_ndis_handles()
         NdisFreeNetBufferListPool(_net_ebpf_ext_nbl_pool_handle);
 
     if (_net_ebpf_ext_ndis_handle != NULL)
-        NdisFreeGenericObject(_net_ebpf_ext_ndis_handle);
+        NdisFreeGenericObject((NDIS_GENERIC_OBJECT*)_net_ebpf_ext_ndis_handle);
 }
 
 NTSTATUS
@@ -630,7 +630,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
 
 static NTSTATUS
 _net_ebpf_ext_filter_change_notify(
-    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter)
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter)
 {
     NET_EBPF_EXT_LOG_ENTRY();
 
