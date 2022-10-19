@@ -61,6 +61,7 @@ jobs:
     runs-on: ${{inputs.environment}}
     env:
       # Configuration type to build.
+      SOURCE_ROOT: ${{github.workspace}}
       NAME: ${{inputs.name}}
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64

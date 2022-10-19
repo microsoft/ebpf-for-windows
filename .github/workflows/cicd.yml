@@ -107,6 +107,22 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
+  # Run the bpf2c conformance tests in GitHub.
+  bpf2c_conformance:
+    # Always run this job.
+    needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      test_command: bin\%BUILD_CONFIGURATION%\bpf_conformance_runner.exe --test_file_directory tests --plugin_path bpf2c_plugin.exe --cpu_version v2 --debug true --plugin_options "--include %SOURCE_ROOT%\include"
+      name: bpf2c_conformance
+      build_artifact: Build-x64
+      environment: windows-2019
+      vs_dev: true
+      code_coverage: true
+      gather_dumps: true
+      capture_etw: true
+
   # Run the driver tests on self-hosted runners.
   driver:
     # Always run this job.
