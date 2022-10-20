@@ -5,8 +5,11 @@
 // Windows Header Files
 #include <windows.h>
 
+#include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <vector>
 #include <sstream>
 #include <string>
@@ -17,39 +20,15 @@
 #define metadata_table ___METADATA_TABLE___##_metadata_table
 extern metadata_table_t metadata_table;
 
-void
-division_by_zero(uint32_t address)
-{
-    fprintf(stderr, "Divide by zero at address %d\n", address);
-}
-
-metadata_table_t*
-get_metadata_table()
-{
-    return &metadata_table;
-}
-
-// Copyright (c) Microsoft Corporation
-// SPDX-License-Identifier: MIT
-
-#pragma once
-#include <cmath>
-#include <cstdint>
-#include <map>
-
-#if !defined(UNREFERENCED_PARAMETER)
-#define UNREFERENCED_PARAMETER(P) (P)
-#endif
-
 static uint64_t
-gather_bytes(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_gather_bytes(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     return ((uint64_t)(a & 0xff) << 32) | ((uint64_t)(b & 0xff) << 24) | ((uint64_t)(c & 0xff) << 16) |
            ((uint64_t)(d & 0xff) << 8) | (e & 0xff);
-};
+}
 
 static uint64_t
-memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
@@ -60,10 +39,10 @@ memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
         p[i] ^= 42;
     }
     return 0;
-};
+}
 
 static uint64_t
-no_op(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_no_op(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     UNREFERENCED_PARAMETER(a);
     UNREFERENCED_PARAMETER(b);
@@ -75,7 +54,7 @@ no_op(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 }
 
 static uint64_t
-sqrti(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_sqrti(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     UNREFERENCED_PARAMETER(b);
     UNREFERENCED_PARAMETER(c);
@@ -86,7 +65,7 @@ sqrti(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 }
 
 static uint64_t
-strcmp_ext(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_strcmp_ext(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
@@ -95,7 +74,7 @@ strcmp_ext(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 }
 
 static uint64_t
-unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     UNREFERENCED_PARAMETER(b);
     UNREFERENCED_PARAMETER(c);
@@ -105,13 +84,13 @@ unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 }
 
 static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5)>
-    helper_functions = {
-        {0, gather_bytes},
-        {1, memfrob},
-        {2, no_op},
-        {3, sqrti},
-        {4, strcmp_ext},
-        {5, unwind},
+    _helper_functions = {
+        {0, _gather_bytes},
+        {1, _memfrob},
+        {2, _no_op},
+        {3, _sqrti},
+        {4, _strcmp_ext},
+        {5, _unwind},
 };
 
 /**
@@ -120,8 +99,8 @@ static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, ui
  * @param[in] input String containing hex bytes.
  * @return Vector of bytes.
  */
-std::vector<uint8_t>
-base16_decode(const std::string& input)
+static std::vector<uint8_t>
+_base16_decode(const std::string& input)
 {
     std::vector<uint8_t> output;
     std::stringstream ss(input);
@@ -162,13 +141,11 @@ main(int argc, char** argv)
         return 1;
     }
 
-    memory = base16_decode(memory_string);
+    memory = _base16_decode(memory_string);
 
     program_entry_t* program_entries = nullptr;
     size_t program_entry_count = 0;
-    auto table = get_metadata_table();
-
-    table->programs(&program_entries, &program_entry_count);
+    metadata_table.programs(&program_entries, &program_entry_count);
 
     if (program_entry_count != 1) {
         std::cerr << "Expected 1 program, found " << program_entry_count << std::endl;
@@ -185,12 +162,12 @@ main(int argc, char** argv)
                 std::cout << "bpf_test doesn't support resolving helpers by name yet." << std::endl;
                 return -1;
             }
-            if (helper_functions.find(helper_function_entries[j].helper_id) == helper_functions.end()) {
+            if (_helper_functions.find(helper_function_entries[j].helper_id) == _helper_functions.end()) {
                 std::cout << "bpf_test doesn't support helper id=" << helper_function_entries[j].helper_id << std::endl;
                 return -1;
             } else {
-                helper_function_entries[j].address = helper_functions[helper_function_entries[j].helper_id];
-                if (helper_function_entries[j].address == unwind) {
+                helper_function_entries[j].address = _helper_functions[helper_function_entries[j].helper_id];
+                if (helper_function_entries[j].address == _unwind) {
                     helper_function_entries[j].tail_call = true;
                 }
             }

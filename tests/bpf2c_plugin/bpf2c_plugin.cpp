@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // This program reads BPF instructions from stdin and memory contents from
-// the first agument. It then executes the BPF program and prints the
+// the first argument. It then executes the BPF program and prints the
 // value of r0 at the end of execution.
 // The program is intended to be used with the bpf conformance test suite.
 
