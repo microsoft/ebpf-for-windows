@@ -246,7 +246,7 @@ jobs:
       run: wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
 
     - name: Copy bpf2c test logs (if any) to Test Logs
-      if: inputs.capture_etw == true
+      if: (inputs.name == 'bpf2c') && (inputs.capture_etw == true)
       shell: cmd
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
