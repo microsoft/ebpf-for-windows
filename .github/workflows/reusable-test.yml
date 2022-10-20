@@ -249,7 +249,6 @@ jobs:
       if: (inputs.name == 'bpf2c') && (inputs.capture_etw == true)
       shell: cmd
       run: |
-          set EBPF_ENABLE_WER_REPORT=yes
           copy ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\*.log ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
 
     - name: Check for crash dumps
