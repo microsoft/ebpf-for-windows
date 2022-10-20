@@ -333,7 +333,11 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         auto t1 = [&]() {
             uintptr_t old_thread_affinity;
             ebpf_set_current_thread_affinity(1, &old_thread_affinity);
-            ebpf_epoch_enter();
+            if (ebpf_epoch_enter() != EBPF_SUCCESS) {
+                signal_2.signal();
+                signal_1.wait();
+                return;
+            }
             void* memory = ebpf_epoch_allocate(10);
             signal_2.signal();
             signal_1.wait();
@@ -345,6 +349,10 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
             ebpf_set_current_thread_affinity(2, &old_thread_affinity);
             signal_2.wait();
             ebpf_epoch_enter();
+            if (ebpf_epoch_enter() != EBPF_SUCCESS) {
+                signal_1.signal();
+                return;
+            }
             void* memory = ebpf_epoch_allocate(10);
             ebpf_epoch_free(memory);
             ebpf_epoch_exit();

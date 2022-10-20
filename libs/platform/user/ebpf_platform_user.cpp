@@ -92,6 +92,24 @@ _clean_up_thread_pool()
     CloseThreadpool(_pool);
 }
 
+std::set<unsigned long> _stack_trace_hit;
+std::mutex _stack_trace_hit_lock;
+
+static inline bool
+_fail_first_time()
+{
+    std::unique_lock lock(_stack_trace_hit_lock);
+    unsigned long back_trace_hash = 0;
+    std::vector<void*> back_trace(5);
+    if (CaptureStackBackTrace(0, 5, back_trace.data(), &back_trace_hash) > 0) {
+        if (_stack_trace_hit.contains(back_trace_hash)) {
+            return true;
+        }
+        _stack_trace_hit.insert(back_trace_hash);
+    }
+    return false;
+}
+
 class _ebpf_emulated_dpc;
 
 thread_local bool ebpf_non_preemptible = false;
@@ -216,7 +234,6 @@ class _ebpf_emulated_dpc
 ebpf_result_t
 ebpf_platform_initiate()
 {
-
     try {
         _ebpf_platform_maximum_group_count = GetMaximumProcessorGroupCount();
         _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
@@ -263,9 +280,16 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
 {
     ebpf_assert(size);
+    if (ebpf_fuzzing_enabled) {
+        if (_fail_first_time()) {
+            return nullptr;
+        }
+    }
+
     if (size > ebfp_fuzzing_memory_limit) {
         return nullptr;
     }
+
     void* memory;
     memory = calloc(size, 1);
     if (memory != nullptr)
@@ -278,9 +302,16 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(new_size) void* ebpf_reallocate(_In_ void* memory, size_t old_size, size_t new_size)
 {
     UNREFERENCED_PARAMETER(old_size);
+    if (ebpf_fuzzing_enabled) {
+        if (_fail_first_time()) {
+            return nullptr;
+        }
+    }
+
     if (new_size > ebfp_fuzzing_memory_limit) {
         return nullptr;
     }
+
     void* p = realloc(memory, new_size);
     if (p && (new_size > old_size))
         memset(((char*)p) + old_size, 0, new_size - old_size);

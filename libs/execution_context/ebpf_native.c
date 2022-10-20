@@ -250,6 +250,10 @@ _ebpf_native_unload_all()
     GUID module_id = GUID_NULL;
     ebpf_native_module_t** module = NULL;
 
+    if (_ebpf_native_client_table == NULL) {
+        EBPF_RETURN_VOID();
+    }
+
     ebpf_list_initialize(&free_list);
 
     // Add all the modules in a free list.
@@ -291,11 +295,13 @@ ebpf_native_terminate()
     // ebpf_provider_unload is blocking call until all the
     // native modules have been detached.
     ebpf_provider_unload(_ebpf_native_provider);
+    _ebpf_native_provider = NULL;
 
     // All native modules should be cleaned up by now.
-    ebpf_assert(ebpf_hash_table_key_count(_ebpf_native_client_table) == 0);
+    ebpf_assert(!_ebpf_native_client_table || ebpf_hash_table_key_count(_ebpf_native_client_table) == 0);
 
     ebpf_hash_table_destroy(_ebpf_native_client_table);
+    _ebpf_native_client_table = NULL;
     ebpf_lock_destroy(&_ebpf_native_client_table_lock);
 
     EBPF_RETURN_VOID();

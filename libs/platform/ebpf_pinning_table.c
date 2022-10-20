@@ -91,6 +91,10 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
     ebpf_result_t return_value;
     ebpf_utf8_string_t* key = NULL;
 
+    if (pinning_table == NULL) {
+        EBPF_RETURN_VOID();
+    }
+
     for (;;) {
         return_value = ebpf_hash_table_next_key(pinning_table->hash_table, NULL, (uint8_t*)&key);
         if (return_value != EBPF_SUCCESS) {

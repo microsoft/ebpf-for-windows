@@ -213,13 +213,17 @@ ebpf_epoch_initiate()
 
     ebpf_assert(EBPF_CACHE_ALIGN_POINTER(_ebpf_epoch_cpu_table) == _ebpf_epoch_cpu_table);
 
+    // Initialize the table state.
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         _ebpf_epoch_cpu_table[cpu_id].epoch_state.epoch = _ebpf_current_epoch;
         _ebpf_epoch_cpu_table[cpu_id].epoch_state.active = false;
         ebpf_lock_create(&_ebpf_epoch_cpu_table[cpu_id].lock);
 
         ebpf_list_initialize(&_ebpf_epoch_cpu_table[cpu_id].free_list);
+    }
 
+    // Allocate the per-cpu hash tables.
+    for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         return_value = ebpf_hash_table_create(
             &_ebpf_epoch_cpu_table[cpu_id].thread_table,
             ebpf_allocate,
@@ -276,6 +280,7 @@ ebpf_epoch_terminate()
     _ebpf_epoch_cpu_count = 0;
 
     ebpf_free_cache_aligned(_ebpf_epoch_cpu_table);
+    _ebpf_epoch_cpu_table = NULL;
     EBPF_RETURN_VOID();
 }
 
