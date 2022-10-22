@@ -3,7 +3,7 @@
 
 # Base image for Windows nanoserver 1809.
 # The files in this image are copied to $env:CONTAINER_SANDBOX_MOUNT_POINT on the host.
-FROM mcr.microsoft.com/windows/nanoserver@sha256:fb16d42712f3599c849723d365a7ddc5fb95e8bf1674d97e9f9cbcb726e7525d
+FROM mcr.microsoft.com/windows/nanoserver@sha256:fefb912e2942912f1cd55bfe6bbb697a601a7787caf5c1875aaf105c86a28027
 
 ENV PATH="C:\Program Files\PowerShell;C:\utils;C:\Windows\system32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0;"
 
