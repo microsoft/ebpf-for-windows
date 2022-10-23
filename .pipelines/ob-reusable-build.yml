@@ -1,0 +1,148 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+# This workflow performs a build of the project and uploads the result as a build artifact.
+
+parameters:
+  # Name associated with the output of this build.
+  - name: build_artifact
+    type: string
+  # Name of the job
+  - name: name
+    type: string
+  # Additional options passed to msbuild.
+  - name: build_options
+    type: string
+    default: ''
+  - name: generate_release_package
+    type: boolean
+    default: false
+  - name: build_codeql
+    type: boolean
+    default: false
+  - name: build_nuget
+    type: boolean
+    default: false
+  - name: cxx_flags
+    type: string
+    default: ''
+  - name: ld_flags
+    type: string
+    default: ''
+
+
+jobs:
+  - job: '${{parameters.name}}'
+    timeoutInMinutes: 90
+
+    strategy:
+      matrix:
+        Debug:
+          buildConfiguration: 'Debug'
+        Release:
+          buildConfiguration: 'Release'
+      maxParallel: 2
+
+    pool:
+      vmImage: 'windows-2019'
+      type: windows
+
+    variables:
+      # Path to the solution file relative to the root of the project.
+      SOLUTION_FILE_PATH: ebpf-for-windows.sln
+      BUILD_ARTIFACT_NAME: ${{parameters.build_artifact}}
+      BUILD_CONFIGURATION: $(buildConfiguration)
+      BUILD_PLATFORM: x64
+      BUILD_OPTIONS: ${{parameters.build_options}}
+      CXX_FLAGS: ${{parameters.cxx_flags}}
+      LD_FLAGS: ${{parameters.ld_flags}}
+      MSBUILD_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\amd64'
+      GDN_CODESIGN_TARGETDIRECTORY: '$(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)'
+
+    steps:
+      - checkout: self
+        displayName: 'Checkout Repo'
+        submodules: 'recursive'
+        fetchDepth: 0
+
+      - bash: |
+          choco install -y llvm --version 11.0.1 --allow-downgrade
+          echo '##vso[task.prependpath]C:\Program Files\LLVM\bin'
+        displayName:  'Install tools'
+        workingDirectory: $(Build.SourcesDirectory)
+
+      - task: NuGetCommand@2
+        inputs:
+          command: 'restore'
+          restoreSolution: $(SOLUTION_FILE_PATH)
+        displayName: 'Restore Nuget Packages'
+
+      - bash: |
+          cmake -G "Visual Studio 16 2019" -S external/ebpf-verifier -B external/ebpf-verifier/build
+        displayName: 'Create verifier project'
+        workingDirectory: $(Build.SourcesDirectory)
+
+      - bash: |
+          cmake -G "Visual Studio 16 2019" -S external/catch2 -B external/catch2/build -DBUILD_TESTING=OFF
+        displayName: 'Create catch2 project'
+        workingDirectory: $(Build.SourcesDirectory)
+
+      - bash: |
+          cmake -G "Visual Studio 16 2019" -S external/ubpf -B external/ubpf/build
+        displayName: 'Create ubpf project'
+        workingDirectory: $(Build.SourcesDirectory)
+
+      - bash: |
+          "$(MSBUILD_PATH)\msbuild.exe" //m //p:Configuration="$(BUILD_CONFIGURATION)" //p:Platform="$(BUILD_PLATFORM)" "$(SOLUTION_FILE_PATH)" "$(BUILD_OPTIONS)"
+        displayName: 'Build'
+        workingDirectory: $(Build.SourcesDirectory)
+
+      - script: |
+          copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\Hostx64\x64\clang*" .
+        workingDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
+        displayName: Copy VC Libs for Sanitizer
+
+      - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
+        artifact: "${{parameters.build_artifact}} $(buildConfiguration)"
+        displayName: "Upload Build Output"
+
+      - bash: |
+          "$(Build.SourcesDirectory)\scripts\create_package_data.bat" "$(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)"
+        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.generate_release_package}}', 'true'))
+        workingDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)
+        displayName: 'Generate the package data'
+
+      - bash: |
+          cmake -S tools/setup -B build/setup -DEBPFFORWINDOWS_PROGRAM_DATA="$(Build.SourcesDirectory)\$(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)\package_data" "-DEBPFFORWINDOWS_VERSION=0.4.0" -DCPACK_GENERATOR=WIX
+          cmake --build build/setup --target package
+        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.generate_release_package}}', 'true'))
+        workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Generate the MSI release package'
+
+      - bash: |
+          echo "##vso[task.setvariable variable=REL_MSI_PACKAGE_PATH;isOutput=true]$(ls build/setup/*.msi)"
+        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.generate_release_package}}', 'true'))
+        name: msi_packages
+        displayName: 'Locate the MSI package'
+
+      - publish: $(msi_packages.REL_MSI_PACKAGE_PATH)
+        artifact: ebpf-for-windows.msi
+        displayName: 'Upload the MSI package'
+        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.generate_release_package}}', 'true'))
+
+      - script: |
+          "$(MSBUILD_PATH)\msbuild.exe" /m /p:Configuration="$(BUILD_CONFIGURATION)" /p:Platform="$(BUILD_PLATFORM)" "$(SOLUTION_FILE_PATH)" "$(BUILD_OPTIONS)" /t:tools\nuget
+        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'))
+        workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Build nuget package'
+
+      - bash: |
+          echo "##vso[task.setvariable variable=REL_NUGET_PACKAGE_PATH;isOutput=true]$(ls $(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)/*.nupkg)"
+        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'))
+        name: nuget_packages
+        displayName: 'Locate the nuget package'
+
+      - publish: $(nuget_packages.REL_NUGET_PACKAGE_PATH)
+        artifact: 'ebpf-for-windows nuget'
+        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'))
+        displayName: 'Upload the nuget package'

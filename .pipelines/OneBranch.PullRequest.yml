@@ -8,7 +8,23 @@
 # Support:        https://aka.ms/onebranchsup                                   #
 #################################################################################
 
-trigger: none # https://aka.ms/obpipelines/triggers
+# https://aka.ms/obpipelines/triggers
+trigger:
+  ## disable batching of changes when a push happens.
+  batch: false
+  branches:
+    include:
+    - main
+
+pr:
+- main
+
+schedules:
+- cron: '00 21 * * *'
+  displayName: Schedule CI/CD
+  branches:
+    include:
+    - main
 
 parameters: # parameters are shown up in ADO UI in a build queue time
 - name: 'debug'
@@ -34,117 +50,174 @@ resources:
       name: OneBranch.Pipelines/GovernedTemplates
       ref: refs/heads/main
 
-extends:
-  template: v2/OneBranch.NonOfficial.CrossPlat.yml@templates # https://aka.ms/obpipelines/templates
-  parameters:
-    globalSdl: # https://aka.ms/obpipelines/sdl
-      tsa:
-        enabled: false # onebranch publish all sdl results to TSA. If TSA is disabled all SDL tools will forced into 'break' build mode.
-      # credscan:
-      #   suppressionsFile: $(Build.SourcesDirectory)\.config\CredScanSuppressions.json
-      binskim:
-        break: true # always break the build on binskim issues. You can disable it by setting to 'false'
-      policheck:
-        break: true # always break the build on policheck issues. You can disable it by setting to 'false'
-      # suppression:
-      #   suppressionFile: $(Build.SourcesDirectory)\.gdn\global.gdnsuppress
 
-    stages:
-    - stage: build
-      jobs:
-      - job: main
-        pool:
-          type: windows  # read more about custom job pool types at https://aka.ms/obpipelines/yaml/jobs
-        
-        variables: # More settings at https://aka.ms/obpipelines/yaml/jobs
-          ob_outputDirectory: '$(REPOROOT)\out' # this directory is uploaded to pipeline artifacts, reddog and cloudvault. More info at https://aka.ms/obpipelines/artifacts
-          ob_sdl_binskim_break: true # https://aka.ms/obpipelines/sdl
+jobs:
 
-          # ob_sdl_suppression_suppressionFile: $(Build.SourcesDirectory)\.gdn\build.nonofficial.gdnsuppress
+# regular
+# Always run this job.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
+  - template: ./ob-reusable-build.yml
+    parameters:
+      name: regular
+      build_artifact: Build-x64
+      generate_release_package: true
+      build_nuget: true
 
-        steps:
-          - task: UseDotNet@2
-            continueOnError: true
-            inputs:
-              packageType: 'sdk'
-              useGlobalJson: true
-              performMultiLevelLookup: true
+# cmake
+# Always run this job.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
+  - template: ./ob-reusable-cmake-build.yml
+    parameters:
+      build_artifact: Build-x64-cmake
 
-          - task: onebranch.pipeline.version@1 # generates automatic version. For other versioning options check https://aka.ms/obpipelines/versioning
-            displayName: 'Setup BuildNumber'
-            inputs:
-              system: 'RevisionCounter'
-              major: '1'
-              minor: '0'
-              exclude_commit: true
+# libfuzzer
+# Always run this job.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
+  - template: ./ob-reusable-build.yml
+    parameters:
+      name: libfuzzer
+      build_artifact: Build-x64-fuzzer
+      cxx_flags: '/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /ZH:SHA_256'
+      ld_flags: '"clang_rt.fuzzer_MD-x86_64.lib" "libsancov.lib"'
+      build_options: /p:Fuzzer='True' /t:tests\libfuzzer\execution_context_fuzzer /t:tests\libfuzzer\bpf2c_fuzzer /t:tests\libfuzzer\verifier_fuzzer /t:tests\libfuzzer\core_helper_fuzzer
 
-          - task: MSBuild@1
-            inputs:
-              solution: '$(Build.SourcesDirectory)\dirs.proj'
-              msbuildLocationMethod: 'location'
-              msbuildLocation: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe'
-              platform: 'x64'
-              configuration: 'release'
-              msbuildArguments: '/t:Restore'
-              clean: true
-              maximumCpuCount: true
-              logProjectEvents: true
+# unit_tests
+# Always run this job.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: unit_tests
+      test_command: '.\unit_tests.exe -d yes'
+      dependency: regular
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: true
+      gather_dumps: true
+      capture_etw: true
 
-          - task: MSBuild@1
-            inputs:
-              solution: '$(Build.SourcesDirectory)\dirs.proj'
-              msbuildLocationMethod: 'location'
-              msbuildLocation: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe'
-              platform: 'x64'
-              configuration: 'release'
-              msbuildArguments: '/v:n /nr:false /flp1:Verbosity=d;LogFile=$(OUTPUTROOT)\logs\msbuild_x64_release.log;Encoding=UTF-8 /flp2:logfile=$(OUTPUTROOT)\logs\msbuild_x64_release.err;errorsonly /bl:$(OUTPUTROOT)\logs\msbuild_x64_release.binlog'
-              clean: true
-              maximumCpuCount: true
-              logProjectEvents: true
+# bpf2c
+# Always run this job.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: bpf2c
+      test_command: '.\bpf2c_tests.exe -d yes'
+      dependency: regular
+      build_artifact: Build-x64
+      environment: windows-2019
+      vs_dev: true
+      code_coverage: true
+      gather_dumps: true
+      capture_etw: true
 
-          - task: VSTest@2
-            inputs:
-              testSelector: 'testAssemblies'
-              testAssemblyVer2: |
-                **\*test*.dll
-                !**\*TestAdapter.dll
-                !**\obj\**
-              searchFolder: '$(Build.SourcesDirectory)\out'
-              resultsFolder: '$(Build.SourcesDirectory)\out\logs\TestResults'
-              runInParallel: true
-              codeCoverageEnabled: true
-              testRunTitle: 'release_x64'
-              platform: 'x64'
-              configuration: 'release'
-              publishRunAttachments: false
-              failOnMinTestsNotRun: true
-              rerunFailedTests: true
+# Additional jobs to run on pull and schedule only (skip push).
+# ---------------------------------------------------------------------------
+# Build with C++ static analyzer.
+# Only run on schedule and pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+  - template: ./ob-reusable-build.yml
+    parameters:
+      name: analyze
+      build_artifact: Build-x64-Analyze
+      build_options: /p:Analysis='True'
 
-          - task: PublishTestResults@2
-            displayName: 'Publish test results'
-            inputs:
-              testResultsFormat: VSTest
-              testResultsFiles: '$(Build.SourcesDirectory)\out\logs\TestResults\**\*.trx'
-              failTaskOnFailedTests: true
+# Build with C++ address sanitizer.
+# Only run on schedule and pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+  - template: ./ob-reusable-build.yml
+    parameters:
+      name: sanitize
+      build_artifact: Build-x64-Sanitize
+      build_options: /p:Sanitizer='True'
 
-# https://aka.ms/obpipelines/cloudtest
-# uncomment this section and edit parameters to enable CloudTest
-    # - stage: cloudtest
-    #   dependsOn: build_stage
-    #   jobs:
-    #   - job: cloudtestjob
-    #     pool:
-    #       type: cloudtestagentless
-    #     continueOnError: true
-    #     steps:
-    #     - task: CloudTestServerBuildTask@1
-    #       displayName: 'CloudTest'
-    #       inputs:
-    #         connectedServiceName: 'CloudTest-prod'
-    #         cloudTestTenant: 'onebranchtest'
-    #         testMapLocation: '[BuildRoot]\ClassLibrary.UnitTest\TestMapCdp.xml'
-    #         pipelineArtifactName: 'drop_build_main'
-    #         pipelineArtifactBuildUrl: '$(System.TaskDefinitionsUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)'
-    #         parserProperties: 'worker:VsTestVersion=V150;CodeCoverageType=Dynamic;worker:TestVar=$(RUN_PIPELINE_VARIABLE)'
-    #         cacheEnabled: false
-    #         scheduleBuildRequesterAlias: 'azbldrun'
+# fuzzing
+# Only run on schedule and pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: fuzzing
+      test_command: '.\fuzz.exe -d yes'
+      dependency: sanitize
+      build_artifact: Build-x64-Sanitize
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
+
+# bpf2c_fuzzer
+# Only run on schedule and pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: bpf2c_fuzzer
+      test_command: '.\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\'
+      dependency: libfuzzer
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
+
+# execution_context_fuzzer
+# Only run on schedule and pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: execution_context_fuzzer
+      pre_test: 'powershell Expand-Archive -Path .\corpus.zip -DestinationPath execution_context_fuzzer_corpus -Force'
+      test_command: '.\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\'
+      dependency: libfuzzer
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
+
+# Run the verifier fuzzer.
+# Only run on schedule and pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: verifier_fuzzer
+      test_command: '.\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\'
+      dependency: libfuzzer
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
+
+# core_helper_fuzzer
+# Only run on schedule and pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: core_helper_fuzzer
+      test_command: '.\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\'
+      dependency: libfuzzer
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
+
+# Run the quick stress tests
+# Only run on schedule and pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: stress
+      test_command: '.\ebpf_performance.exe'
+      dependency: regular
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
+
+# Run the unit tests with address sanitizer.
+# Only run on schedule and pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: sanitize_unit_tests
+      test_command: '.\ebpf_performance.exe'
+      dependency: sanitize
+      build_artifact: Build-x64-Sanitize
+      environment: windows-2019
+      gather_dumps: true
+      capture_etw: true
