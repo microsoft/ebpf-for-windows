@@ -23,62 +23,36 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="net_ebpf_ext.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="net_ebpf_ext_bind.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="net_ebpf_ext_drv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="net_ebpf_ext_hook_provider.c">
+    <ClCompile Include="..\net_ebpf_ext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="net_ebpf_ext_xdp.c">
+    <ClCompile Include="..\net_ebpf_ext_bind.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="net_ebpf_ext_prog_info_provider.c">
+    <ClCompile Include="..\net_ebpf_ext_hook_provider.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="net_ebpf_ext_sock_addr.c">
+    <ClCompile Include="..\net_ebpf_ext_prog_info_provider.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="net_ebpf_ext_sock_ops.c">
+    <ClCompile Include="..\net_ebpf_ext_sock_addr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="net_ebpf_ext.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="net_ebpf_ext_bind.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="net_ebpf_ext_hook_provider.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="net_ebpf_ext_xdp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="net_ebpf_ext_helpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="net_ebpf_ext_program_info.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="net_ebpf_ext_prog_info_provider.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="net_ebpf_ext_sock_addr.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="net_ebpf_ext_sock_ops.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClCompile Include="..\net_ebpf_ext_sock_ops.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\net_ebpf_ext_tracelog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\net_ebpf_ext_xdp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\guid.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Inf Include="NetEbpfExt.inf">
@@ -86,8 +60,40 @@
     </Inf>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\resource\ebpf_resource.rc">
+    <ResourceCompile Include="..\..\resource\ebpf_resource.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\net_ebpf_ext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\net_ebpf_ext_bind.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\net_ebpf_ext_hook_provider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\net_ebpf_ext_prog_info_provider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\net_ebpf_ext_program_info.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\net_ebpf_ext_sock_addr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\net_ebpf_ext_sock_ops.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\net_ebpf_ext_tracelog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\net_ebpf_ext_xdp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

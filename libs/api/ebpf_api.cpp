@@ -412,8 +412,14 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ cons
         goto Exit;
     }
     assert(value_size != 0);
+    if (BPF_MAP_TYPE_PER_CPU(type)) {
+        value_size = EBPF_PAD_8(value_size) * libbpf_num_possible_cpus();
+    }
 
     result = _map_lookup_element(map_handle, find_and_delete, key_size, (uint8_t*)key, value_size, (uint8_t*)value);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
 Exit:
     EBPF_RETURN_RESULT(result);
@@ -543,6 +549,10 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
     }
     assert(value_size != 0);
     assert(type != 0);
+
+    if (BPF_MAP_TYPE_PER_CPU(type)) {
+        value_size = EBPF_PAD_8(value_size) * libbpf_num_possible_cpus();
+    }
 
     if ((type == BPF_MAP_TYPE_PROG_ARRAY) || (type == BPF_MAP_TYPE_HASH_OF_MAPS) ||
         (type == BPF_MAP_TYPE_ARRAY_OF_MAPS)) {
@@ -1445,7 +1455,7 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache) noexcep
     // Set the inner map ID if we have a real inner map fd.
     map->map_definition.inner_map_id = EBPF_ID_NONE;
     if (map_cache.verifier_map_descriptor.inner_map_fd != ebpf_fd_invalid) {
-        struct bpf_map_info info;
+        struct bpf_map_info info = {0};
         uint32_t info_size = (uint32_t)sizeof(info);
         if (ebpf_object_get_info_by_fd(map_cache.verifier_map_descriptor.inner_map_fd, &info, &info_size) ==
             EBPF_SUCCESS) {
@@ -1476,7 +1486,7 @@ _initialize_ebpf_maps_native(
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
-        struct bpf_map_info info;
+        struct bpf_map_info info = {0};
         uint32_t info_size = (uint32_t)sizeof(info);
         result = ebpf_object_get_info(map_handles[i], &info, &info_size);
         if (result != EBPF_SUCCESS) {
@@ -1529,7 +1539,7 @@ _initialize_ebpf_programs_native(
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
-        struct bpf_prog_info info;
+        struct bpf_prog_info info = {};
         uint32_t info_size = (uint32_t)sizeof(info);
         result = ebpf_object_get_info(program_handles[i], &info, &info_size);
         if (result != EBPF_SUCCESS) {
@@ -2228,7 +2238,7 @@ _ebpf_validate_map(_In_ ebpf_map_t* map, fd_t original_map_fd) noexcept
     EBPF_LOG_ENTRY();
     ebpf_assert(map);
     // Validate that the existing map definition matches with this new map.
-    struct bpf_map_info info;
+    struct bpf_map_info info = {0};
     fd_t inner_map_info_fd = ebpf_fd_invalid;
     uint32_t info_size = (uint32_t)sizeof(info);
     ebpf_result_t result = ebpf_object_get_info_by_fd(original_map_fd, &info, &info_size);
@@ -3227,7 +3237,7 @@ ebpf_get_next_program_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
 
 ebpf_result_t
 ebpf_object_get_info_by_fd(
-    fd_t bpf_fd, _Out_writes_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size) noexcept
+    fd_t bpf_fd, _Inout_updates_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(info);

@@ -6,6 +6,7 @@ param ([Parameter(Mandatory=$True)] [string] $Admin,
        [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
+$sleepSeconds = 10
 
 Push-Location $WorkingDirectory
 
@@ -38,9 +39,9 @@ function Wait-AllVMsToInitialize
         }
         if ($ReadyList.Count -ne $VMList.Count) {
             Write-Log ("{0} of {1} VMs are ready." -f $ReadyList.Count, $VMList.Count)
-            # Sleep for 30 seconds.
-            Start-Sleep -seconds 30
-            $totalSleepTime += 30
+            # Sleep for sleepSeconds seconds.
+            Start-Sleep -seconds $sleepSeconds
+            $totalSleepTime += $sleepSeconds
         }
     }
     until (($ReadyList.Count -eq $VMList.Count) -or ($totalSleepTime -gt 5*60))
@@ -68,10 +69,10 @@ function Wait-AllVMsToInitialize
             }
         }
         if ($ReadyList.Count -ne $VMList.Count) {
-            Write-Log "Waiting 30 seconds for $VMName to be responsive."
-            # Sleep for 30 seconds.
-            Start-Sleep -seconds 30
-            $totalSleepTime += 30
+            Write-Log "Waiting $sleepSeconds seconds for $VMName to be responsive."
+            # Sleep for sleepSeconds seconds.
+            Start-Sleep -seconds $sleepSeconds
+            $totalSleepTime += $sleepSeconds
         }
     }
     until (($ReadyList.Count -eq $VMList.Count) -or ($totalSleepTime -gt 5*60))
@@ -269,7 +270,7 @@ function Import-ResultsFromVM
 
             Write-Log ("Stopping ETW tracing, creating file: " + $EtlFile)
             Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", "$WorkingDirectory\$EtlFile") -NoNewWindow -Wait
-        } -ArgumentList ("ebpf", $LogFileName, $EtlFile) -ErrorAction Ignore
+        } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
 
         # Copy ETL from Test VM.
         Write-Log ("Copy $EtlFile from eBPF on $VMName to $pwd\TestLogs")

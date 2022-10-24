@@ -34,7 +34,7 @@ jobs:
       PLATFORM_TOOLSET: v142
 
     steps:
-    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+    - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
       with:
         submodules: 'recursive'
 
@@ -45,7 +45,7 @@ jobs:
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache nuget packages
-      uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+      uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
       env:
         cache-name: cache-nuget-modules
       with:
@@ -68,7 +68,7 @@ jobs:
     # The subequent tests will directly get these when they download the build artifacts. In case
     # a test fails, the .o files used for the test will be available in the uploaded build artifacts.
     - name: Download demo repository artifacts
-      uses: dawidd6/action-download-artifact@7847792dd435a50521b8e3bd3576dae7459d1fa8
+      uses: dawidd6/action-download-artifact@46b4ae883bf0726f5949d025d31cb62c7a5ac70c
       with:
         github_token: ${{secrets.GITHUB_TOKEN}}
         workflow: cicd.yml
@@ -78,7 +78,7 @@ jobs:
         repo: microsoft/ebpf-for-windows-demo
         check_artifacts:  false
         search_artifacts: false
-        skip_unpack: false
+        skip_unpack: true
 
     - name: Extract artifacts to build path
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -87,7 +87,7 @@ jobs:
         tar -xf ..\..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
 
     - name: Upload Build Output
-      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
       with:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
         path: ${{github.workspace}}/build/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}

@@ -6,8 +6,7 @@
  *
  */
 
-#define INITGUID
-
+#include "net_ebpf_ext.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_bind.h"
 

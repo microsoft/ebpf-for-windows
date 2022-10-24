@@ -76,6 +76,21 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
+  # Run the netebpfext unit tests in GitHub.
+  netebpf_ext_unit_tests:
+    # Always run this job.
+    needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: netebpf_ext_unit_tests
+      test_command: .\netebpfext_unit.exe -d yes
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: true
+      gather_dumps: true
+      capture_etw: true
+
   # Run the bpf2c tests in GitHub.
   bpf2c:
     # Always run this job.

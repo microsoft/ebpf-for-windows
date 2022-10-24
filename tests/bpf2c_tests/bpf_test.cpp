@@ -9,6 +9,8 @@
 #include <vector>
 #include <string.h>
 
+#include "test_helpers.h"
+
 extern "C"
 {
 #include "bpf2c.h"
@@ -19,55 +21,6 @@ extern "C"
 #endif
 
 extern "C" metadata_table_t C_NAME;
-
-static uint64_t
-gather_bytes(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
-{
-    return ((uint64_t)a << 32) | ((uint32_t)b << 24) | ((uint32_t)c << 16) | ((uint16_t)d << 8) | e;
-};
-
-static uint64_t
-memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
-{
-    uint8_t* p = reinterpret_cast<uint8_t*>(a);
-    for (uint64_t i = 0; i < b; i++) {
-        p[i] ^= 42;
-    }
-    return 0;
-};
-
-static uint64_t
-no_op(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
-{
-    return 0;
-}
-
-static uint64_t
-sqrti(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
-{
-    return static_cast<uint64_t>(std::sqrt(a));
-}
-
-static uint64_t
-strcmp_ext(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
-{
-    return strcmp(reinterpret_cast<char*>(a), reinterpret_cast<char*>(b));
-}
-
-static uint64_t
-unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
-{
-    return a;
-}
-
-std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5)> helper_functions = {
-    {0, gather_bytes},
-    {1, memfrob},
-    {2, no_op},
-    {3, sqrti},
-    {4, strcmp_ext},
-    {5, unwind},
-};
 
 extern "C" void
 division_by_zero(uint32_t address)

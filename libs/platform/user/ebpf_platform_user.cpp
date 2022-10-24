@@ -29,6 +29,13 @@ static TP_CALLBACK_ENVIRON _callback_environment;
 static PTP_POOL _pool = nullptr;
 static PTP_CLEANUP_GROUP _cleanup_group = nullptr;
 
+static uint32_t _ebpf_platform_maximum_group_count = 0;
+static uint32_t _ebpf_platform_maximum_processor_count = 0;
+
+// The starting index of the first processor in each group.
+// Used to compute the current CPU index.
+static std::vector<uint32_t> _ebpf_platform_group_to_index_map;
+
 static ebpf_result_t
 _initialize_thread_pool()
 {
@@ -209,9 +216,20 @@ class _ebpf_emulated_dpc
 ebpf_result_t
 ebpf_platform_initiate()
 {
+
     try {
+        _ebpf_platform_maximum_group_count = GetMaximumProcessorGroupCount();
+        _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
+
         for (size_t i = 0; i < ebpf_get_cpu_count(); i++) {
             _ebpf_emulated_dpcs.push_back(std::make_shared<_ebpf_emulated_dpc>(i));
+        }
+        // Compute the starting index of each processor group.
+        _ebpf_platform_group_to_index_map.resize(_ebpf_platform_maximum_group_count);
+        uint32_t base_index = 0;
+        for (uint16_t i = 0; i < _ebpf_platform_group_to_index_map.size(); i++) {
+            _ebpf_platform_group_to_index_map[i] = base_index;
+            base_index += GetMaximumProcessorCount(i);
         }
     } catch (...) {
         return EBPF_NO_MEMORY;
@@ -632,12 +650,7 @@ ebpf_restore_current_thread_affinity(uintptr_t old_thread_affinity_mask)
     SetThreadAffinityMask(GetCurrentThread(), old_thread_affinity_mask);
 }
 
-_Ret_range_(>, 0) uint32_t ebpf_get_cpu_count()
-{
-    SYSTEM_INFO system_info;
-    GetNativeSystemInfo(&system_info);
-    return system_info.dwNumberOfProcessors;
-}
+_Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return _ebpf_platform_maximum_processor_count; }
 
 bool
 ebpf_is_preemptible()
@@ -654,7 +667,10 @@ ebpf_is_non_preemptible_work_item_supported()
 uint32_t
 ebpf_get_current_cpu()
 {
-    return GetCurrentProcessorNumber();
+    PROCESSOR_NUMBER processor_number;
+    GetCurrentProcessorNumberEx(&processor_number);
+    // Compute the CPU index from the group and number.
+    return _ebpf_platform_group_to_index_map[processor_number.Group] + processor_number.Number;
 }
 
 uint64_t

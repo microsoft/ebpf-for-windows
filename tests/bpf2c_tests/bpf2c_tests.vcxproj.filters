@@ -50,5 +50,8 @@
     <CopyFileToFolders Include="bpf_test.cpp">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="test_helpers.h">
+      <Filter>Header Files</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

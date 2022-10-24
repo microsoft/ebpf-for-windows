@@ -89,7 +89,7 @@ typedef class _single_instance_hook : public _hook_helper
   public:
     _single_instance_hook(ebpf_program_type_t program_type, ebpf_attach_type_t attach_type)
         : _hook_helper{attach_type}, provider(nullptr), client_binding_context(nullptr), client_data(nullptr),
-          client_dispatch_table(nullptr), link_handle(ebpf_handle_invalid), link_object(nullptr)
+          client_dispatch_table(nullptr), link_object(nullptr)
     {
         ebpf_guid_create(&client_id);
         attach_provider_data.supported_program_type = program_type;
@@ -132,11 +132,6 @@ typedef class _single_instance_hook : public _hook_helper
     void
     detach()
     {
-        if (link_handle != ebpf_handle_invalid) {
-            ebpf_api_unlink_program(link_handle);
-            ebpf_api_close_handle(link_handle);
-            link_handle = ebpf_handle_invalid;
-        }
         if (link_object != nullptr) {
             ebpf_link_detach(link_object);
             ebpf_link_close(link_object);
@@ -163,12 +158,6 @@ typedef class _single_instance_hook : public _hook_helper
     close_link(bpf_link* link)
     {
         ebpf_link_close(link);
-    }
-
-    void
-    close_handle()
-    {
-        ebpf_api_close_handle(link_handle);
     }
 
     ebpf_result_t
@@ -222,7 +211,6 @@ typedef class _single_instance_hook : public _hook_helper
     void* client_binding_context;
     const ebpf_extension_data_t* client_data;
     const ebpf_extension_dispatch_table_t* client_dispatch_table;
-    ebpf_handle_t link_handle;
     bpf_link* link_object;
 } single_instance_hook_t;
 
