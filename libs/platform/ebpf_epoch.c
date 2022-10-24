@@ -219,7 +219,9 @@ ebpf_epoch_initiate()
         ebpf_lock_create(&_ebpf_epoch_cpu_table[cpu_id].lock);
 
         ebpf_list_initialize(&_ebpf_epoch_cpu_table[cpu_id].free_list);
+    }
 
+    for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         return_value = ebpf_hash_table_create(
             &_ebpf_epoch_cpu_table[cpu_id].thread_table,
             ebpf_allocate,
@@ -253,6 +255,10 @@ ebpf_epoch_terminate()
 
     _ebpf_epoch_rundown = true;
 
+    if (!_ebpf_epoch_cpu_table) {
+        return;
+    }
+
     // First disable all timers.
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_lock_state_t lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[cpu_id].lock);
@@ -276,6 +282,7 @@ ebpf_epoch_terminate()
     _ebpf_epoch_cpu_count = 0;
 
     ebpf_free_cache_aligned(_ebpf_epoch_cpu_table);
+    _ebpf_epoch_cpu_table = NULL;
     EBPF_RETURN_VOID();
 }
 
@@ -409,6 +416,10 @@ void
 ebpf_epoch_flush()
 {
     int64_t released_epoch;
+    if (!_ebpf_epoch_cpu_table) {
+        return;
+    }
+
     ebpf_result_t return_value = _ebpf_epoch_get_release_epoch(&released_epoch);
     if (return_value == EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_UINT64(

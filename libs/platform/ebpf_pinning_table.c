@@ -79,6 +79,7 @@ Done:
             ebpf_hash_table_destroy((*pinning_table)->hash_table);
 
         ebpf_free(*pinning_table);
+        *pinning_table = NULL;
     }
 
     EBPF_RETURN_RESULT(return_value);
@@ -90,17 +91,19 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     ebpf_utf8_string_t* key = NULL;
-
-    for (;;) {
-        return_value = ebpf_hash_table_next_key(pinning_table->hash_table, NULL, (uint8_t*)&key);
-        if (return_value != EBPF_SUCCESS) {
-            break;
+    if (pinning_table && pinning_table->hash_table) {
+        for (;;) {
+            return_value = ebpf_hash_table_next_key(pinning_table->hash_table, NULL, (uint8_t*)&key);
+            if (return_value != EBPF_SUCCESS) {
+                break;
+            }
+            ebpf_pinning_table_delete(pinning_table, key);
         }
-        ebpf_pinning_table_delete(pinning_table, key);
+        ebpf_hash_table_destroy(pinning_table->hash_table);
     }
 
-    ebpf_hash_table_destroy(pinning_table->hash_table);
     ebpf_free(pinning_table);
+    pinning_table = NULL;
     EBPF_RETURN_VOID();
 }
 
