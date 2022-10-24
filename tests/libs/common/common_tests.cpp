@@ -27,6 +27,12 @@ ebpf_test_pinned_map_enum()
     ebpf_map_info_t* map_info = nullptr;
     std::map<std::string, std::string> results;
 
+    // Cleanup any existing pins
+    for (int i = 0; i < pinned_map_count; i++) {
+        std::string pin_path = pin_path_prefix + std::to_string(i);
+        ebpf_object_unpin(pin_path.c_str());
+    }
+
     fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint64_t), 1024, nullptr);
     REQUIRE(map_fd >= 0);
 

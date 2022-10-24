@@ -193,10 +193,12 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "ebpf_native_release_reference: all program references released. Unloading module",
                 module->client_id);
-            module_id = (GUID*)ebpf_allocate(sizeof(GUID));
-            if (module_id == NULL) {
-                result = EBPF_NO_MEMORY;
-                goto Done;
+            // Spin waiting for memory pressure to be released.
+            for (;;) {
+                module_id = (GUID*)ebpf_allocate(sizeof(GUID));
+                if (module_id != NULL) {
+                    break;
+                }
             }
             unload = true;
             *module_id = module->client_id;
@@ -208,10 +210,17 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
             ebpf_free(module_id);
         }
     } else if (new_ref_count == 0) {
-        ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
-        // Delete entry from hash table.
-        ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_id);
-        ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
+        // Spin waiting for memory pressure to be released.
+        for (;;) {
+            ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
+            // Delete entry from hash table.
+            ebpf_result_t delete_result =
+                ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_id);
+            ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
+            if (delete_result == EBPF_SUCCESS) {
+                break;
+            }
+        }
 
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_INFO,
@@ -225,7 +234,6 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
         _ebpf_native_clean_up_module(module);
     }
 
-Done:
     if (lock_acquired) {
         ebpf_lock_unlock(&module->lock, module_lock_state);
     }
@@ -1355,19 +1363,25 @@ ebpf_native_unload(_In_ const GUID* module_id)
     // the module memory can be freed immediately after the hash table lock is
     // released. Create a copy of the service name to use later to unload driver.
     service_name_length = (wcslen(module->service_name) + 1) * sizeof(wchar_t);
-    service_name = ebpf_allocate(service_name_length);
-    if (service_name == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
+
+    // Spin until we can allocate memory for the service name.
+    for (;;) {
+        service_name = ebpf_allocate(service_name_length);
+        if (service_name != NULL) {
+            break;
+        }
     }
 
     memcpy(service_name, module->service_name, service_name_length);
 
     // Create a work item if we are running at DISPATCH.
     if (!ebpf_is_preemptible()) {
-        result = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_native_unload_work_item, service_name);
-        if (result != EBPF_SUCCESS) {
-            goto Done;
+        // Spin until we can allocate memory for the work item.
+        for (;;) {
+            result = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_native_unload_work_item, service_name);
+            if (result == EBPF_SUCCESS) {
+                break;
+            }
         }
         queue_work_item = true;
     }

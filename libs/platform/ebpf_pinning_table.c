@@ -214,13 +214,14 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
     }
     ebpf_lock_unlock(&pinning_table->lock, state);
 
+    // Log the free of the path before freeing the entry (which may contain the path).
+    if (return_value == EBPF_SUCCESS)
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Unpinned object", *path);
+
     if (entry != NULL) {
         ebpf_interlocked_decrement_int32(&entry->object->pinned_path_count);
         _ebpf_pinning_entry_free(entry);
     }
-
-    if (return_value == EBPF_SUCCESS)
-        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Unpinned object", *path);
 
     EBPF_RETURN_RESULT(return_value);
 }
