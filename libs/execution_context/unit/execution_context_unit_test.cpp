@@ -927,6 +927,7 @@ create_various_objects(std::vector<ebpf_handle_t>& program_handles, std::map<std
             {reinterpret_cast<uint8_t*>(name.data()), name.size()},
             EBPF_CODE_NONE};
         ebpf_handle_t handle;
+
         REQUIRE(ebpf_program_create_and_initialize(&params, &handle) == EBPF_SUCCESS);
         program_handles.push_back(handle);
     }
@@ -1007,6 +1008,7 @@ invoke_protocol(
 extern bool _ebpf_platform_code_integrity_enabled;
 
 #define NEGATIVE_TEST_PROLOG()                                                            \
+    _ebpf_core_initializer core;                                                          \
     std::vector<std::unique_ptr<_program_info_provider>> program_info_providers;          \
     _ebpf_core_initializer core;                                                          \
     for (const auto& type : _program_types) {                                             \
@@ -1450,7 +1452,7 @@ TEST_CASE("EBPF_OPERATION_LINK_PROGRAM", "[execution_context][negative]")
 
     // No provider.
     link_program_request->program_handle = program_handles[0];
-    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_EXTENSION_FAILED_TO_LOAD);
 }
 
 TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
@@ -1474,13 +1476,10 @@ TEST_CASE("EBPF_OPERATION_GET_PROGRAM_INFO", "[execution_context][negative]")
     // Invalid object type.
     REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_OBJECT);
 
-    // Invalid program type.
+    // Invalid program handle and type.
     request.program_handle = ebpf_handle_invalid;
-    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_ARGUMENT);
-
-    // Invalid handle and type.
-    request.program_handle = ebpf_handle_invalid;
-    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_ARGUMENT);
+    request.program_type = {0};
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_EXTENSION_FAILED_TO_LOAD);
 
     // Reply too small.
     request.program_handle = program_handles[0];
