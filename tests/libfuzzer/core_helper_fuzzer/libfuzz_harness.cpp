@@ -160,9 +160,6 @@ class fuzz_wrapper
     void
     make_program(const GUID type)
     {
-#if 0
-        _program_info_provider provider(type);
-#endif
         ebpf_handle_t program_handle;
 
         std::string program_name = "program name";

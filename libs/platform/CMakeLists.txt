@@ -108,9 +108,9 @@ add_library("platform_user" STATIC
   user/ebpf_handle_user.c
   user/ebpf_platform_user.cpp
   user/ebpf_native_user.c
-  user/kernel_um.c
-  user/nmr_impl.c
-  user/nmr_um.c
+  user/kernel_um.cpp
+  user/nmr_impl.cpp
+  user/nmr_um.cpp
 )
 
 target_include_directories("platform_user" PRIVATE
