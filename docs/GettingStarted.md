@@ -12,14 +12,16 @@ jump down to [Using eBPF in development](#using-ebpf-in-development).
 
 The following must be installed in order to build this project:
 1. Git (e.g., [Git for Windows 64-bit](https://git-scm.com/download/win))
-2. [Visual Studio 2019 version 16.11.7 or later](https://www.techspot.com/downloads/downloadnow/7241/?evp=70f51271955e6392571f575e301cd9a3&file=9642), including
-   the "Desktop development with C++" workload, and
-   the "MSVC v142 - VS 2019 C++ x64/x86 Spectre-mitigated libs (latest)"
-   which must be selected as an Individual component in the VS installer
-3. [Visual Studio Build Tools 2019](https://aka.ms/vs/16/release/vs_buildtools.exe)
-4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854), including the "Windows Driver Kit Visual Studio extension" (make sure the check box is checked before completing the installer)
-5. [Clang for Windows 64-bit version 11.0.1](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe).  Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
-6. [nuget.exe](https://www.nuget.org/downloads) installed to a location such as "C:\Program Files (x86)\NuGet\"
+1. [Visual Studio 2019 version 16.11.7 or later](https://www.techspot.com/downloads/downloadnow/7241/?evp=70f51271955e6392571f575e301cd9a3&file=9642),
+ including the "Desktop development with C++" workload, and the "*MSVC v142 - VS 2019 C++ x64/x86 Spectre-mitigated libs (latest)*", which must be selected
+  from the "*Individual components*" tab of the *Visual Studio Installer*.
+1. [Visual Studio Build Tools 2019](https://aka.ms/vs/16/release/vs_buildtools.exe)
+1. [Windows SDK for Windows 11 (version 10.0.22000.x)](https://go.microsoft.com/fwlink/?linkid=2173743)
+1. [Windows WDK for Windows 11 21H2 (version 10.0.22000.x)](https://go.microsoft.com/fwlink/?linkid=2166289), including the
+ "*Windows Driver Kit Visual Studio extension*" (make sure the check box is checked before completing the installer).
+1. [Clang for Windows 64-bit version 11.0.1](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe).
+ Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
+1. [NuGet Package Installer (nuget.exe - recommended latest version)](https://www.nuget.org/downloads) installed to a location such as `C:\Program Files (x86)\NuGet\`.
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages above have been installed.
 
