@@ -207,6 +207,10 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
     if (return_value == EBPF_SUCCESS) {
         entry = *existing_pinning_entry;
         return_value = ebpf_hash_table_delete(pinning_table->hash_table, (const uint8_t*)&existing_key);
+        // If unable to remove the entry from the table, don't delete it.
+        if (return_value != EBPF_SUCCESS) {
+            entry = NULL;
+        }
     }
     ebpf_lock_unlock(&pinning_table->lock, state);
 
