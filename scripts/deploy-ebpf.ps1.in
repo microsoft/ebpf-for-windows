@@ -261,7 +261,7 @@ if (! $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator
    exit 1
 }
 
-Enable-VMIntegrationService -VMName "Windows 10 dev environment" -Name "Guest Service Interface"
+Enable-VMIntegrationService -VMName $vm -Name "Guest Service Interface"
 if (! $?) {
     exit 1
 }

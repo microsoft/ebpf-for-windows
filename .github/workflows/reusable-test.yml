@@ -246,6 +246,12 @@ jobs:
       shell: cmd
       run: wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
 
+    - name: Copy any bpf2c test logs to TestLogs
+      if: (inputs.name == 'bpf2c') && (inputs.capture_etw == true)
+      shell: cmd
+      run: |
+          copy ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\*.log ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
+
     - name: Check for crash dumps
       uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
       id: check_dumps
@@ -254,7 +260,7 @@ jobs:
 
     - name: Upload any crash dumps
       if: (failure()) && (inputs.gather_dumps == true)
-      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
       id: upload_crash_dumps
       with:
         name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
@@ -271,7 +277,7 @@ jobs:
     - name: Upload log files
       if: always() && steps.check_logs.outputs.files_exists == 'true'
       id: upload_logs
-      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
       with:
         name: Test-Logs-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs
@@ -287,7 +293,7 @@ jobs:
     - name: Upload generated artifacts
       if: always() && steps.check_artifacts.outputs.files_exists == 'true'
       id: upload_artifacts
-      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
       with:
         name: Artifacts-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
