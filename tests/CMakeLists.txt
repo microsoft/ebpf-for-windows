@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 add_subdirectory("api_test")
+add_subdirectory("bpf2c_plugin")
 add_subdirectory("bpf2c_tests")
 add_subdirectory("bpftool_tests")
 add_subdirectory("cilium")
