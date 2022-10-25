@@ -30,8 +30,8 @@ jobs:
       BUILD_ARTIFACT_NAME: ${{inputs.build_artifact}}
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
-      CMAKE_GENERATOR: Visual Studio 16 2019
-      PLATFORM_TOOLSET: v142
+      CMAKE_GENERATOR: Visual Studio 17 2022
+      PLATFORM_TOOLSET: v143
 
     steps:
     - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8

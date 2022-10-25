@@ -26,13 +26,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -58,7 +58,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;USER_MODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\user;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\user;$(SolutionDir)libs\thunk;$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(WindowsSdkDir)Include\10.0.22000.0\km</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\user;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\user;$(SolutionDir)libs\thunk;$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(WindowsSdkDir)Include\10.0.22621.0\km</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:strictStrings- %(AdditionalOptions)</AdditionalOptions>
       <CompileAs>CompileAsCpp</CompileAs>
       <DisableSpecificWarnings>4505</DisableSpecificWarnings>
@@ -73,7 +73,7 @@
     <ClCompile>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\user;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\user;$(SolutionDir)libs\thunk;$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(WindowsSdkDir)Include\10.0.22000.0\km</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\user;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\user;$(SolutionDir)libs\thunk;$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(WindowsSdkDir)Include\10.0.22621.0\km</AdditionalIncludeDirectories>
       <CompileAs>CompileAsCpp</CompileAs>
       <AdditionalOptions>/Zc:strictStrings- %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4505</DisableSpecificWarnings>

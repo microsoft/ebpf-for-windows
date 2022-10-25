@@ -15,7 +15,8 @@
 #include <ws2def.h>
 #include <ws2ipdef.h>
 #include <iphlpapi.h>
-#include <winnt.h>
+#include <windows.h>
+//#include <winnt.h>
 
 #include <../km/fwpsk.h>
 #include <../km/fwpmk.h>
