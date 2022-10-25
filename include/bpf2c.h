@@ -86,7 +86,7 @@ extern "C"
     {
         void (*programs)(_Outptr_result_buffer_maybenull_(*count) program_entry_t** programs, _Out_ size_t* count);
         void (*maps)(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count);
-        void (*hash)(_Outptr_result_buffer_maybenull_(*size) uint8_t** hash, _Out_ size_t* size);
+        void (*hash)(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size);
     } metadata_table_t;
 
     inline uint16_t
