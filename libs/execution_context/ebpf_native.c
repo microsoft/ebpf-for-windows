@@ -1074,7 +1074,15 @@ ebpf_native_load(
     }
     memcpy(local_service_name, (uint8_t*)service_name, service_name_length);
 
-    ebpf_native_load_driver(local_service_name);
+    result = ebpf_native_load_driver(local_service_name);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_WSTRING(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "ebpf_native_load: service failed to start",
+            local_service_name);
+        goto Done;
+    }
 
     // Find the native entry in hash table.
     hash_table_state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
