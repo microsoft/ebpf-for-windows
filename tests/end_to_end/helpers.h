@@ -3,6 +3,15 @@
  *  SPDX-License-Identifier: MIT
  */
 #pragma once
+
+// We need the NET_BUFFER typedefs without the other NT kernel defines that
+// ndis.h might pull in and conflict with user-mode headers.
+#ifndef _NDIS_
+typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
+#pragma warning(disable : 4324) // structure was padded due to alignment specifier
+#include <ndis/nbl.h>
+#endif
+
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
@@ -218,7 +227,17 @@ typedef class xdp_md_helper : public xdp_md_t
 {
   public:
     xdp_md_helper(std::vector<uint8_t>& packet)
-        : xdp_md_t{packet.data(), packet.data() + packet.size()}, _packet(&packet), _begin(0), _end(packet.size()){};
+        : xdp_md_t{packet.data(), packet.data() + packet.size()}, _packet(&packet), _begin(0), _end(packet.size()),
+          cloned_nbl(nullptr)
+    {
+        original_nbl = &_original_nbl_storage;
+        _original_nbl_storage.FirstNetBuffer = &_original_nb;
+        _original_nb.DataLength = (ULONG)packet.size();
+        _original_nb.MdlChain = &_original_mdl;
+        _original_mdl.byte_count = (ULONG)packet.size();
+        _original_mdl.start_va = packet.data();
+    }
+
     int
     adjust_head(int delta)
     {
@@ -256,8 +275,13 @@ typedef class xdp_md_helper : public xdp_md_t
     Done:
         return return_value;
     }
+    NET_BUFFER_LIST* original_nbl;
+    NET_BUFFER_LIST* cloned_nbl;
 
   private:
+    NET_BUFFER_LIST _original_nbl_storage;
+    NET_BUFFER _original_nb;
+    MDL _original_mdl;
     std::vector<uint8_t>* _packet;
     size_t _begin;
     size_t _end;

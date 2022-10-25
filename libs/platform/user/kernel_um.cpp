@@ -15,16 +15,6 @@ typedef struct _mock_rundown_ref
     bool rundown_in_progress = false;
 } mock_rundown_ref;
 
-typedef struct _MDL
-{
-    MDL* next;
-    size_t size;
-    uint64_t flags;
-    void* start_va;
-    unsigned long byte_offset;
-    unsigned long byte_count;
-} MDL, *PMDL;
-
 typedef struct _IO_WORKITEM
 {
     DEVICE_OBJECT* device;
