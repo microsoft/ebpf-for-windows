@@ -16,9 +16,6 @@ Coding Conventions
   headers. This is also encouraged, but not strictly required, for internal API
   headers as well.
 
-* **DO** disable doxygen documentation for elements that are not in the public
-  API as described [here](./refman/doxygen-howto.md#disable-doxygen).
-
 * **DON'T** use global variables where possible.
 
 * **DON'T** use abbreviations unless they are already well-known terms known by
