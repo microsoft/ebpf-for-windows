@@ -6,7 +6,7 @@ if ((get-filehash $env:TEMP\install_choco.ps1).Hash -ne '6B2C4EF29B871090B758E40
 &"$env:TEMP\install_choco.ps1"
 choco install git --version 2.36.0 -y
 choco install visualstudio2022community --version 17.3.6 -y
-choco install visualstudio2022-workload-nativedesktop --version 1.0.1 -y
+choco install visualstudio2022-workload-nativedesktop --version 1.0.0 -y
 choco install visualstudio2022buildtools --version 17.3.6 -y
 choco install windowsdriverkit11 --version 10.0.22621.382 -y
 choco install llvm --version 11.0.1 -y
