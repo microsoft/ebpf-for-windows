@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
 # This pipeline syncs the local repo with the upstream GitHub repo.
 
 schedules:
@@ -7,15 +10,23 @@ schedules:
     include:
     - main
 
+# Disable PR and CI triggers.
+pr: none
+trigger: none
+
 pool:
   vmImage: windows-latest
 
 steps:
 - checkout: self
+  clean: true
   fetchDepth: 0
   displayName: 'Checkout Repository'
 
 - powershell: |
     .\scripts\onebranch\sync-mirror.ps1 -BranchName $(Build.SourceBranchName)
+  env:
+    AZDO_PAT: $(AZDO_PAT)
+    User: $(Build.QueuedBy)
   workingDirectory: $(Build.SourcesDirectory)
   displayName: 'Sync Mirror'

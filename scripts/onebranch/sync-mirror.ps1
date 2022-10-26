@@ -20,7 +20,12 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Add the AzDO repo as a remote.
+# Set Git user name.
+$email = $env:User + "@microsoft.com"
+git config user.name $env:User
+git config user.email $email
+
+# Add the GitHub repo as a remote.
 git remote add upstream "https://github.com/microsoft/ebpf-for-windows.git"
 
 # Diagnostics
@@ -39,6 +44,7 @@ git fetch upstream
 git merge upstream/$BranchName
 
 # Push the changes to remote.
-git push
+$url = "https://" + $env:AZDO_PAT + "@mscodehub.visualstudio.com/eBPFForWindows/_git/eBPFForWindows"
+git push $url
 
 Write-Host "Successfully mirrored latest changes"
