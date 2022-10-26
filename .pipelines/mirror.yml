@@ -15,7 +15,7 @@ steps:
   fetchDepth: 0
   displayName: 'Checkout Repository'
 
-- powershell:
-    .\scripts\sync-mirror.ps1 -BranchName $(Build.SourceBranchName)
+- powershell: |
+    .\scripts\onebranch\sync-mirror.ps1 -BranchName $(Build.SourceBranchName)
   workingDirectory: $(Build.SourcesDirectory)
   displayName: 'Sync Mirror'
