@@ -24,7 +24,7 @@ jobs:
       matrix:
         configurations: [Debug, Release]
 
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     env:
       BUILD_ARTIFACT_NAME: ${{inputs.build_artifact}}
