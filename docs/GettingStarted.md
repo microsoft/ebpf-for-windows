@@ -23,28 +23,27 @@ The following must be installed in order to build this project:
 
    - `"Desktop development with C++"`
 
-   including the following, which must be selected from the "*Individual components*" tab in the Visual Studio Installer:
+   including the following *Spectre* library, which must be selected from the "*Individual components*" tab in the Visual Studio Installer:
 
    - `"MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (latest)"`
-   - `"ATL for latest v143 build tools with x64/x86 Spectre-mitigated libs (latest)"`
-   - `"MFC for latest v143 build tools with x64/x86 Spectre-mitigated libs (latest)"`
 
-1. [Visual Studio Build Tools 2022](https://aka.ms/vs/17/release/vs_buildtools.exe) (version 17.3.6 or higher).
-1. [SDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/p/?linkid=2196241) (version 10.0.22621.x).
-1. [WDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/?linkid=2166289) (version 10.0.22621.x), including the
+1. [Visual Studio Build Tools 2022](https://aka.ms/vs/17/release/vs_buildtools.exe) (version **17.3.6 or higher**).
+1. [SDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/p/?linkid=2196241) (version **10.0.22621.x**).
+1. [WDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/?linkid=2166289) (version **10.0.22621.x**), including the
  "*Windows Driver Kit Visual Studio extension*" (make sure the "*Install Windows Driver Kit Visual Studio Extension*"
   check box is checked before completing the installer).
-1. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe) (version 11.0.1).
+1. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe) (version **11.0.1**).
  Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
-1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version 6.31 or higher), which can be installed to a location
+1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.31 or higher**), which can be installed to a location
  such as "C:\Program Files (x86)\NuGet\".
 
-You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages above have been installed.
+You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages
+ above have been installed.
 
 Alternative install steps (for *basic* Visual Studio Community edition):
 
 1. Launch an administrative PowerShell session.
-1. Install [Chocolate Package manager for Windows](https://chocolatey.org/install) by running the following commands in the PowerShell session:
+1. Install [Chocolatey Package Manager for Windows](https://chocolatey.org/install) by running the following commands in the PowerShell session:
 
    ```ps
    Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
@@ -56,6 +55,7 @@ Alternative install steps (for *basic* Visual Studio Community edition):
    Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
    if ((get-filehash $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '4000D4B2478A5CE9A779140DEDAEF99E422D9A8706B4ECE596CF0F69DB667055') { &"$env:TEMP\Setup-DeveEnv.ps1" }
    ```
+   >**Note**: the WDK for Windows 11 is [not currently available on Chocolatey](https://community.chocolatey.org/packages?q=windowsdriverkit), please install manually with the link in the [Prerequisites](#prerequisites) section above.
 
 ### How to clone and build the project using Visual Studio
 
@@ -63,7 +63,8 @@ This section outlines the steps to build, prepare and build the eBPF-For-Windows
 
 #### Cloning the project
 
-1. `git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git` (by default this will clone the project under the `ebpf-for-windows` directory).
+1. `git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git`
+ (by default this will clone the project under the `ebpf-for-windows` directory).
 
 #### Prepare for first build
 
@@ -381,7 +382,7 @@ To capture a trace in a file use the following commands:
 ### Viewing traces in real-time
 
 To view traces in real-time, the `tracelog.exe` and `tracefmt.exe` commands from the WDK can be used.
-If you are running eBPF for Windows in a VM, you can either install the full WDK in the VM (see the Prerequisites
+If you are running eBPF for Windows in a VM, you can either install the full WDK in the VM (see the [Prerequisites](#prerequisites)
 section above) or just copy the two executables into the VM.
 
 To view all eBPF trace events that would be captured to a file, use the following commands:
