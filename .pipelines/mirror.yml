@@ -1,0 +1,21 @@
+# This pipeline syncs the local repo with the upstream GitHub repo.
+
+schedules:
+- cron: '00 20 * * *'
+  displayName: Schedule mirror sync
+  branches:
+    include:
+    - main
+
+pool:
+  vmImage: windows-latest
+
+steps:
+- checkout: self
+  fetchDepth: 0
+  displayName: 'Checkout Repository'
+
+- powershell:
+    .\scripts\sync-mirror.ps1 -BranchName $(Build.SourceBranchName)
+  workingDirectory: $(Build.SourcesDirectory)
+  displayName: 'Sync Mirror'
