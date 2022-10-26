@@ -135,6 +135,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\libs\thunk\windows\platform.cpp" />
     <ClCompile Include="common_tests.cpp" />
+    <ClCompile Include="passed_test_log.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

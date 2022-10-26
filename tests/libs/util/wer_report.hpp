@@ -5,6 +5,7 @@
 
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 #include <Windows.h>
+#include <csignal>
 #include <errorrep.h>
 #include <stdexcept>
 #include <string>
@@ -48,6 +49,10 @@ class _wer_report
         }
         free(buffer);
 
+        _set_error_mode(_OUT_TO_STDERR);
+        _CrtSetReportHook(_terminate_hook);
+        signal(SIGABRT, signal_handler);
+
         if (!SetThreadStackGuarantee(&guaranteed_stack_size)) {
             throw std::runtime_error("SetThreadStackGuarantee failed");
         }
@@ -64,6 +69,15 @@ class _wer_report
     static constexpr const char environment_variable_name[] = "EBPF_ENABLE_WER_REPORT";
     static constexpr const char environment_variable_value[] = "yes";
     static constexpr const wchar_t wer_event_type[] = L"Test Application Crash";
+
+    static int __CRTDECL
+    _terminate_hook(int, char*, int*)
+    {
+        RaiseException(STATUS_ASSERTION_FAILURE, 0, 0, NULL);
+        return 0;
+    }
+
+    static void __cdecl signal_handler(int) { RaiseException(STATUS_ASSERTION_FAILURE, 0, 0, NULL); }
 
     static constexpr unsigned long fatal_exceptions[] = {
         STATUS_ACCESS_VIOLATION,
