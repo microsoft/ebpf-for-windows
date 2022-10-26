@@ -5,9 +5,9 @@ starting from authoring a new eBPF program in C.
 
 To try out this tutorial yourself, you will need:
 
-- Clang and nuget from [Prerequisites tools](GettingStarted.md#Prerequisites). 
-- a VM that can [load a Windows driver](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#installing-ebpf-for-windows). 
-  - Follow the [VM install instructions](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/vm-setup.md) to get started quickly.  
+- Clang and nuget from [Prerequisites tools](GettingStarted.md#Prerequisites).
+- a VM that can [load a Windows driver](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#installing-ebpf-for-windows).
+  - Follow the [VM install instructions](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/vm-setup.md) to get started quickly.
 - [eBPF installed](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md) on the VM. Using the MSI installer from a release is the fastest way to get started.
 - ebpf-for-windows nuget package: `nuget install eBPF-for-Windows`
 

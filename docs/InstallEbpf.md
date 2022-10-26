@@ -54,9 +54,9 @@ to install eBPF on all Windows nodes in a Kubernetes cluster.
 
 1. Deploy the binaries to `C:\Temp` on the machine (Windows Host) where you built the binaries.
    Start an admin Powershell on the Windows Host and do `.\x64\debug\deploy-ebpf`.
-   
-2. Build ebpf-for-windows image. 
-     
+
+2. Build ebpf-for-windows image.
+
     a.  To build the image on the Windows Host, make sure docker is installed. [install docker on Windows Server](https://docs.microsoft.com/en-us/virtualization/windowscontainers/quick-start/set-up-environment?tabs=Windows-Server/).
 Start an admin Powershell on the Windows Host and run `.\images\build-images.ps1` and provide parameters for `repository`, `tag` and `OSVersion`.
 
