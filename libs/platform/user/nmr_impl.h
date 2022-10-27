@@ -120,7 +120,7 @@ typedef class _nmr
     {
         const NPI_CLIENT_CHARACTERISTICS characteristics = {};
         const void* context = nullptr;
-        volatile long long bindings = 0;
+        volatile long long binding_count = 0;
         bool deregistering = false;
     };
 
@@ -128,7 +128,7 @@ typedef class _nmr
     {
         const NPI_PROVIDER_CHARACTERISTICS characteristics = {};
         const void* context = nullptr;
-        volatile long long bindings = 0;
+        volatile long long binding_count = 0;
         bool deregistering = false;
     };
 
@@ -246,13 +246,15 @@ typedef class _nmr
     bool
     begin_unbind(_In_ nmr_binding_handle binding_handle);
 
-    std::map<nmr_binding_handle, binding> bindings;
+    std::map<nmr_binding_handle, std::shared_ptr<binding>> bindings;
     std::map<nmr_provider_handle, provider_registration> providers;
     std::map<nmr_client_handle, client_registration> clients;
 
     size_t next_handle = 1;
 
     std::condition_variable bindings_changed;
-    std::mutex lock;
+    std::mutex lock; // Protects all of the instance variables above,
+                     // as well as the client_binding_status and provider_binding_status
+                     // of each binding.
 
 } nmr_t;

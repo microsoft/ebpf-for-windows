@@ -76,7 +76,7 @@ _nmr::binding_detach_client_complete(_In_ nmr_binding_handle binding_handle)
         throw std::runtime_error("invalid handle");
     }
 
-    _nmr::binding& binding = it->second;
+    _nmr::binding& binding = *it->second;
 
     ASSERT(binding.client_binding_status == binding_status::UnbindPending);
     binding.client_binding_status = UnbindComplete;
@@ -97,7 +97,7 @@ _nmr::binding_detach_provider_complete(_In_ nmr_binding_handle binding_handle)
         throw std::runtime_error("invalid handle");
     }
 
-    _nmr::binding& binding = it->second;
+    _nmr::binding& binding = *it->second;
 
     ASSERT(binding.provider_binding_status == binding_status::UnbindPending);
     binding.provider_binding_status = UnbindComplete;
@@ -123,7 +123,7 @@ _nmr::client_attach_provider(
     if (it == bindings.end()) {
         throw std::runtime_error("invalid handle");
     }
-    auto& binding = it->second;
+    auto& binding = *it->second;
 
     // Save the client's per binding context and dispatch table.
     binding.client_binding_context = client_binding_context;
@@ -163,11 +163,12 @@ _nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& p
     }
 
     // Acquire references on both client and provider to prevent them from unloading.
-    _InterlockedIncrement64(&client.bindings);
-    _InterlockedIncrement64(&provider.bindings);
+    _InterlockedIncrement64(&client.binding_count);
+    _InterlockedIncrement64(&provider.binding_count);
 
     nmr_binding_handle h = reinterpret_cast<nmr_binding_handle>(next_handle++);
-    bindings.insert({h, {provider, client}});
+    _nmr::binding binding = {provider, client};
+    bindings.insert({h, std::make_shared<_nmr::binding>(binding)});
 
     return {[&client, &provider, h, this]() {
         NTSTATUS status = client.characteristics.ClientAttachProvider(
@@ -191,7 +192,7 @@ _nmr::unbind_complete(_In_ nmr_binding_handle binding_handle)
     if (it == bindings.end()) {
         throw std::runtime_error("invalid handle");
     }
-    auto& binding = it->second;
+    auto& binding = *it->second;
 
     if (binding.client_binding_context != nullptr) {
         // Notify the client that that the binding context can be freed.
@@ -204,15 +205,15 @@ _nmr::unbind_complete(_In_ nmr_binding_handle binding_handle)
             const_cast<void*>(binding.provider_binding_context));
     }
 
-    _InterlockedDecrement64(&binding.provider.bindings);
-    _InterlockedDecrement64(&binding.client.bindings);
+    _InterlockedDecrement64(&binding.provider.binding_count);
+    _InterlockedDecrement64(&binding.client.binding_count);
     bindings.erase(it);
 
     // Notify the client or provider to check if they have any pending bindings.
     bindings_changed.notify_all();
 }
 
-bool
+bool // true if pending, false if complete.
 _nmr::begin_unbind(_In_ nmr_binding_handle binding_handle)
 {
     std::unique_lock l(lock);
@@ -221,7 +222,13 @@ _nmr::begin_unbind(_In_ nmr_binding_handle binding_handle)
         throw std::runtime_error("invalid handle");
     }
 
-    auto& binding = it->second;
+    // Grab our own reference on the binding and release the lock,
+    // to allow the binding to be removed synchronously within the detach
+    // calls below.
+    std::shared_ptr<_nmr::binding> binding_reference = it->second;
+    auto& binding = *binding_reference;
+    l.unlock();
+
     if (binding.client_binding_status != Ready || binding.provider_binding_status != Ready) {
         return true;
     }
@@ -233,15 +240,25 @@ _nmr::begin_unbind(_In_ nmr_binding_handle binding_handle)
         (binding.provider_binding_context)
             ? binding.provider.characteristics.ProviderDetachClient(const_cast<void*>(binding.provider_binding_context))
             : STATUS_SUCCESS;
-    binding.provider_binding_status = (client_detach_provider_status == STATUS_PENDING)
+
+    // Take a lock to make sure we don't replace UnbindComplete with UnbindPending,
+    // since if one of the above returned pending, the completion could get called
+    // sequently which would change the status on the binding any time before we
+    // grab a lock.
+    l.lock();
+    binding.provider_binding_status = (client_detach_provider_status == STATUS_PENDING &&
+                                       binding.provider_binding_status != binding_status::UnbindComplete)
                                           ? binding_status::UnbindPending
                                           : binding_status::UnbindComplete;
-    binding.client_binding_status = (provider_detach_client_status == STATUS_PENDING) ? binding_status::UnbindPending
-                                                                                      : binding_status::UnbindComplete;
+    binding.client_binding_status = (provider_detach_client_status == STATUS_PENDING &&
+                                     binding.client_binding_status != binding_status::UnbindComplete)
+                                        ? binding_status::UnbindPending
+                                        : binding_status::UnbindComplete;
     bool complete =
         ((binding.client_binding_status == binding_status::UnbindComplete) &&
          (binding.provider_binding_status == binding_status::UnbindComplete));
     l.unlock();
+
     if (complete) {
         unbind_complete(binding_handle);
         return false;
@@ -284,8 +301,8 @@ _nmr::remove(_Inout_ collection_t& collection, _In_ collection_t::value_type::fi
     }
 
     // Wait for bindings to reach zero if requested.
-    if (it->second.bindings > 0) {
-        bindings_changed.wait(l, [&]() { return it->second.bindings == 0; });
+    if (it->second.binding_count > 0) {
+        bindings_changed.wait(l, [&]() { return it->second.binding_count == 0; });
     }
 
     collection.erase(it);
@@ -343,7 +360,8 @@ _nmr::perform_unbind(
     }
     auto& initiator = it->second;
     // Find all the bindings that have the initiator as the client or provider.
-    for (auto& [binding_handle, binding] : bindings) {
+    for (auto& [binding_handle, binding_reference] : bindings) {
+        auto& binding = *binding_reference;
         // If the initiator is a client, then the target must be a provider.
         if constexpr (std::is_same<initiator_collection_t::value_type::second_type, client_registration>::value) {
             if (&binding.client == &initiator) {
