@@ -79,6 +79,7 @@ Done:
             ebpf_hash_table_destroy((*pinning_table)->hash_table);
 
         ebpf_free(*pinning_table);
+        *pinning_table = NULL;
     }
 
     EBPF_RETURN_RESULT(return_value);
@@ -90,17 +91,19 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     ebpf_utf8_string_t* key = NULL;
-
-    for (;;) {
-        return_value = ebpf_hash_table_next_key(pinning_table->hash_table, NULL, (uint8_t*)&key);
-        if (return_value != EBPF_SUCCESS) {
-            break;
+    if (pinning_table && pinning_table->hash_table) {
+        for (;;) {
+            return_value = ebpf_hash_table_next_key(pinning_table->hash_table, NULL, (uint8_t*)&key);
+            if (return_value != EBPF_SUCCESS) {
+                break;
+            }
+            ebpf_pinning_table_delete(pinning_table, key);
         }
-        ebpf_pinning_table_delete(pinning_table, key);
+        ebpf_hash_table_destroy(pinning_table->hash_table);
     }
 
-    ebpf_hash_table_destroy(pinning_table->hash_table);
     ebpf_free(pinning_table);
+    pinning_table = NULL;
     EBPF_RETURN_VOID();
 }
 
@@ -204,16 +207,21 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
     if (return_value == EBPF_SUCCESS) {
         entry = *existing_pinning_entry;
         return_value = ebpf_hash_table_delete(pinning_table->hash_table, (const uint8_t*)&existing_key);
+        // If unable to remove the entry from the table, don't delete it.
+        if (return_value != EBPF_SUCCESS) {
+            entry = NULL;
+        }
     }
     ebpf_lock_unlock(&pinning_table->lock, state);
+
+    // Log the free of the path before freeing the entry (which may contain the path).
+    if (return_value == EBPF_SUCCESS)
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Unpinned object", *path);
 
     if (entry != NULL) {
         ebpf_interlocked_decrement_int32(&entry->object->pinned_path_count);
         _ebpf_pinning_entry_free(entry);
     }
-
-    if (return_value == EBPF_SUCCESS)
-        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Unpinned object", *path);
 
     EBPF_RETURN_RESULT(return_value);
 }
