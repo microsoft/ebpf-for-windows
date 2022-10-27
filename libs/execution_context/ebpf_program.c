@@ -739,7 +739,8 @@ _ebpf_program_load_byte_code(
 
 Done:
     if (return_value != EBPF_SUCCESS) {
-        ubpf_destroy(program->code_or_vm.vm);
+        if (program->code_or_vm.vm)
+            ubpf_destroy(program->code_or_vm.vm);
         program->code_or_vm.vm = NULL;
     }
 

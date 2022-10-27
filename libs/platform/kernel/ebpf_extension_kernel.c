@@ -409,6 +409,11 @@ _ebpf_extension_provider_detach_client(void* provider_binding_context)
     ebpf_extension_provider_binding_context* local_provider_binding_context =
         (ebpf_extension_provider_binding_context*)provider_binding_context;
 
+    // If attach failed to allocate memory, report detach as successful.
+    if (!provider_binding_context) {
+        return STATUS_SUCCESS;
+    }
+
     if (local_provider_binding_context->client_detach_callback) {
         result = local_provider_binding_context->client_detach_callback(
             local_provider_binding_context->callback_context, &local_provider_binding_context->client_module_id);
