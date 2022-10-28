@@ -112,7 +112,12 @@ _sender_socket::close()
 void
 _sender_socket::post_async_receive(bool error_expected)
 {
+    if (receive_posted) {
+        return;
+    }
+
     int error = 0;
+    int wsaerr = 0;
 
     WSABUF wsa_recv_buffer{static_cast<ULONG>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
 
@@ -131,16 +136,24 @@ _sender_socket::post_async_receive(bool error_expected)
         &overlapped,
         nullptr);
 
-    if (error != 0 && !error_expected) {
-        int wsaerr = WSAGetLastError();
-        if (wsaerr != WSA_IO_PENDING)
+    if (error != 0) {
+        wsaerr = WSAGetLastError();
+        if (!error_expected && wsaerr != WSA_IO_PENDING)
             FAIL("_sender_socket::post_async_receive: WSARecv failed with " << wsaerr);
+    }
+    if (error == 0 || wsaerr == WSA_IO_PENDING) {
+        receive_posted = true;
     }
 }
 
 void
 _sender_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_expected)
 {
+    if (overlapped.hEvent == INVALID_HANDLE_VALUE) {
+        printf("complete_async_receive: overlapped event already closed\n");
+        return;
+    }
+
     int error = 0;
     // Wait for the receiver socket to receive the message.
     error = WSAWaitForMultipleEvents(1, &overlapped.hEvent, TRUE, timeout_in_ms, TRUE);
@@ -159,6 +172,7 @@ _sender_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
         }
         WSACloseEvent(overlapped.hEvent);
         overlapped.hEvent = INVALID_HANDLE_VALUE;
+        receive_posted = false;
 
         /*
         if (!WSAGetOverlappedResult(
@@ -179,6 +193,9 @@ _sender_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
             FAIL("Waiting on receiver socket failed with " << error);
         }
     }
+
+    // WSACloseEvent(overlapped.hEvent);
+    // overlapped.hEvent = INVALID_HANDLE_VALUE;
 }
 
 _datagram_sender_socket::_datagram_sender_socket(int _sock_type, int _protocol, uint16_t _port)
@@ -226,6 +243,47 @@ _datagram_sender_socket::complete_async_send(int timeout_in_ms, expected_result_
 {
     UNREFERENCED_PARAMETER(timeout_in_ms);
     UNREFERENCED_PARAMETER(expected_result);
+}
+
+void
+_datagram_sender_socket::post_async_receive(bool error_expected)
+{
+    if (receive_posted) {
+        return;
+    }
+
+    int error = 0;
+    int wsaerr = 0;
+    sockaddr_storage sender_address;
+    int sender_address_size = sizeof(sender_address);
+
+    WSABUF wsa_recv_buffer{static_cast<ULONG>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+
+    // Create an event handle and set up the overlapped structure.
+    overlapped.hEvent = WSACreateEvent();
+    if (overlapped.hEvent == NULL)
+        FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
+
+    // Post an asynchronous receive on the socket.
+    error = WSARecvFrom(
+        socket,
+        &wsa_recv_buffer,
+        1,
+        nullptr,
+        reinterpret_cast<LPDWORD>(&recv_flags),
+        (PSOCKADDR)&sender_address,
+        &sender_address_size,
+        &overlapped,
+        nullptr);
+
+    if (error != 0) {
+        wsaerr = WSAGetLastError();
+        if (!error_expected && wsaerr != WSA_IO_PENDING)
+            FAIL("WSARecvFrom failed with " << wsaerr);
+    }
+    if (error == 0 || wsaerr == WSA_IO_PENDING) {
+        receive_posted = true;
+    }
 }
 
 _stream_sender_socket::_stream_sender_socket(int _sock_type, int _protocol, uint16_t _port)
@@ -330,6 +388,22 @@ _receiver_socket::_receiver_socket(int _sock_type, int _protocol, uint16_t _port
     : _base_socket{_sock_type, _protocol, _port}, overlapped{}
 {
     overlapped.hEvent = INVALID_HANDLE_VALUE;
+
+    GUID guid = WSAID_WSARECVMSG;
+    uint32_t bytes;
+    int error = WSAIoctl(
+        socket,
+        SIO_GET_EXTENSION_FUNCTION_POINTER,
+        &guid,
+        sizeof(guid),
+        &receive_message,
+        sizeof(receive_message),
+        reinterpret_cast<LPDWORD>(&bytes),
+        NULL,
+        NULL);
+
+    if (error != 0)
+        FAIL("Obtaining ReceiveMsg function pointer failed with " << WSAGetLastError());
 }
 
 _receiver_socket::~_receiver_socket()
@@ -355,8 +429,8 @@ _receiver_socket::complete_async_receive(int timeout_in_ms, bool timeout_expecte
                 FALSE,
                 reinterpret_cast<LPDWORD>(&recv_flags)))
             FAIL("WSARecvFrom on the receiver socket failed with error: " << WSAGetLastError());
-        WSACloseEvent(overlapped.hEvent);
-        overlapped.hEvent = INVALID_HANDLE_VALUE;
+        // WSACloseEvent(overlapped.hEvent);
+        // overlapped.hEvent = INVALID_HANDLE_VALUE;
         /*
         if (accept_socket != INVALID_SOCKET) {
            error = getsockname(accept_socket, (PSOCKADDR)&local_address, &local_address_size);
@@ -372,6 +446,9 @@ _receiver_socket::complete_async_receive(int timeout_in_ms, bool timeout_expecte
             FAIL("Waiting on receiver socket failed with " << error);
         }
     }
+
+    WSACloseEvent(overlapped.hEvent);
+    overlapped.hEvent = INVALID_HANDLE_VALUE;
 }
 
 void
@@ -422,6 +499,14 @@ _datagram_receiver_socket::post_async_receive()
 void
 _datagram_receiver_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
 {
+    from = (PSOCKADDR)&sender_address;
+    from_length = sender_address_size;
+}
+
+void
+_datagram_receiver_socket::get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
+{
+    // TODO: This is wrong. Need to fix this.
     from = (PSOCKADDR)&sender_address;
     from_length = sender_address_size;
 }
@@ -587,6 +672,13 @@ void
 _stream_receiver_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
 {
     from = (PSOCKADDR)(recv_buffer.data() + message_length);
+    from_length = sizeof(sockaddr_storage);
+}
+
+void
+_stream_receiver_socket::get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
+{
+    from = (PSOCKADDR)(recv_buffer.data() + message_length + sizeof(sockaddr_storage) + 16);
     from_length = sizeof(sockaddr_storage);
 }
 

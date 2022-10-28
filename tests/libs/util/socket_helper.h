@@ -85,6 +85,7 @@ typedef class _sender_socket : public _base_socket
     // uint32_t recv_flags;
     // uint32_t bytes_received = 0;
     WSAOVERLAPPED overlapped;
+    bool receive_posted;
 } sender_socket_t;
 
 /**
@@ -100,6 +101,8 @@ typedef class _datagram_sender_socket : public _sender_socket
     cancel_send_message();
     void
     complete_async_send(int timeout_in_ms, expected_result_t expected_result);
+    void
+    post_async_receive(bool error_expected = false);
 } datagram_sender_socket_t;
 
 /**
@@ -144,6 +147,8 @@ typedef class _receiver_socket : public _base_socket
     virtual void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length) = 0;
     virtual void
+    get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length) = 0;
+    virtual void
     close() = 0;
 
   protected:
@@ -152,6 +157,8 @@ typedef class _receiver_socket : public _base_socket
     // uint32_t recv_flags;
     // uint32_t bytes_received = 0;
 
+  private:
+    LPFN_WSARECVMSG receive_message;
 } receiver_socket_t;
 
 /**
@@ -169,6 +176,8 @@ typedef class _datagram_receiver_socket : public _receiver_socket
     complete_async_send(int timeout_in_ms);
     void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
+    void
+    get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
     void
     close();
 
@@ -193,6 +202,8 @@ typedef class _stream_receiver_socket : public _receiver_socket
     complete_async_send(int timeout_in_ms);
     void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
+    void
+    get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
     void
     close();
 

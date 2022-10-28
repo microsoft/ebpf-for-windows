@@ -10,7 +10,6 @@
 #include "catch_wrapper.hpp"
 #include "ebpf_udp.h"
 #include "socket_helper.h"
-// #include "xdp_tests_common.h"
 
 #include <chrono>
 #include <future>
@@ -30,11 +29,13 @@ using namespace std::chrono_literals;
 
 #include <mstcpip.h>
 
+#define CLIENT_MESSAGE "eBPF for Windows!"
+
 static std::string _family;
 static std::string _protocol;
 static std::string _vip;
-static std::string _local_ip1;
-static std::string _local_ip2;
+static std::string _local_ip;
+// static std::string _local_ip2;
 static std::string _remote_ip;
 static uint16_t _remote_port = 4444;
 
@@ -44,6 +45,7 @@ typedef struct _test_globals
 {
     ADDRESS_FAMILY family;
     IPPROTO protocol;
+    struct sockaddr_storage loopback_address;
     struct sockaddr_storage remote_address;
     struct sockaddr_storage local_address;
     struct sockaddr_storage vip_address;
@@ -81,10 +83,15 @@ _initialize_test_globals()
     ADDRESS_FAMILY family;
     get_address_from_string(_remote_ip, _globals.remote_address, &family);
     REQUIRE(family == _globals.family);
-    get_address_from_string(_local_ip1, _globals.local_address, &family);
+    get_address_from_string(_local_ip, _globals.local_address, &family);
     REQUIRE(family == _globals.family);
     get_address_from_string(_vip, _globals.vip_address, &family);
     REQUIRE(family == _globals.family);
+    if (_globals.family == AF_INET) {
+        IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&_globals.loopback_address, &in4addr_loopback, scopeid_unspecified, 0);
+    } else {
+        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.loopback_address);
+    }
     _globals.remote_port = _remote_port;
 
     _globals_initialized = true;
@@ -217,28 +224,51 @@ _update_policy_map(
 
 void
 connect_redirect_test(
-    _In_ sender_socket_t* sender_socket, _In_ sockaddr_storage& destination, _In_ sockaddr_storage& proxy)
+    _In_ const struct bpf_object* object,
+    _In_ sender_socket_t* sender_socket,
+    _In_ sockaddr_storage& destination,
+    _In_ sockaddr_storage& proxy)
 {
-    const char* message = "eBPF for Windows!";
-    struct bpf_object* object = nullptr;
+    // Update policy in the map to redirect the connection to the proxy.
+    _update_policy_map(object, destination, proxy, _globals.remote_port, true);
 
-    UNREFERENCED_PARAMETER(proxy);
+    // Try to send and receive message to "destination". It should succeed.
+    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.remote_port);
+    sender_socket->complete_async_send(1000, expected_result_t::success);
 
-    _load_and_attach_ebpf_program(_globals.family, &object);
+    sender_socket->post_async_receive();
+    sender_socket->complete_async_receive(2000, false);
 
+    uint32_t bytes_received = 0;
+    char* received_message = nullptr;
+    sender_socket->get_received_message(bytes_received, received_message);
+
+    // TODO: The message returned by the listener should be unique so that we know
+    // for sure that the connection was indeed redirected.
+    REQUIRE(memcmp(received_message, "test_message", strlen(received_message)) == 0);
+}
+
+void
+authorize_test(
+    _In_ const struct bpf_object* object, _In_ sender_socket_t* sender_socket, _In_ sockaddr_storage& destination)
+{
     // Default behavior of the eBPF program is to block the connection.
     // Send should fail as the connection is blocked.
-    sender_socket->send_message_to_remote_host(message, proxy, _globals.remote_port);
+    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.remote_port);
     sender_socket->complete_async_send(1000, expected_result_t::failure);
 
     // Receive should timeout as connection is blocked.
     sender_socket->post_async_receive(true);
     sender_socket->complete_async_receive(1000, true);
 
-    // Update policy in the map to redirect the connection to the proxy.
-    _update_policy_map(object, destination, proxy, _globals.remote_port, true);
+    // Now update the policy map to allow the connection and test again.
+    connect_redirect_test(object, sender_socket, destination, destination);
 
-    // Try to send and receive message to "destination". It should work this time.
+    /*
+    // Update policy in the map to allow the connection.
+    _update_policy_map(object, destination, destination, _globals.remote_port, true);
+
+    // Try to send and receive message to destination again. It should work this time.
     sender_socket->send_message_to_remote_host(message, destination, _globals.remote_port);
     sender_socket->complete_async_send(1000, expected_result_t::success);
 
@@ -249,38 +279,143 @@ connect_redirect_test(
     char* received_message = nullptr;
     sender_socket->get_received_message(bytes_received, received_message);
 
-    printf("received message from server: %s\n", received_message);
-
-    // This should also detach the program as it is not pinned.
-    bpf_object__close(object);
+    REQUIRE(memcmp(received_message, "test_message", strlen(received_message)) == 0);
+    */
 }
 
 void
-connect_redirect_tests_udp()
+delete_sender_socket(_In_ sender_socket_t* sender_socket)
+{
+    if (_globals.protocol == IPPROTO_TCP) {
+        delete ((stream_sender_socket_t*)sender_socket);
+    } else {
+        delete ((datagram_sender_socket_t*)sender_socket);
+    }
+}
+
+void
+get_sender_socket(_Inout_ sender_socket_t** sender_socket)
+{
+    sender_socket_t* old_socket = *sender_socket;
+    sender_socket_t* new_socket = nullptr;
+    if (_globals.protocol == IPPROTO_TCP) {
+        new_socket = (sender_socket_t*)new stream_sender_socket_t(SOCK_STREAM, IPPROTO_TCP, 0);
+    } else {
+        new_socket = (sender_socket_t*)new datagram_sender_socket_t(SOCK_DGRAM, IPPROTO_UDP, 0);
+    }
+
+    *sender_socket = new_socket;
+    if (old_socket) {
+        delete_sender_socket(old_socket);
+    }
+}
+
+void
+authorize_test_wrapper(_In_ const struct bpf_object* object, _In_ sockaddr_storage& destination)
+{
+    sender_socket_t* sender_socket = nullptr;
+    get_sender_socket(&sender_socket);
+
+    authorize_test(object, sender_socket, destination);
+
+    delete_sender_socket(sender_socket);
+}
+
+void
+connect_redirect_test_wrapper(
+    _In_ const struct bpf_object* object, _In_ sockaddr_storage& destination, _In_ sockaddr_storage& proxy)
+{
+    sender_socket_t* sender_socket = nullptr;
+    get_sender_socket(&sender_socket);
+
+    connect_redirect_test(object, sender_socket, destination, proxy);
+
+    delete_sender_socket(sender_socket);
+}
+
+void
+connect_redirect_tests_common(
+    _In_ const struct bpf_object* object,
+    // _In_ sender_socket_t* sender_socket,
+    _In_ sockaddr_storage& destination,
+    _In_ sockaddr_storage& proxy)
+{
+    // First cateogory is authorize tests.
+    UNREFERENCED_PARAMETER(destination);
+    UNREFERENCED_PARAMETER(proxy);
+
+    // TODO: Commenting these "authorize_test_wrapper" tests for now. These are working.
+    // Need to uncomment these later.
+
+    /*
+    // Loopback address.
+    printf("Test loobpack authorize\n");
+    authorize_test_wrapper(object, _globals.loopback_address);
+    // Remote address.
+    printf("Test remote address authorize\n");
+    authorize_test_wrapper(object, _globals.remote_address);
+    // Local non-loopback address.
+    printf("Test local address authorize\n");
+    authorize_test_wrapper(object, _globals.local_address);
+    */
+
+    // Second category is connection redirection tests.
+
+    // Remote             -> Remote
+    printf("ANUSA: Remote             -> Remote\n");
+    connect_redirect_test_wrapper(object, _globals.vip_address, _globals.remote_address);
+
+    // Remote             -> Loopback
+    printf("ANUSA: Remote             -> Loopback\n");
+    connect_redirect_test_wrapper(object, _globals.vip_address, _globals.loopback_address);
+
+    // Remote             -> Local non-loopback
+    // printf("ANUSA: Remote             -> Local non-loopback\n");
+    // connect_redirect_test_wrapper(object, _globals.vip_address, _globals.local_address);
+
+    // Loopback           -> Remote
+    printf("ANUSA: Loopback           -> Remote\n");
+    connect_redirect_test_wrapper(object, _globals.loopback_address, _globals.remote_address);
+
+    // Loopback           -> Local non-loopback
+    // Local non-loopback -> Loopback
+    printf("ANUSA: Local non-loopback -> Loopback\n");
+    connect_redirect_test_wrapper(object, _globals.local_address, _globals.loopback_address);
+    // Local non-loopback -> Remote
+    printf("ANUSA: Local non-loopback -> Remote\n");
+    connect_redirect_test_wrapper(object, _globals.local_address, _globals.remote_address);
+}
+
+void
+connect_redirect_tests_udp(_In_ const struct bpf_object* object)
 {
     datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    // datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, _remote_port);
-
-    connect_redirect_test(&datagram_sender_socket, _globals.remote_address, _globals.vip_address);
+    // connect_redirect_tests_common(object , &datagram_sender_socket, _globals.vip_address, _globals.remote_address);
+    connect_redirect_tests_common(object, _globals.vip_address, _globals.remote_address);
 }
 
 void
-connect_redirect_tests_tcp()
+connect_redirect_tests_tcp(_In_ const struct bpf_object* object)
 {
     stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    // stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, _remote_port);
-
-    connect_redirect_test(&stream_sender_socket, _globals.remote_address, _globals.remote_address);
+    // connect_redirect_tests_common(object , &stream_sender_socket, _globals.vip_address, _globals.remote_address);
+    connect_redirect_tests_common(object, _globals.vip_address, _globals.remote_address);
 }
 
 TEST_CASE("connect_redirect_test", "[connect_redirect_tests]")
 {
     _initialize_test_globals();
+    struct bpf_object* object = nullptr;
+    _load_and_attach_ebpf_program(_globals.family, &object);
+
     if (_globals.protocol == IPPROTO_TCP) {
-        connect_redirect_tests_tcp();
+        connect_redirect_tests_tcp(object);
     } else {
-        connect_redirect_tests_udp();
+        connect_redirect_tests_udp(object);
     }
+
+    // This should also detach the program as it is not pinned.
+    bpf_object__close(object);
 }
 
 int
@@ -292,11 +427,11 @@ main(int argc, char* argv[])
     using namespace Catch::Clara;
     auto cli = session.cli() | Opt(_protocol, "protocol (TCP / UDP)")["-p"]["--protocol"]("Protocol") |
                Opt(_family, "Address Family (v4 / v6)")["-f"]["--family"]("Address Family") |
-               Opt(_vip, "Virtual / Load Balanced IP")["-vip"]["--virtual-ip"]("VIP") |
-               Opt(_local_ip1, "First local IP")["-lip1"]["--local-ip-1"]("Local IP 1") |
-               Opt(_local_ip2, "Second local IP")["-lip2"]["--local-ip-2"]("Local IP 2") |
-               Opt(_remote_ip, "Remote IP")["-rip"]["--remote-ip"]("Remote IP") |
-               Opt(_remote_port, "Remote Port")["-rport"]["--remote-port"]("Remote Port");
+               Opt(_vip, "Virtual / Load Balanced IP")["-v"]["--virtual-ip"]("VIP") |
+               Opt(_local_ip, "First local IP")["-l"]["--local-ip"]("Local IP") |
+               // Opt(_local_ip2, "Second local IP")["-lip2"]["--local-ip-2"]("Local IP 2") |
+               Opt(_remote_ip, "Remote IP")["-r"]["--remote-ip"]("Remote IP") |
+               Opt(_remote_port, "Destination Port")["-t"]["--destination-port"]("Destination Port");
 
     session.cli(cli);
 

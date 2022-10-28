@@ -53,11 +53,13 @@ authorize_v4(bpf_sock_addr_t* ctx)
     // Find the entry in the policy map.
     destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
     if (policy != NULL) {
-        // bpf_printk("anusa: found proxy entry: %u, %u", policy->destination_ip, policy->destination_port);
+        bpf_printk("anusa: found proxy entry value: %u, %u", policy->destination_ip.ipv4, policy->destination_port);
         ctx->user_ip4 = policy->destination_ip.ipv4;
         ctx->user_port = policy->destination_port;
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    } else {
+        bpf_printk("anusa: did not find proxy entry for key: %u, %u", ctx->user_ip4, ctx->user_port);
     }
 
     return verdict;

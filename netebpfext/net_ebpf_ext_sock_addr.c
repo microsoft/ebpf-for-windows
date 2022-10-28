@@ -552,7 +552,7 @@ _net_ebpf_ext_is_loopback_address(_In_ const bpf_sock_addr_t* address)
         v4_address->sin_addr.S_un.S_addr = address->user_ip4;
     } else {
         SOCKADDR_IN6* v6_address = (SOCKADDR_IN6*)&socket_address;
-        memcpy(&v6_address->sin6_addr.u.Byte, &address->user_ip6, 16);
+        RtlCopyMemory(v6_address->sin6_addr.u.Byte, address->user_ip6, 16);
     }
 
     return INETADDR_ISLOOPBACK(&socket_address);
@@ -563,6 +563,7 @@ _net_ebpf_ext_initialize_connection_context(
     _In_ const bpf_sock_addr_t* original_sock_addr,
     _In_ const bpf_sock_addr_t* redirected_sock_addr,
     bool redirected,
+    bool loopback,
     uint32_t verdict,
     uint64_t transport_endpoint_handle,
     _Out_ net_ebpf_extension_connection_context_t* connection_context)
@@ -570,8 +571,7 @@ _net_ebpf_ext_initialize_connection_context(
     _net_ebpf_ext_reinitialize_connection_context(
         original_sock_addr, redirected_sock_addr, redirected, verdict, transport_endpoint_handle, connection_context);
 
-    connection_context->reference_count = _get_initial_reference_count(
-        original_sock_addr->protocol, _net_ebpf_ext_is_loopback_address(redirected_sock_addr), verdict);
+    connection_context->reference_count = _get_initial_reference_count(original_sock_addr->protocol, loopback, verdict);
 }
 
 static NTSTATUS
@@ -1312,6 +1312,14 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         goto Exit;
     }
 
+    /*
+    SOCKADDR destination = { 0 };
+    destination.sa_family = (ADDRESS_FAMILY)sock_addr_ctx.family;
+    INETADDR_SET_ADDRESS(&destination, (PUCHAR)&sock_addr_ctx.user_ip6);
+    bool is_loopback = INETADDR_ISLOOPBACK(&destination);
+    */
+    bool is_loopback = _net_ebpf_ext_is_loopback_address(&sock_addr_ctx);
+
     if (v4_mapped) {
         sock_addr_ctx.family = AF_INET6;
         IN_ADDR v4_address = *((IN_ADDR*)&sock_addr_ctx.user_ip4);
@@ -1359,7 +1367,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             connect_request->localRedirectContextSize = sizeof(net_ebpf_ext_redirection_record_t);
             free_redirect_record = false;
 
-            if (INETADDR_ISLOOPBACK((PSOCKADDR)&connect_request->remoteAddressAndPort)) {
+            // if (INETADDR_ISLOOPBACK((PSOCKADDR)&connect_request->remoteAddressAndPort)) {
+            if (is_loopback) {
                 // Connection is being redirected to loopback. Set a dummy target
                 // process id and local redirect handle.
                 connect_request->localRedirectTargetPID = TARGET_PROCESS_ID;
@@ -1402,6 +1411,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             &sock_addr_ctx_original,
             &sock_addr_ctx,
             redirected,
+            is_loopback,
             verdict,
             incoming_metadata_values->transportEndpointHandle,
             connection_context);

@@ -307,14 +307,14 @@ TEST_CASE("proxy_loopback", "[sock_addr_tests]")
     REQUIRE(object != nullptr);
     REQUIRE(bpf_object__load(object) == 0);
 
-    bpf_program* connect4_program = bpf_object__find_program_by_name(object, "proxy_v4");
+    bpf_program* connect4_program = bpf_object__find_program_by_name(object, "authorize_connect4");
     REQUIRE(connect4_program != nullptr);
 
     int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
     REQUIRE(result == 0);
 
-    bpf_map* proxy_map = bpf_object__find_map_by_name(object, "proxy_map");
+    bpf_map* proxy_map = bpf_object__find_map_by_name(object, "policy_map");
     REQUIRE(proxy_map != nullptr);
 
     fd_t map_fd = bpf_map__fd(proxy_map);
@@ -323,11 +323,11 @@ TEST_CASE("proxy_loopback", "[sock_addr_tests]")
     destination_entry_t key = {0};
     destination_entry_t value = {0};
     // key.destination_ip = 0xc8010119; // 25.1.1.200
-    key.destination_ip = 0x201010B; // 11.1.1.2
+    key.destination_ip.ipv4 = 0x6401010B; // 11.1.1.100
     key.destination_port = htons(4444);
 
     // value.destination_ip = 0x64010119; // 25.1.1.100
-    value.destination_ip = 0x100007F; // 127.0.0.1
+    value.destination_ip.ipv4 = 0x100007F; // 127.0.0.1
     value.destination_port = htons(4444);
 
     bpf_map_update_elem(map_fd, &key, &value, 0);
