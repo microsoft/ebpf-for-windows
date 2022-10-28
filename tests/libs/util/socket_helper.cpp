@@ -329,7 +329,7 @@ _stream_sender_socket::send_message_to_remote_host(
         int wsaerr = WSAGetLastError();
         if (wsaerr != WSA_IO_PENDING)
             FAIL("ConnectEx failed with " << wsaerr);
-        printf("send_message_to_remote_host: IO is pending.\n");
+        // printf("send_message_to_remote_host: IO is pending.\n");
     } else {
         // The operation completed synchronously. Close overlapped handle.
         WSACloseEvent(overlapped.hEvent);
@@ -557,6 +557,7 @@ _stream_receiver_socket::_stream_receiver_socket(int _sock_type, int _protocol, 
     : _receiver_socket{_sock_type, _protocol, _port}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
       message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
 {
+    printf("ANUSA: _stream_receiver_socket() called\n");
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP))
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
 
@@ -580,9 +581,22 @@ _stream_receiver_socket::_stream_receiver_socket(int _sock_type, int _protocol, 
     listen(socket, SOMAXCONN);
 
     // Create accept socket.
+    initialize_accept_socket();
+}
+
+void
+_stream_receiver_socket::initialize_accept_socket()
+{
+    // Close a previous accept socket, if present.
+    if (accept_socket != INVALID_SOCKET) {
+        closesocket(accept_socket);
+        accept_socket = INVALID_SOCKET;
+    }
+
+    // Create accept socket.
     accept_socket = WSASocket(AF_INET6, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
     uint32_t ipv6_option = 0;
-    error = setsockopt(
+    int error = setsockopt(
         accept_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(ULONG));
     if (error != 0)
         FAIL("Could not enable dual family endpoint on accept socket: " << WSAGetLastError());
@@ -590,6 +604,7 @@ _stream_receiver_socket::_stream_receiver_socket(int _sock_type, int _protocol, 
 
 _stream_receiver_socket::~_stream_receiver_socket()
 {
+    printf("ANUSA: ~_stream_receiver_socket() called\n");
     if (accept_socket != INVALID_SOCKET)
         closesocket(accept_socket);
 }
@@ -597,6 +612,8 @@ _stream_receiver_socket::~_stream_receiver_socket()
 void
 _stream_receiver_socket::post_async_receive()
 {
+    initialize_accept_socket();
+
     WSABUF wsa_recv_buffer{static_cast<ULONG>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
 
     // Create an event handle and set up the overlapped structure.

@@ -24,6 +24,8 @@ static const uint16_t _server_port = SERVER_PORT;
 const char* server_v4_ip = "15.1.1.2";
 const char* client_v4_ip = "15.1.1.1";
 
+volatile static LONG _global_counter = 0;
+
 static IPPROTO
 _get_protocol_from_string(std::string protocol)
 {
@@ -37,8 +39,10 @@ _get_protocol_from_string(std::string protocol)
 void
 create_listener(receiver_socket_t* receiver_socket)
 {
+    _global_counter++;
     // Post a receive. Wait for client to connect.
-    printf("Posting async receive\n");
+    printf("=====================================\n");
+    printf("Posting async receive, counter = %d\n", _global_counter);
     receiver_socket->post_async_receive();
     printf("Waiting for receive to complete.\n");
     receiver_socket->complete_async_receive(WSA_INFINITE, false);
@@ -60,8 +64,9 @@ create_listener(receiver_socket_t* receiver_socket)
 void
 create_tcp_listener()
 {
+    stream_receiver_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, _local_port);
     while (true) {
-        stream_receiver_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, _local_port);
+        // stream_receiver_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, _local_port);
         create_listener((receiver_socket_t*)&receiver_socket);
     }
 }

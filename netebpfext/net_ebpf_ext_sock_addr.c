@@ -1368,7 +1368,12 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             free_redirect_record = false;
 
             // if (INETADDR_ISLOOPBACK((PSOCKADDR)&connect_request->remoteAddressAndPort)) {
-            if (is_loopback) {
+
+            // Target process id and local redirect handle needs to be set in two cases:
+            // 1. The redirected address is loopback.
+            // 2. The redirected address is a local non-loopback address.
+            // To simplify the design, always set these values.
+            if (is_loopback || true) {
                 // Connection is being redirected to loopback. Set a dummy target
                 // process id and local redirect handle.
                 connect_request->localRedirectTargetPID = TARGET_PROCESS_ID;

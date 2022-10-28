@@ -334,53 +334,51 @@ connect_redirect_test_wrapper(
 }
 
 void
-connect_redirect_tests_common(
-    _In_ const struct bpf_object* object,
-    // _In_ sender_socket_t* sender_socket,
-    _In_ sockaddr_storage& destination,
-    _In_ sockaddr_storage& proxy)
+connect_redirect_tests_common(_In_ const struct bpf_object* object)
+// _In_ sender_socket_t* sender_socket,
+// _In_ sockaddr_storage& destination,
+// _In_ sockaddr_storage& proxy)
 {
     // First cateogory is authorize tests.
-    UNREFERENCED_PARAMETER(destination);
-    UNREFERENCED_PARAMETER(proxy);
 
-    // TODO: Commenting these "authorize_test_wrapper" tests for now. These are working.
-    // Need to uncomment these later.
-
-    /*
     // Loopback address.
-    printf("Test loobpack authorize\n");
+    printf("Loobpack authorize\n");
     authorize_test_wrapper(object, _globals.loopback_address);
+
     // Remote address.
-    printf("Test remote address authorize\n");
+    printf("Remote authorize\n");
     authorize_test_wrapper(object, _globals.remote_address);
+
     // Local non-loopback address.
-    printf("Test local address authorize\n");
+    printf("Local non-loopback authorize\n");
     authorize_test_wrapper(object, _globals.local_address);
-    */
 
     // Second category is connection redirection tests.
 
-    // Remote             -> Remote
+    // Remote -> Remote
     printf("ANUSA: Remote             -> Remote\n");
     connect_redirect_test_wrapper(object, _globals.vip_address, _globals.remote_address);
 
-    // Remote             -> Loopback
+    // Remote -> Loopback
     printf("ANUSA: Remote             -> Loopback\n");
     connect_redirect_test_wrapper(object, _globals.vip_address, _globals.loopback_address);
 
-    // Remote             -> Local non-loopback
-    // printf("ANUSA: Remote             -> Local non-loopback\n");
-    // connect_redirect_test_wrapper(object, _globals.vip_address, _globals.local_address);
+    // Remote -> Local non-loopback
+    printf("ANUSA: Remote             -> Local non-loopback\n");
+    connect_redirect_test_wrapper(object, _globals.vip_address, _globals.local_address);
 
-    // Loopback           -> Remote
+    // Loopback -> Remote
     printf("ANUSA: Loopback           -> Remote\n");
     connect_redirect_test_wrapper(object, _globals.loopback_address, _globals.remote_address);
 
-    // Loopback           -> Local non-loopback
+    // Loopback -> Local non-loopback
+    printf("ANUSA: Loopback           -> Local non-loopback\n");
+    connect_redirect_test_wrapper(object, _globals.loopback_address, _globals.local_address);
+
     // Local non-loopback -> Loopback
     printf("ANUSA: Local non-loopback -> Loopback\n");
     connect_redirect_test_wrapper(object, _globals.local_address, _globals.loopback_address);
+
     // Local non-loopback -> Remote
     printf("ANUSA: Local non-loopback -> Remote\n");
     connect_redirect_test_wrapper(object, _globals.local_address, _globals.remote_address);
@@ -389,17 +387,19 @@ connect_redirect_tests_common(
 void
 connect_redirect_tests_udp(_In_ const struct bpf_object* object)
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    // datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
     // connect_redirect_tests_common(object , &datagram_sender_socket, _globals.vip_address, _globals.remote_address);
-    connect_redirect_tests_common(object, _globals.vip_address, _globals.remote_address);
+    // connect_redirect_tests_common(object, _globals.vip_address, _globals.remote_address);
+    connect_redirect_tests_common(object);
 }
 
 void
 connect_redirect_tests_tcp(_In_ const struct bpf_object* object)
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    // stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     // connect_redirect_tests_common(object , &stream_sender_socket, _globals.vip_address, _globals.remote_address);
-    connect_redirect_tests_common(object, _globals.vip_address, _globals.remote_address);
+    // connect_redirect_tests_common(object, _globals.vip_address, _globals.remote_address);
+    connect_redirect_tests_common(object);
 }
 
 TEST_CASE("connect_redirect_test", "[connect_redirect_tests]")

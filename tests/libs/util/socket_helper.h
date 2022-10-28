@@ -208,6 +208,9 @@ typedef class _stream_receiver_socket : public _receiver_socket
     close();
 
   private:
+    void
+    initialize_accept_socket();
+
     LPFN_ACCEPTEX acceptex;
     SOCKET accept_socket;
     size_t message_length;
