@@ -151,7 +151,7 @@ net_ebpf_extension_xdp_on_client_attach(
     if (result != EBPF_SUCCESS)
         goto Exit;
     filter_context->if_index = if_index;
-    filter_context->filter_instance_count = NET_EBPF_XDP_FILTER_COUNT;
+    filter_context->base.filter_instance_count = NET_EBPF_XDP_FILTER_COUNT;
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     filter_count = NET_EBPF_XDP_FILTER_COUNT;
@@ -161,7 +161,7 @@ net_ebpf_extension_xdp_on_client_attach(
         (if_index == 0) ? 0 : 1,
         (if_index == 0) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-        &filter_context->filter_instances);
+        &filter_context->base.filter_instances);
     if (result != EBPF_SUCCESS)
         goto Exit;
 

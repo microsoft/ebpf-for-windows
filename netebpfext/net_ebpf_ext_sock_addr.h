@@ -105,6 +105,21 @@ DEFINE_GUID(
     0xbe,
     0xee);
 
+// 98849e11-b07d-11ec-9a30-18602489beee
+DEFINE_GUID(
+    EBPF_HOOK_ALE_CONNECT_REDIRECT_PROVIDER,
+    0x98849e11,
+    0xb07d,
+    0x11ec,
+    0x9a,
+    0x30,
+    0x18,
+    0x60,
+    0x24,
+    0x89,
+    0xbe,
+    0xee);
+
 /**
  * @brief WFP classifyFn callback for EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4/6_CALLOUT.
  */
@@ -185,4 +200,4 @@ net_ebpf_ext_sock_addr_register_providers();
 
 NTSTATUS
 net_ebpf_ext_connect_redirect_filter_change_notify(
-    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter);
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);

@@ -285,7 +285,7 @@ net_ebpf_ext_unregister_providers();
 
 NTSTATUS
 net_ebpf_ext_filter_change_notify(
-    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter);
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
 
 ebpf_result_t
 net_ebpf_extension_get_filter_instance_by_id(

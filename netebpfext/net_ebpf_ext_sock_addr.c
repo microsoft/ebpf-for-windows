@@ -14,21 +14,6 @@
 
 #define TARGET_PROCESS_ID 1234
 
-// 98849e11-b07d-11ec-9a30-18602489beee
-DEFINE_GUID(
-    EBPF_HOOK_ALE_CONNECT_REDIRECT_PROVIDER,
-    0x98849e11,
-    0xb07d,
-    0x11ec,
-    0x9a,
-    0x30,
-    0x18,
-    0x60,
-    0x24,
-    0x89,
-    0xbe,
-    0xee);
-
 typedef struct _net_ebpf_ext_redirection_record
 {
     union
@@ -303,7 +288,7 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         (net_ebpf_extension_wfp_filter_parameters_array_t*)net_ebpf_extension_hook_provider_get_custom_data(
             provider_context);
     ASSERT(filter_parameters != NULL);
-    filter_context->filter_instance_count = filter_parameters->count;
+    filter_context->base.filter_instance_count = filter_parameters->count;
 
     // Add a single WFP filter at the WFP layer corresponding to the hook type, and set the hook NPI client as the
     // filter's raw context.
@@ -313,7 +298,7 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-        &filter_context->filter_instances);
+        &filter_context->base.filter_instances);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -808,7 +793,7 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
 
 NTSTATUS
 net_ebpf_ext_connect_redirect_filter_change_notify(
-    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter)
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter)
 {
     NET_EBPF_EXT_LOG_ENTRY();
     NTSTATUS status = STATUS_SUCCESS;
@@ -866,7 +851,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     if (filter_context == NULL)
         goto Exit;
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     if (attached_client == NULL)
         goto Exit;
 
@@ -1233,7 +1218,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     // 3. If it is pure v6 address, then the eBPF program attached at v4 attach point
     //    needs to be invoked (if any).
     if (sock_addr_ctx->family == AF_INET) {
-        attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
+        attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
         if (attached_client == NULL) {
             status = STATUS_INVALID_PARAMETER;
             goto Exit;

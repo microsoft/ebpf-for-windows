@@ -148,7 +148,7 @@ net_ebpf_extension_sock_ops_on_client_attach(
     if (result != EBPF_SUCCESS)
         goto Exit;
     filter_context->compartment_id = compartment_id;
-    filter_context->filter_instance_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
+    filter_context->base.filter_instance_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
     KeInitializeSpinLock(&filter_context->lock);
     InitializeListHead(&filter_context->flow_context_list.list_head);
 
@@ -160,7 +160,7 @@ net_ebpf_extension_sock_ops_on_client_attach(
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-        &filter_context->filter_instances);
+        &filter_context->base.filter_instances);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
