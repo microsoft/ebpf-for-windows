@@ -106,6 +106,37 @@ static ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
     sizeof(_ebpf_global_helper_function_program_data),
     &_ebpf_global_helper_function_program_data};
 
+NTSTATUS
+ebpf_general_helper_function_provider_attach_client(
+    HANDLE nmr_binding_handle,
+    _Inout_ void* provider_context,
+    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
+    _In_ void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Out_ void** provider_binding_context,
+    _Out_ const void** provider_dispatch)
+{
+    UNREFERENCED_PARAMETER(nmr_binding_handle);
+    UNREFERENCED_PARAMETER(provider_context);
+    UNREFERENCED_PARAMETER(client_registration_instance);
+    UNREFERENCED_PARAMETER(client_binding_context);
+    UNREFERENCED_PARAMETER(client_dispatch);
+
+    *provider_binding_context = NULL;
+    *provider_dispatch = NULL; // TODO
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+ebpf_general_helper_function_provider_detach_client(_Inout_ void* provider_binding_context)
+{
+    UNREFERENCED_PARAMETER(provider_binding_context);
+
+    // There are no outstanding calls to the client dispatch table,
+    // so return success synchronously.
+    return STATUS_SUCCESS;
+}
+
 ebpf_result_t
 ebpf_core_initiate()
 {
@@ -162,7 +193,8 @@ ebpf_core_initiate()
         &_ebpf_global_helper_function_extension_data,
         NULL,
         NULL,
-        NULL,
+        ebpf_general_helper_function_provider_attach_client,
+        ebpf_general_helper_function_provider_detach_client,
         NULL);
 
     if (return_value != EBPF_SUCCESS) {

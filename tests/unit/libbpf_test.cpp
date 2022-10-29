@@ -534,7 +534,7 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
     bpf_object__close(object[1]);
 }
 
-TEST_CASE("libbpf map", "[libbpf]")
+TEST_CASE("libbpf map", "[libbpf-slow]")
 {
     _test_helper_libbpf test_helper;
     std::vector<std::string> expected_map_names = {

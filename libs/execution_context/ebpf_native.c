@@ -52,9 +52,11 @@ typedef struct _ebpf_native_module
     size_t map_count;
     ebpf_native_program_t* programs;
     size_t program_count;
-    ebpf_handle_t client_binding_handle;
+    HANDLE nmr_binding_handle;
     ebpf_list_entry_t list_entry;
-} ebpf_native_module_t;
+    const void* client_dispatch;
+    const void* client_binding_context;
+} ebpf_native_module_binding_context_t;
 
 static GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                                    0xc847aac8,
@@ -139,7 +141,7 @@ _ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program
 }
 
 static void
-_ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
+_ebpf_native_clean_up_module(_In_ ebpf_native_module_binding_context_t* module)
 {
     _ebpf_native_clean_up_maps(module->maps, module->map_count, false);
     _ebpf_native_clean_up_programs(module->programs, module->program_count);
@@ -156,14 +158,14 @@ _ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
 }
 
 void
-ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
+ebpf_native_acquire_reference(_Inout_ ebpf_native_module_binding_context_t* module)
 {
     ebpf_assert(module->reference_count != 0);
     ebpf_interlocked_increment_int32(&module->reference_count);
 }
 
 void
-ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
+ebpf_native_release_reference(_In_opt_ ebpf_native_module_binding_context_t* module)
 {
     uint32_t new_ref_count;
     GUID* module_id = NULL;
@@ -220,7 +222,7 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
             "ebpf_native_release_reference: ref is 0, complete detach callback",
             module->client_id);
         // All references to the module have been released. Safe to complete the detach callback.
-        ebpf_provider_detach_client_complete(&_ebpf_native_npi_id, module->client_binding_handle);
+        NmrProviderDetachClientComplete(module->nmr_binding_handle);
 
         // Clean up the native module.
         _ebpf_native_clean_up_module(module);
@@ -248,7 +250,7 @@ _ebpf_native_unload_all()
     ebpf_list_entry_t free_list;
     ebpf_list_entry_t* entry;
     GUID module_id = GUID_NULL;
-    ebpf_native_module_t** module = NULL;
+    ebpf_native_module_binding_context_t** module = NULL;
 
     if (!_ebpf_native_client_table) {
         return;
@@ -276,7 +278,8 @@ _ebpf_native_unload_all()
 
     while (!ebpf_list_is_empty(&free_list)) {
         entry = free_list.Flink;
-        ebpf_native_module_t* free_module = CONTAINING_RECORD(entry, ebpf_native_module_t, list_entry);
+        ebpf_native_module_binding_context_t* free_module =
+            CONTAINING_RECORD(entry, ebpf_native_module_binding_context_t, list_entry);
         ebpf_list_remove_entry(entry);
 
         ebpf_native_unload(&free_module->client_id);
@@ -306,66 +309,68 @@ ebpf_native_terminate()
     EBPF_RETURN_VOID();
 }
 
-static ebpf_result_t
-_ebpf_native_client_attach_callback(
-    ebpf_handle_t client_binding_handle,
-    _In_ void* context,
-    _In_ const GUID* client_id,
-    _In_ void* client_binding_context,
-    _In_ const ebpf_extension_data_t* client_data,
-    _In_ const ebpf_extension_dispatch_table_t* client_dispatch_table)
+static NTSTATUS
+_ebpf_native_provider_attach_client_callback(
+    HANDLE nmr_binding_handle,
+    _Inout_ PVOID provider_context,
+    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
+    _In_ PVOID client_binding_context,
+    _In_ const VOID* client_dispatch,
+    _Out_ PVOID* provider_binding_context,
+    _Out_ const VOID** provider_dispatch)
 {
-    UNREFERENCED_PARAMETER(context);
-    UNREFERENCED_PARAMETER(client_binding_context);
-    UNREFERENCED_PARAMETER(client_dispatch_table);
+    UNREFERENCED_PARAMETER(provider_context);
 
+    GUID* client_module_id = (GUID*)client_registration_instance->NpiId;
     EBPF_LOG_MESSAGE_GUID(
         EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_NATIVE,
-        "_ebpf_native_client_attach_callback: Called for",
-        *client_id);
+        "_ebpf_native_provider_attach_client_callback: Called for",
+        *client_module_id);
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = 0;
-    ebpf_native_module_t** module = NULL;
+    ebpf_native_module_binding_context_t** module = NULL;
     bool lock_acquired = false;
     metadata_table_t* table = NULL;
-    ebpf_native_module_t* client_context = ebpf_allocate(sizeof(ebpf_native_module_t));
+    ebpf_native_module_binding_context_t* binding_context = ebpf_allocate(sizeof(ebpf_native_module_binding_context_t));
 
-    if (!client_context) {
+    if (!binding_context) {
         result = EBPF_NO_MEMORY;
         goto Done;
     }
-    table = (metadata_table_t*)client_data;
+    table = (metadata_table_t*)client_registration_instance->NpiSpecificCharacteristics;
     if (!table->programs || !table->maps) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    ebpf_lock_create(&client_context->lock);
+    ebpf_lock_create(&binding_context->lock);
     // Acquire "attach" reference. Released when detach is called for this module.
-    client_context->reference_count = 1;
-    client_context->client_id = *client_id;
-    client_context->initialized = false;
-    client_context->table = table;
-    client_context->client_binding_handle = client_binding_handle;
+    binding_context->reference_count = 1;
+    binding_context->client_id = *client_module_id;
+    binding_context->initialized = false;
+    binding_context->table = table;
+    binding_context->nmr_binding_handle = nmr_binding_handle;
+    binding_context->client_dispatch = client_dispatch;
+    binding_context->client_binding_context = client_binding_context;
 
     // Insert the new client context in the hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
     lock_acquired = true;
-    result = ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)client_id, (uint8_t**)&module);
+    result = ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)client_module_id, (uint8_t**)&module);
     if (result == EBPF_SUCCESS) {
         result = EBPF_OBJECT_ALREADY_EXISTS;
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_NATIVE,
-            "_ebpf_native_client_attach_callback: Module already exists",
-            *client_id);
+            "_ebpf_native_provider_attach_client_callback: Module already exists",
+            *client_module_id);
         goto Done;
     }
     result = ebpf_hash_table_update(
         _ebpf_native_client_table,
-        (const uint8_t*)client_id,
-        (const uint8_t*)&client_context,
+        (const uint8_t*)client_module_id,
+        (const uint8_t*)&binding_context,
         EBPF_HASH_TABLE_OPERATION_INSERT);
     if (result != EBPF_SUCCESS) {
         goto Done;
@@ -377,30 +382,36 @@ Done:
         lock_acquired = false;
     }
     if (result != EBPF_SUCCESS) {
-        ebpf_free(client_context);
+        ebpf_free(binding_context);
+    } else {
+        *provider_binding_context = binding_context;
+        *provider_dispatch = NULL; // TODO
     }
     EBPF_RETURN_RESULT(result);
 }
 
-static ebpf_result_t
-_ebpf_native_client_detach_callback(_In_ void* context, _In_ const GUID* client_id)
+static NTSTATUS
+_ebpf_native_provider_detach_client_callback(_In_ void* provider_binding_context)
 {
-    UNREFERENCED_PARAMETER(context);
+    ebpf_native_module_binding_context_t* binding_context =
+        (ebpf_native_module_binding_context_t*)provider_binding_context;
 
     EBPF_LOG_MESSAGE_GUID(
         EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_NATIVE,
         "_ebpf_native_client_detach_callback: Called for",
-        *client_id);
+        binding_context->client_id);
+
     // 1. Find the entry in the hash table using "client_id"
     // 2. Release the "attach" reference on the native module.
     // 3. Return EBPF_PENDING
     ebpf_result_t result = EBPF_PENDING;
-    ebpf_native_module_t** existing_module = NULL;
-    ebpf_native_module_t* module = NULL;
+    ebpf_native_module_binding_context_t** existing_module = NULL;
+    ebpf_native_module_binding_context_t* module = NULL;
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
     bool lock_acquired = true;
-    if (ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)client_id, (uint8_t**)&existing_module) !=
+    if (ebpf_hash_table_find(
+            _ebpf_native_client_table, (const uint8_t*)&binding_context->client_id, (uint8_t**)&existing_module) !=
         EBPF_SUCCESS) {
         result = EBPF_SUCCESS;
         goto Done;
@@ -435,7 +446,7 @@ ebpf_native_initiate()
         ebpf_allocate,
         ebpf_free,
         sizeof(GUID),
-        sizeof(ebpf_native_module_t*),
+        sizeof(ebpf_native_module_binding_context_t*),
         EBPF_CLIENT_TABLE_BUCKET_COUNT,
         NULL);
     if (return_value != EBPF_SUCCESS) {
@@ -451,8 +462,9 @@ ebpf_native_initiate()
         NULL,
         NULL,
         NULL,
-        _ebpf_native_client_attach_callback,
-        _ebpf_native_client_detach_callback);
+        _ebpf_native_provider_attach_client_callback,
+        _ebpf_native_provider_detach_client_callback,
+        NULL);
 
     if (return_value != EBPF_SUCCESS) {
         goto Done;
@@ -667,7 +679,7 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
+_ebpf_native_create_maps(_Inout_ ebpf_native_module_binding_context_t* module)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -775,7 +787,8 @@ _ebpf_native_initialize_programs(
 }
 
 static ebpf_result_t
-_ebpf_native_resolve_maps_for_program(_In_ ebpf_native_module_t* module, _In_ const ebpf_native_program_t* program)
+_ebpf_native_resolve_maps_for_program(
+    _In_ ebpf_native_module_binding_context_t* module, _In_ const ebpf_native_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
@@ -848,7 +861,8 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_native_resolve_helpers_for_program(_In_ ebpf_native_module_t* module, _In_ ebpf_native_program_t* program)
+_ebpf_native_resolve_helpers_for_program(
+    _In_ ebpf_native_module_binding_context_t* module, _In_ ebpf_native_program_t* program)
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(module);
@@ -902,7 +916,8 @@ Done:
 }
 
 static void
-_ebpf_native_initialize_helpers_for_program(_In_ ebpf_native_module_t* module, _In_ ebpf_native_program_t* program)
+_ebpf_native_initialize_helpers_for_program(
+    _In_ ebpf_native_module_binding_context_t* module, _In_ ebpf_native_program_t* program)
 {
     UNREFERENCED_PARAMETER(module);
     size_t helper_count = program->entry->helper_count;
@@ -917,7 +932,7 @@ _ebpf_native_initialize_helpers_for_program(_In_ ebpf_native_module_t* module, _
 }
 
 static ebpf_result_t
-_ebpf_native_load_programs(_In_ ebpf_native_module_t* module)
+_ebpf_native_load_programs(_In_ ebpf_native_module_binding_context_t* module)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_native_program_t* native_programs = NULL;
@@ -1025,7 +1040,7 @@ _ebpf_native_load_programs(_In_ ebpf_native_module_t* module)
 }
 
 size_t
-_ebpf_native_get_count_of_maps(_In_ const ebpf_native_module_t* module)
+_ebpf_native_get_count_of_maps(_In_ const ebpf_native_module_binding_context_t* module)
 {
     map_entry_t* maps = NULL;
     size_t count_of_maps;
@@ -1035,7 +1050,7 @@ _ebpf_native_get_count_of_maps(_In_ const ebpf_native_module_t* module)
 }
 
 size_t
-_ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
+_ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_binding_context_t* module)
 {
     program_entry_t* programs = NULL;
     size_t count_of_programs;
@@ -1057,8 +1072,8 @@ ebpf_native_load(
     ebpf_lock_state_t hash_table_state = 0;
     ebpf_lock_state_t state = 0;
     bool lock_acquired = false;
-    ebpf_native_module_t* module = NULL;
-    ebpf_native_module_t** existing_module = NULL;
+    ebpf_native_module_binding_context_t* module = NULL;
+    ebpf_native_module_binding_context_t** existing_module = NULL;
     wchar_t* local_service_name = NULL;
 
     local_service_name = ebpf_allocate((size_t)service_name_length + 2);
@@ -1138,8 +1153,8 @@ ebpf_native_load_programs(
     ebpf_lock_state_t module_state = 0;
     bool lock_acquired = false;
     bool native_lock_acquired = false;
-    ebpf_native_module_t** existing_module = NULL;
-    ebpf_native_module_t* module = NULL;
+    ebpf_native_module_binding_context_t** existing_module = NULL;
+    ebpf_native_module_binding_context_t* module = NULL;
     wchar_t* local_service_name = NULL;
     bool module_referenced = false;
     bool maps_created = false;
@@ -1270,7 +1285,7 @@ ebpf_native_get_count_of_programs(_In_ const GUID* module_id, _Out_ size_t* coun
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = 0;
-    ebpf_native_module_t** module = NULL;
+    ebpf_native_module_binding_context_t** module = NULL;
 
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
@@ -1293,7 +1308,7 @@ ebpf_native_get_count_of_maps(_In_ const GUID* module_id, _Out_ size_t* count_of
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = 0;
-    ebpf_native_module_t** module = NULL;
+    ebpf_native_module_binding_context_t** module = NULL;
 
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
@@ -1319,8 +1334,8 @@ ebpf_native_unload(_In_ const GUID* module_id)
     ebpf_lock_state_t module_state = 0;
     bool lock_acquired = false;
     bool module_lock_acquired = false;
-    ebpf_native_module_t** existing_module = NULL;
-    ebpf_native_module_t* module = NULL;
+    ebpf_native_module_binding_context_t** existing_module = NULL;
+    ebpf_native_module_binding_context_t* module = NULL;
     wchar_t* service_name = NULL;
     size_t service_name_length;
     bool queue_work_item = false;

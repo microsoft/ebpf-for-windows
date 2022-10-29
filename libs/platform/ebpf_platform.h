@@ -836,16 +836,6 @@ extern "C"
     void
     ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context);
 
-    typedef ebpf_result_t (*ebpf_provider_client_attach_callback_t)(
-        ebpf_handle_t client_binding_handle,
-        void* context,
-        const GUID* client_module_id,
-        void* client_binding_context,
-        const ebpf_extension_data_t* client_data,
-        const ebpf_extension_dispatch_table_t* client_dispatch_table);
-
-    typedef ebpf_result_t (*ebpf_provider_client_detach_callback_t)(void* context, const GUID* client_id);
-
     /**
      * @brief Register as an extension provider.
      *
@@ -855,8 +845,9 @@ extern "C"
      * @param[in] provider_data Opaque provider data.
      * @param[in] provider_dispatch_table Table of function pointers the
      *  provider exposes.
-     * @param[in] client_attach_callback Function invoked when a client attaches.
-     * @param[in] client_detach_callback Function invoked when a client detaches.
+     * @param[in] provider_attach_client_callback Function invoked when a client attaches.
+     * @param[in] provider_detach_client_callback Function invoked when a client detaches.
+     * @param[in] provider_cleanup_binding_context_callback Function invoked when a binding context can be cleaned up.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The provider was unable to
      *  load.
@@ -872,8 +863,9 @@ extern "C"
         _In_opt_ const ebpf_extension_data_t* provider_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
         _In_opt_ void* callback_context,
-        _In_opt_ ebpf_provider_client_attach_callback_t client_attach_callback,
-        _In_opt_ ebpf_provider_client_detach_callback_t client_detach_callback);
+        _In_ PNPI_PROVIDER_ATTACH_CLIENT_FN provider_attach_client_callback,
+        _In_ PNPI_PROVIDER_DETACH_CLIENT_FN provider_detach_client_callback,
+        _In_opt_ PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN provider_cleanup_binding_context_callback);
 
     /**
      * @brief Unload a provider.

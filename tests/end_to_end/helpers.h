@@ -100,7 +100,7 @@ typedef class _single_instance_hook : public _hook_helper
         : _hook_helper{attach_type}, provider(nullptr), client_binding_context(nullptr), client_data(nullptr),
           client_dispatch_table(nullptr), link_object(nullptr)
     {
-        ebpf_guid_create(&client_id);
+        ebpf_guid_create(&client_module_id);
         attach_provider_data.supported_program_type = program_type;
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
@@ -114,8 +114,9 @@ typedef class _single_instance_hook : public _hook_helper
                 &provider_data,
                 nullptr,
                 this,
-                client_attach_callback,
-                client_detach_callback) == EBPF_SUCCESS);
+                provider_attach_client_callback,
+                provider_detach_client_callback,
+                nullptr) == EBPF_SUCCESS);
     }
     ~_single_instance_hook()
     {
@@ -179,35 +180,46 @@ typedef class _single_instance_hook : public _hook_helper
     }
 
   private:
-    static ebpf_result_t
-    client_attach_callback(
-        ebpf_handle_t nmr_binding_handle,
-        void* context,
-        const GUID* client_id,
-        void* client_binding_context,
-        const ebpf_extension_data_t* client_data,
-        const ebpf_extension_dispatch_table_t* client_dispatch_table)
+    static NTSTATUS
+    provider_attach_client_callback(
+        HANDLE nmr_binding_handle,
+        _Inout_ void* provider_context,
+        _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
+        _In_ void* client_binding_context,
+        _In_ const void* client_dispatch,
+        _Out_ void** provider_binding_context,
+        _Out_ const void** provider_dispatch)
     {
-        auto hook = reinterpret_cast<_single_instance_hook*>(context);
+        auto hook = reinterpret_cast<_single_instance_hook*>(provider_context);
+
+        printf(
+            "ProviderAttachClient client %02x%02x\n", hook->client_module_id.Data4[6], hook->client_module_id.Data4[7]);
+
         if (hook->client_binding_context != nullptr) {
-            return EBPF_OPERATION_NOT_SUPPORTED;
+            // Can't attach a single-instance provider to a second client.
+            return STATUS_NOINTERFACE;
         }
         UNREFERENCED_PARAMETER(nmr_binding_handle);
-        hook->client_id = *client_id;
+        hook->client_module_id = *client_registration_instance->NpiId;
         hook->client_binding_context = client_binding_context;
-        hook->client_data = client_data;
-        hook->client_dispatch_table = client_dispatch_table;
-        return EBPF_SUCCESS;
+        hook->nmr_binding_handle = nmr_binding_handle;
+        // hook->client_data = client_data; TODO check this
+        hook->client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
+        *provider_binding_context = provider_context;
+        *provider_dispatch = NULL; // TODO
+        return STATUS_SUCCESS;
     };
 
-    static ebpf_result_t
-    client_detach_callback(void* context, const GUID* client_id)
+    static NTSTATUS
+    provider_detach_client_callback(_In_ void* provider_binding_context)
     {
-        auto hook = reinterpret_cast<_single_instance_hook*>(context);
+        auto hook = reinterpret_cast<_single_instance_hook*>(provider_binding_context);
         hook->client_binding_context = nullptr;
         hook->client_data = nullptr;
         hook->client_dispatch_table = nullptr;
-        UNREFERENCED_PARAMETER(client_id);
+
+        // There should be no in-progress calls to any client functions,
+        // we we can return success rather than pending.
         return EBPF_SUCCESS;
     };
     ebpf_attach_type_t attach_type;
@@ -216,10 +228,11 @@ typedef class _single_instance_hook : public _hook_helper
     ebpf_extension_data_t provider_data = {
         EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(attach_provider_data), &attach_provider_data};
     ebpf_extension_provider_t* provider;
-    GUID client_id;
+    GUID client_module_id;
     void* client_binding_context;
     const ebpf_extension_data_t* client_data;
     const ebpf_extension_dispatch_table_t* client_dispatch_table;
+    HANDLE nmr_binding_handle;
     bpf_link* link_object;
 } single_instance_hook_t;
 
@@ -368,13 +381,46 @@ typedef class _program_info_provider
                 nullptr,
                 provider_data,
                 nullptr,
-                nullptr,
-                nullptr,
+                this,
+                provider_attach_client_callback,
+                provider_detach_client_callback,
                 nullptr) == EBPF_SUCCESS);
     }
     ~_program_info_provider() { ebpf_provider_unload(provider); }
 
   private:
+    static NTSTATUS
+    provider_attach_client_callback(
+        HANDLE nmr_binding_handle,
+        _Inout_ void* provider_context,
+        _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
+        _In_ void* client_binding_context,
+        _In_ const void* client_dispatch,
+        _Out_ void** provider_binding_context,
+        _Out_ const void** provider_dispatch)
+    {
+        auto hook = reinterpret_cast<_program_info_provider*>(provider_context);
+        UNREFERENCED_PARAMETER(nmr_binding_handle);
+        UNREFERENCED_PARAMETER(client_dispatch);
+        UNREFERENCED_PARAMETER(client_binding_context);
+        UNREFERENCED_PARAMETER(client_registration_instance);
+        UNREFERENCED_PARAMETER(hook);
+        *provider_binding_context = provider_context;
+        *provider_dispatch = NULL; // TODO
+        return STATUS_SUCCESS;
+    };
+
+    static NTSTATUS
+    provider_detach_client_callback(_In_ void* provider_binding_context)
+    {
+        auto hook = reinterpret_cast<_program_info_provider*>(provider_binding_context);
+        UNREFERENCED_PARAMETER(hook);
+
+        // There should be no in-progress calls to any client functions,
+        // we we can return success rather than pending.
+        return EBPF_SUCCESS;
+    };
+
     ebpf_program_type_t program_type;
 
     ebpf_extension_data_t* provider_data;

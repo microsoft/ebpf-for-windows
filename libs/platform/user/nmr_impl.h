@@ -255,6 +255,8 @@ typedef class _nmr
     std::condition_variable bindings_changed;
     std::mutex lock; // Protects all of the instance variables above,
                      // as well as the client_binding_status and provider_binding_status
-                     // of each binding.
+                     // of each binding.  client.binding_count and provider.binding_count
+                     // on the other hand are not protected by this lock but instead use
+                     // interlocked operations.
 
 } nmr_t;

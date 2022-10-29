@@ -39,7 +39,7 @@ typedef struct _ebpf_program
         // EBPF_CODE_NATIVE
         struct
         {
-            const ebpf_native_module_t* module;
+            const ebpf_native_module_binding_context_t* module;
             const uint8_t* code_pointer;
         } native;
     } code_or_vm;
@@ -282,7 +282,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
         break;
 #endif
     case EBPF_CODE_NATIVE:
-        ebpf_native_release_reference((ebpf_native_module_t*)program->code_or_vm.native.module);
+        ebpf_native_release_reference((ebpf_native_module_binding_context_t*)program->code_or_vm.native.module);
         break;
     case EBPF_CODE_NONE:
         break;
@@ -629,7 +629,7 @@ _ebpf_program_load_machine_code(
         program->code_or_vm.native.code_pointer = machine_code;
         // Acquire reference on the native module. This reference
         // will be released when the ebpf_program is freed.
-        ebpf_native_acquire_reference((ebpf_native_module_t*)code_context);
+        ebpf_native_acquire_reference((ebpf_native_module_binding_context_t*)code_context);
     }
 
     return_value = EBPF_SUCCESS;
