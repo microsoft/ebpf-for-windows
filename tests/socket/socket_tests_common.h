@@ -38,4 +38,5 @@ typedef struct _destination_entry
 {
     ip_address_t destination_ip;
     uint16_t destination_port;
+    uint32_t protocol;
 } destination_entry_t;

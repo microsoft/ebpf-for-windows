@@ -15,15 +15,16 @@
 #include "socket_tests_common.h"
 
 // #define REDIRECT_IP 16843009 // 1.1.1.1
-#define REDIRECT_IP 0xc8010119 // Network byte order 25.1.1.200
-#define PROXY_IP 0x64010119    // Network byte order 25.1.1.100
-#define PERMIT_IP 33620225     // Network byte order 1.1.1.2
-#define BLOCK_IP 50397441      // Network byte order 1.1.1.3
+// #define REDIRECT_IP 0xc8010119 // Network byte order 25.1.1.200
+// #define PROXY_IP 0x64010119    // Network byte order 25.1.1.100
+// #define PERMIT_IP 33620225     // Network byte order 1.1.1.2
+// #define BLOCK_IP 50397441      // Network byte order 1.1.1.3
 
 #define IPPROTO_TCP 6
 #define IPPROTO_UDP 17
 
 #define AF_INET 2
+#define AF_INET6 0x17
 
 SEC("maps")
 struct bpf_map_def policy_map = {
@@ -39,6 +40,7 @@ authorize_v4(bpf_sock_addr_t* ctx)
     destination_entry_t entry = {0};
     entry.destination_ip.ipv4 = ctx->user_ip4;
     entry.destination_port = ctx->user_port;
+    entry.protocol = ctx->protocol;
 
     bpf_printk("anusa: ctx: %u, %u", ctx->user_ip4, ctx->user_port);
 
@@ -65,9 +67,49 @@ authorize_v4(bpf_sock_addr_t* ctx)
     return verdict;
 }
 
+__inline int
+authorize_v6(bpf_sock_addr_t* ctx)
+{
+    int verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    destination_entry_t entry = {0};
+
+    if (ctx->protocol != IPPROTO_TCP && ctx->protocol != IPPROTO_UDP) {
+        return verdict;
+    }
+
+    if (ctx->family != AF_INET6) {
+        return verdict;
+    }
+
+    __builtin_memcpy(entry.destination_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
+    entry.destination_port = ctx->user_port;
+    entry.protocol = ctx->protocol;
+
+    // Find the entry in the policy map.
+    destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
+    if (policy != NULL) {
+        bpf_printk("anusa: found proxy entry value");
+        __builtin_memcpy(ctx->user_ip6, policy->destination_ip.ipv6, sizeof(ctx->user_ip6));
+        ctx->user_port = policy->destination_port;
+
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    } else {
+        bpf_printk("anusa: did not find proxy entry.");
+    }
+
+    return verdict;
+}
+
 SEC("cgroup/connect4")
 int
 authorize_connect4(bpf_sock_addr_t* ctx)
 {
     return authorize_v4(ctx);
+}
+
+SEC("cgroup/connect6")
+int
+authorize_connect6(bpf_sock_addr_t* ctx)
+{
+    return authorize_v6(ctx);
 }

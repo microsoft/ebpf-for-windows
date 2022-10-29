@@ -190,6 +190,7 @@ _update_policy_map(
     _In_ sockaddr_storage& destination,
     _In_ sockaddr_storage& proxy,
     uint16_t port,
+    uint32_t protocol,
     bool add)
 {
     bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
@@ -214,6 +215,7 @@ _update_policy_map(
         memcpy(value.destination_ip.ipv6, v6_proxy->sin6_addr.u.Byte, sizeof(value.destination_ip.ipv6));
     }
     key.destination_port = value.destination_port = htons(port);
+    key.protocol = protocol;
 
     if (add) {
         REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
@@ -230,7 +232,7 @@ connect_redirect_test(
     _In_ sockaddr_storage& proxy)
 {
     // Update policy in the map to redirect the connection to the proxy.
-    _update_policy_map(object, destination, proxy, _globals.remote_port, true);
+    _update_policy_map(object, destination, proxy, _globals.remote_port, _globals.protocol, true);
 
     // Try to send and receive message to "destination". It should succeed.
     sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.remote_port);
@@ -246,6 +248,9 @@ connect_redirect_test(
     // TODO: The message returned by the listener should be unique so that we know
     // for sure that the connection was indeed redirected.
     REQUIRE(memcmp(received_message, "test_message", strlen(received_message)) == 0);
+
+    // Remove entry from policy map.
+    _update_policy_map(object, destination, proxy, _globals.remote_port, _globals.protocol, false);
 }
 
 void

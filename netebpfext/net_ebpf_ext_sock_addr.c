@@ -530,9 +530,9 @@ _net_ebpf_ext_reinitialize_connection_context(
 static bool
 _net_ebpf_ext_is_loopback_address(_In_ const bpf_sock_addr_t* address)
 {
-    SOCKADDR socket_address = {0};
-    socket_address.sa_family = (ADDRESS_FAMILY)address->family;
-    if (socket_address.sa_family == AF_INET) {
+    SOCKADDR_STORAGE socket_address = {0};
+    socket_address.ss_family = (ADDRESS_FAMILY)address->family;
+    if (socket_address.ss_family == AF_INET) {
         SOCKADDR_IN* v4_address = (SOCKADDR_IN*)&socket_address;
         v4_address->sin_addr.S_un.S_addr = address->user_ip4;
     } else {
@@ -540,7 +540,7 @@ _net_ebpf_ext_is_loopback_address(_In_ const bpf_sock_addr_t* address)
         RtlCopyMemory(v6_address->sin6_addr.u.Byte, address->user_ip6, 16);
     }
 
-    return INETADDR_ISLOOPBACK(&socket_address);
+    return INETADDR_ISLOOPBACK((SOCKADDR*)&socket_address);
 }
 
 static void
