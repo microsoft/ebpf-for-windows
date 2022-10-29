@@ -1027,7 +1027,7 @@ static ebpf_result_t
 _net_ebpf_ext_get_attached_client_by_filter_id(
     uint64_t filter_id,
     _In_ const ebpf_attach_type_t* attach_type,
-    _Outptr_ net_ebpf_extension_hook_client_t** attached_client)
+    _Outptr_result_maybenull_ net_ebpf_extension_hook_client_t** attached_client)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_instance_t* filter_instance = NULL;
@@ -1106,8 +1106,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
-    bpf_sock_addr_t sock_addr_ctx = {0};
-    bpf_sock_addr_t sock_addr_ctx_original = {0};
+    bpf_sock_addr_t* sock_addr_ctx = NULL;
+    bpf_sock_addr_t* sock_addr_ctx_original = NULL;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     FWPS_CONNECTION_REDIRECT_STATE redirect_state;
     HANDLE redirect_handle;
@@ -1116,7 +1116,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     net_ebpf_ext_redirection_record_t* redirect_record = NULL;
     net_ebpf_extension_connection_context_t* connection_context = NULL;
     bool existing_connection_context = false;
-    // net_ebpf_extension_connection_context_t* existing_connection_context = NULL;
     bool address_changed = false;
     bool redirected = false;
     FWP_ACTION_TYPE action = FWP_ACTION_BLOCK;
@@ -1128,13 +1127,28 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
 
-    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, &sock_addr_ctx);
-    sock_addr_ctx_original = sock_addr_ctx;
-
     if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
         // Do not modify anything and bail.
         return;
     }
+
+    sock_addr_ctx = (bpf_sock_addr_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(bpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
+    if (sock_addr_ctx == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+    sock_addr_ctx_original = (bpf_sock_addr_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(bpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
+    if (sock_addr_ctx_original == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+    memset(sock_addr_ctx, 0, sizeof(bpf_sock_addr_t));
+    memset(sock_addr_ctx_original, 0, sizeof(bpf_sock_addr_t));
+
+    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, sock_addr_ctx);
+    *sock_addr_ctx_original = *sock_addr_ctx;
 
     // Get the redirect handle for this filter.
     status = _net_ebpf_ext_sock_addr_get_redirect_handle(filter->filterId, &redirect_handle);
@@ -1144,7 +1158,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "Failed to get redirect handle",
             filter->filterId,
-            (uint64_t)sock_addr_ctx.compartment_id);
+            (uint64_t)sock_addr_ctx->compartment_id);
         goto Exit;
     }
 
@@ -1157,7 +1171,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "Connection redireced by self, ignoring",
             filter->filterId,
-            (uint64_t)sock_addr_ctx.compartment_id);
+            (uint64_t)sock_addr_ctx->compartment_id);
 
         // We have already looked at this connection. Permit and exit.
         classify_output->actionType = FWP_ACTION_PERMIT;
@@ -1169,7 +1183,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     // list. Update the connection context with the new information in such a case.
     status =
         _net_ebpf_ext_get_connection_context(incoming_metadata_values->transportEndpointHandle, &connection_context);
-    ASSERT(sock_addr_ctx_original.protocol == IPPROTO_UDP || status == STATUS_NOT_FOUND);
+    ASSERT(sock_addr_ctx_original->protocol == IPPROTO_UDP || status == STATUS_NOT_FOUND);
     if (connection_context != NULL) {
         existing_connection_context = true;
     }
@@ -1182,7 +1196,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             "FwpsAcquireClassifyHandle",
             status,
             filter->filterId,
-            (uint64_t)sock_addr_ctx.compartment_id);
+            (uint64_t)sock_addr_ctx->compartment_id);
 
         goto Exit;
     }
@@ -1218,7 +1232,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     //    point needs to be invoked (if any).
     // 3. If it is pure v6 address, then the eBPF program attached at v4 attach point
     //    needs to be invoked (if any).
-    if (sock_addr_ctx.family == AF_INET) {
+    if (sock_addr_ctx->family == AF_INET) {
         attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
         if (attached_client == NULL) {
             status = STATUS_INVALID_PARAMETER;
@@ -1233,7 +1247,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         }
         // ANUSA -- new addition end.
     } else {
-        if (IN6_IS_ADDR_V4MAPPED((IN6_ADDR*)sock_addr_ctx.user_ip6)) {
+        if (IN6_IS_ADDR_V4MAPPED((IN6_ADDR*)sock_addr_ctx->user_ip6)) {
             v4_mapped = true;
         }
         const GUID* attach_type =
@@ -1267,22 +1281,22 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     */
 
     if (v4_mapped) {
-        sock_addr_ctx.family = AF_INET;
-        const uint8_t* v4_ip = IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx.user_ip6);
+        sock_addr_ctx->family = AF_INET;
+        const uint8_t* v4_ip = IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx->user_ip6);
         uint32_t local_v4_ip = *((uint32_t*)v4_ip);
-        memset(sock_addr_ctx.user_ip6, 0, 16);
-        sock_addr_ctx.user_ip4 = local_v4_ip;
+        memset(sock_addr_ctx->user_ip6, 0, 16);
+        sock_addr_ctx->user_ip4 = local_v4_ip;
     }
 
     compartment_id = filter_context->compartment_id;
-    ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx.compartment_id));
-    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx.compartment_id) {
+    ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
+    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
         // The client is not interested in this compartment Id. Change action to PERMIT.
         NET_EBPF_EXT_LOG_MESSAGE_UINT32(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "The cgroup_sock_addr eBPF program is not interested in this compartmentId",
-            sock_addr_ctx.compartment_id);
+            sock_addr_ctx->compartment_id);
 
         action = FWP_ACTION_PERMIT;
         goto Exit;
@@ -1307,7 +1321,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         memset(connection_context, 0, sizeof(net_ebpf_extension_connection_context_t));
     }
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, &sock_addr_ctx, &verdict) != EBPF_SUCCESS) {
+    if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &verdict) != EBPF_SUCCESS) {
         status = STATUS_UNSUCCESSFUL;
         goto Exit;
     }
@@ -1318,18 +1332,18 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     INETADDR_SET_ADDRESS(&destination, (PUCHAR)&sock_addr_ctx.user_ip6);
     bool is_loopback = INETADDR_ISLOOPBACK(&destination);
     */
-    bool is_loopback = _net_ebpf_ext_is_loopback_address(&sock_addr_ctx);
+    bool is_loopback = _net_ebpf_ext_is_loopback_address(sock_addr_ctx);
 
     if (v4_mapped) {
-        sock_addr_ctx.family = AF_INET6;
-        IN_ADDR v4_address = *((IN_ADDR*)&sock_addr_ctx.user_ip4);
-        IN6_SET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx.user_ip6, (IN_ADDR*)&v4_address);
+        sock_addr_ctx->family = AF_INET6;
+        IN_ADDR v4_address = *((IN_ADDR*)&sock_addr_ctx->user_ip4);
+        IN6_SET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx->user_ip6, (IN_ADDR*)&v4_address);
     }
 
     if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
         // Check if destination IP and/or port have been modified.
-        address_changed = _net_ebpf_ext_destination_address_changed(&sock_addr_ctx, &sock_addr_ctx_original);
-        if (sock_addr_ctx.user_port != sock_addr_ctx_original.user_port || address_changed) {
+        address_changed = _net_ebpf_ext_destination_address_changed(sock_addr_ctx, sock_addr_ctx_original);
+        if (sock_addr_ctx->user_port != sock_addr_ctx_original->user_port || address_changed) {
             redirected = true;
 
             status = FwpsAcquireWritableLayerDataPointer(
@@ -1340,7 +1354,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
                     "FwpsAcquireWritableLayerDataPointer",
                     status,
                     filter->filterId,
-                    (uint64_t)sock_addr_ctx.compartment_id);
+                    (uint64_t)sock_addr_ctx->compartment_id);
 
                 goto Exit;
             }
@@ -1348,21 +1362,21 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
             InterlockedIncrement(&_net_ebpf_ext_statistics.redirect_connection_count);
 
-            if (sock_addr_ctx.user_port != sock_addr_ctx_original.user_port) {
-                INETADDR_SET_PORT((PSOCKADDR)&connect_request->remoteAddressAndPort, ntohs(sock_addr_ctx.user_port));
+            if (sock_addr_ctx->user_port != sock_addr_ctx_original->user_port) {
+                INETADDR_SET_PORT((PSOCKADDR)&connect_request->remoteAddressAndPort, ntohs(sock_addr_ctx->user_port));
             }
             if (address_changed) {
                 uint8_t* address;
-                if (sock_addr_ctx.family == AF_INET) {
-                    address = (uint8_t*)&sock_addr_ctx.user_ip4;
+                if (sock_addr_ctx->family == AF_INET) {
+                    address = (uint8_t*)&sock_addr_ctx->user_ip4;
                 } else {
-                    address = (uint8_t*)&(sock_addr_ctx.user_ip6[0]);
+                    address = (uint8_t*)&(sock_addr_ctx->user_ip6[0]);
                 }
                 INETADDR_SET_ADDRESS((PSOCKADDR)&connect_request->remoteAddressAndPort, address);
             }
 
             // TODO: Do we need redirect record?
-            _net_ebpf_ext_populate_redirect_record(&sock_addr_ctx_original, redirect_record);
+            _net_ebpf_ext_populate_redirect_record(sock_addr_ctx_original, redirect_record);
             connect_request->localRedirectContext = redirect_record;
             connect_request->localRedirectContextSize = sizeof(net_ebpf_ext_redirection_record_t);
             free_redirect_record = false;
@@ -1405,16 +1419,16 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     if (existing_connection_context) {
         _net_ebpf_ext_reinitialize_connection_context(
-            &sock_addr_ctx_original,
-            &sock_addr_ctx,
+            sock_addr_ctx_original,
+            sock_addr_ctx,
             redirected,
             verdict,
             incoming_metadata_values->transportEndpointHandle,
             connection_context);
     } else {
         _net_ebpf_ext_initialize_connection_context(
-            &sock_addr_ctx_original,
-            &sock_addr_ctx,
+            sock_addr_ctx_original,
+            sock_addr_ctx,
             redirected,
             is_loopback,
             verdict,
@@ -1454,6 +1468,12 @@ Exit:
     if (classify_handle_acquired) {
         FwpsReleaseClassifyHandle(classify_handle);
     }
+    if (sock_addr_ctx) {
+        ExFreePool(sock_addr_ctx);
+    }
+    if (sock_addr_ctx_original) {
+        ExFreePool(sock_addr_ctx_original);
+    }
     if (!NT_SUCCESS(status)) {
         if (connection_context && !existing_connection_context) {
             ExFreePool(connection_context);
@@ -1461,7 +1481,7 @@ Exit:
         if (redirect_record) {
             ExFreePool(redirect_record);
         }
-    } else if (free_redirect_record) {
+    } else if (redirect_record && free_redirect_record) {
         ExFreePool(redirect_record);
     }
     if (attached_client)

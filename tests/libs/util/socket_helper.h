@@ -137,8 +137,8 @@ typedef class _receiver_socket : public _base_socket
     complete_async_send(int timeout_in_ms) = 0;
     void
     complete_async_receive(int timeout_in_ms, bool timeout_expected = false);
-    void
-    get_received_message(_Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message);
+    // void
+    // get_received_message(_Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message);
 
     virtual void
     post_async_receive() = 0;

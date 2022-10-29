@@ -416,7 +416,7 @@ _net_ebpf_extension_create_or_update_filter_instance(
     _In_ const net_ebpf_extension_wfp_filter_parameters_t* filter_parameters,
     _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context,
     uint32_t condition_count,
-    _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
+    _In_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
     _Out_ net_ebpf_extension_wfp_filter_instance_t** filter_instance)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -449,7 +449,7 @@ _net_ebpf_extension_create_or_update_filter_instance(
             break;
         }
 
-        __analysis_assume(conditions != NULL);
+        // __analysis_assume(conditions != NULL);
 
         bool conditions_matched = true;
         // Iterate over all the filter conditions.
@@ -491,6 +491,7 @@ _net_ebpf_extension_create_or_update_filter_instance(
         InitializeListHead(&matching_instance->filter_contexts);
         matching_instance->condition_count = condition_count;
         if (condition_count > 0) {
+            // __analysis_assume(conditions != NULL);
             matching_instance->conditions = (FWPM_FILTER_CONDITION*)ExAllocatePoolUninitialized(
                 NonPagedPoolNx, sizeof(FWPM_FILTER_CONDITION) * condition_count, NET_EBPF_EXTENSION_POOL_TAG);
 
@@ -798,6 +799,9 @@ Exit:
     if (!NT_SUCCESS(status)) {
         // Iterate over local_filter_ids and release the reference for
         // each of the filter instances.
+#pragma warning(push)
+#pragma warning(disable : 6385) // the readable size is '_Old_7`sizeof(net_ebpf_extension_wfp_filter_instance_t
+                                // *)*filter_count' bytes, but '16' bytes may be read.
         if (local_filter_ids != NULL) {
             for (uint32_t i = 0; i < filter_count; i++) {
                 if (local_filter_ids[i] != NULL) {
@@ -806,6 +810,7 @@ Exit:
                 }
             }
         }
+#pragma warning(pop)
         ExFreePool(local_filter_ids);
         if (is_in_transaction)
             FwpmTransactionAbort(_fwp_engine_handle);
