@@ -169,7 +169,7 @@ _ebpf_extension_client_cleanup_binding_context(void* client_binding_context)
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_extension_load(
     _Outptr_ ebpf_extension_client_t** client_context,
     _In_ const GUID* interface_id,
@@ -439,7 +439,7 @@ _ebpf_extension_provider_cleanup_binding_context(void* provider_binding_context)
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_provider_load(
     _Outptr_ ebpf_extension_provider_t** provider_context,
     _In_ const GUID* interface_id,

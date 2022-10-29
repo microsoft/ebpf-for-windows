@@ -946,7 +946,7 @@ static empty_reply_t _empty_reply;
 typedef std::vector<uint8_t> ebpf_protocol_buffer_t;
 
 template <typename request_t, typename reply_t = empty_reply_t>
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 invoke_protocol(
     ebpf_operation_id_t operation_id,
     request_t& request,

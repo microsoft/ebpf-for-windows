@@ -48,7 +48,7 @@ typedef struct _ebpf_extension_provider
 static ebpf_lock_t _ebpf_provider_table_lock = {0};
 static _Requires_lock_held_(&_ebpf_provider_table_lock) ebpf_hash_table_t* _ebpf_provider_table = NULL;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_extension_load(
     _Outptr_ ebpf_extension_client_t** client_context,
     _In_ const GUID* interface_id,
@@ -152,7 +152,7 @@ ebpf_extension_load(
 
 Done:
     if (local_extension_provider && local_extension_client) {
-        ebpf_hash_table_delete(
+        (void)ebpf_hash_table_delete(
             local_extension_provider->client_table, (const uint8_t*)&local_extension_client->client_module_id);
     }
 
@@ -199,8 +199,8 @@ ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context)
     if (return_value != EBPF_PENDING) {
         state = ebpf_lock_lock(&_ebpf_provider_table_lock);
         lock_acquired = true;
-
-        ebpf_hash_table_delete(
+        // Issue 1506 - https://github.com/microsoft/ebpf-for-windows/issues/1506
+        (void)ebpf_hash_table_delete(
             local_extension_provider->client_table, (const uint8_t*)&client_context->client_module_id);
     }
 
@@ -249,7 +249,9 @@ ebpf_provider_detach_client_complete(_In_ const GUID* interface_id, ebpf_handle_
 
         if (client->nmr_binding_handle == nmr_binding_handle) {
             // Found the matching entry. Delete it.
-            ebpf_hash_table_delete(local_extension_provider->client_table, (const uint8_t*)&client->client_module_id);
+            // Issue 1506 - https://github.com/microsoft/ebpf-for-windows/issues/1506
+            (void)ebpf_hash_table_delete(
+                local_extension_provider->client_table, (const uint8_t*)&client->client_module_id);
             break;
         }
     }
@@ -279,7 +281,7 @@ ebpf_extension_get_provider_guid(_In_ const void* extension_client_binding_conte
 
 #pragma warning(push)
 #pragma warning(disable : 6101) // ebpf_free at exit
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_provider_load(
     _Outptr_ ebpf_extension_provider_t** provider_context,
     _In_ const GUID* interface_id,
@@ -385,7 +387,8 @@ ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context
         goto Done;
     }
 
-    ebpf_hash_table_delete(_ebpf_provider_table, (const uint8_t*)&provider_context->provider_module_id);
+    // Issue 1506 - https://github.com/microsoft/ebpf-for-windows/issues/1506
+    (void)ebpf_hash_table_delete(_ebpf_provider_table, (const uint8_t*)&provider_context->provider_module_id);
 
     return_value = ebpf_hash_table_next_key(_ebpf_provider_table, NULL, (uint8_t*)&next_key);
     if (return_value == EBPF_NO_MORE_KEYS) {

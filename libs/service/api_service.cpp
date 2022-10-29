@@ -229,7 +229,7 @@ _query_and_cache_map_descriptors(
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_verify_and_load_program(
     _In_ const GUID* program_type,
     ebpf_handle_t program_handle,

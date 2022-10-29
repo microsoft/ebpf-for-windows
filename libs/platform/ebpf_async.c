@@ -15,7 +15,7 @@ static ebpf_hash_table_t* _ebpf_async_tracker_table = NULL;
 
 static const size_t _ebpf_async_tracker_table_bucket_count = 64;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_async_initiate()
 {
     EBPF_LOG_ENTRY();
@@ -40,7 +40,7 @@ ebpf_async_terminate()
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_async_set_completion_callback(_In_ void* context, _In_ void (*on_complete)(_In_ void*, size_t, ebpf_result_t))
 {
     EBPF_LOG_ENTRY();
@@ -71,7 +71,7 @@ _remove_tracker(_In_ void* context)
     return ebpf_hash_table_delete(_ebpf_async_tracker_table, key) == EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_async_set_cancel_callback(
     _In_ void* context, _In_ void* cancellation_context, _In_ void (*on_cancel)(_In_ void* cancellation_context))
 {
@@ -121,7 +121,7 @@ ebpf_async_complete(_In_ void* context, size_t output_buffer_length, ebpf_result
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_async_reset_completion_callback(_In_ void* context)
 {
     return _remove_tracker(context);

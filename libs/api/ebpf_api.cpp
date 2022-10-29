@@ -229,7 +229,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_create(
     enum bpf_map_type map_type,
     _In_opt_z_ const char* map_name,
@@ -425,7 +425,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -434,7 +434,7 @@ ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -509,7 +509,7 @@ _update_map_element_with_handle(
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer)));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* value, uint64_t flags) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -574,7 +574,7 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
     }
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -635,7 +635,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -761,7 +761,7 @@ ebpf_free_string(_In_opt_ _Post_invalid_ const char* error_message)
     EBPF_LOG_EXIT();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_pin(fd_t fd, _In_z_ const char* path) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -791,7 +791,7 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) noexcept
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_unpin(_In_z_ const char* path)
 {
     EBPF_LOG_ENTRY();
@@ -807,7 +807,7 @@ ebpf_object_unpin(_In_z_ const char* path)
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer)));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -843,7 +843,7 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -861,7 +861,7 @@ ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noe
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -915,7 +915,7 @@ ebpf_object_get(_In_z_ const char* path) noexcept
     EBPF_RETURN_FD(fd);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_query_info(
     fd_t fd,
     _Out_ ebpf_execution_type_t* execution_type,
@@ -1070,7 +1070,7 @@ _detach_link_by_handle(ebpf_handle_t link_handle) noexcept
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request)));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_detach_link_by_fd(fd_t fd) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -1082,7 +1082,7 @@ ebpf_detach_link_by_fd(fd_t fd) noexcept
     EBPF_RETURN_RESULT(_detach_link_by_handle(link_handle));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_attach(
     _In_ const struct bpf_program* program,
     _In_opt_ const ebpf_attach_type_t* attach_type,
@@ -1119,7 +1119,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_attach_by_fd(
     fd_t program_fd,
     _In_opt_ const ebpf_attach_type_t* attach_type,
@@ -1151,7 +1151,7 @@ ebpf_program_attach_by_fd(
         _link_ebpf_program(program_handle, attach_type, link, (uint8_t*)attach_parameters, attach_parameters_size));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_api_unlink_program(ebpf_handle_t link_handle)
 {
     EBPF_LOG_ENTRY();
@@ -1163,7 +1163,7 @@ ebpf_api_unlink_program(ebpf_handle_t link_handle)
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request)));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_link_detach(_In_ struct bpf_link* link)
 {
     EBPF_LOG_ENTRY();
@@ -1171,7 +1171,7 @@ ebpf_link_detach(_In_ struct bpf_link* link)
     EBPF_RETURN_RESULT(_detach_link_by_handle(link->handle));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_detach(
     fd_t program_fd,
     _In_ const ebpf_attach_type_t* attach_type,
@@ -1213,7 +1213,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_link_close(_In_ _Post_invalid_ struct bpf_link* link)
 {
     EBPF_LOG_ENTRY();
@@ -1223,7 +1223,7 @@ ebpf_link_close(_In_ _Post_invalid_ struct bpf_link* link)
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_api_close_handle(ebpf_handle_t handle)
 {
     EBPF_LOG_ENTRY();
@@ -1233,7 +1233,7 @@ ebpf_api_close_handle(ebpf_handle_t handle)
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request)));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_api_get_pinned_map_info(
     _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info)
 {
@@ -2138,7 +2138,7 @@ _ebpf_enumerate_native_sections(
     EBPF_RETURN_RESULT(context.result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_enumerate_sections(
     _In_z_ const char* file,
     bool verbose,
@@ -2157,7 +2157,7 @@ ebpf_enumerate_sections(
     }
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_open(
     _In_z_ const char* path,
     _In_opt_z_ const char* object_name,
@@ -2210,7 +2210,7 @@ _ebpf_is_map_in_map(ebpf_map_t* map) noexcept
     EBPF_RETURN_BOOL(false);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type)
 {
     if (Platform::_is_native_program(object->file_name)) {
@@ -2384,7 +2384,7 @@ _ebpf_object_create_maps(_Inout_ ebpf_object_t* object) noexcept(false)
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_load_bytes(
     _In_ const ebpf_program_type_t* program_type,
     _In_opt_z_ const char* program_name,
@@ -2563,7 +2563,7 @@ _ebpf_object_load_programs(_Inout_ struct bpf_object* object) noexcept(false)
 }
 
 // This logic is intended to be similar to libbpf's bpf_object__load_xattr().
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_load(_Inout_ struct bpf_object* object) noexcept
 {
     ebpf_result_t result;
@@ -2613,7 +2613,7 @@ Done:
 }
 
 // This function is intended to work like libbpf's bpf_object__unload().
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_unload(_In_ struct bpf_object* object) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -2638,7 +2638,7 @@ ebpf_object_unload(_In_ struct bpf_object* object) noexcept
 }
 
 // This function is intended to work like libbpf's bpf_program__unload().
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_unload(_In_ struct bpf_program* program) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -3128,7 +3128,7 @@ _get_fd_by_id(ebpf_operation_id_t operation, ebpf_id_t id, _Out_ int* fd) noexce
     EBPF_RETURN_RESULT((*fd == ebpf_fd_invalid) ? EBPF_NO_MEMORY : EBPF_SUCCESS);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_map_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -3136,7 +3136,7 @@ ebpf_get_map_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
     EBPF_RETURN_RESULT(_get_fd_by_id(ebpf_operation_id_t::EBPF_OPERATION_GET_MAP_HANDLE_BY_ID, id, fd));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_program_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -3144,7 +3144,7 @@ ebpf_get_program_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
     EBPF_RETURN_RESULT(_get_fd_by_id(ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_HANDLE_BY_ID, id, fd));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -3152,7 +3152,7 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
     EBPF_RETURN_RESULT(_get_fd_by_id(ebpf_operation_id_t::EBPF_OPERATION_GET_LINK_HANDLE_BY_ID, id, fd));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_next_pinned_program_path(
     _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path)
 {
@@ -3211,7 +3211,7 @@ _get_next_id(ebpf_operation_id_t operation, ebpf_id_t start_id, _Out_ ebpf_id_t*
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_next_link_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -3219,7 +3219,7 @@ ebpf_get_next_link_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
     EBPF_RETURN_RESULT(_get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_LINK_ID, start_id, next_id));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_next_map_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -3227,7 +3227,7 @@ ebpf_get_next_map_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
     EBPF_RETURN_RESULT(_get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_MAP_ID, start_id, next_id));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_next_program_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -3235,7 +3235,7 @@ ebpf_get_next_program_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
     EBPF_RETURN_RESULT(_get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM_ID, start_id, next_id));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info_by_fd(
     fd_t bpf_fd, _Inout_updates_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size) noexcept
 {
@@ -3251,7 +3251,7 @@ ebpf_object_get_info_by_fd(
     EBPF_RETURN_RESULT(ebpf_object_get_info(handle, info, info_size));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_program_type_by_name(
     _In_z_ const char* name, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* expected_attach_type)
 {
@@ -3266,7 +3266,7 @@ ebpf_get_program_type_by_name(
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -3309,7 +3309,7 @@ ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
     EBPF_RETURN_POINTER(const char*, get_attach_type_name(attach_type));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_bind_map(fd_t program_fd, fd_t map_fd) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -3472,7 +3472,7 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) n
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_subscribe(
     fd_t ring_buffer_map_fd,
     _In_opt_ void* sample_callback_context,

@@ -43,7 +43,7 @@ _ebpf_link_free(ebpf_core_object_t* object)
     ebpf_epoch_free(link);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_link_create(ebpf_link_t** link)
 {
     EBPF_LOG_ENTRY();
@@ -63,7 +63,7 @@ ebpf_link_create(ebpf_link_t** link)
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_link_initialize(
     ebpf_link_t* link, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length)
 {
@@ -127,7 +127,7 @@ Exit:
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
@@ -210,7 +210,7 @@ Exit:
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_link_get_info(
     _In_ const ebpf_link_t* link, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
 {

@@ -20,7 +20,7 @@ typedef struct _ebpf_state_entry
 static _Writable_elements_(_ebpf_state_cpu_table_size) ebpf_state_entry_t* _ebpf_state_cpu_table = NULL;
 static uint32_t _ebpf_state_cpu_table_size = 0;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_state_initiate()
 {
     EBPF_LOG_ENTRY();
@@ -72,7 +72,7 @@ ebpf_state_terminate()
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_state_allocate_index(_Out_ size_t* new_index)
 {
     EBPF_LOG_ENTRY();
@@ -84,7 +84,7 @@ ebpf_state_allocate_index(_Out_ size_t* new_index)
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 _ebpf_state_get_entry(_Out_ ebpf_state_entry_t** entry)
 {
     // High frequency call, don't log entry/exit.
@@ -112,6 +112,9 @@ _ebpf_state_get_entry(_Out_ ebpf_state_entry_t** entry)
 
             return_value = ebpf_hash_table_find(
                 _ebpf_state_thread_table, (const uint8_t*)&current_thread_id, (uint8_t**)&local_entry);
+            if (return_value != EBPF_SUCCESS) {
+                return return_value;
+            }
         }
     } else {
         uint32_t current_cpu = ebpf_get_current_cpu();
@@ -124,7 +127,7 @@ _ebpf_state_get_entry(_Out_ ebpf_state_entry_t** entry)
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_state_store(size_t index, uintptr_t value)
 {
     // High frequency call, don't log entry/exit.
@@ -138,7 +141,7 @@ ebpf_state_store(size_t index, uintptr_t value)
     return return_value;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_state_load(size_t index, _Out_ uintptr_t* value)
 {
     // High frequency call, don't log entry/exit.

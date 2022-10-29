@@ -189,7 +189,7 @@ static HANDLE _fwp_engine_handle;
 // WFP component management related utility functions.
 //
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_wfp_filter_context_create(
     size_t filter_context_size,
     _In_ const net_ebpf_extension_hook_client_t* client_context,
@@ -304,7 +304,7 @@ net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_cou
     NET_EBPF_EXT_LOG_EXIT();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_add_wfp_filters(
     uint32_t filter_count,
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,

@@ -604,7 +604,7 @@ set_native_module_failures(bool expected)
     _expect_native_module_load_failures = expected;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 get_service_details_for_file(
     _In_ const std::wstring& file_path, _Out_ const wchar_t** service_name, _Out_ GUID* provider_guid)
 {

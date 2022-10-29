@@ -11,7 +11,7 @@
 
 bool use_ebpf_store = false;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_server_verify_and_load_program(
     /* [ref][in] */ ebpf_program_load_info* info,
     /* [ref][out] */ uint32_t* logs_size,

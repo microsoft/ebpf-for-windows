@@ -19,7 +19,7 @@ down_cast_from_wstring(const std::wstring& wide_string)
     return converter.to_bytes(wide_string);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 parse_if_index(_In_z_ const wchar_t* arg, _Out_ uint32_t* if_index)
 {
     ebpf_result_t result = EBPF_SUCCESS;

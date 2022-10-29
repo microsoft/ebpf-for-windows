@@ -74,7 +74,7 @@ static ebpf_extension_provider_t* _ebpf_native_provider = NULL;
 static ebpf_lock_t _ebpf_native_client_table_lock = {0};
 static _Requires_lock_held_(&_ebpf_native_client_table_lock) ebpf_hash_table_t* _ebpf_native_client_table = NULL;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
 void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
@@ -109,7 +109,8 @@ _ebpf_native_clean_up_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* 
             // Map should only be unpinned if this is a failure case, and the map
             // was created and pinned while loading the native module.
             if (map->pin_path.value && map->pinned && !map->reused) {
-                ebpf_core_update_pinning(UINT64_MAX, &map->pin_path);
+                // Issue 1506 - https://github.com/microsoft/ebpf-for-windows/issues/1506
+                (void)ebpf_core_update_pinning(UINT64_MAX, &map->pin_path);
             }
         }
         if (map->pin_path.value) {
@@ -119,7 +120,8 @@ _ebpf_native_clean_up_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* 
 #pragma warning(pop)
         }
         if (map->handle != ebpf_handle_invalid) {
-            ebpf_handle_close(map->handle);
+            // Ignore invalid handle.
+            (void)ebpf_handle_close(map->handle);
         }
     }
 
@@ -131,7 +133,8 @@ _ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program
 {
     for (uint32_t i = 0; i < count_of_programs; i++) {
         if (programs[i].handle != ebpf_handle_invalid) {
-            ebpf_handle_close(programs[i].handle);
+            // Ignore invalid handle.
+            (void)ebpf_handle_close(programs[i].handle);
         }
     }
 
@@ -205,14 +208,15 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
         ebpf_lock_unlock(&module->lock, module_lock_state);
         lock_acquired = false;
         if (unload) {
-            ebpf_native_unload(module_id);
+            // Issue 1506 - https://github.com/microsoft/ebpf-for-windows/issues/1506
+            (void)ebpf_native_unload(module_id);
             ebpf_free(module_id);
         }
     } else if (new_ref_count == 0) {
-        // TODO: https://github.com/microsoft/ebpf-for-windows/issues/1506
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
         // Delete entry from hash table.
-        ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_id);
+        // TODO: https://github.com/microsoft/ebpf-for-windows/issues/1506
+        (void)ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_id);
         ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
 
         EBPF_LOG_MESSAGE_GUID(
@@ -422,7 +426,7 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_native_initiate()
 {
     EBPF_LOG_ENTRY();
@@ -1043,7 +1047,7 @@ _ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
     return count_of_programs;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_native_load(
     _In_reads_(service_name_length) const wchar_t* service_name,
     uint16_t service_name_length,
@@ -1123,7 +1127,7 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_native_load_programs(
     _In_ const GUID* module_id,
     size_t count_of_map_handles,
@@ -1263,7 +1267,7 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_native_get_count_of_programs(_In_ const GUID* module_id, _Out_ size_t* count_of_programs)
 {
     EBPF_LOG_ENTRY();
@@ -1286,7 +1290,7 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_native_get_count_of_maps(_In_ const GUID* module_id, _Out_ size_t* count_of_maps)
 {
     EBPF_LOG_ENTRY();
@@ -1309,7 +1313,7 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_native_unload(_In_ const GUID* module_id)
 {
     EBPF_LOG_ENTRY();
