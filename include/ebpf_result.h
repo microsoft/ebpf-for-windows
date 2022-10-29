@@ -13,7 +13,7 @@ extern "C"
 #endif
 
 #pragma warning(disable : 26812) // Prefer enum class
-    typedef _Return_type_success_(return == EBPF_SUCCESS) enum ebpf_result {
+    typedef _Must_inspect_result_ _Return_type_success_(return == EBPF_SUCCESS) enum ebpf_result {
         /// The operation was successful.
         EBPF_SUCCESS, // = 0
 
