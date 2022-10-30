@@ -25,6 +25,7 @@ schedules:
   branches:
     include:
     - main
+  always: true
 
 parameters: # parameters are shown up in ADO UI in a build queue time
 - name: 'debug'
