@@ -308,7 +308,7 @@ ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outpt
     return return_value;
 }
 
-void
+ebpf_result_t
 ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type)
 {
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
