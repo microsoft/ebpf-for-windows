@@ -861,7 +861,8 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
         }
     }
 
-    ebpf_state_store(_ebpf_program_state_index, 0);
+    // Ignore failure to cleanup state.
+    (void)ebpf_state_store(_ebpf_program_state_index, 0);
 }
 
 static ebpf_result_t

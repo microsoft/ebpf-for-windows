@@ -284,7 +284,8 @@ _ebpf_native_unload_all()
         ebpf_native_module_t* free_module = CONTAINING_RECORD(entry, ebpf_native_module_t, list_entry);
         ebpf_list_remove_entry(entry);
 
-        ebpf_native_unload(&free_module->client_id);
+        // Ignore failures on shutdown.
+        (void)ebpf_native_unload(&free_module->client_id);
     }
 
     EBPF_RETURN_VOID();
@@ -631,7 +632,8 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
             goto Exit;
         }
         result = _ebpf_native_validate_map(inner_map, inner_map_handle);
-        ebpf_handle_close(inner_map_handle);
+        // Ignore invalid handle case.
+        (void)ebpf_handle_close(inner_map_handle);
     }
 
 Exit:
@@ -645,8 +647,8 @@ _ebpf_native_reuse_map(_Inout_ ebpf_native_map_t* map)
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t handle = ebpf_handle_invalid;
     // Check if a map is already present with this pin path.
-    ebpf_core_get_pinned_object(&map->pin_path, &handle);
-    if (handle == ebpf_handle_invalid) {
+    result = ebpf_core_get_pinned_object(&map->pin_path, &handle);
+    if (handle == ebpf_handle_invalid || result != EBPF_SUCCESS) {
         goto Exit;
     }
 
@@ -664,7 +666,8 @@ _ebpf_native_reuse_map(_Inout_ ebpf_native_map_t* map)
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        ebpf_handle_close(handle);
+        // Ignore invalid handle.
+        (void)ebpf_handle_close(handle);
     }
     return result;
 }
@@ -1071,7 +1074,8 @@ ebpf_native_load(
     }
     memcpy(local_service_name, (uint8_t*)service_name, service_name_length);
 
-    ebpf_native_load_driver(local_service_name);
+    // Ignore failure to start driver?
+    (void)ebpf_native_load_driver(local_service_name);
 
     // Find the native entry in hash table.
     hash_table_state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
