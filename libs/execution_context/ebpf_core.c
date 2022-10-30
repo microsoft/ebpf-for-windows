@@ -196,6 +196,7 @@ ebpf_core_terminate()
     ebpf_async_terminate();
 
     ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
+    _ebpf_core_map_pinning_table = NULL;
 
     ebpf_state_terminate();
 
