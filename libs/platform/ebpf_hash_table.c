@@ -15,6 +15,19 @@
 
 typedef struct _ebpf_hash_bucket_entry
 {
+#pragma warning(push)
+#pragma warning(disable : 4201) // nonstandard extension used: nameless struct/union
+    union
+    {
+        uint32_t raw;
+        struct
+        {
+            // Flag is set when an entry is removed.
+            // This is used to avoid problems when a replacement bucket cannot be allocated.
+            int freed : 1;
+        };
+    };
+#pragma warning(pop)
     uint8_t* data;
     uint8_t key[1];
 } ebpf_hash_bucket_entry_t;
@@ -291,7 +304,10 @@ _ebpf_hash_table_replace_bucket(
                     // If old_data exists, remove it.
                     old_data = entry->data;
                     old_data_index = index;
-                    break;
+                }
+                // Adjust old bucket count to account for deleted entries.
+                if (entry->freed) {
+                    old_bucket_count--;
                 }
             }
         }
@@ -348,6 +364,10 @@ _ebpf_hash_table_replace_bucket(
                 ebpf_hash_bucket_entry_t* new_entry =
                     _ebpf_hash_table_bucket_entry(hash_table->key_size, new_bucket, new_bucket->count);
 
+                // Skip entries marked as freed.
+                if (old_entry->freed) {
+                    continue;
+                }
                 if (index == old_data_index) {
                     continue;
                 }
@@ -475,41 +495,46 @@ ebpf_hash_table_destroy(_In_opt_ _Post_ptr_invalid_ ebpf_hash_table_t* hash_tabl
     hash_table->free(hash_table);
 }
 
+ebpf_hash_bucket_entry_t*
+_ebpf_hash_table_find_entry(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
+{
+    uint32_t hash = _ebpf_hash_table_compute_hash(hash_table, key);
+
+    ebpf_hash_bucket_header_t* bucket =
+        (ebpf_hash_bucket_header_t*)hash_table->buckets[hash % hash_table->bucket_count];
+    if (bucket) {
+        size_t index;
+        for (index = 0; index < bucket->count; index++) {
+            ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, index);
+            if (entry->freed) {
+                continue;
+            }
+            if (_ebpf_hash_table_compare(hash_table, key, entry->key) == 0) {
+                return entry;
+            }
+        }
+    }
+    return NULL;
+}
+
 ebpf_result_t
 ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
 {
     ebpf_result_t retval;
-    uint32_t hash;
-    uint8_t* data = NULL;
-    size_t index;
-    ebpf_hash_bucket_header_t* bucket;
+    ebpf_hash_bucket_entry_t* entry;
 
     if (!hash_table || !key) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    hash = _ebpf_hash_table_compute_hash(hash_table, key);
-    bucket = hash_table->buckets[hash % hash_table->bucket_count];
-    if (!bucket) {
+    entry = _ebpf_hash_table_find_entry(hash_table, key);
+    if (!entry) {
         retval = EBPF_KEY_NOT_FOUND;
         goto Done;
     }
 
-    for (index = 0; index < bucket->count; index++) {
-        ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, index);
-        if (_ebpf_hash_table_compare(hash_table, key, entry->key) == 0) {
-            data = entry->data;
-            break;
-        }
-    }
-
-    if (!data) {
-        retval = EBPF_KEY_NOT_FOUND;
-        goto Done;
-    }
-
-    *value = data;
+    *value = entry->data;
     retval = EBPF_SUCCESS;
 Done:
     return retval;
@@ -562,6 +587,18 @@ ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* k
 
     retval = _ebpf_hash_table_replace_bucket(hash_table, key, NULL, EBPF_HASH_BUCKET_OPERATION_DELETE);
 
+    // Handle low memory failures.
+    if (retval == EBPF_NO_MEMORY) {
+        ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_find_entry(hash_table, key);
+        if (entry) {
+            // Mark the entry as freed.
+            entry->freed = true;
+            ebpf_interlocked_decrement_int32(&hash_table->entry_count);
+            retval = EBPF_SUCCESS;
+        } else {
+            retval = EBPF_KEY_NOT_FOUND;
+        }
+    }
 Done:
     return retval;
 }
