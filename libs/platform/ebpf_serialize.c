@@ -250,11 +250,14 @@ ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info
     if (program_info != NULL) {
         ebpf_free(program_info->program_type_descriptor.context_descriptor);
         ebpf_free((void*)program_info->program_type_descriptor.name);
-        for (uint32_t i = 0; i < program_info->count_of_helpers; i++) {
-            ebpf_helper_function_prototype_t* helper_prototype = &program_info->helper_prototype[i];
-            ebpf_free((void*)helper_prototype->name);
-            helper_prototype->name = NULL;
+        if (program_info->helper_prototype != NULL) {
+            for (uint32_t i = 0; i < program_info->count_of_helpers; i++) {
+                ebpf_helper_function_prototype_t* helper_prototype = &program_info->helper_prototype[i];
+                ebpf_free((void*)helper_prototype->name);
+                helper_prototype->name = NULL;
+            }
         }
+
         ebpf_free(program_info->helper_prototype);
         ebpf_free(program_info);
     }
