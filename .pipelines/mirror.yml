@@ -9,6 +9,7 @@ schedules:
   branches:
     include:
     - main
+  always: true
 
 # Disable PR and CI triggers.
 pr: none
