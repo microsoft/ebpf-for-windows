@@ -170,6 +170,7 @@ _load_program_data_information(
             goto Exit;
         }
         program_information->program_type_descriptor.context_descriptor = descriptor;
+        descriptor = nullptr;
         program_information->program_type_descriptor.is_privileged = !!is_privileged;
         program_information->program_type_descriptor.bpf_prog_type = bpf_program_type;
         program_information->program_type_descriptor.program_type = *program_type;
