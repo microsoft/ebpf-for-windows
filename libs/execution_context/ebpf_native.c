@@ -11,6 +11,8 @@
 #define DEFAULT_PIN_ROOT_PATH "/ebpf/global"
 #define EBPF_MAX_PIN_PATH_LENGTH 256
 
+static const uint32_t _ebpf_native_marker = 'enat';
+
 #ifndef GUID_NULL
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
@@ -38,9 +40,10 @@ typedef struct _ebpf_native_program
 
 typedef struct _ebpf_native_module
 {
+    ebpf_base_object_t base;
     GUID client_id;
     metadata_table_t* table;
-    volatile int32_t reference_count;
+    bool initializing;
     bool initialized;
     bool loading;
     bool loaded;
@@ -158,8 +161,9 @@ _ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
 void
 ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 {
-    ebpf_assert(module->reference_count != 0);
-    ebpf_interlocked_increment_int32(&module->reference_count);
+    ebpf_assert(module->base.marker == _ebpf_native_marker);
+    ebpf_assert(module->base.reference_count != 0);
+    ebpf_interlocked_increment_int32(&module->base.reference_count);
 }
 
 void
@@ -174,9 +178,10 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
     if (!module)
         EBPF_RETURN_VOID();
 
-    ebpf_assert(module->reference_count != 0);
+    ebpf_assert(module->base.marker == _ebpf_native_marker);
+    ebpf_assert(module->base.reference_count != 0);
 
-    new_ref_count = ebpf_interlocked_decrement_int32(&module->reference_count);
+    new_ref_count = ebpf_interlocked_decrement_int32(&module->base.reference_count);
 
     if (new_ref_count == 1) {
         // Check if all the program references have been released. If that
@@ -344,7 +349,7 @@ _ebpf_native_client_attach_callback(
 
     ebpf_lock_create(&client_context->lock);
     // Acquire "attach" reference. Released when detach is called for this module.
-    client_context->reference_count = 1;
+    client_context->base.reference_count = 1;
     client_context->client_id = *client_id;
     client_context->initialized = false;
     client_context->table = table;
@@ -592,7 +597,7 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
     ebpf_core_object_t* object;
     ebpf_handle_t inner_map_handle = ebpf_handle_invalid;
     uint16_t info_size = (uint16_t)sizeof(info);
-    ebpf_result_t result = ebpf_reference_object_by_handle(original_map_handle, EBPF_OBJECT_UNKNOWN, &object);
+    ebpf_result_t result = ebpf_object_reference_by_handle(original_map_handle, EBPF_OBJECT_UNKNOWN, &object);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1048,6 +1053,7 @@ ebpf_native_load(
     _In_reads_(service_name_length) const wchar_t* service_name,
     uint16_t service_name_length,
     _In_ const GUID* module_id,
+    _Out_ ebpf_handle_t* module_handle,
     _Out_ size_t* count_of_maps,
     _Out_ size_t* count_of_programs)
 {
@@ -1055,10 +1061,11 @@ ebpf_native_load(
     ebpf_result_t result;
     ebpf_lock_state_t hash_table_state = 0;
     ebpf_lock_state_t state = 0;
-    bool lock_acquired = false;
+    bool table_lock_acquired = false;
     ebpf_native_module_t* module = NULL;
     ebpf_native_module_t** existing_module = NULL;
     wchar_t* local_service_name = NULL;
+    ebpf_handle_t local_module_hande = ebpf_handle_invalid;
 
     local_service_name = ebpf_allocate((size_t)service_name_length + 2);
     if (local_service_name == NULL) {
@@ -1071,7 +1078,7 @@ ebpf_native_load(
 
     // Find the native entry in hash table.
     hash_table_state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
-    lock_acquired = true;
+    table_lock_acquired = true;
     result = ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)module_id, (uint8_t**)&existing_module);
     if (result != EBPF_SUCCESS) {
         result = EBPF_OBJECT_NOT_FOUND;
@@ -1080,8 +1087,9 @@ ebpf_native_load(
         goto Done;
     }
     module = *existing_module;
+
     state = ebpf_lock_lock(&module->lock);
-    if (module->initialized) {
+    if (module->initializing || module->initialized) {
         // This client has already been initialized.
         result = EBPF_OBJECT_ALREADY_EXISTS;
         ebpf_lock_unlock(&module->lock, state);
@@ -1103,6 +1111,24 @@ ebpf_native_load(
             *module_id);
         goto Done;
     }
+    // Mark the module as initializing.
+    module->base.acquire_reference = ebpf_native_acquire_reference;
+    module->base.release_reference = ebpf_native_release_reference;
+    module->initializing = true;
+    ebpf_lock_unlock(&module->lock, state);
+
+    // Create handle for the native module.
+    result = ebpf_handle_create(&local_module_hande, (ebpf_base_object_t*)module);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "ebpf_native_load: Failed to create handle.",
+            *module_id);
+        goto Done;
+    }
+
+    state = ebpf_lock_lock(&module->lock);
     module->initialized = true;
     module->service_name = local_service_name;
     ebpf_lock_unlock(&module->lock, state);
@@ -1110,14 +1136,19 @@ ebpf_native_load(
     // Get map and program count;
     *count_of_maps = _ebpf_native_get_count_of_maps(module);
     *count_of_programs = _ebpf_native_get_count_of_programs(module);
+    *module_handle = local_module_hande;
+    local_module_hande = ebpf_handle_invalid;
 
 Done:
-    if (lock_acquired) {
+    if (table_lock_acquired) {
         ebpf_lock_unlock(&_ebpf_native_client_table_lock, hash_table_state);
-        lock_acquired = false;
+        table_lock_acquired = false;
     }
     if (result != EBPF_SUCCESS) {
         ebpf_free(local_service_name);
+    }
+    if (local_module_hande != ebpf_handle_invalid) {
+        ebpf_handle_close(local_module_hande);
     }
 
     EBPF_RETURN_RESULT(result);

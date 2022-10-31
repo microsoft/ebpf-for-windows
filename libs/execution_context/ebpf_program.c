@@ -1154,7 +1154,7 @@ ebpf_program_create_and_initialize(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    retval = ebpf_handle_create(program_handle, (ebpf_core_object_t*)program);
+    retval = ebpf_handle_create(program_handle, (ebpf_base_object_t*)program);
     if (retval != EBPF_SUCCESS)
         goto Done;
 

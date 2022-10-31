@@ -36,6 +36,7 @@ extern "C"
      * @param[in] service_name Name of the service for the native module.
      * @param[in] service_name_length Length of service_name.
      * @param[in] module_id Identifier of the native eBPF module to load.
+     * @param[in] module_handle Handle to the loaded native module.
      * @param[out] count_of_maps Count of maps in the native module.
      * @param[out] count_of_programs Count of programs in the native module.
      *
@@ -51,6 +52,7 @@ extern "C"
         _In_reads_(service_name_length) const wchar_t* service_name,
         uint16_t service_name_length,
         _In_ const GUID* module_id,
+        _Out_ ebpf_handle_t* module_handle,
         _Out_ size_t* count_of_maps,
         _Out_ size_t* count_of_programs);
 
