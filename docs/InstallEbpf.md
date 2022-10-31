@@ -27,13 +27,13 @@ has already built the binaries for `x64/Debug` or `x64/Release`.
 
 1. Deploy the binaries to `C:\Temp` in your VM, as follows:
 
-   - If you **built the binaries from inside the VM**, then from your `ebpf-for-windows` directory in the VM, run:
+    - If you **built the binaries from inside the VM**, then from your `ebpf-for-windows` directory in the VM, run:
 
         ```ps
         .\x64\debug\deploy-ebpf -l
         ```
-   - Otherwise, if you **built the binaries on the host machine**, then from your `ebpf-for-windows`
-     directory on the host machine, start an admin Powershell on the host machine and run:
+    - Otherwise, if you **built the binaries on the host machine**, then from your `ebpf-for-windows`
+        directory on the host machine, start an admin Powershell on the host machine and run:
 
         ```ps
         .\x64\debug\deploy-ebpf --vm="<test-vm-name>"
@@ -75,7 +75,7 @@ command prompt:
 
     ```json
     {
-        "license":["Copyright (c) Microsoft Corporation", "SPDX-License-Identifier: MIT"],
+        ...
 
         "VMList":
         [
