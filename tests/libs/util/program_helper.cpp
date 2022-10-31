@@ -45,11 +45,7 @@ _program_load_attach_helper::_program_load_attach_helper(
     REQUIRE(program_fd > 0);
 
     // Attach program to link.
-    ebpf_result_t result = hook.attach_link(program_fd, attach_parameters, attach_parameters_size, &_link);
-    if (result != EBPF_SUCCESS) {
-        printf("DEBUG\n");
-    }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, attach_parameters, attach_parameters_size, &_link) == EBPF_SUCCESS);
 
     ebpf_free_string(log_buffer);
 }

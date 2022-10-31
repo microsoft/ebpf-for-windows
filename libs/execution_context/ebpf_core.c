@@ -123,7 +123,7 @@ ebpf_general_helper_function_provider_attach_client(
     UNREFERENCED_PARAMETER(client_dispatch);
 
     *provider_binding_context = NULL;
-    *provider_dispatch = NULL; // TODO
+    *provider_dispatch = NULL;
     return STATUS_SUCCESS;
 }
 

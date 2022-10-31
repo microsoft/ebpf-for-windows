@@ -98,7 +98,8 @@ typedef class _single_instance_hook : public _hook_helper
   public:
     _single_instance_hook(ebpf_program_type_t program_type, ebpf_attach_type_t attach_type)
         : _hook_helper{attach_type}, provider(nullptr), client_binding_context(nullptr), client_data(nullptr),
-          client_dispatch_table(nullptr), link_object(nullptr)
+          client_dispatch_table(nullptr), link_object(nullptr), client_registration_instance(nullptr),
+          nmr_binding_handle(nullptr)
     {
         attach_provider_data.supported_program_type = program_type;
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
@@ -199,10 +200,9 @@ typedef class _single_instance_hook : public _hook_helper
         hook->client_registration_instance = client_registration_instance;
         hook->client_binding_context = client_binding_context;
         hook->nmr_binding_handle = nmr_binding_handle;
-        // hook->client_data = client_data; TODO check this
         hook->client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
         *provider_binding_context = provider_context;
-        *provider_dispatch = NULL; // TODO
+        *provider_dispatch = NULL;
         return STATUS_SUCCESS;
     };
 
@@ -402,7 +402,7 @@ typedef class _program_info_provider
         UNREFERENCED_PARAMETER(client_registration_instance);
         UNREFERENCED_PARAMETER(hook);
         *provider_binding_context = provider_context;
-        *provider_dispatch = NULL; // TODO
+        *provider_dispatch = NULL;
         return STATUS_SUCCESS;
     };
 

@@ -325,7 +325,7 @@ _ebpf_native_provider_attach_client_callback(
     UNREFERENCED_PARAMETER(client_binding_context);
     UNREFERENCED_PARAMETER(client_dispatch);
 
-    *provider_dispatch = NULL; // TODO
+    *provider_dispatch = NULL;
     *provider_binding_context = NULL;
 
     const GUID* client_module_id = &client_registration_instance->ModuleId->Guid;
@@ -389,7 +389,7 @@ Done:
     if (result != EBPF_SUCCESS) {
         ebpf_free(client_context);
     } else {
-        *provider_dispatch = NULL; // TODO
+        *provider_dispatch = NULL;
         *provider_binding_context = client_context;
     }
     EBPF_RETURN_NTSTATUS(ebpf_result_to_ntstatus(result));

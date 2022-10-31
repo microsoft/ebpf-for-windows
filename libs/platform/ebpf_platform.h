@@ -836,18 +836,6 @@ extern "C"
     void
     ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context);
 
-#if 0
-    typedef ebpf_result_t (*ebpf_provider_attach_client_callback_t)(
-        ebpf_handle_t client_binding_handle,
-        void* context,
-        const GUID* client_module_id,
-        void* client_binding_context,
-        const ebpf_extension_data_t* client_data,
-        const ebpf_extension_dispatch_table_t* client_dispatch_table);
-
-    typedef ebpf_result_t (*ebpf_provider_detach_client_callback_t)(void* context, const GUID* client_id);
-#endif
-
     /**
      * @brief Register as an extension provider.
      *
@@ -875,8 +863,8 @@ extern "C"
         _In_opt_ const ebpf_extension_data_t* provider_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
         _In_opt_ void* callback_context,
-        _In_opt_ NPI_PROVIDER_ATTACH_CLIENT_FN attach_client_callback,
-        _In_opt_ NPI_PROVIDER_DETACH_CLIENT_FN detach_client_callback,
+        _In_ NPI_PROVIDER_ATTACH_CLIENT_FN attach_client_callback,
+        _In_ NPI_PROVIDER_DETACH_CLIENT_FN detach_client_callback,
         _In_opt_ PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN provider_cleanup_binding_context_callback);
 
     /**
@@ -886,11 +874,6 @@ extern "C"
      */
     void
     ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context);
-
-#if 0
-    void
-    ebpf_provider_detach_client_complete(_In_ const GUID* interface_id, HANDLE client_binding_handle);
-#endif
 
     ebpf_result_t
     ebpf_guid_create(_Out_ GUID* new_guid);
