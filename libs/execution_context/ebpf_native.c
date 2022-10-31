@@ -1112,6 +1112,7 @@ ebpf_native_load(
         goto Done;
     }
     // Mark the module as initializing.
+    module->base.marker = _ebpf_native_marker;
     module->base.acquire_reference = ebpf_native_acquire_reference;
     module->base.release_reference = ebpf_native_release_reference;
     module->initializing = true;
