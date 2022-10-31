@@ -67,6 +67,7 @@ ebpf_state_terminate()
 {
     EBPF_LOG_ENTRY();
     ebpf_hash_table_destroy(_ebpf_state_thread_table);
+    _ebpf_state_thread_table = NULL;
     ebpf_free_cache_aligned(_ebpf_state_cpu_table);
     _ebpf_state_cpu_table = NULL;
     EBPF_RETURN_VOID();
