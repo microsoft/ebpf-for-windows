@@ -66,6 +66,70 @@ net_ebpf_ext_trace_terminate();
         TraceLoggingOpcode(WINEVENT_OPCODE_STOP),                               \
         TraceLoggingString(__FUNCTION__, "==>"));
 
+#define NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(keyword, api, status) \
+    TraceLoggingWrite(                                              \
+        net_ebpf_ext_tracelog_provider,                             \
+        NET_EBPF_EXT_TRACELOG_EVENT_API_ERROR,                      \
+        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),               \
+        TraceLoggingKeyword((keyword)),                             \
+        TraceLoggingString(#api, "api"),                            \
+        TraceLoggingNTStatus(status));
+
+#define NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(keyword, api, status, message, value) \
+    TraceLoggingWrite(                                                                             \
+        net_ebpf_ext_tracelog_provider,                                                            \
+        NET_EBPF_EXT_TRACELOG_EVENT_API_ERROR,                                                     \
+        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                              \
+        TraceLoggingKeyword((keyword)),                                                            \
+        TraceLoggingString(#api, "api"),                                                           \
+        TraceLoggingNTStatus(status),                                                              \
+        TraceLoggingString(message, "Message"),                                                    \
+        TraceLoggingString((value), (#value)));
+
+#define NET_EBPF_EXT_LOG_MESSAGE(trace_level, keyword, message) \
+    TraceLoggingWrite(                                          \
+        net_ebpf_ext_tracelog_provider,                         \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,            \
+        TraceLoggingLevel(trace_level),                         \
+        TraceLoggingKeyword((keyword)),                         \
+        TraceLoggingString(message, "Message"));
+
+#define NET_EBPF_EXT_LOG_MESSAGE_STRING(trace_level, keyword, message, value) \
+    TraceLoggingWrite(                                                        \
+        net_ebpf_ext_tracelog_provider,                                       \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                          \
+        TraceLoggingLevel(trace_level),                                       \
+        TraceLoggingKeyword((keyword)),                                       \
+        TraceLoggingString(message, "Message"),                               \
+        TraceLoggingString((value), (#value)));
+
+#define NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(trace_level, keyword, message, status) \
+    TraceLoggingWrite(                                                           \
+        net_ebpf_ext_tracelog_provider,                                          \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                             \
+        TraceLoggingLevel(trace_level),                                          \
+        TraceLoggingKeyword((keyword)),                                          \
+        TraceLoggingString(message, "Message"),                                  \
+        TraceLoggingNTStatus(status));
+
+#define NET_EBPF_EXT_LOG_MESSAGE_UINT32(trace_level, keyword, message, value) \
+    TraceLoggingWrite(                                                        \
+        net_ebpf_ext_tracelog_provider,                                       \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                          \
+        TraceLoggingLevel(trace_level),                                       \
+        TraceLoggingKeyword((keyword)),                                       \
+        TraceLoggingString(message, "Message"),                               \
+        TraceLoggingUInt32((value), (#value)));
+
+#define NET_EBPF_EXT_LOG_MESSAGE_UINT64(trace_level, keyword, message, value) \
+    TraceLoggingWrite(                                                        \
+        net_ebpf_ext_tracelog_provider,                                       \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                          \
+        TraceLoggingLevel(trace_level),                                       \
+        TraceLoggingKeyword((keyword)),                                       \
+        TraceLoggingString(message, "Message"),                               \
+        TraceLoggingUInt64((value), (#value)));
+
 #define NET_EBPF_EXT_RETURN_RESULT(status)                 \
     do {                                                   \
         ebpf_result_t local_result = (status);             \
@@ -87,38 +151,3 @@ net_ebpf_ext_trace_terminate();
         }                                                  \
         return local_result;                               \
     } while (false);
-
-#define NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(keyword, api, status) \
-    TraceLoggingWrite(                                              \
-        net_ebpf_ext_tracelog_provider,                             \
-        NET_EBPF_EXT_TRACELOG_EVENT_API_ERROR,                      \
-        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),               \
-        TraceLoggingKeyword((keyword)),                             \
-        TraceLoggingString(#api, "api"),                            \
-        TraceLoggingNTStatus(status));
-
-#define NET_EBPF_EXT_LOG_MESSAGE(trace_level, keyword, message) \
-    TraceLoggingWrite(                                          \
-        net_ebpf_ext_tracelog_provider,                         \
-        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,            \
-        TraceLoggingLevel(trace_level),                         \
-        TraceLoggingKeyword((keyword)),                         \
-        TraceLoggingString(message, "Message"));
-
-#define NET_EBPF_EXT_LOG_MESSAGE_UINT32(trace_level, keyword, message, value) \
-    TraceLoggingWrite(                                                        \
-        net_ebpf_ext_tracelog_provider,                                       \
-        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                          \
-        TraceLoggingLevel(trace_level),                                       \
-        TraceLoggingKeyword((keyword)),                                       \
-        TraceLoggingString(message, "Message"),                               \
-        TraceLoggingUInt32((value), (#value)));
-
-#define NET_EBPF_EXT_LOG_MESSAGE_UINT64(trace_level, keyword, message, value) \
-    TraceLoggingWrite(                                                        \
-        net_ebpf_ext_tracelog_provider,                                       \
-        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                          \
-        TraceLoggingLevel(trace_level),                                       \
-        TraceLoggingKeyword((keyword)),                                       \
-        TraceLoggingString(message, "Message"),                               \
-        TraceLoggingUInt64((value), (#value)));
