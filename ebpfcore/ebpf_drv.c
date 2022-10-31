@@ -204,7 +204,9 @@ _ebpf_driver_file_close(WDFFILEOBJECT wdf_file_object)
 {
     FILE_OBJECT* file_object = WdfFileObjectWdmGetFileObject(wdf_file_object);
     ebpf_base_object_t* base_object = file_object->FsContext2;
-    base_object->release_reference(base_object);
+    if (base_object != NULL) {
+        base_object->release_reference(base_object);
+    }
 }
 
 static void
