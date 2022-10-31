@@ -100,7 +100,6 @@ typedef class _single_instance_hook : public _hook_helper
         : _hook_helper{attach_type}, provider(nullptr), client_binding_context(nullptr), client_data(nullptr),
           client_dispatch_table(nullptr), link_object(nullptr)
     {
-        ebpf_guid_create(&client_module_id);
         attach_provider_data.supported_program_type = program_type;
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
@@ -192,15 +191,12 @@ typedef class _single_instance_hook : public _hook_helper
     {
         auto hook = reinterpret_cast<_single_instance_hook*>(provider_context);
 
-        printf(
-            "ProviderAttachClient client %02x%02x\n", hook->client_module_id.Data4[6], hook->client_module_id.Data4[7]);
-
         if (hook->client_binding_context != nullptr) {
             // Can't attach a single-instance provider to a second client.
             return STATUS_NOINTERFACE;
         }
         UNREFERENCED_PARAMETER(nmr_binding_handle);
-        hook->client_module_id = *client_registration_instance->NpiId;
+        hook->client_registration_instance = client_registration_instance;
         hook->client_binding_context = client_binding_context;
         hook->nmr_binding_handle = nmr_binding_handle;
         // hook->client_data = client_data; TODO check this
@@ -228,7 +224,7 @@ typedef class _single_instance_hook : public _hook_helper
     ebpf_extension_data_t provider_data = {
         EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(attach_provider_data), &attach_provider_data};
     ebpf_extension_provider_t* provider;
-    GUID client_module_id;
+    PNPI_REGISTRATION_INSTANCE client_registration_instance;
     void* client_binding_context;
     const ebpf_extension_data_t* client_data;
     const ebpf_extension_dispatch_table_t* client_dispatch_table;

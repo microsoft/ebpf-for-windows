@@ -6,13 +6,6 @@
 _nmr::nmr_provider_handle
 _nmr::register_provider(_In_ const NPI_PROVIDER_CHARACTERISTICS& characteristics, _In_opt_ const void* context)
 {
-    printf(
-        "NmrRegisterProvider interface %02x%02x module %02x%02x\n",
-        characteristics.ProviderRegistrationInstance.NpiId->Data4[6],
-        characteristics.ProviderRegistrationInstance.NpiId->Data4[7],
-        characteristics.ProviderRegistrationInstance.ModuleId->Guid.Data4[6],
-        characteristics.ProviderRegistrationInstance.ModuleId->Guid.Data4[7]);
-
     // Add the provider to the list of providers.
     nmr_provider_handle provider_handle = add(providers, characteristics, context);
     // Notify existing clients about the new provider.

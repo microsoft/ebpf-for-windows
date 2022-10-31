@@ -836,6 +836,18 @@ extern "C"
     void
     ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context);
 
+#if 0
+    typedef ebpf_result_t (*ebpf_provider_attach_client_callback_t)(
+        ebpf_handle_t client_binding_handle,
+        void* context,
+        const GUID* client_module_id,
+        void* client_binding_context,
+        const ebpf_extension_data_t* client_data,
+        const ebpf_extension_dispatch_table_t* client_dispatch_table);
+
+    typedef ebpf_result_t (*ebpf_provider_detach_client_callback_t)(void* context, const GUID* client_id);
+#endif
+
     /**
      * @brief Register as an extension provider.
      *
@@ -845,8 +857,8 @@ extern "C"
      * @param[in] provider_data Opaque provider data.
      * @param[in] provider_dispatch_table Table of function pointers the
      *  provider exposes.
-     * @param[in] provider_attach_client_callback Function invoked when a client attaches.
-     * @param[in] provider_detach_client_callback Function invoked when a client detaches.
+     * @param[in] attach_client_callback Function invoked when a client attaches.
+     * @param[in] detach_client_callback Function invoked when a client detaches.
      * @param[in] provider_cleanup_binding_context_callback Function invoked when a binding context can be cleaned up.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The provider was unable to
@@ -863,8 +875,8 @@ extern "C"
         _In_opt_ const ebpf_extension_data_t* provider_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
         _In_opt_ void* callback_context,
-        _In_ PNPI_PROVIDER_ATTACH_CLIENT_FN provider_attach_client_callback,
-        _In_ PNPI_PROVIDER_DETACH_CLIENT_FN provider_detach_client_callback,
+        _In_opt_ NPI_PROVIDER_ATTACH_CLIENT_FN attach_client_callback,
+        _In_opt_ NPI_PROVIDER_DETACH_CLIENT_FN detach_client_callback,
         _In_opt_ PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN provider_cleanup_binding_context_callback);
 
     /**
@@ -875,8 +887,10 @@ extern "C"
     void
     ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context);
 
+#if 0
     void
-    ebpf_provider_detach_client_complete(_In_ const GUID* interface_id, ebpf_handle_t client_binding_handle);
+    ebpf_provider_detach_client_complete(_In_ const GUID* interface_id, HANDLE client_binding_handle);
+#endif
 
     ebpf_result_t
     ebpf_guid_create(_Out_ GUID* new_guid);
@@ -1008,6 +1022,8 @@ extern "C"
 
     void
     ebpf_restore_current_thread_affinity(uintptr_t old_thread_affinity_mask);
+
+    typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 
     /**
      * @brief Map an ebpf_result_t to a generic NTSTATUS code.

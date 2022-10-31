@@ -65,17 +65,6 @@ _ebpf_extension_client_notify_change(
     EBPF_RETURN_VOID();
 }
 
-#if 1
-#include <stdio.h>
-const char*
-GetGuidString(const GUID* guid)
-{
-    static char buffer[120];
-    sprintf_s(buffer, sizeof(buffer), "{...%02x%02x}", guid->Data4[6], guid->Data4[7]);
-    return buffer;
-}
-#endif
-
 NTSTATUS
 _ebpf_extension_client_attach_provider(
     HANDLE nmr_binding_handle,
@@ -107,11 +96,6 @@ _ebpf_extension_client_attach_provider(
 
     // Only permit one provider to attach.
     if (local_client_context->client_binding_context != NULL) {
-        printf("DUP ATTACH interface %s ", GetGuidString(provider_registration_instance->NpiId));
-        printf("client %s ", GetGuidString((GUID*)&local_client_context->client_module_id));
-        printf(
-            "provider %s\n", GetGuidString((GUID*)&local_client_context->client_binding_context->provider_module_id));
-
         status = STATUS_NOINTERFACE;
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_WARNING,
@@ -135,10 +119,6 @@ _ebpf_extension_client_attach_provider(
     local_client_binding_context->extension_client = local_client_context;
 
     local_client_context->client_binding_context = local_client_binding_context;
-
-    printf("ATTACH PROVIDER TO CLIENT interface %s ", GetGuidString(provider_registration_instance->NpiId));
-    printf("client %s ", GetGuidString((GUID*)&local_client_context->client_module_id));
-    printf("provider %s\n", GetGuidString(&provider_registration_instance->ModuleId->Guid));
 
     status = NmrClientAttachProvider(
         nmr_binding_handle,
@@ -165,13 +145,6 @@ _ebpf_extension_client_detach_provider(void* client_binding_context)
     ebpf_extension_client_binding_context_t* local_client_binding_context =
         (ebpf_extension_client_binding_context_t*)client_binding_context;
     ebpf_extension_client_t* local_client_context = local_client_binding_context->extension_client;
-
-    printf(
-        "DETACH PROVIDER FROM CLIENT thread %d interface %s ",
-        GetCurrentThreadId(),
-        GetGuidString(&local_client_context->npi_id));
-    printf("client %s ", GetGuidString((GUID*)&local_client_context->client_module_id));
-    printf("provider %s\n", GetGuidString((GUID*)&local_client_context->client_binding_context->provider_module_id));
 
     local_client_binding_context->provider_binding_context = NULL;
     local_client_binding_context->provider_dispatch_table = NULL;
@@ -318,19 +291,19 @@ ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context)
 {
     EBPF_LOG_ENTRY();
     NTSTATUS status;
-    if (client_context) {
+    if (client_context != NULL) {
         status = NmrDeregisterClient(client_context->nmr_client_handle);
         if (status == STATUS_PENDING) {
             status = NmrWaitForClientDeregisterComplete(client_context->nmr_client_handle);
             if (!NT_SUCCESS(status)) {
                 EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrWaitForClientDeregisterComplete, status);
             }
-        } else
+        } else {
             EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrDeregisterClient, status);
-    }
-    if (client_context != NULL)
+        }
         ebpf_free(client_context->client_binding_context);
-    ebpf_free(client_context);
+        ebpf_free(client_context);
+    }
     EBPF_RETURN_VOID();
 }
 

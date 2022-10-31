@@ -1857,7 +1857,7 @@ TEST_CASE("bpf_prog_attach", "[libbpf]")
     bpf_object__close(object);
 }
 
-TEST_CASE("bpf_link__pin", "[libbpf]")
+TEST_CASE("bpf_link__pin", "[libbpf][info]")
 {
     _test_helper_libbpf test_helper;
 
@@ -2008,7 +2008,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     Platform::_close(link_fd);
 }
 
-TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
+TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf][info]")
 {
     _test_helper_end_to_end test_helper;
     program_info_provider_t sock_addr_program_info(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
