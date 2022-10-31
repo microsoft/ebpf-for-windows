@@ -193,6 +193,7 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "ebpf_native_release_reference: all program references released. Unloading module",
                 module->client_id);
+            // TODO: https://github.com/microsoft/ebpf-for-windows/issues/1511
             module_id = (GUID*)ebpf_allocate(sizeof(GUID));
             if (module_id == NULL) {
                 result = EBPF_NO_MEMORY;
@@ -208,6 +209,7 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
             ebpf_free(module_id);
         }
     } else if (new_ref_count == 0) {
+        // TODO: https://github.com/microsoft/ebpf-for-windows/issues/1506
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
         // Delete entry from hash table.
         ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_id);
@@ -224,7 +226,6 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
         // Clean up the native module.
         _ebpf_native_clean_up_module(module);
     }
-
 Done:
     if (lock_acquired) {
         ebpf_lock_unlock(&module->lock, module_lock_state);
@@ -249,6 +250,10 @@ _ebpf_native_unload_all()
     ebpf_list_entry_t* entry;
     GUID module_id = GUID_NULL;
     ebpf_native_module_t** module = NULL;
+
+    if (!_ebpf_native_client_table) {
+        return;
+    }
 
     ebpf_list_initialize(&free_list);
 
@@ -293,9 +298,10 @@ ebpf_native_terminate()
     ebpf_provider_unload(_ebpf_native_provider);
 
     // All native modules should be cleaned up by now.
-    ebpf_assert(ebpf_hash_table_key_count(_ebpf_native_client_table) == 0);
+    ebpf_assert(!_ebpf_native_client_table || ebpf_hash_table_key_count(_ebpf_native_client_table) == 0);
 
     ebpf_hash_table_destroy(_ebpf_native_client_table);
+    _ebpf_native_client_table = NULL;
     ebpf_lock_destroy(&_ebpf_native_client_table_lock);
 
     EBPF_RETURN_VOID();
@@ -457,6 +463,7 @@ Done:
     if (return_value != EBPF_SUCCESS) {
         if (hash_table_created) {
             ebpf_hash_table_destroy(_ebpf_native_client_table);
+            _ebpf_native_client_table = NULL;
         }
         ebpf_lock_destroy(&_ebpf_native_client_table_lock);
     }
@@ -1349,6 +1356,8 @@ ebpf_native_unload(_In_ const GUID* module_id)
     // the module memory can be freed immediately after the hash table lock is
     // released. Create a copy of the service name to use later to unload driver.
     service_name_length = (wcslen(module->service_name) + 1) * sizeof(wchar_t);
+
+    // TODO: https://github.com/microsoft/ebpf-for-windows/issues/1511
     service_name = ebpf_allocate(service_name_length);
     if (service_name == NULL) {
         result = EBPF_NO_MEMORY;
@@ -1359,6 +1368,7 @@ ebpf_native_unload(_In_ const GUID* module_id)
 
     // Create a work item if we are running at DISPATCH.
     if (!ebpf_is_preemptible()) {
+        // TODO: https://github.com/microsoft/ebpf-for-windows/issues/1511
         result = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_native_unload_work_item, service_name);
         if (result != EBPF_SUCCESS) {
             goto Done;

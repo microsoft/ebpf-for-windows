@@ -170,7 +170,7 @@ jobs:
         ${{env.POST_COMMAND}}
 
     - name: Check for CodeCoverage
-      uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
+      uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       id: check_coverage
       with:
         files: ebpf_for_windows.xml
@@ -253,7 +253,7 @@ jobs:
           copy ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\*.log ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
 
     - name: Check for crash dumps
-      uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
+      uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       id: check_dumps
       with:
         files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
@@ -268,7 +268,7 @@ jobs:
         retention-days: 5
 
     - name: Check for TestLogs
-      uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
+      uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       if: always()
       id: check_logs
       with:
@@ -285,7 +285,7 @@ jobs:
 
     - name: Check for generated artifacts
       if: always()
-      uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
+      uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       id: check_artifacts
       with:
         files: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts\*

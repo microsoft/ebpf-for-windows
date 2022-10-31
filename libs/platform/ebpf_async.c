@@ -34,7 +34,7 @@ void
 ebpf_async_terminate()
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(ebpf_hash_table_key_count(_ebpf_async_tracker_table) == 0);
+    ebpf_assert(!_ebpf_async_tracker_table || ebpf_hash_table_key_count(_ebpf_async_tracker_table) == 0);
     ebpf_hash_table_destroy(_ebpf_async_tracker_table);
     _ebpf_async_tracker_table = NULL;
     EBPF_RETURN_VOID();
