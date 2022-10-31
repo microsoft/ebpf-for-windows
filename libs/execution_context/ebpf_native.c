@@ -1087,6 +1087,8 @@ ebpf_native_load(
         goto Done;
     }
     module = *existing_module;
+    ebpf_lock_unlock(&_ebpf_native_client_table_lock, hash_table_state);
+    table_lock_acquired = false;
 
     state = ebpf_lock_lock(&module->lock);
     if (module->initializing || module->initialized) {

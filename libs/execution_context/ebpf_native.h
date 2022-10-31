@@ -36,7 +36,7 @@ extern "C"
      * @param[in] service_name Name of the service for the native module.
      * @param[in] service_name_length Length of service_name.
      * @param[in] module_id Identifier of the native eBPF module to load.
-     * @param[in] module_handle Handle to the loaded native module.
+     * @param[out] module_handle Handle to the loaded native module.
      * @param[out] count_of_maps Count of maps in the native module.
      * @param[out] count_of_programs Count of programs in the native module.
      *

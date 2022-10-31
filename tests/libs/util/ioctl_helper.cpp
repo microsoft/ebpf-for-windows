@@ -30,6 +30,7 @@ test_ioctl_load_native_module(
 
     *count_of_maps = 0;
     *count_of_programs = 0;
+    *module_handle = ebpf_handle_invalid;
 
     size_t buffer_size = offsetof(ebpf_operation_load_native_module_request_t, data) + service_path_size;
     request_buffer.resize(buffer_size);
