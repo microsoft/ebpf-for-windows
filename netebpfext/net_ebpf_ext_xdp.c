@@ -602,7 +602,7 @@ net_ebpf_ext_layer_2_classify(
     }
 
     if (nbl == NULL) {
-        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Null NBL \n"));
+        NET_EBPF_EXT_LOG_MESSAGE(NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Null NBL");
         goto Done;
     }
 
@@ -620,7 +620,9 @@ net_ebpf_ext_layer_2_classify(
 
     net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
     if (net_buffer == NULL) {
-        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "net_buffer not present\n"));
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "net_buffer not present");
+
         // nothing to do
         goto Done;
     }
