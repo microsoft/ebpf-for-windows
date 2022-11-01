@@ -304,8 +304,8 @@ _ebpf_hash_table_bucket_insert(
     result = EBPF_SUCCESS;
 
 Done:
-    ebpf_free(local_new_bucket);
-    ebpf_free(backup_bucket);
+    hash_table->free(local_new_bucket);
+    hash_table->free(backup_bucket);
 
     return result;
 }
@@ -420,8 +420,7 @@ _ebpf_hash_table_bucket_update(
     result = EBPF_SUCCESS;
 
 Done:
-    ebpf_free(local_new_bucket);
-
+    hash_table->free(local_new_bucket);
     return result;
 }
 
