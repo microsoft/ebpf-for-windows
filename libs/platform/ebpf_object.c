@@ -331,14 +331,14 @@ ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type)
 }
 
 ebpf_result_t
-ebpf_object_reference_by_handle(
+ebpf_object_reference_by_handle_and_type(
     ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
 {
     ebpf_result_t result;
     ebpf_core_object_t* local_object = NULL;
     *object = NULL;
 
-    result = ebpf_reference_object_by_handle(handle, (ebpf_base_object_t**)&local_object);
+    result = ebpf_reference_base_object_by_handle(handle, (ebpf_base_object_t**)&local_object);
     if (result == EBPF_SUCCESS) {
         __analysis_assume(local_object != NULL);
         if (local_object->base.marker != _ebpf_object_marker) {

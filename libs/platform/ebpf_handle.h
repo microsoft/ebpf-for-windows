@@ -59,7 +59,7 @@ extern "C"
      * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
      */
     _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t
-        ebpf_reference_object_by_handle(ebpf_handle_t handle, _Outptr_ struct _ebpf_base_object** object);
+        ebpf_reference_base_object_by_handle(ebpf_handle_t handle, _Outptr_ struct _ebpf_base_object** object);
 
 #ifdef __cplusplus
 }

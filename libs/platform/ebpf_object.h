@@ -171,7 +171,7 @@ extern "C"
      * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
      */
     ebpf_result_t
-    ebpf_object_reference_by_handle(
+    ebpf_object_reference_by_handle_and_type(
         ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ struct _ebpf_core_object** object);
 
 #ifdef __cplusplus
