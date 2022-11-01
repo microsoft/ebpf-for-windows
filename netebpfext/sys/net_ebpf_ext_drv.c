@@ -122,10 +122,6 @@ _net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _I
 
     _net_ebpf_ext_driver_device_object = WdfDeviceWdmGetDeviceObject(_net_ebpf_ext_device);
 
-    status = net_ebpf_ext_trace_initiate();
-    if (!NT_SUCCESS(status))
-        goto Exit;
-
     status = net_ebpf_ext_initialize_ndis_handles((const DRIVER_OBJECT*)driver_object);
     if (!NT_SUCCESS(status))
         goto Exit;
@@ -148,22 +144,32 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 {
     NTSTATUS status;
 
+    status = net_ebpf_ext_trace_initiate();
+    if (!NT_SUCCESS(status)) {
+        // Fail silently as there is no other mechanism to indicate this failure. Note that in this case, the
+        // NET_EBPF_EXT_LOG_EXIT() call at the end will not log anything either.
+        goto Exit;
+    }
+
+    NET_EBPF_EXT_LOG_ENTRY();
+
     // Request NX Non-Paged Pool when available
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
-
-    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "NetEbpfExt: DriverEntry\n"));
-
     status = _net_ebpf_ext_driver_initialize_objects(driver_object, registry_path);
-
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_CRITICAL,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE,
+            (char*)"_net_ebpf_ext_driver_initialize_objects() failed",
+            status);
         goto Exit;
     }
 
 Exit:
-
     if (!NT_SUCCESS(status)) {
         _net_ebpf_ext_driver_uninitialize_objects();
     }
 
+    NET_EBPF_EXT_LOG_EXIT();
     return status;
 }
