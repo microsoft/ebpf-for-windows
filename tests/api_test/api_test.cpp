@@ -61,7 +61,7 @@ _program_load_helper(
         return EBPF_FAILED;
     }
 
-    ebpf_object_set_execution_type(new_object, execution_type);
+    REQUIRE(ebpf_object_set_execution_type(new_object, execution_type) == EBPF_SUCCESS);
 
     struct bpf_program* program = bpf_object__next_program(new_object, nullptr);
 
@@ -553,7 +553,7 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     program_load_attach_helper_t _helper(
-        "bindmonitor_tailcall.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, hook);
+        "bindmonitor_tailcall.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
     object = _helper.get_object();
 
     // Setup tail calls.
