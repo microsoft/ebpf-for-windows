@@ -353,31 +353,6 @@ ebpf_result_t
 ebpf_object_reference_by_handle(
     ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
 {
-    ebpf_result_t result;
-    ebpf_core_object_t* local_object = NULL;
-    *object = NULL;
-
-    result = ebpf_reference_base_object_by_handle(
-        handle, _ebpf_object_compare, &object_type, (ebpf_base_object_t**)&local_object);
-    if (result == EBPF_SUCCESS) {
-        __analysis_assume(local_object != NULL);
-        if (local_object->base.marker != _ebpf_object_marker) {
-            result = EBPF_INVALID_OBJECT;
-            goto Exit;
-        }
-
-        if ((object_type != EBPF_OBJECT_UNKNOWN) && (ebpf_object_get_type(local_object) != object_type)) {
-            result = EBPF_INVALID_OBJECT;
-            goto Exit;
-        }
-
-        *object = local_object;
-        local_object = NULL;
-    }
-
-Exit:
-    if (local_object) {
-        local_object->base.release_reference((ebpf_base_object_t*)local_object);
-    }
-    return result;
+    return ebpf_reference_base_object_by_handle(
+        handle, _ebpf_object_compare, &object_type, (ebpf_base_object_t**)object);
 }
