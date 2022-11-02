@@ -13,37 +13,62 @@
 // searching, data is stored separately to prevent read-copy-update semantics
 // from causing loss of updates.
 
+/**
+ * @brief Each bucket entry contains a pointer to the value, the key, and a pointer to pre-allocated memory that can be
+ * used to replace the current bucket with a bucket one entry smaller.
+ */
 typedef struct _ebpf_hash_bucket_entry
 {
     uint8_t* data;
+    struct _ebpf_hash_bucket_header* backup_bucket;
     uint8_t key[1];
 } ebpf_hash_bucket_entry_t;
 
+/**
+ * @brief Header for each bucket. The header contains the number of entries in the bucket and an array of bucket
+ * entries.
+ */
 typedef struct _ebpf_hash_bucket_header
 {
     size_t count;
     _Field_size_(count) ebpf_hash_bucket_entry_t entries[1];
 } ebpf_hash_bucket_header_t;
 
+/**
+ * @brief This structure contains the pointer to the bucket and a lock to synchronize replacing the bucket.
+ */
+typedef struct _ebpf_hash_bucket_header_and_lock
+{
+    ebpf_hash_bucket_header_t* header;
+    ebpf_lock_t lock;
+} ebpf_hash_bucket_header_and_lock_t;
+
+/**
+ * @brief The ebpf_hash_table_t structure represents a hash table. It contains an array of pointers to buckets and a
+ * a per bucket lock.
+ */
 struct _ebpf_hash_table
 {
-    uint32_t bucket_count;
-    volatile int32_t entry_count;
-    uint32_t seed;
-    size_t key_size;
-    size_t value_size;
-    void* (*allocate)(size_t size);
-    void (*free)(void* memory);
-    void (*extract)(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* num);
-    _Field_size_(bucket_count) ebpf_hash_bucket_header_t* volatile buckets[1];
+    uint32_t bucket_count;          // Count of buckets.
+    volatile int32_t entry_count;   // Count of entries in the hash table.
+    uint32_t seed;                  // Seed used for hashing.
+    size_t key_size;                // Size of key.
+    size_t value_size;              // Size of value.
+    void* (*allocate)(size_t size); // Function to allocate memory.
+    void (*free)(void* memory);     // Function to free memory.
+    void (*extract)(
+        _In_ const uint8_t* value,
+        _Outptr_ const uint8_t** data,
+        _Out_ size_t* num); // Function to extract bytes to hash from key.
+    _Field_size_(bucket_count) ebpf_hash_bucket_header_and_lock_t buckets[1]; // Pointer to array of buckets.
 };
 
 typedef enum _ebpf_hash_bucket_operation
 {
-    EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE,
-    EBPF_HASH_BUCKET_OPERATION_INSERT,
-    EBPF_HASH_BUCKET_OPERATION_UPDATE,
-    EBPF_HASH_BUCKET_OPERATION_DELETE,
+    EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE, // Insert or update a key-value pair.
+    EBPF_HASH_BUCKET_OPERATION_INSERT,           // Insert a key-value pair. Fails if key already exists.
+    EBPF_HASH_BUCKET_OPERATION_UPDATE,           // Update a key-value pair. Fails if key does not exist.
+    EBPF_HASH_BUCKET_OPERATION_DELETE,           // Delete a key-value pair. Fails if key does not exist.
 } ebpf_hash_bucket_operation_t;
 
 /**
@@ -72,7 +97,7 @@ _ebpf_rol(uint32_t value, size_t count)
  * @param[in] seed Seed to randomize hash.
  * @return Hash of key.
  */
-unsigned long
+static unsigned long
 _ebpf_murmur3_32(_In_ const uint8_t* key, size_t length_in_bits, uint32_t seed)
 {
     uint32_t c1 = 0xcc9e2d51;
@@ -205,7 +230,7 @@ _ebpf_hash_table_compute_hash(_In_ const ebpf_hash_table_t* hash_table, _In_ con
  * @param [in] index Index into the bucket.
  * @return Pointer to the ebpf_hash_bucket_entry_t.
  */
-ebpf_hash_bucket_entry_t*
+static ebpf_hash_bucket_entry_t*
 _ebpf_hash_table_bucket_entry(size_t key_size, _In_ ebpf_hash_bucket_header_t* bucket, size_t index)
 {
     uint8_t* offset = (uint8_t*)bucket->entries;
@@ -215,8 +240,193 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ ebpf_hash_bucket_header_t* b
 }
 
 /**
+ * @brief Build a replacement bucket with the given entry inserted at the end.
+ * Caller must free the old bucket.
+ * Caller must ensure that the entry is not already in the bucket.
+ *
+ * @param[in] hash_table The hash table.
+ * @param[in] old_bucket The immutable bucket to copy.
+ * @param[in] key The key to insert.
+ * @param[in] data The copy of the value to insert. On success the new_bucket owns this memory.
+ * @param[out] new_bucket The new bucket with the entry inserted. On success the caller owns this memory.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+ */
+static ebpf_result_t
+_ebpf_hash_table_bucket_insert(
+    _In_ ebpf_hash_table_t* hash_table,
+    _In_opt_ const ebpf_hash_bucket_header_t* old_bucket,
+    _In_ const uint8_t* key,
+    _In_opt_ uint8_t* data,
+    _Outptr_ ebpf_hash_bucket_header_t** new_bucket)
+{
+    ebpf_result_t result;
+    size_t entry_size = EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key) + hash_table->key_size;
+    size_t old_bucket_size = old_bucket ? entry_size * old_bucket->count + sizeof(ebpf_hash_bucket_header_t) : 0;
+    size_t new_bucket_size =
+        entry_size * ((old_bucket ? old_bucket->count : 0) + 1) + sizeof(ebpf_hash_bucket_header_t);
+    ebpf_hash_bucket_header_t* local_new_bucket = NULL;
+    ebpf_hash_bucket_header_t* backup_bucket = NULL;
+
+    // Allocate new bucket.
+    local_new_bucket = hash_table->allocate(new_bucket_size);
+    if (!local_new_bucket) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    // Allocate a new backup bucket.
+    if (old_bucket_size) {
+        backup_bucket = hash_table->allocate(old_bucket_size);
+        if (!backup_bucket) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+        backup_bucket->count = old_bucket->count;
+    }
+
+    // Copy old bucket into new bucket.
+    memcpy(local_new_bucket, old_bucket, old_bucket_size);
+
+    // Append new key, data, and backup bucket.
+    ebpf_hash_bucket_entry_t* entry =
+        _ebpf_hash_table_bucket_entry(hash_table->key_size, local_new_bucket, local_new_bucket->count);
+
+    entry->backup_bucket = backup_bucket;
+    backup_bucket = NULL;
+    entry->data = data;
+    memcpy(entry->key, key, hash_table->key_size);
+    local_new_bucket->count++;
+
+    *new_bucket = local_new_bucket;
+    local_new_bucket = NULL;
+
+    result = EBPF_SUCCESS;
+
+Done:
+    hash_table->free(local_new_bucket);
+    hash_table->free(backup_bucket);
+
+    return result;
+}
+
+/**
+ * @brief Build a replacement bucket with the given entry removed.
+ * Caller must free the old bucket.
+ * Memory from the last entry's backup_bucket is used to build the new bucket.
+ * Caller must ensure that the entry is in the bucket.
+ * Operation can't fail.
+ *
+ * @param[in] hash_table The hash table.
+ * @param[in] old_bucket The immutable old bucket to copy.
+ * @param[in] key_index Location of the key to remove.
+ * @param[out] new_bucket The new bucket with the entry removed. On success the caller owns this memory.
+ */
+static void
+_ebpf_hash_table_bucket_delete(
+    _In_ ebpf_hash_table_t* hash_table,
+    _In_ ebpf_hash_bucket_header_t* old_bucket,
+    _In_ size_t key_index,
+    _Outptr_result_maybenull_ ebpf_hash_bucket_header_t** new_bucket)
+{
+    ebpf_hash_bucket_header_t* backup_bucket =
+        _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, old_bucket->count - 1)->backup_bucket;
+
+    // Delete the bucket if removing last entry.
+    if (old_bucket->count == 1) {
+        ebpf_assert(backup_bucket == NULL);
+        *new_bucket = backup_bucket;
+        return;
+    }
+    ebpf_assert(backup_bucket->count == old_bucket->count - 1);
+
+    // Reset bucket entry count.
+    backup_bucket->count = 0;
+
+    // Copy key and value from each entry into the backup bucket.
+    for (size_t index = 0; index < old_bucket->count; index++) {
+        if (index == key_index) {
+            continue;
+        }
+        const ebpf_hash_bucket_entry_t* old_entry =
+            _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, index);
+        ebpf_hash_bucket_entry_t* new_entry =
+            _ebpf_hash_table_bucket_entry(hash_table->key_size, backup_bucket, backup_bucket->count);
+
+        new_entry->data = old_entry->data;
+        memcpy(new_entry->key, old_entry->key, hash_table->key_size);
+        backup_bucket->count++;
+    }
+
+    // Copy each entries backup bucket into the backup bucket.
+    for (size_t index = 0; index < old_bucket->count - 1; index++) {
+        ebpf_hash_bucket_entry_t* old_entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, index);
+        ebpf_hash_bucket_entry_t* new_entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, backup_bucket, index);
+
+        new_entry->backup_bucket = old_entry->backup_bucket;
+        // Bucket at index N > 0 should have a backup bucket of size N - 1.
+        ebpf_assert(index == 0 || new_entry->backup_bucket);
+        ebpf_assert(index == 0 || new_entry->backup_bucket->count == index);
+    }
+
+    *new_bucket = backup_bucket;
+
+    return;
+}
+
+/**
+ * @brief Build a new bucket with the given entry updated.
+ * Caller must free the old bucket.
+ * Caller must ensure that the entry is in the bucket.
+ *
+ * @param[in] hash_table Hash table.
+ * @param[in] old_bucket The immutable old bucket to copy.
+ * @param[in] key_index The location of the key to update.
+ * @param[in] data A copy of the data to update.
+ * @param[out] new_bucket The new bucket with the entry updated. On success the caller owns this memory.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Unable to allocate memory for the new bucket.
+ */
+static ebpf_result_t
+_ebpf_hash_table_bucket_update(
+    _In_ ebpf_hash_table_t* hash_table,
+    _In_ const ebpf_hash_bucket_header_t* old_bucket,
+    _In_ size_t key_index,
+    _In_opt_ uint8_t* data,
+    _Outptr_ ebpf_hash_bucket_header_t** new_bucket)
+{
+    ebpf_result_t result;
+    size_t entry_size = EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key) + hash_table->key_size;
+    size_t old_bucket_size = entry_size * old_bucket->count + sizeof(ebpf_hash_bucket_header_t);
+    ebpf_hash_bucket_header_t* local_new_bucket = NULL;
+
+    // Allocate new bucket.
+    local_new_bucket = hash_table->allocate(old_bucket_size);
+    if (!local_new_bucket) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    // Copy old bucket into new bucket.
+    memcpy(local_new_bucket, old_bucket, old_bucket_size);
+
+    ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, local_new_bucket, key_index);
+
+    entry->data = data;
+
+    *new_bucket = local_new_bucket;
+    local_new_bucket = NULL;
+    result = EBPF_SUCCESS;
+
+Done:
+    hash_table->free(local_new_bucket);
+    return result;
+}
+
+/**
  * @brief Perform an atomic replacement of a bucket in the hash table.
- * Operations include insert and delete of elements.
+ * Operations include insert, update and delete of elements.
  *
  * @param[in] hash_table Hash table to update.
  * @param[in] key Key to operate on.
@@ -233,175 +443,115 @@ _ebpf_hash_table_replace_bucket(
     _In_opt_ const uint8_t* value,
     ebpf_hash_bucket_operation_t operation)
 {
-    ebpf_result_t result;
+    ebpf_result_t result = EBPF_SUCCESS;
     size_t index;
-    size_t entry_size = EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key) + hash_table->key_size;
+    uint32_t hash;
     uint8_t* old_data = NULL;
     uint8_t* new_data = NULL;
-    uint8_t* delete_data = NULL;
-    uint32_t hash;
     ebpf_hash_bucket_header_t* old_bucket = NULL;
     ebpf_hash_bucket_header_t* new_bucket = NULL;
-    ebpf_hash_bucket_header_t* delete_bucket = NULL;
+
     hash = _ebpf_hash_table_compute_hash(hash_table, key);
 
-    switch (operation) {
-    case EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE:
-    case EBPF_HASH_BUCKET_OPERATION_INSERT:
-    case EBPF_HASH_BUCKET_OPERATION_UPDATE:
+    // Lock the bucket.
+    ebpf_lock_state_t state = ebpf_lock_lock(&hash_table->buckets[hash % hash_table->bucket_count].lock);
+
+    // Make a copy of the value to insert.
+    if (operation != EBPF_HASH_BUCKET_OPERATION_DELETE) {
         new_data = hash_table->allocate(hash_table->value_size);
         if (!new_data) {
             result = EBPF_NO_MEMORY;
             goto Done;
         }
-        delete_data = new_data;
+        // If the value is NULL, then the caller wants to insert a zeroed value.
         if (value) {
             memcpy(new_data, value, hash_table->value_size);
+        } else {
+            memset(new_data, 0, hash_table->value_size);
         }
-        break;
-    case EBPF_HASH_BUCKET_OPERATION_DELETE:
-        break;
     }
 
-    for (;;) {
-        size_t old_data_index = MAXSIZE_T;
-        size_t old_bucket_count = 0;
-        size_t new_bucket_count = 0;
+    // Find the old bucket.
+    old_bucket = hash_table->buckets[hash % hash_table->bucket_count].header;
+    size_t old_bucket_count = old_bucket ? old_bucket->count : 0;
 
-        new_bucket = NULL;
-        old_data = NULL;
-        delete_bucket = new_bucket;
-        delete_data = new_data;
-
-        // Capture current bucket pointer.
-        old_bucket = hash_table->buckets[hash % hash_table->bucket_count];
-
-        // If the old_bucket exists, capture its count.
-        if (old_bucket) {
-            old_bucket_count = old_bucket->count;
-        }
-
-        // Find the old key index if it exists.
-        if (old_bucket) {
-            for (index = 0; index < old_bucket_count; index++) {
-                ebpf_hash_bucket_entry_t* entry =
-                    _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, index);
-                ebpf_assert(entry);
-                if (_ebpf_hash_table_compare(hash_table, key, entry->key) == 0) {
-                    // If old_data exists, remove it.
-                    old_data = entry->data;
-                    old_data_index = index;
-                    break;
-                }
-            }
-        }
-
-        // new_bucket_count is either old_bucket_count +1 or -1.
-        new_bucket_count = old_bucket_count;
-
-        switch (operation) {
-        // Fail if the key is not found and this is a update or delete.
-        case EBPF_HASH_BUCKET_OPERATION_UPDATE:
-            if (old_data_index == MAXSIZE_T) {
-                result = EBPF_KEY_NOT_FOUND;
-                goto Done;
-            }
+    // Find the entry in the bucket, if any.
+    for (index = 0; index < old_bucket_count; index++) {
+        ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, index);
+        if (_ebpf_hash_table_compare(hash_table, key, entry->key) == 0) {
+            old_data = entry->data;
             break;
-        case EBPF_HASH_BUCKET_OPERATION_DELETE:
-            if (old_data_index == MAXSIZE_T) {
-                result = EBPF_KEY_NOT_FOUND;
-                goto Done;
-            } else {
-                new_bucket_count--;
-            }
-            break;
-        // Permit it if this is an insert or insert_or_update.
-        case EBPF_HASH_BUCKET_OPERATION_INSERT:
-            if (old_data_index != MAXSIZE_T) {
-                result = EBPF_OBJECT_ALREADY_EXISTS;
-                goto Done;
-            } else {
-                new_bucket_count++;
-            }
-            break;
-        case EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE:
-            if (old_data_index == MAXSIZE_T) {
-                new_bucket_count++;
-            }
-            break;
-        }
-
-        ebpf_assert(new_bucket_count < MAXUINT32);
-
-        if (new_bucket_count) {
-            new_bucket = hash_table->allocate(entry_size * new_bucket_count + sizeof(ebpf_hash_bucket_header_t));
-            if (!new_bucket) {
-                result = EBPF_NO_MEMORY;
-                goto Done;
-            }
-            delete_bucket = new_bucket;
-
-            // Copy everything except old entry over.
-            for (index = 0; index < old_bucket_count; index++) {
-                ebpf_hash_bucket_entry_t* old_entry =
-                    _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, index);
-                ebpf_hash_bucket_entry_t* new_entry =
-                    _ebpf_hash_table_bucket_entry(hash_table->key_size, new_bucket, new_bucket->count);
-
-                if (index == old_data_index) {
-                    continue;
-                }
-                memcpy(new_entry, old_entry, entry_size);
-                new_bucket->count++;
-            }
-
-            // If new_data exists, add it to the end.
-            if (new_data) {
-                ebpf_assert(new_bucket_count > new_bucket->count);
-                ebpf_hash_bucket_entry_t* new_entry =
-                    _ebpf_hash_table_bucket_entry(hash_table->key_size, new_bucket, new_bucket->count);
-                new_entry->data = new_data;
-                memcpy(new_entry->key, key, hash_table->key_size);
-                new_bucket->count++;
-            }
-        }
-
-        ebpf_assert(
-            (new_bucket == NULL && new_bucket_count == 0) || // No new bucket.
-            (new_bucket_count == new_bucket->count));        // New bucket is full.
-
-        if (ebpf_interlocked_compare_exchange_pointer(
-                (void* volatile*)&hash_table->buckets[hash % hash_table->bucket_count], new_bucket, old_bucket) ==
-            old_bucket) {
-            delete_bucket = old_bucket;
-            delete_data = old_data;
-            break;
-        } else {
-            // Delete new_bucket and try again.
-            hash_table->free(new_bucket);
         }
     }
 
     switch (operation) {
-    case EBPF_HASH_BUCKET_OPERATION_INSERT:
-        ebpf_interlocked_increment_int32(&hash_table->entry_count);
-        break;
     case EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE:
-        if (!old_data)
-            ebpf_interlocked_increment_int32(&hash_table->entry_count);
+        if (index == old_bucket_count) {
+            result = _ebpf_hash_table_bucket_insert(hash_table, old_bucket, key, new_data, &new_bucket);
+        } else {
+            result = _ebpf_hash_table_bucket_update(hash_table, old_bucket, index, new_data, &new_bucket);
+        }
+        break;
+    case EBPF_HASH_BUCKET_OPERATION_INSERT:
+        if (index != old_bucket_count) {
+            result = EBPF_OBJECT_ALREADY_EXISTS;
+        } else {
+            result = _ebpf_hash_table_bucket_insert(hash_table, old_bucket, key, new_data, &new_bucket);
+        }
         break;
     case EBPF_HASH_BUCKET_OPERATION_UPDATE:
+        if (index == old_bucket_count) {
+            result = EBPF_KEY_NOT_FOUND;
+        } else {
+            result = _ebpf_hash_table_bucket_update(hash_table, old_bucket, index, new_data, &new_bucket);
+        }
         break;
     case EBPF_HASH_BUCKET_OPERATION_DELETE:
-        ebpf_interlocked_decrement_int32(&hash_table->entry_count);
+        if (index == old_bucket_count) {
+            result = EBPF_KEY_NOT_FOUND;
+        } else {
+            _ebpf_hash_table_bucket_delete(hash_table, old_bucket, index, &new_bucket);
+        }
+        break;
+    default:
+        result = EBPF_INVALID_ARGUMENT;
         break;
     }
 
-    result = EBPF_SUCCESS;
+    if (result != EBPF_SUCCESS) {
+        old_bucket = NULL;
+        old_data = NULL;
+        goto Done;
+    }
+
+    // If a value was deleted, decrement the count of values in the hash table.
+    if (old_data && !new_data) {
+        ebpf_interlocked_decrement_int32(&hash_table->entry_count);
+    }
+    // If a value was inserted, increment the count of values in the hash table.
+    if (!old_data && new_data) {
+        ebpf_interlocked_increment_int32(&hash_table->entry_count);
+    }
+
+    // If a value was inserted and deleted, the count of values in the hash table did not change.
+
+    // Update the bucket in the hash table.
+    // From this point on the new bucket is immutable.
+    hash_table->buckets[hash % hash_table->bucket_count].header = new_bucket;
+    new_data = NULL;
+    new_bucket = NULL;
 
 Done:
-    hash_table->free(delete_bucket);
-    hash_table->free(delete_data);
+    ebpf_lock_unlock(&hash_table->buckets[hash % hash_table->bucket_count].lock, state);
+
+    // Free new_data if any. This occurs if the insert failed.
+    hash_table->free(new_data);
+    // Free old_data if any. This occurs if a delete or update succeeded.
+    hash_table->free(old_data);
+    // The new bucket should always be inserted into the hash table.
+    ebpf_assert(new_bucket == NULL);
+    // Free the old bucket if any. This occurs if a insert, delete, or update succeeded.
+    hash_table->free(old_bucket);
     return result;
 }
 
@@ -421,7 +571,7 @@ ebpf_hash_table_create(
     ebpf_result_t retval;
     ebpf_hash_table_t* table = NULL;
     size_t table_size = 0;
-    retval = ebpf_safe_size_t_multiply(sizeof(ebpf_hash_bucket_header_t*), bucket_count, &table_size);
+    retval = ebpf_safe_size_t_multiply(sizeof(ebpf_hash_bucket_header_and_lock_t), bucket_count, &table_size);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -460,16 +610,17 @@ ebpf_hash_table_destroy(_In_opt_ _Post_ptr_invalid_ ebpf_hash_table_t* hash_tabl
     }
 
     for (index = 0; index < hash_table->bucket_count; index++) {
-        ebpf_hash_bucket_header_t* bucket = (ebpf_hash_bucket_header_t*)hash_table->buckets[index];
+        ebpf_hash_bucket_header_t* bucket = (ebpf_hash_bucket_header_t*)hash_table->buckets[index].header;
         if (bucket) {
             size_t inner_index;
             for (inner_index = 0; inner_index < bucket->count; inner_index++) {
                 ebpf_hash_bucket_entry_t* entry =
                     _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, inner_index);
                 hash_table->free(entry->data);
+                hash_table->free(entry->backup_bucket);
             }
             hash_table->free(bucket);
-            hash_table->buckets[index] = NULL;
+            hash_table->buckets[index].header = NULL;
         }
     }
     hash_table->free(hash_table);
@@ -490,7 +641,7 @@ ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key
     }
 
     hash = _ebpf_hash_table_compute_hash(hash_table, key);
-    bucket = hash_table->buckets[hash % hash_table->bucket_count];
+    bucket = hash_table->buckets[hash % hash_table->bucket_count].header;
     if (!bucket) {
         retval = EBPF_KEY_NOT_FOUND;
         goto Done;
@@ -588,7 +739,7 @@ ebpf_hash_table_next_key_pointer_and_value(
     hash = (previous_key != NULL) ? _ebpf_hash_table_compute_hash(hash_table, previous_key) : 0;
 
     for (bucket_index = hash % hash_table->bucket_count; bucket_index < hash_table->bucket_count; bucket_index++) {
-        ebpf_hash_bucket_header_t* bucket = hash_table->buckets[bucket_index];
+        ebpf_hash_bucket_header_t* bucket = hash_table->buckets[bucket_index].header;
         // Skip empty buckets.
         if (!bucket) {
             continue;

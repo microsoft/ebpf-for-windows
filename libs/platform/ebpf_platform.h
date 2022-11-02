@@ -562,7 +562,7 @@ extern "C"
      * @param[in] hash_table Hash-table to update.
      * @param[in] key Key to find and remove.
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NOT_FOUND Key not found in hash table.
      */
     ebpf_result_t
     ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key);
