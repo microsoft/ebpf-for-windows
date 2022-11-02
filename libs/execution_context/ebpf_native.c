@@ -597,7 +597,7 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
     ebpf_core_object_t* object;
     ebpf_handle_t inner_map_handle = ebpf_handle_invalid;
     uint16_t info_size = (uint16_t)sizeof(info);
-    ebpf_result_t result = ebpf_object_reference_by_handle(original_map_handle, EBPF_OBJECT_UNKNOWN, &object);
+    ebpf_result_t result = ebpf_object_reference_by_handle(original_map_handle, EBPF_OBJECT_MAP, &object);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
