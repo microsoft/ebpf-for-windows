@@ -2214,11 +2214,11 @@ ebpf_result_t
 ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type)
 {
     if (Platform::_is_native_program(object->file_name)) {
-        if (object->execution_type == EBPF_EXECUTION_INTERPRET || object->execution_type == EBPF_EXECUTION_JIT) {
+        if (execution_type == EBPF_EXECUTION_INTERPRET || execution_type == EBPF_EXECUTION_JIT) {
             return EBPF_INVALID_ARGUMENT;
         }
     } else {
-        if (object->execution_type == EBPF_EXECUTION_NATIVE) {
+        if (execution_type == EBPF_EXECUTION_NATIVE) {
             return EBPF_INVALID_ARGUMENT;
         }
     }
