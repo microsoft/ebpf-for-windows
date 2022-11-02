@@ -131,6 +131,48 @@ _Releases_shared_lock_(push_lock->lock) void ExReleasePushLockSharedEx(
     ReleaseSRWLockShared(&push_lock->lock);
 }
 
+_Acquires_exclusive_lock_(spin_lock->lock) KIRQL
+    ExAcquireSpinLockExclusiveEx(_Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
+                                     EX_SPIN_LOCK* spin_lock)
+{
+    AcquireSRWLockExclusive(&spin_lock->lock);
+    return PASSIVE_LEVEL;
+}
+
+_Acquires_exclusive_lock_(spin_lock->lock) void ExAcquireSpinLockExclusiveAtDpcLevelEx(
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock)
+{
+    AcquireSRWLockExclusive(&spin_lock->lock);
+}
+
+_Acquires_shared_lock_(spin_lock->lock) KIRQL
+    ExAcquireSpinLockSharedEx(_Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
+                                  EX_SPIN_LOCK* spin_lock)
+{
+    AcquireSRWLockShared(&spin_lock->lock);
+    return PASSIVE_LEVEL;
+}
+
+_Releases_exclusive_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveEx(
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock, KIRQL old_irql)
+{
+    UNREFERENCED_PARAMETER(old_irql);
+    ReleaseSRWLockExclusive(&spin_lock->lock);
+}
+
+_Releases_shared_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveFromDpcLevelEx(
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock)
+{
+    ReleaseSRWLockShared(&spin_lock->lock);
+}
+
+_Releases_shared_lock_(spin_lock->lock) void ExReleaseSpinLockSharedEx(
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock, KIRQL old_irql)
+{
+    UNREFERENCED_PARAMETER(old_irql);
+    ReleaseSRWLockShared(&spin_lock->lock);
+}
+
 void*
 ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_bytes, _In_ unsigned long tag)
 {
@@ -296,4 +338,72 @@ RtlULongAdd(
 {
     *result = augend + addend;
     return STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS NTAPI FwpsAcquireWritableLayerDataPointer0(
+    _In_ UINT64 classifyHandle,
+    _In_ UINT64 filterId,
+    _In_ UINT32 flags,
+    _Out_ PVOID* writableLayerData,
+    _Inout_opt_ FWPS_CLASSIFY_OUT0* classifyOut)
+{
+    UNREFERENCED_PARAMETER(classifyHandle);
+    UNREFERENCED_PARAMETER(filterId);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(classifyOut);
+
+    *writableLayerData = NULL;
+
+    return STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS NTAPI
+    FwpsAcquireClassifyHandle0(_In_ void* classifyContext, _In_ UINT32 flags, _Out_ UINT64* classifyHandle)
+{
+    UNREFERENCED_PARAMETER(classifyContext);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(classifyHandle);
+
+    *classifyHandle = 0;
+
+    return STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL) void NTAPI FwpsReleaseClassifyHandle0(_In_ UINT64 classifyHandle)
+{
+    UNREFERENCED_PARAMETER(classifyHandle);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL) void NTAPI
+    FwpsApplyModifiedLayerData0(_In_ UINT64 classifyHandle, _In_ PVOID modifiedLayerData, _In_ UINT32 flags)
+{
+    UNREFERENCED_PARAMETER(classifyHandle);
+    UNREFERENCED_PARAMETER(modifiedLayerData);
+    UNREFERENCED_PARAMETER(flags);
+}
+
+_IRQL_requires_(PASSIVE_LEVEL) NTSTATUS NTAPI
+    FwpsRedirectHandleCreate0(_In_ const GUID* providerGuid, _Reserved_ UINT32 flags, _Out_ HANDLE* redirectHandle)
+{
+    UNREFERENCED_PARAMETER(providerGuid);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(redirectHandle);
+
+    *redirectHandle = 0;
+
+    return STATUS_SUCCESS;
+}
+
+_IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) FWPS_CONNECTION_REDIRECT_STATE NTAPI
+    FwpsQueryConnectionRedirectState0(
+        _In_ HANDLE redirectRecords, _In_ HANDLE redirectHandle, _Outptr_opt_result_maybenull_ void** redirectContext)
+{
+    UNREFERENCED_PARAMETER(redirectRecords);
+    UNREFERENCED_PARAMETER(redirectHandle);
+
+    if (redirectContext) {
+        *redirectContext = NULL;
+    }
+
+    return FWPS_CONNECTION_NOT_REDIRECTED;
 }

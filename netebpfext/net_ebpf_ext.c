@@ -416,7 +416,7 @@ _net_ebpf_extension_create_or_update_filter_instance(
     _In_ const net_ebpf_extension_wfp_filter_parameters_t* filter_parameters,
     _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context,
     uint32_t condition_count,
-    _In_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
+    _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
     _Out_ net_ebpf_extension_wfp_filter_instance_t** filter_instance)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -437,7 +437,7 @@ _net_ebpf_extension_create_or_update_filter_instance(
             CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_instance_t, list_entry);
 
         list_entry = list_entry->Flink;
-        if (!IsEqualGUID(&entry->layer, filter_parameters->layer_guid)) {
+        if (memcmp(&entry->layer, filter_parameters->layer_guid, sizeof(GUID))) {
             continue;
         }
         if (entry->condition_count != condition_count) {
@@ -449,7 +449,7 @@ _net_ebpf_extension_create_or_update_filter_instance(
             break;
         }
 
-        // __analysis_assume(conditions != NULL);
+        __analysis_assume(conditions != NULL);
 
         bool conditions_matched = true;
         // Iterate over all the filter conditions.
@@ -491,7 +491,7 @@ _net_ebpf_extension_create_or_update_filter_instance(
         InitializeListHead(&matching_instance->filter_contexts);
         matching_instance->condition_count = condition_count;
         if (condition_count > 0) {
-            // __analysis_assume(conditions != NULL);
+            __analysis_assume(conditions != NULL);
             matching_instance->conditions = (FWPM_FILTER_CONDITION*)ExAllocatePoolUninitialized(
                 NonPagedPoolNx, sizeof(FWPM_FILTER_CONDITION) * condition_count, NET_EBPF_EXTENSION_POOL_TAG);
 
@@ -570,6 +570,7 @@ _net_ebpf_extension_remove_filter_context_from_filter_instance(
     net_ebpf_extension_wfp_filter_instance_t* matching_instance = NULL;
     net_ebpf_extension_wfp_filter_context_list_entry_t* context_list_entry = NULL;
     bool list_lock_acquired = false;
+    bool found = false;
 
     // First find the matching filter instance based on the filter id.
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock);
@@ -596,7 +597,6 @@ _net_ebpf_extension_remove_filter_context_from_filter_instance(
     // Iterate over all the filter contexts and find the matching one.
     ExAcquireSpinLockExclusiveAtDpcLevel(&matching_instance->lock);
     list_entry = matching_instance->filter_contexts.Flink;
-    bool found = false;
     while (list_entry != &(matching_instance->filter_contexts)) {
         context_list_entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_context_list_entry_t, list_entry);

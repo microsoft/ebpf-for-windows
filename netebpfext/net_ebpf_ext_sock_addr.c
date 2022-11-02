@@ -521,7 +521,7 @@ _net_ebpf_ext_reinitialize_connection_context(
 {
     RtlCopyMemory(&connection_context->original_addr, original_sock_addr, sizeof(bpf_sock_addr_t));
     RtlCopyMemory(&connection_context->redirected_addr, redirected_sock_addr, sizeof(bpf_sock_addr_t));
-    connection_context->protocol = original_sock_addr->protocol;
+    connection_context->protocol = (IPPROTO)original_sock_addr->protocol;
     connection_context->redirected = redirected;
     connection_context->verdict = verdict;
     connection_context->transport_endpoint_handle = transport_endpoint_handle;
@@ -816,7 +816,7 @@ net_ebpf_ext_connect_redirect_filter_change_notify(
     net_ebpf_ext_filter_change_notify(callout_notification_type, filter_key, filter);
 
 Exit:
-    NET_EBPF_EXT_RETURN_RESULT(status);
+    return status;
 }
 
 //
@@ -1051,7 +1051,7 @@ _net_ebpf_ext_get_attached_client_by_filter_id(
             (net_ebpf_extension_wfp_filter_parameters_array_t*)net_ebpf_extension_hook_provider_get_custom_data(
                 provider_context);
 
-        if (IsEqualGUID(param_array->attach_type, attach_type)) {
+        if (!memcmp(param_array->attach_type, attach_type, sizeof(GUID))) {
             result = EBPF_SUCCESS;
             local_client = (net_ebpf_extension_hook_client_t*)context_entry->filter_context->client_context;
             if (!net_ebpf_extension_hook_client_enter_rundown(local_client)) {
@@ -1108,6 +1108,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     bool classify_handle_acquired = false;
     bool free_redirect_record = true;
     bool v4_mapped = false;
+    bool is_loopback;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
@@ -1317,7 +1318,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     INETADDR_SET_ADDRESS(&destination, (PUCHAR)&sock_addr_ctx.user_ip6);
     bool is_loopback = INETADDR_ISLOOPBACK(&destination);
     */
-    bool is_loopback = _net_ebpf_ext_is_loopback_address(sock_addr_ctx);
+    is_loopback = _net_ebpf_ext_is_loopback_address(sock_addr_ctx);
 
     if (v4_mapped) {
         sock_addr_ctx->family = AF_INET6;
@@ -1332,7 +1333,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             redirected = true;
 
             status = FwpsAcquireWritableLayerDataPointer(
-                classify_handle, filter->filterId, 0, &connect_request, classify_output);
+                classify_handle, filter->filterId, 0, (PVOID*)&connect_request, classify_output);
             if (!NT_SUCCESS(status)) {
                 NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(
                     NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
