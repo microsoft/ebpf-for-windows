@@ -172,7 +172,6 @@ _test_multiple_programs_load(
     }
 
     for (int i = 0; i < program_count; i++) {
-        _close(fds[i]);
         bpf_object__close(objects[i]);
     }
 }
