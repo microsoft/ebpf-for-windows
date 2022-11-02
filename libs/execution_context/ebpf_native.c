@@ -209,7 +209,6 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
             ebpf_free(module_id);
         }
     } else if (new_ref_count == 0) {
-        // TODO: https://github.com/microsoft/ebpf-for-windows/issues/1506
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
         // Delete entry from hash table.
         ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_id);

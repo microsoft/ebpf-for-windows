@@ -198,7 +198,7 @@ jobs:
       id: packages
       shell: bash
       run: |
-        echo ::set-output name=REL_MSI_PACKAGE_PATH::$(ls build/setup/*.msi)
+        echo "REL_MSI_PACKAGE_PATH=$(ls build/setup/*.msi)" >> $GITHUB_OUTPUT
 
     - name: Upload the MSI package
       if: matrix.configurations == 'Release' && inputs.generate_release_package == true
