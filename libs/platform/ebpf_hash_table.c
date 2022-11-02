@@ -14,7 +14,7 @@
 // from causing loss of updates.
 
 /**
- * @brief Each bucket entry contains a pointer to the value, the key and a pointer to pre-allocated memory that can be
+ * @brief Each bucket entry contains a pointer to the value, the key, and a pointer to pre-allocated memory that can be
  * used to replace the current bucket with a bucket one entry smaller.
  */
 typedef struct _ebpf_hash_bucket_entry
@@ -68,7 +68,7 @@ typedef enum _ebpf_hash_bucket_operation
     EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE, // Insert or update a key-value pair.
     EBPF_HASH_BUCKET_OPERATION_INSERT,           // Insert a key-value pair. Fails if key already exists.
     EBPF_HASH_BUCKET_OPERATION_UPDATE,           // Update a key-value pair. Fails if key does not exist.
-    EBPF_HASH_BUCKET_OPERATION_DELETE,           // Delete a key-value pair. Fail if key does not exist.
+    EBPF_HASH_BUCKET_OPERATION_DELETE,           // Delete a key-value pair. Fails if key does not exist.
 } ebpf_hash_bucket_operation_t;
 
 /**
