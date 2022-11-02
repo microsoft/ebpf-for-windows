@@ -676,7 +676,7 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
     _close(map1_fd);
     _close(map2_fd);
 
-    // Try to load the same native module again, it should fail.
+    // Try to load the same native module again, which should fail.
     result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd);
     REQUIRE(result == -ENOENT);
 

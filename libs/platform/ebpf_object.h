@@ -21,8 +21,8 @@ extern "C"
     } ebpf_object_type_t;
 
     typedef struct _ebpf_base_object ebpf_base_object_t;
-    typedef void (*ebpf_base_release_reference_t)(void* base_object);
-    typedef void (*ebpf_base_acquire_reference_t)(void* base_object);
+    typedef void (*ebpf_base_release_reference_t)(_Inout_ void* base_object);
+    typedef void (*ebpf_base_acquire_reference_t)(_Inout_ void* base_object);
 
     typedef struct _ebpf_core_object ebpf_core_object_t;
     typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);

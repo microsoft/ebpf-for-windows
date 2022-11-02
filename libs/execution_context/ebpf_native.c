@@ -11,7 +11,7 @@
 #define DEFAULT_PIN_ROOT_PATH "/ebpf/global"
 #define EBPF_MAX_PIN_PATH_LENGTH 256
 
-static const uint32_t _ebpf_native_marker = 'enat';
+static const uint32_t _ebpf_native_marker = 'entv';
 
 #ifndef GUID_NULL
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};

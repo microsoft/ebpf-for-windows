@@ -2506,7 +2506,7 @@ TEST_CASE("load_native_program_invalid5-non-preemptible", "[end-to-end]")
 }
 #endif
 
-// Load native module and then use module handle for different purpose.
+// Load native module and then use module handle for a different purpose.
 TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
@@ -2530,7 +2530,7 @@ TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
         test_ioctl_load_native_module(
             service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) == ERROR_SUCCESS);
 
-    // Create a fd for the module handle.
+    // Create an fd for the module handle.
     fd_t module_fd = Platform::_open_osfhandle(module_handle, 0);
     REQUIRE(module_fd != ebpf_fd_invalid);
 
