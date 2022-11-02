@@ -87,8 +87,11 @@ ebpf_handle_close(ebpf_handle_t handle)
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t
-    ebpf_reference_base_object_by_handle(ebpf_handle_t handle, _Outptr_ struct _ebpf_base_object** object)
+_IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_handle(
+    ebpf_handle_t handle,
+    _In_opt_ ebpf_compare_object_t compare_function,
+    _In_opt_ const void* context,
+    _Outptr_ struct _ebpf_base_object** object)
 {
     ebpf_result_t return_value;
     NTSTATUS status;
@@ -111,6 +114,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t
     if (local_object == NULL) {
         return_value = EBPF_INVALID_OBJECT;
         goto Done;
+    }
+
+    if (compare_function) {
+        if (!compare_function(local_object, context)) {
+            return_value = EBPF_INVALID_OBJECT;
+            goto Done;
+        }
     }
 
     local_object->acquire_reference(local_object);

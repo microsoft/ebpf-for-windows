@@ -11,6 +11,8 @@
 extern "C"
 {
 #endif
+    typedef bool (*ebpf_compare_object_t)(_In_ const ebpf_base_object_t* object, _In_opt_ const void* context);
+
     /**
      * @brief Initialize the global handle table.
      *
@@ -58,8 +60,11 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
      */
-    _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t
-        ebpf_reference_base_object_by_handle(ebpf_handle_t handle, _Outptr_ struct _ebpf_base_object** object);
+    _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_handle(
+        ebpf_handle_t handle,
+        _In_opt_ ebpf_compare_object_t compare_function,
+        _In_opt_ const void* context,
+        _Outptr_ struct _ebpf_base_object** object);
 
 #ifdef __cplusplus
 }

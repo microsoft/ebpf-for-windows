@@ -330,15 +330,35 @@ ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type)
     return return_value;
 }
 
+static bool
+_ebpf_object_compare(_In_ const ebpf_base_object_t* object, _In_ const void* context)
+{
+    ebpf_assert(context != NULL);
+    __analysis_assume(context != NULL);
+
+    if (object->marker != _ebpf_object_marker) {
+        return false;
+    }
+
+    ebpf_core_object_t* local_object = (ebpf_core_object_t*)object;
+    ebpf_object_type_t object_type = *((ebpf_object_type_t*)context);
+    if ((object_type != EBPF_OBJECT_UNKNOWN) && (ebpf_object_get_type(local_object) != object_type)) {
+        return false;
+    }
+
+    return true;
+}
+
 ebpf_result_t
-ebpf_object_reference_by_handle_and_type(
+ebpf_object_reference_by_handle(
     ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
 {
     ebpf_result_t result;
     ebpf_core_object_t* local_object = NULL;
     *object = NULL;
 
-    result = ebpf_reference_base_object_by_handle(handle, (ebpf_base_object_t**)&local_object);
+    result = ebpf_reference_base_object_by_handle(
+        handle, _ebpf_object_compare, &object_type, (ebpf_base_object_t**)&local_object);
     if (result == EBPF_SUCCESS) {
         __analysis_assume(local_object != NULL);
         if (local_object->base.marker != _ebpf_object_marker) {
