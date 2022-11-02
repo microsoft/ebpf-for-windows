@@ -2588,3 +2588,34 @@ TEST_CASE("get_bpf_attach_type", "[end_to_end]")
     REQUIRE(UuidCreate(&invalid_attach_type) == RPC_S_OK);
     REQUIRE(get_bpf_attach_type(&invalid_attach_type) == BPF_ATTACH_TYPE_UNSPEC);
 }
+
+TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
+{
+    // First open a .dll file
+    bpf_object* native_object = bpf_object__open("droppacket_um.dll");
+    REQUIRE(native_object != nullptr);
+
+    // Try to set incorrect execution type.
+    REQUIRE(ebpf_object_set_execution_type(native_object, EBPF_EXECUTION_JIT) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_object_set_execution_type(native_object, EBPF_EXECUTION_INTERPRET) == EBPF_INVALID_ARGUMENT);
+
+    // The following should succeed.
+    REQUIRE(ebpf_object_set_execution_type(native_object, EBPF_EXECUTION_ANY) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_set_execution_type(native_object, EBPF_EXECUTION_NATIVE) == EBPF_SUCCESS);
+
+    bpf_object__close(native_object);
+
+    // Open a .o file
+    bpf_object* jit_object = bpf_object__open("droppacket.o");
+    REQUIRE(jit_object != nullptr);
+
+    // Try to set incorrect execution type.
+    REQUIRE(ebpf_object_set_execution_type(jit_object, EBPF_EXECUTION_NATIVE) == EBPF_INVALID_ARGUMENT);
+
+    // The following should succeed.
+    REQUIRE(ebpf_object_set_execution_type(jit_object, EBPF_EXECUTION_ANY) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_set_execution_type(jit_object, EBPF_EXECUTION_JIT) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_set_execution_type(jit_object, EBPF_EXECUTION_INTERPRET) == EBPF_SUCCESS);
+
+    bpf_object__close(jit_object);
+}
