@@ -10,15 +10,18 @@
     <CodeAnalysisRuleSet>$(SolutionDir)Analyze.default.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(AddressSanitizer)'=='True'">
-    <EnableASAN>true</EnableASAN>
+    <!-- TODO: revert back to 'true' within #1563 -->
+    <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Release|True'">
-    <EnableASAN>true</EnableASAN>
+    <!-- TODO: revert back to 'true' within #1563 -->
+    <EnableASAN>false</EnableASAN>
     <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
     <SanitizerLibs>libsancov.lib;clang_rt.fuzzer_MD-x86_64.lib</SanitizerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Debug|True'">
-    <EnableASAN>true</EnableASAN>
+    <!-- TODO: revert back to 'true' within #1563 -->
+    <EnableASAN>false</EnableASAN>
     <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
     <SanitizerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</SanitizerLibs>
   </PropertyGroup>

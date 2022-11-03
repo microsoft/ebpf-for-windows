@@ -168,6 +168,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Sanitize
+      #TODO: revert back to 'True' within #1563
       build_options: /p:AddressSanitizer='False'
 
   # Run the fuzzing tests in GitHub.
