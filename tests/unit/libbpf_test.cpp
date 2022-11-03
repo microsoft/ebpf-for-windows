@@ -2091,8 +2091,12 @@ TEST_CASE("libbpf_bpf_prog_type_str", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
 
-    REQUIRE(strcmp(libbpf_bpf_prog_type_str(BPF_PROG_TYPE_XDP), "xdp") == 0);
-    REQUIRE(strcmp(libbpf_bpf_prog_type_str(BPF_PROG_TYPE_UNSPEC), "unspec") == 0);
+    const char* prog_type_str_xdp = libbpf_bpf_prog_type_str(BPF_PROG_TYPE_XDP);
+    REQUIRE(prog_type_str_xdp);
+    REQUIRE(strcmp(prog_type_str_xdp, "xdp") == 0);
+    const char* prog_type_str_unspec = libbpf_bpf_prog_type_str(BPF_PROG_TYPE_UNSPEC);
+    REQUIRE(prog_type_str_unspec);
+    REQUIRE(strcmp(prog_type_str_unspec, "unspec") == 0);
     REQUIRE(libbpf_bpf_prog_type_str((bpf_prog_type)123) == nullptr);
 }
 
