@@ -129,6 +129,10 @@ register_wait_async_ioctl_operation(_Inout_ async_ioctl_completion_t* async_ioct
 
     // Set the event on the thread-pool wait object.
     ebpf_assert(async_ioctl_completion->wait != nullptr);
+    if (async_ioctl_completion->wait == nullptr) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
     SetThreadpoolWait(async_ioctl_completion->wait, async_ioctl_completion->overlapped.hEvent, nullptr);
 
 Exit:

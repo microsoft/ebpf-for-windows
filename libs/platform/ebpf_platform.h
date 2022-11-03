@@ -37,6 +37,12 @@ extern "C"
 #define EBPF_PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
 #define EBPF_PAD_8(X) ((X + 7) & ~7)
 
+#define ebpf_assert_success(x)                      \
+    do {                                            \
+        ebpf_result_t _result = (x);                \
+        ebpf_assert(_result == EBPF_SUCCESS && #x); \
+    } while (0)
+
     /**
      * @brief A UTF-8 encoded string.
      * Notes:
