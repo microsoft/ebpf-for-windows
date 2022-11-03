@@ -738,7 +738,11 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
                 REQUIRE(result == EBPF_SUCCESS);
             }) == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_ring_buffer_map_async_query(map.get(), &completion.async_query_result, &completion) == EBPF_PENDING);
+    ebpf_result_t result = ebpf_ring_buffer_map_async_query(map.get(), &completion.async_query_result, &completion);
+    if (result != EBPF_PENDING) {
+        ebpf_async_reset_completion_callback(&completion);
+    }
+    REQUIRE(result == EBPF_PENDING);
 
     uint64_t value = 1;
     REQUIRE(ebpf_ring_buffer_map_output(map.get(), reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
@@ -1004,10 +1008,10 @@ extern bool _ebpf_platform_code_integrity_enabled;
 
 #define NEGATIVE_TEST_PROLOG()                                                            \
     std::vector<std::unique_ptr<_program_info_provider>> program_info_providers;          \
+    _ebpf_core_initializer core;                                                          \
     for (const auto& type : _program_types) {                                             \
         program_info_providers.push_back(std::make_unique<_program_info_provider>(type)); \
     }                                                                                     \
-    _ebpf_core_initializer core;                                                          \
     std::vector<ebpf_handle_t> program_handles;                                           \
     std::map<std::string, ebpf_handle_t> map_handles;                                     \
     create_various_objects(program_handles, map_handles);
