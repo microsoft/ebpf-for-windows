@@ -305,7 +305,8 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     _test_helper test_helper;
 
     auto epoch = []() {
-        ebpf_epoch_enter();
+        if (ebpf_epoch_enter() != EBPF_SUCCESS)
+            return;
         void* memory = ebpf_epoch_allocate(10);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -740,6 +741,7 @@ TEST_CASE("state_test", "[state]")
         uint32_t some_value;
     } foo;
     uintptr_t retreived_value = 0;
+    REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
     REQUIRE(ebpf_state_initiate() == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_1) == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_2) == EBPF_SUCCESS);
@@ -748,6 +750,7 @@ TEST_CASE("state_test", "[state]")
     REQUIRE(ebpf_state_load(allocated_index_1, &retreived_value) == EBPF_SUCCESS);
     REQUIRE(retreived_value == reinterpret_cast<uintptr_t>(&foo));
     ebpf_state_terminate();
+    ebpf_platform_terminate();
 }
 
 template <size_t bit_count, bool interlocked>
