@@ -28,7 +28,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  map.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_map_create(
         _In_ const ebpf_utf8_string_t* map_name,
         _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
@@ -63,7 +63,7 @@ extern "C"
      * @param[in] flags Zero or more EBPF_MAP_FIND_ENTRY_FLAG_* flags.
      * @return Pointer to the value if found or NULL.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_map_find_entry(
         _In_ ebpf_map_t* map,
         size_t key_size,
@@ -84,7 +84,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  entry.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_map_update_entry(
         _In_ ebpf_map_t* map,
         size_t key_size,
@@ -105,7 +105,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  entry.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_map_update_entry_with_handle(
         _In_ ebpf_map_t* map,
         size_t key_size,
@@ -122,7 +122,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are
      *  invalid.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags);
 
     /**
@@ -137,7 +137,7 @@ extern "C"
      * @retval EBPF_NO_MORE_KEYS There is no key following the specified
      * key in lexicographically order.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_map_next_key(
         _In_ ebpf_map_t* map,
         size_t key_size,
@@ -167,7 +167,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_FD The program is incompatible with this map.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_map_associate_program(_In_ ebpf_map_t* map, _In_ const struct _ebpf_program* program);
 
     /**
@@ -181,7 +181,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INSUFFICIENT_BUFFER The buffer was too small to hold bpf_map_info.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_map_get_info(
         _In_ const ebpf_map_t* map,
         _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
@@ -195,7 +195,7 @@ extern "C"
      * @retval EPBF_SUCCESS Successfully mapped the ring buffer.
      * @retval EBPF_INVALID_ARGUMENT Unable to map the ring buffer.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer);
 
     /**
@@ -206,7 +206,7 @@ extern "C"
      * @retval EPBF_SUCCESS Successfully returned records to the ring buffer.
      * @retval EBPF_INVALID_ARGUMENT Unable to return records to the ring buffer.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_return_buffer(_In_ const ebpf_map_t* map, size_t length);
 
     /**
@@ -218,7 +218,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Insufficient memory to complete this operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_async_query(
         _In_ ebpf_map_t* map,
         _Inout_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
@@ -233,7 +233,7 @@ extern "C"
      * @retval EPBF_SUCCESS Successfully wrote record into ring buffer.
      * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_output(_In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
     /**
@@ -248,7 +248,7 @@ extern "C"
      *  entry.
      * @retval EBPF_OUT_OF_SPACE Map is full and BPF_EXIST was not supplied.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_map_push_entry(
         _In_ ebpf_map_t* map, size_t value_size, _In_reads_(value_size) const uint8_t* value, int flags);
 
@@ -263,7 +263,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_OBJECT_NOT_FOUND The map is empty.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_map_pop_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags);
 
     /**
@@ -277,7 +277,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_OBJECT_NOT_FOUND The map is empty.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_map_peek_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags);
 
     /**
