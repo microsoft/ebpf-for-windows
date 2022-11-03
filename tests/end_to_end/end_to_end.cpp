@@ -2601,7 +2601,9 @@ TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
 
     // The following should succeed.
     REQUIRE(ebpf_object_set_execution_type(native_object, EBPF_EXECUTION_ANY) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_get_execution_type(native_object) == EBPF_EXECUTION_NATIVE);
     REQUIRE(ebpf_object_set_execution_type(native_object, EBPF_EXECUTION_NATIVE) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_get_execution_type(native_object) == EBPF_EXECUTION_NATIVE);
 
     bpf_object__close(native_object);
 
@@ -2614,8 +2616,11 @@ TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
 
     // The following should succeed.
     REQUIRE(ebpf_object_set_execution_type(jit_object, EBPF_EXECUTION_ANY) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_get_execution_type(jit_object) == EBPF_EXECUTION_JIT);
     REQUIRE(ebpf_object_set_execution_type(jit_object, EBPF_EXECUTION_JIT) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_get_execution_type(jit_object) == EBPF_EXECUTION_JIT);
     REQUIRE(ebpf_object_set_execution_type(jit_object, EBPF_EXECUTION_INTERPRET) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_get_execution_type(jit_object) == EBPF_EXECUTION_INTERPRET);
 
     bpf_object__close(jit_object);
 }
