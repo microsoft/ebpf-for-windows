@@ -245,7 +245,8 @@ handle_ebpf_add_program(
     }
     std::cout << "Loaded with ID " << info.id << std::endl;
 
-    ebpf_link_close(link);
+    // Ignore link close failure.
+    (void)ebpf_link_close(link);
     _ebpf_objects.push_back(object);
 
     return ERROR_SUCCESS;
@@ -405,7 +406,8 @@ _ebpf_program_attach_by_id(ebpf_id_t program_id, ebpf_attach_type_t attach_type,
         ebpf_result_t local_result =
             ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, &link);
         if (local_result == EBPF_SUCCESS)
-            ebpf_link_close(link);
+            // Ignore link close failure.
+            (void)ebpf_link_close(link);
     }
 
     Platform::_close(program_fd);

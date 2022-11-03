@@ -24,7 +24,7 @@ typedef struct empty_reply
 
 static empty_reply_t _empty_reply;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 initialize_device_handle();
 
 void
@@ -37,13 +37,13 @@ typedef ebpf_result_t (*async_ioctl_completion_callback_t)(_Inout_opt_ void* com
 
 typedef struct _async_ioctl_completion_context async_ioctl_completion_t;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 initialize_async_ioctl_operation(
     _Inout_opt_ void* callback_context,
     _In_ const async_ioctl_completion_callback_t callback,
     _Outptr_ async_ioctl_completion_t** async_ioctl_completion);
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 register_wait_async_ioctl_operation(_Inout_ async_ioctl_completion_t* async_ioctl_completion);
 
 void
@@ -55,7 +55,7 @@ get_async_ioctl_operation_overlapped(_In_ const async_ioctl_completion_t* ioctl_
 bool
 cancel_async_ioctl(_In_opt_ OVERLAPPED* overlapped);
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion);
 
 template <typename request_t, typename reply_t = empty_reply_t>

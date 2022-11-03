@@ -140,13 +140,13 @@ ebpf_result_to_errno(ebpf_result_t result)
     return error;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info(
     ebpf_handle_t handle,
     _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
     _Inout_ uint32_t* info_size) noexcept;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 query_map_definition(
     ebpf_handle_t handle,
     _Out_ uint32_t* type,

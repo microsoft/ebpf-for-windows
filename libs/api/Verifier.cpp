@@ -158,7 +158,7 @@ _get_program_and_map_names(
     }
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 load_byte_code(
     _In_z_ const char* filename,
     _In_opt_z_ const char* sectionname,

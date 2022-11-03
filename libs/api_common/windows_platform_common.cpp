@@ -318,7 +318,7 @@ get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept
     return BPF_ATTACH_TYPE_UNSPEC;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 get_bpf_program_and_attach_type(
     const std::string& section, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* attach_type)
 {
@@ -337,7 +337,7 @@ Exit:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 get_program_and_attach_type(
     const std::string& section, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* attach_type)
 {
@@ -663,7 +663,7 @@ Exit:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 load_ebpf_provider_data()
 {
     ebpf_result_t result = _load_all_program_data_information();
