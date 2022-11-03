@@ -54,7 +54,7 @@ sample_ebpf_extension_hook_provider_unregister();
  * @retval EBPF_SUCCESS Operation succeeded.
  * @retval EBPF_OPERATION_NOT_SUPPORTED Operation not supported.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 sample_ebpf_extension_invoke_program(_In_ const sample_program_context_t* context, _Out_ uint32_t* result);
 
 /**
@@ -67,7 +67,7 @@ sample_ebpf_extension_invoke_program(_In_ const sample_program_context_t* contex
  * @retval EBPF_SUCCESS Operation succeeded.
  * @retval EBPF_OPERATION_NOT_SUPPORTED Operation not supported.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 sample_ebpf_extension_profile_program(
     _In_ sample_ebpf_ext_profile_request_t* request,
     size_t request_length,

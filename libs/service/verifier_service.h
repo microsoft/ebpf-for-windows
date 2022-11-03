@@ -6,7 +6,7 @@
 #include "config.hpp"
 #include "platform.hpp"
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 verify_byte_code(
     _In_ const GUID* program_type,
     _In_reads_(instruction_count) const ebpf_inst* instructions,

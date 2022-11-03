@@ -18,5 +18,5 @@ down_cast_from_wstring(const std::wstring& wide_string);
  * @retval EBPF_SUCCESS Operation succeeded.
  * @retval EBPF_INVALID_ARGUMENT Input string could not be converted to interface index.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 parse_if_index(_In_z_ const wchar_t* arg, _Out_ uint32_t* if_index);

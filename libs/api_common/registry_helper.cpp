@@ -27,7 +27,7 @@ close_registry_key(ebpf_registry_key_t key)
     RegCloseKey(key);
 }
 
-uint32_t
+_Must_inspect_result_ ebpf_registry_result_t
 write_registry_value_binary(
     ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_reads_(value_size) uint8_t* value, size_t value_size)
 {
@@ -37,7 +37,7 @@ write_registry_value_binary(
     return RegSetValueEx(key, value_name, 0, REG_BINARY, value, (DWORD)value_size);
 }
 
-uint32_t
+_Must_inspect_result_ ebpf_registry_result_t
 write_registry_value_wide_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const wchar_t* value)
 {
     ebpf_assert(value_name);
@@ -47,7 +47,7 @@ write_registry_value_wide_string(ebpf_registry_key_t key, _In_z_ const wchar_t* 
     return RegSetValueEx(key, value_name, 0, REG_SZ, (uint8_t*)value, (DWORD)length);
 }
 
-uint32_t
+_Must_inspect_result_ ebpf_registry_result_t
 write_registry_value_ansi_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
 {
     uint32_t result;
@@ -61,14 +61,14 @@ write_registry_value_ansi_string(ebpf_registry_key_t key, _In_z_ const wchar_t* 
     return result;
 }
 
-uint32_t
+_Must_inspect_result_ ebpf_registry_result_t
 write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, uint32_t value)
 {
     ebpf_assert(key);
     return RegSetValueEx(key, value_name, 0, REG_DWORD, (PBYTE)&value, sizeof(value));
 }
 
-uint32_t
+_Must_inspect_result_ ebpf_registry_result_t
 create_registry_key(
     ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
@@ -89,19 +89,19 @@ _Success_(return == ERROR_SUCCESS) uint32_t open_registry_key(
     return RegOpenKeyEx(root_key, sub_key, 0, flags, key);
 }
 
-uint32_t
+_Must_inspect_result_ ebpf_registry_result_t
 delete_registry_key(ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key)
 {
     return RegDeleteKeyEx(root_key, sub_key, 0, 0);
 }
 
-uint32_t
+_Must_inspect_result_ ebpf_registry_result_t
 delete_registry_tree(ebpf_registry_key_t root_key, _In_opt_z_ const wchar_t* sub_key)
 {
     return RegDeleteTree(root_key, sub_key);
 }
 
-uint32_t
+_Must_inspect_result_ ebpf_registry_result_t
 create_registry_key_ansi(
     ebpf_registry_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
@@ -116,8 +116,8 @@ create_registry_key_ansi(
     return result;
 }
 
-_Success_(return == 0) uint32_t read_registry_value_string(
-    ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Outptr_result_z_ wchar_t** value)
+_Must_inspect_result_ ebpf_registry_result_t
+read_registry_value_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Outptr_result_z_ wchar_t** value)
 {
     uint32_t status = ERROR_SUCCESS;
     DWORD type = REG_SZ;
@@ -153,7 +153,7 @@ Exit:
     return status;
 }
 
-uint32_t
+_Must_inspect_result_ ebpf_registry_result_t
 read_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Out_ uint32_t* value)
 {
     DWORD type = REG_QWORD;
@@ -161,7 +161,7 @@ read_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_n
     return RegQueryValueEx(key, value_name, 0, &type, (PBYTE)value, &value_size);
 }
 
-uint32_t
+_Must_inspect_result_ ebpf_registry_result_t
 read_registry_value_binary(
     ebpf_registry_key_t key,
     _In_z_ const wchar_t* value_name,
@@ -184,8 +184,8 @@ Exit:
     return status;
 }
 
-_Success_(return == 0) uint32_t
-    convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size)
+_Must_inspect_result_ ebpf_registry_result_t
+convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size)
 {
     uint32_t status = ERROR_SUCCESS;
     wchar_t* value_name = nullptr;
@@ -216,7 +216,8 @@ _Success_(return == 0) uint32_t
     return status;
 }
 
-_Success_(return == 0) uint32_t convert_string_to_guid(_In_z_ const wchar_t* string, _Out_ GUID* guid)
+_Must_inspect_result_ ebpf_registry_result_t
+convert_string_to_guid(_In_z_ const wchar_t* string, _Out_ GUID* guid)
 {
     uint32_t status = ERROR_SUCCESS;
 

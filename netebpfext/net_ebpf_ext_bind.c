@@ -335,7 +335,8 @@ net_ebpf_ext_resource_release_classify(
 
     _net_ebpf_ext_resource_truncate_appid(&ctx);
 
-    net_ebpf_extension_hook_invoke_program(attached_client, &ctx, &result);
+    // Ignore the result of this call as we don't want to block the unbind.
+    (void)net_ebpf_extension_hook_invoke_program(attached_client, &ctx, &result);
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
