@@ -205,7 +205,7 @@ popd
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
 powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(SolutionDir)\include
-copy "$(VC_DebugCppRuntimeFilesPath_x64)\Microsoft.VC142.DebugCRT\*" "$(OutDir)"
+copy "$(VC_DebugCppRuntimeFilesPath_x64)\Microsoft.VC143.DebugCRT\*" "$(OutDir)"
 copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -223,7 +223,7 @@ copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Comman
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
 powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(SolutionDir)\include
-copy "$(VC_CppRuntimeFilesPath_x64)\Microsoft.VC142.CRT" "$(OutDir)"</Command>
+copy "$(VC_CppRuntimeFilesPath_x64)\Microsoft.VC143.CRT" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
