@@ -25,7 +25,7 @@ _program_load_attach_helper::_program_load_attach_helper(
         printf("bpf_object__open: error: %d\n", errno);
     }
     REQUIRE(_object != nullptr);
-    ebpf_object_set_execution_type(_object, _execution_type);
+    REQUIRE(ebpf_object_set_execution_type(_object, _execution_type) == EBPF_SUCCESS);
 
     // Load program by name.
     struct bpf_program* program = bpf_object__find_program_by_name(_object, _program_name.c_str());
