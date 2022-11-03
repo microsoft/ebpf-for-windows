@@ -31,7 +31,7 @@ extern "C"
      * @retval EPBF_SUCCESS Successfully allocated ring buffer.
      * @retval EBPF_NO_MEMORY Unable to allocate ring buffer.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring_buffer, size_t capacity);
 
     /**
@@ -51,7 +51,7 @@ extern "C"
      * @retval EPBF_SUCCESS Successfully wrote record ring buffer.
      * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_output(
         _Inout_ ebpf_ring_buffer_t* ring_buffer, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
@@ -73,7 +73,7 @@ extern "C"
      * @retval EPBF_SUCCESS Successfully returned records to the ring buffer.
      * @retval EBPF_INVALID_ARGUMENT Unable to return records to the ring buffer.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring_buffer, size_t length);
 
     /**
@@ -84,7 +84,7 @@ extern "C"
      * @retval EPBF_SUCCESS Successfully mapped the ring buffer.
      * @retval EBPF_INVALID_ARGUMENT Unable to map the ring buffer.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring_buffer, _Outptr_ uint8_t** buffer);
 
     /**
@@ -97,7 +97,7 @@ extern "C"
      * @retval EPBF_SUCCESS Successfully reserved space in the ring buffer.
      * @retval EBPF_INVALID_ARGUMENT Unable to reserve space in the ring buffer.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_reserve(
         _Inout_ ebpf_ring_buffer_t* ring_buffer, _Outptr_result_bytebuffer_(length) uint8_t** data, size_t length);
 
@@ -108,7 +108,7 @@ extern "C"
      * @retval EPBF_SUCCESS Successfully submitted space in the ring buffer.
      * @retval EBPF_INVALID_ARGUMENT Unable to submit space in the ring buffer.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data);
 
     /**
@@ -118,7 +118,7 @@ extern "C"
      * @retval EPBF_SUCCESS Successfully discarded space in the ring buffer.
      * @retval EBPF_INVALID_ARGUMENT Unable to discard space in the ring buffer.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data);
 
     /**

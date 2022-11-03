@@ -149,7 +149,10 @@ ebpf_api_initiate() noexcept
 {
     EBPF_LOG_ENTRY();
 
-    ebpf_trace_initiate();
+    ebpf_result_t result = ebpf_trace_initiate();
+    if (result != EBPF_SUCCESS) {
+        return ERROR_OUTOFMEMORY;
+    }
 
     // This is best effort. If device handle does not initialize,
     // it will be re-attempted before an IOCTL call is made.

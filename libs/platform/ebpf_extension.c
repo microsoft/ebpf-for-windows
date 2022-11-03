@@ -171,7 +171,7 @@ _ebpf_extension_client_cleanup_binding_context(_In_opt_ void* client_binding_con
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_extension_load(
     _Outptr_ ebpf_extension_client_t** client_context,
     _In_ const GUID* interface_id,

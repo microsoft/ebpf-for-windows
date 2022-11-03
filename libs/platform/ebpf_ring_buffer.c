@@ -73,7 +73,7 @@ _ring_buffer_acquire_record(_Inout_ ebpf_ring_buffer_t* ring, size_t requested_l
     return record;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
 {
     EBPF_LOG_ENTRY();
@@ -121,7 +121,7 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
     }
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
     ebpf_result_t result;
@@ -149,7 +149,7 @@ ebpf_ring_buffer_query(_In_ const ebpf_ring_buffer_t* ring, _Out_ size_t* consum
     *producer = ring->producer_offset;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
 {
     ebpf_result_t result;
@@ -187,7 +187,7 @@ Done:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring, _Outptr_ uint8_t** buffer)
 {
     *buffer = ebpf_ring_map_readonly_user(ring->ring_descriptor);
@@ -198,7 +198,7 @@ ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring, _Outptr_ uint8_
     }
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_reserve(
     _Inout_ ebpf_ring_buffer_t* ring, _Outptr_result_bytebuffer_(length) uint8_t** data, size_t length)
 {
@@ -220,7 +220,7 @@ Done:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data)
 {
     if (!data) {
@@ -238,7 +238,7 @@ ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data)
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data)
 {
     if (!data) {
