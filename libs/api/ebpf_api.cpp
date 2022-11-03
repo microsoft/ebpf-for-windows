@@ -1398,8 +1398,7 @@ _clean_up_ebpf_object(_In_opt_ ebpf_object_t* object) noexcept
         clean_up_ebpf_maps(object->maps);
 
         if (object->native_module_handle != ebpf_handle_invalid) {
-            ebpf_assert(
-                object->execution_type == EBPF_EXECUTION_NATIVE || object->execution_type == EBPF_EXECUTION_ANY);
+            ebpf_assert(object->execution_type == EBPF_EXECUTION_NATIVE);
             Platform::CloseHandle(object->native_module_handle);
             object->native_module_handle = ebpf_handle_invalid;
         }
