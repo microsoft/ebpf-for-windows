@@ -61,7 +61,8 @@ ebpf_handle_t
 get_device_handle()
 {
     if (_device_handle == ebpf_handle_invalid) {
-        ebpf_assert_success(initialize_device_handle());
+        // Ignore failures.
+        (void)initialize_device_handle();
     }
 
     return _device_handle;
