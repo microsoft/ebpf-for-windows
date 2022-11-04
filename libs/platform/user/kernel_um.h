@@ -20,8 +20,10 @@
 #define ExReleaseSpinLockExclusiveFromDpcLevel(Lock) ExReleaseSpinLockExclusiveFromDpcLevelEx(Lock)
 #define KdPrintEx(_x_) DbgPrintEx _x_
 #define KeAcquireSpinLock(spin_lock, OldIrql) *(OldIrql) = KeAcquireSpinLockRaiseToDpc(spin_lock)
+#define KeQueryInterruptTime QueryInterruptTimeEx
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 #define PAGED_CODE()
+
 #define STATUS_SUCCESS 0
 #define STATUS_INSUFFICIENT_RESOURCES ((NTSTATUS)0xC000009AL)
 #define STATUS_ACCESS_DENIED ((NTSTATUS)0xC0000022L)
@@ -184,6 +186,9 @@ _Releases_shared_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveFromDpcLe
 void*
 ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_bytes, _In_ unsigned long tag);
 
+ULONGLONG
+QueryInterruptTimeEx();
+
 void
 ExFreePool(void* p);
 
@@ -271,6 +276,23 @@ InsertTailList(_Inout_ LIST_ENTRY* list_head, _Out_ __drv_aliasesMem LIST_ENTRY*
     entry->Blink = PrevEntry;
     PrevEntry->Flink = entry;
     list_head->Blink = entry;
+    return;
+}
+
+FORCEINLINE
+void
+InsertHeadList(_Inout_ LIST_ENTRY* list_head, _Out_ __drv_aliasesMem LIST_ENTRY* entry)
+{
+    LIST_ENTRY* NextEntry;
+    NextEntry = list_head->Flink;
+    if (NextEntry->Blink != list_head) {
+        FatalListEntryError((void*)NextEntry, (void*)list_head, (void*)NextEntry->Blink);
+    }
+
+    entry->Flink = NextEntry;
+    entry->Blink = list_head;
+    NextEntry->Blink = entry;
+    list_head->Flink = entry;
     return;
 }
 

@@ -407,3 +407,12 @@ _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) FWPS_CONN
 
     return FWPS_CONNECTION_NOT_REDIRECTED;
 }
+
+ULONGLONG
+QueryInterruptTimeEx()
+{
+    ULONGLONG time = 0;
+    QueryInterruptTime(&time);
+
+    return time;
+}
