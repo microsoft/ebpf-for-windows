@@ -91,15 +91,7 @@ _ebpf_extension_client_attach_provider(
 
     // Check that the provider module Id matches the client's expected provider module Id.
     ebpf_assert(provider_registration_instance->ModuleId != NULL);
-    if (provider_registration_instance->ModuleId == NULL) {
-        status = STATUS_INVALID_PARAMETER;
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_WARNING,
-            EBPF_TRACELOG_KEYWORD_BASE,
-            "Provider registration instance has NULL module Id",
-            *provider_registration_instance->NpiId)
-        goto Done;
-    }
+    _Analysis_assume_(provider_registration_instance->ModuleId != NULL);
 
     if (memcmp(
             &provider_registration_instance->ModuleId->Guid,

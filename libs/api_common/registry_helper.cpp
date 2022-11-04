@@ -84,9 +84,7 @@ _Success_(return == ERROR_SUCCESS) uint32_t open_registry_key(
     ebpf_registry_key_t root_key, _In_opt_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
     ebpf_assert(root_key != nullptr);
-    if (root_key == nullptr) {
-        return ERROR_INVALID_PARAMETER;
-    }
+    _Analysis_assume_(root_key != nullptr);
 
     return RegOpenKeyEx(root_key, sub_key, 0, flags, key);
 }
