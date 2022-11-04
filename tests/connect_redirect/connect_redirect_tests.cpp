@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// This module facilitates testing various connect redirect scenarios by sending traffic to both a remote system
-// running XDP eBPF hook and an attached XDP program.
-// For the reflection test, reflect_packet.o needs to be loaded on the remote host.
+// This module facilitates testing various connect redirect scenarios by sending traffic to both
+// local system and a remote system, both running TCP / UDP listeners.
 
 #define CATCH_CONFIG_RUNNER
 
@@ -30,26 +29,32 @@ using namespace std::chrono_literals;
 #include <mstcpip.h>
 
 #define CLIENT_MESSAGE "eBPF for Windows!"
+#define NUM_ADDRESS_FAMILY 2
 
 static std::string _family;
 static std::string _protocol;
-static std::string _vip;
-static std::string _local_ip;
-// static std::string _local_ip2;
-static std::string _remote_ip;
+static std::string _vip_v4;
+static std::string _vip_v6;
+static std::string _local_ip_v4;
+static std::string _local_ip_v6;
+static std::string _remote_ip_v4;
+static std::string _remote_ip_v6;
 static uint16_t _remote_port = 4444;
 
-static bool _globals_initialized = false;
+typedef struct _test_addresses
+{
+    struct sockaddr_storage loopback_address;
+    struct sockaddr_storage remote_address;
+    struct sockaddr_storage local_address;
+    struct sockaddr_storage vip_address;
+} test_addresses_t;
 
 typedef struct _test_globals
 {
     ADDRESS_FAMILY family;
     IPPROTO protocol;
-    struct sockaddr_storage loopback_address;
-    struct sockaddr_storage remote_address;
-    struct sockaddr_storage local_address;
-    struct sockaddr_storage vip_address;
     uint16_t remote_port;
+    test_addresses_t addresses[NUM_ADDRESS_FAMILY];
 } test_globals_t;
 
 static test_globals_t _globals;
@@ -75,110 +80,46 @@ _get_address_family_from_string(std::string family)
 static void
 _initialize_test_globals()
 {
-    if (_globals_initialized) {
-        return;
-    }
-    _globals.family = _get_address_family_from_string(_family);
-    _globals.protocol = _get_protocol_from_string(_protocol);
     ADDRESS_FAMILY family;
-    get_address_from_string(_remote_ip, _globals.remote_address, &family);
-    REQUIRE(family == _globals.family);
-    get_address_from_string(_local_ip, _globals.local_address, &family);
-    REQUIRE(family == _globals.family);
-    get_address_from_string(_vip, _globals.vip_address, &family);
-    REQUIRE(family == _globals.family);
-    if (_globals.family == AF_INET) {
-        IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&_globals.loopback_address, &in4addr_loopback, scopeid_unspecified, 0);
-    } else {
-        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.loopback_address);
-    }
+    get_address_from_string(_remote_ip_v4, _globals.addresses[0].remote_address, &family);
+    REQUIRE(family == AF_INET);
+    get_address_from_string(_local_ip_v4, _globals.addresses[0].local_address, &family);
+    REQUIRE(family == AF_INET);
+    get_address_from_string(_vip_v4, _globals.addresses[0].vip_address, &family);
+    REQUIRE(family == AF_INET);
+    IN6ADDR_SETV4MAPPED(
+        (PSOCKADDR_IN6)&_globals.addresses[0].loopback_address, &in4addr_loopback, scopeid_unspecified, 0);
+
+    get_address_from_string(_remote_ip_v6, _globals.addresses[1].remote_address, &family);
+    REQUIRE(family == AF_INET6);
+    get_address_from_string(_local_ip_v6, _globals.addresses[1].local_address, &family);
+    REQUIRE(family == AF_INET6);
+    get_address_from_string(_vip_v6, _globals.addresses[1].vip_address, &family);
+    REQUIRE(family == AF_INET6);
+    IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[1].loopback_address);
+
     _globals.remote_port = _remote_port;
-
-    _globals_initialized = true;
 }
-
-/*
-TEST_CASE("redirect_test_remote", "[connect_redirect_tests]")
-{
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    std::string remote_address_string("11.1.1.2");
-    struct sockaddr_storage remote_address = {};
-    ADDRESS_FAMILY address_family;
-    get_address_from_string(remote_address_string, remote_address, &address_family);
-    const char* message = "eBPF for Windows!";
-
-    stream_sender_socket.send_message_to_remote_host(message, remote_address, 4444);
-    stream_sender_socket.complete_async_send(1000);
-
-    stream_sender_socket.post_async_receive();
-    stream_sender_socket.complete_async_receive(2000, false);
-
-    uint32_t bytes_received = 0;
-    char* received_message = nullptr;
-    stream_sender_socket.get_received_message(bytes_received, received_message);
-
-    printf("received message from server: %s\n", received_message);
-}
-
-TEST_CASE("redirect_test_remote_udp", "[connect_redirect_tests]")
-{
-    datagram_sender_socket_t stream_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    std::string remote_address_string("11.1.1.2");
-    struct sockaddr_storage remote_address = {};
-    ADDRESS_FAMILY address_family;
-    get_address_from_string(remote_address_string, remote_address, &address_family);
-    const char* message = "eBPF for Windows!";
-
-    stream_sender_socket.send_message_to_remote_host(message, remote_address, 4444);
-    stream_sender_socket.complete_async_send(1000);
-
-    stream_sender_socket.post_async_receive();
-    stream_sender_socket.complete_async_receive(2000, false);
-
-    uint32_t bytes_received = 0;
-    char* received_message = nullptr;
-    stream_sender_socket.get_received_message(bytes_received, received_message);
-
-    printf("received message from server: %s\n", received_message);
-}
-*/
-
-/*
-void connect_redirect_test(sender_socket_t* sender_socket, receiver_socket_t* loopback_receiver_socket)
-{
-    struct sockaddr_storage remote_address = {};
-    ADDRESS_FAMILY address_family = _get_address_family_from_string(_family);
-    get_address_from_string(_remote_ip, remote_address, &address_family);
-    const char* message = "eBPF for Windows!";
-
-    sender_socket->send_message_to_remote_host(message, remote_address, 4444);
-    sender_socket->complete_async_send(1000);
-
-    sender_socket->post_async_receive();
-    sender_socket->complete_async_receive(2000, false);
-
-    uint32_t bytes_received = 0;
-    char* received_message = nullptr;
-    sender_socket->get_received_message(bytes_received, received_message);
-
-    printf("received message from server: %s\n", received_message);
-}
-*/
 
 static void
-_load_and_attach_ebpf_program(ADDRESS_FAMILY family, _Outptr_ struct bpf_object** return_object)
+_load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 {
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
     REQUIRE(object != nullptr);
     REQUIRE(bpf_object__load(object) == 0);
 
-    const char* program_name = (family == AF_INET) ? "authorize_connect4" : "authorize_connect6";
-    bpf_program* connect_program = bpf_object__find_program_by_name(object, program_name);
-    REQUIRE(connect_program != nullptr);
+    bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object, "authorize_connect4");
+    REQUIRE(connect_program_v4 != nullptr);
 
-    bpf_attach_type attach_type = (family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
+    int result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(connect_program_v4)), 0, BPF_CGROUP_INET4_CONNECT, 0);
+    REQUIRE(result == 0);
 
-    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(connect_program)), 0, attach_type, 0);
+    bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object, "authorize_connect6");
+    REQUIRE(connect_program_v6 != nullptr);
+
+    result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(connect_program_v6)), 0, BPF_CGROUP_INET6_CONNECT, 0);
     REQUIRE(result == 0);
 
     *return_object = object;
@@ -258,6 +199,7 @@ authorize_test(
     _In_ const struct bpf_object* object, _In_ sender_socket_t* sender_socket, _In_ sockaddr_storage& destination)
 {
     // Default behavior of the eBPF program is to block the connection.
+
     // Send should fail as the connection is blocked.
     sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.remote_port);
     sender_socket->complete_async_send(1000, expected_result_t::failure);
@@ -268,24 +210,6 @@ authorize_test(
 
     // Now update the policy map to allow the connection and test again.
     connect_redirect_test(object, sender_socket, destination, destination);
-
-    /*
-    // Update policy in the map to allow the connection.
-    _update_policy_map(object, destination, destination, _globals.remote_port, true);
-
-    // Try to send and receive message to destination again. It should work this time.
-    sender_socket->send_message_to_remote_host(message, destination, _globals.remote_port);
-    sender_socket->complete_async_send(1000, expected_result_t::success);
-
-    sender_socket->post_async_receive();
-    sender_socket->complete_async_receive(2000, false);
-
-    uint32_t bytes_received = 0;
-    char* received_message = nullptr;
-    sender_socket->get_received_message(bytes_received, received_message);
-
-    REQUIRE(memcmp(received_message, "test_message", strlen(received_message)) == 0);
-    */
 }
 
 void
@@ -339,87 +263,73 @@ connect_redirect_test_wrapper(
 }
 
 void
-connect_redirect_tests_common(_In_ const struct bpf_object* object)
-// _In_ sender_socket_t* sender_socket,
-// _In_ sockaddr_storage& destination,
-// _In_ sockaddr_storage& proxy)
+connect_redirect_tests_common(_In_ const struct bpf_object* object, _In_ test_addresses_t& addresses)
 {
     // First cateogory is authorize tests.
 
     // Loopback address.
     printf("Loobpack authorize\n");
-    authorize_test_wrapper(object, _globals.loopback_address);
+    authorize_test_wrapper(object, addresses.loopback_address);
 
     // Remote address.
     printf("Remote authorize\n");
-    authorize_test_wrapper(object, _globals.remote_address);
+    authorize_test_wrapper(object, addresses.remote_address);
 
     // Local non-loopback address.
     printf("Local non-loopback authorize\n");
-    authorize_test_wrapper(object, _globals.local_address);
+    authorize_test_wrapper(object, addresses.local_address);
 
     // Second category is connection redirection tests.
 
     // Remote -> Remote
-    printf("ANUSA: Remote             -> Remote\n");
-    connect_redirect_test_wrapper(object, _globals.vip_address, _globals.remote_address);
+    printf("Remote             -> Remote\n");
+    connect_redirect_test_wrapper(object, addresses.vip_address, addresses.remote_address);
 
     // Remote -> Loopback
-    printf("ANUSA: Remote             -> Loopback\n");
-    connect_redirect_test_wrapper(object, _globals.vip_address, _globals.loopback_address);
+    printf("Remote             -> Loopback\n");
+    connect_redirect_test_wrapper(object, addresses.vip_address, addresses.loopback_address);
 
     // Remote -> Local non-loopback
-    printf("ANUSA: Remote             -> Local non-loopback\n");
-    connect_redirect_test_wrapper(object, _globals.vip_address, _globals.local_address);
+    printf("Remote             -> Local non-loopback\n");
+    connect_redirect_test_wrapper(object, addresses.vip_address, addresses.local_address);
 
     // Loopback -> Remote
-    printf("ANUSA: Loopback           -> Remote\n");
-    connect_redirect_test_wrapper(object, _globals.loopback_address, _globals.remote_address);
+    printf("Loopback           -> Remote\n");
+    connect_redirect_test_wrapper(object, addresses.loopback_address, addresses.remote_address);
 
     // Loopback -> Local non-loopback
-    printf("ANUSA: Loopback           -> Local non-loopback\n");
-    connect_redirect_test_wrapper(object, _globals.loopback_address, _globals.local_address);
+    printf("Loopback           -> Local non-loopback\n");
+    connect_redirect_test_wrapper(object, addresses.loopback_address, addresses.local_address);
 
     // Local non-loopback -> Loopback
-    printf("ANUSA: Local non-loopback -> Loopback\n");
-    connect_redirect_test_wrapper(object, _globals.local_address, _globals.loopback_address);
+    printf("Local non-loopback -> Loopback\n");
+    connect_redirect_test_wrapper(object, addresses.local_address, addresses.loopback_address);
 
     // Local non-loopback -> Remote
-    printf("ANUSA: Local non-loopback -> Remote\n");
-    connect_redirect_test_wrapper(object, _globals.local_address, _globals.remote_address);
+    printf("Local non-loopback -> Remote\n");
+    connect_redirect_test_wrapper(object, addresses.local_address, addresses.remote_address);
 }
 
-void
-connect_redirect_tests_udp(_In_ const struct bpf_object* object)
-{
-    // datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    // connect_redirect_tests_common(object , &datagram_sender_socket, _globals.vip_address, _globals.remote_address);
-    // connect_redirect_tests_common(object, _globals.vip_address, _globals.remote_address);
-    connect_redirect_tests_common(object);
-}
-
-void
-connect_redirect_tests_tcp(_In_ const struct bpf_object* object)
-{
-    // stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    // connect_redirect_tests_common(object , &stream_sender_socket, _globals.vip_address, _globals.remote_address);
-    // connect_redirect_tests_common(object, _globals.vip_address, _globals.remote_address);
-    connect_redirect_tests_common(object);
-}
-
-TEST_CASE("connect_redirect_test", "[connect_redirect_tests]")
+TEST_CASE("connect_redirect_tests", "[connect_redirect_tests]")
 {
     _initialize_test_globals();
-    struct bpf_object* object = nullptr;
-    _load_and_attach_ebpf_program(_globals.family, &object);
 
-    if (_globals.protocol == IPPROTO_TCP) {
-        connect_redirect_tests_tcp(object);
-    } else {
-        connect_redirect_tests_udp(object);
+    struct bpf_object* object = nullptr;
+    _load_and_attach_ebpf_programs(&object);
+
+    ADDRESS_FAMILY families[NUM_ADDRESS_FAMILY] = {AF_INET, AF_INET6};
+
+    for (uint32_t i = 0; i < NUM_ADDRESS_FAMILY; i++) {
+        _globals.family = families[i];
+
+        _globals.protocol = IPPROTO_TCP;
+        connect_redirect_tests_common(object, _globals.addresses[i]);
+
+        _globals.protocol = IPPROTO_UDP;
+        connect_redirect_tests_common(object, _globals.addresses[i]);
     }
 
-    // This should also detach the program as it is not pinned.
+    // This should also detach the programs as they are not pinned.
     bpf_object__close(object);
 }
 
@@ -430,12 +340,12 @@ main(int argc, char* argv[])
 
     // Use Catch's composite command line parser.
     using namespace Catch::Clara;
-    auto cli = session.cli() | Opt(_protocol, "protocol (TCP / UDP)")["-p"]["--protocol"]("Protocol") |
-               Opt(_family, "Address Family (v4 / v6)")["-f"]["--family"]("Address Family") |
-               Opt(_vip, "Virtual / Load Balanced IP")["-v"]["--virtual-ip"]("VIP") |
-               Opt(_local_ip, "First local IP")["-l"]["--local-ip"]("Local IP") |
-               // Opt(_local_ip2, "Second local IP")["-lip2"]["--local-ip-2"]("Local IP 2") |
-               Opt(_remote_ip, "Remote IP")["-r"]["--remote-ip"]("Remote IP") |
+    auto cli = session.cli() | Opt(_vip_v4, "v4 Virtual / Load Balanced IP")["-v"]["--virtual-ip-v4"]("IPv4 VIP") |
+               Opt(_vip_v6, "v6 Virtual / Load Balanced IP")["-v"]["--virtual-ip-v6"]("IPv6 VIP") |
+               Opt(_local_ip_v4, "v4 local IP")["-l"]["--local-ip-v4"]("Local IPv4 IP") |
+               Opt(_local_ip_v6, "v6 local IP")["-l"]["--local-ip-v6"]("Local IPv6 IP") |
+               Opt(_remote_ip_v4, "v4 Remote IP")["-r"]["--remote-ip-v4"]("IPv4 Remote IP") |
+               Opt(_remote_ip_v6, "v6 Remote IP")["-r"]["--remote-ip-v6"]("IPv6 Remote IP") |
                Opt(_remote_port, "Destination Port")["-t"]["--destination-port"]("Destination Port");
 
     session.cli(cli);
