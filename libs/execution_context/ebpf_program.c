@@ -897,10 +897,6 @@ _ebpf_program_get_helper_function_address(
 
         ebpf_assert(general_helper_function_addresses != NULL);
         _Analysis_assume_(general_helper_function_addresses != NULL);
-        if (general_helper_function_addresses == NULL) {
-            // General helper function addresses should not be NULL.
-            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-        }
 
         if (helper_function_id > general_helper_function_addresses->helper_function_count) {
             return EBPF_INVALID_ARGUMENT;
