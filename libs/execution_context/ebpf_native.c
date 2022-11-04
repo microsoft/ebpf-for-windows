@@ -613,10 +613,7 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
         ebpf_native_map_t* inner_map = map->inner_map;
         ebpf_assert(inner_map != NULL);
         // Code analysis doesn't understand that inner_map is not NULL if _ebpf_native_is_map_in_map() returns true.
-        if (inner_map == NULL) {
-            result = EBPF_INVALID_ARGUMENT;
-            goto Exit;
-        }
+        _Analysis_assume_(inner_map != NULL);
 
         if (info.inner_map_id == EBPF_ID_NONE) {
             // The original map is pinned but its template is not initialized yet.

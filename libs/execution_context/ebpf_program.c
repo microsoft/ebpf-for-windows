@@ -142,7 +142,6 @@ _ebpf_program_program_info_provider_changed(
         if (helper_function_addresses != NULL) {
             ebpf_program_info_t* program_info = program_data->program_info;
             ebpf_helper_function_prototype_t* helper_prototypes = NULL;
-            ebpf_assert(program_info != NULL);
             if (program_info == NULL) {
                 EBPF_LOG_MESSAGE_GUID(
                     EBPF_TRACELOG_LEVEL_ERROR,
