@@ -180,7 +180,7 @@ _Releases_exclusive_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveEx(
 _Releases_shared_lock_(spin_lock->lock) void ExReleaseSpinLockSharedEx(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock, KIRQL old_irql);
 
-_Releases_shared_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveFromDpcLevelEx(
+_Releases_exclusive_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveFromDpcLevelEx(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock);
 
 void*
