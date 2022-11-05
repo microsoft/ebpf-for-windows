@@ -148,7 +148,6 @@ _test_multiple_programs_load(
 {
     int result;
     std::vector<struct bpf_object*> objects;
-    std::vector<fd_t> fds;
 
     for (int i = 0; i < program_count; i++) {
         const char* file_name = parameters[i].file_name;
@@ -165,7 +164,6 @@ _test_multiple_programs_load(
         }
 
         objects.push_back(object);
-        fds.push_back(program_fd);
     }
 
     if (expected_load_result != 0) {
@@ -173,7 +171,6 @@ _test_multiple_programs_load(
     }
 
     for (int i = 0; i < program_count; i++) {
-        _close(fds[i]);
         bpf_object__close(objects[i]);
     }
 }
