@@ -336,12 +336,6 @@ net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
     case FWPS_LAYER_ALE_CONNECT_REDIRECT_V6:
         hook_id = EBPF_HOOK_ALE_CONNECT_REDIRECT_V6;
         break;
-    case FWPS_LAYER_ALE_ENDPOINT_CLOSURE_V4:
-        hook_id = EBPF_HOOK_ALE_ENDPOINT_CLOSURE_V4;
-        break;
-    case FWPS_LAYER_ALE_ENDPOINT_CLOSURE_V6:
-        hook_id = EBPF_HOOK_ALE_ENDPOINT_CLOSURE_V6;
-        break;
     default:
         ASSERT(FALSE);
         break;
