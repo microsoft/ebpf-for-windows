@@ -43,10 +43,12 @@ Exit:
 
 const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_xdp_wfp_filter_parameters[] = {
     {&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE,
+     NULL,
      &EBPF_HOOK_INBOUND_L2_CALLOUT,
      L"net eBPF xdp hook",
      L"net eBPF xdp hook WFP filter"},
     {&FWPM_LAYER_OUTBOUND_MAC_FRAME_NATIVE,
+     NULL,
      &EBPF_HOOK_OUTBOUND_L2_CALLOUT,
      L"net eBPF xdp hook",
      L"net eBPF xdp hook WFP filter"}};
@@ -151,7 +153,7 @@ net_ebpf_extension_xdp_on_client_attach(
     if (result != EBPF_SUCCESS)
         goto Exit;
     filter_context->if_index = if_index;
-    filter_context->base.filter_instance_count = NET_EBPF_XDP_FILTER_COUNT;
+    filter_context->base.filter_ids_count = NET_EBPF_XDP_FILTER_COUNT;
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     filter_count = NET_EBPF_XDP_FILTER_COUNT;
@@ -161,7 +163,7 @@ net_ebpf_extension_xdp_on_client_attach(
         (if_index == 0) ? 0 : 1,
         (if_index == 0) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-        &filter_context->base.filter_instances);
+        &filter_context->base.filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -188,7 +190,7 @@ _net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_clie
     NET_EBPF_EXT_LOG_ENTRY();
 
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters((net_ebpf_extension_wfp_filter_context_t*)filter_context);
+    net_ebpf_extension_delete_wfp_filters(filter_context->base.filter_ids_count, filter_context->base.filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 
     NET_EBPF_EXT_LOG_EXIT();

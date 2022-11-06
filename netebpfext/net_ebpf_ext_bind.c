@@ -16,18 +16,22 @@
 
 const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_bind_wfp_filter_parameters[] = {
     {&FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
+     NULL,
      &EBPF_HOOK_ALE_RESOURCE_ALLOC_V4_CALLOUT,
      L"net eBPF bind hook",
      L"net eBPF bind hook WFP filter"},
     {&FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6,
+     NULL,
      &EBPF_HOOK_ALE_RESOURCE_ALLOC_V6_CALLOUT,
      L"net eBPF bind hook",
      L"net eBPF bind hook WFP filter"},
     {&FWPM_LAYER_ALE_RESOURCE_RELEASE_V4,
+     NULL,
      &EBPF_HOOK_ALE_RESOURCE_RELEASE_V4_CALLOUT,
      L"net eBPF bind hook",
      L"net eBPF bind hook WFP filter"},
     {&FWPM_LAYER_ALE_RESOURCE_RELEASE_V6,
+     NULL,
      &EBPF_HOOK_ALE_RESOURCE_RELEASE_V6_CALLOUT,
      L"net eBPF bind hook",
      L"net eBPF bind hook WFP filter"}};
@@ -84,7 +88,7 @@ _net_ebpf_extension_bind_on_client_attach(
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    filter_context->filter_instance_count = NET_EBPF_BIND_FILTER_COUNT;
+    filter_context->filter_ids_count = NET_EBPF_BIND_FILTER_COUNT;
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     result = net_ebpf_extension_add_wfp_filters(
@@ -93,7 +97,7 @@ _net_ebpf_extension_bind_on_client_attach(
         0,
         NULL,
         filter_context,
-        &filter_context->filter_instances);
+        &filter_context->filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -113,7 +117,7 @@ _net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_cli
     ASSERT(filter_context != NULL);
 
     // Delete the WFP filters.
-    net_ebpf_extension_delete_wfp_filters(filter_context);
+    net_ebpf_extension_delete_wfp_filters(filter_context->filter_ids_count, filter_context->filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 

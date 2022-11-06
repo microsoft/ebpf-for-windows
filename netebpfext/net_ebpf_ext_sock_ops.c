@@ -39,10 +39,12 @@ typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context_list
 
 const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_sock_ops_wfp_filter_parameters[] = {
     {&FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4,
+     NULL,
      &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4_CALLOUT,
      L"net eBPF sock_ops hook",
      L"net eBPF sock_ops hook WFP filter"},
     {&FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6,
+     NULL,
      &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6_CALLOUT,
      L"net eBPF sock_ops hook",
      L"net eBPF sock_ops hook WFP filter"}};
@@ -148,7 +150,7 @@ net_ebpf_extension_sock_ops_on_client_attach(
     if (result != EBPF_SUCCESS)
         goto Exit;
     filter_context->compartment_id = compartment_id;
-    filter_context->base.filter_instance_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
+    filter_context->base.filter_ids_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
     KeInitializeSpinLock(&filter_context->lock);
     InitializeListHead(&filter_context->flow_context_list.list_head);
 
@@ -160,7 +162,7 @@ net_ebpf_extension_sock_ops_on_client_attach(
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-        &filter_context->base.filter_instances);
+        &filter_context->base.filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -189,7 +191,7 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
     KIRQL irql;
     bool lock_held = FALSE;
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters((net_ebpf_extension_wfp_filter_context_t*)filter_context);
+    net_ebpf_extension_delete_wfp_filters(filter_context->base.filter_ids_count, filter_context->base.filter_ids);
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
     lock_held = TRUE;

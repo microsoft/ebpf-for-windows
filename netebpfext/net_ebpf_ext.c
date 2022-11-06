@@ -28,8 +28,31 @@ NDIS_HANDLE _net_ebpf_ext_ndis_handle = NULL;
 NDIS_HANDLE _net_ebpf_ext_nbl_pool_handle = NULL;
 HANDLE _net_ebpf_ext_l2_injection_handle = NULL;
 
-static EX_SPIN_LOCK _net_ebpf_ext_filter_instance_list_lock;
-_Guarded_by_(_net_ebpf_ext_filter_instance_list_lock) static LIST_ENTRY _net_ebpf_ext_filter_instance_list;
+static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
+    {
+        &EBPF_DEFAULT_SUBLAYER,
+        L"EBPF Sub-Layer",
+        L"Sub-Layer for use by EBPF callouts",
+        0,
+        FWP_EMPTY // Auto weight.
+    },
+    {
+        &EBPF_HOOK_ALE_CONNECT_REDIRECT_V4_SUBLAYER,
+        L"EBPF Connect Redirect V4 Sub-Layer",
+        L"Sub-Layer for use by EBPF connect redirect callouts",
+        0,
+        FWP_EMPTY // Auto weight.
+    },
+    {
+        &EBPF_HOOK_ALE_CONNECT_REDIRECT_V6_SUBLAYER,
+        L"EBPF Connect Redirect V6 Sub-Layer",
+        L"Sub-Layer for use by EBPF connect redirect callouts",
+        0,
+        FWP_EMPTY // Auto weight.
+    }};
+
+// static EX_SPIN_LOCK _net_ebpf_ext_filter_instance_list_lock;
+// _Guarded_by_(_net_ebpf_ext_filter_instance_list_lock) static LIST_ENTRY _net_ebpf_ext_filter_instance_list;
 
 static void
 _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_context);
@@ -38,9 +61,9 @@ NTSTATUS
 net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
 
-static ebpf_result_t
-_net_ebpf_extension_remove_filter_context_from_filter_instance(
-    _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context, uint64_t filter_id);
+// static ebpf_result_t
+// _net_ebpf_extension_remove_filter_context_from_filter_instance(
+//     _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context, uint64_t filter_id);
 
 typedef struct _net_ebpf_ext_wfp_callout_state
 {
@@ -214,30 +237,30 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
 // WFP globals
 static HANDLE _fwp_engine_handle;
 
-void
-net_ebpf_ext_acquire_filter_instance_reference(_In_ net_ebpf_extension_wfp_filter_instance_t* filter_instance)
-{
-    InterlockedIncrement(&(filter_instance)->reference_count);
-}
+// void
+// net_ebpf_ext_acquire_filter_instance_reference(_In_ net_ebpf_extension_wfp_filter_instance_t* filter_instance)
+// {
+//     InterlockedIncrement(&(filter_instance)->reference_count);
+// }
 
-void
-net_ebpf_ext_release_filter_instance_reference(_In_opt_ net_ebpf_extension_wfp_filter_instance_t* filter_instance)
-{
-    if (filter_instance != NULL) {
-        if (InterlockedDecrement(&filter_instance->reference_count) == 0) {
-            KIRQL irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock);
-            RemoveEntryList(&filter_instance->list_entry);
-            ExReleaseSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock, irql);
-            if (filter_instance->filter_id) {
-                FwpmFilterDeleteById(_fwp_engine_handle, filter_instance->filter_id);
-            }
-            if (filter_instance->conditions) {
-                ExFreePool(filter_instance->conditions);
-            }
-            ExFreePool(filter_instance);
-        }
-    }
-}
+// void
+// net_ebpf_ext_release_filter_instance_reference(_In_opt_ net_ebpf_extension_wfp_filter_instance_t* filter_instance)
+// {
+//     if (filter_instance != NULL) {
+//         if (InterlockedDecrement(&filter_instance->reference_count) == 0) {
+//             KIRQL irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock);
+//             RemoveEntryList(&filter_instance->list_entry);
+//             ExReleaseSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock, irql);
+//             if (filter_instance->filter_id) {
+//                 FwpmFilterDeleteById(_fwp_engine_handle, filter_instance->filter_id);
+//             }
+//             if (filter_instance->conditions) {
+//                 ExFreePool(filter_instance->conditions);
+//             }
+//             ExFreePool(filter_instance);
+//         }
+//     }
+// }
 
 //
 // WFP component management related utility functions.
@@ -284,7 +307,7 @@ net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp
     // lingering WFP classify callbacks will exit as it would not find any hook client associated with the filter
     // context. This is best effort & no locks are held.
     filter_context->client_context = NULL;
-    filter_context->filter_instances = NULL;
+    filter_context->filter_ids = NULL;
     DEREFERENCE_FILTER_CONTEXT(filter_context);
 }
 
@@ -355,17 +378,12 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
     return callout_id;
 }
 void
-net_ebpf_extension_delete_wfp_filters(_In_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) uint64_t* filter_ids)
 {
     NET_EBPF_EXT_LOG_ENTRY();
-    for (uint32_t index = 0; index < filter_context->filter_instance_count; index++) {
-        _net_ebpf_extension_remove_filter_context_from_filter_instance(
-            filter_context, filter_context->filter_instances[index]->filter_id);
-        // net_ebpf_ext_release_filter_instance_reference(filter_instances[index]);
-        filter_context->filter_instances[index] = NULL;
-    }
-    ExFreePool(filter_context->filter_instances);
-    filter_context->filter_instances = NULL;
+    for (uint32_t index = 0; index < filter_count; index++)
+        FwpmFilterDeleteById(_fwp_engine_handle, filter_ids[index]);
+    ExFreePool(filter_ids);
     NET_EBPF_EXT_LOG_EXIT();
 }
 
@@ -383,145 +401,145 @@ net_ebpf_extension_delete_wfp_filters(_In_ net_ebpf_extension_wfp_filter_context
  *
  * @return Status of the operation.
  */
-static ebpf_result_t
-_net_ebpf_extension_create_or_update_filter_instance(
-    _In_ const net_ebpf_extension_wfp_filter_parameters_t* filter_parameters,
-    _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context,
-    uint32_t condition_count,
-    _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
-    _Out_ net_ebpf_extension_wfp_filter_instance_t** filter_instance)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-    KIRQL old_irql;
-    net_ebpf_extension_wfp_filter_instance_t* matching_instance = NULL;
-    net_ebpf_extension_wfp_filter_context_list_entry_t* context_list_entry = NULL;
-    bool list_lock_acquired = false;
-    bool new_instance = false;
-    *filter_instance = NULL;
+// static ebpf_result_t
+// _net_ebpf_extension_create_or_update_filter_instance(
+//     _In_ const net_ebpf_extension_wfp_filter_parameters_t* filter_parameters,
+//     _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context,
+//     uint32_t condition_count,
+//     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
+//     _Out_ net_ebpf_extension_wfp_filter_instance_t** filter_instance)
+// {
+//     ebpf_result_t result = EBPF_SUCCESS;
+//     KIRQL old_irql;
+//     net_ebpf_extension_wfp_filter_instance_t* matching_instance = NULL;
+//     net_ebpf_extension_wfp_filter_context_list_entry_t* context_list_entry = NULL;
+//     bool list_lock_acquired = false;
+//     bool new_instance = false;
+//     *filter_instance = NULL;
 
-    // First find if a matching filter instance is present.
-    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock);
-    list_lock_acquired = true;
+//     // First find if a matching filter instance is present.
+//     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock);
+//     list_lock_acquired = true;
 
-    LIST_ENTRY* list_entry = _net_ebpf_ext_filter_instance_list.Flink;
-    while (list_entry != &_net_ebpf_ext_filter_instance_list) {
-        net_ebpf_extension_wfp_filter_instance_t* entry =
-            CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_instance_t, list_entry);
+//     LIST_ENTRY* list_entry = _net_ebpf_ext_filter_instance_list.Flink;
+//     while (list_entry != &_net_ebpf_ext_filter_instance_list) {
+//         net_ebpf_extension_wfp_filter_instance_t* entry =
+//             CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_instance_t, list_entry);
 
-        list_entry = list_entry->Flink;
-        if (memcmp(&entry->layer, filter_parameters->layer_guid, sizeof(GUID))) {
-            continue;
-        }
-        if (entry->condition_count != condition_count) {
-            continue;
-        }
+//         list_entry = list_entry->Flink;
+//         if (memcmp(&entry->layer, filter_parameters->layer_guid, sizeof(GUID))) {
+//             continue;
+//         }
+//         if (entry->condition_count != condition_count) {
+//             continue;
+//         }
 
-        if (condition_count == 0) {
-            matching_instance = entry;
-            break;
-        }
+//         if (condition_count == 0) {
+//             matching_instance = entry;
+//             break;
+//         }
 
-        __analysis_assume(conditions != NULL);
+//         __analysis_assume(conditions != NULL);
 
-        bool conditions_matched = true;
-        // Iterate over all the filter conditions.
-        for (uint32_t i = 0; i < condition_count; i++) {
-            bool found = false;
-            const FWPM_FILTER_CONDITION* condition1 = &conditions[i];
-            for (uint32_t j = 0; j < condition_count; j++) {
-                FWPM_FILTER_CONDITION* condition2 = &entry->conditions[j];
-                if (memcmp(condition1, condition2, sizeof(FWPM_FILTER_CONDITION)) == 0) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                conditions_matched = false;
-                break;
-            }
-        }
+//         bool conditions_matched = true;
+//         // Iterate over all the filter conditions.
+//         for (uint32_t i = 0; i < condition_count; i++) {
+//             bool found = false;
+//             const FWPM_FILTER_CONDITION* condition1 = &conditions[i];
+//             for (uint32_t j = 0; j < condition_count; j++) {
+//                 FWPM_FILTER_CONDITION* condition2 = &entry->conditions[j];
+//                 if (memcmp(condition1, condition2, sizeof(FWPM_FILTER_CONDITION)) == 0) {
+//                     found = true;
+//                     break;
+//                 }
+//             }
+//             if (!found) {
+//                 conditions_matched = false;
+//                 break;
+//             }
+//         }
 
-        if (conditions_matched) {
-            // Found a matching filter instance.
-            matching_instance = entry;
-            break;
-        }
-    }
+//         if (conditions_matched) {
+//             // Found a matching filter instance.
+//             matching_instance = entry;
+//             break;
+//         }
+//     }
 
-    if (matching_instance == NULL) {
-        new_instance = true;
-        // Allocate a new filter instance.
-        matching_instance = (net_ebpf_extension_wfp_filter_instance_t*)ExAllocatePoolUninitialized(
-            NonPagedPoolNx, sizeof(net_ebpf_extension_wfp_filter_instance_t), NET_EBPF_EXTENSION_POOL_TAG);
-        if (matching_instance == NULL) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-        memset(matching_instance, 0, sizeof(net_ebpf_extension_wfp_filter_instance_t));
-        matching_instance->reference_count = 1;
-        matching_instance->layer = *(filter_parameters->layer_guid);
-        InitializeListHead(&matching_instance->filter_contexts);
-        matching_instance->condition_count = condition_count;
-        if (condition_count > 0) {
-            __analysis_assume(conditions != NULL);
-            matching_instance->conditions = (FWPM_FILTER_CONDITION*)ExAllocatePoolUninitialized(
-                NonPagedPoolNx, sizeof(FWPM_FILTER_CONDITION) * condition_count, NET_EBPF_EXTENSION_POOL_TAG);
+//     if (matching_instance == NULL) {
+//         new_instance = true;
+//         // Allocate a new filter instance.
+//         matching_instance = (net_ebpf_extension_wfp_filter_instance_t*)ExAllocatePoolUninitialized(
+//             NonPagedPoolNx, sizeof(net_ebpf_extension_wfp_filter_instance_t), NET_EBPF_EXTENSION_POOL_TAG);
+//         if (matching_instance == NULL) {
+//             result = EBPF_NO_MEMORY;
+//             goto Exit;
+//         }
+//         memset(matching_instance, 0, sizeof(net_ebpf_extension_wfp_filter_instance_t));
+//         matching_instance->reference_count = 1;
+//         matching_instance->layer = *(filter_parameters->layer_guid);
+//         InitializeListHead(&matching_instance->filter_contexts);
+//         matching_instance->condition_count = condition_count;
+//         if (condition_count > 0) {
+//             __analysis_assume(conditions != NULL);
+//             matching_instance->conditions = (FWPM_FILTER_CONDITION*)ExAllocatePoolUninitialized(
+//                 NonPagedPoolNx, sizeof(FWPM_FILTER_CONDITION) * condition_count, NET_EBPF_EXTENSION_POOL_TAG);
 
-            if (matching_instance->conditions == NULL) {
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-            memcpy(matching_instance->conditions, conditions, sizeof(FWPM_FILTER_CONDITION) * condition_count);
-        }
-    } else {
-        result = EBPF_OBJECT_ALREADY_EXISTS;
-    }
+//             if (matching_instance->conditions == NULL) {
+//                 result = EBPF_NO_MEMORY;
+//                 goto Exit;
+//             }
+//             memcpy(matching_instance->conditions, conditions, sizeof(FWPM_FILTER_CONDITION) * condition_count);
+//         }
+//     } else {
+//         result = EBPF_OBJECT_ALREADY_EXISTS;
+//     }
 
-    context_list_entry = (net_ebpf_extension_wfp_filter_context_list_entry_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(net_ebpf_extension_wfp_filter_context_list_entry_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (context_list_entry == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-    context_list_entry->filter_context = filter_context;
+//     context_list_entry = (net_ebpf_extension_wfp_filter_context_list_entry_t*)ExAllocatePoolUninitialized(
+//         NonPagedPoolNx, sizeof(net_ebpf_extension_wfp_filter_context_list_entry_t), NET_EBPF_EXTENSION_POOL_TAG);
+//     if (context_list_entry == NULL) {
+//         result = EBPF_NO_MEMORY;
+//         goto Exit;
+//     }
+//     context_list_entry->filter_context = filter_context;
 
-    ExAcquireSpinLockExclusiveAtDpcLevel(&matching_instance->lock);
-    InsertTailList(&matching_instance->filter_contexts, &context_list_entry->list_entry);
-    matching_instance->filter_context_count++;
-    ExReleaseSpinLockExclusiveFromDpcLevel(&matching_instance->lock);
+//     ExAcquireSpinLockExclusiveAtDpcLevel(&matching_instance->lock);
+//     InsertTailList(&matching_instance->filter_contexts, &context_list_entry->list_entry);
+//     matching_instance->filter_context_count++;
+//     ExReleaseSpinLockExclusiveFromDpcLevel(&matching_instance->lock);
 
-    if (new_instance) {
-        InsertTailList(&_net_ebpf_ext_filter_instance_list, &matching_instance->list_entry);
-    } else {
-        // Take a reference on the existing filter instance.
-        net_ebpf_ext_acquire_filter_instance_reference(matching_instance);
-    }
+//     if (new_instance) {
+//         InsertTailList(&_net_ebpf_ext_filter_instance_list, &matching_instance->list_entry);
+//     } else {
+//         // Take a reference on the existing filter instance.
+//         net_ebpf_ext_acquire_filter_instance_reference(matching_instance);
+//     }
 
-    // Take a query reference. Should be released by the caller.
-    net_ebpf_ext_acquire_filter_instance_reference(matching_instance);
-    *filter_instance = matching_instance;
+//     // Take a query reference. Should be released by the caller.
+//     net_ebpf_ext_acquire_filter_instance_reference(matching_instance);
+//     *filter_instance = matching_instance;
 
-Exit:
-    if (list_lock_acquired) {
-        ExReleaseSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock, old_irql);
-    }
-    if (result != EBPF_SUCCESS && result != EBPF_OBJECT_ALREADY_EXISTS) {
-        if (new_instance) {
-            if (matching_instance != NULL) {
-                if (matching_instance->conditions != NULL) {
-                    ExFreePool(matching_instance->conditions);
-                    matching_instance->conditions = NULL;
-                }
-                ExFreePool(matching_instance);
-                matching_instance = NULL;
-            }
-        }
-        if (context_list_entry != NULL) {
-            ExFreePool(context_list_entry);
-        }
-    }
-    return result;
-}
+// Exit:
+//     if (list_lock_acquired) {
+//         ExReleaseSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock, old_irql);
+//     }
+//     if (result != EBPF_SUCCESS && result != EBPF_OBJECT_ALREADY_EXISTS) {
+//         if (new_instance) {
+//             if (matching_instance != NULL) {
+//                 if (matching_instance->conditions != NULL) {
+//                     ExFreePool(matching_instance->conditions);
+//                     matching_instance->conditions = NULL;
+//                 }
+//                 ExFreePool(matching_instance);
+//                 matching_instance = NULL;
+//             }
+//         }
+//         if (context_list_entry != NULL) {
+//             ExFreePool(context_list_entry);
+//         }
+//     }
+//     return result;
+// }
 
 /**
  * @brief Find the filter instance corresponding to the provided filter id.
@@ -533,109 +551,111 @@ Exit:
  *
  * @return Status of the operation.
  */
-static ebpf_result_t
-_net_ebpf_extension_remove_filter_context_from_filter_instance(
-    _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context, uint64_t filter_id)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-    KIRQL old_irql;
-    net_ebpf_extension_wfp_filter_instance_t* matching_instance = NULL;
-    net_ebpf_extension_wfp_filter_context_list_entry_t* context_list_entry = NULL;
-    bool list_lock_acquired = false;
-    bool found = false;
+// static ebpf_result_t
+// _net_ebpf_extension_remove_filter_context_from_filter_instance(
+//     _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context, uint64_t filter_id)
+// {
+//     ebpf_result_t result = EBPF_SUCCESS;
+//     KIRQL old_irql;
+//     net_ebpf_extension_wfp_filter_instance_t* matching_instance = NULL;
+//     net_ebpf_extension_wfp_filter_context_list_entry_t* context_list_entry = NULL;
+//     bool list_lock_acquired = false;
+//     bool found = false;
 
-    // First find the matching filter instance based on the filter id.
-    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock);
-    list_lock_acquired = true;
+//     // First find the matching filter instance based on the filter id.
+//     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock);
+//     list_lock_acquired = true;
 
-    LIST_ENTRY* list_entry = _net_ebpf_ext_filter_instance_list.Flink;
-    while (list_entry != &_net_ebpf_ext_filter_instance_list) {
-        net_ebpf_extension_wfp_filter_instance_t* entry =
-            CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_instance_t, list_entry);
+//     LIST_ENTRY* list_entry = _net_ebpf_ext_filter_instance_list.Flink;
+//     while (list_entry != &_net_ebpf_ext_filter_instance_list) {
+//         net_ebpf_extension_wfp_filter_instance_t* entry =
+//             CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_instance_t, list_entry);
 
-        list_entry = list_entry->Flink;
+//         list_entry = list_entry->Flink;
 
-        if (entry->filter_id == filter_id) {
-            matching_instance = entry;
-            break;
-        }
-    }
+//         if (entry->filter_id == filter_id) {
+//             matching_instance = entry;
+//             break;
+//         }
+//     }
 
-    if (matching_instance == NULL) {
-        result = EBPF_OBJECT_NOT_FOUND;
-        goto Exit;
-    }
+//     if (matching_instance == NULL) {
+//         result = EBPF_OBJECT_NOT_FOUND;
+//         goto Exit;
+//     }
 
-    // Iterate over all the filter contexts and find the matching one.
-    ExAcquireSpinLockExclusiveAtDpcLevel(&matching_instance->lock);
-    list_entry = matching_instance->filter_contexts.Flink;
-    while (list_entry != &(matching_instance->filter_contexts)) {
-        context_list_entry =
-            CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_context_list_entry_t, list_entry);
-        if (context_list_entry->filter_context == filter_context) {
-            found = true;
-            RemoveEntryList(&context_list_entry->list_entry);
-            ExFreePool(context_list_entry);
-            break;
-        }
-        list_entry = list_entry->Flink;
-    }
-    ExReleaseSpinLockExclusiveFromDpcLevel(&matching_instance->lock);
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock, old_irql);
-    list_lock_acquired = false;
+//     // Iterate over all the filter contexts and find the matching one.
+//     ExAcquireSpinLockExclusiveAtDpcLevel(&matching_instance->lock);
+//     list_entry = matching_instance->filter_contexts.Flink;
+//     while (list_entry != &(matching_instance->filter_contexts)) {
+//         context_list_entry =
+//             CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_context_list_entry_t, list_entry);
+//         if (context_list_entry->filter_context == filter_context) {
+//             found = true;
+//             RemoveEntryList(&context_list_entry->list_entry);
+//             ExFreePool(context_list_entry);
+//             matching_instance->filter_context_count--;
+//             break;
+//         }
+//         list_entry = list_entry->Flink;
+//     }
+//     ExReleaseSpinLockExclusiveFromDpcLevel(&matching_instance->lock);
+//     ExReleaseSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock, old_irql);
+//     list_lock_acquired = false;
 
-    if (!found) {
-        result = EBPF_OBJECT_NOT_FOUND;
-        goto Exit;
-    } else {
-        net_ebpf_ext_release_filter_instance_reference(matching_instance);
-    }
+//     if (!found) {
+//         result = EBPF_OBJECT_NOT_FOUND;
+//         goto Exit;
+//     } else {
+//         net_ebpf_ext_release_filter_instance_reference(matching_instance);
+//     }
 
-Exit:
-    if (list_lock_acquired) {
-        ExReleaseSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock, old_irql);
-    }
+// Exit:
+//     if (list_lock_acquired) {
+//         ExReleaseSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock, old_irql);
+//     }
 
-    return result;
-}
+//     return result;
+// }
 
-ebpf_result_t
-net_ebpf_extension_get_filter_instance_by_id(
-    uint64_t filter_id, _Outptr_ net_ebpf_extension_wfp_filter_instance_t** filter_instance)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-    KIRQL old_irql;
-    net_ebpf_extension_wfp_filter_instance_t* matching_instance = NULL;
-    *filter_instance = NULL;
+// ebpf_result_t
+// net_ebpf_extension_get_filter_instance_by_id(
+//     uint64_t filter_id, _Outptr_ net_ebpf_extension_wfp_filter_instance_t** filter_instance)
+// {
+//     ebpf_result_t result = EBPF_SUCCESS;
+//     KIRQL old_irql;
+//     net_ebpf_extension_wfp_filter_instance_t* matching_instance = NULL;
+//     *filter_instance = NULL;
 
-    // Check if a matching filter instance is present.
-    old_irql = ExAcquireSpinLockShared(&_net_ebpf_ext_filter_instance_list_lock);
+//     // Check if a matching filter instance is present.
+//     old_irql = ExAcquireSpinLockShared(&_net_ebpf_ext_filter_instance_list_lock);
 
-    LIST_ENTRY* list_entry = _net_ebpf_ext_filter_instance_list.Flink;
-    while (list_entry != &_net_ebpf_ext_filter_instance_list) {
-        net_ebpf_extension_wfp_filter_instance_t* entry =
-            CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_instance_t, list_entry);
+//     LIST_ENTRY* list_entry = _net_ebpf_ext_filter_instance_list.Flink;
+//     while (list_entry != &_net_ebpf_ext_filter_instance_list) {
+//         net_ebpf_extension_wfp_filter_instance_t* entry =
+//             CONTAINING_RECORD(list_entry, net_ebpf_extension_wfp_filter_instance_t, list_entry);
 
-        if (entry->filter_id == filter_id) {
-            matching_instance = entry;
-            break;
-        }
+//         if (entry->filter_id == filter_id) {
+//             matching_instance = entry;
+//             break;
+//         }
 
-        list_entry = list_entry->Flink;
-    }
+//         list_entry = list_entry->Flink;
+//     }
 
-    if (matching_instance != NULL) {
-        // Take a query reference. Should be released by the caller.
-        net_ebpf_ext_acquire_filter_instance_reference(matching_instance);
-        *filter_instance = matching_instance;
-    } else {
-        result = EBPF_OBJECT_NOT_FOUND;
-    }
+//     if (matching_instance != NULL) {
+//         // Take a query reference. Should be released by the caller.
+//         net_ebpf_ext_acquire_filter_instance_reference(matching_instance);
+//         *filter_instance = matching_instance;
+//     } else {
+//         result = EBPF_OBJECT_NOT_FOUND;
+//     }
 
-    ExReleaseSpinLockShared(&_net_ebpf_ext_filter_instance_list_lock, old_irql);
-    return result;
-}
+//     ExReleaseSpinLockShared(&_net_ebpf_ext_filter_instance_list_lock, old_irql);
+//     return result;
+// }
 
+/*
 ebpf_result_t
 net_ebpf_extension_get_client_context_from_filter_instance(
     uint64_t filter_id,
@@ -674,6 +694,7 @@ net_ebpf_extension_get_client_context_from_filter_instance(
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_filter_instance_list_lock, old_irql);
     return result;
 }
+*/
 
 ebpf_result_t
 net_ebpf_extension_add_wfp_filters(
@@ -682,13 +703,13 @@ net_ebpf_extension_add_wfp_filters(
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
     _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
-    _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_extension_wfp_filter_instance_t*** filter_instances)
+    _Outptr_result_buffer_maybenull_(filter_count) uint64_t** filter_ids)
 {
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
     BOOL is_in_transaction = FALSE;
-    net_ebpf_extension_wfp_filter_instance_t** local_filter_ids = NULL;
-    *filter_instances = NULL;
+    uint64_t* local_filter_ids = NULL;
+    *filter_ids = NULL;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
@@ -697,13 +718,13 @@ net_ebpf_extension_add_wfp_filters(
         goto Exit;
     }
 
-    local_filter_ids = (net_ebpf_extension_wfp_filter_instance_t**)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(net_ebpf_extension_wfp_filter_instance_t*) * filter_count, NET_EBPF_EXTENSION_POOL_TAG);
+    local_filter_ids = (uint64_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(uint64_t) * filter_count, NET_EBPF_EXTENSION_POOL_TAG);
     if (local_filter_ids == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
-    memset(local_filter_ids, 0, sizeof(net_ebpf_extension_wfp_filter_instance_t*) * filter_count);
+    memset(local_filter_ids, 0, sizeof(uint64_t) * filter_count);
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
     if (!NT_SUCCESS(status)) {
@@ -715,23 +736,6 @@ net_ebpf_extension_add_wfp_filters(
     for (uint32_t index = 0; index < filter_count; index++) {
         FWPM_FILTER filter = {0};
         const net_ebpf_extension_wfp_filter_parameters_t* filter_parameter = &parameters[index];
-        net_ebpf_extension_wfp_filter_instance_t* filter_instance = NULL;
-
-        // Check if a filter with same conditions exists in the same layer.
-        result = _net_ebpf_extension_create_or_update_filter_instance(
-            filter_parameter, filter_context, condition_count, conditions, &filter_instance);
-        if (result != EBPF_SUCCESS && result != EBPF_OBJECT_ALREADY_EXISTS) {
-            goto Exit;
-        }
-        local_filter_ids[index] = filter_instance;
-        // Release the query reference.
-        net_ebpf_ext_release_filter_instance_reference(filter_instance);
-        if (result == EBPF_OBJECT_ALREADY_EXISTS) {
-            // The filter instance already exists. Continue to tne next filter
-            // parameter.
-            result = EBPF_SUCCESS;
-            continue;
-        }
 
         filter.layerKey = *filter_parameter->layer_guid;
         filter.displayData.name = (wchar_t*)filter_parameter->name;
@@ -740,12 +744,16 @@ net_ebpf_extension_add_wfp_filters(
         filter.action.calloutKey = *filter_parameter->callout_guid;
         filter.filterCondition = (FWPM_FILTER_CONDITION*)conditions;
         filter.numFilterConditions = condition_count;
-        filter.subLayerKey = EBPF_SUBLAYER;
+        if (filter_parameter->sublayer_guid) {
+            filter.subLayerKey = *(filter_parameter->sublayer_guid);
+        } else {
+            filter.subLayerKey = EBPF_DEFAULT_SUBLAYER;
+        }
         filter.weight.type = FWP_EMPTY; // auto-weight.
         REFERENCE_FILTER_CONTEXT(filter_context);
         filter.rawContext = (uint64_t)(uintptr_t)filter_context;
 
-        status = FwpmFilterAdd(_fwp_engine_handle, &filter, NULL, &filter_instance->filter_id);
+        status = FwpmFilterAdd(_fwp_engine_handle, &filter, NULL, &local_filter_ids[index]);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
                 NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,
@@ -765,25 +773,12 @@ net_ebpf_extension_add_wfp_filters(
     }
     is_in_transaction = FALSE;
 
-    *filter_instances = local_filter_ids;
+    *filter_ids = local_filter_ids;
 
 Exit:
     if (!NT_SUCCESS(status)) {
-        // Iterate over local_filter_ids and release the reference for
-        // each of the filter instances.
-#pragma warning(push)
-#pragma warning(disable : 6385) // the readable size is '_Old_7`sizeof(net_ebpf_extension_wfp_filter_instance_t
-                                // *)*filter_count' bytes, but '16' bytes may be read.
-        if (local_filter_ids != NULL) {
-            for (uint32_t i = 0; i < filter_count; i++) {
-                if (local_filter_ids[i] != NULL) {
-                    net_ebpf_ext_release_filter_instance_reference(local_filter_ids[i]);
-                    local_filter_ids[i] = NULL;
-                }
-            }
-        }
-#pragma warning(pop)
-        ExFreePool(local_filter_ids);
+        if (local_filter_ids != NULL)
+            ExFreePool(local_filter_ids);
         if (is_in_transaction)
             FwpmTransactionAbort(_fwp_engine_handle);
     }
@@ -934,7 +929,7 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
         goto Exit;
     }
 
-    InitializeListHead(&_net_ebpf_ext_filter_instance_list);
+    // InitializeListHead(&_net_ebpf_ext_filter_instance_list);
 
     session.flags = FWPM_SESSION_FLAG_DYNAMIC;
 
@@ -952,19 +947,36 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     }
     is_in_transaction = TRUE;
 
-    RtlZeroMemory(&ebpf_hook_sub_layer, sizeof(FWPM_SUBLAYER));
+    // Add all the sub layers.
+    for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_sublayers); index++) {
+        RtlZeroMemory(&ebpf_hook_sub_layer, sizeof(FWPM_SUBLAYER));
 
-    ebpf_hook_sub_layer.subLayerKey = EBPF_SUBLAYER;
-    ebpf_hook_sub_layer.displayData.name = L"EBPF Sub-Layer";
-    ebpf_hook_sub_layer.displayData.description = L"Sub-Layer for use by EBPF callouts";
-    ebpf_hook_sub_layer.flags = 0;
-    ebpf_hook_sub_layer.weight = FWP_EMPTY; // auto-weight.
+        ebpf_hook_sub_layer.subLayerKey = *(_net_ebpf_ext_sublayers[index].sublayer_guid);
+        ebpf_hook_sub_layer.displayData.name = (wchar_t*)_net_ebpf_ext_sublayers[index].name;
+        ebpf_hook_sub_layer.displayData.description = (wchar_t*)_net_ebpf_ext_sublayers[index].description;
+        ebpf_hook_sub_layer.flags = _net_ebpf_ext_sublayers[index].flags;
+        ebpf_hook_sub_layer.weight = _net_ebpf_ext_sublayers[index].weight;
 
-    status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpf_hook_sub_layer, NULL);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmSubLayerAdd", status);
-        goto Exit;
+        status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpf_hook_sub_layer, NULL);
+        if (!NT_SUCCESS(status)) {
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmSubLayerAdd", status);
+            goto Exit;
+        }
     }
+
+    // RtlZeroMemory(&ebpf_hook_sub_layer, sizeof(FWPM_SUBLAYER));
+
+    // ebpf_hook_sub_layer.subLayerKey = EBPF_DEFAULT_SUBLAYER;
+    // ebpf_hook_sub_layer.displayData.name = L"EBPF Sub-Layer";
+    // ebpf_hook_sub_layer.displayData.description = L"Sub-Layer for use by EBPF callouts";
+    // ebpf_hook_sub_layer.flags = 0;
+    // ebpf_hook_sub_layer.weight = FWP_EMPTY; // auto-weight.
+
+    // status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpf_hook_sub_layer, NULL);
+    // if (!NT_SUCCESS(status)) {
+    //     NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmSubLayerAdd", status);
+    //     goto Exit;
+    // }
 
     for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
         status = _net_ebpf_ext_register_wfp_callout(&_net_ebpf_ext_wfp_callout_states[index], device_object);
