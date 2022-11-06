@@ -1009,7 +1009,6 @@ extern bool _ebpf_platform_code_integrity_enabled;
 #define NEGATIVE_TEST_PROLOG()                                                            \
     _ebpf_core_initializer core;                                                          \
     std::vector<std::unique_ptr<_program_info_provider>> program_info_providers;          \
-    _ebpf_core_initializer core;                                                          \
     for (const auto& type : _program_types) {                                             \
         program_info_providers.push_back(std::make_unique<_program_info_provider>(type)); \
     }                                                                                     \
