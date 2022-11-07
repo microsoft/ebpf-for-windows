@@ -80,11 +80,11 @@ create_registry_key(
     return RegCreateKeyEx(root_key, sub_key, 0, nullptr, 0, flags, nullptr, key, nullptr);
 }
 
-uint32_t
-open_registry_key(
+_Success_(return == ERROR_SUCCESS) uint32_t open_registry_key(
     ebpf_registry_key_t root_key, _In_opt_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
     ebpf_assert(root_key != nullptr);
+    _Analysis_assume_(root_key != nullptr);
 
     return RegOpenKeyEx(root_key, sub_key, 0, flags, key);
 }
