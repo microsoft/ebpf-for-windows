@@ -533,6 +533,14 @@ _ebpf_native_initialize_maps(
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     const int ORIGINAL_ID_OFFSET = 1;
+
+    // First set all handle value to invalid.
+    // This is needed because initializing negative tests can cause initialization
+    // of native_maps to fail early, leaving some of the handle values uninitialized.
+    for (uint32_t i = 0; i < map_count; i++) {
+        native_maps[i].handle = ebpf_handle_invalid;
+    }
+
     for (uint32_t i = 0; i < map_count; i++) {
         if (maps[i].definition.pinning != PIN_NONE && maps[i].definition.pinning != PIN_GLOBAL_NS) {
             result = EBPF_INVALID_ARGUMENT;
@@ -540,7 +548,6 @@ _ebpf_native_initialize_maps(
         }
         native_maps[i].entry = &maps[i];
         native_maps[i].original_id = i + ORIGINAL_ID_OFFSET;
-        native_maps[i].handle = ebpf_handle_invalid;
         maps[i].address = NULL;
 
         if (maps[i].definition.pinning == PIN_GLOBAL_NS) {
@@ -701,10 +708,6 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
     module->maps = (ebpf_native_map_t*)ebpf_allocate(map_count * sizeof(ebpf_native_map_t));
     if (module->maps == NULL) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
-    }
-
-    for (uint32_t count = 0; count < map_count; count++) {
-        module->maps[count].handle = ebpf_handle_invalid;
     }
 
     module->map_count = map_count;

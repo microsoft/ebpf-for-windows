@@ -943,6 +943,8 @@ TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
     uint8_t* mem1 = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem1, 10) == EBPF_SUCCESS);
     REQUIRE(mem1 != nullptr);
+    // Wrapping ebpf_ring_buffer_submit in a REQUIRE macro causes code analysis
+    // to fail with error warning C6001: Using uninitialized memory 'mem1'.
     ebpf_result_t result = ebpf_ring_buffer_submit(mem1);
     // Workaround for code analysis failure:
     // C28193: 'result' holds a value that must be examined.
@@ -953,7 +955,8 @@ TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
     uint8_t* mem2 = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem2, 10) == EBPF_SUCCESS);
     REQUIRE(mem2 != nullptr);
-    // Checking the return code triggers a code analysis warning.
+    // Wrapping ebpf_ring_buffer_submit in a REQUIRE macro causes code analysis
+    // to fail with error warning C6001: Using uninitialized memory 'mem1'.
     result = ebpf_ring_buffer_discard(mem2);
     // Workaround for code analysis failure:
     // C28193: 'result' holds a value that must be examined.

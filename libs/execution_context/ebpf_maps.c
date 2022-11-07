@@ -935,6 +935,9 @@ _reap_oldest_map_entry(_In_ ebpf_core_map_t* map)
     // If we reached the end of the keys, delete the oldest one found.
     if (result == EBPF_NO_MORE_KEYS && oldest_key != NULL) {
         ebpf_result_t delete_result = ebpf_hash_table_delete((ebpf_hash_table_t*)lru_map->core_map.data, oldest_key);
+        // See issue #557 for why the delete can fail.
+        // https://github.com/microsoft/ebpf-for-windows/issues/557
+        // This can result in map having more entries than max_entries.
         if (delete_result == EBPF_SUCCESS) {
             _update_key_history(map, oldest_key, true);
         }
