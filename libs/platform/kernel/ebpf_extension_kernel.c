@@ -91,6 +91,8 @@ _ebpf_extension_client_attach_provider(
 
     // Check that the provider module Id matches the client's expected provider module Id.
     ebpf_assert(provider_registration_instance->ModuleId != NULL);
+    _Analysis_assume_(provider_registration_instance->ModuleId != NULL);
+
     if (memcmp(
             &provider_registration_instance->ModuleId->Guid,
             &local_client_context->expected_provider_module_id.Guid,
