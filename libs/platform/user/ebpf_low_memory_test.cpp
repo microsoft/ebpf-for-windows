@@ -3,6 +3,8 @@
 
 #include "ebpf_low_memory_test.h"
 
+#include <windows.h>
+// DbgHelp.h has a dependency on windows.h
 #include <DbgHelp.h>
 #include <sstream>
 #include <string>
