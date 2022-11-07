@@ -713,9 +713,8 @@ static _Requires_lock_held_(_ebpf_epoch_cpu_table[cpu_id].lock) ebpf_epoch_threa
         if (return_value == EBPF_SUCCESS || return_value == EBPF_OBJECT_ALREADY_EXISTS) {
             return_value = ebpf_hash_table_find(
                 _ebpf_epoch_cpu_table[cpu_id].thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_entry);
-            if (return_value != EBPF_SUCCESS) {
-                thread_entry = NULL;
-            }
+            ebpf_assert(thread_entry != NULL);
+            _Analysis_assume_(thread_entry != NULL);
         }
     }
 
