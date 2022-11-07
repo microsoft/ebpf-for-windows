@@ -16,6 +16,8 @@
 #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
+typedef _Return_type_success_(return == 0) uint32_t ebpf_registry_result_t;
+
 typedef HKEY ebpf_registry_key_t;
 
 // Issue: #1542 - All API's should be annotated with _Must_inspect_result_
