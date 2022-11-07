@@ -1356,7 +1356,6 @@ ebpf_native_unload(_In_ const GUID* module_id)
     ebpf_native_module_t** existing_module = NULL;
     ebpf_native_module_t* module = NULL;
     wchar_t* service_name = NULL;
-    // size_t service_name_length;
     bool queue_work_item = false;
     ebpf_preemptible_work_item_t* work_item = NULL;
 
