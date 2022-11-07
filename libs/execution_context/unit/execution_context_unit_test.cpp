@@ -1424,7 +1424,7 @@ TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT short header", "[execution_context][
     header->id = EBPF_OPERATION_GET_PINNED_OBJECT;
     header->length = 4; // Less than sizeof(ebpf_operation_header_t).
 
-    auto compeltion = [](void*, size_t, ebpf_result_t) {};
+    auto completion = [](void*, size_t, ebpf_result_t) {};
 
     REQUIRE(
         ebpf_core_invoke_protocol_handler(
@@ -1434,7 +1434,7 @@ TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT short header", "[execution_context][
             reply_ptr,
             static_cast<uint16_t>(reply_size),
             nullptr,
-            compeltion) == EBPF_INVALID_ARGUMENT);
+            completion) == EBPF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("EBPF_OPERATION_LINK_PROGRAM", "[execution_context][negative]")
@@ -1555,7 +1555,7 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
     header->id = EBPF_OPERATION_LOAD_NATIVE_MODULE;
     header->length = 12; // Less than sizeof(ebpf_operation_load_native_module_request_t).
 
-    auto compeltion = [](void*, size_t, ebpf_result_t) {};
+    auto completion = [](void*, size_t, ebpf_result_t) {};
 
     REQUIRE(
         ebpf_core_invoke_protocol_handler(
@@ -1565,7 +1565,7 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
             reply_ptr,
             static_cast<uint16_t>(reply_size),
             nullptr,
-            compeltion) == EBPF_ARITHMETIC_OVERFLOW);
+            completion) == EBPF_ARITHMETIC_OVERFLOW);
 }
 
 // TODO: Add more native module loading IOCTL negative tests.
