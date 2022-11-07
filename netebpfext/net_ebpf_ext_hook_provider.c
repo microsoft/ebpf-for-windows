@@ -192,11 +192,11 @@ net_ebpf_extension_hook_client_get_provider_data(_In_ const net_ebpf_extension_h
     return hook_client->provider_data;
 }
 
-const struct _net_ebpf_extension_hook_provider*
-net_ebpf_extension_hook_client_get_provider_context(_In_ const net_ebpf_extension_hook_client_t* hook_client)
-{
-    return hook_client->provider_context;
-}
+// const struct _net_ebpf_extension_hook_provider*
+// net_ebpf_extension_hook_client_get_provider_context(_In_ const net_ebpf_extension_hook_client_t* hook_client)
+// {
+//     return hook_client->provider_context;
+// }
 
 const void*
 net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_hook_provider_t* provider_context)

@@ -61,15 +61,15 @@ net_ebpf_extension_hook_client_set_provider_data(_In_ net_ebpf_extension_hook_cl
 const void*
 net_ebpf_extension_hook_client_get_provider_data(_In_ const net_ebpf_extension_hook_client_t* hook_client);
 
-/**
- * @brief Get the hook-specific provider context for the attached client.
- *
- * @param[in] hook_client Pointer to attached hook NPI client.
- *
- * @returns Pointer to hook-specific provider context for the attached client.
- */
-const struct _net_ebpf_extension_hook_provider*
-net_ebpf_extension_hook_client_get_provider_context(_In_ const net_ebpf_extension_hook_client_t* hook_client);
+// /**
+//  * @brief Get the hook-specific provider context for the attached client.
+//  *
+//  * @param[in] hook_client Pointer to attached hook NPI client.
+//  *
+//  * @returns Pointer to hook-specific provider context for the attached client.
+//  */
+// const struct _net_ebpf_extension_hook_provider*
+// net_ebpf_extension_hook_client_get_provider_context(_In_ const net_ebpf_extension_hook_client_t* hook_client);
 
 /**
  *  @brief This is the provider context of eBPF Hook NPI provider.

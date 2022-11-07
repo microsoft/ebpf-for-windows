@@ -301,6 +301,7 @@ TEST_CASE("proxy", "[sock_addr_tests]")
 }
 */
 
+/*
 TEST_CASE("proxy_loopback", "[sock_addr_tests]")
 {
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
@@ -375,6 +376,7 @@ TEST_CASE("allowall", "[sock_addr_tsockests]")
 
     bpf_object__close(object);
 }
+*/
 
 /*
 TEST_CASE("lbnat", "[sock_addr_tests]")

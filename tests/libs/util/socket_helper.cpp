@@ -429,8 +429,8 @@ _receiver_socket::complete_async_receive(int timeout_in_ms, bool timeout_expecte
                 FALSE,
                 reinterpret_cast<LPDWORD>(&recv_flags)))
             FAIL("WSARecvFrom on the receiver socket failed with error: " << WSAGetLastError());
-        // WSACloseEvent(overlapped.hEvent);
-        // overlapped.hEvent = INVALID_HANDLE_VALUE;
+        WSACloseEvent(overlapped.hEvent);
+        overlapped.hEvent = INVALID_HANDLE_VALUE;
         /*
         if (accept_socket != INVALID_SOCKET) {
            error = getsockname(accept_socket, (PSOCKADDR)&local_address, &local_address_size);
@@ -447,8 +447,8 @@ _receiver_socket::complete_async_receive(int timeout_in_ms, bool timeout_expecte
         }
     }
 
-    WSACloseEvent(overlapped.hEvent);
-    overlapped.hEvent = INVALID_HANDLE_VALUE;
+    // WSACloseEvent(overlapped.hEvent);
+    // overlapped.hEvent = INVALID_HANDLE_VALUE;
 }
 
 void

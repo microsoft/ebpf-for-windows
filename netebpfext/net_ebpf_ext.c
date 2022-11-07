@@ -189,28 +189,6 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
         L"ALE Authorize Receive or Accept callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
-    // EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4
-    {
-        &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4_CALLOUT,
-        &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4,
-        net_ebpf_extension_sock_ops_flow_established_classify,
-        net_ebpf_ext_filter_change_notify,
-        net_ebpf_extension_sock_ops_flow_delete,
-        L"ALE Flow Established Callout v4",
-        L"ALE Flow Established callout for eBPF",
-        FWP_ACTION_CALLOUT_TERMINATING,
-    },
-    // EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6
-    {
-        &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6_CALLOUT,
-        &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6,
-        net_ebpf_extension_sock_ops_flow_established_classify,
-        net_ebpf_ext_filter_change_notify,
-        net_ebpf_extension_sock_ops_flow_delete,
-        L"ALE Flow Established Callout v4",
-        L"ALE Flow Established callout for eBPF",
-        FWP_ACTION_CALLOUT_TERMINATING,
-    },
     // EBPF_HOOK_ALE_CONNECT_REDIRECT_V4
     {
         &EBPF_HOOK_ALE_CONNECT_REDIRECT_V4_CALLOUT,
@@ -231,6 +209,28 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
         _net_ebpf_ext_flow_delete,
         L"ALE Connect Redirect eBPF Callout v6",
         L"ALE Connect Redirect callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    // EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4
+    {
+        &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4_CALLOUT,
+        &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4,
+        net_ebpf_extension_sock_ops_flow_established_classify,
+        net_ebpf_ext_filter_change_notify,
+        net_ebpf_extension_sock_ops_flow_delete,
+        L"ALE Flow Established Callout v4",
+        L"ALE Flow Established callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    // EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6
+    {
+        &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6_CALLOUT,
+        &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6,
+        net_ebpf_extension_sock_ops_flow_established_classify,
+        net_ebpf_ext_filter_change_notify,
+        net_ebpf_extension_sock_ops_flow_delete,
+        L"ALE Flow Established Callout v4",
+        L"ALE Flow Established callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     }};
 
