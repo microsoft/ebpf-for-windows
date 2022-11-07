@@ -237,7 +237,7 @@ _net_ebpf_extension_sock_addr_on_client_attach(
     filter_context->base.filter_ids_count = filter_parameters->count;
 
     // Special case of connect_redirect. If the attach type is v4, set is_v4 in the filter context.
-    if (memcmp(filter_parameters->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID))) {
+    if (memcmp(filter_parameters->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0) {
         filter_context->v4_attach_type = true;
     }
 
@@ -1039,12 +1039,20 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             if (!filter_context->v4_attach_type) {
                 // This callout is for v6 attach type, but address is v4 mapped v6 address.
                 // Change action to permit and return.
+                NET_EBPF_EXT_LOG_MESSAGE(
+                    NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                    "net_ebpf_extension_sock_addr_redirect_connection_classify: v6 attach type, v4mapped, ignoring");
                 action = FWP_ACTION_PERMIT;
                 goto Exit;
             }
         } else if (filter_context->v4_attach_type) {
             // This callout is for v4 attach type, but address is a pure v6 address.
             // Change action to permit and return.
+            NET_EBPF_EXT_LOG_MESSAGE(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "net_ebpf_extension_sock_addr_redirect_connection_classify: v4 attach type, purev6, ignoring");
             action = FWP_ACTION_PERMIT;
             goto Exit;
         }
