@@ -159,22 +159,22 @@ void
 ebpf_object_acquire_reference(ebpf_core_object_t* object)
 {
     ebpf_assert(object->base.marker == _ebpf_object_marker);
-    ebpf_assert(object->base.reference_count != 0);
-    ebpf_interlocked_increment_int32(&object->base.reference_count);
+    int32_t new_ref_count = ebpf_interlocked_increment_int32(&object->base.reference_count);
+    ebpf_assert(new_ref_count != 1);
 }
 
 _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static void _ebpf_object_release_reference_under_lock(
     ebpf_core_object_t* object)
 {
-    uint32_t new_ref_count;
+    int32_t new_ref_count;
 
     if (!object)
         return;
 
     ebpf_assert(object->base.marker == _ebpf_object_marker);
-    ebpf_assert(object->base.reference_count != 0);
 
     new_ref_count = ebpf_interlocked_decrement_int32(&object->base.reference_count);
+    ebpf_assert(new_ref_count != -1);
 
     if (new_ref_count == 0) {
         EBPF_LOG_MESSAGE_POINTER_ENUM(
@@ -189,15 +189,15 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static void _ebpf_object_
 void
 ebpf_object_release_reference(ebpf_core_object_t* object)
 {
-    uint32_t new_ref_count;
+    int32_t new_ref_count;
 
     if (!object)
         return;
 
     ebpf_assert(object->base.marker == _ebpf_object_marker);
-    ebpf_assert(object->base.reference_count != 0);
 
     new_ref_count = ebpf_interlocked_decrement_int32(&object->base.reference_count);
+    ebpf_assert(new_ref_count != -1);
 
     if (new_ref_count == 0) {
         EBPF_LOG_MESSAGE_POINTER_ENUM(

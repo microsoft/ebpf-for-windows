@@ -162,14 +162,14 @@ void
 ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 {
     ebpf_assert(module->base.marker == _ebpf_native_marker);
-    ebpf_assert(module->base.reference_count != 0);
-    ebpf_interlocked_increment_int32(&module->base.reference_count);
+    int32_t new_ref_count = ebpf_interlocked_increment_int32(&module->base.reference_count);
+    ebpf_assert(new_ref_count != 1);
 }
 
 void
 ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
 {
-    uint32_t new_ref_count;
+    int32_t new_ref_count;
     GUID* module_id = NULL;
     ebpf_result_t result = EBPF_SUCCESS;
     bool lock_acquired = false;
@@ -179,9 +179,9 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
         EBPF_RETURN_VOID();
 
     ebpf_assert(module->base.marker == _ebpf_native_marker);
-    ebpf_assert(module->base.reference_count != 0);
 
     new_ref_count = ebpf_interlocked_decrement_int32(&module->base.reference_count);
+    ebpf_assert(new_ref_count != -1);
 
     if (new_ref_count == 1) {
         // Check if all the program references have been released. If that
