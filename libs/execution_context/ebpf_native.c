@@ -36,6 +36,13 @@ typedef struct _ebpf_native_program
     ebpf_handle_t handle;
 } ebpf_native_program_t;
 
+typedef struct _ebpf_native_module_cleanup
+{
+    GUID* client_id;
+    _Field_z_ wchar_t* service_name;
+    ebpf_preemptible_work_item_t* cleanup_workitem;
+} ebpf_native_module_cleanup_t;
+
 typedef struct _ebpf_native_module
 {
     GUID client_id;
@@ -54,6 +61,7 @@ typedef struct _ebpf_native_module
     size_t program_count;
     ebpf_handle_t client_binding_handle;
     ebpf_list_entry_t list_entry;
+    ebpf_native_module_cleanup_t cleanup;
 } ebpf_native_module_t;
 
 static GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -150,6 +158,11 @@ _ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
     module->program_count = 0;
 
     ebpf_free(module->service_name);
+
+    ebpf_free(module->cleanup.service_name);
+    ebpf_free(module->cleanup.cleanup_workitem);
+    ebpf_free(module->cleanup.client_id);
+
     ebpf_lock_destroy(&module->lock);
 
     ebpf_free(module);
@@ -167,7 +180,6 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
 {
     uint32_t new_ref_count;
     GUID* module_id = NULL;
-    ebpf_result_t result = EBPF_SUCCESS;
     bool lock_acquired = false;
     ebpf_lock_state_t module_lock_state = 0;
 
@@ -193,20 +205,17 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "ebpf_native_release_reference: all program references released. Unloading module",
                 module->client_id);
-            // TODO: https://github.com/microsoft/ebpf-for-windows/issues/1511
-            module_id = (GUID*)ebpf_allocate(sizeof(GUID));
-            if (module_id == NULL) {
-                result = EBPF_NO_MEMORY;
-                goto Done;
-            }
+
+            module_id = module->cleanup.client_id;
+            module->cleanup.client_id = NULL;
             unload = true;
-            *module_id = module->client_id;
         }
         ebpf_lock_unlock(&module->lock, module_lock_state);
         lock_acquired = false;
         if (unload) {
             ebpf_native_unload(module_id);
             ebpf_free(module_id);
+            module_id = NULL;
         }
     } else if (new_ref_count == 0) {
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
@@ -225,12 +234,9 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
         // Clean up the native module.
         _ebpf_native_clean_up_module(module);
     }
-Done:
+
     if (lock_acquired) {
         ebpf_lock_unlock(&module->lock, module_lock_state);
-    }
-    if (result != EBPF_SUCCESS) {
-        ebpf_free(module_id);
     }
     EBPF_RETURN_VOID();
 }
@@ -1058,6 +1064,7 @@ ebpf_native_load(
     ebpf_native_module_t* module = NULL;
     ebpf_native_module_t** existing_module = NULL;
     wchar_t* local_service_name = NULL;
+    ebpf_native_module_cleanup_t local_cleanup = {0};
 
     local_service_name = ebpf_allocate((size_t)service_name_length + 2);
     if (local_service_name == NULL) {
@@ -1065,6 +1072,26 @@ ebpf_native_load(
         goto Done;
     }
     memcpy(local_service_name, (uint8_t*)service_name, service_name_length);
+
+    local_cleanup.service_name = ebpf_allocate((size_t)service_name_length + 2);
+    if (local_cleanup.service_name == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+    memcpy(local_cleanup.service_name, (uint8_t*)service_name, service_name_length);
+
+    local_cleanup.client_id = (GUID*)ebpf_allocate(sizeof(GUID));
+    if (local_cleanup.client_id == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+    *local_cleanup.client_id = *module_id;
+
+    result = ebpf_allocate_preemptible_work_item(
+        &local_cleanup.cleanup_workitem, _ebpf_native_unload_work_item, local_cleanup.service_name);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     ebpf_native_load_driver(local_service_name);
 
@@ -1104,6 +1131,12 @@ ebpf_native_load(
     }
     module->initialized = true;
     module->service_name = local_service_name;
+    module->cleanup = local_cleanup;
+
+    local_cleanup.cleanup_workitem = NULL;
+    local_cleanup.client_id = NULL;
+    local_cleanup.service_name = NULL;
+
     ebpf_lock_unlock(&module->lock, state);
 
     // Get map and program count;
@@ -1117,6 +1150,9 @@ Done:
     }
     if (result != EBPF_SUCCESS) {
         ebpf_free(local_service_name);
+        ebpf_free(local_cleanup.cleanup_workitem);
+        ebpf_free(local_cleanup.client_id);
+        ebpf_free(local_cleanup.service_name);
     }
 
     EBPF_RETURN_RESULT(result);
@@ -1320,7 +1356,7 @@ ebpf_native_unload(_In_ const GUID* module_id)
     ebpf_native_module_t** existing_module = NULL;
     ebpf_native_module_t* module = NULL;
     wchar_t* service_name = NULL;
-    size_t service_name_length;
+    // size_t service_name_length;
     bool queue_work_item = false;
     ebpf_preemptible_work_item_t* work_item = NULL;
 
@@ -1351,28 +1387,19 @@ ebpf_native_unload(_In_ const GUID* module_id)
         goto Done;
     }
 
-    // It is possible that the module is also detaching at the same time and
-    // the module memory can be freed immediately after the hash table lock is
-    // released. Create a copy of the service name to use later to unload driver.
-    service_name_length = (wcslen(module->service_name) + 1) * sizeof(wchar_t);
-
-    // TODO: https://github.com/microsoft/ebpf-for-windows/issues/1511
-    service_name = ebpf_allocate(service_name_length);
-    if (service_name == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    memcpy(service_name, module->service_name, service_name_length);
-
-    // Create a work item if we are running at DISPATCH.
+    // Use pre-allocated work item if we are running at DISPATCH.
     if (!ebpf_is_preemptible()) {
-        // TODO: https://github.com/microsoft/ebpf-for-windows/issues/1511
-        result = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_native_unload_work_item, service_name);
-        if (result != EBPF_SUCCESS) {
-            goto Done;
-        }
+        work_item = module->cleanup.cleanup_workitem;
+        module->cleanup.cleanup_workitem = NULL;
+        module->cleanup.service_name = NULL;
         queue_work_item = true;
+    } else {
+        // It is possible that the module is also detaching at the same time and
+        // the module memory can be freed immediately after the hash table lock is
+        // released. Use the cleanup copy of the service name to use later to
+        // unload the driver.
+        service_name = module->cleanup.service_name;
+        module->cleanup.service_name = NULL;
     }
     module->unloading = true;
 
