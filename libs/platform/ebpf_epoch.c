@@ -711,10 +711,9 @@ static _Requires_lock_held_(_ebpf_epoch_cpu_table[cpu_id].lock) ebpf_epoch_threa
             (const uint8_t*)&local_thread_epoch,
             EBPF_HASH_TABLE_OPERATION_INSERT);
         if (return_value == EBPF_SUCCESS || return_value == EBPF_OBJECT_ALREADY_EXISTS) {
-            return_value = ebpf_hash_table_find(
-                _ebpf_epoch_cpu_table[cpu_id].thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_entry);
+            ebpf_assert_success(ebpf_hash_table_find(
+                _ebpf_epoch_cpu_table[cpu_id].thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_entry));
             ebpf_assert(thread_entry != NULL);
-            _Analysis_assume_(thread_entry != NULL);
         }
     }
 
