@@ -5,25 +5,25 @@
 #include <cstddef>
 #include <fstream>
 #include <mutex>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 /**
  * @brief This class is used to track memory allocations and fail the first allocation for
- * a specific stack. Increasing the number of stack frames examined with increase the
+ * a specific stack. Increasing the number of stack frames examined will increase the
  * accuracy of the test, but also increase the time it takes to run the test.
  */
 typedef class _ebpf_low_memory_test
 {
   public:
     /**
-     * @brief Construct a new ebpf low memory test object
+     * @brief Construct a new ebpf low memory test object.
      * @param[in] stack_depth The number of stack frames to compare when tracking allocations.
      */
     _ebpf_low_memory_test(size_t stack_depth);
 
     /**
-     * @brief Destroy the ebpf low memory test object
+     * @brief Destroy the ebpf low memory test object.
      *
      */
     ~_ebpf_low_memory_test();

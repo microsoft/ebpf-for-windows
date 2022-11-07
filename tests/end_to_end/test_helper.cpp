@@ -250,7 +250,7 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
     _is_platform_preemptible = !_is_platform_preemptible;
 
     context->dll = LoadLibraryW(context->file_path.c_str());
-    REQUIRE(((context->dll != nullptr) || (get_native_module_failures())));
+    REQUIRE(((context->dll != nullptr) || get_native_module_failures()));
 
     if (context->dll == nullptr) {
         return;

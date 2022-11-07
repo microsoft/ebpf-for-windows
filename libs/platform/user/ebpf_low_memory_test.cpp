@@ -3,10 +3,11 @@
 
 #include "ebpf_low_memory_test.h"
 
-#include "ebpf_platform.h"
 #include <DbgHelp.h>
 #include <sstream>
 #include <string>
+
+#include "ebpf_platform.h"
 
 // Link with DbgHelp.lib
 #pragma comment(lib, "dbghelp.lib")
