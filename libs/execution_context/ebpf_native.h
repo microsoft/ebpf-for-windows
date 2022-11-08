@@ -11,7 +11,7 @@
 extern "C"
 {
 #endif
-    typedef struct _ebpf_native_module ebpf_native_module_t;
+    typedef struct _ebpf_native_module ebpf_native_module_binding_context_t;
 
     /**
      * @brief Initialize the eBPF native code module.
@@ -121,7 +121,7 @@ extern "C"
      * @param[inout] module Pointer to native module.
      */
     void
-    ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module);
+    ebpf_native_acquire_reference(_Inout_ ebpf_native_module_binding_context_t* module);
 
     /**
      * @brief Release reference to the native module.
@@ -129,7 +129,7 @@ extern "C"
      * @param[in] module Optionally, pointer to native module.
      */
     void
-    ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module);
+    ebpf_native_release_reference(_In_opt_ ebpf_native_module_binding_context_t* module);
 
 #ifdef __cplusplus
 }

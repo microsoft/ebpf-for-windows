@@ -49,16 +49,7 @@
     <ClCompile Include="fwp_um.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="kernel_um.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ndis_um.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="nmr_um.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="nmr_impl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -93,13 +84,7 @@
     <ClInclude Include="netebpfext_platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="kernel_um.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ndis.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="nmr_impl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="fwp_um.h">
