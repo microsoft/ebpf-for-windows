@@ -49,9 +49,9 @@ typedef struct _ebpf_hash_bucket_header_and_lock
  */
 struct _ebpf_hash_table
 {
-    uint32_t bucket_count;          // Count of buckets.
-    volatile int32_t entry_count;   // Count of entries in the hash table.
-    int32_t max_entry_count;        // Maximum number of entries allowed or EBPF_HASH_TABLE_NO_LIMIT if no maximum.
+    size_t bucket_count;            // Count of buckets.
+    volatile size_t entry_count;    // Count of entries in the hash table.
+    size_t max_entry_count;         // Maximum number of entries allowed or EBPF_HASH_TABLE_NO_LIMIT if no maximum.
     uint32_t seed;                  // Seed used for hashing.
     size_t key_size;                // Size of key.
     size_t value_size;              // Size of value.
@@ -269,9 +269,9 @@ _ebpf_hash_table_bucket_insert(
     ebpf_hash_bucket_header_t* local_new_bucket = NULL;
     ebpf_hash_bucket_header_t* backup_bucket = NULL;
 
-    int32_t new_entry_count = ebpf_interlocked_increment_int32((volatile int32_t*)&hash_table->entry_count);
+    size_t new_entry_count = ebpf_interlocked_increment_int64((volatile int64_t*)&hash_table->entry_count);
     if (new_entry_count > hash_table->max_entry_count && hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
-        ebpf_interlocked_decrement_int32((volatile int32_t*)&hash_table->entry_count);
+        ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
         result = EBPF_OUT_OF_SPACE;
         goto Done;
     }
@@ -380,7 +380,7 @@ _ebpf_hash_table_bucket_delete(
     *new_bucket = backup_bucket;
 
 Done:
-    ebpf_interlocked_decrement_int32((volatile int32_t*)&hash_table->entry_count);
+    ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
 
     return;
 }
@@ -594,11 +594,11 @@ ebpf_hash_table_create(
     table->value_size = value_size;
     table->allocate = allocate;
     table->free = free;
-    table->bucket_count = (uint32_t)bucket_count;
+    table->bucket_count = bucket_count;
     table->entry_count = 0;
     table->seed = ebpf_random_uint32();
     table->extract = extract;
-    table->max_entry_count = (int32_t)max_entries;
+    table->max_entry_count = max_entries;
 
     *hash_table = table;
     retval = EBPF_SUCCESS;
