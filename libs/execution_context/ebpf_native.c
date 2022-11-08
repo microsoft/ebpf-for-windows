@@ -44,7 +44,7 @@ typedef struct _ebpf_native_module_cleanup
 
 typedef struct _ebpf_native_module
 {
-    GUID client_id;
+    GUID client_module_id;
     metadata_table_t* table;
     volatile int32_t reference_count;
     bool initialized;
@@ -59,7 +59,7 @@ typedef struct _ebpf_native_module
     size_t map_count;
     ebpf_native_program_t* programs;
     size_t program_count;
-    ebpf_handle_t client_binding_handle;
+    HANDLE nmr_binding_handle;
     ebpf_list_entry_t list_entry;
     ebpf_native_module_cleanup_t cleanup;
 } ebpf_native_module_t;
@@ -203,7 +203,7 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
                 EBPF_TRACELOG_LEVEL_INFO,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "ebpf_native_release_reference: all program references released. Unloading module",
-                module->client_id);
+                module->client_module_id);
 
             module_id = module->cleanup.client_id;
             module->cleanup.client_id = NULL;
@@ -219,16 +219,17 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
     } else if (new_ref_count == 0) {
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
         // Delete entry from hash table.
-        ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_id);
+        ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_module_id);
         ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
 
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_INFO,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_release_reference: ref is 0, complete detach callback",
-            module->client_id);
+            module->client_module_id);
+
         // All references to the module have been released. Safe to complete the detach callback.
-        ebpf_provider_detach_client_complete(&_ebpf_native_npi_id, module->client_binding_handle);
+        NmrProviderDetachClientComplete(module->nmr_binding_handle);
 
         // Clean up the native module.
         _ebpf_native_clean_up_module(module);
@@ -259,6 +260,10 @@ _ebpf_native_unload_all()
         return;
     }
 
+    if (!_ebpf_native_client_table) {
+        return;
+    }
+
     ebpf_list_initialize(&free_list);
 
     // Add all the modules in a free list.
@@ -284,7 +289,7 @@ _ebpf_native_unload_all()
         ebpf_native_module_t* free_module = CONTAINING_RECORD(entry, ebpf_native_module_t, list_entry);
         ebpf_list_remove_entry(entry);
 
-        ebpf_native_unload(&free_module->client_id);
+        ebpf_native_unload(&free_module->client_module_id);
     }
 
     EBPF_RETURN_VOID();
@@ -311,24 +316,29 @@ ebpf_native_terminate()
     EBPF_RETURN_VOID();
 }
 
-static ebpf_result_t
-_ebpf_native_client_attach_callback(
-    ebpf_handle_t client_binding_handle,
-    _In_ void* context,
-    _In_ const GUID* client_id,
+static NTSTATUS
+_ebpf_native_provider_attach_client_callback(
+    HANDLE nmr_binding_handle,
+    _In_ void* provider_context,
+    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
     _In_ void* client_binding_context,
-    _In_ const ebpf_extension_data_t* client_data,
-    _In_ const ebpf_extension_dispatch_table_t* client_dispatch_table)
+    _In_ const void* client_dispatch,
+    _Out_ void** provider_binding_context,
+    _Out_ const void** provider_dispatch)
 {
-    UNREFERENCED_PARAMETER(context);
+    UNREFERENCED_PARAMETER(provider_context);
     UNREFERENCED_PARAMETER(client_binding_context);
-    UNREFERENCED_PARAMETER(client_dispatch_table);
+    UNREFERENCED_PARAMETER(client_dispatch);
 
+    *provider_dispatch = NULL;
+    *provider_binding_context = NULL;
+
+    const GUID* client_module_id = &client_registration_instance->ModuleId->Guid;
     EBPF_LOG_MESSAGE_GUID(
         EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_NATIVE,
         "_ebpf_native_client_attach_callback: Called for",
-        *client_id);
+        *client_module_id);
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = 0;
     ebpf_native_module_t** module = NULL;
@@ -340,7 +350,7 @@ _ebpf_native_client_attach_callback(
         result = EBPF_NO_MEMORY;
         goto Done;
     }
-    table = (metadata_table_t*)client_data;
+    table = (metadata_table_t*)client_registration_instance->NpiSpecificCharacteristics;
     if (!table->programs || !table->maps) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -349,27 +359,27 @@ _ebpf_native_client_attach_callback(
     ebpf_lock_create(&client_context->lock);
     // Acquire "attach" reference. Released when detach is called for this module.
     client_context->reference_count = 1;
-    client_context->client_id = *client_id;
+    client_context->client_module_id = *client_module_id;
     client_context->initialized = false;
     client_context->table = table;
-    client_context->client_binding_handle = client_binding_handle;
+    client_context->nmr_binding_handle = nmr_binding_handle;
 
     // Insert the new client context in the hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
     lock_acquired = true;
-    result = ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)client_id, (uint8_t**)&module);
+    result = ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)client_module_id, (uint8_t**)&module);
     if (result == EBPF_SUCCESS) {
         result = EBPF_OBJECT_ALREADY_EXISTS;
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "_ebpf_native_client_attach_callback: Module already exists",
-            *client_id);
+            *client_module_id);
         goto Done;
     }
     result = ebpf_hash_table_update(
         _ebpf_native_client_table,
-        (const uint8_t*)client_id,
+        (const uint8_t*)client_module_id,
         (const uint8_t*)&client_context,
         EBPF_HASH_TABLE_OPERATION_INSERT);
     if (result != EBPF_SUCCESS) {
@@ -383,20 +393,23 @@ Done:
     }
     if (result != EBPF_SUCCESS) {
         ebpf_free(client_context);
+    } else {
+        *provider_dispatch = NULL;
+        *provider_binding_context = client_context;
     }
-    EBPF_RETURN_RESULT(result);
+    EBPF_RETURN_NTSTATUS(ebpf_result_to_ntstatus(result));
 }
 
-static ebpf_result_t
-_ebpf_native_client_detach_callback(_In_ void* context, _In_ const GUID* client_id)
+static NTSTATUS
+_ebpf_native_provider_detach_client_callback(_In_ void* provider_binding_context)
 {
-    UNREFERENCED_PARAMETER(context);
+    ebpf_native_module_t* context = (ebpf_native_module_t*)provider_binding_context;
 
     EBPF_LOG_MESSAGE_GUID(
         EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_NATIVE,
         "_ebpf_native_client_detach_callback: Called for",
-        *client_id);
+        context->client_module_id);
     // 1. Find the entry in the hash table using "client_id"
     // 2. Release the "attach" reference on the native module.
     // 3. Return EBPF_PENDING
@@ -405,7 +418,8 @@ _ebpf_native_client_detach_callback(_In_ void* context, _In_ const GUID* client_
     ebpf_native_module_t* module = NULL;
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
     bool lock_acquired = true;
-    if (ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)client_id, (uint8_t**)&existing_module) !=
+    if (ebpf_hash_table_find(
+            _ebpf_native_client_table, (const uint8_t*)&context->client_module_id, (uint8_t**)&existing_module) !=
         EBPF_SUCCESS) {
         result = EBPF_SUCCESS;
         goto Done;
@@ -423,7 +437,7 @@ Done:
     if (lock_acquired) {
         ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
     }
-    EBPF_RETURN_RESULT(result);
+    EBPF_RETURN_NTSTATUS(ebpf_result_to_ntstatus(result));
 }
 
 ebpf_result_t
@@ -456,8 +470,9 @@ ebpf_native_initiate()
         NULL,
         NULL,
         NULL,
-        _ebpf_native_client_attach_callback,
-        _ebpf_native_client_detach_callback);
+        _ebpf_native_provider_attach_client_callback,
+        _ebpf_native_provider_detach_client_callback,
+        NULL);
 
     if (return_value != EBPF_SUCCESS) {
         goto Done;
@@ -695,7 +710,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
     module->map_count = map_count;
     native_maps = module->maps;
 
-    result = _ebpf_native_initialize_maps(&module->client_id, native_maps, maps, map_count);
+    result = _ebpf_native_initialize_maps(&module->client_module_id, native_maps, maps, map_count);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -709,7 +724,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "_ebpf_native_create_maps: module already detaching / unloading",
-                module->client_id);
+                module->client_module_id);
             break;
         }
 
@@ -802,7 +817,7 @@ _ebpf_native_resolve_maps_for_program(_In_ ebpf_native_module_t* module, _In_ co
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "_ebpf_native_resolve_maps_for_program: map indices not within range",
-                module->client_id);
+                module->client_module_id);
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
     }
@@ -840,7 +855,7 @@ _ebpf_native_resolve_maps_for_program(_In_ ebpf_native_module_t* module, _In_ co
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "_ebpf_native_resolve_maps_for_program: map address changed",
-                module->client_id);
+                module->client_module_id);
             goto Done;
         }
         native_maps[map_indices[i]].entry->address = (void*)map_addresses[i];
@@ -891,7 +906,7 @@ _ebpf_native_resolve_helpers_for_program(_In_ ebpf_native_module_t* module, _In_
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_core_resolve_helper failed",
-            module->client_id);
+            module->client_module_id);
         goto Done;
     }
 

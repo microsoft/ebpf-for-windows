@@ -3,8 +3,6 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include <Windows.h>
-
 #include <chrono>
 #include <cstdlib>
 #include <fstream>

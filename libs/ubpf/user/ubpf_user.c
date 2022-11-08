@@ -9,6 +9,7 @@
 #pragma warning(disable : 4018)
 #pragma warning(disable : 4090)
 #pragma warning(disable : 4146)
+#pragma warning(disable : 4152) // nonstandard extension, function/data pointer conversion in expression
 #pragma warning(disable : 4214)
 #pragma warning(disable : 4242)
 #pragma warning(disable : 4244)
@@ -19,6 +20,8 @@
 #define UBPF_STACK_SIZE 512
 
 #pragma warning(push)
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4211) // nonstandard extension used: redefined extern to static
 #pragma warning(disable : 6387) // ubpf_jit.c(70): error C6387: 'buffer' could be '0'
 #include "ubpf_jit.c"
 #include "ubpf_jit_x86_64.c"

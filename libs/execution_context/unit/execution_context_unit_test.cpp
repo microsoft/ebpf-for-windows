@@ -1007,8 +1007,8 @@ invoke_protocol(
 extern bool _ebpf_platform_code_integrity_enabled;
 
 #define NEGATIVE_TEST_PROLOG()                                                            \
-    std::vector<std::unique_ptr<_program_info_provider>> program_info_providers;          \
     _ebpf_core_initializer core;                                                          \
+    std::vector<std::unique_ptr<_program_info_provider>> program_info_providers;          \
     for (const auto& type : _program_types) {                                             \
         program_info_providers.push_back(std::make_unique<_program_info_provider>(type)); \
     }                                                                                     \
@@ -1450,7 +1450,7 @@ TEST_CASE("EBPF_OPERATION_LINK_PROGRAM", "[execution_context][negative]")
 
     // No provider.
     link_program_request->program_handle = program_handles[0];
-    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_EXTENSION_FAILED_TO_LOAD);
 }
 
 TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
@@ -1474,13 +1474,10 @@ TEST_CASE("EBPF_OPERATION_GET_PROGRAM_INFO", "[execution_context][negative]")
     // Invalid object type.
     REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_OBJECT);
 
-    // Invalid program type.
+    // Invalid program handle and type.
     request.program_handle = ebpf_handle_invalid;
-    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_ARGUMENT);
-
-    // Invalid handle and type.
-    request.program_handle = ebpf_handle_invalid;
-    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_ARGUMENT);
+    request.program_type = {0};
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_EXTENSION_FAILED_TO_LOAD);
 
     // Reply too small.
     request.program_handle = program_handles[0];
