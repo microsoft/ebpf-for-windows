@@ -137,7 +137,7 @@ ebpf_general_helper_function_provider_detach_client(_Inout_ void* provider_bindi
     return STATUS_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_initiate()
 {
     ebpf_result_t return_value;
