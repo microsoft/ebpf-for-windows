@@ -39,7 +39,7 @@ typedef struct _ebpf_program
         // EBPF_CODE_NATIVE
         struct
         {
-            const ebpf_native_module_t* module;
+            const ebpf_native_module_binding_context_t* module;
             const uint8_t* code_pointer;
         } native;
     } code_or_vm;
@@ -282,7 +282,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
         break;
 #endif
     case EBPF_CODE_NATIVE:
-        ebpf_native_release_reference((ebpf_native_module_t*)program->code_or_vm.native.module);
+        ebpf_native_release_reference((ebpf_native_module_binding_context_t*)program->code_or_vm.native.module);
         break;
     case EBPF_CODE_NONE:
         break;
@@ -304,13 +304,16 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
 }
 
 static ebpf_result_t
-ebpf_program_load_providers(ebpf_program_t* program)
+ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     void* provider_binding_context;
     ebpf_program_data_t* general_helper_program_data = NULL;
     GUID module_id = {0};
+
+    // First, register as a client of the general helper function
+    // provider and get the general helper program data.
 
     return_value = ebpf_guid_create(&module_id);
     if (return_value != EBPF_SUCCESS) {
@@ -361,6 +364,9 @@ ebpf_program_load_providers(ebpf_program_t* program)
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
+
+    // Next, register as a client of the specific program type
+    // provider and get the data associated with that program type.
 
     return_value = ebpf_guid_create(&module_id);
     if (return_value != EBPF_SUCCESS) {
@@ -623,7 +629,7 @@ _ebpf_program_load_machine_code(
         program->code_or_vm.native.code_pointer = machine_code;
         // Acquire reference on the native module. This reference
         // will be released when the ebpf_program is freed.
-        ebpf_native_acquire_reference((ebpf_native_module_t*)code_context);
+        ebpf_native_acquire_reference((ebpf_native_module_binding_context_t*)code_context);
     }
 
     return_value = EBPF_SUCCESS;
