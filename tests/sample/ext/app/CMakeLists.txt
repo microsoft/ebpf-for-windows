@@ -19,6 +19,8 @@ target_include_directories("sample_ext_app" PRIVATE
   "${CMAKE_SOURCE_DIR}/tests/libs/common"
   "${CMAKE_SOURCE_DIR}/tests/sample"
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
+  "${WDK_ROOT}/include/10.0.22000.0/km"
+  "${WDK_ROOT}/include/10.0.22000.0/shared"
 )
 
 target_link_libraries("sample_ext_app" PRIVATE

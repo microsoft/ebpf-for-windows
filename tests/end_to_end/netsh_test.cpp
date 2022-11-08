@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <winsock2.h> // Must be included before windows.h
 #include <windows.h>
 #include <netsh.h> // Must be included after windows.h
 #include <string.h>

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <Windows.h>
-
 #include <chrono>
 #include <filesystem>
 #include <map>
@@ -23,7 +21,6 @@
 
 extern "C" size_t ebfp_fuzzing_memory_limit;
 
-static std::vector<std::unique_ptr<_program_info_provider>> _program_information_providers;
 static std::vector<GUID> _program_types = {
     EBPF_PROGRAM_TYPE_XDP,
     EBPF_PROGRAM_TYPE_BIND,
@@ -161,7 +158,7 @@ class fuzz_wrapper
     {
         ebpf_core_initiate();
         for (const auto& type : _program_types) {
-            _program_information_providers.push_back(std::make_unique<_program_info_provider>(type));
+            program_information_providers.push_back(std::make_unique<_program_info_provider>(type));
         }
         for (const auto& type : _program_types) {
             std::string name = "program name";

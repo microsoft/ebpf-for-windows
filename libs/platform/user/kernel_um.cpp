@@ -4,8 +4,7 @@
 #include <condition_variable>
 #include <mutex>
 
-#include "netebpfext_platform.h"
-
+#include "ebpf_platform.h"
 #include "kernel_um.h"
 
 typedef struct _mock_rundown_ref
@@ -15,16 +14,6 @@ typedef struct _mock_rundown_ref
     size_t count = 0;
     bool rundown_in_progress = false;
 } mock_rundown_ref;
-
-typedef struct _MDL
-{
-    MDL* next;
-    size_t size;
-    uint64_t flags;
-    void* start_va;
-    unsigned long byte_offset;
-    unsigned long byte_count;
-} MDL, *PMDL;
 
 typedef struct _IO_WORKITEM
 {
