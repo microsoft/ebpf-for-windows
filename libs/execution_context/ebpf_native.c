@@ -39,7 +39,6 @@ typedef struct _ebpf_native_program
 typedef struct _ebpf_native_module_cleanup
 {
     GUID* client_id;
-    _Field_z_ wchar_t* service_name;
     ebpf_preemptible_work_item_t* cleanup_workitem;
 } ebpf_native_module_cleanup_t;
 
@@ -51,6 +50,7 @@ typedef struct _ebpf_native_module
     bool initialized;
     bool loading;
     bool loaded;
+    // This will be used to pass to the unload module workitem.
     _Field_z_ wchar_t* service_name;
     bool detaching;
     bool unloading;
@@ -159,7 +159,6 @@ _ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
 
     ebpf_free(module->service_name);
 
-    ebpf_free(module->cleanup.service_name);
     ebpf_free(module->cleanup.cleanup_workitem);
     ebpf_free(module->cleanup.client_id);
 
@@ -1075,13 +1074,6 @@ ebpf_native_load(
     }
     memcpy(local_service_name, (uint8_t*)service_name, service_name_length);
 
-    local_cleanup.service_name = ebpf_allocate((size_t)service_name_length + 2);
-    if (local_cleanup.service_name == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-    memcpy(local_cleanup.service_name, (uint8_t*)service_name, service_name_length);
-
     local_cleanup.client_id = (GUID*)ebpf_allocate(sizeof(GUID));
     if (local_cleanup.client_id == NULL) {
         result = EBPF_NO_MEMORY;
@@ -1090,7 +1082,7 @@ ebpf_native_load(
     *local_cleanup.client_id = *module_id;
 
     result = ebpf_allocate_preemptible_work_item(
-        &local_cleanup.cleanup_workitem, _ebpf_native_unload_work_item, local_cleanup.service_name);
+        &local_cleanup.cleanup_workitem, _ebpf_native_unload_work_item, local_service_name);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1137,7 +1129,6 @@ ebpf_native_load(
 
     local_cleanup.cleanup_workitem = NULL;
     local_cleanup.client_id = NULL;
-    local_cleanup.service_name = NULL;
 
     ebpf_lock_unlock(&module->lock, state);
 
@@ -1154,7 +1145,6 @@ Done:
         ebpf_free(local_service_name);
         ebpf_free(local_cleanup.cleanup_workitem);
         ebpf_free(local_cleanup.client_id);
-        ebpf_free(local_cleanup.service_name);
     }
 
     EBPF_RETURN_RESULT(result);
@@ -1392,15 +1382,15 @@ ebpf_native_unload(_In_ const GUID* module_id)
     if (!ebpf_is_preemptible()) {
         work_item = module->cleanup.cleanup_workitem;
         module->cleanup.cleanup_workitem = NULL;
-        module->cleanup.service_name = NULL;
+        module->service_name = NULL;
         queue_work_item = true;
     } else {
         // It is possible that the module is also detaching at the same time and
         // the module memory can be freed immediately after the hash table lock is
-        // released. Use the cleanup copy of the service name to use later to
+        // released. Use the service name from native module to use later to
         // unload the driver.
-        service_name = module->cleanup.service_name;
-        module->cleanup.service_name = NULL;
+        service_name = module->service_name;
+        module->service_name = NULL;
     }
     module->unloading = true;
 
