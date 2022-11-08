@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "ebpf_platform.h"
+
 /**
  * @brief This class is used to track memory allocations and fail the first allocation for
  * a specific stack. Increasing the number of stack frames examined will increase the
