@@ -257,7 +257,7 @@ _get_section_definition(const std::string& section)
         if (section.find(section_prefix) == 0) {
             size_t prefix_length = strlen(_windows_section_definitions[index].get()->section_prefix);
             if (match_length < prefix_length) {
-                match_index = index;
+                match_index = int32_t(index);
                 match_length = prefix_length;
             }
         }
