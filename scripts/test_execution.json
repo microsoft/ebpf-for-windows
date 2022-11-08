@@ -34,6 +34,17 @@
                     "V6Address": "fe80:eb8f::3"
                 }
             ]
+        },
+        {
+            "Name": "vip",
+            "Interfaces":
+            [
+                {
+                    "Alias": "Ethernet",
+                    "V4Address": "20.0.0.100",
+                    "V6Address": "fe80:eb8f::100"
+                }
+            ]
         }
     ]
 }

@@ -117,6 +117,45 @@ function Remove-eBPFProgramFromVM
     } -ArgumentList ($VM, $ProgId, "eBPF", $LogFileName) -ErrorAction Stop
 }
 
+function Start-ProcessOnVM
+{
+    param ([parameter(Mandatory=$true)] [string] $VM,
+           [parameter(Mandatory=$true)] [string] $ProgramName,
+           [string] $Parameters)
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    # Start process on VM.
+    Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
+        param([Parameter(Mandatory=$True)] [string] $VM,
+              [parameter(Mandatory=$true)] [string] $ProgramName,
+              [string] $Parameters,
+              [Parameter(Mandatory=$True)] [string] $WorkingDirectory)
+
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        $ProgramName = "$WorkingDirectory\$ProgramName"
+
+        Start-Process -FilePath $ProgramName -ArgumentList $Parameters
+    } -ArgumentList ($VM, $Program, $Parameters, "eBPF") -ErrorAction Stop
+}
+
+function Stop-ProcessOnVM
+{
+    param ([parameter(Mandatory=$true)] [string] $VM,
+           [parameter(Mandatory=$true)] [string] $ProgramName)
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    # Stop process on VM.
+    Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
+        param([Parameter(Mandatory=$True)] [string] $VM,
+              [parameter(Mandatory=$true)] [string] $ProgramName)
+
+        $ProgramName = [io.path]::GetFileNameWithoutExtension($ProgramName)
+        Stop-Process -Name $ProgramName
+    } -ArgumentList ($VM, $ProgramName) -ErrorAction Stop
+}
+
 function Invoke-XDPTestOnVM
 {
     param ([parameter(Mandatory=$true)] [string] $VM,
@@ -299,6 +338,60 @@ function Invoke-XDPTestsOnVM
     Invoke-XDPTest2 $VM1.Name $VM2.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
     Invoke-XDPTest3 $VM1.Name $VM2.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
     Invoke-XDPTest4 $VM1.Name $VM2.Name $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
+}
+
+function Invoke-ConnectRedirectTestsOnVM
+{
+    param([parameter(Mandatory=$true)] $MultiVMTestConfig)
+
+    $VM1 = $MultiVMTestConfig[0]
+    $VM1Interface = $VM1.Interfaces[0]
+    # $VM1Interface1Alias = $VM1Interface1.Alias
+    $VM1V4Address = $VM1Interface.V4Address
+    $VM1V6Address = $VM1Interface.V6Address
+
+    $VM2 = $MultiVMTestConfig[1]
+    $VM2Interface = $VM2.Interfaces[0]
+    $VM2V4Address = $VM2Interface.V4Address
+    $VM2V6Address = $VM2Interface.V6Address
+
+    $VipV4Address = $MultiVMTestConfig[2].Interfaces[0].V4Address
+    $VipV6Address = $MultiVMTestConfig[2].Interfaces[0].V6Address
+
+    $ProgramName = "tcp_udp_listener.exe"
+    $TcpParameters = "--protocol tcp"
+    $UdpParameters = "--protocol udp"
+
+    # Start TCP and UDP listeners on both VM1 and VM2
+    Start-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName -Parameters $TcpParameters
+    Start-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName -Parameters $UdpParameters
+    Start-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName -Parameters $TcpParameters
+    Start-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName -Parameters $UdpParameters
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    Invoke-Command -VMName $VM1.Name -Credential $TestCredential -ScriptBlock {
+        param([Parameter(Mandatory=$True)] [string] $VM,
+              [parameter(Mandatory=$true)][string] $LocalIPV4Address,
+              [parameter(Mandatory=$true)][string] $LocalIPV6Address,
+              [parameter(Mandatory=$true)][string] $RemoteIPV4Address,
+              [parameter(Mandatory=$true)][string] $RemoteIPV6Address,
+              [parameter(Mandatory=$true)][string] $VirtualIPV4Address,
+              [parameter(Mandatory=$true)][string] $VirtualIPV6Address,
+              [parameter(Mandatory=$true)][string] $WorkingDirectory,
+              [Parameter(Mandatory=$true)][string] $LogFileName)
+
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
+        Write-Log "Invoking connect redirect tests on $VM"
+        Invoke-ConnectRedirectTest -LocalIPV4Address $LocalIPV4Address -LocalIPV6Address $LocalIPV6Address -RemoteIPV4Address $RemoteIPV4Address -RemoteIPV6Address $RemoteIPV6Address -VirtualIPV4Address $VirtualIPV4Address -VirtualIPV6Address $VirtualIPV6Address
+        # Invoke-XDPTest $RemoteIPV4Address $RemoteIPV6Address $XDPTestName $WorkingDirectory
+    } -ArgumentList ($VM, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, "eBPF", $LogFileName) -ErrorAction Stop
+
+    Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
+    Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName
 }
 
 function Stop-eBPFComponentsOnVM

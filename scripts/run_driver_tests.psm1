@@ -160,4 +160,29 @@ function Invoke-XDPTest
     popd
 }
 
+function Invoke-ConnectRedirectTest
+{
+    param([parameter(Mandatory=$true)][string] $LocalIPV4Address,
+          [parameter(Mandatory=$true)][string] $LocalIPV6Address,
+          [parameter(Mandatory=$true)][string] $RemoteIPV4Address,
+          [parameter(Mandatory=$true)][string] $RemoteIPV6Address,
+          [parameter(Mandatory=$true)][string] $VirtualIPV4Address,
+          [parameter(Mandatory=$true)][string] $VirtualIPV6Address,
+          [parameter(Mandatory=$true)][string] $WorkingDirectory)
+
+    pushd $WorkingDirectory
+
+    $Parameters = "--virtual-ip-v4 $VirtualIPV4Address --virtual-ip-v6 $VirtualIPV6Address --local-ip-v4 $LocalIPV4Address --local-ip-v6 $LocalIPV6Address --remote-ip-v4 $RemoteIPV4Address --remote-ip-v6 $RemoteIPV6Address"
+    Write-Log "Executing connect redirect tests with parameters: $Parameters"
+    $LASTEXITCODE = 0
+    $Output = .\connect_redirect_tests.exe $Parameters
+    Out-String -InputObject $Output | Write-Log
+    $ParsedOutput = $Output.Split(" ")
+    if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("Connect-Redirect Test Failed.") }
+
+    Write-Log "Connect-Redirect Test Passed" -ForegroundColor Green
+
+    popd
+}
+
 Pop-Location
