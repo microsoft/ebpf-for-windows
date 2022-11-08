@@ -3,6 +3,7 @@
 
 // Windows build system requires include of Windows.h before other Windows
 // headers.
+#include <winsock2.h>
 #include <Windows.h>
 
 #include <chrono>
@@ -405,35 +406,46 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
     }
 }
 
+static auto provider_function = []() { return EBPF_SUCCESS; };
+
+static ebpf_extension_dispatch_table_t test_provider_dispatch_table = {
+    0, sizeof(ebpf_extension_dispatch_table_t), provider_function};
+
+static NTSTATUS
+test_provider_attach_client(
+    HANDLE nmr_binding_handle,
+    _Inout_ void* provider_context,
+    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
+    _In_ void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Out_ void** provider_binding_context,
+    _Out_ const void** provider_dispatch)
+{
+    ebpf_extension_provider_t* provider = (ebpf_extension_provider_t*)provider_context;
+    UNREFERENCED_PARAMETER(nmr_binding_handle);
+    UNREFERENCED_PARAMETER(provider);
+    UNREFERENCED_PARAMETER(client_registration_instance);
+    UNREFERENCED_PARAMETER(client_binding_context);
+    UNREFERENCED_PARAMETER(client_dispatch);
+    *provider_binding_context = nullptr;
+    *provider_dispatch = &test_provider_dispatch_table;
+    return STATUS_SUCCESS;
+};
+
+static NTSTATUS
+test_provider_detach_client(_In_ void* provider_binding_context)
+{
+    UNREFERENCED_PARAMETER(provider_binding_context);
+    return STATUS_SUCCESS;
+};
+
 TEST_CASE("extension_test", "[platform]")
 {
     _test_helper test_helper;
 
     auto client_function = []() { return EBPF_SUCCESS; };
-    auto provider_function = []() { return EBPF_SUCCESS; };
-    auto provider_attach = [](ebpf_handle_t client_binding_handle,
-                              void* context,
-                              const GUID* client_id,
-                              void* client_binding_context,
-                              const ebpf_extension_data_t* client_data,
-                              const ebpf_extension_dispatch_table_t* client_dispatch_table) {
-        UNREFERENCED_PARAMETER(client_binding_handle);
-        UNREFERENCED_PARAMETER(context);
-        UNREFERENCED_PARAMETER(client_id);
-        UNREFERENCED_PARAMETER(client_data);
-        UNREFERENCED_PARAMETER(client_dispatch_table);
-        UNREFERENCED_PARAMETER(client_binding_context);
-        return EBPF_SUCCESS;
-    };
-    auto provider_detach = [](void* context, const GUID* client_id) {
-        UNREFERENCED_PARAMETER(context);
-        UNREFERENCED_PARAMETER(client_id);
-        return EBPF_SUCCESS;
-    };
     ebpf_extension_dispatch_table_t client_dispatch_table = {
         0, sizeof(ebpf_extension_dispatch_table_t), client_function};
-    ebpf_extension_dispatch_table_t provider_dispatch_table = {
-        0, sizeof(ebpf_extension_dispatch_table_t), provider_function};
     ebpf_extension_data_t client_data{};
     ebpf_extension_data_t provider_data{};
     GUID interface_id;
@@ -459,10 +471,11 @@ TEST_CASE("extension_test", "[platform]")
             &provider_module_id,
             nullptr,
             &provider_data,
-            &provider_dispatch_table,
+            &test_provider_dispatch_table,
             &callback_context,
-            provider_attach,
-            provider_detach) == EBPF_SUCCESS);
+            test_provider_attach_client,
+            test_provider_detach_client,
+            nullptr) == EBPF_SUCCESS);
 
     REQUIRE(
         ebpf_extension_load(
@@ -479,7 +492,7 @@ TEST_CASE("extension_test", "[platform]")
             nullptr) == EBPF_SUCCESS);
 
     REQUIRE(returned_provider_data == &provider_data);
-    REQUIRE(returned_provider_dispatch_table == &provider_dispatch_table);
+    REQUIRE(returned_provider_dispatch_table == &test_provider_dispatch_table);
 
     ebpf_extension_unload(client_context);
     ebpf_provider_unload(provider_context);

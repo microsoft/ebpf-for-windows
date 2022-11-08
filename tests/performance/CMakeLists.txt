@@ -31,6 +31,8 @@ target_include_directories("ebpf_performance" PRIVATE
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/libs/thunk/mock"
   "${CMAKE_SOURCE_DIR}/netebpfext"
+  "${WDK_ROOT}/include/10.0.22000.0/km"
+  "${WDK_ROOT}/include/10.0.22000.0/shared"
 )
 
 target_link_libraries("ebpf_performance" PRIVATE
