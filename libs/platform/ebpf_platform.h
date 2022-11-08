@@ -1219,6 +1219,15 @@ extern "C"
         TraceLoggingKeyword((keyword)),                 \
         TraceLoggingString(message, "Message"));
 
+#define EBPF_LOG_MESSAGE_NTSTATUS(trace_level, keyword, message, status) \
+    TraceLoggingWrite(                                                   \
+        ebpf_tracelog_provider,                                          \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                             \
+        TraceLoggingLevel(trace_level),                                  \
+        TraceLoggingKeyword((keyword)),                                  \
+        TraceLoggingString(message, "Message"),                          \
+        TraceLoggingNTStatus(status));
+
 #define EBPF_LOG_MESSAGE_UTF8_STRING(trace_level, keyword, message, string) \
     TraceLoggingWrite(                                                      \
         ebpf_tracelog_provider,                                             \
@@ -1364,6 +1373,16 @@ extern "C"
         TraceLoggingKeyword((keyword)),                     \
         TraceLoggingString(#api, "api"),                    \
         TraceLoggingNTStatus(status));
+
+#define EBPF_LOG_NTSTATUS_API_FAILURE_MESSAGE(keyword, api, status, message) \
+    TraceLoggingWrite(                                                       \
+        ebpf_tracelog_provider,                                              \
+        EBPF_TRACELOG_EVENT_API_ERROR,                                       \
+        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                        \
+        TraceLoggingKeyword((keyword)),                                      \
+        TraceLoggingString(#api, "api"),                                     \
+        TraceLoggingNTStatus(status),                                        \
+        TraceLoggingString(message, "Message"));
 
 #define EBPF_LOG_NTSTATUS_WSTRING_API(keyword, wstring, api, status) \
     TraceLoggingWrite(                                               \
