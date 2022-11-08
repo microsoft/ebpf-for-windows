@@ -90,7 +90,9 @@ TEST_CASE("hash_table_test", "[platform]")
     }
 
     REQUIRE(
-        ebpf_hash_table_create(&table, ebpf_allocate, ebpf_free, key_1.size(), data_1.size(), 1, NULL) == EBPF_SUCCESS);
+        ebpf_hash_table_create(
+            &table, ebpf_allocate, ebpf_free, key_1.size(), data_1.size(), 1, EBPF_HASH_TABLE_NO_LIMIT, NULL) ==
+        EBPF_SUCCESS);
 
     // Insert first
     // Empty bucket case
@@ -192,6 +194,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
             sizeof(uint32_t),
             sizeof(uint64_t),
             static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
+            EBPF_HASH_TABLE_NO_LIMIT,
             NULL) == EBPF_SUCCESS);
     auto worker = [table, iterations, key_count, load_factor, &cpu_id]() {
         uint32_t next_key = 0;

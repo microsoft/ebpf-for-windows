@@ -27,6 +27,7 @@ ebpf_async_initiate()
         sizeof(void*),
         sizeof(ebpf_async_tracker_t),
         _ebpf_async_tracker_table_bucket_count,
+        EBPF_HASH_TABLE_NO_LIMIT,
         NULL));
 }
 

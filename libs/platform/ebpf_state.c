@@ -46,6 +46,7 @@ ebpf_state_initiate()
         sizeof(uint64_t),
         sizeof(ebpf_state_entry_t),
         ebpf_get_cpu_count(),
+        EBPF_HASH_TABLE_NO_LIMIT,
         NULL);
     if (return_value != EBPF_SUCCESS) {
         goto Error;
