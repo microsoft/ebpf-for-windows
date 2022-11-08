@@ -4,7 +4,6 @@
 #include <map>
 #include <stdexcept>
 #include <vector>
-#include <Windows.h>
 #include "api_common.hpp"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
