@@ -156,7 +156,13 @@ fuzz_async_completion(void*, size_t, ebpf_result_t){};
 class fuzz_wrapper
 {
   public:
-    fuzz_wrapper() { ebpf_core_initiate(); }
+    fuzz_wrapper()
+    {
+        ebpf_result_t result = ebpf_core_initiate();
+        if (result != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_core_initiate failed");
+        }
+    }
     void
     make_program(const GUID type)
     {
