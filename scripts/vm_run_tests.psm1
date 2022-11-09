@@ -371,7 +371,7 @@ function Invoke-ConnectRedirectTestsOnVM
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
     Invoke-Command -VMName $VM1.Name -Credential $TestCredential -ScriptBlock {
-        param([Parameter(Mandatory=$True)] [string] $VM,
+        param([Parameter(Mandatory=$True)][string] $VM,
               [parameter(Mandatory=$true)][string] $LocalIPV4Address,
               [parameter(Mandatory=$true)][string] $LocalIPV6Address,
               [parameter(Mandatory=$true)][string] $RemoteIPV4Address,
@@ -387,8 +387,7 @@ function Invoke-ConnectRedirectTestsOnVM
 
         Write-Log "Invoking connect redirect tests on $VM"
         Invoke-ConnectRedirectTest -LocalIPV4Address $LocalIPV4Address -LocalIPV6Address $LocalIPV6Address -RemoteIPV4Address $RemoteIPV4Address -RemoteIPV6Address $RemoteIPV6Address -VirtualIPV4Address $VirtualIPV4Address -VirtualIPV6Address $VirtualIPV6Address
-        # Invoke-XDPTest $RemoteIPV4Address $RemoteIPV6Address $XDPTestName $WorkingDirectory
-    } -ArgumentList ($VM, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, "eBPF", $LogFileName) -ErrorAction Stop
+    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, "eBPF", $LogFileName) -ErrorAction Stop
 
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
     Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName
