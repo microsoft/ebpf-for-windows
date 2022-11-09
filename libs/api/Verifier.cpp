@@ -178,12 +178,12 @@ load_byte_code(
     try {
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
         std::string file_name(filename);
-        std::string section_name;
+        std::string section_name_string;
         if (section_name != nullptr) {
-            section_name = std::string(section_name);
+            section_name_string = std::string(section_name);
         }
 
-        auto raw_programs = read_elf(file_name, section_name, verifier_options, platform);
+        auto raw_programs = read_elf(file_name, section_name_string, verifier_options, platform);
         if (raw_programs.size() == 0) {
             result = EBPF_ELF_PARSING_FAILED;
             goto Exit;
