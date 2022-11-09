@@ -309,6 +309,12 @@ function Initialize-NetworkInterfacesOnVMs
         $VMName = $VM.Name
         $Interfaces = $VM.Interfaces
 
+        if ($VM.Name -eq "vip")
+        {
+            # Skip "vip" as this is not a real VM.
+            continue
+        }
+
         Write-Log "Initializing network interfaces on $VMName"
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
