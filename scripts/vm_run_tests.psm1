@@ -136,7 +136,7 @@ function Start-ProcessOnVM
         $ProgramName = "$WorkingDirectory\$ProgramName"
 
         Start-Process -FilePath $ProgramName -ArgumentList $Parameters
-    } -ArgumentList ($VM, $Program, $Parameters, "eBPF") -ErrorAction Stop
+    } -ArgumentList ($VM, $ProgramName, $Parameters, "eBPF") -ErrorAction Stop
 }
 
 function Stop-ProcessOnVM
