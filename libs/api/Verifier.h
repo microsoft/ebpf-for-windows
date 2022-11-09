@@ -14,7 +14,7 @@ typedef int (*map_create_fp)(
 ebpf_result_t
 load_byte_code(
     _In_z_ const char* filename,
-    _In_opt_z_ const char* sectionname,
+    _In_opt_z_ const char* section_name,
     _In_ ebpf_verifier_options_t* verifier_options,
     _In_z_ const char* pin_root_path,
     _Inout_ std::vector<ebpf_program_t*>& programs,

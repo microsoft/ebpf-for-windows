@@ -161,7 +161,7 @@ _get_program_and_map_names(
 ebpf_result_t
 load_byte_code(
     _In_z_ const char* filename,
-    _In_opt_z_ const char* sectionname,
+    _In_opt_z_ const char* section_name,
     _In_ ebpf_verifier_options_t* verifier_options,
     _In_z_ const char* pin_root_path,
     _Inout_ std::vector<ebpf_program_t*>& programs,
@@ -179,8 +179,8 @@ load_byte_code(
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
         std::string file_name(filename);
         std::string section_name;
-        if (sectionname != nullptr) {
-            section_name = std::string(sectionname);
+        if (section_name != nullptr) {
+            section_name = std::string(section_name);
         }
 
         auto raw_programs = read_elf(file_name, section_name, verifier_options, platform);
