@@ -73,7 +73,7 @@ typedef class _ebpf_hash_table_test_state
         REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
         platform_initiated = true;
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
-        epoch_initated = true;
+        epoch_initiated = true;
 
         REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
         keys.resize(static_cast<size_t>(cpu_count) * 4ull);
@@ -103,7 +103,7 @@ typedef class _ebpf_hash_table_test_state
     {
         ebpf_hash_table_destroy(table);
 
-        if (epoch_initated)
+        if (epoch_initiated)
             ebpf_epoch_terminate();
         if (platform_initiated)
             ebpf_platform_terminate();
@@ -182,7 +182,7 @@ typedef class _ebpf_hash_table_test_state
     ebpf_hash_table_t* table;
     std::vector<uint32_t> keys;
     bool platform_initiated = false;
-    bool epoch_initated = false;
+    bool epoch_initiated = false;
     uint32_t cpu_count;
 
 } ebpf_hash_table_test_state_t;

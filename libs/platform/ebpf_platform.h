@@ -139,7 +139,7 @@ extern "C"
         _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size);
 
     /**
-     * @brief Rellocate memory.
+     * @brief Reallocate memory.
      * @param[in] memory Allocation to be reallocated.
      * @param[in] old_size Old size of memory to reallocate.
      * @param[in] new_size New size of memory to reallocate.
@@ -363,7 +363,7 @@ extern "C"
     /**
      * @brief Query the platform to determine if the current execution can
      *    be preempted by other execution.
-     * @retrval True if this execution can be preempted.
+     * @retval True if this execution can be preempted.
      */
     bool
     ebpf_is_preemptible();
@@ -474,7 +474,7 @@ extern "C"
         _In_opt_ void* work_item_context);
 
     /**
-     * @brief Schedule a work item to be executed after elaped_microseconds.
+     * @brief Schedule a work item to be executed after elapsed_microseconds.
      *
      * @param[in] timer Pointer to timer to schedule.
      * @param[in] elapsed_microseconds Microseconds to delay before executing
