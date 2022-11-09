@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_platform.h"
-#include "ebpf_utilities.h"
+
 #include <intsafe.h>
 #include <functional>
 #include <map>
@@ -12,8 +12,12 @@
 #include <set>
 #include <stdbool.h>
 #include <stdint.h>
-#include <vector>
+#include <string>
 #include <TraceLoggingProvider.h>
+#include <vector>
+
+#include "ebpf_low_memory_test.h"
+#include "ebpf_utilities.h"
 
 // Global variables used to override behavior for testing.
 // Permit the test to simulate both Hyper-V Code Integrity.
@@ -23,6 +27,14 @@ bool _ebpf_platform_is_preemptible = true;
 
 extern "C" bool ebpf_fuzzing_enabled = false;
 extern "C" size_t ebfp_fuzzing_memory_limit = MAXSIZE_T;
+
+std::unique_ptr<ebpf_low_memory_test_t> _ebpf_low_memory_test_ptr;
+
+/**
+ * @brief Environment variable to enable low memory testing.
+ *
+ */
+#define EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME "EBPF_LOW_MEMORY_SIMULATION"
 
 // Thread pool related globals.
 static TP_CALLBACK_ENVIRON _callback_environment;
@@ -213,6 +225,20 @@ class _ebpf_emulated_dpc
     bool terminate;
 };
 
+static std::string
+_get_environment_variable(const std::string& name)
+{
+    std::string value;
+    size_t required_size = 0;
+    getenv_s(&required_size, nullptr, 0, name.c_str());
+    if (required_size > 0) {
+        value.resize(required_size);
+        getenv_s(&required_size, &value[0], required_size, name.c_str());
+        value.resize(required_size - 1);
+    }
+    return value;
+}
+
 ebpf_result_t
 ebpf_platform_initiate()
 {
@@ -220,6 +246,13 @@ ebpf_platform_initiate()
     try {
         _ebpf_platform_maximum_group_count = GetMaximumProcessorGroupCount();
         _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
+        auto low_memory_stack_depth = _get_environment_variable(EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
+        if (!low_memory_stack_depth.empty() && !_ebpf_low_memory_test_ptr) {
+            _ebpf_low_memory_test_ptr =
+                std::make_unique<ebpf_low_memory_test_t>(std::strtoul(low_memory_stack_depth.c_str(), nullptr, 10));
+            // Set flag to remove some asserts that fire from incorrect client behavior.
+            ebpf_fuzzing_enabled = true;
+        }
 
         for (size_t i = 0; i < ebpf_get_cpu_count(); i++) {
             _ebpf_emulated_dpcs.push_back(std::make_shared<_ebpf_emulated_dpc>(i));
@@ -259,6 +292,12 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
+bool
+ebpf_low_memory_test_in_progress()
+{
+    return _ebpf_low_memory_test_ptr != nullptr;
+}
+
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
 {
@@ -266,6 +305,11 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     if (size > ebfp_fuzzing_memory_limit) {
         return nullptr;
     }
+
+    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
+        return nullptr;
+    }
+
     void* memory;
     memory = calloc(size, 1);
     if (memory != nullptr)
@@ -281,6 +325,11 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     if (new_size > ebfp_fuzzing_memory_limit) {
         return nullptr;
     }
+
+    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
+        return nullptr;
+    }
+
     void* p = realloc(memory, new_size);
     if (p && (new_size > old_size))
         memset(((char*)p) + old_size, 0, new_size - old_size);
