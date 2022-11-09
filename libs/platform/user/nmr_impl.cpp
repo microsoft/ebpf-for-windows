@@ -212,7 +212,7 @@ _nmr::unbind_complete(_Inout_ binding& binding)
 }
 
 bool // true if pending, false if complete.
-_nmr::begin_unbind(_In_ binding& binding)
+_nmr::begin_unbind(_Inout_ binding& binding)
 {
     std::unique_lock l(lock);
     if (binding.client_binding_status != Ready || binding.provider_binding_status != Ready) {
