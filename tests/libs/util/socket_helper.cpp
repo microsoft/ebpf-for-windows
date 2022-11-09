@@ -14,6 +14,7 @@ void
 get_address_from_string(
     std::string& address_string, sockaddr_storage& address, _Out_opt_ ADDRESS_FAMILY* address_family)
 {
+    printf("ANUSA: get_address_from_string: address_string = %s\n", address_string.c_str());
     int error = 0;
     // Initialize the remote address.
     ADDRINFO* address_info = nullptr;
