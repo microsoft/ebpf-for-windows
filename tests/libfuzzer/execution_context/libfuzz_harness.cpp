@@ -19,7 +19,7 @@
 #include "libfuzzer.h"
 #include "platform.h"
 
-extern "C" size_t ebfp_fuzzing_memory_limit;
+extern "C" size_t ebpf_fuzzing_memory_limit;
 
 static std::vector<GUID> _program_types = {
     EBPF_PROGRAM_TYPE_XDP,
@@ -239,7 +239,7 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***)
 {
-    ebfp_fuzzing_memory_limit = 1024 * 1024 * 10;
+    ebpf_fuzzing_memory_limit = 1024 * 1024 * 10;
     return 0;
 }
 

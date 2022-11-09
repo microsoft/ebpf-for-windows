@@ -18,9 +18,9 @@
 #include "test_helper.hpp"
 
 std::string
-strip_paths(const std::string& orignal_string)
+strip_paths(const std::string& original_string)
 {
-    std::stringstream input_stream(orignal_string);
+    std::stringstream input_stream(original_string);
     std::stringstream output_stream;
     std::string line;
     while (std::getline(input_stream, line)) {
