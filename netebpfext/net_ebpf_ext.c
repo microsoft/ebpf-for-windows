@@ -985,7 +985,7 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
                 NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,
                 "_net_ebpf_ext_register_wfp_callout() failed to register callout",
-                 _net_ebpf_ext_wfp_callout_state[index].name,
+                (char*)_net_ebpf_ext_wfp_callout_states[index].name);
             goto Exit;
         }
     }
