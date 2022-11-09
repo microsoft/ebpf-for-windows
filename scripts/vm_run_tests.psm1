@@ -386,7 +386,7 @@ function Invoke-ConnectRedirectTestsOnVM
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Write-Log "Invoking connect redirect tests on $VM"
-        Invoke-ConnectRedirectTest -LocalIPV4Address $LocalIPV4Address -LocalIPV6Address $LocalIPV6Address -RemoteIPV4Address $RemoteIPV4Address -RemoteIPV6Address $RemoteIPV6Address -VirtualIPV4Address $VirtualIPV4Address -VirtualIPV6Address $VirtualIPV6Address
+        Invoke-ConnectRedirectTest -LocalIPV4Address $LocalIPV4Address -LocalIPV6Address $LocalIPV6Address -RemoteIPV4Address $RemoteIPV4Address -RemoteIPV6Address $RemoteIPV6Address -VirtualIPV4Address $VirtualIPV4Address -VirtualIPV6Address $VirtualIPV6Address -WorkingDirectory $WorkingDirectory
     } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, "eBPF", $LogFileName) -ErrorAction Stop
 
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
