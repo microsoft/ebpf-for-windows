@@ -22,6 +22,7 @@
 #include "helpers.h"
 #include "ioctl_helper.h"
 #include "mock.h"
+#include "passed_test_log.h"
 #include "platform.h"
 #include "program_helper.h"
 #include "sample_test_common.h"
@@ -33,6 +34,8 @@ namespace ebpf {
 #include "net/ip.h"
 #include "net/udp.h"
 }; // namespace ebpf
+
+CATCH_REGISTER_LISTENER(_passed_test_log)
 
 #define NATIVE_DRIVER_SERVICE_NAME L"test_service"
 #define NATIVE_DRIVER_SERVICE_NAME_2 L"test_service2"
@@ -347,7 +350,9 @@ ebpf_program_load(
     if (error < 0) {
         if (log_buffer) {
             size_t log_buffer_size;
-            *log_buffer = _strdup(bpf_program__log_buf(program, &log_buffer_size));
+            if (program != nullptr) {
+                *log_buffer = _strdup(bpf_program__log_buf(program, &log_buffer_size));
+            }
         }
         bpf_object__close(new_object);
         return error;

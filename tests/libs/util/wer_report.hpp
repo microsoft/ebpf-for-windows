@@ -5,6 +5,7 @@
 
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 #include <Windows.h>
+#include <csignal>
 #include <errorrep.h>
 #include <stdexcept>
 #include <string>
@@ -41,6 +42,8 @@ class _wer_report
         unsigned long guaranteed_stack_size = static_cast<unsigned long>(minimum_stack_size_for_wer);
         char* buffer = nullptr;
         size_t size = 0;
+
+        // Check if the EBPF_ENABLE_WER_REPORT is set to "yes".
         _dupenv_s(&buffer, &size, environment_variable_name);
         if (size == 0 || !buffer || _stricmp(environment_variable_value, buffer) != 0) {
             free(buffer);
@@ -48,9 +51,25 @@ class _wer_report
         }
         free(buffer);
 
+        // Redirect error output to STDERR so that it is captured in the console
+        // when running in CI/CD.
+        _set_error_mode(_OUT_TO_STDERR);
+
+        // Add a hook to generate WER report on failed assertions and other
+        //  failures raised by MSVC runtime.
+        _CrtSetReportHook(_terminate_hook);
+
+        // Add a hook to generate WER report on noexcept violations and other
+        // cases where the CRT calls std::abort().
+        signal(SIGABRT, signal_handler);
+
+        // Reserve stack space for WER report generation.
         if (!SetThreadStackGuarantee(&guaranteed_stack_size)) {
             throw std::runtime_error("SetThreadStackGuarantee failed");
         }
+
+        // Add a vectored exception handler to generate WER report on unhandled
+        // exceptions.
         vectored_exception_handler_handle = AddVectoredExceptionHandler(TRUE, _wer_report::vectored_exception_handler);
         enabled = true;
     }
@@ -64,6 +83,20 @@ class _wer_report
     static constexpr const char environment_variable_name[] = "EBPF_ENABLE_WER_REPORT";
     static constexpr const char environment_variable_value[] = "yes";
     static constexpr const wchar_t wer_event_type[] = L"Test Application Crash";
+
+    static int __CRTDECL
+    _terminate_hook(int, char*, int*)
+    {
+        // Convert a CRT runtime error into a SEH exception.
+        RaiseException(STATUS_ASSERTION_FAILURE, 0, 0, NULL);
+        return 0;
+    }
+
+    static void __cdecl signal_handler(int)
+    {
+        // Convert a SIGABRT signal into a SEH exception.
+        RaiseException(STATUS_ASSERTION_FAILURE, 0, 0, NULL);
+    }
 
     static constexpr unsigned long fatal_exceptions[] = {
         STATUS_ACCESS_VIOLATION,
