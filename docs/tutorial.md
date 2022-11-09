@@ -16,12 +16,12 @@ apply them in a real use case.
 
 # 2. Authoring a simple eBPF Program
 
-Note: This walkthrough is based on the one at [eBPF assembly with LLVM (qmonnet.github.io)](https://qmonnet.github.io/whirl-offload/2020/04/12/llvm-ebpf-asm/),
+Note: This walk-through is based on the one at [eBPF assembly with LLVM (qmonnet.github.io)](https://qmonnet.github.io/whirl-offload/2020/04/12/llvm-ebpf-asm/),
 and in fact the same steps should work on both Windows and Linux, including
 in WSL on Windows.  (The only exception is that the llvm-objdump utility will
 fail if you have an old LLVM version in WSL, i.e., if `llvm-objdump -version`
 shows only LLVM version 3.8.0, it is too old and needs to be upgraded first.)
-However, we'll do this walkthrough assuming one is only using Windows.
+However, we'll do this walk-through assuming one is only using Windows.
 
 **Step 1)** Author a new file by putting some content into a file, say `bpf.c`:
 
@@ -64,7 +64,7 @@ Since we compiled the program optimized, and without debug info, that's
 all we can get.
 
 **Step 3)** Repeat the above exercise but enable debugging using `-g` and
-for this walkthrough we will put the result into a separate `.o` file,
+for this walk-through we will put the result into a separate `.o` file,
 `bpf-d.o` in this example:
 
 ```
