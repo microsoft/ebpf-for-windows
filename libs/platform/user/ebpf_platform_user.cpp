@@ -239,7 +239,6 @@ _get_environment_variable(const std::string& name)
     return value;
 }
 
-ebpf_result_t
 _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
