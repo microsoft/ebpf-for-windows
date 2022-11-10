@@ -33,8 +33,4 @@ division_by_zero(uint32_t address)
     fprintf(stderr, "Divide by zero at address %d\n", address);
 }
 
-#define FIND_METADATA_ENTRY(NAME, X) \
-    if (std::string(NAME) == #X)     \
-        return &X;
-
 __declspec(dllexport) metadata_table_t* get_metadata_table() { return &metadata_table; }
