@@ -55,6 +55,16 @@ map_register(int r)
     return 0;
 }
 
+// Thunk out JIT related calls.
+// Workaround until https://github.com/iovisor/ubpf/issues/185 is fixed.
+int
+ubpf_translate_x86_64(struct ubpf_vm* vm, uint8_t* buffer, size_t* size, char** errmsg)
+{
+    return -1;
+}
+
+void __cdecl abort(void) { KeBugCheck(PAGE_FAULT_IN_NONPAGED_AREA); }
+
 #include "ubpf_vm.c"
 #pragma warning(push)
 #pragma warning(disable : 6387) // ubpf_jit.c(70): error C6387: 'buffer' could be '0'
