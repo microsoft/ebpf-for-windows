@@ -85,6 +85,9 @@
     <ClCompile Include="kernel_um.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ebpf_low_memory_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="..\ebpf_program_types.idl">
@@ -131,6 +134,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="kernel_um.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ebpf_low_memory_test.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
