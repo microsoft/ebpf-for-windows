@@ -95,9 +95,9 @@ This will build the following binaries:
                 and the EbpfCore and NetEbpfExt drivers to be loaded on a remote system to test.
 * `socket_tests.exe`: Application for testing the eBPF extension that implements the BPF_CGROUP_SOCK_ADDR program type and related attach types.
 
-and a few binaries just used for demo'ing eBPF functionality, as in the demo walk-through discussed below:
+and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
 
-* `dnsflood.exe`: A utility to send 0-byte DNS packets, to illustrate a case that the sample walk-through uses eBPF
+* `dnsflood.exe`: A utility to send 0-byte DNS packets, to illustrate a case that the sample walkthrough uses eBPF
                 to defend against.
 * `port_leak.exe`: A "buggy" utility to illustrate the effect of an app that leaks ports.
 * `port_quota.exe`: A sample utility to illustrate using eBPF to manage port quotas to defend against `port_leak.exe`
@@ -162,7 +162,7 @@ Follow the [VM Installation Instructions](vm-setup.md) and [eBPF Installation In
 
 ## Using eBPF for Windows
 
-If you're not already familiar with eBPF, or want a detailed walk-through, see our [eBPF tutorial](tutorial.md).
+If you're not already familiar with eBPF, or want a detailed walkthrough, see our [eBPF tutorial](tutorial.md).
 
 For API documentation, see https://microsoft.github.io/ebpf-for-windows/
 ### Port leak and bind observability demo
@@ -274,7 +274,7 @@ This uses `bpf_xdp_adjust_head` helper function to encapsulate an outer IP heade
    1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
    2. Run `xdp_tests.exe xdp_encap_reflect_test --remote-ip <IP on the first host>`. See **Note 2** below.
 
-#### De-encapsulation Test
+#### Decapsulation Test
 This uses `bpf_xdp_adjust_head` helper function to decapsulate an outer IP header from a packet.
 1. On *both* the hosts, [install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
 2. On the first host load the first test eBPF program by running the following command: `netsh ebpf add program encap_reflect_packet.o xdp` and note the ID. See **Note 3** below.
