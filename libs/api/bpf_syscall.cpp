@@ -10,8 +10,8 @@
         return -1;                                                                          \
     }
 
-int
-bpf(int cmd, union bpf_attr* attr, unsigned int size)
+static int
+_bpf(int cmd, union bpf_attr* attr, unsigned int size) noexcept
 {
     switch (cmd) {
     case BPF_LINK_DETACH:
@@ -86,4 +86,10 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
         errno = EINVAL;
         return -1;
     }
+}
+
+int
+bpf(int cmd, union bpf_attr* attr, unsigned int size)
+{
+    return _bpf(cmd, attr, size);
 }

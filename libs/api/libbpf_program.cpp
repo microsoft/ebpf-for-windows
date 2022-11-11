@@ -13,8 +13,8 @@
 // minimize diffs until libbpf becomes cross-platform capable.  This is a temporary workaround for
 // issue #351 until we can compile and use libbpf.c directly.
 
-int
-bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz)
+static int
+_bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz) noexcept
 {
     if (load_attr->insns_cnt < 1 || load_attr->insns_cnt > UINT32_MAX) {
         return libbpf_err(-EINVAL);
@@ -42,14 +42,20 @@ bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_
 }
 
 int
-bpf_load_program(
+bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz)
+{
+    return _bpf_load_program_xattr(load_attr, log_buf, log_buf_sz);
+}
+
+static int
+_bpf_load_program(
     enum bpf_prog_type type,
     const struct bpf_insn* insns,
     size_t insns_cnt,
     const char* license,
     __u32 kern_version,
     char* log_buf,
-    size_t log_buf_sz)
+    size_t log_buf_sz) noexcept
 {
     if (log_buf_sz > UINT32_MAX) {
         return libbpf_err(-EINVAL);
@@ -60,13 +66,26 @@ bpf_load_program(
 }
 
 int
-bpf_prog_load(
+bpf_load_program(
+    enum bpf_prog_type type,
+    const struct bpf_insn* insns,
+    size_t insns_cnt,
+    const char* license,
+    __u32 kern_version,
+    char* log_buf,
+    size_t log_buf_sz)
+{
+    return _bpf_load_program(type, insns, insns_cnt, license, kern_version, log_buf, log_buf_sz);
+}
+
+static int
+_bpf_prog_load(
     enum bpf_prog_type prog_type,
     const char* prog_name,
     const char* license,
     const struct bpf_insn* insns,
     size_t insn_cnt,
-    const struct bpf_prog_load_opts* opts)
+    const struct bpf_prog_load_opts* opts) noexcept
 {
     UNREFERENCED_PARAMETER(license);
 
@@ -99,7 +118,20 @@ bpf_prog_load(
 }
 
 int
-bpf_prog_load_deprecated(const char* file_name, enum bpf_prog_type type, struct bpf_object** object, int* program_fd)
+bpf_prog_load(
+    enum bpf_prog_type prog_type,
+    const char* prog_name,
+    const char* license,
+    const struct bpf_insn* insns,
+    size_t insn_cnt,
+    const struct bpf_prog_load_opts* opts)
+{
+    return _bpf_prog_load(prog_type, prog_name, license, insns, insn_cnt, opts);
+}
+
+static int
+_bpf_prog_load_deprecated(
+    const char* file_name, enum bpf_prog_type type, struct bpf_object** object, int* program_fd) noexcept
 {
     *object = nullptr;
 
@@ -130,44 +162,86 @@ bpf_prog_load_deprecated(const char* file_name, enum bpf_prog_type type, struct 
 }
 
 int
-bpf_program__fd(const struct bpf_program* program)
+bpf_prog_load_deprecated(const char* file_name, enum bpf_prog_type type, struct bpf_object** object, int* program_fd)
+{
+    return _bpf_prog_load_deprecated(file_name, type, object, program_fd);
+}
+
+static int
+_bpf_program__fd(const struct bpf_program* program) noexcept
 {
     return (int)ebpf_program_get_fd(program);
 }
 
-const char*
-bpf_program__name(const struct bpf_program* prog)
+int
+bpf_program__fd(const struct bpf_program* program)
+{
+    return _bpf_program__fd(program);
+}
+
+static const char*
+_bpf_program__name(const struct bpf_program* prog) noexcept
 {
     return prog->program_name;
 }
 
 const char*
-bpf_program__section_name(const struct bpf_program* program)
+bpf_program__name(const struct bpf_program* prog)
+{
+    return _bpf_program__name(prog);
+}
+
+static const char*
+_bpf_program__section_name(const struct bpf_program* program) noexcept
 {
     return program->section_name;
 }
 
-size_t
-bpf_program__size(const struct bpf_program* program)
+const char*
+bpf_program__section_name(const struct bpf_program* program)
+{
+    return _bpf_program__section_name(program);
+}
+
+static size_t
+_bpf_program__size(const struct bpf_program* program) noexcept
 {
     return program->instruction_count * sizeof(ebpf_inst);
 }
 
 size_t
-bpf_program__insn_cnt(const struct bpf_program* program)
+bpf_program__size(const struct bpf_program* program)
+{
+    return _bpf_program__size(program);
+}
+
+static size_t
+_bpf_program__insn_cnt(const struct bpf_program* program) noexcept
 {
     return program->instruction_count;
 }
 
-const char*
-bpf_program__log_buf(const struct bpf_program* program, size_t* log_size)
+size_t
+bpf_program__insn_cnt(const struct bpf_program* program)
+{
+    return _bpf_program__insn_cnt(program);
+}
+
+static const char*
+_bpf_program__log_buf(const struct bpf_program* program, size_t* log_size) noexcept
 {
     *log_size = program->log_buffer_size;
     return program->log_buffer;
 }
 
-struct bpf_link*
-bpf_program__attach(const struct bpf_program* program)
+const char*
+bpf_program__log_buf(const struct bpf_program* program, size_t* log_size)
+{
+    return _bpf_program__log_buf(program, log_size);
+}
+
+static struct bpf_link*
+_bpf_program__attach(const struct bpf_program* program) noexcept
 {
     if (program == nullptr) {
         errno = EINVAL;
@@ -184,7 +258,13 @@ bpf_program__attach(const struct bpf_program* program)
 }
 
 struct bpf_link*
-bpf_program__attach_xdp(const struct bpf_program* program, int ifindex)
+bpf_program__attach(const struct bpf_program* program)
+{
+    return _bpf_program__attach(program);
+}
+
+static struct bpf_link*
+_bpf_program__attach_xdp(const struct bpf_program* program, int ifindex) noexcept
 {
     if (program == nullptr) {
         errno = EINVAL;
@@ -198,6 +278,12 @@ bpf_program__attach_xdp(const struct bpf_program* program, int ifindex)
     }
 
     return link;
+}
+
+struct bpf_link*
+bpf_program__attach_xdp(const struct bpf_program* program, int ifindex)
+{
+    return _bpf_program__attach_xdp(program, ifindex);
 }
 
 static bool
@@ -218,8 +304,8 @@ _does_attach_type_support_attachable_fd(enum bpf_attach_type type)
     return supported;
 }
 
-int
-bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsigned int flags)
+static int
+_bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsigned int flags) noexcept
 {
     bpf_link* link = nullptr;
     ebpf_result_t result = EBPF_SUCCESS;
@@ -237,7 +323,13 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
 }
 
 int
-bpf_prog_detach2(int prog_fd, int attachable_fd, enum bpf_attach_type type)
+bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsigned int flags)
+{
+    return _bpf_prog_attach(prog_fd, attachable_fd, type, flags);
+}
+
+static int
+_bpf_prog_detach2(int prog_fd, int attachable_fd, enum bpf_attach_type type) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
     const ebpf_attach_type_t* attach_type = get_ebpf_attach_type(type);
@@ -257,37 +349,73 @@ bpf_prog_detach2(int prog_fd, int attachable_fd, enum bpf_attach_type type)
 }
 
 int
-bpf_prog_detach(int attachable_fd, enum bpf_attach_type type)
+bpf_prog_detach2(int prog_fd, int attachable_fd, enum bpf_attach_type type)
+{
+    return _bpf_prog_detach2(prog_fd, attachable_fd, type);
+}
+
+static int
+_bpf_prog_detach(int attachable_fd, enum bpf_attach_type type) noexcept
 {
     return bpf_prog_detach2(ebpf_fd_invalid, attachable_fd, type);
 }
 
-struct bpf_program*
-bpf_program__next(struct bpf_program* prev, const struct bpf_object* obj)
+int
+bpf_prog_detach(int attachable_fd, enum bpf_attach_type type)
+{
+    return _bpf_prog_detach(attachable_fd, type);
+}
+
+static struct bpf_program*
+_bpf_program__next(struct bpf_program* prev, const struct bpf_object* obj) noexcept
 {
     return bpf_object__next_program(obj, prev);
 }
 
 struct bpf_program*
-bpf_object__next_program(const struct bpf_object* obj, struct bpf_program* prev)
+bpf_program__next(struct bpf_program* prev, const struct bpf_object* obj)
+{
+    return _bpf_program__next(prev, obj);
+}
+
+static struct bpf_program*
+_bpf_object__next_program(const struct bpf_object* obj, struct bpf_program* prev) noexcept
 {
     return ebpf_program_next(prev, obj);
 }
 
 struct bpf_program*
-bpf_program__prev(struct bpf_program* next, const struct bpf_object* obj)
+bpf_object__next_program(const struct bpf_object* obj, struct bpf_program* prev)
+{
+    return _bpf_object__next_program(obj, prev);
+}
+
+static struct bpf_program*
+_bpf_program__prev(struct bpf_program* next, const struct bpf_object* obj) noexcept
 {
     return bpf_object__prev_program(obj, next);
 }
 
 struct bpf_program*
-bpf_object__prev_program(const struct bpf_object* obj, struct bpf_program* next)
+bpf_program__prev(struct bpf_program* next, const struct bpf_object* obj)
+{
+    return _bpf_program__prev(next, obj);
+}
+
+static struct bpf_program*
+_bpf_object__prev_program(const struct bpf_object* obj, struct bpf_program* next) noexcept
 {
     return ebpf_program_previous(next, obj);
 }
 
-int
-bpf_program__unpin(struct bpf_program* prog, const char* path)
+struct bpf_program*
+bpf_object__prev_program(const struct bpf_object* obj, struct bpf_program* next)
+{
+    return _bpf_object__prev_program(obj, next);
+}
+
+static int
+_bpf_program__unpin(struct bpf_program* prog, const char* path) noexcept
 {
     ebpf_result_t result;
 
@@ -303,7 +431,13 @@ bpf_program__unpin(struct bpf_program* prog, const char* path)
 }
 
 int
-bpf_program__pin(struct bpf_program* prog, const char* path)
+bpf_program__unpin(struct bpf_program* prog, const char* path)
+{
+    return _bpf_program__unpin(prog, path);
+}
+
+static int
+_bpf_program__pin(struct bpf_program* prog, const char* path) noexcept
 {
     ebpf_result_t result;
 
@@ -319,6 +453,12 @@ bpf_program__pin(struct bpf_program* prog, const char* path)
     return 0;
 }
 
+int
+bpf_program__pin(struct bpf_program* prog, const char* path)
+{
+    return _bpf_program__pin(prog, path);
+}
+
 static char*
 __bpf_program__pin_name(struct bpf_program* prog)
 {
@@ -331,8 +471,8 @@ __bpf_program__pin_name(struct bpf_program* prog)
     return name;
 }
 
-int
-bpf_object__pin_programs(struct bpf_object* obj, const char* path)
+static int
+_bpf_object__pin_programs(struct bpf_object* obj, const char* path) noexcept
 {
     struct bpf_program* prog;
     int err;
@@ -379,7 +519,13 @@ err_unpin_programs:
 }
 
 int
-bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
+bpf_object__pin_programs(struct bpf_object* obj, const char* path)
+{
+    return _bpf_object__pin_programs(obj, path);
+}
+
+static int
+_bpf_object__unpin_programs(struct bpf_object* obj, const char* path) noexcept
 {
     struct bpf_program* prog;
     int err;
@@ -406,14 +552,26 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
     return 0;
 }
 
-enum bpf_attach_type
-bpf_program__get_expected_attach_type(const struct bpf_program* program)
+int
+bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
+{
+    return _bpf_object__unpin_programs(obj, path);
+}
+
+static enum bpf_attach_type
+_bpf_program__get_expected_attach_type(const struct bpf_program* program) noexcept
 {
     return get_bpf_attach_type(&program->attach_type);
 }
 
-int
-bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_attach_type type)
+enum bpf_attach_type
+bpf_program__get_expected_attach_type(const struct bpf_program* program)
+{
+    return _bpf_program__get_expected_attach_type(program);
+}
+
+static int
+_bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_attach_type type) noexcept
 {
     if (program->object->loaded)
         return libbpf_err(-EBUSY);
@@ -425,14 +583,26 @@ bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_atta
     return 0;
 }
 
-enum bpf_prog_type
-bpf_program__type(const struct bpf_program* program)
+int
+bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_attach_type type)
+{
+    return _bpf_program__set_expected_attach_type(program, type);
+}
+
+static enum bpf_prog_type
+_bpf_program__type(const struct bpf_program* program) noexcept
 {
     return get_bpf_program_type(&program->program_type);
 }
 
-int
-bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type)
+bpf_prog_type
+bpf_program__type(const struct bpf_program* program)
+{
+    return _bpf_program__type(program);
+}
+
+static int
+_bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type) noexcept
 {
     if (program->object->loaded)
         return libbpf_err(-EBUSY);
@@ -442,7 +612,13 @@ bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type)
 }
 
 int
-bpf_prog_get_fd_by_id(uint32_t id)
+bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type)
+{
+    return _bpf_program__set_type(program, type);
+}
+
+static int
+_bpf_prog_get_fd_by_id(uint32_t id) noexcept
 {
     fd_t fd;
     ebpf_result_t result = ebpf_get_program_fd_by_id(id, &fd);
@@ -453,13 +629,25 @@ bpf_prog_get_fd_by_id(uint32_t id)
 }
 
 int
-bpf_prog_get_next_id(uint32_t start_id, uint32_t* next_id)
+bpf_prog_get_fd_by_id(uint32_t id)
+{
+    return _bpf_prog_get_fd_by_id(id);
+}
+
+static int
+_bpf_prog_get_next_id(uint32_t start_id, uint32_t* next_id) noexcept
 {
     return libbpf_result_err(ebpf_get_next_program_id(start_id, next_id));
 }
 
 int
-libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum bpf_attach_type* expected_attach_type)
+bpf_prog_get_next_id(uint32_t start_id, uint32_t* next_id)
+{
+    return _bpf_prog_get_next_id(start_id, next_id);
+}
+
+static int
+_libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum bpf_attach_type* expected_attach_type)
 {
     if (name == nullptr || prog_type == nullptr || expected_attach_type == nullptr) {
         return libbpf_err(-EINVAL);
@@ -475,14 +663,26 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
 }
 
 int
-libbpf_attach_type_by_name(const char* name, enum bpf_attach_type* attach_type)
+libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum bpf_attach_type* expected_attach_type)
+{
+    return _libbpf_prog_type_by_name(name, prog_type, expected_attach_type);
+}
+
+static int
+_libbpf_attach_type_by_name(const char* name, enum bpf_attach_type* attach_type)
 {
     enum bpf_prog_type prog_type;
     return libbpf_prog_type_by_name(name, &prog_type, attach_type);
 }
 
-void
-bpf_program__unload(struct bpf_program* prog)
+int
+libbpf_attach_type_by_name(const char* name, enum bpf_attach_type* attach_type)
+{
+    return _libbpf_attach_type_by_name(name, attach_type);
+}
+
+static void
+_bpf_program__unload(struct bpf_program* prog) noexcept
 {
     ebpf_result_t result = ebpf_program_unload(prog);
     if (result != EBPF_SUCCESS) {
@@ -490,12 +690,24 @@ bpf_program__unload(struct bpf_program* prog)
     }
 }
 
-int
-bpf_prog_bind_map(int prog_fd, int map_fd, const struct bpf_prog_bind_opts* opts)
+void
+bpf_program__unload(struct bpf_program* prog)
+{
+    _bpf_program__unload(prog);
+}
+
+static int
+_bpf_prog_bind_map(int prog_fd, int map_fd, const struct bpf_prog_bind_opts* opts) noexcept
 {
     UNREFERENCED_PARAMETER(opts);
 
     return libbpf_result_err(ebpf_program_bind_map(prog_fd, map_fd));
+}
+
+int
+bpf_prog_bind_map(int prog_fd, int map_fd, const struct bpf_prog_bind_opts* opts)
+{
+    return _bpf_prog_bind_map(prog_fd, map_fd, opts);
 }
 
 static int
@@ -567,8 +779,8 @@ __bpf_set_link_xdp_fd_replace(int ifindex, int fd, int old_fd, __u32 flags)
     return 0;
 }
 
-int
-bpf_xdp_attach(int ifindex, int prog_fd, __u32 flags, const struct bpf_xdp_attach_opts* opts)
+static int
+_bpf_xdp_attach(int ifindex, int prog_fd, __u32 flags, const struct bpf_xdp_attach_opts* opts) noexcept
 {
     int old_prog_fd, err;
 
@@ -579,13 +791,25 @@ bpf_xdp_attach(int ifindex, int prog_fd, __u32 flags, const struct bpf_xdp_attac
 }
 
 int
-bpf_xdp_detach(int ifindex, __u32 flags, const struct bpf_xdp_attach_opts* opts)
+bpf_xdp_attach(int ifindex, int prog_fd, __u32 flags, const struct bpf_xdp_attach_opts* opts)
+{
+    return _bpf_xdp_attach(ifindex, prog_fd, flags, opts);
+}
+
+static int
+_bpf_xdp_detach(int ifindex, __u32 flags, const struct bpf_xdp_attach_opts* opts) noexcept
 {
     return bpf_xdp_attach(ifindex, -1, flags, opts);
 }
 
 int
-bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags)
+bpf_xdp_detach(int ifindex, __u32 flags, const struct bpf_xdp_attach_opts* opts)
+{
+    return _bpf_xdp_detach(ifindex, flags, opts);
+}
+
+static int
+_bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags) noexcept
 {
     int ret;
 
@@ -594,7 +818,13 @@ bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags)
 }
 
 int
-bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id)
+bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags)
+{
+    return _bpf_set_link_xdp_fd(ifindex, fd, flags);
+}
+
+static int
+_bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id) noexcept
 {
     UNREFERENCED_PARAMETER(flags);
 
@@ -625,8 +855,14 @@ bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id)
     }
 }
 
-const char*
-libbpf_bpf_attach_type_str(enum bpf_attach_type t)
+int
+bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id)
+{
+    return _bpf_xdp_query_id(ifindex, flags, prog_id);
+}
+
+static const char*
+_libbpf_bpf_attach_type_str(enum bpf_attach_type t) noexcept
 {
     if (t == BPF_ATTACH_TYPE_UNSPEC) {
         return "unspec";
@@ -636,11 +872,23 @@ libbpf_bpf_attach_type_str(enum bpf_attach_type t)
 }
 
 const char*
-libbpf_bpf_prog_type_str(enum bpf_prog_type t)
+libbpf_bpf_attach_type_str(enum bpf_attach_type t)
+{
+    return _libbpf_bpf_attach_type_str(t);
+}
+
+static const char*
+_libbpf_bpf_prog_type_str(enum bpf_prog_type t) noexcept
 {
     if (t == BPF_PROG_TYPE_UNSPEC) {
         return "unspec";
     }
     const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(t);
     return (program_type == nullptr) ? nullptr : ebpf_get_program_type_name(program_type);
+}
+
+const char*
+libbpf_bpf_prog_type_str(enum bpf_prog_type t)
+{
+    return _libbpf_bpf_prog_type_str(t);
 }

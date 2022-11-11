@@ -41,7 +41,7 @@ extern "C"
         fd_t fd,
         _Out_ ebpf_execution_type_t* execution_type,
         _Outptr_result_z_ const char** file_name,
-        _Outptr_result_z_ const char** section_name);
+        _Outptr_result_z_ const char** section_name) noexcept;
 
     typedef struct _ebpf_stat
     {
@@ -77,14 +77,14 @@ extern "C"
         _In_z_ const char* file,
         bool verbose,
         _Outptr_result_maybenull_ ebpf_section_info_t** infos,
-        _Outptr_result_maybenull_z_ const char** error_message);
+        _Outptr_result_maybenull_z_ const char** error_message) noexcept;
 
     /**
      * @brief Free memory returned from \ref ebpf_enumerate_sections.
      * @param[in] data Memory to free.
      */
     void
-    ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos);
+    ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos) noexcept;
 
     /**
      * @brief Convert an eBPF program to human readable byte code.
@@ -99,7 +99,7 @@ extern "C"
         _In_z_ const char* file,
         _In_z_ const char* section,
         _Outptr_result_maybenull_z_ const char** disassembly,
-        _Outptr_result_maybenull_z_ const char** error_message);
+        _Outptr_result_maybenull_z_ const char** error_message) noexcept;
 
     typedef struct
     {
@@ -130,7 +130,7 @@ extern "C"
         bool verbose,
         _Outptr_result_maybenull_z_ const char** report,
         _Outptr_result_maybenull_z_ const char** error_message,
-        _Out_opt_ ebpf_api_verifier_stats_t* stats);
+        _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept;
 
     /**
      * @brief Verify that the program is safe to execute.
@@ -156,14 +156,14 @@ extern "C"
         bool verbose,
         _Outptr_result_maybenull_z_ const char** report,
         _Outptr_result_maybenull_z_ const char** error_message,
-        _Out_opt_ ebpf_api_verifier_stats_t* stats);
+        _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept;
 
     /**
      * @brief Free memory for a string returned from an eBPF API.
      * @param[in] string Memory to free.
      */
     void
-    ebpf_free_string(_In_opt_ _Post_invalid_ const char* string);
+    ebpf_free_string(_In_opt_ _Post_invalid_ const char* string) noexcept;
 
     /**
      * @brief Dissociate a name with an object handle.
@@ -180,7 +180,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
-    ebpf_object_unpin(_In_z_ const char* path);
+    ebpf_object_unpin(_In_z_ const char* path) noexcept;
 
     /**
      * @brief Detach the eBPF program from the link.
@@ -201,7 +201,7 @@ extern "C"
      * @retval EBPF_INVALID_OBJECT Handle is not valid.
      */
     ebpf_result_t
-    ebpf_api_close_handle(ebpf_handle_t handle);
+    ebpf_api_close_handle(ebpf_handle_t handle) noexcept;
 
     /**
      * @brief Returns an array of \ref ebpf_map_info_t for all pinned maps.
@@ -215,7 +215,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_api_get_pinned_map_info(
-        _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info);
+        _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info) noexcept;
 
     /**
      * @brief Helper Function to free array of \ref ebpf_map_info_t allocated by
@@ -226,7 +226,7 @@ extern "C"
      */
     void
     ebpf_api_map_info_free(
-        uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_info_t* map_info);
+        uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_info_t* map_info) noexcept;
 
     /**
      * @brief Get the execution type for an eBPF object file.
@@ -248,7 +248,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
      */
     ebpf_result_t
-    ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type);
+    ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type) noexcept;
 
     /**
      * @brief Attach an eBPF program.
@@ -272,7 +272,7 @@ extern "C"
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
         _In_ size_t attach_params_size,
-        _Outptr_ struct bpf_link** link);
+        _Outptr_ struct bpf_link** link) noexcept;
 
     /**
      * @brief Attach an eBPF program by program file descriptor.
@@ -296,7 +296,7 @@ extern "C"
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
         _In_ size_t attach_parameters_size,
-        _Outptr_ struct bpf_link** link);
+        _Outptr_ struct bpf_link** link) noexcept;
 
     /**
      * @brief Detach an eBPF program from an attach point represented by
@@ -343,7 +343,7 @@ extern "C"
      * @sa bpf_link_detach
      */
     ebpf_result_t
-    ebpf_link_close(_In_ _Post_invalid_ struct bpf_link* link);
+    ebpf_link_close(_In_ _Post_invalid_ struct bpf_link* link) noexcept;
 
     /**
      * @brief Close a file descriptor. Also close the underlying handle.
@@ -369,7 +369,7 @@ extern "C"
     ebpf_get_program_type_by_name(
         _In_z_ const char* name,
         _Out_ ebpf_program_type_t* program_type,
-        _Out_ ebpf_attach_type_t* expected_attach_type);
+        _Out_ ebpf_attach_type_t* expected_attach_type) noexcept;
 
     /**
      * @brief Get the name of a given program type.
@@ -379,7 +379,7 @@ extern "C"
      * @returns Name of the program type, or NULL if not found.
      */
     _Ret_maybenull_z_ const char*
-    ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type);
+    ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type) noexcept;
 
     /**
      * @brief Get the name of a given attach type.
@@ -389,7 +389,7 @@ extern "C"
      * @returns Name of the attach type, or NULL if not found.
      */
     _Ret_maybenull_z_ const char*
-    ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type);
+    ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type) noexcept;
 
     /**
      * @brief Gets the next pinned program after a given path.
@@ -402,7 +402,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_get_next_pinned_program_path(
-        _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path);
+        _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) noexcept;
 
     typedef struct _ebpf_program_info ebpf_program_info_t;
 
@@ -416,7 +416,7 @@ extern "C"
      * @retval EBPF_OBJECT_NOT_FOUND No program information was found.
      */
     ebpf_result_t
-    ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info);
+    ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info) noexcept;
 
 #ifdef __cplusplus
 }
