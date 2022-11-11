@@ -224,7 +224,8 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
     } else if (new_ref_count == 0) {
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
         // Delete entry from hash table.
-        ebpf_assert_success(ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_module_id));
+        ebpf_assert_success(
+            ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_module_id));
         ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
 
         EBPF_LOG_MESSAGE_GUID(
@@ -1201,7 +1202,7 @@ Done:
         ebpf_free(local_cleanup.client_id);
     }
     if (local_module_hande != ebpf_handle_invalid) {
-        ebpf_handle_close(local_module_hande);
+        ebpf_assert_success(ebpf_handle_close(local_module_hande));
     }
 
     EBPF_RETURN_RESULT(result);
