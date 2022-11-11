@@ -175,7 +175,7 @@ function Invoke-ConnectRedirectTest
     $Parameters = "--virtual-ip-v4 $VirtualIPV4Address --virtual-ip-v6 $VirtualIPV6Address --local-ip-v4 $LocalIPV4Address --local-ip-v6 $LocalIPV6Address --remote-ip-v4 $RemoteIPV4Address --remote-ip-v6 $RemoteIPV6Address"
     Write-Log "Executing connect redirect tests with parameters: $Parameters"
     $LASTEXITCODE = 0
-    $Output = .\connect_redirect_tests.exe $Parameters
+    $Output = .\connect_redirect_tests.exe --virtual-ip-v4 $VirtualIPV4Address --virtual-ip-v6 $VirtualIPV6Address --local-ip-v4 $LocalIPV4Address --local-ip-v6 $LocalIPV6Address --remote-ip-v4 $RemoteIPV4Address --remote-ip-v6 $RemoteIPV6Address
     Out-String -InputObject $Output | Write-Log
     $ParsedOutput = $Output.Split(" ")
     if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("Connect-Redirect Test Failed.") }
