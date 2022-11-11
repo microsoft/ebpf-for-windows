@@ -14,7 +14,7 @@ TRACELOGGING_DEFINE_PROVIDER(
 
 static bool _ebpf_trace_initiated = false;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_trace_initiate()
 {
     if (_ebpf_trace_initiated) {
