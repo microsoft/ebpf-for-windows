@@ -183,3 +183,15 @@ net_ebpf_ext_trace_terminate();
         TraceLoggingUInt64((value1), (#value1)),                                                             \
         TraceLoggingUInt64((value2), (#value2)),                                                             \
         TraceLoggingUInt64((value3), (#value3)));
+
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY(trace_level, keyword, message, handle, protocol, redirect, verdict) \
+    TraceLoggingWrite(                                                                                          \
+        net_ebpf_ext_tracelog_provider,                                                                         \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                                                            \
+        TraceLoggingLevel(trace_level),                                                                         \
+        TraceLoggingKeyword((keyword)),                                                                         \
+        TraceLoggingString(message, "Message"),                                                                 \
+        TraceLoggingUInt64((handle), "TransportEndpointHandle"),                                                \
+        TraceLoggingUInt64((protocol), "Protocol"),                                                             \
+        TraceLoggingUInt64((redirect), "Redirected"),                                                           \
+        TraceLoggingUInt64((verdict), "Verdict"));
