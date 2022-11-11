@@ -748,7 +748,7 @@ handle_ebpf_show_programs(
                     std::cout << "# map IDs      : " << info.nr_map_ids << "\n";
 
                     if (info.nr_map_ids > 0) {
-                        std::vector<ebpf_id_t*> map_ids(info.nr_map_ids);
+                        std::vector<ebpf_id_t> map_ids(info.nr_map_ids);
                         info.map_ids = (uintptr_t)map_ids.data();
                         error = bpf_obj_get_info_by_fd(program_fd, &info, &info_size);
                         if (error < 0) {

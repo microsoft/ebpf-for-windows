@@ -343,7 +343,7 @@ ebpf_free(_Frees_ptr_opt_ void* memory)
 }
 
 // Override global new and delete operators to use ebpf_allocate and ebpf_free.
-void*
+_Ret_notnull_ _Post_writable_byte_size_(size) void*
 operator new(size_t size)
 {
     void* memory = ebpf_allocate(size);
@@ -353,7 +353,7 @@ operator new(size_t size)
     return memory;
 }
 
-void*
+_Ret_notnull_ _Post_writable_byte_size_(size) void*
 operator new[](size_t size)
 {
     void* memory = ebpf_allocate(size);
