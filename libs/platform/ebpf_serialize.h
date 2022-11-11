@@ -46,7 +46,7 @@ extern "C"
      * @retval EBPF_SUCCESS The serialization was successful.
      * @retval EBPF_ERROR_INSUFFICIENT_BUFFER The output buffer is insufficient to store serialized data.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_serialize_internal_map_info_array(
         uint16_t map_count,
         _In_count_(map_count) const ebpf_map_info_internal_t* map_info,
@@ -67,7 +67,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT One or more input parameters are incorrect.
      * @retval EBPF_NO_MEMORY Output array could not be allocated.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_deserialize_map_info_array(
         size_t input_buffer_length,
         _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
@@ -98,7 +98,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT One or more input parameters are incorrect.
      * @retval EBPF_ERROR_INSUFFICIENT_BUFFER The output buffer is insufficient to store serialized data.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_serialize_program_info(
         _In_ const ebpf_program_info_t* program_info,
         _Out_writes_bytes_to_(output_buffer_length, *serialized_data_length) uint8_t* output_buffer,
@@ -117,7 +117,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT One or more input parameters are incorrect.
      * @retval EBPF_NO_MEMORY Output array could not be allocated.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_deserialize_program_info(
         size_t input_buffer_length,
         _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
