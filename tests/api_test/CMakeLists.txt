@@ -17,8 +17,8 @@ target_include_directories("api_test" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/Platform/user"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
   "${CMAKE_SOURCE_DIR}/netebpfext"
-  "${WDK_ROOT}/include/10.0.22000.0/km"
-  "${WDK_ROOT}/include/10.0.22000.0/shared"
+  "${WDK_ROOT}/include/10.0.22621.0/km"
+  "${WDK_ROOT}/include/10.0.22621.0/shared"
 )
 
 target_link_libraries("api_test" PRIVATE
