@@ -37,6 +37,12 @@ extern "C"
 #define EBPF_PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
 #define EBPF_PAD_8(X) ((X + 7) & ~7)
 
+#define ebpf_assert_success(x)                      \
+    do {                                            \
+        ebpf_result_t _result = (x);                \
+        ebpf_assert(_result == EBPF_SUCCESS && #x); \
+    } while (0)
+
     /**
      * @brief A UTF-8 encoded string.
      * Notes:
@@ -830,16 +836,6 @@ extern "C"
     void
     ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context);
 
-    typedef ebpf_result_t (*ebpf_provider_client_attach_callback_t)(
-        ebpf_handle_t client_binding_handle,
-        void* context,
-        const GUID* client_module_id,
-        void* client_binding_context,
-        const ebpf_extension_data_t* client_data,
-        const ebpf_extension_dispatch_table_t* client_dispatch_table);
-
-    typedef ebpf_result_t (*ebpf_provider_client_detach_callback_t)(void* context, const GUID* client_id);
-
     /**
      * @brief Register as an extension provider.
      *
@@ -849,8 +845,9 @@ extern "C"
      * @param[in] provider_data Opaque provider data.
      * @param[in] provider_dispatch_table Table of function pointers the
      *  provider exposes.
-     * @param[in] client_attach_callback Function invoked when a client attaches.
-     * @param[in] client_detach_callback Function invoked when a client detaches.
+     * @param[in] attach_client_callback Function invoked when a client attaches.
+     * @param[in] detach_client_callback Function invoked when a client detaches.
+     * @param[in] provider_cleanup_binding_context_callback Function invoked when a binding context can be cleaned up.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The provider was unable to
      *  load.
@@ -866,8 +863,9 @@ extern "C"
         _In_opt_ const ebpf_extension_data_t* provider_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
         _In_opt_ void* callback_context,
-        _In_opt_ ebpf_provider_client_attach_callback_t client_attach_callback,
-        _In_opt_ ebpf_provider_client_detach_callback_t client_detach_callback);
+        _In_ NPI_PROVIDER_ATTACH_CLIENT_FN attach_client_callback,
+        _In_ NPI_PROVIDER_DETACH_CLIENT_FN detach_client_callback,
+        _In_opt_ PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN provider_cleanup_binding_context_callback);
 
     /**
      * @brief Unload a provider.
@@ -876,9 +874,6 @@ extern "C"
      */
     void
     ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context);
-
-    void
-    ebpf_provider_detach_client_complete(_In_ const GUID* interface_id, ebpf_handle_t client_binding_handle);
 
     ebpf_result_t
     ebpf_guid_create(_Out_ GUID* new_guid);
@@ -1213,6 +1208,15 @@ extern "C"
         TraceLoggingKeyword((keyword)),                 \
         TraceLoggingString(message, "Message"));
 
+#define EBPF_LOG_MESSAGE_NTSTATUS(trace_level, keyword, message, status) \
+    TraceLoggingWrite(                                                   \
+        ebpf_tracelog_provider,                                          \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                             \
+        TraceLoggingLevel(trace_level),                                  \
+        TraceLoggingKeyword((keyword)),                                  \
+        TraceLoggingString(message, "Message"),                          \
+        TraceLoggingNTStatus(status));
+
 #define EBPF_LOG_MESSAGE_UTF8_STRING(trace_level, keyword, message, string) \
     TraceLoggingWrite(                                                      \
         ebpf_tracelog_provider,                                             \
@@ -1358,6 +1362,16 @@ extern "C"
         TraceLoggingKeyword((keyword)),                     \
         TraceLoggingString(#api, "api"),                    \
         TraceLoggingNTStatus(status));
+
+#define EBPF_LOG_NTSTATUS_API_FAILURE_MESSAGE(keyword, api, status, message) \
+    TraceLoggingWrite(                                                       \
+        ebpf_tracelog_provider,                                              \
+        EBPF_TRACELOG_EVENT_API_ERROR,                                       \
+        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                        \
+        TraceLoggingKeyword((keyword)),                                      \
+        TraceLoggingString(#api, "api"),                                     \
+        TraceLoggingNTStatus(status),                                        \
+        TraceLoggingString(message, "Message"));
 
 #define EBPF_LOG_NTSTATUS_WSTRING_API(keyword, wstring, api, status) \
     TraceLoggingWrite(                                               \

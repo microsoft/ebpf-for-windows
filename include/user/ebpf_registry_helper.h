@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <windows.h>
+#include "ebpf_platform.h"
 #include "ebpf_api.h"
 #include "platform.h"
 
@@ -17,6 +17,8 @@
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
 typedef HKEY ebpf_registry_key_t;
+
+// Issue: #1542 - All API's should be annotated with _Must_inspect_result_
 
 void
 close_registry_key(ebpf_registry_key_t key);
@@ -38,8 +40,7 @@ uint32_t
 create_registry_key(
     ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key);
 
-uint32_t
-open_registry_key(
+_Success_(return == ERROR_SUCCESS) uint32_t open_registry_key(
     ebpf_registry_key_t root_key, _In_opt_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key);
 
 uint32_t

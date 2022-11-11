@@ -45,6 +45,9 @@ on:
       vs_dev:
         required: false
         type: boolean
+      low_memory:
+        required: false
+        type: boolean
 
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
@@ -138,6 +141,7 @@ jobs:
       run: |
         ${{env.PRE_COMMAND}}
 
+    # TODO: Cleanup the combination of options: https://github.com/microsoft/ebpf-for-windows/issues/1590
     - name: Run test with Code Coverage in VS Dev environment
       if: (inputs.code_coverage == true) && (inputs.vs_dev == true)
       id: run_test_with_code_coverage_in_vs_dev
@@ -145,10 +149,27 @@ jobs:
       run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
+          OpenCppCoverage.exe --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
+
+    - name: Run test with Code Coverage and low resource simulation
+      if: (inputs.code_coverage == true) && (inputs.low_memory == true)
+      id: run_test_with_code_coverage_in_low_memory
+      shell: cmd
+      run: |
+          set EBPF_ENABLE_WER_REPORT=yes
+          OpenCppCoverage.exe --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-LowMemory.ps1 ${{env.TEST_COMMAND}} 4
+
+    - name: Run test with low resource simulation
+      if: (inputs.code_coverage != true) && (inputs.low_memory == true)
+      id: run_test_with_low_memory
+      shell: cmd
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: |
+          set EBPF_ENABLE_WER_REPORT=yes
+          powershell.exe .\Test-LowMemory.ps1 ${{env.TEST_COMMAND}} 16
 
     - name: Run test with Code Coverage
-      if: (inputs.code_coverage == true) && (inputs.vs_dev != true)
+      if: (inputs.code_coverage == true) && (inputs.vs_dev != true) && (inputs.low_memory != true)
       id: run_test_with_code_coverage
       shell: cmd
       run: |
@@ -259,7 +280,7 @@ jobs:
         files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
 
     - name: Upload any crash dumps
-      if: (failure()) && (inputs.gather_dumps == true)
+      if: always() && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
       uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
       id: upload_crash_dumps
       with:

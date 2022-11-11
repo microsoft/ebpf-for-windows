@@ -8,8 +8,8 @@
 #include <optional>
 #include <vector>
 
-#include <ebpf_platform.h>
-#include <kernel_um.h>
+#include "ebpf_platform.h"
+#include "kernel_um.h"
 #include <netiodef.h>
 #include <../km/netioddk.h>
 
@@ -120,7 +120,7 @@ typedef class _nmr
     {
         const NPI_CLIENT_CHARACTERISTICS characteristics = {};
         const void* context = nullptr;
-        volatile long long bindings = 0;
+        volatile long long binding_count = 0;
         bool deregistering = false;
     };
 
@@ -128,13 +128,14 @@ typedef class _nmr
     {
         const NPI_PROVIDER_CHARACTERISTICS characteristics = {};
         const void* context = nullptr;
-        volatile long long bindings = 0;
+        volatile long long binding_count = 0;
         bool deregistering = false;
     };
 
     enum binding_status
     {
         Ready = 0,
+        BeginUnbind,
         UnbindPending,
         UnbindComplete
     };
@@ -234,7 +235,7 @@ typedef class _nmr
      * @param[in] binding_handle Binding handle to unbind.
      */
     void
-    unbind_complete(_In_ nmr_binding_handle binding_handle);
+    unbind_complete(_Inout_ binding& binding);
 
     /**
      * @brief Start the process of unbinding a client from a provider.
@@ -244,15 +245,21 @@ typedef class _nmr
      * @retval false Both the client and provider returned successfully.
      */
     bool
-    begin_unbind(_In_ nmr_binding_handle binding_handle);
+    begin_unbind(_Inout_ binding& binding);
 
-    std::map<nmr_binding_handle, binding> bindings;
+    // Binding handle is a pointer to the binding.
+    std::map<nmr_binding_handle, std::shared_ptr<binding>> bindings;
+    // Provider and client handles are incremented for each new provider or client.
     std::map<nmr_provider_handle, provider_registration> providers;
     std::map<nmr_client_handle, client_registration> clients;
 
     size_t next_handle = 1;
 
     std::condition_variable bindings_changed;
-    std::mutex lock;
+    std::mutex lock; // Protects all of the instance variables above,
+                     // as well as the client_binding_status and provider_binding_status
+                     // of each binding.  client.binding_count and provider.binding_count
+                     // on the other hand are not protected by this lock but instead use
+                     // interlocked operations.
 
 } nmr_t;

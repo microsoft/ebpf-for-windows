@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#pragma once
 
 #pragma warning(push)
 #pragma warning(disable : 26451) // Arithmetic overflow
