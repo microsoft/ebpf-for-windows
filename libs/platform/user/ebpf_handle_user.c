@@ -13,7 +13,7 @@ static _Requires_lock_held_(&_ebpf_handle_table_lock) ebpf_handle_entry_t _ebpf_
 
 static bool _ebpf_handle_table_initiated = false;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_handle_table_initiate()
 {
     EBPF_LOG_ENTRY();
@@ -32,13 +32,14 @@ ebpf_handle_table_terminate()
         EBPF_RETURN_VOID();
 
     for (handle = 0; handle < EBPF_COUNT_OF(_ebpf_handle_table); handle++) {
-        ebpf_handle_close(handle);
+        // Ignore invalid handle close.
+        (void)ebpf_handle_close(handle);
     }
     _ebpf_handle_table_initiated = false;
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_handle_create(ebpf_handle_t* handle, ebpf_base_object_t* object)
 {
     EBPF_LOG_ENTRY();
@@ -67,7 +68,7 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_handle_close(ebpf_handle_t handle)
 {
     // High volume call - Skip entry/exit logging.

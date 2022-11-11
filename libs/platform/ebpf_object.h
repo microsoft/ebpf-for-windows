@@ -76,7 +76,7 @@ extern "C"
      * @retval EBPF_SUCCESS Initialization succeeded.
      * @retval EBPF_NO_MEMORY Could not insert into the tracking table.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_object_initialize(
         ebpf_core_object_t* object,
         ebpf_object_type_t object_type,
@@ -133,7 +133,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object);
 
     /**
@@ -146,7 +146,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type);
 
     /**
@@ -157,7 +157,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS No such IDs found.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id);
 
     /**
