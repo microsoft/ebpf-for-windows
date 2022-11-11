@@ -740,7 +740,7 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
 
     ebpf_result_t result = ebpf_ring_buffer_map_async_query(map.get(), &completion.async_query_result, &completion);
     if (result != EBPF_PENDING) {
-        ebpf_async_reset_completion_callback(&completion);
+        REQUIRE(ebpf_async_reset_completion_callback(&completion) == EBPF_SUCCESS);
     }
     REQUIRE(result == EBPF_PENDING);
 
