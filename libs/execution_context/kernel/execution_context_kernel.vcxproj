@@ -55,6 +55,11 @@
     <ClInclude Include="..\ebpf_protocol.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\no_asan\no_asan_kernel.vcxproj">
+      <Project>{593eded2-6eb6-41b9-b6c3-6748462a2313}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{26E7ED0B-C128-4D7C-A90E-C246DEF40AD3}</ProjectGuid>
     <TemplateGuid>{0a049372-4c4d-4ea0-a64e-dc6ad88ceca1}</TemplateGuid>

@@ -122,6 +122,11 @@
       <TargetEnvironment Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Win32</TargetEnvironment>
     </Midl>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\no_asan\no_asan_kernel.vcxproj">
+      <Project>{593eded2-6eb6-41b9-b6c3-6748462a2313}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FC3F9998-4085-4767-8386-5453F07C3AAD}</ProjectGuid>
     <TemplateGuid>{0a049372-4c4d-4ea0-a64e-dc6ad88ceca1}</TemplateGuid>
