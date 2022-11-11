@@ -127,7 +127,7 @@ _ebpf_native_clean_up_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* 
 #pragma warning(pop)
         }
         if (map->handle != ebpf_handle_invalid) {
-            ebpf_handle_close(map->handle);
+            ebpf_assert_success(ebpf_handle_close(map->handle));
         }
     }
 
@@ -139,7 +139,7 @@ _ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program
 {
     for (uint32_t i = 0; i < count_of_programs; i++) {
         if (programs[i].handle != ebpf_handle_invalid) {
-            ebpf_handle_close(programs[i].handle);
+            ebpf_assert_success(ebpf_handle_close(programs[i].handle));
         }
     }
 
@@ -219,7 +219,7 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
     } else if (new_ref_count == 0) {
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
         // Delete entry from hash table.
-        ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_module_id);
+        ebpf_assert_success(ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_module_id));
         ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
 
         EBPF_LOG_MESSAGE_GUID(
@@ -538,6 +538,14 @@ _ebpf_native_initialize_maps(
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     const int ORIGINAL_ID_OFFSET = 1;
+
+    // First set all handle value to invalid.
+    // This is needed because initializing negative tests can cause initialization
+    // of native_maps to fail early, leaving some of the handle values uninitialized.
+    for (uint32_t i = 0; i < map_count; i++) {
+        native_maps[i].handle = ebpf_handle_invalid;
+    }
+
     for (uint32_t i = 0; i < map_count; i++) {
         if (maps[i].definition.pinning != PIN_NONE && maps[i].definition.pinning != PIN_GLOBAL_NS) {
             result = EBPF_INVALID_ARGUMENT;
@@ -545,7 +553,6 @@ _ebpf_native_initialize_maps(
         }
         native_maps[i].entry = &maps[i];
         native_maps[i].original_id = i + ORIGINAL_ID_OFFSET;
-        native_maps[i].handle = ebpf_handle_invalid;
         maps[i].address = NULL;
 
         if (maps[i].definition.pinning == PIN_GLOBAL_NS) {
@@ -648,7 +655,7 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
             goto Exit;
         }
         result = _ebpf_native_validate_map(inner_map, inner_map_handle);
-        ebpf_handle_close(inner_map_handle);
+        ebpf_assert_success(ebpf_handle_close(inner_map_handle));
     }
 
 Exit:
@@ -681,7 +688,7 @@ _ebpf_native_reuse_map(_Inout_ ebpf_native_map_t* map)
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        ebpf_handle_close(handle);
+        ebpf_assert_success(ebpf_handle_close(handle));
     }
     return result;
 }
@@ -707,6 +714,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
     if (module->maps == NULL) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
+
     module->map_count = map_count;
     native_maps = module->maps;
 

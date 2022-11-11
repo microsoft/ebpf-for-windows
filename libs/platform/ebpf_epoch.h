@@ -19,7 +19,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_epoch_initiate();
 
     /**
@@ -35,7 +35,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate per-thread
      *   tracking state.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_epoch_enter();
 
     /**
