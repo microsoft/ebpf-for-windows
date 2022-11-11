@@ -183,8 +183,10 @@ function Invoke-XDPTestOnVM
     } -ArgumentList ($VM, $XDPTestName, $RemoteIPV4Address, $RemoteIPV6Address, "eBPF", $LogFileName) -ErrorAction Stop
 }
 
-function Add-XDPTestFirewallRuleOnVM {
+function Add-FirewallRuleOnVM {
     param ([parameter(Mandatory=$true)] [string] $VM,
+           [parameter(Mandatory=$true)] [string] $ProgramName,
+           [parameter(Mandatory=$true)] [string] $RuleName,
            [Parameter(Mandatory=$True)] [string] $LogFileName)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -197,8 +199,8 @@ function Add-XDPTestFirewallRuleOnVM {
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
-        Write-Log "Allowing XDP test app through firewall on $VM."
-        New-NetFirewallRule -DisplayName "XDP_Test" -Program "$WorkingDirectory\xdp_tests.exe" -Direction Inbound -Action Allow
+        Write-Log "Allowing $ProgramName test app through firewall on $VM."
+        New-NetFirewallRule -DisplayName $RuleName -Program "$WorkingDirectory\$ProgramName" -Direction Inbound -Action Allow
     } -ArgumentList ($VM, "eBPF", $LogFileName) -ErrorAction Stop
 }
 
@@ -333,7 +335,7 @@ function Invoke-XDPTestsOnVM
 
     $VM2 = $MultiVMTestConfig[1]
 
-    Add-XDPTestFirewallRuleOnVM $VM2.Name $LogFileName
+    Add-FirewallRuleOnVM -VM $VM2.Name -RuleName "XDP_Test" -ProgramName "xdp_tests.exe" -LogFileName $LogFileName
     Invoke-XDPTest1 $VM1.Name $VM2.Name $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
     Invoke-XDPTest2 $VM1.Name $VM2.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
     Invoke-XDPTest3 $VM1.Name $VM2.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
@@ -361,6 +363,9 @@ function Invoke-ConnectRedirectTestsOnVM
     $ProgramName = "tcp_udp_listener.exe"
     $TcpParameters = "--protocol tcp"
     $UdpParameters = "--protocol udp"
+
+    Add-FirewallRuleOnVM -VM $VM1.Name -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
+    Add-FirewallRuleOnVM -VM $VM2.Name -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
     # Start TCP and UDP listeners on both VM1 and VM2
     Start-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName -Parameters $TcpParameters
