@@ -342,6 +342,39 @@ ebpf_free(_Frees_ptr_opt_ void* memory)
     free(memory);
 }
 
+// Override global new and delete operators to use ebpf_allocate and ebpf_free.
+void*
+operator new(size_t size)
+{
+    void* memory = ebpf_allocate(size);
+    if (!memory) {
+        throw std::bad_alloc();
+    }
+    return memory;
+}
+
+void*
+operator new[](size_t size)
+{
+    void* memory = ebpf_allocate(size);
+    if (!memory) {
+        throw std::bad_alloc();
+    }
+    return memory;
+}
+
+void
+operator delete(void* memory)
+{
+    ebpf_free(memory);
+}
+
+void
+operator delete[](void* memory)
+{
+    ebpf_free(memory);
+}
+
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate_cache_aligned(size_t size)
 {
@@ -380,7 +413,7 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 ebpf_memory_descriptor_t*
 ebpf_map_memory(size_t length)
 {
-    ebpf_memory_descriptor_t* descriptor = (ebpf_memory_descriptor_t*)malloc(sizeof(ebpf_memory_descriptor_t));
+    ebpf_memory_descriptor_t* descriptor = (ebpf_memory_descriptor_t*)ebpf_allocate(sizeof(ebpf_memory_descriptor_t));
     if (!descriptor) {
         return nullptr;
     }

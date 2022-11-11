@@ -635,7 +635,7 @@ TEST_CASE("serialize_map_test", "[platform]")
         map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
     REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
 
-    buffer = static_cast<uint8_t*>(calloc(required_length, 1));
+    buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
     REQUIRE(buffer != nullptr);
     if (!buffer) {
         return;
@@ -696,7 +696,7 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     // Serialize.
     REQUIRE(ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length));
 
-    buffer = static_cast<uint8_t*>(calloc(required_length, 1));
+    buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
     _Analysis_assume_(buffer != nullptr);
     buffer_length = required_length;
 

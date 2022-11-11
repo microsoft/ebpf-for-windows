@@ -20,7 +20,7 @@ bpf_link__pin(struct bpf_link* link, const char* path)
 
     result = ebpf_object_pin(link->fd, link->pin_path);
     if (result != EBPF_SUCCESS) {
-        free(link->pin_path);
+        ebpf_free(link->pin_path);
         link->pin_path = nullptr;
     }
 
@@ -40,7 +40,7 @@ bpf_link__unpin(struct bpf_link* link)
         return libbpf_result_err(result);
     }
 
-    free(link->pin_path);
+    ebpf_free(link->pin_path);
     link->pin_path = nullptr;
     return 0;
 }

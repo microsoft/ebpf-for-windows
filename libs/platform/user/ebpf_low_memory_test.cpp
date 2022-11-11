@@ -29,6 +29,31 @@
 
 #define EBPF_MODULE_SIZE_IN_BYTES (10 * 1024 * 1024)
 
+/**
+ * @brief Thread local storage to track recursing from the low memory callback.
+ */
+static thread_local int _ebpf_low_memory_test_recursion = 0;
+
+/**
+ * @brief Class to automatically increment and decrement the recursion count.
+ */
+class ebpf_low_memory_test_recursion_guard
+{
+  public:
+    ebpf_low_memory_test_recursion_guard() { _ebpf_low_memory_test_recursion++; }
+    ~ebpf_low_memory_test_recursion_guard() { _ebpf_low_memory_test_recursion--; }
+    /**
+     * @brief Return true if the current thread is recursing from the low memory callback.
+     * @retval true
+     * @retval false
+     */
+    bool
+    is_recursing()
+    {
+        return (_ebpf_low_memory_test_recursion > 1);
+    }
+};
+
 _ebpf_low_memory_test::_ebpf_low_memory_test(size_t stack_depth = EBPF_ALLOCATION_STACK_CAPTURE_FRAME_COUNT_FOR_HASH)
     : _stack_depth(stack_depth)
 {
@@ -52,8 +77,14 @@ _ebpf_low_memory_test::fail_stack_allocation()
 bool
 _ebpf_low_memory_test::is_new_stack()
 {
+    // Prevent infinite recursion during allocation.
+    ebpf_low_memory_test_recursion_guard recursion_guard;
+    if (recursion_guard.is_recursing()) {
+        return false;
+    }
     std::vector<uintptr_t> stack(EBPF_ALLOCATION_STACK_CAPTURE_FRAME_COUNT);
     std::vector<uintptr_t> canonical_stack(_stack_depth);
+
     DWORD hash;
     // Capture EBPF_ALLOCATION_STACK_CAPTURE_FRAME_COUNT_FOR_HASH frames of the current stack trace.
     if (CaptureStackBackTrace(

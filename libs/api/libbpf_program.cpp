@@ -113,7 +113,7 @@ bpf_prog_load_deprecated(const char* file_name, enum bpf_prog_type type, struct 
     struct bpf_object* new_object;
     ebpf_result_t result =
         ebpf_object_open(file_name, nullptr, nullptr, program_type, nullptr, &new_object, &log_buffer);
-    free((void*)log_buffer);
+    ebpf_free((void*)log_buffer);
     if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
     }
