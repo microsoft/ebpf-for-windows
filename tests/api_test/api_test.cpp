@@ -664,14 +664,24 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
     REQUIRE(native_module_handle != ebpf_handle_invalid);
 
     // Bindmonitor has 2 maps and 1 program. Fetch and close all these fds.
-    fd_t map1_fd = bpf_object__find_map_fd_by_name(object, "process_map");
-    fd_t map2_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
-    REQUIRE(map1_fd != ebpf_fd_invalid);
-    REQUIRE(map2_fd != ebpf_fd_invalid);
+    bpf_map* map1 = bpf_object__find_map_by_name(object, "process_map");
+    REQUIRE(map1 != nullptr);
+    REQUIRE(map1->map_fd != ebpf_fd_invalid);
+    bpf_map* map2 = bpf_object__find_map_by_name(object, "limits_map");
+    REQUIRE(map2 != nullptr);
+    REQUIRE(map2->map_fd != ebpf_fd_invalid);
+    bpf_program* program = bpf_object__find_program_by_name(object, "BindMonitor");
+    REQUIRE(program != nullptr);
+    REQUIRE(program->fd != ebpf_fd_invalid);
 
-    _close(program_fd);
-    _close(map1_fd);
-    _close(map2_fd);
+    _close(map1->map_fd);
+    _close(map2->map_fd);
+    _close(program->fd);
+
+    // Set the above closed FDs to ebpf_fd_invalid to avoid double close of FDs.
+    map1->map_fd = ebpf_fd_invalid;
+    map2->map_fd = ebpf_fd_invalid;
+    program->fd = ebpf_fd_invalid;
 
     // Try to load the same native module again, which should fail.
     result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd);
