@@ -2193,7 +2193,7 @@ ebpf_core_invoke_protocol_handler(
         retval =
             handler->dispatch.async_protocol_handler_with_reply(request, reply, output_buffer_length, async_context);
         if ((retval != EBPF_SUCCESS) && (retval != EBPF_PENDING)) {
-            ebpf_async_reset_completion_callback(async_context);
+            ebpf_assert_success(ebpf_async_reset_completion_callback(async_context));
         }
         break;
 

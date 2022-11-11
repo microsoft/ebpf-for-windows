@@ -123,7 +123,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_platform_initiate();
 
     /**
@@ -212,7 +212,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection);
 
     /**
@@ -276,7 +276,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  UTF-8 string.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source);
 
     /**
@@ -285,7 +285,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_SUPPORTED Unable to obtain state from platform.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state);
 
     /**
@@ -408,7 +408,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  work item.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_non_preemptible_work_item(
         _Out_ ebpf_non_preemptible_work_item_t** work_item,
         uint32_t cpu_id,
@@ -445,7 +445,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  work item.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_preemptible_work_item(
         _Outptr_ ebpf_preemptible_work_item_t** work_item,
         _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
@@ -469,7 +469,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  timer.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_timer_work_item(
         _Out_ ebpf_timer_work_item_t** timer,
         _In_ void (*work_item_routine)(void* work_item_context),
@@ -514,7 +514,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  hash table.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_create(
         _Out_ ebpf_hash_table_t** hash_table,
         _In_ void* (*allocate)(size_t size),
@@ -545,7 +545,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_FOUND Key not found in hash table.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
 
     /**
@@ -560,7 +560,7 @@ extern "C"
      *  entry in the hash table.
      * @retval EBPF_OUT_OF_SPACE Unable to insert this entry in the hash table.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_update(
         _In_ ebpf_hash_table_t* hash_table,
         _In_ const uint8_t* key,
@@ -575,7 +575,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_FOUND Key not found in hash table.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key);
 
     /**
@@ -588,7 +588,7 @@ extern "C"
      * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table that
      * are lexicographically after the specified key.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_next_key(
         _In_ ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 
@@ -603,7 +603,7 @@ extern "C"
      * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table that
      * are lexicographically after the specified key.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_next_key_and_value(
         _In_ ebpf_hash_table_t* hash_table,
         _In_opt_ const uint8_t* previous_key,
@@ -621,7 +621,7 @@ extern "C"
      * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table that
      * are lexicographically after the specified key.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_next_key_pointer_and_value(
         _In_ ebpf_hash_table_t* hash_table,
         _In_opt_ const uint8_t* previous_key,
@@ -803,7 +803,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_extension_load(
         _Outptr_ ebpf_extension_client_t** client_context,
         _In_ const GUID* interface_id,
@@ -859,7 +859,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_provider_load(
         _Outptr_ ebpf_extension_provider_t** provider_context,
         _In_ const GUID* interface_id,
@@ -880,7 +880,7 @@ extern "C"
     void
     ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context);
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_guid_create(_Out_ GUID* new_guid);
 
     int32_t
@@ -896,7 +896,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_trampoline_table(size_t entry_count, _Outptr_ ebpf_trampoline_table_t** trampoline_table);
 
     /**
@@ -919,7 +919,7 @@ extern "C"
      *  operation.
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_update_trampoline_table(
         _Inout_ ebpf_trampoline_table_t* trampoline_table,
         uint32_t helper_function_count,
@@ -937,7 +937,7 @@ extern "C"
      *  operation.
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_get_trampoline_function(
         _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function);
 
@@ -952,7 +952,7 @@ extern "C"
      *  operation.
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_get_trampoline_helper_address(
         _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** helper_address);
 
@@ -970,7 +970,7 @@ extern "C"
      * @retval EBPF_SUCCESS Requested access is granted.
      * @retval EBPF_ACCESS_DENIED Requested access is denied.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_access_check(
         _In_ ebpf_security_descriptor_t* security_descriptor,
         ebpf_security_access_mask_t request_access,
@@ -984,7 +984,7 @@ extern "C"
      * @retval EBPF_SUCCESS Security descriptor is well formed.
      * @retval EBPF_INVALID_ARGUMENT Security descriptor is malformed.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_validate_security_descriptor(
         _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
 
@@ -1005,7 +1005,7 @@ extern "C"
     uint64_t
     ebpf_query_time_since_boot(bool include_suspended_time);
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask);
 
     void
@@ -1060,7 +1060,7 @@ extern "C"
 
     TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_trace_initiate();
 
     void
@@ -1074,7 +1074,7 @@ extern "C"
      *
      * @returns Status of the operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_update_global_helpers(
         _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
 

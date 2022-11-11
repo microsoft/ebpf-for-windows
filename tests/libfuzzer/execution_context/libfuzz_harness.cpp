@@ -187,7 +187,9 @@ class fuzz_wrapper
     ~fuzz_wrapper()
     {
         for (auto& handle : handles) {
-            ebpf_handle_close(handle);
+            // Ignore errors.
+            // Fuzzing code is not expected to be correct.
+            (void)ebpf_handle_close(handle);
         };
         program_information_providers.clear();
         ebpf_core_terminate();

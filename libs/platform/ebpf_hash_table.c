@@ -558,7 +558,7 @@ Done:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_create(
     _Out_ ebpf_hash_table_t** hash_table,
     _In_ void* (*allocate)(size_t size),
@@ -631,7 +631,7 @@ ebpf_hash_table_destroy(_In_opt_ _Post_ptr_invalid_ ebpf_hash_table_t* hash_tabl
     hash_table->free(hash_table);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
 {
     ebpf_result_t retval;
@@ -671,7 +671,7 @@ Done:
     return retval;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_update(
     _In_ ebpf_hash_table_t* hash_table,
     _In_ const uint8_t* key,
@@ -706,7 +706,7 @@ Done:
     return retval;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
 {
     ebpf_result_t retval;
@@ -722,7 +722,7 @@ Done:
     return retval;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key_pointer_and_value(
     _In_ ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
@@ -796,7 +796,7 @@ Done:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key_and_value(
     _In_ ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
@@ -812,7 +812,7 @@ ebpf_hash_table_next_key_and_value(
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key(
     _In_ ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {

@@ -142,7 +142,7 @@ class _ebpf_emulated_dpc
             ebpf_non_preemptible = true;
             std::unique_lock<std::mutex> l(mutex);
             uintptr_t old_thread_affinity;
-            ebpf_set_current_thread_affinity(1ull << i, &old_thread_affinity);
+            ebpf_assert_success(ebpf_set_current_thread_affinity(1ull << i, &old_thread_affinity));
             SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
             for (;;) {
                 if (terminate) {
@@ -239,7 +239,7 @@ _get_environment_variable(const std::string& name)
     return value;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
 
@@ -278,7 +278,7 @@ ebpf_platform_terminate()
     _ebpf_emulated_dpcs.resize(0);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 {
     EBPF_LOG_ENTRY();
@@ -571,7 +571,7 @@ ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring)
     EBPF_RETURN_POINTER(void*, ebpf_ring_descriptor_get_base_address(ring));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
     EBPF_LOG_ENTRY();
@@ -681,7 +681,7 @@ ebpf_query_time_since_boot(bool include_suspended_time)
     return interrupt_time;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
 {
     uintptr_t old_mask = SetThreadAffinityMask(GetCurrentThread(), new_thread_affinity_mask);
@@ -728,7 +728,7 @@ ebpf_get_current_thread_id()
     return GetCurrentThreadId();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
     _Out_ ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
@@ -791,7 +791,7 @@ ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item)
     SubmitThreadpoolWork(work_item->work);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_allocate_preemptible_work_item(
     _Outptr_ ebpf_preemptible_work_item_t** work_item,
     _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
@@ -836,7 +836,7 @@ _ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* c
         timer_work_item->work_item_routine(timer_work_item->work_item_context);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_allocate_timer_work_item(
     _Out_ ebpf_timer_work_item_t** work_item,
     _In_ void (*work_item_routine)(void* work_item_context),
@@ -896,7 +896,7 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
     ebpf_free(work_item);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_guid_create(_Out_ GUID* new_guid)
 {
     if (UuidCreate(new_guid) == RPC_S_OK)
@@ -919,7 +919,7 @@ ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
     return 0;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_access_check(
     _In_ ebpf_security_descriptor_t* security_descriptor,
     ebpf_security_access_mask_t request_access,
@@ -968,7 +968,7 @@ Done:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_validate_security_descriptor(
     _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
@@ -1029,7 +1029,7 @@ ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
     return bytes_written;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_update_global_helpers(
     _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
 {
