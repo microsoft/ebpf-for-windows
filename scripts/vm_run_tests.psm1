@@ -194,6 +194,8 @@ function Add-FirewallRuleOnVM {
     # Allow XDP Test in Firewwall on VM.
     Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $VM,
+              [Parameter(Mandatory=$True)] [string] $ProgramName,
+              [Parameter(Mandatory=$True)] [string] $RuleName,
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
@@ -201,7 +203,7 @@ function Add-FirewallRuleOnVM {
 
         Write-Log "Allowing $ProgramName test app through firewall on $VM."
         New-NetFirewallRule -DisplayName $RuleName -Program "$WorkingDirectory\$ProgramName" -Direction Inbound -Action Allow
-    } -ArgumentList ($VM, "eBPF", $LogFileName) -ErrorAction Stop
+    } -ArgumentList ($VM, $ProgramName, $RuleName, "eBPF", $LogFileName) -ErrorAction Stop
 }
 
 function Invoke-XDPTest1
