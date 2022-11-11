@@ -169,7 +169,7 @@ jobs:
     with:
       build_artifact: Build-x64-Sanitize
       #TODO: revert back to 'True' within #1563
-      build_options: /p:AddressSanitizer='False'
+      build_options: /p:AddressSanitizer='True'
 
   # Run the fuzzing tests in GitHub.
   fuzzing:
