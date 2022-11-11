@@ -199,7 +199,9 @@ class fuzz_wrapper
             ebpf_object_release_reference((ebpf_core_object_t*)map);
         }
         for (auto& handle : handles) {
-            ebpf_handle_close(handle);
+            // Ignore invalid handle close.
+            // Fuzzing may have already closed this handle.
+            (void)ebpf_handle_close(handle);
         };
         program_information_providers.clear();
         ebpf_core_terminate();
