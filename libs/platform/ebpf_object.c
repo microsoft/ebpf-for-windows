@@ -133,7 +133,7 @@ ebpf_object_tracking_terminate()
     }
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_initialize(
     ebpf_core_object_t* object,
     ebpf_object_type_t object_type,
@@ -213,7 +213,7 @@ ebpf_object_get_type(ebpf_core_object_t* object)
     return object->type;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source)
 {
     if (!source->value || !source->length) {
@@ -248,7 +248,7 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static ebpf_core_object_t
     return NULL;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id)
 {
     ebpf_result_t return_value = EBPF_NO_MORE_KEYS;
@@ -284,7 +284,7 @@ ebpf_object_reference_next_object(
     ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
 {
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
@@ -308,7 +308,7 @@ ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outpt
     return return_value;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type)
 {
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
