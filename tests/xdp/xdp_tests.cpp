@@ -20,7 +20,7 @@ TEST_CASE("xdp_encap_reflect_test", "[xdp_tests]")
     // Initialize the remote address.
     struct sockaddr_storage remote_address = {};
     ADDRESS_FAMILY address_family;
-    get_address_from_string(_remote_ip, remote_address, &address_family);
+    get_address_from_string(_remote_ip, remote_address, true, &address_family);
     REQUIRE((address_family == AF_INET || address_family == AF_INET6));
     int protocol = (address_family == AF_INET) ? IPPROTO_IPV4 : IPPROTO_IPV6;
     // Create a RAW receiver socket with protocol being IPv4 or IPv6 based on the address family of the remote host.
@@ -75,7 +75,7 @@ TEST_CASE("xdp_reflect_test", "[xdp_tests]")
     datagram_receiver_socket.post_async_receive();
     // Initialize the remote address.
     struct sockaddr_storage remote_address = {};
-    get_address_from_string(_remote_ip, remote_address);
+    get_address_from_string(_remote_ip, remote_address, true);
     // Send message to remote host on reflection port.
     const char* message = "Bo!ng";
     datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);

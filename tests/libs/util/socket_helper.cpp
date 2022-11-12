@@ -12,7 +12,7 @@
 
 void
 get_address_from_string(
-    std::string& address_string, sockaddr_storage& address, _Out_opt_ ADDRESS_FAMILY* address_family)
+    std::string& address_string, sockaddr_storage& address, bool dual_stack, _Out_opt_ ADDRESS_FAMILY* address_family)
 {
     printf("ANUSA: get_address_from_string: address_string = %s\n", address_string.c_str());
     int error = 0;
@@ -23,8 +23,13 @@ get_address_from_string(
     if (error != 0)
         FAIL("getaddrinfo for" << address_string << " failed with " << WSAGetLastError());
     if (address_info->ai_family == AF_INET) {
-        IN6ADDR_SETV4MAPPED(
-            (PSOCKADDR_IN6)&address, (IN_ADDR*)INETADDR_ADDRESS(address_info->ai_addr), scopeid_unspecified, 0);
+        if (dual_stack) {
+            IN6ADDR_SETV4MAPPED(
+                (PSOCKADDR_IN6)&address, (IN_ADDR*)INETADDR_ADDRESS(address_info->ai_addr), scopeid_unspecified, 0);
+        } else {
+            address.ss_family = AF_INET;
+            INETADDR_SET_ADDRESS((PSOCKADDR)&address, INETADDR_ADDRESS(address_info->ai_addr));
+        }
     } else {
         REQUIRE(address_info->ai_family == AF_INET6);
         address.ss_family = AF_INET6;
@@ -50,25 +55,34 @@ get_string_from_address(_In_ const void* sockaddr, ADDRESS_FAMILY family)
     }
 }
 
-_base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port)
-    : socket(INVALID_SOCKET), sock_type(_sock_type), protocol(_protocol), port(_port), local_address{},
+_base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
+    : socket(INVALID_SOCKET), family(_family), sock_type(_sock_type), protocol(_protocol), port(_port), local_address{},
       local_address_size(sizeof(local_address)), recv_buffer(std::vector<char>(1024)), recv_flags(0)
 {
     int error = 0;
 
-    socket = WSASocket(AF_INET6, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
+    ADDRESS_FAMILY address_family = (family == IPv4) ? AF_INET : AF_INET6;
+    socket = WSASocket(address_family, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
     if (socket == INVALID_SOCKET)
         FAIL("Failed to create socket with error: " << WSAGetLastError());
-    uint32_t ipv6_option = 0;
-    error = setsockopt(socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(ULONG));
-    if (error != 0)
-        FAIL("Could not enable dual family endpoint: " << WSAGetLastError());
+
+    if (family == Dual) {
+        uint32_t ipv6_option = 0;
+        error =
+            setsockopt(socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(ULONG));
+        if (error != 0)
+            FAIL("Could not enable dual family endpoint: " << WSAGetLastError());
+    }
 
     // Bind it to the wildcard address and supplied port.
     SOCKADDR_STORAGE local_addr;
-    local_addr.ss_family = AF_INET6;
+    local_addr.ss_family = address_family;
     INETADDR_SETANY((PSOCKADDR)&local_addr);
-    ((PSOCKADDR_IN6)&local_addr)->sin6_port = htons(port);
+    if (address_family == AF_INET) {
+        ((PSOCKADDR_IN)&local_addr)->sin_port = htons(port);
+    } else {
+        ((PSOCKADDR_IN6)&local_addr)->sin6_port = htons(port);
+    }
 
     error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
     if (error != 0)
@@ -99,8 +113,8 @@ _base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_
     message = recv_buffer.data();
 }
 
-_sender_socket::_sender_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _base_socket{_sock_type, _protocol, _port}, overlapped{}
+_sender_socket::_sender_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
+    : _base_socket{_sock_type, _protocol, _port, _family}, overlapped{}
 {}
 
 void
@@ -199,8 +213,8 @@ _sender_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
     // overlapped.hEvent = INVALID_HANDLE_VALUE;
 }
 
-_datagram_sender_socket::_datagram_sender_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _sender_socket{_sock_type, _protocol, _port}
+_datagram_sender_socket::_datagram_sender_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
+    : _sender_socket{_sock_type, _protocol, _port, _family}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
@@ -246,49 +260,49 @@ _datagram_sender_socket::complete_async_send(int timeout_in_ms, expected_result_
     UNREFERENCED_PARAMETER(expected_result);
 }
 
-void
-_datagram_sender_socket::post_async_receive(bool error_expected)
-{
-    if (receive_posted) {
-        return;
-    }
+// void
+// _datagram_sender_socket::post_async_receive(bool error_expected)
+// {
+//     if (receive_posted) {
+//         return;
+//     }
 
-    int error = 0;
-    int wsaerr = 0;
-    sockaddr_storage sender_address;
-    int sender_address_size = sizeof(sender_address);
+//     int error = 0;
+//     int wsaerr = 0;
+//     sockaddr_storage sender_address;
+//     int sender_address_size = sizeof(sender_address);
 
-    WSABUF wsa_recv_buffer{static_cast<ULONG>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+//     WSABUF wsa_recv_buffer{static_cast<ULONG>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
 
-    // Create an event handle and set up the overlapped structure.
-    overlapped.hEvent = WSACreateEvent();
-    if (overlapped.hEvent == NULL)
-        FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
+//     // Create an event handle and set up the overlapped structure.
+//     overlapped.hEvent = WSACreateEvent();
+//     if (overlapped.hEvent == NULL)
+//         FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
 
-    // Post an asynchronous receive on the socket.
-    error = WSARecvFrom(
-        socket,
-        &wsa_recv_buffer,
-        1,
-        nullptr,
-        reinterpret_cast<LPDWORD>(&recv_flags),
-        (PSOCKADDR)&sender_address,
-        &sender_address_size,
-        &overlapped,
-        nullptr);
+//     // Post an asynchronous receive on the socket.
+//     error = WSARecvFrom(
+//         socket,
+//         &wsa_recv_buffer,
+//         1,
+//         nullptr,
+//         reinterpret_cast<LPDWORD>(&recv_flags),
+//         (PSOCKADDR)&sender_address,
+//         &sender_address_size,
+//         &overlapped,
+//         nullptr);
 
-    if (error != 0) {
-        wsaerr = WSAGetLastError();
-        if (!error_expected && wsaerr != WSA_IO_PENDING)
-            FAIL("WSARecvFrom failed with " << wsaerr);
-    }
-    if (error == 0 || wsaerr == WSA_IO_PENDING) {
-        receive_posted = true;
-    }
-}
+//     if (error != 0) {
+//         wsaerr = WSAGetLastError();
+//         if (!error_expected && wsaerr != WSA_IO_PENDING)
+//             FAIL("WSARecvFrom failed with " << wsaerr);
+//     }
+//     if (error == 0 || wsaerr == WSA_IO_PENDING) {
+//         receive_posted = true;
+//     }
+// }
 
-_stream_sender_socket::_stream_sender_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _sender_socket{_sock_type, _protocol, _port}, connectex(nullptr)
+_stream_sender_socket::_stream_sender_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
+    : _sender_socket{_sock_type, _protocol, _port, _family}, connectex(nullptr)
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP))
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
@@ -386,7 +400,7 @@ _stream_sender_socket::complete_async_send(int timeout_in_ms, expected_result_t 
 }
 
 _receiver_socket::_receiver_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _base_socket{_sock_type, _protocol, _port}, overlapped{}
+    : _base_socket{_sock_type, _protocol, _port, Dual}, overlapped{}
 {
     overlapped.hEvent = INVALID_HANDLE_VALUE;
 

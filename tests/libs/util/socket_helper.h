@@ -13,13 +13,24 @@
 #include <mstcpip.h>
 #include <Mswsock.h>
 
+typedef enum _socket_family
+{
+    IPv4,
+    IPv6,
+    Dual,
+    Max
+} socket_family_t;
+
 /**
  * @brief Helper function that converts an IP address string into a sockaddr_storage with address family 6, unspecified
  * scope and port set to zero. A v4 mapped IPv6 address is returned if the input address string is IPv4.
  */
 void
 get_address_from_string(
-    std::string& address_string, sockaddr_storage& address, _Out_opt_ ADDRESS_FAMILY* address_family = nullptr);
+    std::string& address_string,
+    sockaddr_storage& address,
+    bool dual_stack = true,
+    _Out_opt_ ADDRESS_FAMILY* address_family = nullptr);
 
 std::string
 get_string_from_address(_In_ const void* sockaddr, ADDRESS_FAMILY family);
@@ -37,7 +48,7 @@ typedef enum _expected_result
 typedef class _base_socket
 {
   public:
-    _base_socket(int _sock_type, int _protocol, uint16_t port);
+    _base_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family);
     ~_base_socket();
 
     void
@@ -48,6 +59,7 @@ typedef class _base_socket
 
   protected:
     SOCKET socket;
+    socket_family_t family;
     int sock_type;
     int protocol;
     uint16_t port;
@@ -66,7 +78,7 @@ typedef class _base_socket
 typedef class _sender_socket : public _base_socket
 {
   public:
-    _sender_socket(int _sock_type, int _protocol, uint16_t port);
+    _sender_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family);
     virtual void
     send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port) = 0;
     virtual void
@@ -94,15 +106,15 @@ typedef class _sender_socket : public _base_socket
 typedef class _datagram_sender_socket : public _sender_socket
 {
   public:
-    _datagram_sender_socket(int _sock_type, int _protocol, uint16_t port);
+    _datagram_sender_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual);
     void
     send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port);
     void
     cancel_send_message();
     void
-    complete_async_send(int timeout_in_ms, expected_result_t expected_result);
-    void
-    post_async_receive(bool error_expected = false);
+    complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::success);
+    // void
+    // post_async_receive(bool error_expected = false);
 } datagram_sender_socket_t;
 
 /**
@@ -111,13 +123,13 @@ typedef class _datagram_sender_socket : public _sender_socket
 typedef class _stream_sender_socket : public _sender_socket
 {
   public:
-    _stream_sender_socket(int _sock_type, int _protocol, uint16_t port);
+    _stream_sender_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual);
     void
     send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port);
     void
     cancel_send_message();
     void
-    complete_async_send(int timeout_in_ms, expected_result_t expected_result);
+    complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::success);
 
   private:
     LPFN_CONNECTEX connectex;

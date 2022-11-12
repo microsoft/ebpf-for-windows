@@ -1142,10 +1142,10 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
     memset(connection_context_redirected, 0, sizeof(net_ebpf_extension_connection_context_t));
 
-    // Initialize connection_context_original with the original address. In case of IPv4 though,
-    // AUTH callout does not contain the the destination IP filled for the original destination.
-    // For IPv4, only fill the AF and destination port.
-    if (sock_addr_ctx->family == AF_INET6) {
+    // Initialize connection_context_original with the original address. In case of v4 mapped socket
+    // though, AUTH callout does not contain the the destination IP filled for the original destination.
+    // For v4 mapped case, only fill the AF and destination port.
+    if (!v4_mapped) {
         RtlCopyMemory(&connection_context_original->destination, sock_addr_ctx, sizeof(bpf_sock_addr_t));
     } else {
         connection_context_original->destination.family = sock_addr_ctx->family;
