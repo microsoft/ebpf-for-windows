@@ -636,10 +636,10 @@ TEST_CASE("serialize_map_test", "[platform]")
     REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
 
     buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
-    REQUIRE(buffer != nullptr);
     if (!buffer) {
         return;
     }
+    REQUIRE(buffer != nullptr);
     buffer_length = required_length;
 
     REQUIRE(
