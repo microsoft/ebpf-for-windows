@@ -296,9 +296,6 @@ jobs:
   # Run the low memory simulator in GitHub.
   low_memory:
     needs: regular
-    #if: github.event_name == 'schedule' || github.event_name == 'pull_request'
-    # Disable running this on PR until all low memory issues are fixed.
-    if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: low_memory
