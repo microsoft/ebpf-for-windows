@@ -534,9 +534,24 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     api_initialized = true;
 }
 
+static void
+_rundown_osfhandles()
+{
+    std::vector<int> fds_to_close;
+    for (auto [fd, handle] : _fd_to_handle_map) {
+        fds_to_close.push_back(fd);
+    }
+
+    for (auto fd : fds_to_close) {
+        Glue_close(fd);
+    }
+}
+
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
     try {
+        _rundown_osfhandles();
+
         // Run down duplicate handles, if any.
         _duplicate_handles.rundown();
     } catch (Catch::TestFailureException&) {

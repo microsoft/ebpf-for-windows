@@ -16,7 +16,7 @@ extern "C"
      *
      * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_handle_table_initiate();
 
     /**
@@ -35,7 +35,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_handle_create(ebpf_handle_t* handle, struct _ebpf_core_object* object);
 
     /**
@@ -46,7 +46,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_INVALID_HANDLE The provided handle is not valid.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_handle_close(ebpf_handle_t handle);
 
     /**

@@ -149,7 +149,10 @@ ebpf_api_initiate() noexcept
 {
     EBPF_LOG_ENTRY();
 
-    ebpf_trace_initiate();
+    ebpf_result_t result = ebpf_trace_initiate();
+    if (result != EBPF_SUCCESS) {
+        return ERROR_OUTOFMEMORY;
+    }
 
     // This is best effort. If device handle does not initialize,
     // it will be re-attempted before an IOCTL call is made.
@@ -1049,8 +1052,8 @@ _clean_up_ebpf_link(_In_opt_ _Post_invalid_ ebpf_link_t* link) noexcept
     if (link == nullptr) {
         EBPF_RETURN_VOID();
     }
-    if (link->handle != ebpf_handle_invalid) {
-        ebpf_api_close_handle(link->handle);
+    if (link->fd != ebpf_fd_invalid) {
+        Platform::_close(link->fd);
     }
     free(link->pin_path);
 

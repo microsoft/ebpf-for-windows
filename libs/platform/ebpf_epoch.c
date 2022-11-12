@@ -190,7 +190,7 @@ static _Requires_lock_held_(_ebpf_epoch_cpu_table[cpu_id].lock) ebpf_epoch_threa
  */
 static _Requires_lock_held_(cpu_entry->lock) void _ebpf_epoch_arm_timer_if_needed(ebpf_epoch_cpu_entry_t* cpu_entry);
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_epoch_initiate()
 {
     EBPF_LOG_ENTRY();
@@ -286,7 +286,7 @@ ebpf_epoch_terminate()
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_epoch_enter()
 {
     ebpf_result_t return_value;
@@ -624,7 +624,8 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
             // If the stale flag is set, then schedule the DPC to release the stale items.
             if (_ebpf_epoch_cpu_table[cpu_id].epoch_state.stale) {
                 if (!_ebpf_epoch_cpu_table[cpu_id].stale_worker) {
-                    ebpf_allocate_non_preemptible_work_item(
+                    // If ebpf_allocate_non_preemptible_work_item fails, it will retry next time the timer fires.
+                    (void)ebpf_allocate_non_preemptible_work_item(
                         &_ebpf_epoch_cpu_table[cpu_id].stale_worker, cpu_id, _ebpf_epoch_stale_worker, NULL);
                 }
                 if (_ebpf_epoch_cpu_table[cpu_id].stale_worker) {
@@ -709,8 +710,11 @@ static _Requires_lock_held_(_ebpf_epoch_cpu_table[cpu_id].lock) ebpf_epoch_threa
             (const uint8_t*)&thread_id,
             (const uint8_t*)&local_thread_epoch,
             EBPF_HASH_TABLE_OPERATION_INSERT);
-        ebpf_hash_table_find(
-            _ebpf_epoch_cpu_table[cpu_id].thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_entry);
+        if (return_value == EBPF_SUCCESS || return_value == EBPF_OBJECT_ALREADY_EXISTS) {
+            ebpf_assert_success(ebpf_hash_table_find(
+                _ebpf_epoch_cpu_table[cpu_id].thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_entry));
+            ebpf_assert(thread_entry != NULL);
+        }
     }
 
     return thread_entry;
@@ -737,6 +741,7 @@ _ebpf_epoch_stale_worker(_In_ void* work_item_context, _In_ void* parameter_1)
 {
     UNREFERENCED_PARAMETER(work_item_context);
     UNREFERENCED_PARAMETER(parameter_1);
-    ebpf_epoch_enter();
-    ebpf_epoch_exit();
+    if (ebpf_epoch_enter() == EBPF_SUCCESS) {
+        ebpf_epoch_exit();
+    }
 }
