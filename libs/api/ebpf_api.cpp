@@ -1052,8 +1052,8 @@ _clean_up_ebpf_link(_In_opt_ _Post_invalid_ ebpf_link_t* link) noexcept
     if (link == nullptr) {
         EBPF_RETURN_VOID();
     }
-    if (link->handle != ebpf_handle_invalid) {
-        ebpf_api_close_handle(link->handle);
+    if (link->fd != ebpf_fd_invalid) {
+        Platform::_close(link->fd);
     }
     free(link->pin_path);
 
