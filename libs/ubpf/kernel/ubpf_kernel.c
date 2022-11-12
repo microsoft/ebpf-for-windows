@@ -63,7 +63,10 @@ ubpf_translate_x86_64(struct ubpf_vm* vm, uint8_t* buffer, size_t* size, char** 
     return -1;
 }
 
+#pragma warning(push)
+#pragma warning(disable : 28159) // Don't use KeBugCheck
 void __cdecl abort(void) { KeBugCheck(PAGE_FAULT_IN_NONPAGED_AREA); }
+#pragma warning(pop)
 
 #include "ubpf_vm.c"
 #pragma warning(push)
