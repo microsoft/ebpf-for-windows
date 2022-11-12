@@ -171,7 +171,7 @@ _ebpf_extension_client_cleanup_binding_context(_In_opt_ void* client_binding_con
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_extension_load(
     _Outptr_ ebpf_extension_client_t** client_context,
     _In_ const GUID* interface_id,
@@ -328,7 +328,7 @@ ebpf_extension_get_provider_guid(_In_ const void* extension_client_binding_conte
     return local_client_context->npi_id;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_provider_load(
     _Outptr_ ebpf_extension_provider_t** provider_context,
     _In_ const GUID* interface_id,
