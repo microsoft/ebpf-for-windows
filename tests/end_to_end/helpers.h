@@ -173,6 +173,9 @@ typedef class _single_instance_hook : public _hook_helper
     ebpf_result_t
     fire(void* context, int* result)
     {
+        if (client_binding_context == nullptr) {
+            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        }
         ebpf_result_t (*invoke_program)(void* link, void* context, int* result) =
             reinterpret_cast<decltype(invoke_program)>(client_dispatch_table->function[0]);
 

@@ -135,6 +135,7 @@ typedef class _nmr
     enum binding_status
     {
         Ready = 0,
+        BeginUnbind,
         UnbindPending,
         UnbindComplete
     };
@@ -234,7 +235,7 @@ typedef class _nmr
      * @param[in] binding_handle Binding handle to unbind.
      */
     void
-    unbind_complete(_In_ nmr_binding_handle binding_handle);
+    unbind_complete(_Inout_ binding& binding);
 
     /**
      * @brief Start the process of unbinding a client from a provider.
@@ -244,9 +245,11 @@ typedef class _nmr
      * @retval false Both the client and provider returned successfully.
      */
     bool
-    begin_unbind(_In_ nmr_binding_handle binding_handle);
+    begin_unbind(_Inout_ binding& binding);
 
+    // Binding handle is a pointer to the binding.
     std::map<nmr_binding_handle, std::shared_ptr<binding>> bindings;
+    // Provider and client handles are incremented for each new provider or client.
     std::map<nmr_provider_handle, provider_registration> providers;
     std::map<nmr_client_handle, client_registration> clients;
 

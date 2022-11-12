@@ -291,3 +291,19 @@ jobs:
     with:
       build_artifact: Build-x64-CodeQl
       build_codeql: true
+
+  # Run the low memory simulator in GitHub.
+  low_memory:
+    needs: regular
+    #if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    # Disable running this on PR until all low memory issues are fixed.
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: low_memory
+      test_command: .\unit_tests.exe
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: true
+      gather_dumps: true
+      low_memory: true

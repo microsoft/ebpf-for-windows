@@ -358,3 +358,10 @@ and checked the Development checkbox, installation was completed for you.
 Otherwise, after installing the nuget package, as a one-time operation, you will
 currently need to run the `export_program_info.exe` tool to complete the install. This
 tool can be found in your project's `packages\eBPF-for-Windows\build\native\bin` directory.
+
+If you are using WinDbg to work on the EbpfCore or the NetEbpfExt drivers, you may find the WinDbg command ```.kdfiles``` to be useful. This
+command allows the replacement of a driver binary on the target machine with another binary from the machine WinDbg is running
+on (typically the development machine) at driver load time.
+
+This eliminates the need for repeated manual copy of the modified driver binary and saves considerable time during the
+development cycle.  See the [Windows Hardware Developer documentation](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/-kdfiles--set-driver-replacement-map-) for more details.

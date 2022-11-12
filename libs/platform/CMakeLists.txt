@@ -106,6 +106,7 @@ add_library("platform_user" STATIC
   ${platform_user_sources}
   user/framework.h
   user/ebpf_handle_user.c
+  user/ebpf_low_memory_test.cpp
   user/ebpf_platform_user.cpp
   user/ebpf_native_user.c
   user/kernel_um.cpp

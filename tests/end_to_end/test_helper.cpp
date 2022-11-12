@@ -230,7 +230,7 @@ _unload_all_native_modules()
             ebpf_extension_unload(context->binding_context);
         }
         // The service should have been marked for deletion till now.
-        REQUIRE((context->delete_pending || _expect_native_module_load_failures));
+        REQUIRE((context->delete_pending || get_native_module_failures()));
         if (context->dll != nullptr) {
             FreeLibrary(context->dll);
         }
@@ -250,7 +250,7 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
     _is_platform_preemptible = !_is_platform_preemptible;
 
     context->dll = LoadLibraryW(context->file_path.c_str());
-    REQUIRE(((context->dll != nullptr) || (_expect_native_module_load_failures)));
+    REQUIRE(((context->dll != nullptr) || get_native_module_failures()));
 
     if (context->dll == nullptr) {
         return;
@@ -259,7 +259,7 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
     auto get_function =
         reinterpret_cast<decltype(&get_metadata_table)>(GetProcAddress(context->dll, "get_metadata_table"));
     if (get_function == nullptr) {
-        REQUIRE(_expect_native_module_load_failures);
+        REQUIRE(get_native_module_failures());
         return;
     }
 
@@ -285,7 +285,7 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
         &returned_provider_dispatch_table,
         nullptr);
 
-    REQUIRE((result == EBPF_SUCCESS || _expect_native_module_load_failures));
+    REQUIRE((result == EBPF_SUCCESS || get_native_module_failures()));
 
     context->loaded = true;
 }
@@ -308,7 +308,7 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
                 context->second->module_id = request->module_id;
 
                 if (context->second->loaded) {
-                    REQUIRE(_expect_native_module_load_failures);
+                    REQUIRE(get_native_module_failures());
                 } else {
                     _preprocess_load_native_module(context->second);
                 }
@@ -534,9 +534,24 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     api_initialized = true;
 }
 
+static void
+_rundown_osfhandles()
+{
+    std::vector<int> fds_to_close;
+    for (auto [fd, handle] : _fd_to_handle_map) {
+        fds_to_close.push_back(fd);
+    }
+
+    for (auto fd : fds_to_close) {
+        Glue_close(fd);
+    }
+}
+
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
     try {
+        _rundown_osfhandles();
+
         // Run down duplicate handles, if any.
         _duplicate_handles.rundown();
     } catch (Catch::TestFailureException&) {
@@ -602,6 +617,15 @@ void
 set_native_module_failures(bool expected)
 {
     _expect_native_module_load_failures = expected;
+}
+
+extern bool
+ebpf_low_memory_test_in_progress();
+
+bool
+get_native_module_failures()
+{
+    return _expect_native_module_load_failures || ebpf_low_memory_test_in_progress();
 }
 
 ebpf_result_t

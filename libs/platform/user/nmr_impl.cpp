@@ -87,7 +87,7 @@ _nmr::binding_detach_client_complete(_In_ nmr_binding_handle binding_handle)
     l.unlock();
     if (complete) {
         // Signal the detach complete.
-        unbind_complete(binding_handle);
+        unbind_complete(binding);
     }
 }
 
@@ -108,7 +108,7 @@ _nmr::binding_detach_provider_complete(_In_ nmr_binding_handle binding_handle)
     l.unlock();
     if (complete) {
         // Signal the detach complete.
-        unbind_complete(binding_handle);
+        unbind_complete(binding);
     }
 }
 
@@ -161,7 +161,7 @@ _nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& p
         return std::nullopt;
     }
 
-    // Skip if client or provider are deregestering.
+    // Skip if client or provider are deregistering.
     if (client.deregistering || provider.deregistering) {
         return std::nullopt;
     }
@@ -170,33 +170,28 @@ _nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& p
     _InterlockedIncrement64(&client.binding_count);
     _InterlockedIncrement64(&provider.binding_count);
 
-    nmr_binding_handle h = reinterpret_cast<nmr_binding_handle>(next_handle++);
     _nmr::binding binding = {provider, client};
-    bindings.insert({h, std::make_shared<_nmr::binding>(binding)});
+    auto binding_ptr = std::make_shared<_nmr::binding>(std::move(binding));
 
-    return {[&client, &provider, h, this]() {
+    bindings.insert({binding_ptr.get(), binding_ptr});
+
+    return {[&client, &provider, binding_ptr, this]() {
         NTSTATUS status = client.characteristics.ClientAttachProvider(
-            const_cast<HANDLE>(h),
+            reinterpret_cast<HANDLE>(binding_ptr.get()),
             const_cast<void*>(client.context),
             &provider.characteristics.ProviderRegistrationInstance);
 
         // Clean up the binding on a failure.
         if (!NT_SUCCESS(status)) {
-            unbind_complete(h);
+            unbind_complete(*binding_ptr);
         }
     }};
 }
 
 void
-_nmr::unbind_complete(_In_ nmr_binding_handle binding_handle)
+_nmr::unbind_complete(_Inout_ binding& binding)
 {
     std::unique_lock l(lock);
-    auto it = bindings.find(binding_handle);
-    if (it == bindings.end()) {
-        throw std::runtime_error("invalid handle");
-    }
-    auto& binding = *it->second;
-
     if (binding.client.characteristics.ClientCleanupBindingContext != nullptr) {
         // Notify the client that that the binding context can be freed if needed.
         binding.client.characteristics.ClientCleanupBindingContext(const_cast<void*>(binding.client_binding_context));
@@ -210,31 +205,22 @@ _nmr::unbind_complete(_In_ nmr_binding_handle binding_handle)
 
     _InterlockedDecrement64(&binding.provider.binding_count);
     _InterlockedDecrement64(&binding.client.binding_count);
-    bindings.erase(it);
+    bindings.erase(&binding);
 
     // Notify the client or provider to check if they have any pending bindings.
     bindings_changed.notify_all();
 }
 
 bool // true if pending, false if complete.
-_nmr::begin_unbind(_In_ nmr_binding_handle binding_handle)
+_nmr::begin_unbind(_Inout_ binding& binding)
 {
     std::unique_lock l(lock);
-    auto it = bindings.find(binding_handle);
-    if (it == bindings.end()) {
-        throw std::runtime_error("invalid handle");
-    }
-
-    // Grab our own reference on the binding and release the lock,
-    // to allow the binding to be removed synchronously within the detach
-    // calls below.
-    std::shared_ptr<_nmr::binding> binding_reference = it->second;
-    auto& binding = *binding_reference;
-
     if (binding.client_binding_status != Ready || binding.provider_binding_status != Ready) {
         // Unbind already started.
         return true;
     }
+    binding.client_binding_status = BeginUnbind;
+    binding.provider_binding_status = BeginUnbind;
     l.unlock();
 
     NTSTATUS client_detach_provider_status =
@@ -265,7 +251,7 @@ _nmr::begin_unbind(_In_ nmr_binding_handle binding_handle)
     l.unlock();
 
     if (complete) {
-        unbind_complete(binding_handle);
+        unbind_complete(binding);
         return false;
     }
     return true;
@@ -357,7 +343,7 @@ _nmr::perform_unbind(
     _In_ initiator_collection_t::value_type::first_type initiator_handle)
 {
     bool pending = false;
-    std::vector<nmr_binding_handle> handles_to_unbind;
+    std::vector<std::shared_ptr<binding>> bindings_to_unbind;
     std::unique_lock l(lock);
     auto it = initiator_collection.find(initiator_handle);
     if (it == initiator_collection.end()) {
@@ -367,22 +353,24 @@ _nmr::perform_unbind(
     // Find all the bindings that have the initiator as the client or provider.
     for (auto& [binding_handle, binding_reference] : bindings) {
         auto& binding = *binding_reference;
+
         // If the initiator is a client, then the target must be a provider.
         if constexpr (std::is_same<initiator_collection_t::value_type::second_type, client_registration>::value) {
             if (&binding.client == &initiator) {
-                handles_to_unbind.push_back(binding_handle);
+                bindings_to_unbind.push_back(binding_reference);
             }
         }
         // If the initiator is a provider, then the target must be a client.
         if constexpr (std::is_same<initiator_collection_t::value_type::second_type, provider_registration>::value) {
             if (&binding.provider == &initiator) {
-                handles_to_unbind.push_back(binding_handle);
+                bindings_to_unbind.push_back(binding_reference);
             }
         }
     }
     l.unlock();
-    for (auto& binding_handle : handles_to_unbind) {
-        pending |= begin_unbind(binding_handle);
+    for (auto& binding_reference : bindings_to_unbind) {
+        auto& binding = *binding_reference;
+        pending |= begin_unbind(binding);
     }
     return pending;
 }
