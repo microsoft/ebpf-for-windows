@@ -73,12 +73,7 @@ _process_interface_parameter(_In_ LPWSTR interface_parameter, bpf_prog_type prog
 struct _program_unloader
 {
     struct bpf_object* object;
-    int program_fd;
-    ~_program_unloader()
-    {
-        bpf_object__close(object);
-        Platform::_close(program_fd);
-    }
+    ~_program_unloader() { bpf_object__close(object); }
 };
 
 unsigned long
@@ -188,9 +183,9 @@ handle_ebpf_add_program(
     }
     program_fd = bpf_program__fd(program);
 
-    // Program loaded. Populate the unloader with object pointer and program fd, such that
+    // Program loaded. Populate the unloader with object pointer, such that
     // the program gets unloaded automatically, if it fails to get attached.
-    struct _program_unloader unloader = {object, program_fd};
+    struct _program_unloader unloader = {object};
 
     ebpf_result_t result;
     uint32_t if_index;
@@ -214,7 +209,6 @@ handle_ebpf_add_program(
     } else {
         // Program successfully attached, reset unloader.
         unloader.object = nullptr;
-        unloader.program_fd = ebpf_fd_invalid;
     }
 
     if (pinned_type == PT_FIRST) {
