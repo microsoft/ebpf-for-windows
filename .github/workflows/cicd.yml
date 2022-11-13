@@ -292,8 +292,8 @@ jobs:
       build_artifact: Build-x64-CodeQl
       build_codeql: true
 
-  # Run the low memory simulator in GitHub.
-  low_memory:
+  # Run the fast low memory simulator in GitHub.
+  low_memory_brief:
     needs: regular
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -302,5 +302,18 @@ jobs:
       build_artifact: Build-x64
       environment: windows-2019
       code_coverage: true
+      gather_dumps: true
+      low_memory: true
+
+  # Run the complete low memory simulator in GitHub.
+  low_memory_complete:
+    needs: regular
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: low_memory
+      test_command: .\unit_tests.exe
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: false
       gather_dumps: true
       low_memory: true
