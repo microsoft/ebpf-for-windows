@@ -631,9 +631,10 @@ TEST_CASE("serialize_map_test", "[platform]")
     }
 
     // Serialize.
-    ebpf_result_t result = ebpf_serialize_internal_map_info_array(
-        map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
-    REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
+    REQUIRE(
+        ebpf_serialize_internal_map_info_array(
+            map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length) ==
+        EBPF_INSUFFICIENT_BUFFER);
 
     buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
     if (!buffer) {
