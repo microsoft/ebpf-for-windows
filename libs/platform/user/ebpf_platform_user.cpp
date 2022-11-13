@@ -349,6 +349,10 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
         return nullptr;
     }
 
+    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
+        return nullptr;
+    }
+
     void* memory = _aligned_malloc(size, EBPF_CACHE_LINE_SIZE);
     if (memory) {
         memset(memory, 0, size);
