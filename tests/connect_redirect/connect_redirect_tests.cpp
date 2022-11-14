@@ -29,7 +29,6 @@ using namespace std::chrono_literals;
 #include <mstcpip.h>
 
 #define CLIENT_MESSAGE "eBPF for Windows!"
-#define NUM_ADDRESS_FAMILY 3 // IPv4, IPv6 and DualStack.
 
 static std::string _family;
 static std::string _protocol;

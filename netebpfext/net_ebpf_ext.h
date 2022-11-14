@@ -82,12 +82,6 @@ typedef struct _net_ebpf_extension_wfp_filter_parameters_array
     net_ebpf_extension_wfp_filter_parameters_t* filter_parameters;
 } net_ebpf_extension_wfp_filter_parameters_array_t;
 
-typedef struct _net_ebpf_extension_wfp_filter_context_list_entry
-{
-    LIST_ENTRY list_entry;
-    const struct _net_ebpf_extension_wfp_filter_context* filter_context;
-} net_ebpf_extension_wfp_filter_context_list_entry_t;
-
 /**
  * "Base class" for all WFP filter contexts used by net ebpf extension hooks.
  */
@@ -97,7 +91,6 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     const struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
     uint64_t* filter_ids;                                         ///< Array of WFP filter Ids.
     uint32_t filter_ids_count;                                    ///< Number of WFP filter Ids.
-    const void* custom_data; ///< Opaque pointer to hook specific data associated for this filter context.
 } net_ebpf_extension_wfp_filter_context_t;
 
 #define REFERENCE_FILTER_CONTEXT(filter_context) \

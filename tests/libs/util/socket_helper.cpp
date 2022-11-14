@@ -14,7 +14,6 @@ void
 get_address_from_string(
     std::string& address_string, sockaddr_storage& address, bool dual_stack, _Out_opt_ ADDRESS_FAMILY* address_family)
 {
-    printf("ANUSA: get_address_from_string: address_string = %s\n", address_string.c_str());
     int error = 0;
     // Initialize the remote address.
     ADDRINFO* address_info = nullptr;
@@ -572,7 +571,6 @@ _stream_receiver_socket::_stream_receiver_socket(int _sock_type, int _protocol, 
     : _receiver_socket{_sock_type, _protocol, _port}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
       message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
 {
-    printf("ANUSA: _stream_receiver_socket() called\n");
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP))
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
 
@@ -619,7 +617,6 @@ _stream_receiver_socket::initialize_accept_socket()
 
 _stream_receiver_socket::~_stream_receiver_socket()
 {
-    printf("ANUSA: ~_stream_receiver_socket() called\n");
     if (accept_socket != INVALID_SOCKET)
         closesocket(accept_socket);
 }

@@ -45,9 +45,9 @@ typedef struct _net_ebpf_ext_sock_addr_statistics
 
 static net_ebpf_ext_sock_addr_statistics_t _net_ebpf_ext_statistics;
 
-static EX_SPIN_LOCK _net_ebpf_ext_redirect_handle_lock;
-_Guarded_by_(_net_ebpf_ext_redirect_handle_lock) static LIST_ENTRY _net_ebpf_ext_redirect_handle_list;
-_Guarded_by_(_net_ebpf_ext_redirect_handle_lock) static LIST_ENTRY _net_ebpf_ext_connect_context_list;
+static EX_SPIN_LOCK _net_ebpf_ext_sock_addr_lock;
+_Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_redirect_handle_list;
+_Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_connect_context_list;
 static uint32_t _net_ebpf_ext_connect_context_count = 0;
 
 //
@@ -312,9 +312,9 @@ _net_ebpf_ext_sock_addr_update_redirect_handle(uint64_t filter_id, HANDLE redire
     entry->filter_id = filter_id;
     entry->redirect_handle = redirect_handle;
 
-    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock);
+    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
     InsertTailList(&_net_ebpf_ext_redirect_handle_list, &entry->list_entry);
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock, old_irql);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 
 Exit:
     return status;
@@ -325,7 +325,7 @@ _net_ebpf_ext_sock_addr_delete_redirect_handle(uint64_t filter_id)
 {
     KIRQL old_irql;
 
-    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock);
+    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
 
     LIST_ENTRY* list_entry = _net_ebpf_ext_redirect_handle_list.Flink;
     while (list_entry != &_net_ebpf_ext_redirect_handle_list) {
@@ -338,7 +338,7 @@ _net_ebpf_ext_sock_addr_delete_redirect_handle(uint64_t filter_id)
         }
         list_entry = list_entry->Flink;
     }
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock, old_irql);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 }
 
 static NTSTATUS
@@ -347,7 +347,7 @@ _net_ebpf_ext_sock_addr_get_redirect_handle(uint64_t filter_id, _Out_ HANDLE* re
     NTSTATUS status = STATUS_NOT_FOUND;
     KIRQL old_irql;
 
-    old_irql = ExAcquireSpinLockShared(&_net_ebpf_ext_redirect_handle_lock);
+    old_irql = ExAcquireSpinLockShared(&_net_ebpf_ext_sock_addr_lock);
 
     LIST_ENTRY* list_entry = _net_ebpf_ext_redirect_handle_list.Flink;
     while (list_entry != &_net_ebpf_ext_redirect_handle_list) {
@@ -361,7 +361,7 @@ _net_ebpf_ext_sock_addr_get_redirect_handle(uint64_t filter_id, _Out_ HANDLE* re
         list_entry = list_entry->Flink;
     }
 
-    ExReleaseSpinLockShared(&_net_ebpf_ext_redirect_handle_lock, old_irql);
+    ExReleaseSpinLockShared(&_net_ebpf_ext_sock_addr_lock, old_irql);
 
     return status;
 }
@@ -436,7 +436,7 @@ _net_ebpf_ext_get_connection_context(
     KIRQL old_irql;
 
     *connection_context = NULL;
-    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock);
+    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
 
     LIST_ENTRY* list_entry = _net_ebpf_ext_connect_context_list.Flink;
     while (list_entry != &_net_ebpf_ext_connect_context_list) {
@@ -459,7 +459,7 @@ _net_ebpf_ext_get_connection_context(
         list_entry = list_entry->Flink;
     }
 
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock, old_irql);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 
     return status;
 }
@@ -467,13 +467,13 @@ _net_ebpf_ext_get_connection_context(
 static void
 _net_ebpf_ext_delete_connection_context(_In_ _Post_invalid_ net_ebpf_extension_connection_context_t* context)
 {
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock);
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
 
     RemoveEntryList(&context->list_entry);
     ExFreePool(context);
     _net_ebpf_ext_connect_context_count--;
 
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock, old_irql);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 }
 
 static void
@@ -512,15 +512,15 @@ _net_ebpf_ext_purge_lru_contexts_under_lock(bool delete_all)
 static void
 _net_ebpf_ext_purge_lru_contexts(bool delete_all)
 {
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock);
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
     _net_ebpf_ext_purge_lru_contexts_under_lock(delete_all);
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock, old_irql);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 }
 
 static void
 _net_ebpf_ext_insert_connection_context_to_list(_In_ net_ebpf_extension_connection_context_t* connection_context)
 {
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock);
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
 
     // Insert the most recent entry at the head.
     InsertHeadList(&_net_ebpf_ext_connect_context_list, &connection_context->list_entry);
@@ -529,7 +529,7 @@ _net_ebpf_ext_insert_connection_context_to_list(_In_ net_ebpf_extension_connecti
     // Purge stale entries from the list.
     _net_ebpf_ext_purge_lru_contexts_under_lock(false);
 
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock, old_irql);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 }
 
 NTSTATUS

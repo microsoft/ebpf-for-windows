@@ -14,12 +14,6 @@
 #include "bpf_helpers.h"
 #include "socket_tests_common.h"
 
-// #define REDIRECT_IP 16843009 // 1.1.1.1
-// #define REDIRECT_IP 0xc8010119 // Network byte order 25.1.1.200
-// #define PROXY_IP 0x64010119    // Network byte order 25.1.1.100
-// #define PERMIT_IP 33620225     // Network byte order 1.1.1.2
-// #define BLOCK_IP 50397441      // Network byte order 1.1.1.3
-
 #define IPPROTO_TCP 6
 #define IPPROTO_UDP 17
 
@@ -42,8 +36,6 @@ authorize_v4(bpf_sock_addr_t* ctx)
     entry.destination_port = ctx->user_port;
     entry.protocol = ctx->protocol;
 
-    bpf_printk("anusa: ctx: %u, %u", ctx->user_ip4, ctx->user_port);
-
     if (ctx->protocol != IPPROTO_TCP && ctx->protocol != IPPROTO_UDP) {
         return verdict;
     }
@@ -55,13 +47,11 @@ authorize_v4(bpf_sock_addr_t* ctx)
     // Find the entry in the policy map.
     destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
     if (policy != NULL) {
-        bpf_printk("anusa: found proxy entry value: %u, %u", policy->destination_ip.ipv4, policy->destination_port);
+        bpf_printk("Found v4 proxy entry value: %u, %u", policy->destination_ip.ipv4, policy->destination_port);
         ctx->user_ip4 = policy->destination_ip.ipv4;
         ctx->user_port = policy->destination_port;
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
-    } else {
-        bpf_printk("anusa: did not find proxy entry for key: %u, %u", ctx->user_ip4, ctx->user_port);
     }
 
     return verdict;
@@ -88,13 +78,11 @@ authorize_v6(bpf_sock_addr_t* ctx)
     // Find the entry in the policy map.
     destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
     if (policy != NULL) {
-        bpf_printk("anusa: found proxy entry value");
+        bpf_printk("Found v6 proxy entry value");
         __builtin_memcpy(ctx->user_ip6, policy->destination_ip.ipv6, sizeof(ctx->user_ip6));
         ctx->user_port = policy->destination_port;
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
-    } else {
-        bpf_printk("anusa: did not find proxy entry.");
     }
 
     return verdict;

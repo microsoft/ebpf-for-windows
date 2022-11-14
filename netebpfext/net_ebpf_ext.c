@@ -588,8 +588,6 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
         goto Exit;
     }
 
-    // InitializeListHead(&_net_ebpf_ext_filter_instance_list);
-
     session.flags = FWPM_SESSION_FLAG_DYNAMIC;
 
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &_fwp_engine_handle);
