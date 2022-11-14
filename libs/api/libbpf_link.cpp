@@ -62,7 +62,7 @@ bpf_link__destroy(struct bpf_link* link)
     if (!link->disconnected) {
         result = ebpf_link_detach(link);
     }
-    ebpf_assert_success(ebpf_link_close(link));
+    ebpf_link_close(link);
 
     return libbpf_result_err(result);
 }

@@ -1040,7 +1040,7 @@ Exit:
     if (new_link != nullptr) {
         if (attached)
             ebpf_assert_success(ebpf_link_detach(new_link));
-        ebpf_assert_success(ebpf_link_close(new_link));
+        ebpf_link_close(new_link);
     }
     EBPF_RETURN_RESULT(result);
 }
@@ -1224,14 +1224,13 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+void
 ebpf_link_close(_Frees_ptr_ struct bpf_link* link)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(link);
     _clean_up_ebpf_link(link);
-
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+    EBPF_LOG_EXIT();
 }
 
 _Must_inspect_result_ ebpf_result_t

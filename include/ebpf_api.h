@@ -337,13 +337,11 @@ extern "C"
      *
      * @param[in] link Pointer to the bpf_link structure.
      *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_ARGUMENT Invalid argument was provided.
      *
      * @sa bpf_link__destroy
      * @sa bpf_link_detach
      */
-    _Must_inspect_result_ ebpf_result_t
+    void
     ebpf_link_close(_Frees_ptr_ struct bpf_link* link);
 
     /**
