@@ -1,10 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// This module facilitates testing various connect redirect scenarios by sending traffic to both a remote system
-// running XDP eBPF hook and an attached XDP program.
-// For the reflection test, reflect_packet.o needs to be loaded on the remote host.
-
 #define CATCH_CONFIG_RUNNER
 
 #include "catch_wrapper.hpp"
