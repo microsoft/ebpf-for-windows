@@ -131,7 +131,7 @@ jobs:
     # The subequent tests will directly get these when they download the build artifacts. In case
     # a test fails, the .o files used for the test will be available in the uploaded build artifacts.
     - name: Download demo repository artifacts
-      uses: dawidd6/action-download-artifact@46b4ae883bf0726f5949d025d31cb62c7a5ac70c
+      uses: dawidd6/action-download-artifact@e6e25ac3a2b93187502a8be1ef9e9603afc34925
       with:
         github_token: ${{secrets.GITHUB_TOKEN}}
         workflow: cicd.yml
@@ -144,7 +144,7 @@ jobs:
         skip_unpack: true
 
     - name: Download demo bpf_conformance repository artifacts
-      uses: dawidd6/action-download-artifact@7847792dd435a50521b8e3bd3576dae7459d1fa8
+      uses: dawidd6/action-download-artifact@e6e25ac3a2b93187502a8be1ef9e9603afc34925
       with:
         github_token: ${{secrets.GITHUB_TOKEN}}
         workflow: CICD.yml
