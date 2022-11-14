@@ -23,7 +23,7 @@ extern "C"
      *  link object.
      * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_link_create(ebpf_link_t** link);
 
     /**
@@ -37,7 +37,7 @@ extern "C"
      *  provider.
      * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_link_initialize(
         ebpf_link_t* link, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length);
 
@@ -50,7 +50,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT Hook instance has not been
      *  initialized.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program);
 
     /**
@@ -72,7 +72,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INSUFFICIENT_BUFFER The buffer was too small to hold bpf_link_info.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_link_get_info(
         _In_ const ebpf_link_t* link,
         _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
