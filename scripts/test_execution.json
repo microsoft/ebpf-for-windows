@@ -15,12 +15,12 @@
                 {
                     "Alias": "Ethernet",
                     "V4Address": "20.0.0.1",
-                    "V6Address": "fe80:eb8f::1"
+                    "V6Address": "2001:db8::1"
                 },
                 {
                     "Alias": "Ethernet 2",
                     "V4Address": "20.0.0.2",
-                    "V6Address": "fe80:eb8f::2"
+                    "V6Address": "2001:db8::2"
                 }
             ]
         },
@@ -31,7 +31,7 @@
                 {
                     "Alias": "Ethernet",
                     "V4Address": "20.0.0.3",
-                    "V6Address": "fe80:eb8f::3"
+                    "V6Address": "2001:db8::3"
                 }
             ]
         },
@@ -42,7 +42,7 @@
                 {
                     "Alias": "Ethernet",
                     "V4Address": "20.0.0.100",
-                    "V6Address": "fe80:eb8f::100"
+                    "V6Address": "2001:db8::100"
                 }
             ]
         }
