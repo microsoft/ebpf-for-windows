@@ -637,7 +637,10 @@ TEST_CASE("serialize_map_test", "[platform]")
         EBPF_INSUFFICIENT_BUFFER);
 
     buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
-    REQUIRE(buffer != nullptr);
+    // Required to deal with code analysis warning about buffer not being checked for null.
+    if (buffer == nullptr) {
+        REQUIRE(false);
+    }
     buffer_length = required_length;
 
     REQUIRE(
