@@ -58,6 +58,7 @@ typedef struct _test_globals
 } test_globals_t;
 
 static test_globals_t _globals;
+static volatile bool _globals_initialized = false;
 
 inline static IPPROTO
 _get_protocol_from_string(std::string protocol)
@@ -80,6 +81,10 @@ _get_address_family_from_string(std::string family)
 static void
 _initialize_test_globals()
 {
+    if (_globals_initialized) {
+        return;
+    }
+
     ADDRESS_FAMILY family;
     get_address_from_string(_remote_ip_v4, _globals.addresses[socket_family_t::IPv4].remote_address, false, &family);
     REQUIRE(family == AF_INET);
@@ -110,6 +115,7 @@ _initialize_test_globals()
     IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[socket_family_t::IPv6].loopback_address);
 
     _globals.remote_port = _remote_port;
+    _globals_initialized = true;
 }
 
 static void
@@ -341,14 +347,12 @@ connect_redirect_tests_common(_In_ const struct bpf_object* object, bool dual_st
     connect_redirect_test_wrapper(object, addresses.local_address, addresses.remote_address, dual_stack);
 }
 
-TEST_CASE("connect_redirect_tests", "[connect_redirect_tests]")
+TEST_CASE("connect_redirect_tcp_v4", "[connect_redirect_tests]")
 {
     _initialize_test_globals();
 
     struct bpf_object* object = nullptr;
     _load_and_attach_ebpf_programs(&object);
-
-    ADDRESS_FAMILY families[NUM_ADDRESS_FAMILY] = {AF_INET, AF_INET, AF_INET6};
 
     // Test for IPv4 traffic.
     _globals.family = AF_INET;
@@ -357,9 +361,16 @@ TEST_CASE("connect_redirect_tests", "[connect_redirect_tests]")
     connect_redirect_tests_common(object, false, _globals.addresses[socket_family_t::IPv4]);
     connect_redirect_tests_common(object, true, _globals.addresses[socket_family_t::Dual]);
 
-    _globals.protocol = IPPROTO_UDP;
-    connect_redirect_tests_common(object, false, _globals.addresses[socket_family_t::IPv4]);
-    connect_redirect_tests_common(object, true, _globals.addresses[socket_family_t::Dual]);
+    // This should also detach the programs as they are not pinned.
+    bpf_object__close(object);
+}
+
+TEST_CASE("connect_redirect_tcp_v6", "[connect_redirect_tests]")
+{
+    _initialize_test_globals();
+
+    struct bpf_object* object = nullptr;
+    _load_and_attach_ebpf_programs(&object);
 
     // Test for IPv6 traffic.
     _globals.family = AF_INET6;
@@ -368,9 +379,43 @@ TEST_CASE("connect_redirect_tests", "[connect_redirect_tests]")
     connect_redirect_tests_common(object, false, _globals.addresses[socket_family_t::IPv6]);
     connect_redirect_tests_common(object, true, _globals.addresses[socket_family_t::IPv6]);
 
+    // This should also detach the programs as they are not pinned.
+    bpf_object__close(object);
+}
+
+TEST_CASE("connect_redirect_udp_v4", "[connect_redirect_tests]")
+{
+    _initialize_test_globals();
+
+    struct bpf_object* object = nullptr;
+    _load_and_attach_ebpf_programs(&object);
+
+    // Test for IPv4 traffic.
+    _globals.family = AF_INET;
+
     _globals.protocol = IPPROTO_UDP;
-    connect_redirect_tests_common(object, false, _globals.addresses[socket_family_t::IPv6]);
+    connect_redirect_tests_common(object, false, _globals.addresses[socket_family_t::IPv4]);
+    connect_redirect_tests_common(object, true, _globals.addresses[socket_family_t::Dual]);
+
+    // This should also detach the programs as they are not pinned.
+    bpf_object__close(object);
+}
+
+TEST_CASE("connect_redirect_udp_v6", "[connect_redirect_tests]")
+{
+    _initialize_test_globals();
+
+    struct bpf_object* object = nullptr;
+    _load_and_attach_ebpf_programs(&object);
+
+    // Test for IPv6 traffic.
+    _globals.family = AF_INET6;
+
+    _globals.protocol = IPPROTO_UDP;
+    printf("TEST: UDP | IPv6 | Dual Stack\n");
     connect_redirect_tests_common(object, true, _globals.addresses[socket_family_t::IPv6]);
+    printf("TEST: UDP | IPv6 | No Dual Stack\n");
+    connect_redirect_tests_common(object, false, _globals.addresses[socket_family_t::IPv6]);
 
     // This should also detach the programs as they are not pinned.
     bpf_object__close(object);

@@ -32,6 +32,11 @@ Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest
 
 # Stop eBPF components on test VMs.
 foreach ($VM in $Config.MultiVMTest) {
+    if ($VM.Name -eq "vip")
+    {
+        # Skip "vip" as this is not a real VM.
+        continue
+    }
     Stop-eBPFComponentsOnVM -VMName $VM.Name
 }
 
