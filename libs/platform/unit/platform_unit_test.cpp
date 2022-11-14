@@ -698,7 +698,10 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     REQUIRE(ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length));
 
     buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
-    _Analysis_assume_(buffer != nullptr);
+    // Work around code analysis warning about buffer not being checked for null.
+    if (buffer == nullptr) {
+        REQUIRE(false);
+    }
     buffer_length = required_length;
 
     REQUIRE(
