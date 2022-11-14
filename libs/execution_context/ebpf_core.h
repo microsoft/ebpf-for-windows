@@ -31,7 +31,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_core_initiate();
 
     /**
@@ -55,7 +55,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_core_invoke_protocol_handler(
         ebpf_operation_id_t operation_id,
         _In_reads_bytes_(input_buffer_length) const void* input_buffer,
@@ -76,7 +76,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_SUPPORTED The operation id is not valid.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_core_get_protocol_handler_properties(
         ebpf_operation_id_t operation_id,
         _Out_ size_t* minimum_request_size,
@@ -123,7 +123,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_FOUND No object was pinned to the provided path.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_core_get_pinned_object(_In_ const ebpf_utf8_string_t* path, _Out_ ebpf_handle_t* handle);
 
     /**
@@ -138,7 +138,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
      * @retval EBPF_NOT_FOUND No object was pinned to the provided path.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const ebpf_utf8_string_t* path);
 
     /**
@@ -152,7 +152,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_core_create_map(
         _In_ const ebpf_utf8_string_t* map_name,
         _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
@@ -171,7 +171,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_core_load_code(
         ebpf_handle_t program_handle,
         ebpf_code_type_t code_type,
@@ -191,7 +191,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_handle_t* handle);
 
     /**
@@ -209,7 +209,7 @@ extern "C"
      * @retval EBPF_INVALID_FD The program is incompatible with the map.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_core_resolve_maps(
         ebpf_handle_t program_handle,
         uint32_t count_of_maps,
@@ -230,7 +230,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_core_resolve_helper(
         ebpf_handle_t program_handle,
         const size_t count_of_helpers,

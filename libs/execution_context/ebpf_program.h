@@ -43,7 +43,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_initiate();
 
     /**
@@ -61,7 +61,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_create(_Outptr_ ebpf_program_t** program);
 
     /**
@@ -75,7 +75,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program_parameters_t* program_parameters);
 
     /**
@@ -106,7 +106,7 @@ extern "C"
      * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The program info isn't
      *  available.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_program_info_t** program_info);
 
     /**
@@ -127,7 +127,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t maps_count);
 
     /**
@@ -139,7 +139,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map);
 
     /**
@@ -155,7 +155,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_load_code(
         _Inout_ ebpf_program_t* program,
         ebpf_code_type_t code_type,
@@ -185,7 +185,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT The helper function IDs array is already populated.
      * @retval EBPF_NO_MEMORY Could not allocate array of helper function IDs.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_set_helper_function_ids(
         _Inout_ ebpf_program_t* program,
         const size_t helper_function_count,
@@ -202,7 +202,7 @@ extern "C"
      * @retval EBPF_INSUFFICIENT_BUFFER Output array is insufficient.
      * @retval EBPF_INVALID_ARGUMENT At least one helper function id is not valid.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_get_helper_function_addresses(
         _In_ const ebpf_program_t* program,
         const size_t addresses_count,
@@ -234,7 +234,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT Internal error.
      * @retval EBPF_NO_MORE_TAIL_CALLS Program has executed to many tail calls.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program);
 
     /**
@@ -249,7 +249,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INSUFFICIENT_BUFFER The buffer was too small to hold bpf_prog_info.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_get_info(
         _In_ const ebpf_program_t* program,
         _In_reads_(*info_size) const uint8_t* input_buffer,
@@ -268,7 +268,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_create_and_initialize(
         _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle);
 
