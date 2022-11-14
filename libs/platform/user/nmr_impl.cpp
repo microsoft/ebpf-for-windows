@@ -297,7 +297,7 @@ _nmr::remove(_Inout_ collection_t& collection, _In_ collection_t::value_type::fi
     if (it->second.binding_count > 0) {
         for (;;) {
             // Wait NMR_WAIT_TIMEOUT_SECONDS seconds for bindings to reach zero.
-            if (bindings_changed.wait(l, std::chrono::seconds(NMR_WAIT_TIMEOUT_SECONDS), [&]() {
+            if (bindings_changed.wait_for(l, std::chrono::seconds(NMR_WAIT_TIMEOUT_SECONDS), [&]() {
                     return it->second.binding_count == 0;
                 })) {
                 break;
