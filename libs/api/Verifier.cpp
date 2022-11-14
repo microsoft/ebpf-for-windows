@@ -471,6 +471,9 @@ ebpf_api_elf_disassemble_section(
         auto& program = std::get<InstructionSeq>(programOrError);
         print(program, output, {}, true);
         *disassembly = allocate_string(output.str());
+        if (!*disassembly) {
+            return 1;
+        }
     } catch (std::runtime_error e) {
         error << "error: " << e.what();
         *error_message = allocate_string(error.str());
@@ -532,6 +535,9 @@ _ebpf_api_elf_verify_section_from_stream(
 
         output << "Verification succeeded";
         *report = allocate_string(output.str());
+        if (!*report) {
+            return 1;
+        }
         return 0;
     } catch (std::runtime_error e) {
         error << "error: " << e.what();
