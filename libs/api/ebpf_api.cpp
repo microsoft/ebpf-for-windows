@@ -1225,7 +1225,7 @@ Exit:
 }
 
 ebpf_result_t
-ebpf_link_close(_Frees_ptr_opt_ struct bpf_link* link)
+ebpf_link_close(_Frees_ptr_ struct bpf_link* link)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(link);

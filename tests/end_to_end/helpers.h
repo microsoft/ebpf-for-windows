@@ -167,12 +167,10 @@ typedef class _single_instance_hook : public _hook_helper
     void
     close_link(bpf_link* link)
     {
-        ebpf_result_t result = ebpf_link_close(link);
-        // Workaround for code analysis issue:
-        // warning C6001: Using uninitialized memory 'link'.
-        if (result != EBPF_SUCCESS) {
-            REQUIRE(result == EBPF_SUCCESS);
-        }
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory '*link'.
+        REQUIRE(ebpf_link_close(link) == EBPF_SUCCESS);
+#pragma warning(pop)
     }
 
     ebpf_result_t

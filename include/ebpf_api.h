@@ -343,8 +343,8 @@ extern "C"
      * @sa bpf_link__destroy
      * @sa bpf_link_detach
      */
-    ebpf_result_t
-    ebpf_link_close(_Frees_ptr_opt_ struct bpf_link* link);
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_link_close(_Frees_ptr_ struct bpf_link* link);
 
     /**
      * @brief Close a file descriptor. Also close the underlying handle.
