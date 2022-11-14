@@ -640,6 +640,7 @@ TEST_CASE("serialize_map_test", "[platform]")
     // Required to deal with code analysis warning about buffer not being checked for null.
     if (buffer == nullptr) {
         REQUIRE(false);
+        return;
     }
     buffer_length = required_length;
 
@@ -701,6 +702,7 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     // Work around code analysis warning about buffer not being checked for null.
     if (buffer == nullptr) {
         REQUIRE(false);
+        return;
     }
     buffer_length = required_length;
 
