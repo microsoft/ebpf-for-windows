@@ -17,7 +17,6 @@
 
 #define NET_EBPF_EXT_OPTION_LOOPBACK (1 << 0)
 #define NET_EBPF_EXT_OPTION_REDIRECT (1 << 1)
-// #define NET_EBPF_EXT_OPTION_AUTH_CALLED (1 << 2)
 
 typedef struct _net_ebpf_extension_connection_context
 {
@@ -902,16 +901,6 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     }
     result = connection_context->verdict;
 
-    // if (!(connection_context->flags & NET_EBPF_EXT_OPTION_AUTH_CALLED)) {
-    //     // If this is the first time AUTH has been called for this connection,
-    //     // set NET_EBPF_EXT_OPTION_AUTH_CALLED flag.
-    //     connection_context->flags |= NET_EBPF_EXT_OPTION_AUTH_CALLED;
-    // } else {
-    //     // If this is the second AUTH call, we are now done with this connection
-    //     // context and it is safe to free this context.
-    //     _net_ebpf_ext_delete_connection_context(connection_context);
-    //     connection_context = NULL;
-    // }
     _net_ebpf_ext_delete_connection_context(connection_context);
     connection_context = NULL;
 
@@ -998,13 +987,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     memset(sock_addr_ctx_original, 0, sizeof(bpf_sock_addr_t));
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, sock_addr_ctx);
-    // Skip (and allow) any protocols other than TCP / UDP.
-    /*
-    if (sock_addr_ctx->protocol != IPPROTO_TCP && sock_addr_ctx->protocol != IPPROTO_UDP) {
-        action = FWP_ACTION_PERMIT;
-        goto Exit;
-    }
-    */
     *sock_addr_ctx_original = *sock_addr_ctx;
 
     // Check if this call is intended for us.

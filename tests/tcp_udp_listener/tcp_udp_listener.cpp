@@ -85,14 +85,6 @@ TEST_CASE("create_listener", "[connect_redirect_tests]")
 {
     IPPROTO protocol = _get_protocol_from_string(_protocol);
 
-    /*
-    int local_port = std::stoi(_local_port_string);
-    if (local_port > 0 && local_port < static_cast<int>(UINT16_MAX))
-    {
-        _local_port = static_cast<uint16_t>(local_port);
-    }
-    */
-
     if (protocol == IPPROTO_TCP) {
         create_tcp_listener();
     } else {

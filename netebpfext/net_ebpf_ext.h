@@ -88,19 +88,6 @@ typedef struct _net_ebpf_extension_wfp_filter_context_list_entry
     const struct _net_ebpf_extension_wfp_filter_context* filter_context;
 } net_ebpf_extension_wfp_filter_context_list_entry_t;
 
-// typedef struct _net_ebpf_extension_wfp_filter_instance
-// {
-//     EX_SPIN_LOCK lock;
-//     LIST_ENTRY list_entry;
-//     uint32_t filter_context_count;
-//     LIST_ENTRY filter_contexts;
-//     volatile long reference_count;
-//     uint64_t filter_id;
-//     uint32_t condition_count;
-//     FWPM_FILTER_CONDITION* conditions;
-//     GUID layer;
-// } net_ebpf_extension_wfp_filter_instance_t;
-
 /**
  * "Base class" for all WFP filter contexts used by net ebpf extension hooks.
  */
@@ -111,7 +98,6 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     uint64_t* filter_ids;                                         ///< Array of WFP filter Ids.
     uint32_t filter_ids_count;                                    ///< Number of WFP filter Ids.
     const void* custom_data; ///< Opaque pointer to hook specific data associated for this filter context.
-    // net_ebpf_extension_wfp_filter_instance_t** filter_instances; ///< Array of pointers to WFP filter instances.
 } net_ebpf_extension_wfp_filter_context_t;
 
 #define REFERENCE_FILTER_CONTEXT(filter_context) \
@@ -296,7 +282,3 @@ net_ebpf_ext_unregister_providers();
 NTSTATUS
 net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
-
-// ebpf_result_t
-// net_ebpf_extension_get_filter_instance_by_id(
-//     uint64_t filter_id, _Outptr_ net_ebpf_extension_wfp_filter_instance_t** filter_instance);
