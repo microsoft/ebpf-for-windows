@@ -102,4 +102,5 @@ typedef class _ebpf_low_memory_test
     std::mutex _mutex;
 
     size_t _stack_depth;
+    std::vector<std::string> _last_failure_stack;
 } ebpf_low_memory_test_t;
