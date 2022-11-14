@@ -100,7 +100,7 @@ typedef class _ebpf_map_test_state
 
         for (uint32_t i = 0; i < ebpf_get_cpu_count(); i++) {
             uint64_t value = 0;
-            ebpf_map_update_entry(map, 0, (uint8_t*)&i, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
+            (void)ebpf_map_update_entry(map, 0, (uint8_t*)&i, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
         }
     }
     ~_ebpf_map_test_state()
@@ -116,7 +116,7 @@ typedef class _ebpf_map_test_state
         volatile uint64_t* value = nullptr;
 
         REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
-        ebpf_map_find_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
+        (void)ebpf_map_find_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
         uint64_t local = *value;
         UNREFERENCED_PARAMETER(local);
         ebpf_epoch_exit();
@@ -128,7 +128,7 @@ typedef class _ebpf_map_test_state
         uint32_t key = cpu_id;
         uint64_t* value = nullptr;
         REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
-        ebpf_map_find_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
+        (void)ebpf_map_find_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
         (*value)++;
         ebpf_epoch_exit();
     }
@@ -139,7 +139,7 @@ typedef class _ebpf_map_test_state
         uint32_t key = cpu_id;
         uint64_t value = 0;
         REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
-        ebpf_map_update_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
+        (void)ebpf_map_update_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
         ebpf_epoch_exit();
     }
 
@@ -149,7 +149,7 @@ typedef class _ebpf_map_test_state
         uint32_t key = ebpf_random_uint32();
         uint64_t value = 0;
         REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
-        ebpf_map_update_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
+        (void)ebpf_map_update_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
         ebpf_epoch_exit();
     }
 
@@ -217,7 +217,7 @@ typedef class _ebpf_map_lpm_trie_test_state
         volatile uint64_t* value = nullptr;
 
         REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
-        ebpf_map_find_entry(map, sizeof(ipv4_key), (uint8_t*)&ipv4_key, sizeof(value), (uint8_t*)&value, 0);
+        (void)ebpf_map_find_entry(map, sizeof(ipv4_key), (uint8_t*)&ipv4_key, sizeof(value), (uint8_t*)&value, 0);
         UNREFERENCED_PARAMETER(value);
         ebpf_epoch_exit();
     }
