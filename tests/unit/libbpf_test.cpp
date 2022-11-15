@@ -558,6 +558,8 @@ TEST_CASE("libbpf map", "[libbpf]")
     std::vector<struct bpf_map*> maps;
 
     struct bpf_object* object = bpf_object__open("map.o");
+    REQUIRE(object != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -869,6 +871,8 @@ TEST_CASE("libbpf map binding", "[libbpf]")
     _test_helper_libbpf test_helper;
 
     struct bpf_object* object = bpf_object__open("droppacket.o");
+    REQUIRE(object != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -924,6 +928,8 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
     const char* pin_path = "\\temp\\test";
 
     struct bpf_object* object = bpf_object__open("droppacket.o");
+    REQUIRE(object != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -1021,6 +1027,8 @@ TEST_CASE("libbpf obj pinning", "[libbpf]")
     const char* pin_path = "\\temp\\test";
 
     struct bpf_object* object = bpf_object__open("droppacket.o");
+    REQUIRE(object != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -1059,6 +1067,8 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     struct bpf_object* object = bpf_object__open(filename);
+    REQUIRE(object != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -1162,6 +1172,8 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
         (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_multiple_um.dll" : "tail_call_multiple.o");
 
     struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -1251,6 +1263,8 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_um.dll" : "tail_call.o");
     struct bpf_object* xdp_object = bpf_object__open(file_name);
+    REQUIRE(xdp_object != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
@@ -1353,6 +1367,8 @@ _enumerate_program_ids_test(ebpf_execution_type_t execution_type)
     // Load a file with multiple programs.
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_um.dll" : "tail_call.o");
     struct bpf_object* xdp_object = bpf_object__open(file_name);
+    REQUIRE(xdp_object != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
@@ -1458,6 +1474,8 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
     struct bpf_object* xdp_object = bpf_object__open(file_name);
+    REQUIRE(xdp_object != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
@@ -1513,6 +1531,8 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_v2_um.dll" : "map_in_map_v2.o");
     struct bpf_object* xdp_object = bpf_object__open(file_name);
+    REQUIRE(xdp_object != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
@@ -1566,6 +1586,8 @@ _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
     struct bpf_object* xdp_object = bpf_object__open(file_name);
+    REQUIRE(xdp_object != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
