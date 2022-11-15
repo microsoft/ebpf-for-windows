@@ -15,17 +15,24 @@
 #define TARGET_PROCESS_ID 1234
 #define EXPIRY_TIME 60000 // 60 seconds in ms.
 
-#define NET_EBPF_EXT_OPTION_LOOPBACK (1 << 0)
-#define NET_EBPF_EXT_OPTION_REDIRECT (1 << 1)
+typedef struct _net_ebpf_ext_connection_context_key
+{
+    uint64_t transport_endpoint_handle;
+    bpf_sock_addr_t destination;
+    uint32_t compartment_id;
+    uint16_t protocol;
+} net_ebpf_ext_connection_context_key_t;
 
 typedef struct _net_ebpf_extension_connection_context
 {
     LIST_ENTRY list_entry;
-    bpf_sock_addr_t destination;
-    uint64_t transport_endpoint_handle;
-    uint8_t flags;
-    uint8_t verdict;
-    uint16_t protocol;
+    net_ebpf_ext_connection_context_key_t key;
+    struct
+    {
+        uint8_t verdict : 2;
+        uint8_t loopback : 1;
+        uint8_t redirected : 1;
+    } value;
     uint64_t timestamp;
 } net_ebpf_extension_connection_context_t;
 
@@ -375,15 +382,11 @@ _net_ebpf_ext_initialize_connection_context(
     uint32_t protocol,
     _Out_ net_ebpf_extension_connection_context_t* connection_context)
 {
-    connection_context->protocol = (uint16_t)protocol;
-    if (redirected) {
-        connection_context->flags |= NET_EBPF_EXT_OPTION_REDIRECT;
-    }
-    if (loopback) {
-        connection_context->flags |= NET_EBPF_EXT_OPTION_LOOPBACK;
-    }
-    connection_context->verdict = (uint8_t)verdict;
-    connection_context->transport_endpoint_handle = transport_endpoint_handle;
+    connection_context->key.protocol = (uint16_t)protocol;
+    connection_context->value.loopback = loopback;
+    connection_context->value.redirected = redirected;
+    connection_context->value.verdict = (uint8_t)verdict;
+    connection_context->key.transport_endpoint_handle = transport_endpoint_handle;
     connection_context->timestamp = KeQueryInterruptTime() / 10000; // in ms.
 }
 
@@ -442,10 +445,10 @@ _net_ebpf_ext_get_connection_context(
     while (list_entry != &_net_ebpf_ext_connect_context_list) {
         net_ebpf_extension_connection_context_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_connection_context_t, list_entry);
-        if (entry->transport_endpoint_handle == transport_endpoint_handle) {
+        if (entry->key.transport_endpoint_handle == transport_endpoint_handle) {
             // Check if the destination address and port match.
-            if (_net_ebpf_ext_compare_destination_address(&entry->destination, sock_addr_ctx) &&
-                entry->destination.user_port == sock_addr_ctx->user_port) {
+            if (_net_ebpf_ext_compare_destination_address(&entry->key.destination, sock_addr_ctx) &&
+                entry->key.destination.user_port == sock_addr_ctx->user_port) {
                 // Found matching entry. Update timestamp and move to front of the queue.
                 entry->timestamp = KeQueryInterruptTime() / 10000;
                 RemoveEntryList(&entry->list_entry);
@@ -497,7 +500,7 @@ _net_ebpf_ext_purge_lru_contexts_under_lock(bool delete_all)
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "_net_ebpf_ext_purge_lru_contexts_under_lock: Delete",
-            entry->transport_endpoint_handle);
+            entry->key.transport_endpoint_handle);
 
         ExFreePool(entry);
     }
@@ -849,12 +852,11 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
-    uint32_t result = BPF_SOCK_ADDR_VERDICT_REJECT;
+    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     NTSTATUS status;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     bpf_sock_addr_t sock_addr_ctx = {0};
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
-    FWP_ACTION_TYPE action = FWP_ACTION_BLOCK;
     net_ebpf_extension_connection_context_t* connection_context = NULL;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
@@ -879,7 +881,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
             "The cgroup_sock_addr eBPF program is not interested in this compartmentId",
             sock_addr_ctx.compartment_id);
 
-        action = FWP_ACTION_PERMIT;
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
     }
 
@@ -888,38 +890,28 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         incoming_metadata_values->transportEndpointHandle, &sock_addr_ctx, &connection_context);
     if (!NT_SUCCESS(status)) {
         // We did not find any connection context for this AUTH request. Block.
-        action = FWP_ACTION_BLOCK;
-
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "ANUSA: net_ebpf_extension_sock_addr_authorize_connection_classify: did not find matching context",
-            incoming_metadata_values->transportEndpointHandle,
-            sock_addr_ctx.family,
-            sock_addr_ctx.protocol);
+        verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
         goto Exit;
     }
-    result = connection_context->verdict;
+    verdict = connection_context->value.verdict;
 
     _net_ebpf_ext_delete_connection_context(connection_context);
     connection_context = NULL;
 
-    action = (result == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
-
 Exit:
-    classify_output->actionType = action;
+    classify_output->actionType = (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
     // Clear FWPS_RIGHT_ACTION_WRITE only when it is a hard block.
-    if (action == FWP_ACTION_BLOCK) {
+    if (classify_output->actionType == FWP_ACTION_BLOCK) {
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
     }
 
     NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
         NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
         NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "net_ebpf_extension_sock_addr_authorize_connection_classify",
+        "authorize_connection_classify",
         incoming_metadata_values->transportEndpointHandle,
         sock_addr_ctx.protocol,
-        action);
+        verdict);
 
     return;
 }
@@ -1128,10 +1120,10 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     // though, AUTH callout does not contain the the destination IP filled for the original destination.
     // For v4 mapped case, only fill the AF and destination port.
     if (!v4_mapped) {
-        RtlCopyMemory(&connection_context_original->destination, sock_addr_ctx, sizeof(bpf_sock_addr_t));
+        RtlCopyMemory(&connection_context_original->key.destination, sock_addr_ctx, sizeof(bpf_sock_addr_t));
     } else {
-        connection_context_original->destination.family = sock_addr_ctx->family;
-        connection_context_original->destination.user_port = sock_addr_ctx->user_port;
+        connection_context_original->key.destination.family = sock_addr_ctx->family;
+        connection_context_original->key.destination.user_port = sock_addr_ctx->user_port;
     }
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &verdict) != EBPF_SUCCESS) {
@@ -1140,7 +1132,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
 
     // Initialize connection_context_redirected destination with the redirected address.
-    RtlCopyMemory(&connection_context_redirected->destination, sock_addr_ctx, sizeof(bpf_sock_addr_t));
+    RtlCopyMemory(&connection_context_redirected->key.destination, sock_addr_ctx, sizeof(bpf_sock_addr_t));
 
     is_loopback = _net_ebpf_ext_is_loopback_address(sock_addr_ctx);
 
@@ -1249,9 +1241,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         verdict);
 
     action = FWP_ACTION_PERMIT;
-
-    // TODO: What to do for redirection by multiple callouts (FWP_CONDITION_FLAG_IS_REAUTHORIZE).
-    // https://docs.microsoft.com/en-us/windows-hardware/drivers/network/using-bind-or-connect-redirection#handling-connect-redirection-from-multiple-callouts
 
 Exit:
     classify_output->actionType = action;
