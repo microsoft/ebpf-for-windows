@@ -7,14 +7,14 @@
 static void
 _perf_epoch_enter_exit()
 {
-    ebpf_epoch_enter();
+    REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
     ebpf_epoch_exit();
 }
 
 static void
 _perf_epoch_enter_alloc_free_exit()
 {
-    ebpf_epoch_enter();
+    REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
     void* p = ebpf_epoch_allocate(10);
     ebpf_epoch_free(p);
     // Disable C6001
@@ -29,7 +29,7 @@ _perf_epoch_enter_alloc_free_exit()
 static void
 _perf_bpf_get_prandom_u32()
 {
-    ebpf_epoch_enter();
+    REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
     ebpf_random_uint32();
     ebpf_epoch_exit();
 }
@@ -38,7 +38,7 @@ static void
 _perf_bpf_ktime_get_boot_ns()
 {
     uint64_t time;
-    ebpf_epoch_enter();
+    REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
     time = ebpf_query_time_since_boot(true) * 100;
     ebpf_epoch_exit();
 }
@@ -47,7 +47,7 @@ static void
 _perf_bpf_ktime_get_ns()
 {
     uint64_t time;
-    ebpf_epoch_enter();
+    REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
     time = ebpf_query_time_since_boot(false) * 100;
     ebpf_epoch_exit();
 }
@@ -55,7 +55,7 @@ _perf_bpf_ktime_get_ns()
 static void
 _perf_bpf_get_smp_processor_id()
 {
-    ebpf_epoch_enter();
+    REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
     ebpf_get_current_cpu();
     ebpf_epoch_exit();
 }
@@ -75,7 +75,7 @@ typedef class _ebpf_hash_table_test_state
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
         epoch_initated = true;
 
-        ebpf_epoch_enter();
+        REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
         keys.resize(static_cast<size_t>(cpu_count) * 4ull);
         REQUIRE(
             ebpf_hash_table_create(
@@ -114,8 +114,9 @@ typedef class _ebpf_hash_table_test_state
     {
         uint8_t* value;
         for (auto& key : keys) {
-            ebpf_epoch_enter();
-            ebpf_hash_table_find(table, reinterpret_cast<uint8_t*>(&key), &value);
+            REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
+            // Expected to fail.
+            (void)ebpf_hash_table_find(table, reinterpret_cast<uint8_t*>(&key), &value);
             ebpf_epoch_exit();
         }
     }
@@ -125,8 +126,10 @@ typedef class _ebpf_hash_table_test_state
     {
         uint32_t next_key;
         for (auto& key : keys) {
-            ebpf_epoch_enter();
-            ebpf_hash_table_next_key(table, reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&next_key));
+            REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
+            // Expected to fail.
+            (void)ebpf_hash_table_next_key(
+                table, reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&next_key));
             ebpf_epoch_exit();
         }
     }
@@ -140,8 +143,9 @@ typedef class _ebpf_hash_table_test_state
             uint32_t start = current_cpu * 4;
             uint32_t end = start + 4;
             for (uint32_t index = start; index < end; index++) {
-                ebpf_epoch_enter();
-                ebpf_hash_table_update(
+                REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
+                // Expected to fail.
+                (void)ebpf_hash_table_update(
                     table,
                     reinterpret_cast<uint8_t*>(&keys[index]),
                     reinterpret_cast<uint8_t*>(&value),
@@ -157,8 +161,9 @@ typedef class _ebpf_hash_table_test_state
         uint64_t value = 12345678;
         // Update conflicting keys
         for (auto& key : keys) {
-            ebpf_epoch_enter();
-            ebpf_hash_table_update(
+            REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
+            // Expected to fail.
+            (void)ebpf_hash_table_update(
                 table,
                 reinterpret_cast<uint8_t*>(&key),
                 reinterpret_cast<uint8_t*>(&value),

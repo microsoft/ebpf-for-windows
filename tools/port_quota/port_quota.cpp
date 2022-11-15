@@ -37,7 +37,11 @@ load(int argc, char** argv)
         return 1;
     }
 
-    ebpf_object_set_execution_type(object, EBPF_EXECUTION_JIT);
+    result = ebpf_object_set_execution_type(object, EBPF_EXECUTION_JIT);
+    if (result != EBPF_SUCCESS) {
+        fprintf(stderr, "Failed to set execution type\n");
+        return 1;
+    }
     program = bpf_object__next_program(object, nullptr);
     if (bpf_object__load(object) < 0) {
         fprintf(stderr, "Failed to load port quota eBPF program\n");
@@ -94,13 +98,26 @@ load(int argc, char** argv)
 int
 unload(int argc, char** argv)
 {
+    ebpf_result_t result;
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    ebpf_object_unpin(program_path);
-    ebpf_object_unpin(program_link);
-    ebpf_object_unpin(limits_map);
-    ebpf_object_unpin(process_map);
+    result = ebpf_object_unpin(program_path);
+    if (result != ERROR_SUCCESS) {
+        fprintf(stderr, "Failed to unpin eBPF program: %d\n", result);
+    }
+    result = ebpf_object_unpin(program_link);
+    if (result != ERROR_SUCCESS) {
+        fprintf(stderr, "Failed to unpin eBPF link: %d\n", result);
+    }
+    result = ebpf_object_unpin(limits_map);
+    if (result != ERROR_SUCCESS) {
+        fprintf(stderr, "Failed to unpin eBPF map: %d\n", result);
+    }
+    result = ebpf_object_unpin(process_map);
+    if (result != ERROR_SUCCESS) {
+        fprintf(stderr, "Failed to unpin eBPF map: %d\n", result);
+    }
     return 1;
 }
 
