@@ -166,8 +166,7 @@ TEST_CASE("map create", "[map]")
                   "Found 2 elements\n");
     REQUIRE(status == 0);
 
-    ebpf_result_t result = ebpf_object_unpin("FileName");
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin("FileName") == EBPF_SUCCESS);
 }
 
 TEST_CASE("prog show id 1", "[prog][show]")
