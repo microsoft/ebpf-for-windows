@@ -156,7 +156,10 @@ class fuzz_wrapper
   public:
     fuzz_wrapper()
     {
-        ebpf_core_initiate();
+        ebpf_result_t result = ebpf_core_initiate();
+        if (result != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_core_initiate failed");
+        }
         for (const auto& type : _program_types) {
             program_information_providers.push_back(std::make_unique<_program_info_provider>(type));
         }
@@ -187,7 +190,9 @@ class fuzz_wrapper
     ~fuzz_wrapper()
     {
         for (auto& handle : handles) {
-            ebpf_handle_close(handle);
+            // Ignore errors.
+            // Fuzzing code is not expected to be correct.
+            (void)ebpf_handle_close(handle);
         };
         program_information_providers.clear();
         ebpf_core_terminate();
@@ -214,14 +219,18 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
     size_t minimum_request_size;
     size_t minimum_reply_size;
 
-    ebpf_core_get_protocol_handler_properties(operation_id, &minimum_request_size, &minimum_reply_size, &async);
+    ebpf_result_t result =
+        ebpf_core_get_protocol_handler_properties(operation_id, &minimum_request_size, &minimum_reply_size, &async);
+    if (result != EBPF_SUCCESS) {
+        return;
+    }
 
     if (random_buffer.size() < minimum_request_size) {
         return;
     }
 
     reply.resize(minimum_reply_size);
-    auto result = ebpf_core_invoke_protocol_handler(
+    result = ebpf_core_invoke_protocol_handler(
         operation_id,
         random_buffer.data(),
         static_cast<uint16_t>(random_buffer.size()),

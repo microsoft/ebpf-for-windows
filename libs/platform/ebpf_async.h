@@ -44,7 +44,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_async_initiate();
 
     /**
@@ -64,7 +64,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_async_set_completion_callback(_In_ void* context, _In_ void (*on_complete)(_In_ void*, size_t, ebpf_result_t));
 
     /**
@@ -72,7 +72,7 @@ extern "C"
      *
      * @param[in] context Context of action to stop tracking.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_async_reset_completion_callback(_In_ void* context);
 
     /**
@@ -84,7 +84,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT The action context hasn't been registered.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_async_set_cancel_callback(
         _In_ void* context, _In_ void* cancellation_context, _In_ void (*on_cancel)(_In_ void* cancellation_context));
 

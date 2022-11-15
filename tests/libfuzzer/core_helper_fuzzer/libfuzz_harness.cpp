@@ -156,7 +156,13 @@ fuzz_async_completion(void*, size_t, ebpf_result_t){};
 class fuzz_wrapper
 {
   public:
-    fuzz_wrapper() { ebpf_core_initiate(); }
+    fuzz_wrapper()
+    {
+        ebpf_result_t result = ebpf_core_initiate();
+        if (result != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_core_initiate failed");
+        }
+    }
     void
     make_program(const GUID type)
     {
@@ -199,7 +205,9 @@ class fuzz_wrapper
             ebpf_object_release_reference((ebpf_core_object_t*)map);
         }
         for (auto& handle : handles) {
-            ebpf_handle_close(handle);
+            // Ignore invalid handle close.
+            // Fuzzing may have already closed this handle.
+            (void)ebpf_handle_close(handle);
         };
         program_information_providers.clear();
         ebpf_core_terminate();

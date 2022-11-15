@@ -210,7 +210,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
         for (size_t i = 0; i < iterations; i++) {
             for (auto& key : keys) {
                 run_in_epoch([&]() {
-                    ebpf_hash_table_update(
+                    (void)ebpf_hash_table_update(
                         table,
                         reinterpret_cast<const uint8_t*>(&key),
                         reinterpret_cast<const uint8_t*>(&value),
@@ -219,17 +219,17 @@ TEST_CASE("hash_table_stress_test", "[platform]")
             }
             for (auto& key : keys)
                 run_in_epoch([&]() {
-                    ebpf_hash_table_find(
+                    (void)ebpf_hash_table_find(
                         table, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<uint8_t**>(&returned_value));
                 });
             for (auto& key : keys)
                 run_in_epoch([&]() {
-                    ebpf_hash_table_next_key(
+                    (void)ebpf_hash_table_next_key(
                         table, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<uint8_t*>(&next_key));
                 });
 
             for (auto& key : keys)
-                run_in_epoch([&]() { ebpf_hash_table_delete(table, reinterpret_cast<const uint8_t*>(&key)); });
+                run_in_epoch([&]() { (void)ebpf_hash_table_delete(table, reinterpret_cast<const uint8_t*>(&key)); });
         }
     };
 
@@ -369,7 +369,7 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
 
         auto t1 = [&]() {
             uintptr_t old_thread_affinity;
-            ebpf_set_current_thread_affinity(1, &old_thread_affinity);
+            ebpf_assert_success(ebpf_set_current_thread_affinity(1, &old_thread_affinity));
             bool _in_epoch = (ebpf_epoch_enter() == EBPF_SUCCESS);
             void* memory = _in_epoch ? ebpf_epoch_allocate(10) : nullptr;
             signal_2.signal();
@@ -380,7 +380,7 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         };
         auto t2 = [&]() {
             uintptr_t old_thread_affinity;
-            ebpf_set_current_thread_affinity(2, &old_thread_affinity);
+            ebpf_assert_success(ebpf_set_current_thread_affinity(2, &old_thread_affinity));
             signal_2.wait();
             if (ebpf_epoch_enter() == EBPF_SUCCESS) {
                 void* memory = ebpf_epoch_allocate(10);
@@ -457,7 +457,7 @@ TEST_CASE("extension_test", "[platform]")
     ebpf_extension_client_t* client_context = nullptr;
     void* provider_binding_context = nullptr;
 
-    ebpf_guid_create(&interface_id);
+    ebpf_assert_success(ebpf_guid_create(&interface_id));
     int callback_context = 0;
     int client_binding_context = 0;
     GUID client_module_id = {};
@@ -642,13 +642,13 @@ TEST_CASE("serialize_map_test", "[platform]")
     }
     buffer_length = required_length;
 
-    result = ebpf_serialize_internal_map_info_array(
-        map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_serialize_internal_map_info_array(
+            map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length) ==
+        EBPF_SUCCESS);
 
     // Deserialize.
-    result = ebpf_deserialize_map_info_array(serialized_length, buffer, map_count, &map_info_array);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(ebpf_deserialize_map_info_array(serialized_length, buffer, map_count, &map_info_array) == EBPF_SUCCESS);
     _Analysis_assume_(map_info_array != nullptr);
     // Verify de-serialized map info array matches input.
     for (int i = 0; i < map_count; i++) {
@@ -694,20 +694,18 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     ebpf_program_info_t* out_program_info;
 
     // Serialize.
-    ebpf_result_t result =
-        ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length);
-    REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
+    REQUIRE(ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length));
 
     buffer = static_cast<uint8_t*>(calloc(required_length, 1));
     _Analysis_assume_(buffer != nullptr);
     buffer_length = required_length;
 
-    result = ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length) ==
+        EBPF_SUCCESS);
 
     // Deserialize.
-    result = ebpf_deserialize_program_info(serialized_length, buffer, &out_program_info);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(ebpf_deserialize_program_info(serialized_length, buffer, &out_program_info) == EBPF_SUCCESS);
 
     // Verify de-serialized program info matches input.
     REQUIRE(
@@ -944,13 +942,27 @@ TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
 
     uint8_t* mem1 = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem1, 10) == EBPF_SUCCESS);
-    _Analysis_assume_(mem1 != nullptr);
-    ebpf_ring_buffer_submit(mem1);
+    REQUIRE(mem1 != nullptr);
+    // Wrapping ebpf_ring_buffer_submit in a REQUIRE macro causes code analysis
+    // to fail with error warning C6001: Using uninitialized memory 'mem1'.
+    ebpf_result_t result = ebpf_ring_buffer_submit(mem1);
+    // Workaround for code analysis failure:
+    // C28193: 'result' holds a value that must be examined.
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
 
     uint8_t* mem2 = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem2, 10) == EBPF_SUCCESS);
-    _Analysis_assume_(mem2 != nullptr);
-    ebpf_ring_buffer_discard(mem2);
+    REQUIRE(mem2 != nullptr);
+    // Wrapping ebpf_ring_buffer_submit in a REQUIRE macro causes code analysis
+    // to fail with error warning C6001: Using uninitialized memory 'mem1'.
+    result = ebpf_ring_buffer_discard(mem2);
+    // Workaround for code analysis failure:
+    // C28193: 'result' holds a value that must be examined.
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
 
     uint8_t* mem3 = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem3, size + 1) == EBPF_INVALID_ARGUMENT);
