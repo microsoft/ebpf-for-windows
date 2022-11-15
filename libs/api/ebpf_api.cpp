@@ -2083,6 +2083,7 @@ _ebpf_pe_add_section(
 
     ebpf_section_info_t* info = (ebpf_section_info_t*)malloc(sizeof(*info));
     if (info == nullptr) {
+        pe_context->result = EBPF_NO_MEMORY;
         EBPF_LOG_EXIT();
         return 1;
     }
@@ -2094,6 +2095,7 @@ _ebpf_pe_add_section(
     info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
     info->program_type_name = ebpf_get_program_type_name(&pe_context->section_program_types[pe_section_name]);
     if (info->program_type_name == nullptr) {
+        pe_context->result = EBPF_NO_MEMORY;
         EBPF_LOG_EXIT();
         return 1;
     }
@@ -2146,7 +2148,16 @@ _ebpf_enumerate_native_sections(
 
     DestructParsedPE(pe);
 
-    *infos = context.infos;
+    if (context.result != EBPF_SUCCESS) {
+        *error_message = _strdup("Failed to parse PE file.");
+        while (context.infos) {
+            ebpf_section_info_t* next = context.infos->next;
+            _ebpf_free_section_info(context.infos);
+            context.infos = next;
+        }
+    } else {
+        *infos = context.infos;
+    }
     EBPF_RETURN_RESULT(context.result);
 }
 

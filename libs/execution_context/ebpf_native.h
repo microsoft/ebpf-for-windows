@@ -20,7 +20,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_native_initiate();
 
     /**
@@ -47,7 +47,7 @@ extern "C"
      * @retval EBPF_OBJECT_ALREADY_EXISTS Native module for this module ID is already
      *  initialized.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_native_load(
         _In_reads_(service_name_length) const wchar_t* service_name,
         uint16_t service_name_length,
@@ -74,7 +74,7 @@ extern "C"
      * @retval EBPF_OBJECT_ALREADY_EXISTS Native module for this module ID is already
      *  loaded.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_native_load_programs(
         _In_ const GUID* module_id,
         size_t count_of_map_handles,
@@ -91,7 +91,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_OBJECT_NOT_FOUND Specified module was not found.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_native_get_count_of_programs(_In_ const GUID* module_id, _Out_ size_t* count_of_programs);
 
     /**
@@ -103,7 +103,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_OBJECT_NOT_FOUND Specified module was not found.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_native_get_count_of_maps(_In_ const GUID* module_id, _Out_ size_t* count_of_maps);
 
     /**
@@ -114,7 +114,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate memory for service name.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_native_unload(_In_ const GUID* module_id);
 
     /**
