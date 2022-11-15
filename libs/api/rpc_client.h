@@ -12,7 +12,7 @@ initialize_rpc_binding(void);
 RPC_STATUS
 clean_up_rpc_binding(void);
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_rpc_load_program(
     _In_ ebpf_program_load_info* info,
     _Outptr_result_maybenull_z_ const char** logs,
