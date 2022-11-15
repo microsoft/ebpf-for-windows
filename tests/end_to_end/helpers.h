@@ -143,7 +143,7 @@ typedef class _single_instance_hook : public _hook_helper
     detach()
     {
         if (link_object != nullptr) {
-            ebpf_link_detach(link_object);
+            REQUIRE(ebpf_link_detach(link_object) == EBPF_SUCCESS);
             ebpf_link_close(link_object);
             link_object = nullptr;
         }
@@ -161,13 +161,16 @@ typedef class _single_instance_hook : public _hook_helper
     void
     detach_link(bpf_link* link)
     {
-        ebpf_link_detach(link);
+        REQUIRE(ebpf_link_detach(link) == EBPF_SUCCESS);
     }
 
     void
     close_link(bpf_link* link)
     {
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory '*link'.
         ebpf_link_close(link);
+#pragma warning(pop)
     }
 
     ebpf_result_t

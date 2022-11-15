@@ -27,7 +27,7 @@ typedef struct _async_ioctl_completion_context
 static ebpf_handle_t _device_handle = ebpf_handle_invalid;
 static std::mutex _mutex;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 initialize_device_handle()
 {
     std::scoped_lock lock(_mutex);
@@ -61,7 +61,8 @@ ebpf_handle_t
 get_device_handle()
 {
     if (_device_handle == ebpf_handle_invalid) {
-        initialize_device_handle();
+        // Ignore failures.
+        (void)initialize_device_handle();
     }
 
     return _device_handle;
@@ -86,7 +87,7 @@ clean_up_async_ioctl_completion(_Inout_opt_ _Post_invalid_ async_ioctl_completio
     }
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 register_wait_async_ioctl_operation(_Inout_ async_ioctl_completion_t* async_ioctl_completion)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -142,7 +143,7 @@ get_async_ioctl_operation_overlapped(_In_ const async_ioctl_completion_t* async_
     return const_cast<OVERLAPPED*>(&async_ioctl_completion->overlapped);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion)
 {
     DWORD dummy;
@@ -155,7 +156,7 @@ get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion)
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 initialize_async_ioctl_operation(
     _Inout_opt_ void* callback_context,
     _In_ const async_ioctl_completion_callback_t callback,
