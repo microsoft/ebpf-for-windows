@@ -66,6 +66,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\ubpf;$(SolutionDir)libs\ubpf\kernel;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalOptions>/fno-sanitize-address-vcasan-lib %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -74,6 +75,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\ubpf;$(SolutionDir)libs\ubpf\kernel;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalOptions>/fno-sanitize-address-vcasan-lib %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
