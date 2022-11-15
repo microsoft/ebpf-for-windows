@@ -103,7 +103,7 @@ class duplicate_handles_table_t
             // Dereference the handle. If the reference count drops to 0, close the handle.
             if (--it->second == 0) {
                 _duplicate_count_table.erase(handle);
-                ebpf_api_close_handle(handle);
+                REQUIRE(ebpf_api_close_handle(handle) == EBPF_SUCCESS);
             }
             if (_rundown_in_progress && _duplicate_count_table.size() == 0) {
                 // All duplicate handles have been closed. Fulfill the promise.
@@ -462,7 +462,7 @@ Glue_close(int file_descriptor)
         bool found = _duplicate_handles.dereference_if_found(it->second);
         if (!found)
             // No duplicates. Close the handle.
-            ebpf_api_close_handle(it->second);
+            REQUIRE((ebpf_fuzzing_enabled || ebpf_api_close_handle(it->second) == EBPF_SUCCESS));
         _fd_to_handle_map.erase(file_descriptor);
         return 0;
     }
@@ -534,9 +534,24 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     api_initialized = true;
 }
 
+static void
+_rundown_osfhandles()
+{
+    std::vector<int> fds_to_close;
+    for (auto [fd, handle] : _fd_to_handle_map) {
+        fds_to_close.push_back(fd);
+    }
+
+    for (auto fd : fds_to_close) {
+        Glue_close(fd);
+    }
+}
+
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
     try {
+        _rundown_osfhandles();
+
         // Run down duplicate handles, if any.
         _duplicate_handles.rundown();
     } catch (Catch::TestFailureException&) {

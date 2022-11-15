@@ -5,7 +5,7 @@
 #include "ebpf_handle.h"
 #include "framework.h"
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name)
 {
     UNICODE_STRING driver_service_name;

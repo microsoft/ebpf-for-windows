@@ -2502,13 +2502,11 @@ TEST_CASE("ebpf_get_program_type_by_name invalid name", "[end-to-end]")
     ebpf_program_type_t program_type;
     ebpf_attach_type_t attach_type;
 
-    ebpf_result_t result = ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type);
-    REQUIRE(result == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type) == EBPF_KEY_NOT_FOUND);
 
     // Now set verification in progress and try again.
     set_verification_in_progress(true);
-    result = ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type);
-    REQUIRE(result == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type) == EBPF_KEY_NOT_FOUND);
 }
 
 TEST_CASE("ebpf_get_program_type_name invalid types", "[end-to-end]")
