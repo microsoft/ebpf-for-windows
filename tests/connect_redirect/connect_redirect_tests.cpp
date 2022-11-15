@@ -85,32 +85,59 @@ _initialize_test_globals()
     }
 
     ADDRESS_FAMILY family;
-    get_address_from_string(_remote_ip_v4, _globals.addresses[socket_family_t::IPv4].remote_address, false, &family);
-    REQUIRE(family == AF_INET);
-    get_address_from_string(_local_ip_v4, _globals.addresses[socket_family_t::IPv4].local_address, false, &family);
-    REQUIRE(family == AF_INET);
-    get_address_from_string(_vip_v4, _globals.addresses[socket_family_t::IPv4].vip_address, false, &family);
-    REQUIRE(family == AF_INET);
-    IN4ADDR_SETLOOPBACK((PSOCKADDR_IN)&_globals.addresses[socket_family_t::IPv4].loopback_address);
+    uint32_t v4_addresses = 0;
+    uint32_t v6_addresses = 0;
 
-    get_address_from_string(_remote_ip_v4, _globals.addresses[socket_family_t::Dual].remote_address, true, &family);
-    REQUIRE(family == AF_INET);
-    get_address_from_string(_local_ip_v4, _globals.addresses[socket_family_t::Dual].local_address, true, &family);
-    REQUIRE(family == AF_INET);
-    get_address_from_string(_vip_v4, _globals.addresses[socket_family_t::Dual].vip_address, true, &family);
-    REQUIRE(family == AF_INET);
+    // Read v4 addresses.
+    if (_remote_ip_v4 != "") {
+        get_address_from_string(
+            _remote_ip_v4, _globals.addresses[socket_family_t::IPv4].remote_address, false, &family);
+        REQUIRE(family == AF_INET);
+        get_address_from_string(_remote_ip_v4, _globals.addresses[socket_family_t::Dual].remote_address, true, &family);
+        REQUIRE(family == AF_INET);
+        v4_addresses++;
+    }
+    if (_local_ip_v4 != "") {
+        get_address_from_string(_local_ip_v4, _globals.addresses[socket_family_t::IPv4].local_address, false, &family);
+        REQUIRE(family == AF_INET);
+        get_address_from_string(_local_ip_v4, _globals.addresses[socket_family_t::Dual].local_address, true, &family);
+        REQUIRE(family == AF_INET);
+        v4_addresses++;
+    }
+    if (_vip_v4 != "") {
+        get_address_from_string(_vip_v4, _globals.addresses[socket_family_t::IPv4].vip_address, false, &family);
+        REQUIRE(family == AF_INET);
+        get_address_from_string(_vip_v4, _globals.addresses[socket_family_t::Dual].vip_address, true, &family);
+        REQUIRE(family == AF_INET);
+        v4_addresses++;
+    }
+    REQUIRE((v4_addresses == 0 || v4_addresses == 3));
+
+    IN4ADDR_SETLOOPBACK((PSOCKADDR_IN)&_globals.addresses[socket_family_t::IPv4].loopback_address);
     IN6ADDR_SETV4MAPPED(
         (PSOCKADDR_IN6)&_globals.addresses[socket_family_t::Dual].loopback_address,
         &in4addr_loopback,
         scopeid_unspecified,
         0);
 
-    get_address_from_string(_remote_ip_v6, _globals.addresses[socket_family_t::IPv6].remote_address, false, &family);
-    REQUIRE(family == AF_INET6);
-    get_address_from_string(_local_ip_v6, _globals.addresses[socket_family_t::IPv6].local_address, false, &family);
-    REQUIRE(family == AF_INET6);
-    get_address_from_string(_vip_v6, _globals.addresses[socket_family_t::IPv6].vip_address, false, &family);
-    REQUIRE(family == AF_INET6);
+    // Read v6 addresses.
+    if (_remote_ip_v6 != "") {
+        get_address_from_string(
+            _remote_ip_v6, _globals.addresses[socket_family_t::IPv6].remote_address, false, &family);
+        REQUIRE(family == AF_INET6);
+        v6_addresses++;
+    }
+    if (_local_ip_v6 != "") {
+        get_address_from_string(_local_ip_v6, _globals.addresses[socket_family_t::IPv6].local_address, false, &family);
+        REQUIRE(family == AF_INET6);
+        v6_addresses++;
+    }
+    if (_vip_v6 != "") {
+        get_address_from_string(_vip_v6, _globals.addresses[socket_family_t::IPv6].vip_address, false, &family);
+        REQUIRE(family == AF_INET6);
+        v6_addresses++;
+    }
+    REQUIRE((v6_addresses == 0 || v6_addresses == 3));
     IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[socket_family_t::IPv6].loopback_address);
 
     _globals.remote_port = _remote_port;
@@ -302,47 +329,50 @@ void
 connect_redirect_tests_common(_In_ const struct bpf_object* object, bool dual_stack, _In_ test_addresses_t& addresses)
 {
     // First cateogory is authorize tests.
+    const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";
+    const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";
+    const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";
 
     // Loopback address.
-    printf("Loobpack authorize\n");
+    printf("AUTH: Loopback | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     authorize_test_wrapper(object, dual_stack, addresses.loopback_address);
 
     // Remote address.
-    printf("Remote authorize\n");
+    printf("AUTH: Remote | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     authorize_test_wrapper(object, dual_stack, addresses.remote_address);
 
     // Local non-loopback address.
-    printf("Local non-loopback authorize\n");
+    printf("AUTH: Local | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     authorize_test_wrapper(object, dual_stack, addresses.local_address);
 
     // Second category is connection redirection tests.
 
     // Remote -> Remote
-    printf("Remote             -> Remote\n");
+    printf("REDIRECT: Remote -> Remote | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     connect_redirect_test_wrapper(object, addresses.vip_address, addresses.remote_address, dual_stack);
 
     // Remote -> Loopback
-    printf("Remote             -> Loopback\n");
+    printf("REDIRECT: Remote -> Loopback | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     connect_redirect_test_wrapper(object, addresses.vip_address, addresses.loopback_address, dual_stack);
 
     // Remote -> Local non-loopback
-    printf("Remote             -> Local non-loopback\n");
+    printf("REDIRECT: Remote -> Local | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     connect_redirect_test_wrapper(object, addresses.vip_address, addresses.local_address, dual_stack);
 
     // Loopback -> Remote
-    printf("Loopback           -> Remote\n");
+    printf("REDIRECT: Loopback -> Remote | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     connect_redirect_test_wrapper(object, addresses.loopback_address, addresses.remote_address, dual_stack);
 
     // Loopback -> Local non-loopback
-    printf("Loopback           -> Local non-loopback\n");
+    printf("REDIRECT: Loopback -> Local | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     connect_redirect_test_wrapper(object, addresses.loopback_address, addresses.local_address, dual_stack);
 
     // Local non-loopback -> Loopback
-    printf("Local non-loopback -> Loopback\n");
+    printf("REDIRECT: Local -> Loopback | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     connect_redirect_test_wrapper(object, addresses.local_address, addresses.loopback_address, dual_stack);
 
     // Local non-loopback -> Remote
-    printf("Local non-loopback -> Remote\n");
+    printf("REDIRECT: Local -> Remote | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     connect_redirect_test_wrapper(object, addresses.local_address, addresses.remote_address, dual_stack);
 }
 
@@ -411,9 +441,7 @@ TEST_CASE("connect_redirect_udp_v6", "[connect_redirect_tests]")
     _globals.family = AF_INET6;
 
     _globals.protocol = IPPROTO_UDP;
-    printf("TEST: UDP | IPv6 | Dual Stack\n");
     connect_redirect_tests_common(object, true, _globals.addresses[socket_family_t::IPv6]);
-    printf("TEST: UDP | IPv6 | No Dual Stack\n");
     connect_redirect_tests_common(object, false, _globals.addresses[socket_family_t::IPv6]);
 
     // This should also detach the programs as they are not pinned.
