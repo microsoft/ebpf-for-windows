@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <specstrings.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include "ebpf_core_structs.h"
@@ -36,7 +37,7 @@ extern "C"
      * @param[out] section_name On success, contains the section name.
      * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_query_info(
         fd_t fd,
         _Out_ ebpf_execution_type_t* execution_type,
@@ -72,7 +73,7 @@ extern "C"
 -     * @param[out] error_message On failure points to a text description of
 -     *  the error.
       */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_enumerate_sections(
         _In_z_ const char* file,
         bool verbose,
@@ -179,7 +180,7 @@ extern "C"
      *
      * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_object_unpin(_In_z_ const char* path) EBPF_NO_EXCEPT;
 
     /**
@@ -190,7 +191,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operations succeeded.
      * @retval EBPF_INVALID_ARGUMENT The link handle is invalid.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_api_unlink_program(ebpf_handle_t link_handle);
 
     /**
@@ -200,7 +201,7 @@ extern "C"
      * @retval EBPF_SUCCESS Handle was closed.
      * @retval EBPF_INVALID_OBJECT Handle is not valid.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_api_close_handle(ebpf_handle_t handle) EBPF_NO_EXCEPT;
 
     /**
@@ -213,7 +214,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Out of memory.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_api_get_pinned_map_info(
         _Out_ uint16_t* map_count,
         _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info) EBPF_NO_EXCEPT;
@@ -249,8 +250,8 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
      */
-    ebpf_result_t
-    ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type) EBPF_NO_EXCEPT;
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type)  EBPF_NO_EXCEPT;
 
     /**
      * @brief Attach an eBPF program.
@@ -268,7 +269,7 @@ extern "C"
      *
      * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_attach(
         _In_ const struct bpf_program* program,
         _In_opt_ const ebpf_attach_type_t* attach_type,
@@ -292,7 +293,7 @@ extern "C"
      *
      * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_attach_by_fd(
         fd_t program_fd,
         _In_opt_ const ebpf_attach_type_t* attach_type,
@@ -309,7 +310,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_OBJECT Invalid object was passed.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_link_detach(_In_ struct bpf_link* link);
 
     /**
@@ -325,7 +326,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_OBJECT Invalid object was passed.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_detach(
         fd_t program_fd,
         _In_ const ebpf_attach_type_t* attach_type,
@@ -338,14 +339,12 @@ extern "C"
      *
      * @param[in] link Pointer to the bpf_link structure.
      *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_ARGUMENT Invalid argument was provided.
      *
      * @sa bpf_link__destroy
      * @sa bpf_link_detach
      */
-    ebpf_result_t
-    ebpf_link_close(_In_ _Post_invalid_ struct bpf_link* link) EBPF_NO_EXCEPT;
+    void
+    ebpf_link_close(_Frees_ptr_ struct bpf_link* link) EBPF_NO_EXCEPT;
 
     /**
      * @brief Close a file descriptor. Also close the underlying handle.
@@ -354,7 +353,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_FD Invalid fd was provided.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_close_fd(fd_t fd);
 
     /**
@@ -367,7 +366,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_KEY_NOT_FOUND No program type was found.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_get_program_type_by_name(
         _In_z_ const char* name,
         _Out_ ebpf_program_type_t* program_type,
@@ -402,7 +401,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS No more entries found.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_get_next_pinned_program_path(
         _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) EBPF_NO_EXCEPT;
 
@@ -417,7 +416,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_OBJECT_NOT_FOUND No program information was found.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info) EBPF_NO_EXCEPT;
 
 #ifdef __cplusplus
