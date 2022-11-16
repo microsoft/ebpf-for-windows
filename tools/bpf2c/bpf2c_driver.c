@@ -79,7 +79,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
             NULL,                      // Query routine
             RTL_QUERY_REGISTRY_SUBKEY, // Flags
             L"Parameters",             // Name
-            NULL,                      // Entry contet
+            NULL,                      // Entry context
             REG_NONE,                  // Default type
             NULL,                      // Default data
             0,                         // Default length
@@ -88,7 +88,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
             _bpf2c_query_npi_module_id,  // Query routine
             RTL_QUERY_REGISTRY_REQUIRED, // Flags
             L"NpiModuleId",              // Name
-            NULL,                        // Entry contet
+            NULL,                        // Entry context
             REG_NONE,                    // Default type
             NULL,                        // Default data
             0,                           // Default length
