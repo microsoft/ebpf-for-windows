@@ -2398,6 +2398,7 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     std::wstring service_path(SERVICE_PATH_PREFIX);
     std::wstring service_path2(SERVICE_PATH_PREFIX);
     ebpf_handle_t module_handle = ebpf_handle_invalid;
+    ebpf_handle_t module_handle2 = ebpf_handle_invalid;
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     set_native_module_failures(true);
@@ -2422,8 +2423,10 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     service_path2 = service_path2 + NATIVE_DRIVER_SERVICE_NAME_2;
     REQUIRE(
         test_ioctl_load_native_module(
-            service_path2, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) ==
+            service_path2, &provider_module_id, &module_handle2, &count_of_maps, &count_of_programs) ==
         ERROR_OBJECT_ALREADY_EXISTS);
+
+    Platform::CloseHandle(module_handle);
 }
 
 // The below tests try to load native drivers for invalid programs (that will fail verification).
@@ -2461,6 +2464,8 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
     REQUIRE(
         test_ioctl_load_native_programs(&provider_module_id, nullptr, 1, &map_handles, 1, &program_handles) ==
         ERROR_INVALID_PARAMETER);
+
+    Platform::CloseHandle(module_handle);
 
     // Delete the created service.
     Platform::_delete_service(service_handle);

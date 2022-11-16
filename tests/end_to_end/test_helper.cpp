@@ -175,7 +175,12 @@ GlueCreateFileW(
 BOOL
 GlueCloseHandle(HANDLE hObject)
 {
-    _duplicate_handles.dereference_if_found(reinterpret_cast<ebpf_handle_t>(hObject));
+    ebpf_handle_t handle = reinterpret_cast<ebpf_handle_t>(hObject);
+    bool found = _duplicate_handles.dereference_if_found(handle);
+    if (!found) {
+        // No duplicates. Close the handle.
+        ebpf_api_close_handle(handle);
+    }
 
     return TRUE;
 }
@@ -459,10 +464,7 @@ Glue_close(int file_descriptor)
         errno = EINVAL;
         return -1;
     } else {
-        bool found = _duplicate_handles.dereference_if_found(it->second);
-        if (!found)
-            // No duplicates. Close the handle.
-            ebpf_api_close_handle(it->second);
+        GlueCloseHandle(reinterpret_cast<HANDLE>(it->second));
         _fd_to_handle_map.erase(file_descriptor);
         return 0;
     }
