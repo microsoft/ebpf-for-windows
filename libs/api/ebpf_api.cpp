@@ -2848,7 +2848,7 @@ _ebpf_program_load_native(
     SC_HANDLE service_handle = nullptr;
     SERVICE_STATUS status = {0};
     std::wstring service_path(SERVICE_PATH_PREFIX);
-    std::wstring paramaters_path(PARAMETERS_PATH_PREFIX);
+    std::wstring parameters_path(PARAMETERS_PATH_PREFIX);
     ebpf_protocol_buffer_t request_buffer;
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
@@ -2886,15 +2886,15 @@ _ebpf_program_load_native(
         }
 
         // Create registry path and update module ID in the service path.
-        paramaters_path = paramaters_path + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
-        error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, paramaters_path.c_str());
+        parameters_path = parameters_path + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
+        error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, parameters_path.c_str());
         if (error != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(error);
             EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_create_registry_key);
             goto Done;
         }
         error = _ebpf_update_registry_value(
-            HKEY_LOCAL_MACHINE, paramaters_path.c_str(), REG_BINARY, NPI_MODULE_ID, &provider_module_id, sizeof(GUID));
+            HKEY_LOCAL_MACHINE, parameters_path.c_str(), REG_BINARY, NPI_MODULE_ID, &provider_module_id, sizeof(GUID));
         if (error != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(error);
             EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_update_registry_value);
@@ -3594,7 +3594,7 @@ ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription
         // Set the unsubscribed flag, so that if a completion callback is ongoing, it does not issue another async
         // IOCTL.
         subscription->unsubscribed = true;
-        // Check if an earlier async opeeration has failed. In that case a new async operation will not be queued. This
+        // Check if an earlier async operation has failed. In that case a new async operation will not be queued. This
         // is the only case in which the subscription object can be freed in this function.
         if (subscription->async_ioctl_failed)
             free_subscription = true;

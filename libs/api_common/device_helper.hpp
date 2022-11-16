@@ -10,9 +10,9 @@
 #define EBPF_IOCTL_TYPE FILE_DEVICE_NETWORK
 
 // Function codes from 0x800 to 0xFFF are for customer use.
-#define IOCTL_EBPFCTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_EBPF_CTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
-// Maxiumum attempts to invoke an IOCTL.
+// Maximum attempts to invoke an IOCTL.
 #define IOCTL_MAX_ATTEMPTS 16
 
 typedef std::vector<uint8_t> ebpf_protocol_buffer_t;
@@ -98,7 +98,7 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
 
     auto success = Platform::DeviceIoControl(
         get_device_handle(),
-        IOCTL_EBPFCTL_METHOD_BUFFERED,
+        IOCTL_EBPF_CTL_METHOD_BUFFERED,
         request_ptr,
         request_size,
         reply_ptr,

@@ -26,7 +26,7 @@ bool _ebpf_platform_code_integrity_enabled = false;
 bool _ebpf_platform_is_preemptible = true;
 
 extern "C" bool ebpf_fuzzing_enabled = false;
-extern "C" size_t ebfp_fuzzing_memory_limit = MAXSIZE_T;
+extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
 std::unique_ptr<ebpf_low_memory_test_t> _ebpf_low_memory_test_ptr;
 
@@ -302,7 +302,7 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
 {
     ebpf_assert(size);
-    if (size > ebfp_fuzzing_memory_limit) {
+    if (size > ebpf_fuzzing_memory_limit) {
         return nullptr;
     }
 
@@ -322,7 +322,7 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(new_size) void* ebpf_reallocate(_In_ void* memory, size_t old_size, size_t new_size)
 {
     UNREFERENCED_PARAMETER(old_size);
-    if (new_size > ebfp_fuzzing_memory_limit) {
+    if (new_size > ebpf_fuzzing_memory_limit) {
         return nullptr;
     }
 
@@ -345,7 +345,7 @@ ebpf_free(_Frees_ptr_opt_ void* memory)
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate_cache_aligned(size_t size)
 {
-    if (size > ebfp_fuzzing_memory_limit) {
+    if (size > ebpf_fuzzing_memory_limit) {
         return nullptr;
     }
 

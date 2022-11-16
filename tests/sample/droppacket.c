@@ -48,7 +48,7 @@ DropPacket(xdp_md_t* ctx)
     uint32_t* interface_index = bpf_map_lookup_elem(&interface_index_map, &key);
     if (interface_index != NULL) {
         if (ctx->ingress_ifindex != *interface_index) {
-            // Not interested in packets indicated over this interfce.
+            // Not interested in packets indicated over this interface.
             goto Done;
         }
     }
