@@ -32,21 +32,21 @@ static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
     {
         &EBPF_DEFAULT_SUBLAYER,
         L"EBPF Sub-Layer",
-        L"Sub-Layer for use by EBPF callouts",
+        L"Sub-Layer for use by eBPF callouts",
         0,
         FWP_EMPTY // Auto weight.
     },
     {
         &EBPF_HOOK_ALE_CONNECT_REDIRECT_V4_SUBLAYER,
         L"EBPF Connect Redirect V4 Sub-Layer",
-        L"Sub-Layer for use by EBPF connect redirect callouts",
+        L"Sub-Layer for use by eBPF connect redirect callouts",
         0,
         FWP_EMPTY // Auto weight.
     },
     {
         &EBPF_HOOK_ALE_CONNECT_REDIRECT_V6_SUBLAYER,
         L"EBPF Connect Redirect V6 Sub-Layer",
-        L"Sub-Layer for use by EBPF connect redirect callouts",
+        L"Sub-Layer for use by eBPF connect redirect callouts",
         0,
         FWP_EMPTY // Auto weight.
     }};

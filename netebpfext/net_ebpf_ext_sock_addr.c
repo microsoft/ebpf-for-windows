@@ -433,7 +433,7 @@ static NTSTATUS
 _net_ebpf_ext_get_connection_context(
     uint64_t transport_endpoint_handle,
     _In_ const bpf_sock_addr_t* sock_addr_ctx,
-    _Out_ net_ebpf_extension_connection_context_t** connection_context)
+    _Outptr_ net_ebpf_extension_connection_context_t** connection_context)
 {
     NTSTATUS status = STATUS_NOT_FOUND;
     KIRQL old_irql;
