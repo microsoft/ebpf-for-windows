@@ -285,7 +285,7 @@ ebpf_serialize_program_info(
 
     *serialized_data_length = 0;
 
-    // Peform sanity check on input program info.
+    // Perform sanity check on input program info.
     program_type_descriptor = &program_info->program_type_descriptor;
 
     if (program_type_descriptor->name == NULL) {
