@@ -124,7 +124,7 @@ Start an admin Powershell on the Windows Host and run the following command and 
 
       - Copy `images\*` and `ebpf-for-windows-c-temp.zip` from the Windows Host to a directory on the Linux machine (e.g. `$HOME/ebpf-for-windows-image`).
 
-      - Run the following command and provide parameters for `repositry`, `tag` and `OSVersion`:
+      - Run the following command and provide parameters for `repository`, `tag` and `OSVersion`:
           ```bash
           $HOME/ebpf-for-windows-image/build-images.sh
           ````

@@ -14,13 +14,13 @@
 #include "bpf_helpers.h"
 
 SEC("maps")
-struct bpf_map_def this_map_has_a_name_that_is_longer_than_what_the_ebofcore_driver_can_support = {
+struct bpf_map_def this_map_has_a_name_that_is_longer_than_what_the_ebpfcore_driver_can_support = {
     .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
 
 SEC("xdp_prog") int lookup(struct xdp_md* ctx)
 {
     uint32_t key = 0;
     void* value =
-        bpf_map_lookup_elem(&this_map_has_a_name_that_is_longer_than_what_the_ebofcore_driver_can_support, &key);
+        bpf_map_lookup_elem(&this_map_has_a_name_that_is_longer_than_what_the_ebpfcore_driver_can_support, &key);
     return (value == NULL);
 }

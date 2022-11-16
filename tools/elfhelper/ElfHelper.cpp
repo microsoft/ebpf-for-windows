@@ -46,7 +46,7 @@ read_elf(const std::string& path, const std::string& desired_section)
     vector<raw_program> res;
     program_info info;
 
-    // Go through the sections to find the required secion.
+    // Go through the sections to find the required section.
     // Extract the instructions to be passed to the jitter.
     for (const auto section : reader.sections) {
         const string name = section->get_name();
