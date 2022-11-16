@@ -229,6 +229,7 @@ ebpf_epoch_initiate()
             sizeof(uintptr_t),
             sizeof(ebpf_epoch_thread_entry_t),
             _ebpf_epoch_cpu_count,
+            EBPF_HASH_TABLE_NO_LIMIT,
             NULL);
         if (return_value != EBPF_SUCCESS) {
             goto Error;
