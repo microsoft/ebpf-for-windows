@@ -2,15 +2,15 @@
 
 The CI/CD tests for `eBPF for Windows` requires installing kernel drivers, that are not supported in Github-hosted runners.
 That is why self-host runners are needed to run those tests. The `driver` job in the `CI/CD` Github workflow (`cicd.yml`) runs on self-host runners that use Hyper-V VMs to deploy the eBPF components and run the CI/CD tests on. Using Hyper-V VMs enable the Github workflow to start from a clean state every time the test runs by restoring the VMs to a "baseline" snapshot.
-This document discusses the steps to set up such a selfhosted actions-runner that can run the workflow for CI/CD tests on a fork of the eBPF for Windows repo.
+This document discusses the steps to set up such a self-hosted actions-runner that can run the workflow for CI/CD tests on a fork of the eBPF for Windows repo.
 
 1) Install Windows Server 2019 - build 17763.
    1) [Windows Server 2019 Azure VM](https://portal.azure.com/#create/Microsoft.WindowsServer2019Datacenter-ARM)
 2) [Download and install action runner](https://github.com/actions/runner/releases) following the instructions for Windows x64.
-3) Create a new selfhosted runner for the fork. This requires administrator permissions in the project. Go to the settings menu in Github UI, select `Actions`->`Runners` and click on the `New selfhosted-runner` button. This will generate a token for the selfhosted runner.
+3) Create a new self-hosted runner for the fork. This requires administrator permissions in the project. Go to the settings menu in Github UI, select `Actions`->`Runners` and click on the `New self-hosted-runner` button. This will generate a token for the self-hosted runner.
 4) Configure action runner as follows:
    ```./config.cmd --url <fork URL> --labels 'ebpf_cicd_tests' --token <action runner token> --runasservice --windowslogonaccount <account> --windowslogonpassword <password> ```
-   For the `--url` parameter provide the URL to the fork for which seflhosted runner is being configured.<br/>
+   For the `--url` parameter provide the URL to the fork for which self-hosted runner is being configured.<br/>
    For the `--token` parameter provide the token obtained in step 3.<br/>
    The value for `--labels` parameter (`ebpf_cicd_tests`) must be the same as the `environment` field in the job named `driver` in `cicd.yml`.<br/>
    The `--runasservice` parameter makes the action runner run as a Windows service. The runner service runs as
