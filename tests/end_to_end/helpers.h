@@ -50,27 +50,19 @@ typedef class _emulate_dpc
   public:
     _emulate_dpc(uint32_t cpu_id)
     {
-        uintptr_t new_process_affinity_mask = 1ull << cpu_id;
-        if (!GetProcessAffinityMask(GetCurrentProcess(), &old_process_affinity_mask, &old_system_affinity_mask)) {
-            throw new std::runtime_error("GetProcessAffinityMask failed");
-        }
-        if (!SetProcessAffinityMask(GetCurrentProcess(), new_process_affinity_mask)) {
-            throw new std::runtime_error("SetProcessAffinityMask failed");
-        }
+        uintptr_t new_thread_affinity_mask = 1ull << cpu_id;
+        ebpf_assert_success(ebpf_set_current_thread_affinity(new_thread_affinity_mask, &old_thread_affinity_mask));
         _ebpf_platform_is_preemptible = false;
     }
     ~_emulate_dpc()
     {
         _ebpf_platform_is_preemptible = true;
 
-        if (!SetProcessAffinityMask(GetCurrentProcess(), old_process_affinity_mask)) {
-            std::abort();
-        }
+        ebpf_restore_current_thread_affinity(old_thread_affinity_mask);
     }
 
   private:
-    uintptr_t old_process_affinity_mask;
-    uintptr_t old_system_affinity_mask;
+    uintptr_t old_thread_affinity_mask;
 
 } emulate_dpc_t;
 
