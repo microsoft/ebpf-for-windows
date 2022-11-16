@@ -456,6 +456,7 @@ ebpf_native_initiate()
         sizeof(GUID),
         sizeof(ebpf_native_module_t*),
         EBPF_CLIENT_TABLE_BUCKET_COUNT,
+        EBPF_HASH_TABLE_NO_LIMIT,
         NULL);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
