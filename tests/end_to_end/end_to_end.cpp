@@ -1360,7 +1360,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
 TEST_CASE("explicit_detach", "[end_to_end]")
 {
     // This test case does the following:
-    // 1. Call detach API and then close the link handle. The link onject
+    // 1. Call detach API and then close the link handle. The link object
     //    should be deleted.
     // 2. Close program handle. The program object should be deleted.
 
@@ -2192,16 +2192,16 @@ _create_service_helper(
     _In_ const GUID* provider_module_id,
     _Out_ SC_HANDLE* service_handle)
 {
-    std::wstring paramaters_path(PARAMETERS_PATH_PREFIX);
+    std::wstring parameters_path(PARAMETERS_PATH_PREFIX);
 
     REQUIRE(Platform::_create_service(service_name, file_name, service_handle) == ERROR_SUCCESS);
 
-    paramaters_path = paramaters_path + service_name + L"\\" + SERVICE_PARAMETERS;
-    REQUIRE(Platform::_create_registry_key(HKEY_LOCAL_MACHINE, paramaters_path.c_str()) == ERROR_SUCCESS);
+    parameters_path = parameters_path + service_name + L"\\" + SERVICE_PARAMETERS;
+    REQUIRE(Platform::_create_registry_key(HKEY_LOCAL_MACHINE, parameters_path.c_str()) == ERROR_SUCCESS);
 
     REQUIRE(
         Platform::_update_registry_value(
-            HKEY_LOCAL_MACHINE, paramaters_path.c_str(), REG_BINARY, NPI_MODULE_ID, provider_module_id, sizeof(GUID)) ==
+            HKEY_LOCAL_MACHINE, parameters_path.c_str(), REG_BINARY, NPI_MODULE_ID, provider_module_id, sizeof(GUID)) ==
         ERROR_SUCCESS);
 }
 
