@@ -718,6 +718,7 @@ _create_hash_map_internal(
         local_map->ebpf_map_definition.key_size,
         local_map->ebpf_map_definition.value_size,
         local_map->ebpf_map_definition.max_entries,
+        local_map->ebpf_map_definition.max_entries,
         extract_function);
     if (retval != EBPF_SUCCESS) {
         goto Done;
@@ -853,6 +854,7 @@ _create_lru_hash_map(
         ebpf_epoch_free,
         lru_map->core_map.ebpf_map_definition.key_size,
         sizeof(uint64_t),
+        lru_map->core_map.ebpf_map_definition.max_entries,
         lru_map->core_map.ebpf_map_definition.max_entries,
         NULL);
 
@@ -1013,7 +1015,6 @@ _update_hash_map_entry(
 {
     ebpf_result_t result;
     size_t entry_count = 0;
-    uint8_t* value;
     ebpf_hash_table_operations_t hash_table_operation;
 
     if (!map || !key)
@@ -1035,12 +1036,10 @@ _update_hash_map_entry(
 
     entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
-    if ((entry_count >= map->ebpf_map_definition.max_entries) &&
-        (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) &&
-        !_reap_oldest_map_entry(map))
-        result = EBPF_OUT_OF_SPACE;
-    else
+    result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
+    if (result == EBPF_OUT_OF_SPACE && _reap_oldest_map_entry(map)) {
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
+    }
 
     if (result == EBPF_SUCCESS)
         _update_key_history(map, key, false);

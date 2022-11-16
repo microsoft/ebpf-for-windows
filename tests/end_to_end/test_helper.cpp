@@ -103,7 +103,7 @@ class duplicate_handles_table_t
             // Dereference the handle. If the reference count drops to 0, close the handle.
             if (--it->second == 0) {
                 _duplicate_count_table.erase(handle);
-                ebpf_api_close_handle(handle);
+                REQUIRE(ebpf_api_close_handle(handle) == EBPF_SUCCESS);
             }
             if (_rundown_in_progress && _duplicate_count_table.size() == 0) {
                 // All duplicate handles have been closed. Fulfill the promise.
