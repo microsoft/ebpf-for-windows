@@ -2549,7 +2549,7 @@ TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
     uint32_t program_info_size = sizeof(program_info);
     REQUIRE(bpf_obj_get_info_by_fd(module_fd, &program_info, &program_info_size) == -EINVAL);
 
-    Platform::CloseHandle(module_handle);
+    Platform::_close(module_fd);
 }
 
 TEST_CASE("ebpf_get_program_type_by_name invalid name", "[end-to-end]")
