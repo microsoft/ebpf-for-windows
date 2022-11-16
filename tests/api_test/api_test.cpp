@@ -688,7 +688,7 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
     REQUIRE(result == -ENOENT);
 
     // Close the native module handle. That should result in the module to be unloaded.
-    ebpf_api_close_handle(native_module_handle);
+    REQUIRE(ebpf_api_close_handle(native_module_handle) == EBPF_SUCCESS);
     object->native_module_handle = ebpf_handle_invalid;
 
     // Add a sleep to allow the previous driver to be unloaded successfully.
