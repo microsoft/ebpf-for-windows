@@ -19,11 +19,11 @@
 // IOCTL Codes
 //
 
-typedef enum _sample_ebfp_ext_control_code
+typedef enum _sample_ebpf_ext_control_code
 {
     SAMPLE_EBPF_EXT_CONTROL_RUN,
     SAMPLE_EBPF_EXT_CONTROL_PROFILE,
-} sample_ebfp_ext_control_code_t;
+} sample_ebpf_ext_control_code_t;
 
 typedef enum _sample_ebpf_ext_flag
 {

@@ -452,7 +452,7 @@ bpf_object__prev_program(const struct bpf_object* obj, struct bpf_program* prog)
  *
  * @exception EINVAL An invalid argument was provided.
  *
- * @sa bpf_map__upnin
+ * @sa bpf_map__unpin
  * @sa bpf_object__pin_maps
  * @sa bpf_object__unpin
  */
@@ -471,7 +471,7 @@ bpf_object__unpin_maps(struct bpf_object* obj, const char* path);
  * @exception EINVAL An invalid argument was provided.
  *
  * @sa bpf_program__unpin
- * @sa bpf_object__pin_mprograms
+ * @sa bpf_object__pin_programs
  * @sa bpf_object__unpin
  */
 int

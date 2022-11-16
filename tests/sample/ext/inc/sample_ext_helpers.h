@@ -47,7 +47,7 @@ EBPF_HELPER(int64_t, sample_ebpf_extension_find, (void* buffer, uint32_t size, v
 #endif
 
 /**
- * @brief Replaces bytes in input buffer with supplied replacement at given offsset.
+ * @brief Replaces bytes in input buffer with supplied replacement at given offset.
  * @param[in] context Pointer to buffer.
  * @param[in] size Size of buffer.
  * @param[in] position Offset of input buffer at which replacement has to be done.

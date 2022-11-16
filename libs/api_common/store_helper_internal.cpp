@@ -138,8 +138,8 @@ _load_program_data_information(
         }
 
         // Read "is_privileged".
-        status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_PRIVELEGED, &is_privileged);
-        if (status != ERROR_SUCCESS) {
+        status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_PRIVILEGED, &is_privileged);
+        if (result != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(status);
             goto Exit;
         }
