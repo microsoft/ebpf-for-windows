@@ -357,7 +357,7 @@ _next_array_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key,
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 _associate_inner_map(_Inout_ ebpf_core_object_map_t* object_map, ebpf_handle_t inner_map_handle)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -718,6 +718,7 @@ _create_hash_map_internal(
         local_map->ebpf_map_definition.key_size,
         local_map->ebpf_map_definition.value_size,
         local_map->ebpf_map_definition.max_entries,
+        local_map->ebpf_map_definition.max_entries,
         extract_function);
     if (retval != EBPF_SUCCESS) {
         goto Done;
@@ -853,6 +854,7 @@ _create_lru_hash_map(
         ebpf_epoch_free,
         lru_map->core_map.ebpf_map_definition.key_size,
         sizeof(uint64_t),
+        lru_map->core_map.ebpf_map_definition.max_entries,
         lru_map->core_map.ebpf_map_definition.max_entries,
         NULL);
 
@@ -1013,7 +1015,6 @@ _update_hash_map_entry(
 {
     ebpf_result_t result;
     size_t entry_count = 0;
-    uint8_t* value;
     ebpf_hash_table_operations_t hash_table_operation;
 
     if (!map || !key)
@@ -1035,12 +1036,10 @@ _update_hash_map_entry(
 
     entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
-    if ((entry_count >= map->ebpf_map_definition.max_entries) &&
-        (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) &&
-        !_reap_oldest_map_entry(map))
-        result = EBPF_OUT_OF_SPACE;
-    else
+    result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
+    if (result == EBPF_OUT_OF_SPACE && _reap_oldest_map_entry(map)) {
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
+    }
 
     if (result == EBPF_SUCCESS)
         _update_key_history(map, key, false);
@@ -1209,7 +1208,7 @@ _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
  * @retval EBPF_INVALID_ARGUMENT Unable to perform this operation due to
  * current CPU > allocated value buffer size.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 _update_entry_per_cpu(
     _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option)
 {
@@ -1521,7 +1520,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_output(_In_ ebpf_core_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1557,13 +1556,13 @@ _ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
     EBPF_LOG_EXIT();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer)
 {
     return ebpf_ring_buffer_map_buffer((ebpf_ring_buffer_t*)map->data, buffer);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_return_buffer(_In_ const ebpf_map_t* map, size_t consumer_offset)
 {
     size_t producer_offset;
@@ -1579,7 +1578,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_async_query(
     _In_ ebpf_map_t* map,
     _Inout_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
@@ -1869,7 +1868,7 @@ _ebpf_map_delete(_In_ ebpf_core_object_t* object)
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_create(
     _In_ const ebpf_utf8_string_t* map_name,
     _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
@@ -1951,7 +1950,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_find_entry(
     _In_ ebpf_map_t* map,
     size_t key_size,
@@ -2032,7 +2031,7 @@ ebpf_map_find_entry(
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_associate_program(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
@@ -2066,7 +2065,7 @@ ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads
     return (ebpf_program_t*)ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_update_entry(
     _In_ ebpf_map_t* map,
     size_t key_size,
@@ -2129,7 +2128,7 @@ ebpf_map_update_entry(
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_update_entry_with_handle(
     _In_ ebpf_map_t* map,
     size_t key_size,
@@ -2160,7 +2159,7 @@ ebpf_map_update_entry_with_handle(
         map, key, value_handle, option);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags)
 {
     // High volume call - Skip entry/exit logging.
@@ -2187,7 +2186,7 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_next_key(
     _In_ ebpf_map_t* map,
     size_t key_size,
@@ -2215,7 +2214,7 @@ ebpf_map_next_key(
     return ebpf_map_metadata_tables[map->ebpf_map_definition.type].next_key(map, previous_key, next_key);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_get_info(
     _In_ const ebpf_map_t* map, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
 {
@@ -2252,7 +2251,7 @@ ebpf_map_get_info(
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_push_entry(_In_ ebpf_map_t* map, size_t value_size, _In_reads_(value_size) const uint8_t* value, int flags)
 {
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
@@ -2271,7 +2270,7 @@ ebpf_map_push_entry(_In_ ebpf_map_t* map, size_t value_size, _In_reads_(value_si
     return ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry(map, NULL, value, flags);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_pop_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
 {
     uint8_t* return_value;
@@ -2299,7 +2298,7 @@ ebpf_map_pop_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_s
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_peek_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
 {
     uint8_t* return_value;
