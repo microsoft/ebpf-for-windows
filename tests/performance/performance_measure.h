@@ -21,7 +21,7 @@ extern bool _ebpf_platform_is_preemptible;
 /**
  * @brief Test helper function that executes a provided method on each CPU
  * iterations times, measures elapsed time and returns average elapsed time
- * accross all CPUs.
+ * across all CPUs.
  *
  * @tparam T The helper function to run.
  */

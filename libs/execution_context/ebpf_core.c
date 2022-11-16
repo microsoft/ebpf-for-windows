@@ -240,7 +240,7 @@ ebpf_core_terminate()
     // Terminate native module. This is a blocking call and will return only when
     // all the native drivers have been detached and unloaded. Hence this needs
     // to be called after ebpf_epoch_terminate() to ensure all the program epoch
-    // cleanup workitems have been executed by this time.
+    // cleanup work items have been executed by this time.
     ebpf_native_terminate();
 
     // Verify that all ebpf_core_object_t objects have been freed.

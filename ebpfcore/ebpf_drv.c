@@ -6,7 +6,7 @@
 Abstract:
 WDF based driver that does the following:
 1. Initializes the eBPF execution context.
-2. Opens an IOCTL surface that forwards commands to ebfp_core.
+2. Opens an IOCTL surface that forwards commands to ebpf_core.
 
 Environment:
 
@@ -42,7 +42,7 @@ static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
 #define EBPF_IOCTL_TYPE FILE_DEVICE_NETWORK
 
 // Function codes from 0x800 to 0xFFF are for customer use.
-#define IOCTL_EBPFCTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_EBPF_CTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 //
 // Pre-Declarations
@@ -259,7 +259,7 @@ _ebpf_driver_io_device_control(
     device = WdfIoQueueGetDevice(queue);
 
     switch (io_control_code) {
-    case IOCTL_EBPFCTL_METHOD_BUFFERED:
+    case IOCTL_EBPF_CTL_METHOD_BUFFERED:
         // Verify that length of the input buffer supplied to the request object
         // is not zero
         if (input_buffer_length != 0) {

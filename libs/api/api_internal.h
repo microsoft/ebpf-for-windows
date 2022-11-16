@@ -245,7 +245,7 @@ ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept;
  * @param[in] map Pointer to eBPF map.
  * @param[in] path Pin path for the map.
  *
- * @retval EBPF_SUCCESS The API suceeded.
+ * @retval EBPF_SUCCESS The API succeeded.
  * @retval EBPF_NO_MEMORY Out of memory.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
