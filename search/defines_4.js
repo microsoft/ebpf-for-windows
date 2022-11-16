@@ -14,7 +14,7 @@ var searchData=
   ['ebpf_5fprogram_5fdata_5fhelpers_5fregistry_5fpath_1400',['EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH',['../ebpf__windows_8h.html#abfb0b1785443602df469e37ee861fd24',1,'ebpf_windows.h']]],
   ['ebpf_5fprogram_5fdata_5fname_1401',['EBPF_PROGRAM_DATA_NAME',['../ebpf__windows_8h.html#a75ffbfb565d76fe9402f1356ea3c88dc',1,'ebpf_windows.h']]],
   ['ebpf_5fprogram_5fdata_5fplatform_5fspecific_5fdata_1402',['EBPF_PROGRAM_DATA_PLATFORM_SPECIFIC_DATA',['../ebpf__windows_8h.html#a3a482f2b1002fbf351c74b104e684243',1,'ebpf_windows.h']]],
-  ['ebpf_5fprogram_5fdata_5fpriveleged_1403',['EBPF_PROGRAM_DATA_PRIVELEGED',['../ebpf__windows_8h.html#a56701cb3f802fe78813d36cb01e23d7b',1,'ebpf_windows.h']]],
+  ['ebpf_5fprogram_5fdata_5fprivileged_1403',['EBPF_PROGRAM_DATA_PRIVILEGED',['../ebpf__windows_8h.html#a127c4709650bfe0e82394fd11f600545',1,'ebpf_windows.h']]],
   ['ebpf_5fprogram_5fdata_5fregistry_5fpath_1404',['EBPF_PROGRAM_DATA_REGISTRY_PATH',['../ebpf__windows_8h.html#a632c1dd33a0a2d1adf6b1db235e8fadd',1,'ebpf_windows.h']]],
   ['ebpf_5fproviders_5fregistry_5fpath_1405',['EBPF_PROVIDERS_REGISTRY_PATH',['../ebpf__windows_8h.html#aa93043d9a7b2b6802f4b358139a4ad3c',1,'ebpf_windows.h']]],
   ['ebpf_5fresult_5fcount_1406',['EBPF_RESULT_COUNT',['../ebpf__result_8h.html#a02c846ac59536972540561451b0b3211',1,'ebpf_result.h']]],
