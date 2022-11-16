@@ -17,6 +17,22 @@
 #include "platform.h"
 #include "test_helper.hpp"
 
+extern std::vector<struct bpf_object*> _ebpf_netsh_objects;
+
+class _test_helper_netsh
+{
+  public:
+    _test_helper_netsh();
+    ~_test_helper_netsh();
+
+  private:
+    _test_helper_libbpf test_helper_libbpf;
+};
+
+_test_helper_netsh::_test_helper_netsh() { _ebpf_netsh_objects.clear(); }
+
+_test_helper_netsh::~_test_helper_netsh() { REQUIRE(_ebpf_netsh_objects.empty()); }
+
 std::string
 strip_paths(const std::string& original_string)
 {
@@ -33,7 +49,7 @@ strip_paths(const std::string& original_string)
 TEST_CASE("show disassembly bpf_call.o", "[netsh][disassembly]")
 {
     // Start the test helper so the netsh command can get helper prototypes.
-    _test_helper_end_to_end test_helper;
+    _test_helper_netsh test_helper;
 
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf_call.o", nullptr, nullptr, &result);
@@ -143,7 +159,7 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
 // Test a .sys file.
 TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 {
-    _test_helper_end_to_end test_helper;
+    _test_helper_netsh test_helper;
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -163,7 +179,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 // Test a DLL with multiple maps in the map section.
 TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
 {
-    _test_helper_end_to_end test_helper;
+    _test_helper_netsh test_helper;
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -185,7 +201,7 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
 // Test a .dll file with multiple programs.
 TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
 {
-    _test_helper_end_to_end test_helper;
+    _test_helper_netsh test_helper;
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
@@ -208,7 +224,7 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
 // Test a .sys file with multiple programs, including ones with long names.
 TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
 {
-    _test_helper_end_to_end test_helper;
+    _test_helper_netsh test_helper;
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
@@ -240,7 +256,7 @@ TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
 
 TEST_CASE("show verification bpf.o", "[netsh][verification]")
 {
-    _test_helper_end_to_end test_helper;
+    _test_helper_netsh test_helper;
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"xdp", &result);
     REQUIRE(result == NO_ERROR);
@@ -253,7 +269,7 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
 
 TEST_CASE("show verification droppacket.o", "[netsh][verification]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp", nullptr, &result);
@@ -267,7 +283,7 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
 
 TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     int result;
     std::string output =
@@ -292,7 +308,7 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
 
 TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     int result;
     std::string output =
@@ -326,7 +342,7 @@ verify_no_programs_exist()
 
 TEST_CASE("pin first program", "[netsh][programs]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     // Load a program to show.
     int result;
@@ -353,7 +369,7 @@ TEST_CASE("pin first program", "[netsh][programs]")
 
 TEST_CASE("pin all programs", "[netsh][programs]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     // Load programs to show.
     int result;
@@ -385,7 +401,7 @@ TEST_CASE("pin all programs", "[netsh][programs]")
 
 TEST_CASE("show programs", "[netsh][programs]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     // Load a program to show.
     int result;
@@ -475,7 +491,7 @@ TEST_CASE("show programs", "[netsh][programs]")
 
 TEST_CASE("set program", "[netsh][programs]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     int result;
     std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinned=none", nullptr, &result);
@@ -528,7 +544,7 @@ TEST_CASE("set program", "[netsh][programs]")
 
 TEST_CASE("show maps", "[netsh][maps]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     int result;
     std::string output = _run_netsh_command(handle_ebpf_add_program, L"map_in_map.o", nullptr, nullptr, &result);
@@ -563,7 +579,7 @@ TEST_CASE("show maps", "[netsh][maps]")
 
 TEST_CASE("show links", "[netsh][links]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     // Load and attach a program.
     int result;
@@ -596,7 +612,7 @@ TEST_CASE("show links", "[netsh][links]")
 
 TEST_CASE("show pins", "[netsh][pins]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     // Load and pin programs.
     int result;
@@ -627,7 +643,7 @@ TEST_CASE("show pins", "[netsh][pins]")
 
 TEST_CASE("delete pinned program", "[netsh][programs]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     // Load a program unpinned.
     int result;
@@ -656,7 +672,7 @@ TEST_CASE("delete pinned program", "[netsh][programs]")
 
 TEST_CASE("unpin program", "[netsh][programs]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     // Load a program pinned.
     int result;
@@ -680,7 +696,7 @@ TEST_CASE("unpin program", "[netsh][programs]")
 
 TEST_CASE("xdp interface parameter", "[netsh][programs]")
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_netsh test_helper;
 
     // Load a program pinned.
     int result;
