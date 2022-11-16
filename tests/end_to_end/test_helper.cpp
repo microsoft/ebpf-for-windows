@@ -455,9 +455,11 @@ Glue_close(int file_descriptor)
         return -1;
     } else {
         bool found = _duplicate_handles.dereference_if_found(it->second);
-        if (!found)
+        if (!found) {
             // No duplicates. Close the handle.
-            REQUIRE((ebpf_fuzzing_enabled || ebpf_api_close_handle(it->second) == EBPF_SUCCESS));
+            ebpf_result_t result = ebpf_api_close_handle(it->second);
+            REQUIRE((ebpf_fuzzing_enabled || result == EBPF_SUCCESS));
+        }
         _fd_to_handle_map.erase(file_descriptor);
         return 0;
     }
