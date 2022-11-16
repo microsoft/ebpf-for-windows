@@ -179,7 +179,7 @@ GlueCloseHandle(HANDLE hObject)
     bool found = _duplicate_handles.dereference_if_found(handle);
     if (!found) {
         // No duplicates. Close the handle.
-        ebpf_api_close_handle(handle);
+        REQUIRE((ebpf_fuzzing_enabled || ebpf_api_close_handle(handle) == EBPF_SUCCESS));
     }
 
     return TRUE;
