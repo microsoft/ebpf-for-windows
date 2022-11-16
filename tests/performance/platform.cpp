@@ -85,6 +85,7 @@ typedef class _ebpf_hash_table_test_state
                 sizeof(uint32_t),
                 sizeof(uint64_t),
                 keys.size(),
+                EBPF_HASH_TABLE_NO_LIMIT,
                 nullptr) == EBPF_SUCCESS);
         for (auto& key : keys) {
             uint64_t value = 12345678;
