@@ -56,7 +56,7 @@ int __cdecl wmain(ULONG argc, PWSTR* argv)
 int
 service_install()
 {
-    SC_HANDLE scmanager = nullptr;
+    SC_HANDLE service_control_manager = nullptr;
     SC_HANDLE service = nullptr;
     TCHAR path[MAX_PATH];
     SERVICE_SID_INFO sid_info = {0};
@@ -69,12 +69,12 @@ service_install()
 
     // Get a handle to the SCM database.
 
-    scmanager = OpenSCManager(
+    service_control_manager = OpenSCManager(
         nullptr,                // local computer
         nullptr,                // ServicesActive database
         SC_MANAGER_ALL_ACCESS); // full access rights
 
-    if (nullptr == scmanager) {
+    if (nullptr == service_control_manager) {
         result = GetLastError();
         goto Exit;
     }
@@ -82,7 +82,7 @@ service_install()
     // Create the service as LocalService.
 
     service = CreateService(
-        scmanager,                     // SCM database
+        service_control_manager,       // SCM database
         SERVICE_NAME,                  // name of service
         SERVICE_NAME,                  // service name to display
         SERVICE_ALL_ACCESS,            // desired access
@@ -112,8 +112,8 @@ Exit:
     if (service != nullptr) {
         CloseServiceHandle(service);
     }
-    if (scmanager != nullptr) {
-        CloseServiceHandle(scmanager);
+    if (service_control_manager != nullptr) {
+        CloseServiceHandle(service_control_manager);
     }
 
     return result;
