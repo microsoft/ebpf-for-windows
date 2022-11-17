@@ -6,6 +6,7 @@
  * but don't enable ASAN themselves.
  * These binaries are not expected to work unless they are also compiled with ASAN
  * and link the proper ASAN libs.
+ * For more information, see /docs/Sanitize.md within this repository.
  **/
 
 // TODO: Split asan and coverage into different libs
