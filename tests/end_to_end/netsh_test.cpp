@@ -34,9 +34,9 @@ _test_helper_netsh::_test_helper_netsh() { _ebpf_netsh_objects.clear(); }
 _test_helper_netsh::~_test_helper_netsh() { REQUIRE(_ebpf_netsh_objects.empty()); }
 
 std::string
-strip_paths(const std::string& orignal_string)
+strip_paths(const std::string& original_string)
 {
-    std::stringstream input_stream(orignal_string);
+    std::stringstream input_stream(original_string);
     std::stringstream output_stream;
     std::string line;
     while (std::getline(input_stream, line)) {

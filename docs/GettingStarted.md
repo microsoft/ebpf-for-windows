@@ -30,8 +30,8 @@ Alternative install steps:
 2. Run:
 ```
 Set-ExecutionPolicy Bypass -Scope Process -Force
-Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
-if ((get-filehash $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '4000D4B2478A5CE9A779140DEDAEF99E422D9A8706B4ECE596CF0F69DB667055') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DevEnv.ps1
+if ((get-filehash $env:TEMP\Setup-DevEnv.ps1).Hash -eq '4000D4B2478A5CE9A779140DEDAEF99E422D9A8706B4ECE596CF0F69DB667055') { &"$env:TEMP\Setup-DevEnv.ps1" }
 ```
 3. Launch Visual Studio Installer and select "MSVC v142 - VS 2019 C++ x64/x86 Spectre-mitigated libs (latest)"
 
@@ -152,7 +152,7 @@ Windows requires that one of the following criteria be met prior to loading a dr
 2. The OS is booted with a kernel debugger attached.
 3. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
 
-Since the eBPF for Wndows binaries are not yet signed by Microsoft, they will only work on a machine with
+Since the eBPF for Windows binaries are not yet signed by Microsoft, they will only work on a machine with
 a kernel debugger (KD) attached and running, or test signing is enabled. (It is expected that official
 releases of eBPF for Windows will eventually be production signed at some point in the future after
 security hardening is completed.)
