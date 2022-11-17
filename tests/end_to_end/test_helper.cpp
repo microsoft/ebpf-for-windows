@@ -457,12 +457,7 @@ Glue_close(int file_descriptor)
         bool found = _duplicate_handles.dereference_if_found(it->second);
         if (!found) {
             // No duplicates. Close the handle.
-            ebpf_result_t result = ebpf_api_close_handle(it->second);
-            if (ebpf_fuzzing_enabled) {
-                (void)result;
-            } else {
-                REQUIRE(result == EBPF_SUCCESS);
-            }
+            REQUIRE((ebpf_api_close_handle(it->second) == EBPF_SUCCESS || ebpf_fuzzing_enabled));
         }
         _fd_to_handle_map.erase(file_descriptor);
         return 0;
