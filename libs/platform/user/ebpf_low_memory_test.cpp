@@ -123,12 +123,15 @@ _ebpf_low_memory_test::log_stack_trace(
     }
     _log_file << std::endl;
 
+    _last_failure_stack.resize(0);
+
     std::vector<uint8_t> symbol_buffer(sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR));
     SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(symbol_buffer.data());
     IMAGEHLP_LINE64 line;
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
     symbol->MaxNameLen = MAX_SYM_NAME;
     for (auto frame : stack) {
+        std::string string_stack_frame;
         if (frame == 0) {
             break;
         }
@@ -136,14 +139,18 @@ _ebpf_low_memory_test::log_stack_trace(
         _log_file << "# ";
         if (SymFromAddr(GetCurrentProcess(), frame, &displacement, symbol)) {
             _log_file << std::hex << frame << " " << symbol->Name << " + " << displacement;
+            string_stack_frame = std::string(symbol->Name) + " + " + std::to_string(displacement);
             DWORD displacement32 = (DWORD)displacement;
             if (SymGetLineFromAddr64(GetCurrentProcess(), frame, &displacement32, &line)) {
                 _log_file << " " << line.FileName << std::dec << " " << line.LineNumber;
+                string_stack_frame += " " + std::string(line.FileName) + " " + std::to_string(line.LineNumber);
             }
             _log_file << std::endl;
         } else {
             _log_file << std::hex << frame << std::endl;
+            string_stack_frame = std::to_string(frame);
         }
+        _last_failure_stack.push_back(string_stack_frame);
     }
     _log_file << std::endl;
     // Flush the file after every write to prevent loss on crash.
