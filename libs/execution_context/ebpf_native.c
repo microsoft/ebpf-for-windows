@@ -1143,28 +1143,30 @@ ebpf_native_load(
     }
     module = *existing_module;
     state = ebpf_lock_lock(&module->lock);
-    if (module->state != MODULE_STATE_UNINITIALIZED) {
-        // This client has already been initialized.
-        result = EBPF_OBJECT_ALREADY_EXISTS;
-        ebpf_lock_unlock(&module->lock, state);
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "ebpf_native_load: module already initialized",
-            *module_id);
+    if (module->state != MODULE_STATE_UNINITIALIZED || module->detaching) {
+
+        if (module->detaching || module->state == MODULE_STATE_UNLOADING) {
+            // This client is detaching / unloading.
+            result = EBPF_EXTENSION_FAILED_TO_LOAD;
+            ebpf_lock_unlock(&module->lock, state);
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "ebpf_native_load: module is detaching / unloading",
+                *module_id);
+        } else {
+            // This client has already been initialized.
+            result = EBPF_OBJECT_ALREADY_EXISTS;
+            ebpf_lock_unlock(&module->lock, state);
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "ebpf_native_load: module already initialized",
+                *module_id);
+        }
         goto Done;
     }
-    if (module->detaching || module->state == MODULE_STATE_UNLOADING) {
-        // This client is detaching / unloading.
-        result = EBPF_EXTENSION_FAILED_TO_LOAD;
-        ebpf_lock_unlock(&module->lock, state);
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "ebpf_native_load: module is detaching / unloading",
-            *module_id);
-        goto Done;
-    }
+
     module->state = MODULE_STATE_INITIALIZED;
     module->service_name = local_service_name;
     module->cleanup = local_cleanup;
@@ -1228,24 +1230,26 @@ ebpf_native_load_programs(
     module = *existing_module;
     module_state = ebpf_lock_lock(&module->lock);
     native_lock_acquired = true;
-    if (module->state == MODULE_STATE_LOADING || module->state == MODULE_STATE_LOADED) {
-        // This client has already been loaded.
-        result = EBPF_OBJECT_ALREADY_EXISTS;
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "ebpf_native_load_programs: programs already loaded / loading",
-            *module_id);
-        goto Done;
-    }
 
-    if (module->detaching || module->state == MODULE_STATE_UNLOADING) {
-        result = EBPF_EXTENSION_FAILED_TO_LOAD;
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "ebpf_native_load_programs: module already detaching / unloading",
-            *module_id);
+    if (module->state != MODULE_STATE_INITIALIZED || module->detaching) {
+
+        if (module->detaching || module->state == MODULE_STATE_UNLOADING) {
+            // This client is detaching / unloading.
+            result = EBPF_EXTENSION_FAILED_TO_LOAD;
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "ebpf_native_load_programs: module already detaching / unloading",
+                *module_id);
+        } else {
+            // This client has already been loaded.
+            result = EBPF_OBJECT_ALREADY_EXISTS;
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "ebpf_native_load_programs: programs already loaded / loading",
+                *module_id);
+        }
         goto Done;
     }
 
