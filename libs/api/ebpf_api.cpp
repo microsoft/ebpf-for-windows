@@ -1061,8 +1061,9 @@ _clean_up_ebpf_link(_Frees_ptr_opt_ ebpf_link_t* link) noexcept
     if (link->fd != ebpf_fd_invalid) {
         Platform::_close(link->fd);
     }
-    free(link->pin_path);
-    free(link);
+    ebpf_free(link->pin_path);
+    ebpf_free(link);
+#pragma warning(pop)
     EBPF_RETURN_VOID();
 }
 
