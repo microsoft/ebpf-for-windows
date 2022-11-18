@@ -252,12 +252,12 @@ _get_section_definition(const std::string& section)
 {
     int32_t match_index = -1;
     size_t match_length = 0;
-    for (uint32_t index = 0; index < _windows_section_definitions.size(); index++) {
+    for (size_t index = 0; index < _windows_section_definitions.size(); index++) {
         std::string section_prefix(_windows_section_definitions[index].get()->section_prefix);
         if (section.find(section_prefix) == 0) {
             size_t prefix_length = strlen(_windows_section_definitions[index].get()->section_prefix);
             if (match_length < prefix_length) {
-                match_index = index;
+                match_index = int32_t(index);
                 match_length = prefix_length;
             }
         }

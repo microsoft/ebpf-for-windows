@@ -260,9 +260,9 @@ ebpf_platform_initiate()
         // Compute the starting index of each processor group.
         _ebpf_platform_group_to_index_map.resize(_ebpf_platform_maximum_group_count);
         uint32_t base_index = 0;
-        for (uint16_t i = 0; i < _ebpf_platform_group_to_index_map.size(); i++) {
+        for (size_t i = 0; i < _ebpf_platform_group_to_index_map.size(); i++) {
             _ebpf_platform_group_to_index_map[i] = base_index;
-            base_index += GetMaximumProcessorCount(i);
+            base_index += GetMaximumProcessorCount((uint16_t)i);
         }
     } catch (...) {
         return EBPF_NO_MEMORY;
