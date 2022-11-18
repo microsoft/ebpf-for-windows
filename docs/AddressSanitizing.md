@@ -12,7 +12,7 @@ This file details the how *Address Sanitization* is performed within the  `ebpf-
 On Windows, address sanitization is implemented differently for kernel-mode and user-mode modules:
 
 - **Kernel-mode modules**: For kernel-mode modules (drivers, libraries, tests), address sanitization cannot be run through standard libraries, as they would need to be internally signed by Microsoft, and for security they could not be released.
-Therefore, to regards of this public repository, ASAN has been disabled (`/fno-sanitize-address-vcasan-lib`) and a mock library (i.e. `no_asan_kernel.vcxproj`) has been added in order to succeed in building the solution and running CI/CD pipelines, whereas the internal libraries (aka KASan) will be used within an internal ADO pipeline within Microsoft.
+Therefore, for this public repository, ASAN has been disabled (`/fno-sanitize-address-vcasan-lib`) and a mock library (i.e., `no_asan_kernel.vcxproj`) has been added in order to succeed in building the solution and running CI/CD pipelines, whereas the internal libraries (aka KASan) will be used within an internal ADO pipeline within Microsoft.
 
 - **User-mode modules**: For user-mode modules (drivers, libraries, tests), address sanitization can be run normally through the standard LLVM libraries, delivered as part of Visual Studio.
 
@@ -20,7 +20,7 @@ Therefore, to regards of this public repository, ASAN has been disabled (`/fno-s
 
 Within the CI/CD pipeline, address sanitizing is enabled through a global flag named `AddressSanitizer`, within `cicd.yml`.
 
-Currently, the `fuzzing` and `sanitize_unit_tests` CI/CD tasks (see `cicid.yml`) are run upon a schedule, so that any sanitizing check failure will be processed as separated, automatically generated issues.
+Currently, the `fuzzing` and `sanitize_unit_tests` CI/CD tasks (see `cicid.yml`) are run upon a schedule, so that any sanitizing check failure will be processed as a separated, automatically generated issue.
 
 ## References
 
