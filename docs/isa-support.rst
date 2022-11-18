@@ -1,8 +1,9 @@
 eBPF Instruction Set
 ====================
 
-The following table shows which opcodes are currently supported by PREVAIL, uBPF, and bpf2c,
-and which bpf_conformance test covers it.
+The following table shows which
+[eBPF instructions](https://github.com/dthaler/ebpf-docs/blob/update/isa/kernel.org/instruction-set.rst)
+are currently supported by PREVAIL, uBPF, and bpf2c, and which bpf_conformance test covers it.
 
 ======  ===  ====  ===================================================  =======  ====  =====  ======================
 opcode  src  imm   description                                          PREVAIL  uBPF  bpf2c  conformance
