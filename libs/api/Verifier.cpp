@@ -158,10 +158,10 @@ _get_program_and_map_names(
     }
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 load_byte_code(
     _In_z_ const char* filename,
-    _In_opt_z_ const char* sectionname,
+    _In_opt_z_ const char* section_name,
     _In_ ebpf_verifier_options_t* verifier_options,
     _In_z_ const char* pin_root_path,
     _Inout_ std::vector<ebpf_program_t*>& programs,
@@ -178,12 +178,12 @@ load_byte_code(
     try {
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
         std::string file_name(filename);
-        std::string section_name;
-        if (sectionname != nullptr) {
-            section_name = std::string(sectionname);
+        std::string section_name_string;
+        if (section_name != nullptr) {
+            section_name_string = std::string(section_name);
         }
 
-        auto raw_programs = read_elf(file_name, section_name, verifier_options, platform);
+        auto raw_programs = read_elf(file_name, section_name_string, verifier_options, platform);
         if (raw_programs.size() == 0) {
             result = EBPF_ELF_PARSING_FAILED;
             goto Exit;
@@ -471,6 +471,9 @@ ebpf_api_elf_disassemble_section(
         auto& program = std::get<InstructionSeq>(programOrError);
         print(program, output, {}, true);
         *disassembly = allocate_string(output.str());
+        if (!*disassembly) {
+            return 1;
+        }
     } catch (std::runtime_error e) {
         error << "error: " << e.what();
         *error_message = allocate_string(error.str());
@@ -532,6 +535,9 @@ _ebpf_api_elf_verify_section_from_stream(
 
         output << "Verification succeeded";
         *report = allocate_string(output.str());
+        if (!*report) {
+            return 1;
+        }
         return 0;
     } catch (std::runtime_error e) {
         error << "error: " << e.what();

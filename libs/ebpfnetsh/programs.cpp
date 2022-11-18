@@ -47,7 +47,7 @@ static TOKEN_VALUE _ebpf_pinned_type_enum[] = {
     {L"all", PT_ALL},
 };
 
-std::vector<struct bpf_object*> _ebpf_objects;
+std::vector<struct bpf_object*> _ebpf_netsh_objects;
 
 bool
 _prog_type_supports_interface(bpf_prog_type prog_type)
@@ -73,12 +73,7 @@ _process_interface_parameter(_In_ LPWSTR interface_parameter, bpf_prog_type prog
 struct _program_unloader
 {
     struct bpf_object* object;
-    int program_fd;
-    ~_program_unloader()
-    {
-        bpf_object__close(object);
-        Platform::_close(program_fd);
-    }
+    ~_program_unloader() { bpf_object__close(object); }
 };
 
 unsigned long
@@ -188,9 +183,9 @@ handle_ebpf_add_program(
     }
     program_fd = bpf_program__fd(program);
 
-    // Program loaded. Populate the unloader with object pointer and program fd, such that
+    // Program loaded. Populate the unloader with object pointer, such that
     // the program gets unloaded automatically, if it fails to get attached.
-    struct _program_unloader unloader = {object, program_fd};
+    struct _program_unloader unloader = {object};
 
     ebpf_result_t result;
     uint32_t if_index;
@@ -214,7 +209,6 @@ handle_ebpf_add_program(
     } else {
         // Program successfully attached, reset unloader.
         unloader.object = nullptr;
-        unloader.program_fd = ebpf_fd_invalid;
     }
 
     if (pinned_type == PT_FIRST) {
@@ -246,7 +240,7 @@ handle_ebpf_add_program(
     std::cout << "Loaded with ID " << info.id << std::endl;
 
     ebpf_link_close(link);
-    _ebpf_objects.push_back(object);
+    _ebpf_netsh_objects.push_back(object);
 
     return ERROR_SUCCESS;
 }
@@ -294,7 +288,7 @@ _unpin_program_by_id(ebpf_id_t id)
 static std::vector<struct bpf_object*>::const_iterator
 _find_object_with_program(ebpf_id_t id)
 {
-    for (auto object = _ebpf_objects.begin(); object != _ebpf_objects.end(); object++) {
+    for (auto object = _ebpf_netsh_objects.begin(); object != _ebpf_netsh_objects.end(); object++) {
         bpf_program* program;
         bpf_object__for_each_program(program, *object)
         {
@@ -309,7 +303,7 @@ _find_object_with_program(ebpf_id_t id)
             }
         }
     }
-    return _ebpf_objects.end();
+    return _ebpf_netsh_objects.end();
 }
 
 DWORD
@@ -362,9 +356,9 @@ handle_ebpf_delete_program(
     // Remove from our list of programs to release our own reference if we took one.
     // If there are no other references to the program, it will be unloaded.
     std::vector<struct bpf_object*>::const_iterator object = _find_object_with_program(id);
-    if (object != _ebpf_objects.end()) {
+    if (object != _ebpf_netsh_objects.end()) {
         bpf_object__close(*object);
-        _ebpf_objects.erase(object);
+        _ebpf_netsh_objects.erase(object);
     }
 
     // TODO: see if the program is still loaded, in which case some other process holds

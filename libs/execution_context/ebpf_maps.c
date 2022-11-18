@@ -357,7 +357,7 @@ _next_array_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key,
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 _associate_inner_map(_Inout_ ebpf_core_object_map_t* object_map, ebpf_handle_t inner_map_handle)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -396,7 +396,9 @@ _delete_object_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map, ebpf_object_t
     // Release all entry references.
     for (uint32_t i = 0; i < map->ebpf_map_definition.max_entries; i++) {
         ebpf_id_t id = *(ebpf_id_t*)&map->data[i * map->ebpf_map_definition.value_size];
-        ebpf_object_dereference_by_id(id, value_type);
+        if (id) {
+            ebpf_assert_success(ebpf_object_dereference_by_id(id, value_type));
+        }
     }
 
     if (object_map->inner_map_template != NULL) {
@@ -581,7 +583,7 @@ _update_array_map_entry_with_handle(
     uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
     ebpf_id_t old_id = *(ebpf_id_t*)entry;
     if (old_id) {
-        ebpf_object_dereference_by_id(old_id, value_type);
+        ebpf_assert_success(ebpf_object_dereference_by_id(old_id, value_type));
     }
 
     ebpf_id_t id = value_object ? value_object->id : 0;
@@ -625,7 +627,9 @@ _delete_array_map_entry_with_reference(
     result = _find_array_map_entry(map, key, false, &entry);
     if (result == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)entry;
-        ebpf_object_dereference_by_id(id, value_type);
+        if (id) {
+            ebpf_assert_success(ebpf_object_dereference_by_id(id, value_type));
+        }
         _delete_array_map_entry(map, key);
     }
     ebpf_lock_unlock(&object_map->lock, lock_state);
@@ -672,7 +676,9 @@ _get_object_from_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* 
         ebpf_id_t id = *(ebpf_id_t*)&map->data[index * map->ebpf_map_definition.value_size];
         ebpf_object_type_t value_type =
             (map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) ? EBPF_OBJECT_PROGRAM : EBPF_OBJECT_MAP;
-        (void)ebpf_object_reference_by_id(id, value_type, &object);
+        if (id != 0) {
+            ebpf_assert_success(ebpf_object_reference_by_id(id, value_type, &object));
+        }
     }
 
     ebpf_lock_unlock(&object_map->lock, lock_state);
@@ -711,6 +717,7 @@ _create_hash_map_internal(
         ebpf_epoch_free,
         local_map->ebpf_map_definition.key_size,
         local_map->ebpf_map_definition.value_size,
+        local_map->ebpf_map_definition.max_entries,
         local_map->ebpf_map_definition.max_entries,
         extract_function);
     if (retval != EBPF_SUCCESS) {
@@ -765,7 +772,9 @@ _delete_object_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
             break;
         }
         ebpf_id_t id = *(ebpf_id_t*)value;
-        ebpf_object_dereference_by_id(id, EBPF_OBJECT_MAP);
+        if (id) {
+            ebpf_assert_success(ebpf_object_dereference_by_id(id, EBPF_OBJECT_MAP));
+        }
     }
 
     if (object_map->inner_map_template != NULL) {
@@ -845,6 +854,7 @@ _create_lru_hash_map(
         ebpf_epoch_free,
         lru_map->core_map.ebpf_map_definition.key_size,
         sizeof(uint64_t),
+        lru_map->core_map.ebpf_map_definition.max_entries,
         lru_map->core_map.ebpf_map_definition.max_entries,
         NULL);
 
@@ -926,8 +936,13 @@ _reap_oldest_map_entry(_In_ ebpf_core_map_t* map)
 
     // If we reached the end of the keys, delete the oldest one found.
     if (result == EBPF_NO_MORE_KEYS && oldest_key != NULL) {
-        ebpf_hash_table_delete((ebpf_hash_table_t*)lru_map->core_map.data, oldest_key);
-        _update_key_history(map, oldest_key, true);
+        ebpf_result_t delete_result = ebpf_hash_table_delete((ebpf_hash_table_t*)lru_map->core_map.data, oldest_key);
+        // See issue #557 for why the delete can fail.
+        // https://github.com/microsoft/ebpf-for-windows/issues/557
+        // This can result in map having more entries than max_entries.
+        if (delete_result == EBPF_SUCCESS) {
+            _update_key_history(map, oldest_key, true);
+        }
         return true;
     }
     return false;
@@ -1000,7 +1015,6 @@ _update_hash_map_entry(
 {
     ebpf_result_t result;
     size_t entry_count = 0;
-    uint8_t* value;
     ebpf_hash_table_operations_t hash_table_operation;
 
     if (!map || !key)
@@ -1022,12 +1036,10 @@ _update_hash_map_entry(
 
     entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
-    if ((entry_count >= map->ebpf_map_definition.max_entries) &&
-        (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) &&
-        !_reap_oldest_map_entry(map))
-        result = EBPF_OUT_OF_SPACE;
-    else
+    result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
+    if (result == EBPF_OUT_OF_SPACE && _reap_oldest_map_entry(map)) {
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
+    }
 
     if (result == EBPF_SUCCESS)
         _update_key_history(map, key, false);
@@ -1078,7 +1090,7 @@ _update_hash_map_entry_with_handle(
     ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &old_value);
     ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
 
-    if ((entry_count == map->ebpf_map_definition.max_entries) && (found_result != EBPF_SUCCESS)) {
+    if ((found_result != EBPF_SUCCESS) && (entry_count == map->ebpf_map_definition.max_entries)) {
         // The hash table is already full.
         result = EBPF_OUT_OF_SPACE;
         goto Done;
@@ -1098,7 +1110,7 @@ _update_hash_map_entry_with_handle(
 
     // Release the reference on the old ID stored here, if any.
     if (old_id) {
-        ebpf_object_dereference_by_id(old_id, value_type);
+        ebpf_assert_success(ebpf_object_dereference_by_id(old_id, value_type));
     }
 
 Done:
@@ -1131,7 +1143,9 @@ _delete_map_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
     result = _find_hash_map_entry(map, key, true, &value);
     if (result == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)value;
-        ebpf_object_dereference_by_id(id, EBPF_OBJECT_MAP);
+        if (id) {
+            ebpf_assert_success(ebpf_object_dereference_by_id(id, EBPF_OBJECT_MAP));
+        }
     }
 
     ebpf_lock_unlock(&object_map->lock, lock_state);
@@ -1194,7 +1208,7 @@ _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
  * @retval EBPF_INVALID_ARGUMENT Unable to perform this operation due to
  * current CPU > allocated value buffer size.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 _update_entry_per_cpu(
     _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option)
 {
@@ -1506,7 +1520,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_output(_In_ ebpf_core_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1542,13 +1556,13 @@ _ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
     EBPF_LOG_EXIT();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer)
 {
     return ebpf_ring_buffer_map_buffer((ebpf_ring_buffer_t*)map->data, buffer);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_return_buffer(_In_ const ebpf_map_t* map, size_t consumer_offset)
 {
     size_t producer_offset;
@@ -1564,7 +1578,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_async_query(
     _In_ ebpf_map_t* map,
     _Inout_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
@@ -1595,7 +1609,8 @@ ebpf_ring_buffer_map_async_query(
     context->async_query_result = async_query_result;
     context->async_context = async_context;
 
-    ebpf_async_set_cancel_callback(async_context, context, _ebpf_ring_buffer_map_cancel_async_query);
+    ebpf_assert_success(
+        ebpf_async_set_cancel_callback(async_context, context, _ebpf_ring_buffer_map_cancel_async_query));
 
     ebpf_list_insert_tail(&ring_buffer_map->async_contexts, &context->entry);
     ring_buffer_map->async_contexts_trip_wire = true;
@@ -1853,7 +1868,7 @@ _ebpf_map_delete(_In_ ebpf_core_object_t* object)
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_create(
     _In_ const ebpf_utf8_string_t* map_name,
     _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
@@ -1935,7 +1950,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_find_entry(
     _In_ ebpf_map_t* map,
     size_t key_size,
@@ -2016,7 +2031,7 @@ ebpf_map_find_entry(
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_associate_program(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
@@ -2050,7 +2065,7 @@ ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads
     return (ebpf_program_t*)ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_update_entry(
     _In_ ebpf_map_t* map,
     size_t key_size,
@@ -2113,7 +2128,7 @@ ebpf_map_update_entry(
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_update_entry_with_handle(
     _In_ ebpf_map_t* map,
     size_t key_size,
@@ -2144,7 +2159,7 @@ ebpf_map_update_entry_with_handle(
         map, key, value_handle, option);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags)
 {
     // High volume call - Skip entry/exit logging.
@@ -2171,7 +2186,7 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_next_key(
     _In_ ebpf_map_t* map,
     size_t key_size,
@@ -2199,7 +2214,7 @@ ebpf_map_next_key(
     return ebpf_map_metadata_tables[map->ebpf_map_definition.type].next_key(map, previous_key, next_key);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_get_info(
     _In_ const ebpf_map_t* map, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
 {
@@ -2236,7 +2251,7 @@ ebpf_map_get_info(
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_push_entry(_In_ ebpf_map_t* map, size_t value_size, _In_reads_(value_size) const uint8_t* value, int flags)
 {
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
@@ -2255,7 +2270,7 @@ ebpf_map_push_entry(_In_ ebpf_map_t* map, size_t value_size, _In_reads_(value_si
     return ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry(map, NULL, value, flags);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_pop_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
 {
     uint8_t* return_value;
@@ -2283,7 +2298,7 @@ ebpf_map_pop_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_s
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_peek_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
 {
     uint8_t* return_value;

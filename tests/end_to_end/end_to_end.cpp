@@ -22,6 +22,7 @@
 #include "helpers.h"
 #include "ioctl_helper.h"
 #include "mock.h"
+#include "passed_test_log.h"
 #include "platform.h"
 #include "program_helper.h"
 #include "sample_test_common.h"
@@ -33,6 +34,8 @@ namespace ebpf {
 #include "net/ip.h"
 #include "net/udp.h"
 }; // namespace ebpf
+
+CATCH_REGISTER_LISTENER(_passed_test_log)
 
 #define NATIVE_DRIVER_SERVICE_NAME L"test_service"
 #define NATIVE_DRIVER_SERVICE_NAME_2 L"test_service2"
@@ -347,7 +350,9 @@ ebpf_program_load(
     if (error < 0) {
         if (log_buffer) {
             size_t log_buffer_size;
-            *log_buffer = _strdup(bpf_program__log_buf(program, &log_buffer_size));
+            if (program != nullptr) {
+                *log_buffer = _strdup(bpf_program__log_buf(program, &log_buffer_size));
+            }
         }
         bpf_object__close(new_object);
         return error;
@@ -1355,7 +1360,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
 TEST_CASE("explicit_detach", "[end_to_end]")
 {
     // This test case does the following:
-    // 1. Call detach API and then close the link handle. The link onject
+    // 1. Call detach API and then close the link handle. The link object
     //    should be deleted.
     // 2. Close program handle. The program object should be deleted.
 
@@ -2187,16 +2192,16 @@ _create_service_helper(
     _In_ const GUID* provider_module_id,
     _Out_ SC_HANDLE* service_handle)
 {
-    std::wstring paramaters_path(PARAMETERS_PATH_PREFIX);
+    std::wstring parameters_path(PARAMETERS_PATH_PREFIX);
 
     REQUIRE(Platform::_create_service(service_name, file_name, service_handle) == ERROR_SUCCESS);
 
-    paramaters_path = paramaters_path + service_name + L"\\" + SERVICE_PARAMETERS;
-    REQUIRE(Platform::_create_registry_key(HKEY_LOCAL_MACHINE, paramaters_path.c_str()) == ERROR_SUCCESS);
+    parameters_path = parameters_path + service_name + L"\\" + SERVICE_PARAMETERS;
+    REQUIRE(Platform::_create_registry_key(HKEY_LOCAL_MACHINE, parameters_path.c_str()) == ERROR_SUCCESS);
 
     REQUIRE(
         Platform::_update_registry_value(
-            HKEY_LOCAL_MACHINE, paramaters_path.c_str(), REG_BINARY, NPI_MODULE_ID, provider_module_id, sizeof(GUID)) ==
+            HKEY_LOCAL_MACHINE, parameters_path.c_str(), REG_BINARY, NPI_MODULE_ID, provider_module_id, sizeof(GUID)) ==
         ERROR_SUCCESS);
 }
 
@@ -2497,13 +2502,11 @@ TEST_CASE("ebpf_get_program_type_by_name invalid name", "[end-to-end]")
     ebpf_program_type_t program_type;
     ebpf_attach_type_t attach_type;
 
-    ebpf_result_t result = ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type);
-    REQUIRE(result == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type) == EBPF_KEY_NOT_FOUND);
 
     // Now set verification in progress and try again.
     set_verification_in_progress(true);
-    result = ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type);
-    REQUIRE(result == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type) == EBPF_KEY_NOT_FOUND);
 }
 
 TEST_CASE("ebpf_get_program_type_name invalid types", "[end-to-end]")

@@ -30,7 +30,7 @@
 #undef stderr
 #define stderr 0
 #define fprintf place_holder_fprintf
-#define strerror place_holder_stderror
+#define strerror place_holder_strerror
 #define errno (place_holder_errno())
 
 inline int
@@ -39,7 +39,7 @@ fprintf(void* stream, const char* format, ...)
     return -1;
 }
 
-inline char* __cdecl place_holder_stderror(_In_ int error) { return NULL; }
+inline char* __cdecl place_holder_strerror(_In_ int error) { return NULL; }
 
 inline int
 place_holder_errno()
@@ -54,6 +54,19 @@ map_register(int r)
 {
     return 0;
 }
+
+// Thunk out JIT related calls.
+// Workaround until https://github.com/iovisor/ubpf/issues/185 is fixed.
+int
+ubpf_translate_x86_64(struct ubpf_vm* vm, uint8_t* buffer, size_t* size, char** errmsg)
+{
+    return -1;
+}
+
+#pragma warning(push)
+#pragma warning(disable : 28159) // Don't use KeBugCheck
+void __cdecl abort(void) { KeBugCheck(PAGE_FAULT_IN_NONPAGED_AREA); }
+#pragma warning(pop)
 
 #include "ubpf_vm.c"
 #pragma warning(push)

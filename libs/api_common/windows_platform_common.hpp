@@ -23,11 +23,11 @@ get_program_type_windows(const std::string& section, const std::string& path);
 EbpfMapDescriptor&
 get_map_descriptor_windows(int map_fd);
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 get_bpf_program_and_attach_type(
     const std::string& section, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* attach_type);
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 get_program_and_attach_type(
     const std::string& section, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* attach_type);
 
@@ -40,7 +40,7 @@ get_attach_type_windows(const std::string& section);
 _Ret_maybenull_z_ const char*
 get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type);
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 load_ebpf_provider_data();
 
 void

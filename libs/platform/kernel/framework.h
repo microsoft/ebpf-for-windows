@@ -21,7 +21,7 @@
 #define ebpf_assert(x) ASSERT(x)
 #else
 #define ebpf_assert(x) (void)(x)
-#endif // DEBUG
+#endif // !_DEBUG
 
 #define ebpf_list_entry_t LIST_ENTRY
 
