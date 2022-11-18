@@ -71,7 +71,7 @@ typedef class _hook_helper
   public:
     _hook_helper(ebpf_attach_type_t attach_type) : _attach_type(attach_type) {}
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     attach_link(
         fd_t program_fd,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
@@ -141,7 +141,7 @@ typedef class _single_instance_hook : public _hook_helper
         }
     }
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     detach(
         fd_t program_fd,
         _In_reads_bytes_(attach_parameter_size) void* attach_parameter,
@@ -165,7 +165,7 @@ typedef class _single_instance_hook : public _hook_helper
 #pragma warning(pop)
     }
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     fire(void* context, int* result)
     {
         if (client_binding_context == nullptr) {
