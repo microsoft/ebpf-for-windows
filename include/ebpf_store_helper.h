@@ -249,7 +249,7 @@ ebpf_store_update_program_information(
 
         // Save "is_privileged".
         status = write_registry_value_dword(
-            program_key, EBPF_PROGRAM_DATA_PRIVELEGED, program_info[i].program_type_descriptor.is_privileged);
+            program_key, EBPF_PROGRAM_DATA_PRIVILEGED, program_info[i].program_type_descriptor.is_privileged);
         if (!IS_SUCCESS(status)) {
             close_registry_key(program_key);
             goto Exit;

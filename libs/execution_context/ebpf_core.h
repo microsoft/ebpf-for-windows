@@ -47,7 +47,7 @@ extern "C"
      *
      * @param[in] operation_id Identifier of the operation to execute.
      * @param[in] input_buffer Encoded buffer containing parameters for this
-     *  operaton.
+     *  operation.
      * @param[out] output_buffer Pointer to memory that will contain the
      *  encoded result parameters for this operation.
      * @param[in] output_buffer_length Length of the output buffer.
