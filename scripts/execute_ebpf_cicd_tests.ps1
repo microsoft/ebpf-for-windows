@@ -27,7 +27,7 @@ foreach ($VM in $BasicTest) {
 # Run XDP Tests.
 Invoke-XDPTestsOnVM $Config.MultiVMTest
 
-# Run Connect Redirect Tests
+# Run Connect Redirect Tests.
 Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest
 
 # Stop eBPF components on test VMs.

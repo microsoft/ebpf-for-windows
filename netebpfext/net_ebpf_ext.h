@@ -180,12 +180,11 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
  * @brief Add WFP filters with specified conditions at specified layers.
  *
  * @param[in]  filter_count Count of filters to be added.
- * @param[in]  filter Parameters Filter parameters.
+ * @param[in]  parameters Filter parameters.
  * @param[in]  condition_count Count of filter conditions.
  * @param[in]  conditions Common filter conditions to be applied to each filter.
- * @param[in]  raw_context Caller supplied context to be associated with the WFP filter.
- * @param[out] filter_instances Output buffer to store the pointers to the filter instances
-               for the added filters.
+ * @param[in]  filter_context Caller supplied context to be associated with the WFP filter.
+ * @param[out] filter_ids Output buffer where the added filter IDs are stored.
  *
  * @retval EBPF_SUCCESS The operation completed successfully.
  * @retval EBPF_INVALID_ARGUMENT One or more arguments are invalid.

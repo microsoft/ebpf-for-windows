@@ -350,7 +350,6 @@ function Invoke-ConnectRedirectTestsOnVM
 
     $VM1 = $MultiVMTestConfig[0]
     $VM1Interface = $VM1.Interfaces[0]
-    # $VM1Interface1Alias = $VM1Interface1.Alias
     $VM1V4Address = $VM1Interface.V4Address
     $VM1V6Address = $VM1Interface.V6Address
 
@@ -379,12 +378,12 @@ function Invoke-ConnectRedirectTestsOnVM
 
     Invoke-Command -VMName $VM1.Name -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)][string] $VM,
-              [parameter(Mandatory=$true)][string] $LocalIPV4Address,
-              [parameter(Mandatory=$true)][string] $LocalIPV6Address,
-              [parameter(Mandatory=$true)][string] $RemoteIPV4Address,
-              [parameter(Mandatory=$true)][string] $RemoteIPV6Address,
-              [parameter(Mandatory=$true)][string] $VirtualIPV4Address,
-              [parameter(Mandatory=$true)][string] $VirtualIPV6Address,
+              [parameter(Mandatory=$true)][string] $LocalIPv4Address,
+              [parameter(Mandatory=$true)][string] $LocalIPv6Address,
+              [parameter(Mandatory=$true)][string] $RemoteIPv4Address,
+              [parameter(Mandatory=$true)][string] $RemoteIPv6Address,
+              [parameter(Mandatory=$true)][string] $VirtualIPv4Address,
+              [parameter(Mandatory=$true)][string] $VirtualIPv6Address,
               [parameter(Mandatory=$true)][string] $WorkingDirectory,
               [Parameter(Mandatory=$true)][string] $LogFileName)
 
@@ -393,7 +392,7 @@ function Invoke-ConnectRedirectTestsOnVM
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Write-Log "Invoking connect redirect tests on $VM"
-        Invoke-ConnectRedirectTest -LocalIPV4Address $LocalIPV4Address -LocalIPV6Address $LocalIPV6Address -RemoteIPV4Address $RemoteIPV4Address -RemoteIPV6Address $RemoteIPV6Address -VirtualIPV4Address $VirtualIPV4Address -VirtualIPV6Address $VirtualIPV6Address -WorkingDirectory $WorkingDirectory
+        Invoke-ConnectRedirectTest -LocalIPv4Address $LocalIPv4Address -LocalIPv6Address $LocalIPv6Address -RemoteIPv4Address $RemoteIPv4Address -RemoteIPv6Address $RemoteIPv6Address -VirtualIPv4Address $VirtualIPv4Address -VirtualIPv6Address $VirtualIPv6Address -WorkingDirectory $WorkingDirectory
     } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, "eBPF", $LogFileName) -ErrorAction Stop
 
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName

@@ -62,7 +62,6 @@ create_tcp_listener()
 {
     stream_receiver_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, _local_port);
     while (true) {
-        // stream_receiver_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, _local_port);
         create_listener((receiver_socket_t*)&receiver_socket);
     }
 }

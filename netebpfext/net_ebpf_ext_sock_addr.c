@@ -14,6 +14,7 @@
 
 #define TARGET_PROCESS_ID 1234
 #define EXPIRY_TIME 60000 // 60 seconds in ms.
+#define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
 
 typedef struct _net_ebpf_ext_connection_context_key
 {
@@ -177,7 +178,7 @@ _net_ebpf_extension_sock_addr_on_client_attach(
     const ebpf_extension_data_t* client_data = net_ebpf_extension_hook_client_get_client_data(attaching_client);
     uint32_t compartment_id;
     uint32_t wild_card_compartment_id = UNSPECIFIED_COMPARTMENT_ID;
-    net_ebpf_extension_wfp_filter_parameters_array_t* filter_parameters = NULL;
+    net_ebpf_extension_wfp_filter_parameters_array_t* filter_parameters_array = NULL;
     FWPM_FILTER_CONDITION condition = {0};
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
 
@@ -228,22 +229,22 @@ _net_ebpf_extension_sock_addr_on_client_attach(
     filter_context->compartment_id = compartment_id;
 
     // Get the WFP filter parameters for this hook type.
-    filter_parameters =
+    filter_parameters_array =
         (net_ebpf_extension_wfp_filter_parameters_array_t*)net_ebpf_extension_hook_provider_get_custom_data(
             provider_context);
-    ASSERT(filter_parameters != NULL);
-    filter_context->base.filter_ids_count = filter_parameters->count;
+    ASSERT(filter_parameters_array != NULL);
+    filter_context->base.filter_ids_count = filter_parameters_array->count;
 
     // Special case of connect_redirect. If the attach type is v4, set is_v4 in the filter context.
-    if (memcmp(filter_parameters->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0) {
+    if (memcmp(filter_parameters_array->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0) {
         filter_context->v4_attach_type = true;
     }
 
     // Add a single WFP filter at the WFP layer corresponding to the hook type, and set the hook NPI client as the
     // filter's raw context.
     result = net_ebpf_extension_add_wfp_filters(
-        filter_parameters->count, // filter_count
-        filter_parameters->filter_parameters,
+        filter_parameters_array->count, // filter_count
+        filter_parameters_array->filter_parameters,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
@@ -374,20 +375,13 @@ _net_ebpf_ext_sock_addr_get_redirect_handle(uint64_t filter_id, _Out_ HANDLE* re
 }
 
 static void
-_net_ebpf_ext_initialize_connection_context(
-    bool redirected,
-    bool loopback,
-    uint32_t verdict,
-    uint64_t transport_endpoint_handle,
-    uint32_t protocol,
-    _Out_ net_ebpf_extension_connection_context_t* connection_context)
+_net_ebpf_ext_connection_context_initialize_value(
+    bool redirected, bool loopback, uint32_t verdict, _Out_ net_ebpf_extension_connection_context_t* connection_context)
 {
-    connection_context->key.protocol = (uint16_t)protocol;
     connection_context->value.loopback = loopback;
     connection_context->value.redirected = redirected;
     connection_context->value.verdict = (uint8_t)verdict;
-    connection_context->key.transport_endpoint_handle = transport_endpoint_handle;
-    connection_context->timestamp = KeQueryInterruptTime() / 10000; // in ms.
+    connection_context->timestamp = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime());
 }
 
 static bool
@@ -450,7 +444,7 @@ _net_ebpf_ext_get_connection_context(
             if (_net_ebpf_ext_compare_destination_address(&entry->key.destination, sock_addr_ctx) &&
                 entry->key.destination.user_port == sock_addr_ctx->user_port) {
                 // Found matching entry. Update timestamp and move to front of the queue.
-                entry->timestamp = KeQueryInterruptTime() / 10000;
+                entry->timestamp = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime());
                 RemoveEntryList(&entry->list_entry);
                 InsertHeadList(&_net_ebpf_ext_connect_context_list, &entry->list_entry);
 
@@ -482,7 +476,7 @@ _net_ebpf_ext_delete_connection_context(_In_ _Post_invalid_ net_ebpf_extension_c
 static void
 _net_ebpf_ext_purge_lru_contexts_under_lock(bool delete_all)
 {
-    uint64_t expiry_time = KeQueryInterruptTime() / 10000 - EXPIRY_TIME;
+    uint64_t expiry_time = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime()) - EXPIRY_TIME;
 
     LIST_ENTRY* list_entry = _net_ebpf_ext_connect_context_list.Blink;
     while (list_entry != &_net_ebpf_ext_connect_context_list) {
@@ -916,6 +910,106 @@ Exit:
     return;
 }
 
+static void
+_net_ebpf_ext_connection_context_initialize_key(
+    _In_ net_ebpf_extension_connection_context_t* connection_context,
+    _In_ const bpf_sock_addr_t* sock_addr_ctx,
+    uint64_t transport_endpoint_handle,
+    bool original,
+    bool v4_mapped)
+{
+    if (original) {
+        // Initialize connection_context_original with the original address. In case of v4 mapped socket
+        // though, AUTH callout does not contain the the destination IP filled for the original destination.
+        // For v4 mapped case, only fill the AF and destination port.
+        if (!v4_mapped) {
+            RtlCopyMemory(&connection_context->key.destination, sock_addr_ctx, sizeof(bpf_sock_addr_t));
+        } else {
+            connection_context->key.destination.family = sock_addr_ctx->family;
+            connection_context->key.destination.user_port = sock_addr_ctx->user_port;
+        }
+    } else {
+        RtlCopyMemory(&connection_context->key.destination, sock_addr_ctx, sizeof(bpf_sock_addr_t));
+    }
+
+    connection_context->key.transport_endpoint_handle = transport_endpoint_handle;
+    connection_context->key.protocol = (uint16_t)sock_addr_ctx->protocol;
+    connection_context->key.compartment_id = sock_addr_ctx->compartment_id;
+}
+
+static NTSTATUS
+_net_ebpf_ext_process_redirect_verdict(
+    uint32_t verdict,
+    _In_ const bpf_sock_addr_t* original_context,
+    _In_ const bpf_sock_addr_t* redirected_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t classify_handle,
+    HANDLE redirect_handle,
+    _Out_ bool* redirected,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    FWPS_CONNECT_REQUEST* connect_request = NULL;
+    bool commit_layer_data = false;
+
+    *redirected = false;
+
+    if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
+        // Check if destination IP and/or port have been modified.
+        bool address_changed = !_net_ebpf_ext_compare_destination_address(redirected_context, original_context);
+        if (redirected_context->user_port != original_context->user_port || address_changed) {
+            *redirected = true;
+
+            status = FwpsAcquireWritableLayerDataPointer(
+                classify_handle, filter->filterId, 0, (PVOID*)&connect_request, classify_output);
+            if (!NT_SUCCESS(status)) {
+                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                    "FwpsAcquireWritableLayerDataPointer",
+                    status,
+                    filter->filterId,
+                    (uint64_t)redirected_context->compartment_id);
+
+                goto Exit;
+            }
+            commit_layer_data = true;
+
+            InterlockedIncrement(&_net_ebpf_ext_statistics.redirect_connection_count);
+
+            if (redirected_context->user_port != original_context->user_port) {
+                INETADDR_SET_PORT((PSOCKADDR)&connect_request->remoteAddressAndPort, redirected_context->user_port);
+            }
+            if (address_changed) {
+                uint8_t* address;
+                if (redirected_context->family == AF_INET) {
+                    address = (uint8_t*)&redirected_context->user_ip4;
+                } else {
+                    address = (uint8_t*)&(redirected_context->user_ip6[0]);
+                }
+                INETADDR_SET_ADDRESS((PSOCKADDR)&connect_request->remoteAddressAndPort, address);
+            }
+
+            // Target process id and local redirect handle needs to be set in two cases:
+            // 1. The redirected address is loopback.
+            // 2. The redirected address is a local non-loopback address.
+            // To simplify the design, always set these values.
+            connect_request->localRedirectTargetPID = TARGET_PROCESS_ID;
+            connect_request->localRedirectHandle = redirect_handle;
+        } else {
+            InterlockedIncrement(&_net_ebpf_ext_statistics.permit_connection_count);
+        }
+    } else {
+        InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
+    }
+
+Exit:
+    if (commit_layer_data) {
+        FwpsApplyModifiedLayerData(classify_handle, connect_request, 0);
+    }
+
+    return status;
+}
+
 /*
  * Default action is BLOCK. If this callout is being invoked, it means at least one
  * eBPF program is attached. Hence no connection should be allowed unless allowed by
@@ -944,13 +1038,10 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     FWPS_CONNECTION_REDIRECT_STATE redirect_state;
     HANDLE redirect_handle;
     uint64_t classify_handle = 0;
-    FWPS_CONNECT_REQUEST* connect_request = NULL;
     net_ebpf_extension_connection_context_t* connection_context_original = NULL;
     net_ebpf_extension_connection_context_t* connection_context_redirected = NULL;
-    bool address_changed = false;
     bool redirected = false;
     FWP_ACTION_TYPE action = FWP_ACTION_BLOCK;
-    bool commit_layer_data = false;
     bool classify_handle_acquired = false;
     bool v4_mapped = false;
     bool is_loopback;
@@ -1048,6 +1139,22 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         goto Exit;
     }
 
+    connection_context_original = (net_ebpf_extension_connection_context_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_extension_connection_context_t), NET_EBPF_EXTENSION_POOL_TAG);
+    if (connection_context_original == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+    memset(connection_context_original, 0, sizeof(net_ebpf_extension_connection_context_t));
+
+    connection_context_redirected = (net_ebpf_extension_connection_context_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_extension_connection_context_t), NET_EBPF_EXTENSION_POOL_TAG);
+    if (connection_context_redirected == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+    memset(connection_context_redirected, 0, sizeof(net_ebpf_extension_connection_context_t));
+
     // Fetch redirect state.
     redirect_state = FwpsQueryConnectionRedirectState(incoming_metadata_values->redirectRecords, redirect_handle, NULL);
     if (redirect_state == FWPS_CONNECTION_REDIRECTED_BY_SELF ||
@@ -1059,9 +1166,26 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             filter->filterId,
             (uint64_t)sock_addr_ctx->compartment_id);
 
-        // We have already looked at this connection. Permit and exit.
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        return;
+        // We have already looked at this connection. Permit and exit. Populate connection
+        // contexts for this new connection, so that AUTH claasify can permit this connection.
+        _net_ebpf_ext_connection_context_initialize_key(
+            connection_context_original,
+            sock_addr_ctx,
+            incoming_metadata_values->transportEndpointHandle,
+            true, /* original */
+            v4_mapped);
+        _net_ebpf_ext_connection_context_initialize_key(
+            connection_context_redirected,
+            sock_addr_ctx,
+            incoming_metadata_values->transportEndpointHandle,
+            false, /* original */
+            v4_mapped);
+
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        redirected = true;
+        is_loopback = _net_ebpf_ext_is_loopback_address(sock_addr_ctx);
+
+        goto CreateContext;
     }
 
     // Acquire classify handle.
@@ -1100,31 +1224,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         goto Exit;
     }
 
-    connection_context_original = (net_ebpf_extension_connection_context_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(net_ebpf_extension_connection_context_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (connection_context_original == NULL) {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
-    }
-    memset(connection_context_original, 0, sizeof(net_ebpf_extension_connection_context_t));
-
-    connection_context_redirected = (net_ebpf_extension_connection_context_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(net_ebpf_extension_connection_context_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (connection_context_redirected == NULL) {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
-    }
-    memset(connection_context_redirected, 0, sizeof(net_ebpf_extension_connection_context_t));
-
-    // Initialize connection_context_original with the original address. In case of v4 mapped socket
-    // though, AUTH callout does not contain the the destination IP filled for the original destination.
-    // For v4 mapped case, only fill the AF and destination port.
-    if (!v4_mapped) {
-        RtlCopyMemory(&connection_context_original->key.destination, sock_addr_ctx, sizeof(bpf_sock_addr_t));
-    } else {
-        connection_context_original->key.destination.family = sock_addr_ctx->family;
-        connection_context_original->key.destination.user_port = sock_addr_ctx->user_port;
-    }
+    _net_ebpf_ext_connection_context_initialize_key(
+        connection_context_original, sock_addr_ctx, incoming_metadata_values->transportEndpointHandle, true, v4_mapped);
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &verdict) != EBPF_SUCCESS) {
         status = STATUS_UNSUCCESSFUL;
@@ -1132,7 +1233,12 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
 
     // Initialize connection_context_redirected destination with the redirected address.
-    RtlCopyMemory(&connection_context_redirected->key.destination, sock_addr_ctx, sizeof(bpf_sock_addr_t));
+    _net_ebpf_ext_connection_context_initialize_key(
+        connection_context_redirected,
+        sock_addr_ctx,
+        incoming_metadata_values->transportEndpointHandle,
+        false,
+        v4_mapped);
 
     is_loopback = _net_ebpf_ext_is_loopback_address(sock_addr_ctx);
 
@@ -1142,72 +1248,31 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         IN6_SET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx->user_ip6, (IN_ADDR*)&v4_address);
     }
 
-    // Connection context will be created only when the action is ALLOW.
+    status = _net_ebpf_ext_process_redirect_verdict(
+        verdict,
+        sock_addr_ctx_original,
+        sock_addr_ctx,
+        filter,
+        classify_handle,
+        redirect_handle,
+        &redirected,
+        classify_output);
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
+CreateContext:
     if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
-        // Check if destination IP and/or port have been modified.
-        address_changed = !_net_ebpf_ext_compare_destination_address(sock_addr_ctx, sock_addr_ctx_original);
-        if (sock_addr_ctx->user_port != sock_addr_ctx_original->user_port || address_changed) {
-            redirected = true;
-
-            status = FwpsAcquireWritableLayerDataPointer(
-                classify_handle, filter->filterId, 0, (PVOID*)&connect_request, classify_output);
-            if (!NT_SUCCESS(status)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-                    "FwpsAcquireWritableLayerDataPointer",
-                    status,
-                    filter->filterId,
-                    (uint64_t)sock_addr_ctx->compartment_id);
-
-                goto Exit;
-            }
-            commit_layer_data = true;
-
-            InterlockedIncrement(&_net_ebpf_ext_statistics.redirect_connection_count);
-
-            if (sock_addr_ctx->user_port != sock_addr_ctx_original->user_port) {
-                INETADDR_SET_PORT((PSOCKADDR)&connect_request->remoteAddressAndPort, ntohs(sock_addr_ctx->user_port));
-            }
-            if (address_changed) {
-                uint8_t* address;
-                if (sock_addr_ctx->family == AF_INET) {
-                    address = (uint8_t*)&sock_addr_ctx->user_ip4;
-                } else {
-                    address = (uint8_t*)&(sock_addr_ctx->user_ip6[0]);
-                }
-                INETADDR_SET_ADDRESS((PSOCKADDR)&connect_request->remoteAddressAndPort, address);
-            }
-
-            // Target process id and local redirect handle needs to be set in two cases:
-            // 1. The redirected address is loopback.
-            // 2. The redirected address is a local non-loopback address.
-            // To simplify the design, always set these values.
-            connect_request->localRedirectTargetPID = TARGET_PROCESS_ID;
-            connect_request->localRedirectHandle = redirect_handle;
-        } else {
-            InterlockedIncrement(&_net_ebpf_ext_statistics.permit_connection_count);
-        }
-
-        _net_ebpf_ext_initialize_connection_context(
-            redirected,
-            is_loopback,
-            verdict,
-            incoming_metadata_values->transportEndpointHandle,
-            sock_addr_ctx->protocol,
-            connection_context_redirected);
+        _net_ebpf_ext_connection_context_initialize_value(
+            redirected, is_loopback, verdict, connection_context_redirected);
 
         _net_ebpf_ext_insert_connection_context_to_list(connection_context_redirected);
 
         if (redirected) {
             // If the connection has been redirected, then initialize connection context
             // with original destination also.
-            _net_ebpf_ext_initialize_connection_context(
-                redirected,
-                is_loopback,
-                verdict,
-                incoming_metadata_values->transportEndpointHandle,
-                sock_addr_ctx->protocol,
-                connection_context_original);
+            _net_ebpf_ext_connection_context_initialize_value(
+                redirected, is_loopback, verdict, connection_context_original);
 
             _net_ebpf_ext_insert_connection_context_to_list(connection_context_original);
         } else {
@@ -1219,17 +1284,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         connection_context_original = NULL;
         ExFreePool(connection_context_redirected);
         connection_context_redirected = NULL;
-
-        InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
     }
-
-    // NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-    //     NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-    //     NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-    //     "net_ebpf_extension_sock_addr_redirect_connection_classify",
-    //     incoming_metadata_values->transportEndpointHandle,
-    //     sock_addr_ctx->protocol,
-    //     verdict);
 
     NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY(
         NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
@@ -1247,9 +1302,6 @@ Exit:
     // Clear FWPS_RIGHT_ACTION_WRITE only when it is a hard block.
     if (action == FWP_ACTION_BLOCK) {
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-    }
-    if (commit_layer_data) {
-        FwpsApplyModifiedLayerData(classify_handle, connect_request, 0);
     }
     if (classify_handle_acquired) {
         FwpsReleaseClassifyHandle(classify_handle);

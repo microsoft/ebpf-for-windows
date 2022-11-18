@@ -162,20 +162,20 @@ function Invoke-XDPTest
 
 function Invoke-ConnectRedirectTest
 {
-    param([parameter(Mandatory=$true)][string] $LocalIPV4Address,
-          [parameter(Mandatory=$true)][string] $LocalIPV6Address,
-          [parameter(Mandatory=$true)][string] $RemoteIPV4Address,
-          [parameter(Mandatory=$true)][string] $RemoteIPV6Address,
-          [parameter(Mandatory=$true)][string] $VirtualIPV4Address,
-          [parameter(Mandatory=$true)][string] $VirtualIPV6Address,
+    param([parameter(Mandatory=$true)][string] $LocalIPv4Address,
+          [parameter(Mandatory=$true)][string] $LocalIPv6Address,
+          [parameter(Mandatory=$true)][string] $RemoteIPv4Address,
+          [parameter(Mandatory=$true)][string] $RemoteIPv6Address,
+          [parameter(Mandatory=$true)][string] $VirtualIPv4Address,
+          [parameter(Mandatory=$true)][string] $VirtualIPv6Address,
           [parameter(Mandatory=$true)][string] $WorkingDirectory)
 
     pushd $WorkingDirectory
 
-    $Parameters = "--virtual-ip-v4 $VirtualIPV4Address --virtual-ip-v6 $VirtualIPV6Address --local-ip-v4 $LocalIPV4Address --local-ip-v6 $LocalIPV6Address --remote-ip-v4 $RemoteIPV4Address --remote-ip-v6 $RemoteIPV6Address"
+    $Parameters = "--virtual-ip-v4 $VirtualIPv4Address --virtual-ip-v6 $VirtualIPv6Address --local-ip-v4 $LocalIPv4Address --local-ip-v6 $LocalIPv6Address --remote-ip-v4 $RemoteIPv4Address --remote-ip-v6 $RemoteIPv6Address"
     Write-Log "Executing connect redirect tests with parameters: $Parameters"
     $LASTEXITCODE = 0
-    $Output = .\connect_redirect_tests.exe --virtual-ip-v4 $VirtualIPV4Address --virtual-ip-v6 $VirtualIPV6Address --local-ip-v4 $LocalIPV4Address --local-ip-v6 $LocalIPV6Address --remote-ip-v4 $RemoteIPV4Address --remote-ip-v6 $RemoteIPV6Address
+    $Output = .\connect_redirect_tests.exe --virtual-ip-v4 $VirtualIPv4Address --virtual-ip-v6 $VirtualIPv6Address --local-ip-v4 $LocalIPv4Address --local-ip-v6 $LocalIPv6Address --remote-ip-v4 $RemoteIPv4Address --remote-ip-v6 $RemoteIPv6Address
     Out-String -InputObject $Output | Write-Log
     $ParsedOutput = $Output.Split(" ")
     if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("Connect-Redirect Test Failed.") }

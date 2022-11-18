@@ -93,9 +93,6 @@ typedef class _sender_socket : public _base_socket
     close();
 
   protected:
-    // std::vector<char> recv_buffer;
-    // uint32_t recv_flags;
-    // uint32_t bytes_received = 0;
     WSAOVERLAPPED overlapped;
     bool receive_posted;
 } sender_socket_t;
@@ -113,8 +110,6 @@ typedef class _datagram_sender_socket : public _sender_socket
     cancel_send_message();
     void
     complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::success);
-    // void
-    // post_async_receive(bool error_expected = false);
 } datagram_sender_socket_t;
 
 /**
@@ -165,9 +160,6 @@ typedef class _receiver_socket : public _base_socket
 
   protected:
     WSAOVERLAPPED overlapped;
-    // std::vector<char> recv_buffer;
-    // uint32_t recv_flags;
-    // uint32_t bytes_received = 0;
 
   private:
     LPFN_WSARECVMSG receive_message;
