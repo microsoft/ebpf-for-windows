@@ -225,26 +225,26 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions);_KRPCENV_;_NO_CRT_STDIO_INLINE=1</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\epoch;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/fno-sanitize-address-vcasan-lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/fno-sanitize-address-vcasan-lib /INFERASANLIBS:NO %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Midl>
       <PreprocessorDefinitions>_KRPCENV_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </Midl>
     <Lib>
-      <AdditionalOptions>/INFERASANLIBS:NO $(TargetDir)\no_asan_kernel.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>$(TargetDir)\no_asan_kernel.lib %(AdditionalOptions)</AdditionalOptions>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;_KRPCENV_;%(PreprocessorDefinitions);_NO_CRT_STDIO_INLINE=1</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\epoch;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/fno-sanitize-address-vcasan-lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/fno-sanitize-address-vcasan-lib /INFERASANLIBS:NO %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Midl>
       <PreprocessorDefinitions>_KRPCENV_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </Midl>
     <Lib>
-      <AdditionalOptions>/INFERASANLIBS:NO $(TargetDir)\no_asan_kernel.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>$(TargetDir)\no_asan_kernel.lib %(AdditionalOptions)</AdditionalOptions>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
