@@ -1,9 +1,9 @@
 var searchData=
 [
-  ['win32_5ferror_5fcode_5fto_5febpf_5fresult_696',['win32_error_code_to_ebpf_result',['../ebpf__utilities_8h.html#a7d83d74a974c4fd180f638ca9b28bf9f',1,'ebpf_utilities.h']]],
-  ['win32_5flean_5fand_5fmean_697',['WIN32_LEAN_AND_MEAN',['../ebpf__utilities_8h.html#ac7bef5d85e3dcd73eef56ad39ffc84a9',1,'ebpf_utilities.h']]],
-  ['window_5fsize_698',['window_size',['../structtcphdr.html#a78eaae7783a39579f4b0996451f0c362',1,'tcphdr']]],
-  ['write_5fregistry_5fvalue_5fansi_5fstring_699',['write_registry_value_ansi_string',['../user_2ebpf__registry__helper_8h.html#a8aa349ada77d337b528e407fcf4c226e',1,'ebpf_registry_helper.h']]],
-  ['write_5fregistry_5fvalue_5fbinary_700',['write_registry_value_binary',['../user_2ebpf__registry__helper_8h.html#a8ac9b1a630e07ab18dd1e14f4996f818',1,'ebpf_registry_helper.h']]],
-  ['write_5fregistry_5fvalue_5fdword_701',['write_registry_value_dword',['../user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730',1,'ebpf_registry_helper.h']]]
+  ['win32_5ferror_5fcode_5fto_5febpf_5fresult_697',['win32_error_code_to_ebpf_result',['../ebpf__utilities_8h.html#a7d83d74a974c4fd180f638ca9b28bf9f',1,'ebpf_utilities.h']]],
+  ['win32_5flean_5fand_5fmean_698',['WIN32_LEAN_AND_MEAN',['../ebpf__utilities_8h.html#ac7bef5d85e3dcd73eef56ad39ffc84a9',1,'ebpf_utilities.h']]],
+  ['window_5fsize_699',['window_size',['../structtcphdr.html#a78eaae7783a39579f4b0996451f0c362',1,'tcphdr']]],
+  ['write_5fregistry_5fvalue_5fansi_5fstring_700',['write_registry_value_ansi_string',['../user_2ebpf__registry__helper_8h.html#ab5eb07be4d4f44abf45c44059b81587a',1,'ebpf_registry_helper.h']]],
+  ['write_5fregistry_5fvalue_5fbinary_701',['write_registry_value_binary',['../user_2ebpf__registry__helper_8h.html#ab94c55f42f602f9166fa32c376b114d3',1,'ebpf_registry_helper.h']]],
+  ['write_5fregistry_5fvalue_5fdword_702',['write_registry_value_dword',['../user_2ebpf__registry__helper_8h.html#a787e73f94991db5a6f02906895f6436c',1,'ebpf_registry_helper.h']]]
 ];

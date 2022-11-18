@@ -77,145 +77,148 @@ $(function() {
 <div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="preprocessor">#include &lt;ntddk.h&gt;</span></div>
 <div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
 <div class="line"><a name="l00008"></a><span class="lineno"><a class="line" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">    8</a></span>&#160;<span class="preprocessor">#define __return_type NTSTATUS</span></div>
-<div class="line"><a name="l00009"></a><span class="lineno"><a class="line" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">    9</a></span>&#160;<span class="preprocessor">#define IS_SUCCESS(x) (NT_SUCCESS(x))</span></div>
-<div class="line"><a name="l00010"></a><span class="lineno"><a class="line" href="kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2">   10</a></span>&#160;<span class="preprocessor">#define _SUCCESS STATUS_SUCCESS</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno"><a class="line" href="kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2">    9</a></span>&#160;<span class="preprocessor">#define _SUCCESS STATUS_SUCCESS</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno"><a class="line" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">   10</a></span>&#160;<span class="preprocessor">#define IS_SUCCESS(x) (NT_SUCCESS(x))</span></div>
 <div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160; </div>
 <div class="line"><a name="l00012"></a><span class="lineno"><a class="line" href="kernel_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56">   12</a></span>&#160;<span class="preprocessor">#define REG_CREATE_FLAGS 0</span></div>
 <div class="line"><a name="l00013"></a><span class="lineno"><a class="line" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">   13</a></span>&#160;<span class="preprocessor">#define GUID_STRING_LENGTH 38 // not including the null terminator.</span></div>
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
-<div class="line"><a name="l00015"></a><span class="lineno"><a class="line" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">   15</a></span>&#160;<span class="keyword">typedef</span> HANDLE <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>;</div>
+<div class="line"><a name="l00015"></a><span class="lineno"><a class="line" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">   15</a></span>&#160;<span class="keyword">typedef</span> _Return_type_success_(NT_SUCCESS(<span class="keywordflow">return</span> )) uint32_t <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>;</div>
 <div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160; </div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">static</span> <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key)</div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;{</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;    ZwClose(key);</div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;}</div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;_Success_(<span class="keywordflow">return</span> == 0) static NTSTATUS</div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;    <a class="code" href="user_2ebpf__registry__helper_8h.html#a661025a65ab7f635f6c6639953979ada">convert_guid_to_string</a>(_In_ const <a class="code" href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a>* guid, _Out_writes_all_(string_size) <span class="keywordtype">wchar_t</span>* <span class="keywordtype">string</span>, <span class="keywordtype">size_t</span> string_size)</div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;{</div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;    UNICODE_STRING unicode_string;</div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;    NTSTATUS status = RtlStringFromGUID(guid, &amp;unicode_string);</div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;    <span class="keywordflow">if</span> (status != STATUS_SUCCESS) {</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;    }</div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160; </div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;    <span class="keywordflow">if</span> (string_size &lt; <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a> + 1) {</div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;        status = STATUS_BUFFER_TOO_SMALL;</div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;    }</div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160; </div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;    __analysis_assume(unicode_string.MaximumLength &gt;= <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a> * 2);</div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;    __analysis_assume(unicode_string.Buffer != NULL);</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;    <span class="comment">// Copy the buffer to the output string.</span></div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;    memcpy(<span class="keywordtype">string</span>, unicode_string.Buffer, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a> * 2);</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;    <span class="keywordtype">string</span>[<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a>] = L<span class="charliteral">&#39;\0&#39;</span>;</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160; </div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;Exit:</div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;    <span class="keywordflow">return</span> status;</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;}</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="keyword">static</span> uint32_t</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#a8ac9b1a630e07ab18dd1e14f4996f818">write_registry_value_binary</a>(</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key,</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;    _In_z_ <span class="keyword">const</span> <span class="keywordtype">wchar_t</span>* value_name,</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;    _In_reads_(value_size) uint8_t* value,</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;    _In_ <span class="keywordtype">size_t</span> value_size)</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;{</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;    UNICODE_STRING unicode_value_name;</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160; </div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;    RtlInitUnicodeString(&amp;unicode_value_name, value_name);</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;    <span class="keywordflow">return</span> ZwSetValueKey(key, &amp;unicode_value_name, 0, REG_BINARY, value, (ULONG)value_size);</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;}</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160; </div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="keyword">static</span> uint32_t</div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#a8aa349ada77d337b528e407fcf4c226e">write_registry_value_ansi_string</a>(<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, _In_z_ <span class="keyword">const</span> <span class="keywordtype">wchar_t</span>* value_name, _In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* value)</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;{</div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;    NTSTATUS status;</div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;    UNICODE_STRING unicode_value;</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;    UNICODE_STRING unicode_value_name;</div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160; </div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;    ANSI_STRING ansi_string;</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;    RtlInitAnsiString(&amp;ansi_string, value);</div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160; </div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;    status = RtlAnsiStringToUnicodeString(&amp;unicode_value, &amp;ansi_string, TRUE);</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;    <span class="keywordflow">if</span> (!NT_SUCCESS(status)) {</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;    }</div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;    RtlInitUnicodeString(&amp;unicode_value_name, value_name);</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;    status = ZwSetValueKey(key, &amp;unicode_value_name, 0, REG_SZ, unicode_value.Buffer, unicode_value.Length);</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;    RtlFreeUnicodeString(&amp;unicode_value);</div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160; </div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;Exit:</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;    <span class="keywordflow">return</span> status;</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;}</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160; </div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;<span class="keyword">static</span> uint32_t</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a>(<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, _In_z_ <span class="keyword">const</span> <span class="keywordtype">wchar_t</span>* value_name, uint32_t value)</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;{</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;    UNICODE_STRING unicode_name;</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;    RtlInitUnicodeString(&amp;unicode_name, value_name);</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;    <span class="keywordflow">return</span> ZwSetValueKey(key, &amp;unicode_name, 0, REG_DWORD, &amp;value, <span class="keyword">sizeof</span>(uint32_t));</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;}</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160; </div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;<span class="keyword">static</span> uint32_t</div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a>(</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, _In_z_ <span class="keyword">const</span> <span class="keywordtype">wchar_t</span>* sub_key, uint32_t flags, _Out_ <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>* key)</div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;{</div>
-<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;    NTSTATUS status = STATUS_SUCCESS;</div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;    UNICODE_STRING registry_path;</div>
-<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;    OBJECT_ATTRIBUTES object_attributes = {0};</div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160; </div>
-<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    UNREFERENCED_PARAMETER(flags);</div>
+<div class="line"><a name="l00017"></a><span class="lineno"><a class="line" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">   17</a></span>&#160;<span class="keyword">typedef</span> HANDLE <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>;</div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160; </div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">static</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key)</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;{</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;    ZwClose(key);</div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;}</div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160; </div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;_Success_(<span class="keywordflow">return</span> == 0) static NTSTATUS</div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;    <a class="code" href="user_2ebpf__registry__helper_8h.html#a60f37fbfe3244a650cf03b41e8ef111a">convert_guid_to_string</a>(_In_ const <a class="code" href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a>* guid, _Out_writes_all_(string_size) <span class="keywordtype">wchar_t</span>* <span class="keywordtype">string</span>, <span class="keywordtype">size_t</span> string_size)</div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;{</div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;    UNICODE_STRING unicode_string;</div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;    NTSTATUS status = RtlStringFromGUID(guid, &amp;unicode_string);</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;    <span class="keywordflow">if</span> (status != STATUS_SUCCESS) {</div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;    }</div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160; </div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;    <span class="keywordflow">if</span> (string_size &lt; <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a> + 1) {</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;        status = STATUS_BUFFER_TOO_SMALL;</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;    }</div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160; </div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;    __analysis_assume(unicode_string.MaximumLength &gt;= <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a> * 2);</div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;    __analysis_assume(unicode_string.Buffer != NULL);</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;    <span class="comment">// Copy the buffer to the output string.</span></div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;    memcpy(<span class="keywordtype">string</span>, unicode_string.Buffer, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a> * 2);</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;    <span class="keywordtype">string</span>[<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a>] = L<span class="charliteral">&#39;\0&#39;</span>;</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160; </div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;Exit:</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;    <span class="keywordflow">return</span> status;</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;}</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160; </div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="keyword">static</span> _Must_inspect_result_ <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a></div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#ab94c55f42f602f9166fa32c376b114d3">write_registry_value_binary</a>(</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key,</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;    _In_z_ <span class="keyword">const</span> <span class="keywordtype">wchar_t</span>* value_name,</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;    _In_reads_(value_size) uint8_t* value,</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;    _In_ <span class="keywordtype">size_t</span> value_size)</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;{</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;    UNICODE_STRING unicode_value_name;</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160; </div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;    RtlInitUnicodeString(&amp;unicode_value_name, value_name);</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;    <span class="keywordflow">return</span> ZwSetValueKey(key, &amp;unicode_value_name, 0, REG_BINARY, value, (ULONG)value_size);</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;}</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="keyword">static</span> _Must_inspect_result_ <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a></div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#ab5eb07be4d4f44abf45c44059b81587a">write_registry_value_ansi_string</a>(<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, _In_z_ <span class="keyword">const</span> <span class="keywordtype">wchar_t</span>* value_name, _In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* value)</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;{</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;    NTSTATUS status;</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;    UNICODE_STRING unicode_value;</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;    UNICODE_STRING unicode_value_name;</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160; </div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;    ANSI_STRING ansi_string;</div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;    RtlInitAnsiString(&amp;ansi_string, value);</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160; </div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;    status = RtlAnsiStringToUnicodeString(&amp;unicode_value, &amp;ansi_string, TRUE);</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;    <span class="keywordflow">if</span> (!NT_SUCCESS(status)) {</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;    }</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;    RtlInitUnicodeString(&amp;unicode_value_name, value_name);</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160; </div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;    status = ZwSetValueKey(key, &amp;unicode_value_name, 0, REG_SZ, unicode_value.Buffer, unicode_value.Length);</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;    RtlFreeUnicodeString(&amp;unicode_value);</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160; </div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;Exit:</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;    <span class="keywordflow">return</span> status;</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;}</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160; </div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;<span class="keyword">static</span> _Must_inspect_result_ <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a></div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#a787e73f94991db5a6f02906895f6436c">write_registry_value_dword</a>(<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, _In_z_ <span class="keyword">const</span> <span class="keywordtype">wchar_t</span>* value_name, uint32_t value)</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;{</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;    UNICODE_STRING unicode_name;</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;    RtlInitUnicodeString(&amp;unicode_name, value_name);</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;    <span class="keywordflow">return</span> ZwSetValueKey(key, &amp;unicode_name, 0, REG_DWORD, &amp;value, <span class="keyword">sizeof</span>(uint32_t));</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;}</div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160; </div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<span class="keyword">static</span> _Must_inspect_result_ <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a></div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#afcae0fbb5f62ebc33103fb9acaa5bbd3">create_registry_key</a>(</div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, _In_z_ <span class="keyword">const</span> <span class="keywordtype">wchar_t</span>* sub_key, uint32_t flags, _Out_ <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>* key)</div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;{</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;    NTSTATUS status = STATUS_SUCCESS;</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    UNICODE_STRING registry_path;</div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    OBJECT_ATTRIBUTES object_attributes = {0};</div>
 <div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160; </div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;    RtlInitUnicodeString(&amp;registry_path, sub_key);</div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;    InitializeObjectAttributes(</div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;        &amp;object_attributes, &amp;registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_key, NULL);</div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160; </div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;    status = ZwCreateKey(key, KEY_WRITE, &amp;object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);</div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;    UNREFERENCED_PARAMETER(flags);</div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160; </div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;    RtlInitUnicodeString(&amp;registry_path, sub_key);</div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;    InitializeObjectAttributes(</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;        &amp;object_attributes, &amp;registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_key, NULL);</div>
 <div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160; </div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;    <span class="keywordflow">return</span> status;</div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;}</div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160; </div>
-<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;<span class="keyword">static</span> uint32_t</div>
-<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#a6be73fbd3124fd31a663f68578319f93">create_registry_key_ansi</a>(</div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, _In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* sub_key, uint32_t flags, _Out_ <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>* key)</div>
-<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;{</div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;    NTSTATUS status = STATUS_SUCCESS;</div>
-<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;    UNICODE_STRING registry_path;</div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;    OBJECT_ATTRIBUTES object_attributes = {0};</div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;    ANSI_STRING ansi_string;</div>
-<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;    RtlInitAnsiString(&amp;ansi_string, sub_key);</div>
-<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160; </div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;    UNREFERENCED_PARAMETER(flags);</div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;    *key = NULL;</div>
-<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160; </div>
-<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;    status = RtlAnsiStringToUnicodeString(&amp;registry_path, &amp;ansi_string, TRUE);</div>
-<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;    <span class="keywordflow">if</span> (!NT_SUCCESS(status)) {</div>
-<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;    }</div>
-<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160; </div>
-<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;    InitializeObjectAttributes(</div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;        &amp;object_attributes, &amp;registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_key, NULL);</div>
-<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160; </div>
-<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;    status = ZwCreateKey(key, KEY_WRITE, &amp;object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);</div>
-<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;    RtlFreeUnicodeString(&amp;registry_path);</div>
-<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160; </div>
-<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;Exit:</div>
-<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;    <span class="keywordflow">return</span> status;</div>
-<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;}</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;    status = ZwCreateKey(key, KEY_WRITE, &amp;object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);</div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160; </div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;    <span class="keywordflow">return</span> status;</div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;}</div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160; </div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;<span class="keyword">static</span> _Must_inspect_result_ <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a></div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;<a class="code" href="user_2ebpf__registry__helper_8h.html#a2820194bdada65c152e55df8b9b869b9">create_registry_key_ansi</a>(</div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, _In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* sub_key, uint32_t flags, _Out_ <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>* key)</div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;{</div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;    NTSTATUS status = STATUS_SUCCESS;</div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;    UNICODE_STRING registry_path;</div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;    OBJECT_ATTRIBUTES object_attributes = {0};</div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;    ANSI_STRING ansi_string;</div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;    RtlInitAnsiString(&amp;ansi_string, sub_key);</div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160; </div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;    UNREFERENCED_PARAMETER(flags);</div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;    *key = NULL;</div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160; </div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;    status = RtlAnsiStringToUnicodeString(&amp;registry_path, &amp;ansi_string, TRUE);</div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;    <span class="keywordflow">if</span> (!NT_SUCCESS(status)) {</div>
+<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;    }</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160; </div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;    InitializeObjectAttributes(</div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;        &amp;object_attributes, &amp;registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_key, NULL);</div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160; </div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;    status = ZwCreateKey(key, KEY_WRITE, &amp;object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);</div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;    RtlFreeUnicodeString(&amp;registry_path);</div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160; </div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;Exit:</div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;    <span class="keywordflow">return</span> status;</div>
+<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;}</div>
 </div><!-- fragment --></div><!-- contents -->
-<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a6be73fbd3124fd31a663f68578319f93"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a6be73fbd3124fd31a663f68578319f93">create_registry_key_ansi</a></div><div class="ttdeci">uint32_t create_registry_key_ansi(ebpf_registry_key_t root_key, const char *sub_key, uint32_t flags, ebpf_registry_key_t *key)</div></div>
-<div class="ttc" id="akernel_2ebpf__registry__helper_8h_html_a1eb389a5422886c84207566ae511ab3a"><div class="ttname"><a href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a></div><div class="ttdeci">HANDLE ebpf_registry_key_t</div><div class="ttdef"><b>Definition:</b> ebpf_registry_helper.h:15</div></div>
+<div class="ttc" id="akernel_2ebpf__registry__helper_8h_html_a68b77b7f8c170486a05ab651d80797a9"><div class="ttname"><a href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a></div><div class="ttdeci">uint32_t ebpf_registry_result_t</div><div class="ttdef"><b>Definition:</b> ebpf_registry_helper.h:15</div></div>
+<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a787e73f94991db5a6f02906895f6436c"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a787e73f94991db5a6f02906895f6436c">write_registry_value_dword</a></div><div class="ttdeci">_Must_inspect_result_ ebpf_registry_result_t write_registry_value_dword(ebpf_registry_key_t key, const wchar_t *value_name, uint32_t value)</div></div>
+<div class="ttc" id="akernel_2ebpf__registry__helper_8h_html_a1eb389a5422886c84207566ae511ab3a"><div class="ttname"><a href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a></div><div class="ttdeci">HANDLE ebpf_registry_key_t</div><div class="ttdef"><b>Definition:</b> ebpf_registry_helper.h:17</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_a774aa72faaf900258d045f091c6ebb3f"><div class="ttname"><a href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a></div><div class="ttdeci">uint8_t GUID[16]</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:8</div></div>
 <div class="ttc" id="akernel_2ebpf__registry__helper_8h_html_a873c1dcbf8d78289e723e355b127a800"><div class="ttname"><a href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a></div><div class="ttdeci">#define GUID_STRING_LENGTH</div><div class="ttdef"><b>Definition:</b> ebpf_registry_helper.h:13</div></div>
 <div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a3f167c302201f8702e1fd218f7410e2d"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a></div><div class="ttdeci">void close_registry_key(ebpf_registry_key_t key)</div></div>
-<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a661025a65ab7f635f6c6639953979ada"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a661025a65ab7f635f6c6639953979ada">convert_guid_to_string</a></div><div class="ttdeci">uint32_t convert_guid_to_string(const GUID *guid, _Out_writes_all_(string_size) wchar_t *string, size_t string_size)</div></div>
-<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a61c9d7d26de7cf1a076508f73dc0c2a6"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a></div><div class="ttdeci">uint32_t create_registry_key(ebpf_registry_key_t root_key, const wchar_t *sub_key, uint32_t flags, ebpf_registry_key_t *key)</div></div>
-<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a8aa349ada77d337b528e407fcf4c226e"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a8aa349ada77d337b528e407fcf4c226e">write_registry_value_ansi_string</a></div><div class="ttdeci">uint32_t write_registry_value_ansi_string(ebpf_registry_key_t key, const wchar_t *value_name, const char *value)</div></div>
-<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a8ac9b1a630e07ab18dd1e14f4996f818"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a8ac9b1a630e07ab18dd1e14f4996f818">write_registry_value_binary</a></div><div class="ttdeci">uint32_t write_registry_value_binary(ebpf_registry_key_t key, const wchar_t *value_name, _In_reads_(value_size) uint8_t *value, size_t value_size)</div></div>
-<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a70ec7616cadc98c033f052354316f730"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a></div><div class="ttdeci">uint32_t write_registry_value_dword(ebpf_registry_key_t key, const wchar_t *value_name, uint32_t value)</div></div>
+<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a60f37fbfe3244a650cf03b41e8ef111a"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a60f37fbfe3244a650cf03b41e8ef111a">convert_guid_to_string</a></div><div class="ttdeci">_Must_inspect_result_ ebpf_registry_result_t convert_guid_to_string(const GUID *guid, _Out_writes_all_(string_size) wchar_t *string, size_t string_size)</div></div>
+<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a2820194bdada65c152e55df8b9b869b9"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a2820194bdada65c152e55df8b9b869b9">create_registry_key_ansi</a></div><div class="ttdeci">_Must_inspect_result_ ebpf_registry_result_t create_registry_key_ansi(ebpf_registry_key_t root_key, const char *sub_key, uint32_t flags, ebpf_registry_key_t *key)</div></div>
+<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_afcae0fbb5f62ebc33103fb9acaa5bbd3"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#afcae0fbb5f62ebc33103fb9acaa5bbd3">create_registry_key</a></div><div class="ttdeci">_Must_inspect_result_ ebpf_registry_result_t create_registry_key(ebpf_registry_key_t root_key, const wchar_t *sub_key, uint32_t flags, ebpf_registry_key_t *key)</div></div>
+<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_ab94c55f42f602f9166fa32c376b114d3"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#ab94c55f42f602f9166fa32c376b114d3">write_registry_value_binary</a></div><div class="ttdeci">_Must_inspect_result_ ebpf_registry_result_t write_registry_value_binary(ebpf_registry_key_t key, const wchar_t *value_name, _In_reads_(value_size) uint8_t *value, size_t value_size)</div></div>
+<div class="ttc" id="auser_2ebpf__registry__helper_8h_html_ab5eb07be4d4f44abf45c44059b81587a"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#ab5eb07be4d4f44abf45c44059b81587a">write_registry_value_ansi_string</a></div><div class="ttdeci">_Must_inspect_result_ ebpf_registry_result_t write_registry_value_ansi_string(ebpf_registry_key_t key, const wchar_t *value_name, const char *value)</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

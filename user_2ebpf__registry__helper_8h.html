@@ -96,6 +96,8 @@ Macros</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
+<tr class="memitem:a68b77b7f8c170486a05ab651d80797a9"><td class="memItemLeft" align="right" valign="top">typedef uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a></td></tr>
+<tr class="separator:a68b77b7f8c170486a05ab651d80797a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a77ef622367c8089105b3a2dc3819c6d0"><td class="memItemLeft" align="right" valign="top">typedef HKEY&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a77ef622367c8089105b3a2dc3819c6d0">ebpf_registry_key_t</a></td></tr>
 <tr class="separator:a77ef622367c8089105b3a2dc3819c6d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -103,32 +105,32 @@ Typedefs</h2></td></tr>
 Functions</h2></td></tr>
 <tr class="memitem:a3f167c302201f8702e1fd218f7410e2d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key)</td></tr>
 <tr class="separator:a3f167c302201f8702e1fd218f7410e2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8ac9b1a630e07ab18dd1e14f4996f818"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a8ac9b1a630e07ab18dd1e14f4996f818">write_registry_value_binary</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, _In_reads_(value_size) uint8_t *value, size_t value_size)</td></tr>
-<tr class="separator:a8ac9b1a630e07ab18dd1e14f4996f818"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8aa349ada77d337b528e407fcf4c226e"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a8aa349ada77d337b528e407fcf4c226e">write_registry_value_ansi_string</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, const char *value)</td></tr>
-<tr class="separator:a8aa349ada77d337b528e407fcf4c226e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a70ec7616cadc98c033f052354316f730"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, uint32_t value)</td></tr>
-<tr class="separator:a70ec7616cadc98c033f052354316f730"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a61c9d7d26de7cf1a076508f73dc0c2a6"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, const wchar_t *sub_key, uint32_t flags, <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> *key)</td></tr>
-<tr class="separator:a61c9d7d26de7cf1a076508f73dc0c2a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab94c55f42f602f9166fa32c376b114d3"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#ab94c55f42f602f9166fa32c376b114d3">write_registry_value_binary</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, _In_reads_(value_size) uint8_t *value, size_t value_size)</td></tr>
+<tr class="separator:ab94c55f42f602f9166fa32c376b114d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab5eb07be4d4f44abf45c44059b81587a"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#ab5eb07be4d4f44abf45c44059b81587a">write_registry_value_ansi_string</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, const char *value)</td></tr>
+<tr class="separator:ab5eb07be4d4f44abf45c44059b81587a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a787e73f94991db5a6f02906895f6436c"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a787e73f94991db5a6f02906895f6436c">write_registry_value_dword</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, uint32_t value)</td></tr>
+<tr class="separator:a787e73f94991db5a6f02906895f6436c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afcae0fbb5f62ebc33103fb9acaa5bbd3"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#afcae0fbb5f62ebc33103fb9acaa5bbd3">create_registry_key</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, const wchar_t *sub_key, uint32_t flags, <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> *key)</td></tr>
+<tr class="separator:afcae0fbb5f62ebc33103fb9acaa5bbd3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a393f49231fcef8c15058d30098a38946"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a393f49231fcef8c15058d30098a38946">open_registry_key</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, _In_opt_z_ const wchar_t *sub_key, uint32_t flags, <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> *key)</td></tr>
 <tr class="separator:a393f49231fcef8c15058d30098a38946"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5be805241f3dbd9856b15b7a8535d513"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a5be805241f3dbd9856b15b7a8535d513">delete_registry_key</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, const wchar_t *sub_key)</td></tr>
-<tr class="separator:a5be805241f3dbd9856b15b7a8535d513"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a45fdb89948058af55f904d5d7e0c5169"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a45fdb89948058af55f904d5d7e0c5169">delete_registry_tree</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, _In_opt_z_ const wchar_t *sub_key)</td></tr>
-<tr class="separator:a45fdb89948058af55f904d5d7e0c5169"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3182b4330e7e60e578957fd4c5a7ebed"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a3182b4330e7e60e578957fd4c5a7ebed">read_registry_value_dword</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, uint32_t *value)</td></tr>
-<tr class="separator:a3182b4330e7e60e578957fd4c5a7ebed"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abf4749a4f4ea370a88308d7114455e5d"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#abf4749a4f4ea370a88308d7114455e5d">read_registry_value_binary</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, _Out_writes_(value_size) uint8_t *value, size_t value_size)</td></tr>
-<tr class="separator:abf4749a4f4ea370a88308d7114455e5d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a661025a65ab7f635f6c6639953979ada"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a661025a65ab7f635f6c6639953979ada">convert_guid_to_string</a> (const <a class="el" href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a> *guid, _Out_writes_all_(string_size) wchar_t *string, size_t string_size)</td></tr>
-<tr class="separator:a661025a65ab7f635f6c6639953979ada"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0a14a8aa6966dc6df1dd86eaf75b2093"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a0a14a8aa6966dc6df1dd86eaf75b2093">convert_string_to_guid</a> (const wchar_t *string, <a class="el" href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a> *guid)</td></tr>
-<tr class="separator:a0a14a8aa6966dc6df1dd86eaf75b2093"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6be73fbd3124fd31a663f68578319f93"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a6be73fbd3124fd31a663f68578319f93">create_registry_key_ansi</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, const char *sub_key, uint32_t flags, <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> *key)</td></tr>
-<tr class="separator:a6be73fbd3124fd31a663f68578319f93"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0051f5c026543539f050a9d13c5a84b7"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a0051f5c026543539f050a9d13c5a84b7">read_registry_value_string</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, _Outptr_result_z_ wchar_t **value)</td></tr>
-<tr class="separator:a0051f5c026543539f050a9d13c5a84b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a60e798aed84ec4cedfc27f6a7231d389"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a60e798aed84ec4cedfc27f6a7231d389">delete_registry_key</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, const wchar_t *sub_key)</td></tr>
+<tr class="separator:a60e798aed84ec4cedfc27f6a7231d389"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac544f07da16c0b493019e597c2a8ad22"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#ac544f07da16c0b493019e597c2a8ad22">delete_registry_tree</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, _In_opt_z_ const wchar_t *sub_key)</td></tr>
+<tr class="separator:ac544f07da16c0b493019e597c2a8ad22"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae3f530e1a2049da3c52c5b37ecd69e0e"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#ae3f530e1a2049da3c52c5b37ecd69e0e">read_registry_value_dword</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, uint32_t *value)</td></tr>
+<tr class="separator:ae3f530e1a2049da3c52c5b37ecd69e0e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae9fae3b1f8cb029a51e02c43bef2f9a1"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#ae9fae3b1f8cb029a51e02c43bef2f9a1">read_registry_value_binary</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, _Out_writes_(value_size) uint8_t *value, size_t value_size)</td></tr>
+<tr class="separator:ae9fae3b1f8cb029a51e02c43bef2f9a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a60f37fbfe3244a650cf03b41e8ef111a"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a60f37fbfe3244a650cf03b41e8ef111a">convert_guid_to_string</a> (const <a class="el" href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a> *guid, _Out_writes_all_(string_size) wchar_t *string, size_t string_size)</td></tr>
+<tr class="separator:a60f37fbfe3244a650cf03b41e8ef111a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a02b9678d923be400e54fda9be10e238c"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a02b9678d923be400e54fda9be10e238c">convert_string_to_guid</a> (const wchar_t *string, <a class="el" href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a> *guid)</td></tr>
+<tr class="separator:a02b9678d923be400e54fda9be10e238c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2820194bdada65c152e55df8b9b869b9"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a2820194bdada65c152e55df8b9b869b9">create_registry_key_ansi</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> root_key, const char *sub_key, uint32_t flags, <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> *key)</td></tr>
+<tr class="separator:a2820194bdada65c152e55df8b9b869b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1e664f252732db556daef5a7befc4396"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="user_2ebpf__registry__helper_8h.html#a1e664f252732db556daef5a7befc4396">read_registry_value_string</a> (<a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> key, const wchar_t *value_name, _Outptr_result_z_ wchar_t **value)</td></tr>
+<tr class="separator:a1e664f252732db556daef5a7befc4396"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="af4bbc5ce8ab348944ac613d03aba8fce"></a>
@@ -234,6 +236,20 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a68b77b7f8c170486a05ab651d80797a9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a68b77b7f8c170486a05ab651d80797a9">&#9670;&nbsp;</a></span>ebpf_registry_result_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef uint32_t <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a3f167c302201f8702e1fd218f7410e2d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3f167c302201f8702e1fd218f7410e2d">&#9670;&nbsp;</a></span>close_registry_key()</h2>
@@ -253,14 +269,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a661025a65ab7f635f6c6639953979ada"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a661025a65ab7f635f6c6639953979ada">&#9670;&nbsp;</a></span>convert_guid_to_string()</h2>
+<a id="a60f37fbfe3244a650cf03b41e8ef111a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a60f37fbfe3244a650cf03b41e8ef111a">&#9670;&nbsp;</a></span>convert_guid_to_string()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t convert_guid_to_string </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> convert_guid_to_string </td>
           <td>(</td>
           <td class="paramtype">const <a class="el" href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a> *&#160;</td>
           <td class="paramname"><em>guid</em>, </td>
@@ -287,14 +303,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a0a14a8aa6966dc6df1dd86eaf75b2093"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0a14a8aa6966dc6df1dd86eaf75b2093">&#9670;&nbsp;</a></span>convert_string_to_guid()</h2>
+<a id="a02b9678d923be400e54fda9be10e238c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a02b9678d923be400e54fda9be10e238c">&#9670;&nbsp;</a></span>convert_string_to_guid()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t convert_string_to_guid </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> convert_string_to_guid </td>
           <td>(</td>
           <td class="paramtype">const wchar_t *&#160;</td>
           <td class="paramname"><em>string</em>, </td>
@@ -315,14 +331,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a61c9d7d26de7cf1a076508f73dc0c2a6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a61c9d7d26de7cf1a076508f73dc0c2a6">&#9670;&nbsp;</a></span>create_registry_key()</h2>
+<a id="afcae0fbb5f62ebc33103fb9acaa5bbd3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afcae0fbb5f62ebc33103fb9acaa5bbd3">&#9670;&nbsp;</a></span>create_registry_key()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t create_registry_key </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> create_registry_key </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>&#160;</td>
           <td class="paramname"><em>root_key</em>, </td>
@@ -355,14 +371,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a6be73fbd3124fd31a663f68578319f93"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6be73fbd3124fd31a663f68578319f93">&#9670;&nbsp;</a></span>create_registry_key_ansi()</h2>
+<a id="a2820194bdada65c152e55df8b9b869b9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2820194bdada65c152e55df8b9b869b9">&#9670;&nbsp;</a></span>create_registry_key_ansi()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t create_registry_key_ansi </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> create_registry_key_ansi </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>&#160;</td>
           <td class="paramname"><em>root_key</em>, </td>
@@ -395,14 +411,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a5be805241f3dbd9856b15b7a8535d513"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5be805241f3dbd9856b15b7a8535d513">&#9670;&nbsp;</a></span>delete_registry_key()</h2>
+<a id="a60e798aed84ec4cedfc27f6a7231d389"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a60e798aed84ec4cedfc27f6a7231d389">&#9670;&nbsp;</a></span>delete_registry_key()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t delete_registry_key </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> delete_registry_key </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>&#160;</td>
           <td class="paramname"><em>root_key</em>, </td>
@@ -423,14 +439,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a45fdb89948058af55f904d5d7e0c5169"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a45fdb89948058af55f904d5d7e0c5169">&#9670;&nbsp;</a></span>delete_registry_tree()</h2>
+<a id="ac544f07da16c0b493019e597c2a8ad22"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac544f07da16c0b493019e597c2a8ad22">&#9670;&nbsp;</a></span>delete_registry_tree()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t delete_registry_tree </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> delete_registry_tree </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>&#160;</td>
           <td class="paramname"><em>root_key</em>, </td>
@@ -491,14 +507,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="abf4749a4f4ea370a88308d7114455e5d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abf4749a4f4ea370a88308d7114455e5d">&#9670;&nbsp;</a></span>read_registry_value_binary()</h2>
+<a id="ae9fae3b1f8cb029a51e02c43bef2f9a1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae9fae3b1f8cb029a51e02c43bef2f9a1">&#9670;&nbsp;</a></span>read_registry_value_binary()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t read_registry_value_binary </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> read_registry_value_binary </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>&#160;</td>
           <td class="paramname"><em>key</em>, </td>
@@ -531,14 +547,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a3182b4330e7e60e578957fd4c5a7ebed"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3182b4330e7e60e578957fd4c5a7ebed">&#9670;&nbsp;</a></span>read_registry_value_dword()</h2>
+<a id="ae3f530e1a2049da3c52c5b37ecd69e0e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae3f530e1a2049da3c52c5b37ecd69e0e">&#9670;&nbsp;</a></span>read_registry_value_dword()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t read_registry_value_dword </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> read_registry_value_dword </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>&#160;</td>
           <td class="paramname"><em>key</em>, </td>
@@ -565,14 +581,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a0051f5c026543539f050a9d13c5a84b7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0051f5c026543539f050a9d13c5a84b7">&#9670;&nbsp;</a></span>read_registry_value_string()</h2>
+<a id="a1e664f252732db556daef5a7befc4396"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1e664f252732db556daef5a7befc4396">&#9670;&nbsp;</a></span>read_registry_value_string()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t read_registry_value_string </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> read_registry_value_string </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>&#160;</td>
           <td class="paramname"><em>key</em>, </td>
@@ -599,14 +615,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a8aa349ada77d337b528e407fcf4c226e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8aa349ada77d337b528e407fcf4c226e">&#9670;&nbsp;</a></span>write_registry_value_ansi_string()</h2>
+<a id="ab5eb07be4d4f44abf45c44059b81587a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab5eb07be4d4f44abf45c44059b81587a">&#9670;&nbsp;</a></span>write_registry_value_ansi_string()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t write_registry_value_ansi_string </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> write_registry_value_ansi_string </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>&#160;</td>
           <td class="paramname"><em>key</em>, </td>
@@ -633,14 +649,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a8ac9b1a630e07ab18dd1e14f4996f818"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8ac9b1a630e07ab18dd1e14f4996f818">&#9670;&nbsp;</a></span>write_registry_value_binary()</h2>
+<a id="ab94c55f42f602f9166fa32c376b114d3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab94c55f42f602f9166fa32c376b114d3">&#9670;&nbsp;</a></span>write_registry_value_binary()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t write_registry_value_binary </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> write_registry_value_binary </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>&#160;</td>
           <td class="paramname"><em>key</em>, </td>
@@ -673,14 +689,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a70ec7616cadc98c033f052354316f730"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a70ec7616cadc98c033f052354316f730">&#9670;&nbsp;</a></span>write_registry_value_dword()</h2>
+<a id="a787e73f94991db5a6f02906895f6436c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a787e73f94991db5a6f02906895f6436c">&#9670;&nbsp;</a></span>write_registry_value_dword()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t write_registry_value_dword </td>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="kernel_2ebpf__registry__helper_8h.html#a68b77b7f8c170486a05ab651d80797a9">ebpf_registry_result_t</a> write_registry_value_dword </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a>&#160;</td>
           <td class="paramname"><em>key</em>, </td>
