@@ -2,7 +2,7 @@
 
 *AddressSanitizer* (aka ASan) is a library for detecting memory-related issues for C/C++. It consists of a compiler instrumentation module and a run-time library. The typical performance penalty for address sanitizing is 2x.
 
-This file details the how *Address Sanitization* is performed within the  `ebpf-for-windows.sln` solution and its CI/CD pipeline.
+This file details how *Address Sanitization* is performed within the `ebpf-for-windows.sln` solution and its CI/CD pipeline.
 
 
 ## Current usage in eBPF for Windows
