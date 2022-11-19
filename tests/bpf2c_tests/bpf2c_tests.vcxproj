@@ -137,6 +137,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib</AdditionalDependencies>
+      <LinkTimeCodeGeneration />
     </Link>
     <PreBuildEvent>
       <Command>xcopy /y $(ProjectDir)expected\* $(OutDir)\expected\*</Command>
