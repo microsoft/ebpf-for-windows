@@ -55,7 +55,7 @@ _prog_type_supports_interface(bpf_prog_type prog_type)
     return (prog_type == BPF_PROG_TYPE_XDP);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 _process_interface_parameter(_In_ LPWSTR interface_parameter, bpf_prog_type prog_type, _Out_ uint32_t* if_index)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -367,7 +367,7 @@ handle_ebpf_delete_program(
     return NO_ERROR;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 _ebpf_program_attach_by_id(ebpf_id_t program_id, ebpf_attach_type_t attach_type, _In_opt_ LPWSTR interface_parameter)
 {
     ebpf_result_t result = EBPF_SUCCESS;
