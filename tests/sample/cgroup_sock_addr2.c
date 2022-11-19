@@ -28,7 +28,7 @@ struct bpf_map_def policy_map = {
     .max_entries = 100};
 
 __inline int
-authorize_v4(bpf_sock_addr_t* ctx)
+redirect_v4(bpf_sock_addr_t* ctx)
 {
     int verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     destination_entry_t entry = {0};
@@ -58,7 +58,7 @@ authorize_v4(bpf_sock_addr_t* ctx)
 }
 
 __inline int
-authorize_v6(bpf_sock_addr_t* ctx)
+redirect_v6(bpf_sock_addr_t* ctx)
 {
     int verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     destination_entry_t entry = {0};
@@ -71,6 +71,9 @@ authorize_v6(bpf_sock_addr_t* ctx)
         return verdict;
     }
 
+    // Copy the IPv6 address. Note this has a design flaw for scoped IPv6 addresses
+    // where the scope id or interface is not provided, so the policy can match the
+    // wrong address.
     __builtin_memcpy(entry.destination_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
     entry.destination_port = ctx->user_port;
     entry.protocol = ctx->protocol;
@@ -90,14 +93,14 @@ authorize_v6(bpf_sock_addr_t* ctx)
 
 SEC("cgroup/connect4")
 int
-authorize_connect4(bpf_sock_addr_t* ctx)
+connect_redirect4(bpf_sock_addr_t* ctx)
 {
-    return authorize_v4(ctx);
+    return redirect_v4(ctx);
 }
 
 SEC("cgroup/connect6")
 int
-authorize_connect6(bpf_sock_addr_t* ctx)
+connect_redirect6(bpf_sock_addr_t* ctx)
 {
-    return authorize_v6(ctx);
+    return redirect_v6(ctx);
 }

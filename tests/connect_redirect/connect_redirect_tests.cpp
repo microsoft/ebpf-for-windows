@@ -6,20 +6,17 @@
 
 #define CATCH_CONFIG_RUNNER
 
-#include "catch_wrapper.hpp"
-#include "ebpf_udp.h"
-#include "socket_helper.h"
+// #include <chrono>
+// #include <future>
+// using namespace std::chrono_literals;
 
-#include <chrono>
-#include <future>
-using namespace std::chrono_literals;
+#include "catch_wrapper.hpp"
 
 #include "bpf/bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #include "bpf/libbpf.h"
 #pragma warning(pop)
-#include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_structs.h"
@@ -151,14 +148,14 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
     REQUIRE(object != nullptr);
     REQUIRE(bpf_object__load(object) == 0);
 
-    bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object, "authorize_connect4");
+    bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object, "connect_redirect4");
     REQUIRE(connect_program_v4 != nullptr);
 
     int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect_program_v4)), 0, BPF_CGROUP_INET4_CONNECT, 0);
     REQUIRE(result == 0);
 
-    bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object, "authorize_connect6");
+    bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object, "connect_redirect6");
     REQUIRE(connect_program_v6 != nullptr);
 
     result = bpf_prog_attach(

@@ -16,10 +16,22 @@
 #define EXPIRY_TIME 60000 // 60 seconds in ms.
 #define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
 
+typedef struct _net_ebpf_ext_connect_context_address_info
+{
+    uint32_t family;
+    union
+    {
+        uint32_t ipv4;
+        uint32_t ipv6[4];
+    } destination_ip;
+    uint16_t destination_port;
+    uint16_t source_port;
+} net_ebpf_ext_connect_context_address_info_t;
+
 typedef struct _net_ebpf_ext_connection_context_key
 {
     uint64_t transport_endpoint_handle;
-    bpf_sock_addr_t destination;
+    net_ebpf_ext_connect_context_address_info_t address_info;
     uint32_t compartment_id;
     uint16_t protocol;
 } net_ebpf_ext_connection_context_key_t;
@@ -423,6 +435,33 @@ _net_ebpf_ext_compare_destination_address(_In_ const bpf_sock_addr_t* addr1, _In
     }
 }
 
+static void
+_net_ebpf_ext_connection_context_initialize_key(
+    _In_ net_ebpf_ext_connection_context_key_t* context_key,
+    _In_ const bpf_sock_addr_t* sock_addr_ctx,
+    uint64_t transport_endpoint_handle,
+    bool original,
+    bool v4_mapped)
+{
+    // In case of original connection context, if the address is a v4-mapped v6 address, AUTH callout
+    // does not contain the the destination IP filled for the original destination. So for v4-mapped
+    // case, do not fill the destination IP in the key, to be able to match the context with the
+    // incoming values in AUTH callut.
+    if (!original || !v4_mapped) {
+        RtlCopyMemory(
+            context_key->address_info.destination_ip.ipv6,
+            sock_addr_ctx->user_ip6,
+            sizeof(context_key->address_info.destination_ip));
+    }
+
+    context_key->address_info.destination_port = sock_addr_ctx->user_port;
+    context_key->address_info.family = sock_addr_ctx->family;
+    context_key->address_info.source_port = sock_addr_ctx->msg_src_port;
+    context_key->transport_endpoint_handle = transport_endpoint_handle;
+    context_key->protocol = (uint16_t)sock_addr_ctx->protocol;
+    context_key->compartment_id = sock_addr_ctx->compartment_id;
+}
+
 static NTSTATUS
 _net_ebpf_ext_get_connection_context(
     uint64_t transport_endpoint_handle,
@@ -431,27 +470,25 @@ _net_ebpf_ext_get_connection_context(
 {
     NTSTATUS status = STATUS_NOT_FOUND;
     KIRQL old_irql;
+    net_ebpf_ext_connection_context_key_t key = {0};
 
     *connection_context = NULL;
+    _net_ebpf_ext_connection_context_initialize_key(&key, sock_addr_ctx, transport_endpoint_handle, true, false);
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
 
     LIST_ENTRY* list_entry = _net_ebpf_ext_connect_context_list.Flink;
     while (list_entry != &_net_ebpf_ext_connect_context_list) {
         net_ebpf_extension_connection_context_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_connection_context_t, list_entry);
-        if (entry->key.transport_endpoint_handle == transport_endpoint_handle) {
-            // Check if the destination address and port match.
-            if (_net_ebpf_ext_compare_destination_address(&entry->key.destination, sock_addr_ctx) &&
-                entry->key.destination.user_port == sock_addr_ctx->user_port) {
-                // Found matching entry. Update timestamp and move to front of the queue.
-                entry->timestamp = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime());
-                RemoveEntryList(&entry->list_entry);
-                InsertHeadList(&_net_ebpf_ext_connect_context_list, &entry->list_entry);
+        if (memcmp(&key, &entry->key, sizeof(net_ebpf_ext_connection_context_key_t)) == 0) {
+            // Found matching entry. Update timestamp and move to front of the queue.
+            entry->timestamp = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime());
+            RemoveEntryList(&entry->list_entry);
+            InsertHeadList(&_net_ebpf_ext_connect_context_list, &entry->list_entry);
 
-                *connection_context = entry;
-                status = STATUS_SUCCESS;
-                break;
-            }
+            *connection_context = entry;
+            status = STATUS_SUCCESS;
+            break;
         }
         list_entry = list_entry->Flink;
     }
@@ -805,7 +842,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         NET_EBPF_EXT_LOG_MESSAGE_UINT32(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "The cgroup_sock_addr eBPF program is not interested in this compartmentId",
+            "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
             sock_addr_ctx.compartment_id);
 
         goto Exit;
@@ -872,7 +909,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         NET_EBPF_EXT_LOG_MESSAGE_UINT32(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "The cgroup_sock_addr eBPF program is not interested in this compartmentId",
+            "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
             sock_addr_ctx.compartment_id);
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
@@ -908,33 +945,6 @@ Exit:
         verdict);
 
     return;
-}
-
-static void
-_net_ebpf_ext_connection_context_initialize_key(
-    _In_ net_ebpf_extension_connection_context_t* connection_context,
-    _In_ const bpf_sock_addr_t* sock_addr_ctx,
-    uint64_t transport_endpoint_handle,
-    bool original,
-    bool v4_mapped)
-{
-    if (original) {
-        // Initialize connection_context_original with the original address. In case of v4 mapped socket
-        // though, AUTH callout does not contain the the destination IP filled for the original destination.
-        // For v4 mapped case, only fill the AF and destination port.
-        if (!v4_mapped) {
-            RtlCopyMemory(&connection_context->key.destination, sock_addr_ctx, sizeof(bpf_sock_addr_t));
-        } else {
-            connection_context->key.destination.family = sock_addr_ctx->family;
-            connection_context->key.destination.user_port = sock_addr_ctx->user_port;
-        }
-    } else {
-        RtlCopyMemory(&connection_context->key.destination, sock_addr_ctx, sizeof(bpf_sock_addr_t));
-    }
-
-    connection_context->key.transport_endpoint_handle = transport_endpoint_handle;
-    connection_context->key.protocol = (uint16_t)sock_addr_ctx->protocol;
-    connection_context->key.compartment_id = sock_addr_ctx->compartment_id;
 }
 
 static NTSTATUS
@@ -1083,8 +1093,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     // If the callout is invoked for v4, then it is safe to simply invoke the eBPF
     // program from the filter context.
     // If the callout is invoked for v6:
-    // 1. Check if the destination is v4 mapped v6 address or pure v6 address.
-    // 2. If it is v4 mapped v6 address, then we should procced only if this callout
+    // 1. Check if the destination is v4-mapped v6 address or pure v6 address.
+    // 2. If it is v4-mapped v6 address, then we should procced only if this callout
     //    is invoked for v4 attach type.
     // 3. If it is pure v6 address, then we should procced only if this callout is
     //    invoked for v6 attach type.
@@ -1094,10 +1104,10 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         }
         if (v4_mapped) {
             if (!filter_context->v4_attach_type) {
-                // This callout is for v6 attach type, but address is v4 mapped v6 address.
+                // This callout is for v6 attach type, but address is v4-mapped v6 address.
                 // Change action to permit and return.
                 NET_EBPF_EXT_LOG_MESSAGE(
-                    NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                     NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
                     "net_ebpf_extension_sock_addr_redirect_connection_classify: v6 attach type, v4mapped, ignoring");
                 action = FWP_ACTION_PERMIT;
@@ -1107,7 +1117,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             // This callout is for v4 attach type, but address is a pure v6 address.
             // Change action to permit and return.
             NET_EBPF_EXT_LOG_MESSAGE(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                 NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
                 "net_ebpf_extension_sock_addr_redirect_connection_classify: v4 attach type, purev6, ignoring");
             action = FWP_ACTION_PERMIT;
@@ -1169,13 +1179,13 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         // We have already looked at this connection. Permit and exit. Populate connection
         // contexts for this new connection, so that AUTH claasify can permit this connection.
         _net_ebpf_ext_connection_context_initialize_key(
-            connection_context_original,
+            &connection_context_original->key,
             sock_addr_ctx,
             incoming_metadata_values->transportEndpointHandle,
             true, /* original */
             v4_mapped);
         _net_ebpf_ext_connection_context_initialize_key(
-            connection_context_redirected,
+            &connection_context_redirected->key,
             sock_addr_ctx,
             incoming_metadata_values->transportEndpointHandle,
             false, /* original */
@@ -1217,7 +1227,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         NET_EBPF_EXT_LOG_MESSAGE_UINT32(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "The cgroup_sock_addr eBPF program is not interested in this compartmentId",
+            "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
             sock_addr_ctx->compartment_id);
 
         action = FWP_ACTION_PERMIT;
@@ -1225,7 +1235,11 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
 
     _net_ebpf_ext_connection_context_initialize_key(
-        connection_context_original, sock_addr_ctx, incoming_metadata_values->transportEndpointHandle, true, v4_mapped);
+        &connection_context_original->key,
+        sock_addr_ctx,
+        incoming_metadata_values->transportEndpointHandle,
+        true,
+        v4_mapped);
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &verdict) != EBPF_SUCCESS) {
         status = STATUS_UNSUCCESSFUL;
@@ -1234,7 +1248,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     // Initialize connection_context_redirected destination with the redirected address.
     _net_ebpf_ext_connection_context_initialize_key(
-        connection_context_redirected,
+        &connection_context_redirected->key,
         sock_addr_ctx,
         incoming_metadata_values->transportEndpointHandle,
         false,

@@ -6,6 +6,8 @@
  */
 
 #pragma once
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
 #include <netiodef.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -23,7 +25,7 @@ typedef enum _socket_family
 
 /**
  * @brief Helper function that converts an IP address string into a sockaddr_storage with address family 6, unspecified
- * scope and port set to zero. A v4 mapped IPv6 address is returned if the input address string is IPv4.
+ * scope and port set to zero. A v4-mapped IPv6 address is returned if the input address string is IPv4.
  */
 void
 get_address_from_string(
@@ -144,8 +146,6 @@ typedef class _receiver_socket : public _base_socket
     complete_async_send(int timeout_in_ms) = 0;
     void
     complete_async_receive(int timeout_in_ms, bool timeout_expected = false);
-    // void
-    // get_received_message(_Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message);
 
     virtual void
     post_async_receive() = 0;
