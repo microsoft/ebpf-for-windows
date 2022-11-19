@@ -27,7 +27,7 @@ typedef uint8_t GUID[16];
 #define EBPF_PROGRAM_DATA_NAME L"Name"
 #define EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR L"ContextDescriptor"
 #define EBPF_PROGRAM_DATA_PLATFORM_SPECIFIC_DATA L"PlatformSpecificData"
-#define EBPF_PROGRAM_DATA_PRIVELEGED L"IsPrivileged"
+#define EBPF_PROGRAM_DATA_PRIVILEGED L"IsPrivileged"
 #define EBPF_PROGRAM_DATA_HELPER_COUNT L"HelperCount"
 
 #define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"

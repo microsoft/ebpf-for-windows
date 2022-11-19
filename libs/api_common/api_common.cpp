@@ -58,7 +58,7 @@ get_file_size(const char* filename, size_t* byte_code_size) noexcept
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info(
     ebpf_handle_t handle,
     _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
@@ -92,7 +92,7 @@ ebpf_object_get_info(
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 query_map_definition(
     ebpf_handle_t handle,
     _Out_ uint32_t* type,

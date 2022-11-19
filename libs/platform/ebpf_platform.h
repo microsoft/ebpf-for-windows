@@ -37,6 +37,8 @@ extern "C"
 #define EBPF_PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
 #define EBPF_PAD_8(X) ((X + 7) & ~7)
 
+#define EBPF_HASH_TABLE_NO_LIMIT 0
+
 #define ebpf_assert_success(x)                      \
     do {                                            \
         ebpf_result_t _result = (x);                \
@@ -139,7 +141,7 @@ extern "C"
         _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size);
 
     /**
-     * @brief Rellocate memory.
+     * @brief Reallocate memory.
      * @param[in] memory Allocation to be reallocated.
      * @param[in] old_size Old size of memory to reallocate.
      * @param[in] new_size New size of memory to reallocate.
@@ -363,7 +365,7 @@ extern "C"
     /**
      * @brief Query the platform to determine if the current execution can
      *    be preempted by other execution.
-     * @retrval True if this execution can be preempted.
+     * @retval True if this execution can be preempted.
      */
     bool
     ebpf_is_preemptible();
@@ -474,7 +476,7 @@ extern "C"
         _In_opt_ void* work_item_context);
 
     /**
-     * @brief Schedule a work item to be executed after elaped_microseconds.
+     * @brief Schedule a work item to be executed after elapsed_microseconds.
      *
      * @param[in] timer Pointer to timer to schedule.
      * @param[in] elapsed_microseconds Microseconds to delay before executing
@@ -504,6 +506,7 @@ extern "C"
      * @param[in] key_size Size of the keys used in the hash table.
      * @param[in] value_size Size of the values used in the hash table.
      * @param[in] bucket_count Count of buckets to use.
+     * @param[in] max_entries Maximum number of entries in the hash table or 0 for no limit.
      * @param[in] extract_function Function used to convert a key into a value
      * that can be hashed and compared. If NULL, key is assumes to be
      * comparable.
@@ -519,6 +522,7 @@ extern "C"
         size_t key_size,
         size_t value_size,
         size_t bucket_count,
+        size_t max_entries,
         _In_opt_ void (*extract_function)(
             _In_ const uint8_t* value,
             _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
@@ -554,6 +558,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate memory for this
      *  entry in the hash table.
+     * @retval EBPF_OUT_OF_SPACE Unable to insert this entry in the hash table.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_update(

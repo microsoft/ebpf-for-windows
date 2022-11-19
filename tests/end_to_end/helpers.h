@@ -50,27 +50,19 @@ typedef class _emulate_dpc
   public:
     _emulate_dpc(uint32_t cpu_id)
     {
-        uintptr_t new_process_affinity_mask = 1ull << cpu_id;
-        if (!GetProcessAffinityMask(GetCurrentProcess(), &old_process_affinity_mask, &old_system_affinity_mask)) {
-            throw new std::runtime_error("GetProcessAffinityMask failed");
-        }
-        if (!SetProcessAffinityMask(GetCurrentProcess(), new_process_affinity_mask)) {
-            throw new std::runtime_error("SetProcessAffinityMask failed");
-        }
+        uintptr_t new_thread_affinity_mask = 1ull << cpu_id;
+        ebpf_assert_success(ebpf_set_current_thread_affinity(new_thread_affinity_mask, &old_thread_affinity_mask));
         _ebpf_platform_is_preemptible = false;
     }
     ~_emulate_dpc()
     {
         _ebpf_platform_is_preemptible = true;
 
-        if (!SetProcessAffinityMask(GetCurrentProcess(), old_process_affinity_mask)) {
-            std::abort();
-        }
+        ebpf_restore_current_thread_affinity(old_thread_affinity_mask);
     }
 
   private:
-    uintptr_t old_process_affinity_mask;
-    uintptr_t old_system_affinity_mask;
+    uintptr_t old_thread_affinity_mask;
 
 } emulate_dpc_t;
 
@@ -79,7 +71,7 @@ typedef class _hook_helper
   public:
     _hook_helper(ebpf_attach_type_t attach_type) : _attach_type(attach_type) {}
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     attach_link(
         fd_t program_fd,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
@@ -143,13 +135,13 @@ typedef class _single_instance_hook : public _hook_helper
     detach()
     {
         if (link_object != nullptr) {
-            ebpf_link_detach(link_object);
+            REQUIRE(ebpf_link_detach(link_object) == EBPF_SUCCESS);
             ebpf_link_close(link_object);
             link_object = nullptr;
         }
     }
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     detach(
         fd_t program_fd,
         _In_reads_bytes_(attach_parameter_size) void* attach_parameter,
@@ -161,16 +153,19 @@ typedef class _single_instance_hook : public _hook_helper
     void
     detach_link(bpf_link* link)
     {
-        ebpf_link_detach(link);
+        REQUIRE(ebpf_link_detach(link) == EBPF_SUCCESS);
     }
 
     void
     close_link(bpf_link* link)
     {
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory '*link'.
         ebpf_link_close(link);
+#pragma warning(pop)
     }
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     fire(void* context, int* result)
     {
         if (client_binding_context == nullptr) {

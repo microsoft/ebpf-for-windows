@@ -1360,7 +1360,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
 TEST_CASE("explicit_detach", "[end_to_end]")
 {
     // This test case does the following:
-    // 1. Call detach API and then close the link handle. The link onject
+    // 1. Call detach API and then close the link handle. The link object
     //    should be deleted.
     // 2. Close program handle. The program object should be deleted.
 
@@ -1630,7 +1630,7 @@ TEST_CASE("printk", "[end_to_end]")
     int hook_result = 0;
     errno_t error = capture.begin_capture();
     if (error == NO_ERROR) {
-        hook.fire(&ctx, &hook_result);
+        REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
         output = capture.get_stdout_contents();
     }
     std::string expected_output = "Hello, world\n"
@@ -2192,16 +2192,16 @@ _create_service_helper(
     _In_ const GUID* provider_module_id,
     _Out_ SC_HANDLE* service_handle)
 {
-    std::wstring paramaters_path(PARAMETERS_PATH_PREFIX);
+    std::wstring parameters_path(PARAMETERS_PATH_PREFIX);
 
     REQUIRE(Platform::_create_service(service_name, file_name, service_handle) == ERROR_SUCCESS);
 
-    paramaters_path = paramaters_path + service_name + L"\\" + SERVICE_PARAMETERS;
-    REQUIRE(Platform::_create_registry_key(HKEY_LOCAL_MACHINE, paramaters_path.c_str()) == ERROR_SUCCESS);
+    parameters_path = parameters_path + service_name + L"\\" + SERVICE_PARAMETERS;
+    REQUIRE(Platform::_create_registry_key(HKEY_LOCAL_MACHINE, parameters_path.c_str()) == ERROR_SUCCESS);
 
     REQUIRE(
         Platform::_update_registry_value(
-            HKEY_LOCAL_MACHINE, paramaters_path.c_str(), REG_BINARY, NPI_MODULE_ID, provider_module_id, sizeof(GUID)) ==
+            HKEY_LOCAL_MACHINE, parameters_path.c_str(), REG_BINARY, NPI_MODULE_ID, provider_module_id, sizeof(GUID)) ==
         ERROR_SUCCESS);
 }
 
@@ -2265,7 +2265,6 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     std::wstring service_path(SERVICE_PATH_PREFIX);
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
-    ebpf_result_t result;
     int error;
     const char* error_message = nullptr;
     bpf_object* object = nullptr;
@@ -2287,8 +2286,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     REQUIRE(error == 0);
 
     // Get the service name that was created.
-    result = get_service_details_for_file(file_path, &service_name, &provider_module_id);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(get_service_details_for_file(file_path, &service_name, &provider_module_id) == EBPF_SUCCESS);
 
     set_native_module_failures(true);
 
@@ -2502,13 +2500,11 @@ TEST_CASE("ebpf_get_program_type_by_name invalid name", "[end-to-end]")
     ebpf_program_type_t program_type;
     ebpf_attach_type_t attach_type;
 
-    ebpf_result_t result = ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type);
-    REQUIRE(result == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type) == EBPF_KEY_NOT_FOUND);
 
     // Now set verification in progress and try again.
     set_verification_in_progress(true);
-    result = ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type);
-    REQUIRE(result == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type) == EBPF_KEY_NOT_FOUND);
 }
 
 TEST_CASE("ebpf_get_program_type_name invalid types", "[end-to-end]")

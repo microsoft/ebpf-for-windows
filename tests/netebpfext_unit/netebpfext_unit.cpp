@@ -47,7 +47,7 @@ typedef struct _test_client_context
 
 // This callback occurs when netebpfext gets a packet and submits it to our dummy
 // eBPF program to handle.
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 netebpfext_unit_invoke_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
 {

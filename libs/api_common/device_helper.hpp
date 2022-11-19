@@ -10,9 +10,9 @@
 #define EBPF_IOCTL_TYPE FILE_DEVICE_NETWORK
 
 // Function codes from 0x800 to 0xFFF are for customer use.
-#define IOCTL_EBPFCTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_EBPF_CTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
-// Maxiumum attempts to invoke an IOCTL.
+// Maximum attempts to invoke an IOCTL.
 #define IOCTL_MAX_ATTEMPTS 16
 
 typedef std::vector<uint8_t> ebpf_protocol_buffer_t;
@@ -24,7 +24,7 @@ typedef struct empty_reply
 
 static empty_reply_t _empty_reply;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 initialize_device_handle();
 
 void
@@ -37,13 +37,13 @@ typedef ebpf_result_t (*async_ioctl_completion_callback_t)(_Inout_opt_ void* com
 
 typedef struct _async_ioctl_completion_context async_ioctl_completion_t;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 initialize_async_ioctl_operation(
     _Inout_opt_ void* callback_context,
     _In_ const async_ioctl_completion_callback_t callback,
     _Outptr_ async_ioctl_completion_t** async_ioctl_completion);
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 register_wait_async_ioctl_operation(_Inout_ async_ioctl_completion_t* async_ioctl_completion);
 
 void
@@ -55,7 +55,7 @@ get_async_ioctl_operation_overlapped(_In_ const async_ioctl_completion_t* ioctl_
 bool
 cancel_async_ioctl(_In_opt_ OVERLAPPED* overlapped);
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion);
 
 template <typename request_t, typename reply_t = empty_reply_t>
@@ -98,7 +98,7 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
 
     auto success = Platform::DeviceIoControl(
         get_device_handle(),
-        IOCTL_EBPFCTL_METHOD_BUFFERED,
+        IOCTL_EBPF_CTL_METHOD_BUFFERED,
         request_ptr,
         request_size,
         reply_ptr,

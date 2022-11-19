@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <future>
 #include <map>
+#include <mutex>
 using namespace std::chrono_literals;
 
 #include "bpf/bpf.h"
@@ -63,17 +64,14 @@ static std::map<std::wstring, service_context_t*> _service_path_to_context_map;
 class duplicate_handles_table_t
 {
   public:
-    duplicate_handles_table_t() : _rundown_in_progress(false), _all_duplicate_handles_closed(nullptr)
-    {
-        ebpf_lock_create(&_lock);
-    }
-    ~duplicate_handles_table_t() { ebpf_lock_destroy(&_lock); }
+    duplicate_handles_table_t() : _rundown_in_progress(false), _all_duplicate_handles_closed(nullptr) {}
+    ~duplicate_handles_table_t() = default;
 
     bool
     reference_or_add(ebpf_handle_t handle)
     {
         bool success = true;
-        auto state = ebpf_lock_lock(&_lock);
+        std::unique_lock lock(_lock);
         if (!_rundown_in_progress) {
             std::map<ebpf_handle_t, uint16_t>::iterator it = _duplicate_count_table.find(handle);
             if (it != _duplicate_count_table.end()) {
@@ -87,7 +85,6 @@ class duplicate_handles_table_t
                 }
             }
         }
-        ebpf_lock_unlock(&_lock, state);
         return success;
     }
 
@@ -96,14 +93,14 @@ class duplicate_handles_table_t
     {
         bool found = false;
 
-        auto state = ebpf_lock_lock(&_lock);
+        std::unique_lock lock(_lock);
         std::map<ebpf_handle_t, uint16_t>::iterator it = _duplicate_count_table.find(handle);
         if (it != _duplicate_count_table.end()) {
             found = true;
             // Dereference the handle. If the reference count drops to 0, close the handle.
             if (--it->second == 0) {
                 _duplicate_count_table.erase(handle);
-                ebpf_api_close_handle(handle);
+                REQUIRE(ebpf_api_close_handle(handle) == EBPF_SUCCESS);
             }
             if (_rundown_in_progress && _duplicate_count_table.size() == 0) {
                 // All duplicate handles have been closed. Fulfill the promise.
@@ -112,14 +109,13 @@ class duplicate_handles_table_t
             }
         }
 
-        ebpf_lock_unlock(&_lock, state);
         return found;
     }
 
     void
     rundown()
     {
-        auto state = ebpf_lock_lock(&_lock);
+        std::unique_lock lock(_lock);
         std::future<void> all_duplicate_handles_closed_callback;
         bool duplicates_pending = false;
         if (_duplicate_count_table.size() > 0) {
@@ -129,20 +125,19 @@ class duplicate_handles_table_t
             all_duplicate_handles_closed_callback = _all_duplicate_handles_closed->get_future();
             _rundown_in_progress = true;
         }
-        ebpf_lock_unlock(&_lock, state);
+        lock.unlock();
         if (duplicates_pending)
             // Wait for at most 1 second for all duplicate handles to be closed.
             REQUIRE(all_duplicate_handles_closed_callback.wait_for(1s) == std::future_status::ready);
 
-        state = ebpf_lock_lock(&_lock);
+        lock.lock();
         _rundown_in_progress = false;
         delete _all_duplicate_handles_closed;
         _all_duplicate_handles_closed = nullptr;
-        ebpf_lock_unlock(&_lock, state);
     }
 
   private:
-    ebpf_lock_t _lock;
+    std::mutex _lock;
     // Map of handles to duplicate count.
     std::map<ebpf_handle_t, uint16_t> _duplicate_count_table;
     bool _rundown_in_progress;
@@ -460,9 +455,10 @@ Glue_close(int file_descriptor)
         return -1;
     } else {
         bool found = _duplicate_handles.dereference_if_found(it->second);
-        if (!found)
+        if (!found) {
             // No duplicates. Close the handle.
-            ebpf_api_close_handle(it->second);
+            REQUIRE((ebpf_api_close_handle(it->second) == EBPF_SUCCESS || ebpf_fuzzing_enabled));
+        }
         _fd_to_handle_map.erase(file_descriptor);
         return 0;
     }
@@ -628,7 +624,7 @@ get_native_module_failures()
     return _expect_native_module_load_failures || ebpf_low_memory_test_in_progress();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 get_service_details_for_file(
     _In_ const std::wstring& file_path, _Out_ const wchar_t** service_name, _Out_ GUID* provider_guid)
 {

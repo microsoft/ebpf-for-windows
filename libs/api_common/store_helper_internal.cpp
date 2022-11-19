@@ -138,8 +138,9 @@ _load_program_data_information(
         }
 
         // Read "is_privileged".
-        status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_PRIVELEGED, &is_privileged);
-        if (result != EBPF_SUCCESS) {
+        status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_PRIVILEGED, &is_privileged);
+        if (status != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(status);
             goto Exit;
         }
 
@@ -273,7 +274,7 @@ Exit:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_store_load_program_information(
     _Outptr_result_buffer_maybenull_(*program_info_count) ebpf_program_info_t*** program_info,
     _Out_ uint32_t* program_info_count)
@@ -468,7 +469,7 @@ Exit:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_store_load_section_information(
     _Outptr_result_buffer_maybenull_(*section_info_count) ebpf_section_definition_t*** section_info,
     _Out_ uint32_t* section_info_count)
@@ -556,7 +557,7 @@ Exit:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_store_load_global_helper_information(
     _Outptr_result_buffer_maybenull_(*global_helper_info_count) ebpf_helper_function_prototype_t** global_helper_info,
     _Out_ uint32_t* global_helper_info_count)

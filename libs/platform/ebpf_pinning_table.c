@@ -67,6 +67,7 @@ ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
         sizeof(ebpf_utf8_string_t*),
         sizeof(ebpf_pinning_entry_t*),
         EBPF_PINNING_TABLE_BUCKET_COUNT,
+        EBPF_HASH_TABLE_NO_LIMIT,
         _ebpf_pinning_table_extract);
 
     if (return_value != EBPF_SUCCESS)
