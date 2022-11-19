@@ -28,15 +28,10 @@ foreach ($VM in $BasicTest) {
 Invoke-XDPTestsOnVM $Config.MultiVMTest
 
 # Run Connect Redirect Tests.
-Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest
+Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest $Config.VipInfo
 
 # Stop eBPF components on test VMs.
 foreach ($VM in $Config.MultiVMTest) {
-    if ($VM.Name -eq "vip")
-    {
-        # Skip "vip" as this is not a real VM.
-        continue
-    }
     Stop-eBPFComponentsOnVM -VMName $VM.Name
 }
 

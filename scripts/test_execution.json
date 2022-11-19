@@ -34,17 +34,11 @@
                     "V6Address": "2001:db8::3"
                 }
             ]
-        },
-        {
-            "Name": "vip",
-            "Interfaces":
-            [
-                {
-                    "Alias": "Ethernet",
-                    "V4Address": "20.0.0.100",
-                    "V6Address": "2001:db8::100"
-                }
-            ]
         }
-    ]
+    ],
+    "VipInfo":
+    {
+        "V4VipAddress": "20.0.0.100",
+        "V6VipAddress": "2001:db8::100"
+    }
 }

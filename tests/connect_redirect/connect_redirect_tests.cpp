@@ -57,17 +57,11 @@ _get_protocol_from_string(std::string protocol)
 {
     if (protocol.compare("udp") == 0 || protocol.compare("UDP") == 0) {
         return IPPROTO_UDP;
+    } else if (protocol.compare("tcp") == 0 || protocol.compare("TCP") == 0) {
+        return IPPROTO_TCP;
     }
-    return IPPROTO_TCP;
-}
 
-inline static ADDRESS_FAMILY
-_get_address_family_from_string(std::string family)
-{
-    if (family.compare("AF_INET") == 0 || family.compare("af_inet") == 0) {
-        return AF_INET;
-    }
-    return AF_INET6;
+    REQUIRE(false);
 }
 
 static void
@@ -222,8 +216,9 @@ connect_redirect_test(
     _In_ sockaddr_storage& proxy,
     bool dual_stack)
 {
+    bool add_policy = true;
     // Update policy in the map to redirect the connection to the proxy.
-    _update_policy_map(object, destination, proxy, _globals.remote_port, _globals.protocol, dual_stack, true);
+    _update_policy_map(object, destination, proxy, _globals.remote_port, _globals.protocol, dual_stack, add_policy);
 
     // Try to send and receive message to "destination". It should succeed.
     sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.remote_port);
@@ -241,7 +236,8 @@ connect_redirect_test(
     REQUIRE(memcmp(received_message, "test_message", strlen(received_message)) == 0);
 
     // Remove entry from policy map.
-    _update_policy_map(object, destination, proxy, _globals.remote_port, _globals.protocol, dual_stack, false);
+    add_policy = false;
+    _update_policy_map(object, destination, proxy, _globals.remote_port, _globals.protocol, dual_stack, add_policy);
 }
 
 void

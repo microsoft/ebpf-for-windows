@@ -346,7 +346,8 @@ function Invoke-XDPTestsOnVM
 
 function Invoke-ConnectRedirectTestsOnVM
 {
-    param([parameter(Mandatory=$true)] $MultiVMTestConfig)
+    param([parameter(Mandatory=$true)] $MultiVMTestConfig,
+          [parameter(Mandatory=$true)] $VipConfig)
 
     $VM1 = $MultiVMTestConfig[0]
     $VM1Interface = $VM1.Interfaces[0]
@@ -358,8 +359,8 @@ function Invoke-ConnectRedirectTestsOnVM
     $VM2V4Address = $VM2Interface.V4Address
     $VM2V6Address = $VM2Interface.V6Address
 
-    $VipV4Address = $MultiVMTestConfig[2].Interfaces[0].V4Address
-    $VipV6Address = $MultiVMTestConfig[2].Interfaces[0].V6Address
+    $VipV4Address = $VipConfig.V4VipAddress
+    $VipV6Address = $VipConfig.V6VipAddress
 
     $ProgramName = "tcp_udp_listener.exe"
     $TcpParameters = "--protocol tcp"
