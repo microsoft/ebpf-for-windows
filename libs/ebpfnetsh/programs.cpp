@@ -55,7 +55,7 @@ _prog_type_supports_interface(bpf_prog_type prog_type)
     return (prog_type == BPF_PROG_TYPE_XDP);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 _process_interface_parameter(_In_ LPWSTR interface_parameter, bpf_prog_type prog_type, _Out_ uint32_t* if_index)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -367,7 +367,7 @@ handle_ebpf_delete_program(
     return NO_ERROR;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 _ebpf_program_attach_by_id(ebpf_id_t program_id, ebpf_attach_type_t attach_type, _In_opt_ LPWSTR interface_parameter)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -742,11 +742,8 @@ handle_ebpf_show_programs(
                     std::cout << "# map IDs      : " << info.nr_map_ids << "\n";
 
                     if (info.nr_map_ids > 0) {
-                        ebpf_id_t* map_ids = (ebpf_id_t*)malloc(info.nr_map_ids * sizeof(ebpf_id_t));
-                        if (map_ids == nullptr) {
-                            break;
-                        }
-                        info.map_ids = (uintptr_t)map_ids;
+                        std::vector<ebpf_id_t> map_ids(info.nr_map_ids);
+                        info.map_ids = (uintptr_t)map_ids.data();
                         error = bpf_obj_get_info_by_fd(program_fd, &info, &info_size);
                         if (error < 0) {
                             break;
@@ -755,8 +752,6 @@ handle_ebpf_show_programs(
                         for (uint32_t i = 1; i < info.nr_map_ids; i++) {
                             std::cout << "                 " << map_ids[i] << "\n";
                         }
-
-                        free(map_ids);
                     }
 
                     std::cout << "# pinned paths : " << info.pinned_path_count << "\n";
