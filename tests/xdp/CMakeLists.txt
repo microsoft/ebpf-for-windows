@@ -31,7 +31,6 @@ target_link_libraries("xdp_tests" PRIVATE
 
 target_compile_definitions("xdp_tests" PRIVATE
   _CONSOLE
-  _WINSOCK_DEPRECATED_NO_WARNINGS
 )
 
 add_test(

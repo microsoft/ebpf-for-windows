@@ -43,7 +43,6 @@ typedef struct _net_ebpf_extension_connection_context
     struct
     {
         uint8_t verdict : 2;
-        uint8_t loopback : 1;
         uint8_t redirected : 1;
     } value;
     uint64_t timestamp;
@@ -388,28 +387,11 @@ _net_ebpf_ext_sock_addr_get_redirect_handle(uint64_t filter_id, _Out_ HANDLE* re
 
 static void
 _net_ebpf_ext_connection_context_initialize_value(
-    bool redirected, bool loopback, uint32_t verdict, _Out_ net_ebpf_extension_connection_context_t* connection_context)
+    bool redirected, uint32_t verdict, _Out_ net_ebpf_extension_connection_context_t* connection_context)
 {
-    connection_context->value.loopback = loopback;
     connection_context->value.redirected = redirected;
     connection_context->value.verdict = (uint8_t)verdict;
     connection_context->timestamp = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime());
-}
-
-static bool
-_net_ebpf_ext_is_loopback_address(_In_ const bpf_sock_addr_t* address)
-{
-    SOCKADDR_STORAGE socket_address = {0};
-    socket_address.ss_family = (ADDRESS_FAMILY)address->family;
-    if (socket_address.ss_family == AF_INET) {
-        SOCKADDR_IN* v4_address = (SOCKADDR_IN*)&socket_address;
-        v4_address->sin_addr.S_un.S_addr = address->user_ip4;
-    } else {
-        SOCKADDR_IN6* v6_address = (SOCKADDR_IN6*)&socket_address;
-        RtlCopyMemory(v6_address->sin6_addr.u.Byte, address->user_ip6, 16);
-    }
-
-    return INETADDR_ISLOOPBACK((SOCKADDR*)&socket_address);
 }
 
 /**
@@ -1054,7 +1036,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     FWP_ACTION_TYPE action = FWP_ACTION_BLOCK;
     bool classify_handle_acquired = false;
     bool v4_mapped = false;
-    bool is_loopback;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
@@ -1193,7 +1174,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         redirected = true;
-        is_loopback = _net_ebpf_ext_is_loopback_address(sock_addr_ctx);
 
         goto CreateContext;
     }
@@ -1254,8 +1234,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         false,
         v4_mapped);
 
-    is_loopback = _net_ebpf_ext_is_loopback_address(sock_addr_ctx);
-
     if (v4_mapped) {
         sock_addr_ctx->family = AF_INET6;
         IN_ADDR v4_address = *((IN_ADDR*)&sock_addr_ctx->user_ip4);
@@ -1277,16 +1255,14 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
 CreateContext:
     if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
-        _net_ebpf_ext_connection_context_initialize_value(
-            redirected, is_loopback, verdict, connection_context_redirected);
+        _net_ebpf_ext_connection_context_initialize_value(redirected, verdict, connection_context_redirected);
 
         _net_ebpf_ext_insert_connection_context_to_list(connection_context_redirected);
 
         if (redirected) {
             // If the connection has been redirected, then initialize connection context
             // with original destination also.
-            _net_ebpf_ext_connection_context_initialize_value(
-                redirected, is_loopback, verdict, connection_context_original);
+            _net_ebpf_ext_connection_context_initialize_value(redirected, verdict, connection_context_original);
 
             _net_ebpf_ext_insert_connection_context_to_list(connection_context_original);
         } else {

@@ -40,18 +40,19 @@ get_address_from_string(
 }
 
 std::string
-get_string_from_address(_In_ const void* sockaddr, ADDRESS_FAMILY family)
+get_string_from_address(_In_ const PSOCKADDR sockaddr, ADDRESS_FAMILY family)
 {
+    UNREFERENCED_PARAMETER(family);
     char ip_string[MAXIMUM_IP_BUFFER_SIZE] = {0};
-    if (family == AF_INET) {
-        struct sockaddr_in* addr = (struct sockaddr_in*)sockaddr;
-        InetNtopA(AF_INET, &addr->sin_addr, ip_string, MAXIMUM_IP_BUFFER_SIZE);
-        return std::string(ip_string);
-    } else {
-        struct sockaddr_in6* addr = (struct sockaddr_in6*)sockaddr;
-        InetNtopA(AF_INET6, &addr->sin6_addr, ip_string, MAXIMUM_IP_BUFFER_SIZE);
-        return std::string(ip_string);
+
+    DWORD length = sizeof(ip_string);
+    int error =
+        WSAAddressToStringA(sockaddr, (DWORD)INET_SOCKADDR_LENGTH(sockaddr->sa_family), nullptr, ip_string, &length);
+    if (error != 0) {
+        error = WSAGetLastError();
+        printf("Failure calling WSAAddressToStringA with error code %d\n", error);
     }
+    return std::string(ip_string);
 }
 
 _base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
@@ -77,11 +78,7 @@ _base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port, socket
     SOCKADDR_STORAGE local_addr;
     local_addr.ss_family = address_family;
     INETADDR_SETANY((PSOCKADDR)&local_addr);
-    if (address_family == AF_INET) {
-        ((PSOCKADDR_IN)&local_addr)->sin_port = htons(port);
-    } else {
-        ((PSOCKADDR_IN6)&local_addr)->sin6_port = htons(port);
-    }
+    INETADDR_SET_PORT((PSOCKADDR)&local_addr, htons(port));
 
     error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
     if (error != 0)

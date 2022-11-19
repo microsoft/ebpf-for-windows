@@ -35,7 +35,7 @@ get_address_from_string(
     _Out_opt_ ADDRESS_FAMILY* address_family = nullptr);
 
 std::string
-get_string_from_address(_In_ const void* sockaddr, ADDRESS_FAMILY family);
+get_string_from_address(_In_ const PSOCKADDR sockaddr, ADDRESS_FAMILY family);
 
 typedef enum _expected_result
 {

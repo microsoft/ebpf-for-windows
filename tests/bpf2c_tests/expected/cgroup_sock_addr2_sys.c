@@ -82,7 +82,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
             NULL,                      // Query routine
             RTL_QUERY_REGISTRY_SUBKEY, // Flags
             L"Parameters",             // Name
-            NULL,                      // Entry contet
+            NULL,                      // Entry context
             REG_NONE,                  // Default type
             NULL,                      // Default data
             0,                         // Default length
@@ -91,7 +91,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
             _bpf2c_query_npi_module_id,  // Query routine
             RTL_QUERY_REGISTRY_REQUIRED, // Flags
             L"NpiModuleId",              // Name
-            NULL,                        // Entry contet
+            NULL,                        // Entry context
             REG_NONE,                    // Default type
             NULL,                        // Default data
             0,                           // Default length
@@ -203,22 +203,22 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 1;
 }
 
-static helper_function_entry_t authorize_connect4_helpers[] = {
+static helper_function_entry_t connect_redirect4_helpers[] = {
     {NULL, 1, "helper_id_1"},
     {NULL, 14, "helper_id_14"},
 };
 
-static GUID authorize_connect4_program_type_guid = {
+static GUID connect_redirect4_program_type_guid = {
     0x92ec8e39, 0xaeec, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
-static GUID authorize_connect4_attach_type_guid = {
+static GUID connect_redirect4_attach_type_guid = {
     0xa82e37b1, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
-static uint16_t authorize_connect4_maps[] = {
+static uint16_t connect_redirect4_maps[] = {
     0,
 };
 
 #pragma code_seg(push, "cgroup~1")
 static uint64_t
-authorize_connect4(void* context)
+connect_redirect4(void* context)
 #line 93 "sample/cgroup_sock_addr2.c"
 {
 #line 93 "sample/cgroup_sock_addr2.c"
@@ -317,11 +317,11 @@ label_1:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=1
 #line 48 "sample/cgroup_sock_addr2.c"
-    r0 = authorize_connect4_helpers[0].address
+    r0 = connect_redirect4_helpers[0].address
 #line 48 "sample/cgroup_sock_addr2.c"
          (r1, r2, r3, r4, r5);
 #line 48 "sample/cgroup_sock_addr2.c"
-    if ((authorize_connect4_helpers[0].tail_call) && (r0 == 0))
+    if ((connect_redirect4_helpers[0].tail_call) && (r0 == 0))
 #line 48 "sample/cgroup_sock_addr2.c"
         return 0;
         // EBPF_OP_MOV64_REG pc=21 dst=r8 src=r0 offset=0 imm=0
@@ -385,11 +385,11 @@ label_1:
     r2 = IMMEDIATE(35);
     // EBPF_OP_CALL pc=44 dst=r0 src=r0 offset=0 imm=14
 #line 50 "sample/cgroup_sock_addr2.c"
-    r0 = authorize_connect4_helpers[1].address
+    r0 = connect_redirect4_helpers[1].address
 #line 50 "sample/cgroup_sock_addr2.c"
          (r1, r2, r3, r4, r5);
 #line 50 "sample/cgroup_sock_addr2.c"
-    if ((authorize_connect4_helpers[1].tail_call) && (r0 == 0))
+    if ((connect_redirect4_helpers[1].tail_call) && (r0 == 0))
 #line 50 "sample/cgroup_sock_addr2.c"
         return 0;
         // EBPF_OP_LDXW pc=45 dst=r1 src=r8 offset=0 imm=0
@@ -419,22 +419,22 @@ label_2:
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
 
-static helper_function_entry_t authorize_connect6_helpers[] = {
+static helper_function_entry_t connect_redirect6_helpers[] = {
     {NULL, 1, "helper_id_1"},
     {NULL, 12, "helper_id_12"},
 };
 
-static GUID authorize_connect6_program_type_guid = {
+static GUID connect_redirect6_program_type_guid = {
     0x92ec8e39, 0xaeec, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
-static GUID authorize_connect6_attach_type_guid = {
+static GUID connect_redirect6_attach_type_guid = {
     0xa82e37b2, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
-static uint16_t authorize_connect6_maps[] = {
+static uint16_t connect_redirect6_maps[] = {
     0,
 };
 
 #pragma code_seg(push, "cgroup~2")
 static uint64_t
-authorize_connect6(void* context)
+connect_redirect6(void* context)
 #line 100 "sample/cgroup_sock_addr2.c"
 {
 #line 100 "sample/cgroup_sock_addr2.c"
@@ -554,11 +554,11 @@ label_1:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=1
 #line 79 "sample/cgroup_sock_addr2.c"
-    r0 = authorize_connect6_helpers[0].address
+    r0 = connect_redirect6_helpers[0].address
 #line 79 "sample/cgroup_sock_addr2.c"
          (r1, r2, r3, r4, r5);
 #line 79 "sample/cgroup_sock_addr2.c"
-    if ((authorize_connect6_helpers[0].tail_call) && (r0 == 0))
+    if ((connect_redirect6_helpers[0].tail_call) && (r0 == 0))
 #line 79 "sample/cgroup_sock_addr2.c"
         return 0;
         // EBPF_OP_MOV64_REG pc=28 dst=r8 src=r0 offset=0 imm=0
@@ -616,11 +616,11 @@ label_1:
     r2 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=12
 #line 81 "sample/cgroup_sock_addr2.c"
-    r0 = authorize_connect6_helpers[1].address
+    r0 = connect_redirect6_helpers[1].address
 #line 81 "sample/cgroup_sock_addr2.c"
          (r1, r2, r3, r4, r5);
 #line 81 "sample/cgroup_sock_addr2.c"
-    if ((authorize_connect6_helpers[1].tail_call) && (r0 == 0))
+    if ((connect_redirect6_helpers[1].tail_call) && (r0 == 0))
 #line 81 "sample/cgroup_sock_addr2.c"
         return 0;
         // EBPF_OP_LDXW pc=49 dst=r1 src=r8 offset=12 imm=0
@@ -672,31 +672,31 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
-        authorize_connect4,
+        connect_redirect4,
         "cgroup~1",
         "cgroup/connect4",
-        "authorize_connect4",
-        authorize_connect4_maps,
+        "connect_redirect4",
+        connect_redirect4_maps,
         1,
-        authorize_connect4_helpers,
+        connect_redirect4_helpers,
         2,
         52,
-        &authorize_connect4_program_type_guid,
-        &authorize_connect4_attach_type_guid,
+        &connect_redirect4_program_type_guid,
+        &connect_redirect4_attach_type_guid,
     },
     {
         0,
-        authorize_connect6,
+        connect_redirect6,
         "cgroup~2",
         "cgroup/connect6",
-        "authorize_connect6",
-        authorize_connect6_maps,
+        "connect_redirect6",
+        connect_redirect6_maps,
         1,
-        authorize_connect6_helpers,
+        connect_redirect6_helpers,
         2,
         62,
-        &authorize_connect6_program_type_guid,
-        &authorize_connect6_attach_type_guid,
+        &connect_redirect6_program_type_guid,
+        &connect_redirect6_attach_type_guid,
     },
 };
 #pragma data_seg(pop)

@@ -6,10 +6,6 @@
 
 #define CATCH_CONFIG_RUNNER
 
-// #include <chrono>
-// #include <future>
-// using namespace std::chrono_literals;
-
 #include "catch_wrapper.hpp"
 
 #include "bpf/bpf.h"
@@ -384,8 +380,8 @@ TEST_CASE("connect_redirect_tcp_v4", "[connect_redirect_tests]")
     _globals.family = AF_INET;
 
     _globals.protocol = IPPROTO_TCP;
-    connect_redirect_tests_common(object, false, _globals.addresses[socket_family_t::IPv4]);
-    connect_redirect_tests_common(object, true, _globals.addresses[socket_family_t::Dual]);
+    connect_redirect_tests_common(object, false /* dual_stack */, _globals.addresses[socket_family_t::IPv4]);
+    connect_redirect_tests_common(object, true /* dual_stack */, _globals.addresses[socket_family_t::Dual]);
 
     // This should also detach the programs as they are not pinned.
     bpf_object__close(object);
@@ -402,8 +398,8 @@ TEST_CASE("connect_redirect_tcp_v6", "[connect_redirect_tests]")
     _globals.family = AF_INET6;
 
     _globals.protocol = IPPROTO_TCP;
-    connect_redirect_tests_common(object, false, _globals.addresses[socket_family_t::IPv6]);
-    connect_redirect_tests_common(object, true, _globals.addresses[socket_family_t::IPv6]);
+    connect_redirect_tests_common(object, false /* dual_stack */, _globals.addresses[socket_family_t::IPv6]);
+    connect_redirect_tests_common(object, true /* dual_stack */, _globals.addresses[socket_family_t::IPv6]);
 
     // This should also detach the programs as they are not pinned.
     bpf_object__close(object);
@@ -420,8 +416,8 @@ TEST_CASE("connect_redirect_udp_v4", "[connect_redirect_tests]")
     _globals.family = AF_INET;
 
     _globals.protocol = IPPROTO_UDP;
-    connect_redirect_tests_common(object, false, _globals.addresses[socket_family_t::IPv4]);
-    connect_redirect_tests_common(object, true, _globals.addresses[socket_family_t::Dual]);
+    connect_redirect_tests_common(object, false /* dual_stack */, _globals.addresses[socket_family_t::IPv4]);
+    connect_redirect_tests_common(object, true /* dual_stack */, _globals.addresses[socket_family_t::Dual]);
 
     // This should also detach the programs as they are not pinned.
     bpf_object__close(object);
@@ -438,8 +434,8 @@ TEST_CASE("connect_redirect_udp_v6", "[connect_redirect_tests]")
     _globals.family = AF_INET6;
 
     _globals.protocol = IPPROTO_UDP;
-    connect_redirect_tests_common(object, true, _globals.addresses[socket_family_t::IPv6]);
-    connect_redirect_tests_common(object, false, _globals.addresses[socket_family_t::IPv6]);
+    connect_redirect_tests_common(object, true /* dual_stack */, _globals.addresses[socket_family_t::IPv6]);
+    connect_redirect_tests_common(object, false /* dual_stack */, _globals.addresses[socket_family_t::IPv6]);
 
     // This should also detach the programs as they are not pinned.
     bpf_object__close(object);
