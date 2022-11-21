@@ -124,32 +124,32 @@ connection_test(
 
 TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP);
+    connection_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
 TEST_CASE("connection_test_udp_v6", "[sock_addr_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET6, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP);
+    connection_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
 
 TEST_CASE("connection_test_tcp_v4", "[sock_addr_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP);
+    connection_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET6, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP);
+    connection_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
@@ -363,62 +363,62 @@ connection_monitor_test(
 
 TEST_CASE("connection_monitor_test_udp_v4", "[sock_ops_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, false);
+    connection_monitor_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP, false);
 }
 TEST_CASE("connection_monitor_test_disconnect_udp_v4", "[sock_ops_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, true);
+    connection_monitor_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP, true);
 }
 
 TEST_CASE("connection_monitor_test_udp_v6", "[sock_ops_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET6, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, false);
+    connection_monitor_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP, false);
 }
 TEST_CASE("connection_monitor_test_disconnect_udp_v6", "[sock_ops_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET6, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, true);
+    connection_monitor_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP, true);
 }
 
 TEST_CASE("connection_monitor_test_tcp_v4", "[sock_ops_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, false);
+    connection_monitor_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP, false);
 }
 TEST_CASE("connection_monitor_test_disconnect_tcp_v4", "[sock_ops_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, true);
+    connection_monitor_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP, true);
 }
 
 TEST_CASE("connection_monitor_test_tcp_v6", "[sock_ops_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET6, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, false);
+    connection_monitor_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP, false);
 }
 TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET6, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, true);
+    connection_monitor_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP, true);
 }
 
 TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")

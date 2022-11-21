@@ -108,19 +108,19 @@ _base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_
     message = recv_buffer.data();
 }
 
-_sender_socket::_sender_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
+_client_socket::_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
     : _base_socket{_sock_type, _protocol, _port, _family}, overlapped{}
 {}
 
 void
-_sender_socket::close()
+_client_socket::close()
 {
     if (socket != INVALID_SOCKET)
         closesocket(socket);
 }
 
 void
-_sender_socket::post_async_receive(bool error_expected)
+_client_socket::post_async_receive(bool error_expected)
 {
     if (receive_posted) {
         return;
@@ -149,7 +149,7 @@ _sender_socket::post_async_receive(bool error_expected)
     if (error != 0) {
         wsaerr = WSAGetLastError();
         if (!error_expected && wsaerr != WSA_IO_PENDING)
-            FAIL("_sender_socket::post_async_receive: WSARecv failed with " << wsaerr);
+            FAIL("_client_socket::post_async_receive: WSARecv failed with " << wsaerr);
     }
     if (error == 0 || wsaerr == WSA_IO_PENDING) {
         receive_posted = true;
@@ -157,7 +157,7 @@ _sender_socket::post_async_receive(bool error_expected)
 }
 
 void
-_sender_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_expected)
+_client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_expected)
 {
     if (overlapped.hEvent == INVALID_HANDLE_VALUE) {
         printf("complete_async_receive: overlapped event already closed\n");
@@ -193,17 +193,17 @@ _sender_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
     }
 }
 
-_datagram_sender_socket::_datagram_sender_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
-    : _sender_socket{_sock_type, _protocol, _port, _family}
+_datagram_client_socket::_datagram_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
+    : _client_socket{_sock_type, _protocol, _port, _family}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
-        FAIL("datagram_sender_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
+        FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
              "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
 }
 
 void
-_datagram_sender_socket::send_message_to_remote_host(
+_datagram_client_socket::send_message_to_remote_host(
     _In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port)
 {
     int error = 0;
@@ -230,18 +230,18 @@ _datagram_sender_socket::send_message_to_remote_host(
 }
 
 void
-_datagram_sender_socket::cancel_send_message()
+_datagram_client_socket::cancel_send_message()
 {}
 
 void
-_datagram_sender_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)
+_datagram_client_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)
 {
     UNREFERENCED_PARAMETER(timeout_in_ms);
     UNREFERENCED_PARAMETER(expected_result);
 }
 
-_stream_sender_socket::_stream_sender_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
-    : _sender_socket{_sock_type, _protocol, _port, _family}, connectex(nullptr)
+_stream_client_socket::_stream_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
+    : _client_socket{_sock_type, _protocol, _port, _family}, connectex(nullptr)
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP))
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
@@ -264,7 +264,7 @@ _stream_sender_socket::_stream_sender_socket(int _sock_type, int _protocol, uint
 }
 
 void
-_stream_sender_socket::send_message_to_remote_host(
+_stream_client_socket::send_message_to_remote_host(
     _In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port)
 {
     // Send a message to the remote host using the sender socket.
@@ -293,7 +293,7 @@ _stream_sender_socket::send_message_to_remote_host(
 }
 
 void
-_stream_sender_socket::cancel_send_message()
+_stream_client_socket::cancel_send_message()
 {
     CancelIoEx((HANDLE)socket, &overlapped);
     WSACloseEvent(overlapped.hEvent);
@@ -301,7 +301,7 @@ _stream_sender_socket::cancel_send_message()
 }
 
 void
-_stream_sender_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)
+_stream_client_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)
 {
     if (overlapped.hEvent == INVALID_HANDLE_VALUE) {
         printf("complete_async_send: overlapped event already closed\n");
@@ -338,7 +338,7 @@ _stream_sender_socket::complete_async_send(int timeout_in_ms, expected_result_t 
     }
 }
 
-_receiver_socket::_receiver_socket(int _sock_type, int _protocol, uint16_t _port)
+_server_socket::_server_socket(int _sock_type, int _protocol, uint16_t _port)
     : _base_socket{_sock_type, _protocol, _port, Dual}, overlapped{}
 {
     overlapped.hEvent = INVALID_HANDLE_VALUE;
@@ -360,14 +360,14 @@ _receiver_socket::_receiver_socket(int _sock_type, int _protocol, uint16_t _port
         FAIL("Obtaining ReceiveMsg function pointer failed with " << WSAGetLastError());
 }
 
-_receiver_socket::~_receiver_socket()
+_server_socket::~_server_socket()
 {
     if (overlapped.hEvent != INVALID_HANDLE_VALUE)
         WSACloseEvent(overlapped.hEvent);
 }
 
 void
-_receiver_socket::complete_async_receive(int timeout_in_ms, bool timeout_expected)
+_server_socket::complete_async_receive(int timeout_in_ms, bool timeout_expected)
 {
     int error = 0;
     // Wait for the receiver socket to receive the message.
@@ -396,22 +396,22 @@ _receiver_socket::complete_async_receive(int timeout_in_ms, bool timeout_expecte
 }
 
 void
-_receiver_socket::complete_async_receive(bool timeout_expected)
+_server_socket::complete_async_receive(bool timeout_expected)
 {
     complete_async_receive(1000, timeout_expected);
 }
 
-_datagram_receiver_socket::_datagram_receiver_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _receiver_socket{_sock_type, _protocol, _port}, sender_address{}, sender_address_size(sizeof(sender_address))
+_datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, uint16_t _port)
+    : _server_socket{_sock_type, _protocol, _port}, sender_address{}, sender_address_size(sizeof(sender_address))
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
-        FAIL("datagram_sender_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
+        FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
              "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
 }
 
 void
-_datagram_receiver_socket::post_async_receive()
+_datagram_server_socket::post_async_receive()
 {
     int error = 0;
 
@@ -441,14 +441,14 @@ _datagram_receiver_socket::post_async_receive()
 }
 
 void
-_datagram_receiver_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
+_datagram_server_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
 {
     from = (PSOCKADDR)&sender_address;
     from_length = sender_address_size;
 }
 
 void
-_datagram_receiver_socket::get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
+_datagram_server_socket::get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
 {
     // TODO: This is wrong. Need to fix this.
     from = (PSOCKADDR)&sender_address;
@@ -456,7 +456,7 @@ _datagram_receiver_socket::get_local_address(_Out_ PSOCKADDR& from, _Out_ int& f
 }
 
 void
-_datagram_receiver_socket::send_async_response(_In_z_ const char* message)
+_datagram_server_socket::send_async_response(_In_z_ const char* message)
 {
     int error = 0;
 
@@ -481,20 +481,20 @@ _datagram_receiver_socket::send_async_response(_In_z_ const char* message)
 }
 
 void
-_datagram_receiver_socket::complete_async_send(int timeout_in_ms)
+_datagram_server_socket::complete_async_send(int timeout_in_ms)
 {
     UNREFERENCED_PARAMETER(timeout_in_ms);
 }
 
 void
-_datagram_receiver_socket::close()
+_datagram_server_socket::close()
 {
     if (socket != INVALID_SOCKET)
         closesocket(socket);
 }
 
-_stream_receiver_socket::_stream_receiver_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _receiver_socket{_sock_type, _protocol, _port}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
+_stream_server_socket::_stream_server_socket(int _sock_type, int _protocol, uint16_t _port)
+    : _server_socket{_sock_type, _protocol, _port}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
       message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP))
@@ -524,7 +524,7 @@ _stream_receiver_socket::_stream_receiver_socket(int _sock_type, int _protocol, 
 }
 
 void
-_stream_receiver_socket::initialize_accept_socket()
+_stream_server_socket::initialize_accept_socket()
 {
     // Close a previous accept socket, if present.
     if (accept_socket != INVALID_SOCKET) {
@@ -541,14 +541,14 @@ _stream_receiver_socket::initialize_accept_socket()
         FAIL("Could not enable dual family endpoint on accept socket: " << WSAGetLastError());
 }
 
-_stream_receiver_socket::~_stream_receiver_socket()
+_stream_server_socket::~_stream_server_socket()
 {
     if (accept_socket != INVALID_SOCKET)
         closesocket(accept_socket);
 }
 
 void
-_stream_receiver_socket::post_async_receive()
+_stream_server_socket::post_async_receive()
 {
     initialize_accept_socket();
 
@@ -576,7 +576,7 @@ _stream_receiver_socket::post_async_receive()
 }
 
 void
-_stream_receiver_socket::send_async_response(_In_z_ const char* message)
+_stream_server_socket::send_async_response(_In_z_ const char* message)
 {
     // Send a message to the remote host using the sender socket.
     std::vector<char> send_buffer(message, message + strlen(message));
@@ -592,7 +592,7 @@ _stream_receiver_socket::send_async_response(_In_z_ const char* message)
 }
 
 void
-_stream_receiver_socket::complete_async_send(int timeout_in_ms)
+_stream_server_socket::complete_async_send(int timeout_in_ms)
 {
     int error = 0;
     uint32_t bytes_sent = 0;
@@ -616,21 +616,21 @@ _stream_receiver_socket::complete_async_send(int timeout_in_ms)
 }
 
 void
-_stream_receiver_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
+_stream_server_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
 {
     from = (PSOCKADDR)(recv_buffer.data() + message_length);
     from_length = sizeof(sockaddr_storage);
 }
 
 void
-_stream_receiver_socket::get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
+_stream_server_socket::get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
 {
     from = (PSOCKADDR)(recv_buffer.data() + message_length + sizeof(sockaddr_storage) + 16);
     from_length = sizeof(sockaddr_storage);
 }
 
 void
-_stream_receiver_socket::close()
+_stream_server_socket::close()
 {
     if (accept_socket != INVALID_SOCKET)
         closesocket(accept_socket);

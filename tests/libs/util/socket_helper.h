@@ -80,10 +80,10 @@ typedef class _base_socket
 /**
  * @class An abstract base class for a sender socket.
  */
-typedef class _sender_socket : public _base_socket
+typedef class _client_socket : public _base_socket
 {
   public:
-    _sender_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family);
+    _client_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family);
     virtual void
     send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port) = 0;
     virtual void
@@ -105,25 +105,25 @@ typedef class _sender_socket : public _base_socket
 /**
  * @class A dual stack UDP or raw socket bound to wildcard address that is used to send messages to a remote host.
  */
-typedef class _datagram_sender_socket : public _sender_socket
+typedef class _datagram_client_socket : public _client_socket
 {
   public:
-    _datagram_sender_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual);
+    _datagram_client_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual);
     void
     send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port);
     void
     cancel_send_message();
     void
     complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::success);
-} datagram_sender_socket_t;
+} datagram_client_socket_t;
 
 /**
  * @class A dual stack stream socket bound to wildcard address that is used to connect to a remote host.
  */
-typedef class _stream_sender_socket : public _sender_socket
+typedef class _stream_client_socket : public _client_socket
 {
   public:
-    _stream_sender_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual);
+    _stream_client_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual);
     void
     send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port);
     void
@@ -133,16 +133,16 @@ typedef class _stream_sender_socket : public _sender_socket
 
   private:
     LPFN_CONNECTEX connectex;
-} stream_sender_socket_t;
+} stream_client_socket_t;
 
 /**
  * @class An abstract base class for a receiver socket.
  */
-typedef class _receiver_socket : public _base_socket
+typedef class _server_socket : public _base_socket
 {
   public:
-    _receiver_socket(int _sock_type, int _protocol, uint16_t port);
-    ~_receiver_socket();
+    _server_socket(int _sock_type, int _protocol, uint16_t port);
+    ~_server_socket();
     void
     complete_async_receive(bool timeout_expected = false);
     virtual void
@@ -171,10 +171,10 @@ typedef class _receiver_socket : public _base_socket
 /**
  * @class A dual stack UDP or raw socket bound to wildcard address that is used to receive datagrams.
  */
-typedef class _datagram_receiver_socket : public _receiver_socket
+typedef class _datagram_server_socket : public _server_socket
 {
   public:
-    _datagram_receiver_socket(int _sock_type, int _protocol, uint16_t port);
+    _datagram_server_socket(int _sock_type, int _protocol, uint16_t port);
     void
     post_async_receive();
     void
@@ -191,16 +191,16 @@ typedef class _datagram_receiver_socket : public _receiver_socket
   private:
     sockaddr_storage sender_address;
     int sender_address_size;
-} datagram_receiver_socket_t;
+} datagram_server_socket_t;
 
 /**
  * @class A dual stack stream socket bound to wildcard address that is used to accept inbound connection.
  */
-typedef class _stream_receiver_socket : public _receiver_socket
+typedef class _stream_server_socket : public _server_socket
 {
   public:
-    _stream_receiver_socket(int _sock_type, int _protocol, uint16_t port);
-    ~_stream_receiver_socket();
+    _stream_server_socket(int _sock_type, int _protocol, uint16_t port);
+    ~_stream_server_socket();
     void
     post_async_receive();
     void
@@ -221,4 +221,4 @@ typedef class _stream_receiver_socket : public _receiver_socket
     LPFN_ACCEPTEX acceptex;
     SOCKET accept_socket;
     size_t message_length;
-} stream_receiver_socket_t;
+} stream_server_socket_t;

@@ -48,7 +48,7 @@ create_listener(_In_ receiver_socket_t* receiver_socket)
 void
 create_tcp_listener(uint16_t local_port)
 {
-    stream_receiver_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, local_port);
+    stream_server_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, local_port);
     while (true) {
         create_listener((receiver_socket_t*)&receiver_socket);
     }
@@ -58,7 +58,7 @@ void
 create_udp_listener(uint16_t local_port)
 {
     printf("Creating UDP listener socket with local port %d ...\n", local_port);
-    datagram_receiver_socket_t receiver_socket(SOCK_DGRAM, IPPROTO_UDP, local_port);
+    datagram_server_socket_t receiver_socket(SOCK_DGRAM, IPPROTO_UDP, local_port);
     while (true) {
         create_listener((receiver_socket_t*)&receiver_socket);
     }

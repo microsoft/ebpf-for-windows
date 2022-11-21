@@ -622,7 +622,7 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
     // Bind a socket.
     WSAData data;
     REQUIRE(WSAStartup(2, &data) == 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
     // Read from map.
     struct bpf_map* map = bpf_object__find_map_by_name(object, "pidtgid_map");
