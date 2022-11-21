@@ -36,9 +36,11 @@
             ]
         }
     ],
-    "VipInfo":
+    "ConnectRedirectTest":
     {
         "V4VipAddress": "20.0.0.100",
-        "V6VipAddress": "2001:db8::100"
+        "V6VipAddress": "2001:db8::100",
+        "DestinationPort": 4444,
+        "ProxyPort": 4443
     }
 }

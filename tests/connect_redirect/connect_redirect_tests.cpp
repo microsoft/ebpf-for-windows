@@ -21,8 +21,6 @@
 
 #include <mstcpip.h>
 
-#define CLIENT_MESSAGE "eBPF for Windows!"
-
 static std::string _family;
 static std::string _protocol;
 static std::string _vip_v4;
@@ -31,7 +29,8 @@ static std::string _local_ip_v4;
 static std::string _local_ip_v6;
 static std::string _remote_ip_v4;
 static std::string _remote_ip_v6;
-static uint16_t _remote_port = 4444;
+static uint16_t _destination_port = 4444;
+static uint16_t _proxy_port = 4443;
 
 typedef struct _test_addresses
 {
@@ -45,7 +44,8 @@ typedef struct _test_globals
 {
     ADDRESS_FAMILY family;
     IPPROTO protocol;
-    uint16_t remote_port;
+    uint16_t destination_port;
+    uint16_t proxy_port;
     test_addresses_t addresses[socket_family_t::Max];
 } test_globals_t;
 
@@ -127,7 +127,8 @@ _initialize_test_globals()
     REQUIRE((v6_addresses == 0 || v6_addresses == 3));
     IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[socket_family_t::IPv6].loopback_address);
 
-    _globals.remote_port = _remote_port;
+    _globals.destination_port = _destination_port;
+    _globals.proxy_port = _proxy_port;
     _globals_initialized = true;
 }
 
@@ -160,7 +161,8 @@ _update_policy_map(
     _In_ const struct bpf_object* object,
     _In_ sockaddr_storage& destination,
     _In_ sockaddr_storage& proxy,
-    uint16_t port,
+    uint16_t destination_port,
+    uint16_t proxy_port,
     uint32_t protocol,
     bool dual_stack,
     bool add)
@@ -198,7 +200,8 @@ _update_policy_map(
         memcpy(value.destination_ip.ipv6, v6_proxy->sin6_addr.u.Byte, sizeof(value.destination_ip.ipv6));
     }
 
-    key.destination_port = value.destination_port = htons(port);
+    key.destination_port = htons(destination_port);
+    value.destination_port = htons(proxy_port);
     key.protocol = protocol;
 
     if (add) {
@@ -214,14 +217,17 @@ connect_redirect_test(
     _In_ sender_socket_t* sender_socket,
     _In_ sockaddr_storage& destination,
     _In_ sockaddr_storage& proxy,
+    uint16_t destination_port,
+    uint16_t proxy_port,
     bool dual_stack)
 {
     bool add_policy = true;
     // Update policy in the map to redirect the connection to the proxy.
-    _update_policy_map(object, destination, proxy, _globals.remote_port, _globals.protocol, dual_stack, add_policy);
+    _update_policy_map(
+        object, destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
 
     // Try to send and receive message to "destination". It should succeed.
-    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.remote_port);
+    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
     sender_socket->complete_async_send(1000, expected_result_t::success);
 
     sender_socket->post_async_receive();
@@ -231,13 +237,14 @@ connect_redirect_test(
     char* received_message = nullptr;
     sender_socket->get_received_message(bytes_received, received_message);
 
-    // TODO: The message returned by the listener should be unique so that we know
-    // for sure that the connection was indeed redirected.
-    REQUIRE(memcmp(received_message, "test_message", strlen(received_message)) == 0);
+    std::string expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
+    REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
+    REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
 
     // Remove entry from policy map.
     add_policy = false;
-    _update_policy_map(object, destination, proxy, _globals.remote_port, _globals.protocol, dual_stack, add_policy);
+    _update_policy_map(
+        object, destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
 }
 
 void
@@ -250,7 +257,7 @@ authorize_test(
     // Default behavior of the eBPF program is to block the connection.
 
     // Send should fail as the connection is blocked.
-    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.remote_port);
+    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
     sender_socket->complete_async_send(1000, expected_result_t::failure);
 
     // Receive should timeout as connection is blocked.
@@ -258,17 +265,14 @@ authorize_test(
     sender_socket->complete_async_receive(1000, true);
 
     // Now update the policy map to allow the connection and test again.
-    connect_redirect_test(object, sender_socket, destination, destination, dual_stack);
-}
-
-void
-delete_sender_socket(_In_ sender_socket_t* sender_socket)
-{
-    if (_globals.protocol == IPPROTO_TCP) {
-        delete ((stream_sender_socket_t*)sender_socket);
-    } else {
-        delete ((datagram_sender_socket_t*)sender_socket);
-    }
+    connect_redirect_test(
+        object,
+        sender_socket,
+        destination,
+        destination,
+        _globals.destination_port,
+        _globals.destination_port,
+        dual_stack);
 }
 
 void
@@ -287,7 +291,7 @@ get_sender_socket(bool dual_stack, _Inout_ sender_socket_t** sender_socket)
 
     *sender_socket = new_socket;
     if (old_socket) {
-        delete_sender_socket(old_socket);
+        delete old_socket;
     }
 }
 
@@ -298,7 +302,7 @@ authorize_test_wrapper(_In_ const struct bpf_object* object, bool dual_stack, _I
 
     get_sender_socket(dual_stack, &sender_socket);
     authorize_test(object, sender_socket, destination, dual_stack);
-    delete_sender_socket(sender_socket);
+    delete sender_socket;
 }
 
 void
@@ -310,8 +314,9 @@ connect_redirect_test_wrapper(
 {
     sender_socket_t* sender_socket = nullptr;
     get_sender_socket(dual_stack, &sender_socket);
-    connect_redirect_test(object, sender_socket, destination, proxy, dual_stack);
-    delete_sender_socket(sender_socket);
+    connect_redirect_test(
+        object, sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
+    delete sender_socket;
 }
 
 void
@@ -365,77 +370,33 @@ connect_redirect_tests_common(_In_ const struct bpf_object* object, bool dual_st
     connect_redirect_test_wrapper(object, addresses.local_address, addresses.remote_address, dual_stack);
 }
 
-TEST_CASE("connect_redirect_tcp_v4", "[connect_redirect_tests]")
+void
+test_common(ADDRESS_FAMILY family, IPPROTO protocol)
 {
     _initialize_test_globals();
 
     struct bpf_object* object = nullptr;
     _load_and_attach_ebpf_programs(&object);
 
-    // Test for IPv4 traffic.
-    _globals.family = AF_INET;
+    _globals.family = family;
+    _globals.protocol = protocol;
+    socket_family_t socket_family = (family == AF_INET) ? socket_family_t::IPv4 : socket_family_t::IPv6;
+    socket_family_t dual_stack_socket_family = (family == AF_INET) ? socket_family_t::Dual : socket_family_t::IPv6;
 
-    _globals.protocol = IPPROTO_TCP;
-    connect_redirect_tests_common(object, false /* dual_stack */, _globals.addresses[socket_family_t::IPv4]);
-    connect_redirect_tests_common(object, true /* dual_stack */, _globals.addresses[socket_family_t::Dual]);
-
-    // This should also detach the programs as they are not pinned.
-    bpf_object__close(object);
-}
-
-TEST_CASE("connect_redirect_tcp_v6", "[connect_redirect_tests]")
-{
-    _initialize_test_globals();
-
-    struct bpf_object* object = nullptr;
-    _load_and_attach_ebpf_programs(&object);
-
-    // Test for IPv6 traffic.
-    _globals.family = AF_INET6;
-
-    _globals.protocol = IPPROTO_TCP;
-    connect_redirect_tests_common(object, false /* dual_stack */, _globals.addresses[socket_family_t::IPv6]);
-    connect_redirect_tests_common(object, true /* dual_stack */, _globals.addresses[socket_family_t::IPv6]);
+    connect_redirect_tests_common(object, false /* dual_stack */, _globals.addresses[socket_family]);
+    connect_redirect_tests_common(object, true /* dual_stack */, _globals.addresses[dual_stack_socket_family]);
 
     // This should also detach the programs as they are not pinned.
     bpf_object__close(object);
 }
 
-TEST_CASE("connect_redirect_udp_v4", "[connect_redirect_tests]")
-{
-    _initialize_test_globals();
+TEST_CASE("connect_redirect_tcp_v4", "[connect_redirect_tests]") { test_common(AF_INET, IPPROTO_TCP); }
 
-    struct bpf_object* object = nullptr;
-    _load_and_attach_ebpf_programs(&object);
+TEST_CASE("connect_redirect_tcp_v6", "[connect_redirect_tests]") { test_common(AF_INET6, IPPROTO_TCP); }
 
-    // Test for IPv4 traffic.
-    _globals.family = AF_INET;
+TEST_CASE("connect_redirect_udp_v4", "[connect_redirect_tests]") { test_common(AF_INET, IPPROTO_UDP); }
 
-    _globals.protocol = IPPROTO_UDP;
-    connect_redirect_tests_common(object, false /* dual_stack */, _globals.addresses[socket_family_t::IPv4]);
-    connect_redirect_tests_common(object, true /* dual_stack */, _globals.addresses[socket_family_t::Dual]);
-
-    // This should also detach the programs as they are not pinned.
-    bpf_object__close(object);
-}
-
-TEST_CASE("connect_redirect_udp_v6", "[connect_redirect_tests]")
-{
-    _initialize_test_globals();
-
-    struct bpf_object* object = nullptr;
-    _load_and_attach_ebpf_programs(&object);
-
-    // Test for IPv6 traffic.
-    _globals.family = AF_INET6;
-
-    _globals.protocol = IPPROTO_UDP;
-    connect_redirect_tests_common(object, true /* dual_stack */, _globals.addresses[socket_family_t::IPv6]);
-    connect_redirect_tests_common(object, false /* dual_stack */, _globals.addresses[socket_family_t::IPv6]);
-
-    // This should also detach the programs as they are not pinned.
-    bpf_object__close(object);
-}
+TEST_CASE("connect_redirect_udp_v6", "[connect_redirect_tests]") { test_common(AF_INET6, IPPROTO_UDP); }
 
 int
 main(int argc, char* argv[])
@@ -450,7 +411,8 @@ main(int argc, char* argv[])
                Opt(_local_ip_v6, "v6 local IP")["-l"]["--local-ip-v6"]("Local IPv6 IP") |
                Opt(_remote_ip_v4, "v4 Remote IP")["-r"]["--remote-ip-v4"]("IPv4 Remote IP") |
                Opt(_remote_ip_v6, "v6 Remote IP")["-r"]["--remote-ip-v6"]("IPv6 Remote IP") |
-               Opt(_remote_port, "Destination Port")["-t"]["--destination-port"]("Destination Port");
+               Opt(_destination_port, "Destination Port")["-t"]["--destination-port"]("Destination Port") |
+               Opt(_proxy_port, "Proxy Port")["-pt"]["--proxy-port"]("Proxy Port");
 
     session.cli(cli);
 

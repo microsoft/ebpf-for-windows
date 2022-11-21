@@ -80,7 +80,7 @@ connection_test(
     REQUIRE(result == 0);
 
     // Send loopback message to test port.
-    const char* message = "eBPF for Windows!";
+    const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
     if (address_family == AF_INET)
         IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
@@ -331,7 +331,7 @@ connection_monitor_test(
     REQUIRE(result == 0);
 
     // Send loopback message to test port.
-    const char* message = "eBPF for Windows!";
+    const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
     if (address_family == AF_INET)
         IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);

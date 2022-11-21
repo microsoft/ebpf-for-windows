@@ -6,19 +6,8 @@
 #include "catch_wrapper.hpp"
 #include "socket_helper.h"
 
-#define SERVER_PORT 4444
-
-std::string _local_v4_ip;
-std::string _local_v6_ip;
 std::string _protocol;
-std::string _local_port_string;
-
-uint16_t _local_port = SERVER_PORT;
-
-static const uint16_t _server_port = SERVER_PORT;
-
-const char* server_v4_ip = "15.1.1.2";
-const char* client_v4_ip = "15.1.1.1";
+uint16_t _local_port;
 
 volatile static LONG _global_counter = 0;
 
@@ -48,29 +37,28 @@ create_listener(_In_ receiver_socket_t* receiver_socket)
     int local_length = 0;
     receiver_socket->get_local_address(local_address, local_length);
 
-    std::string address_string = get_string_from_address(local_address, local_address->sa_family);
-    printf("my local address is %s\n", address_string.c_str());
-
     // Send a response back.
-    receiver_socket->send_async_response("test_message");
+    std::string response = SERVER_MESSAGE + std::to_string(_local_port);
+    printf("Sending response: %s\n", response.c_str());
+    receiver_socket->send_async_response(response.c_str());
     receiver_socket->complete_async_send(1000);
     printf("Sent data to remote\n");
 }
 
 void
-create_tcp_listener()
+create_tcp_listener(uint16_t local_port)
 {
-    stream_receiver_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, _local_port);
+    stream_receiver_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, local_port);
     while (true) {
         create_listener((receiver_socket_t*)&receiver_socket);
     }
 }
 
 void
-create_udp_listener()
+create_udp_listener(uint16_t local_port)
 {
-    printf("Creating UDP listener socket ...\n");
-    datagram_receiver_socket_t receiver_socket(SOCK_DGRAM, IPPROTO_UDP, _local_port);
+    printf("Creating UDP listener socket with local port %d ...\n", local_port);
+    datagram_receiver_socket_t receiver_socket(SOCK_DGRAM, IPPROTO_UDP, local_port);
     while (true) {
         create_listener((receiver_socket_t*)&receiver_socket);
     }
@@ -81,9 +69,9 @@ TEST_CASE("create_listener", "[connect_redirect_tests]")
     IPPROTO protocol = _get_protocol_from_string(_protocol);
 
     if (protocol == IPPROTO_TCP) {
-        create_tcp_listener();
+        create_tcp_listener(_local_port);
     } else {
-        create_udp_listener();
+        create_udp_listener(_local_port);
     }
 }
 
@@ -95,7 +83,7 @@ main(int argc, char* argv[])
     // Use Catch's composite command line parser.
     using namespace Catch::Clara;
     auto cli = session.cli() | Opt(_protocol, "protocol (TCP / UDP)")["-proto"]["--protocol"]("Protocol") |
-               Opt(_local_port, "protocol (TCP / UDP)")["-lport"]["--local-port"]("Local Port");
+               Opt(_local_port, "Local Port")["-lport"]["--local-port"]("Local Port");
 
     session.cli(cli);
 

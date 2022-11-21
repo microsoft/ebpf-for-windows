@@ -15,6 +15,9 @@
 #include <mstcpip.h>
 #include <Mswsock.h>
 
+#define CLIENT_MESSAGE "request from client"
+#define SERVER_MESSAGE "response from server"
+
 typedef enum _socket_family
 {
     IPv4,
@@ -35,7 +38,7 @@ get_address_from_string(
     _Out_opt_ ADDRESS_FAMILY* address_family = nullptr);
 
 std::string
-get_string_from_address(_In_ const PSOCKADDR sockaddr, ADDRESS_FAMILY family);
+get_string_from_address(_In_ const PSOCKADDR sockaddr);
 
 typedef enum _expected_result
 {
@@ -51,7 +54,7 @@ typedef class _base_socket
 {
   public:
     _base_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family);
-    ~_base_socket();
+    virtual ~_base_socket();
 
     void
     get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length);

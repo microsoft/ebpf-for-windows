@@ -40,9 +40,8 @@ get_address_from_string(
 }
 
 std::string
-get_string_from_address(_In_ const PSOCKADDR sockaddr, ADDRESS_FAMILY family)
+get_string_from_address(_In_ const PSOCKADDR sockaddr)
 {
-    UNREFERENCED_PARAMETER(family);
     char ip_string[MAXIMUM_IP_BUFFER_SIZE] = {0};
 
     DWORD length = sizeof(ip_string);

@@ -347,7 +347,7 @@ function Invoke-XDPTestsOnVM
 function Invoke-ConnectRedirectTestsOnVM
 {
     param([parameter(Mandatory=$true)] $MultiVMTestConfig,
-          [parameter(Mandatory=$true)] $VipConfig)
+          [parameter(Mandatory=$true)] $ConnectRedirectTestConfig)
 
     $VM1 = $MultiVMTestConfig[0]
     $VM1Interface = $VM1.Interfaces[0]
@@ -359,21 +359,31 @@ function Invoke-ConnectRedirectTestsOnVM
     $VM2V4Address = $VM2Interface.V4Address
     $VM2V6Address = $VM2Interface.V6Address
 
-    $VipV4Address = $VipConfig.V4VipAddress
-    $VipV6Address = $VipConfig.V6VipAddress
+    $VipV4Address = $ConnectRedirectTestConfig.V4VipAddress
+    $VipV6Address = $ConnectRedirectTestConfig.V6VipAddress
+    $DestinationPort = $ConnectRedirectTestConfig.DestinationPort
+    $ProxyPort = $ConnectRedirectTestConfig.ProxyPort
 
     $ProgramName = "tcp_udp_listener.exe"
-    $TcpParameters = "--protocol tcp"
-    $UdpParameters = "--protocol udp"
+    $TcpServerParameters = "--protocol tcp --local-port $DestinationPort"
+    $TcpProxyParameters = "--protocol tcp --local-port $ProxyPort"
+    $UdpServerParameters = "--protocol udp --local-port $DestinationPort"
+    $UdpProxyParameters = "--protocol udp --local-port $ProxyPort"
+
+    $ParamaterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
+    $VMArray = @($VM1.Name, $VM2.Name)
 
     Add-FirewallRuleOnVM -VM $VM1.Name -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
     Add-FirewallRuleOnVM -VM $VM2.Name -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
-    # Start TCP and UDP listeners on both VM1 and VM2
-    Start-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName -Parameters $TcpParameters
-    Start-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName -Parameters $UdpParameters
-    Start-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName -Parameters $TcpParameters
-    Start-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName -Parameters $UdpParameters
+    # Start TCP and UDP listeners on both the VMs.
+    foreach ($vm in $VMArray)
+    {
+        foreach ($param in $ParamaterArray)
+        {
+            Start-ProcessOnVM -VM $vm -ProgramName $ProgramName -Parameters $param
+        }
+    }
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
@@ -385,6 +395,8 @@ function Invoke-ConnectRedirectTestsOnVM
               [parameter(Mandatory=$true)][string] $RemoteIPv6Address,
               [parameter(Mandatory=$true)][string] $VirtualIPv4Address,
               [parameter(Mandatory=$true)][string] $VirtualIPv6Address,
+              [parameter(Mandatory=$true)][int] $DestinationPort,
+              [parameter(Mandatory=$true)][int] $ProxyPort,
               [parameter(Mandatory=$true)][string] $WorkingDirectory,
               [Parameter(Mandatory=$true)][string] $LogFileName)
 
@@ -394,7 +406,7 @@ function Invoke-ConnectRedirectTestsOnVM
 
         Write-Log "Invoking connect redirect tests on $VM"
         Invoke-ConnectRedirectTest -LocalIPv4Address $LocalIPv4Address -LocalIPv6Address $LocalIPv6Address -RemoteIPv4Address $RemoteIPv4Address -RemoteIPv6Address $RemoteIPv6Address -VirtualIPv4Address $VirtualIPv4Address -VirtualIPv6Address $VirtualIPv6Address -WorkingDirectory $WorkingDirectory
-    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, "eBPF", $LogFileName) -ErrorAction Stop
+    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, "eBPF", $LogFileName) -ErrorAction Stop
 
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
     Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName
