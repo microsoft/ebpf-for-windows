@@ -20,7 +20,7 @@ Therefore, for this public repository, ASAN has been disabled (`/fno-sanitize-ad
 
 Within the CI/CD pipeline, address sanitizing is enabled through a global flag named `AddressSanitizer`, within `cicd.yml`.
 
-Currently, the `fuzzing` and `sanitize_unit_tests` CI/CD tasks (see `cicid.yml`) are run upon a schedule, so that any sanitizing check failure will be processed as a separated, automatically generated issue.
+Currently, the `fuzzing` and `sanitize_unit_tests` CI/CD tasks (see `cicid.yml`) are run upon a schedule, so that any sanitizing check failure will be processed as a separate, automatically generated issue.
 
 ## References
 
