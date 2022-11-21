@@ -25,7 +25,7 @@ allocate_string(const std::string& string, uint32_t* length) noexcept
 {
     char* new_string;
     size_t string_length = string.size() + 1;
-    new_string = (char*)malloc(string_length);
+    new_string = (char*)ebpf_allocate(string_length);
     if (new_string != nullptr) {
         strcpy_s(new_string, string_length, string.c_str());
         if (length != nullptr) {

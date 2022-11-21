@@ -216,7 +216,7 @@ load_byte_code(
         }
 
         for (auto& raw_program : raw_programs) {
-            program = (ebpf_program_t*)calloc(1, sizeof(ebpf_program_t));
+            program = (ebpf_program_t*)ebpf_allocate(sizeof(ebpf_program_t));
             if (program == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -235,7 +235,7 @@ load_byte_code(
                 goto Exit;
             }
             size_t ebpf_bytes = instruction_count * sizeof(ebpf_inst);
-            program->instructions = (ebpf_inst*)calloc(1, ebpf_bytes);
+            program->instructions = (ebpf_inst*)ebpf_allocate(ebpf_bytes);
             if (program->instructions == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -288,7 +288,7 @@ load_byte_code(
                 goto Exit;
             }
 
-            map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
+            map = (ebpf_map_t*)ebpf_allocate(sizeof(ebpf_map_t));
             if (map == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -328,7 +328,7 @@ load_byte_code(
     } catch (std::runtime_error& err) {
         auto message = err.what();
         auto message_length = strlen(message) + 1;
-        char* error = reinterpret_cast<char*>(calloc(message_length + 1, sizeof(char)));
+        char* error = reinterpret_cast<char*>(ebpf_allocate(message_length + 1));
         if (error) {
             strcpy_s(error, message_length, message);
         }
@@ -361,13 +361,13 @@ Exit:
 static void
 _ebpf_add_stat(_Inout_ ebpf_section_info_t* info, std::string key, int value) noexcept(false)
 {
-    ebpf_stat_t* stat = (ebpf_stat_t*)malloc(sizeof(*stat));
+    ebpf_stat_t* stat = (ebpf_stat_t*)ebpf_allocate(sizeof(*stat));
     if (stat == nullptr) {
         throw std::runtime_error("Out of memory");
     }
     stat->key = _strdup(key.c_str());
     if (stat->key == nullptr) {
-        free(stat);
+        ebpf_free(stat);
         throw std::runtime_error("Out of memory");
     }
     stat->value = value;
@@ -394,7 +394,7 @@ ebpf_api_elf_enumerate_sections(
     try {
         auto raw_programs = read_elf(file, section ? std::string(section) : std::string(), &verifier_options, platform);
         for (const auto& raw_program : raw_programs) {
-            ebpf_section_info_t* info = (ebpf_section_info_t*)malloc(sizeof(*info));
+            ebpf_section_info_t* info = (ebpf_section_info_t*)ebpf_allocate(sizeof(*info));
             if (info == nullptr) {
                 throw std::runtime_error("Out of memory");
             }
@@ -404,7 +404,7 @@ ebpf_api_elf_enumerate_sections(
                 std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program);
                 if (std::holds_alternative<std::string>(programOrError)) {
                     std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
-                    free(info);
+                    ebpf_free(info);
                     return 1;
                 }
                 auto& program = std::get<InstructionSeq>(programOrError);
@@ -421,12 +421,12 @@ ebpf_api_elf_enumerate_sections(
 
             std::vector<uint8_t> raw_data = convert_ebpf_program_to_bytes(raw_program.prog);
             info->raw_data_size = raw_data.size();
-            info->raw_data = (char*)malloc(info->raw_data_size);
+            info->raw_data = (char*)ebpf_allocate(info->raw_data_size);
             if (info->raw_data == nullptr || info->section_name == nullptr || info->program_type_name == nullptr) {
-                free((void*)info->section_name);
-                free((void*)info->program_type_name);
-                free((void*)info->raw_data);
-                free(info);
+                ebpf_free((void*)info->section_name);
+                ebpf_free((void*)info->program_type_name);
+                ebpf_free((void*)info->raw_data);
+                ebpf_free(info);
                 throw std::runtime_error("Out of memory");
             }
             memcpy(info->raw_data, raw_data.data(), info->raw_data_size);
