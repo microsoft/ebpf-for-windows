@@ -1,0 +1,33 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+#
+# See https://github.com/marketplace/actions/auto-update for documentation on this file.
+
+name: autoupdate
+on:
+  # This will trigger on all pushes to all branches.
+  push: {}
+  # Alternatively, you can only trigger if commits are pushed to certain branches, e.g.:
+  # push:
+  #   branches:
+  #     - master
+  #     - unstable
+jobs:
+  autoupdate:
+    name: autoupdate
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: docker://chinthakagodawita/autoupdate-action:v1
+        env:
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          # TODO: remove the DRY_RUN line if the functionality works ok
+          DRY_RUN: "true"
+          PR_FILTER: "auto_merge"
+          PR_READY_STATE: "ready_for_review"
+          MERGE_MSG: "Branch was auto-updated."
+
+      - run: echo 'Merge conflicts found!'
+        if: ${{ steps.autoupdate.outputs.conflicted }}
+
+      - run: echo 'No merge conflicts'
+        if: ${{ !steps.autoupdate.outputs.conflicted }}
