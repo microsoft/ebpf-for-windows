@@ -9,7 +9,6 @@
  * For more information, see /docs/AddressSanitizing.md within this repository.
  **/
 
-// TODO: Split asan and coverage into different libs
 extern "C"
 {
     void
