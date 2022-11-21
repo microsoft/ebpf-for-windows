@@ -29,8 +29,6 @@ jobs:
       - uses: docker://chinthakagodawita/autoupdate-action@sha256:a3e234f9fce69dd9b3a205acfd55bf9d5c94f0f7cf119f0267a5ab54220e8f56 # v1
         env:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
-          # TODO: remove the DRY_RUN line if the functionality works ok
-          DRY_RUN: "true"
           PR_FILTER: "auto_merge"
           PR_READY_STATE: "ready_for_review"
           MERGE_MSG: "Branch was auto-updated."
