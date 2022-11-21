@@ -4,20 +4,29 @@
 # See https://github.com/marketplace/actions/auto-update for documentation on this file.
 
 name: autoupdate
+
+# Controls when the action will run. Triggers the workflow on push # events
+# but only for the main branch
 on:
-  # This will trigger on all pushes to all branches.
-  push: {}
-  # Alternatively, you can only trigger if commits are pushed to certain branches, e.g.:
-  # push:
-  #   branches:
-  #     - master
-  #     - unstable
+  push:
+    branches: [ main ]
+
+permissions:
+    contents: read
+
 jobs:
   autoupdate:
     name: autoupdate
-    runs-on: ubuntu-20.04
+    permissions:
+      contents: write  # for Git to git push
+    runs-on: ubuntu-latest
     steps:
-      - uses: docker://chinthakagodawita/autoupdate-action:v1
+      - name: Harden Runner
+        uses: step-security/harden-runner@ebacdc22ef6c2cfb85ee5ded8f2e640f4c776dd5
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: docker://chinthakagodawita/autoupdate-action@sha256:a3e234f9fce69dd9b3a205acfd55bf9d5c94f0f7cf119f0267a5ab54220e8f56 # v1
         env:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
           # TODO: remove the DRY_RUN line if the functionality works ok
