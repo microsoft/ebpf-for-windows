@@ -107,17 +107,6 @@ extern "C"
     ebpf_native_get_count_of_maps(_In_ const GUID* module_id, _Out_ size_t* count_of_maps);
 
     /**
-     * @brief Unload driver for the specified module id.
-     *
-     * @param[in] module_id Pointer to module id whose driver is to be unloaded.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate memory for service name.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_native_unload(_In_ const GUID* module_id);
-
-    /**
      * @brief Acquire reference on the native module.
      *
      * @param[inout] module Pointer to native module.

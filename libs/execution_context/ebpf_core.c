@@ -682,19 +682,6 @@ Done:
     ebpf_free(map_handles);
     ebpf_free(program_handles);
 
-    // If this call failed, stop the native driver. ebpfapi will create a
-    // new service for the driver in the next attempt.
-    if (result != EBPF_SUCCESS) {
-        ebpf_result_t native_unload_result = ebpf_native_unload(&request->module_id);
-        if (native_unload_result != EBPF_SUCCESS) {
-            EBPF_LOG_MESSAGE_GUID(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_NATIVE,
-                "Failed to unload native driver",
-                request->module_id);
-        }
-    }
-
     EBPF_RETURN_RESULT(result);
 }
 
