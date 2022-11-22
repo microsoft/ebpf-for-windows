@@ -502,7 +502,7 @@ Exit:
     return status;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 sample_ebpf_extension_invoke_program(_In_ const sample_program_context_t* context, _Out_ uint32_t* result)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
@@ -525,7 +525,7 @@ Exit:
     return return_value;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 sample_ebpf_extension_profile_program(
     _In_ sample_ebpf_ext_profile_request_t* request,
     size_t request_length,

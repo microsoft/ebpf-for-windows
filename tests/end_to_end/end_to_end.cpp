@@ -1632,7 +1632,7 @@ TEST_CASE("printk", "[end_to_end]")
     int hook_result = 0;
     errno_t error = capture.begin_capture();
     if (error == NO_ERROR) {
-        hook.fire(&ctx, &hook_result);
+        REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
         output = capture.get_stdout_contents();
     }
     std::string expected_output = "Hello, world\n"
@@ -2271,7 +2271,6 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     std::wstring service_path(SERVICE_PATH_PREFIX);
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
-    ebpf_result_t result;
     int error;
     const char* error_message = nullptr;
     bpf_object* object = nullptr;
@@ -2294,8 +2293,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     REQUIRE(error == 0);
 
     // Get the service name that was created.
-    result = get_service_details_for_file(file_path, &service_name, &provider_module_id);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(get_service_details_for_file(file_path, &service_name, &provider_module_id) == EBPF_SUCCESS);
 
     set_native_module_failures(true);
 

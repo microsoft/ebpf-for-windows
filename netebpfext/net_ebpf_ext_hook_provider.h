@@ -148,7 +148,7 @@ net_ebpf_extension_hook_provider_register(
  * @retval EBPF_NO_MEMORY Unable to allocate resources for this
  * operation.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_hook_invoke_program(
     _In_ const net_ebpf_extension_hook_client_t* client, _In_ void* context, _Out_ uint32_t* result);
 
@@ -185,7 +185,7 @@ net_ebpf_extension_hook_get_next_attached_client(
  * @retval EBPF_ACCESS_DENIED Request to attach client is denied by the provider.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_hook_check_attach_parameter(
     size_t attach_parameter_size,
     _In_reads_(attach_parameter_size) const void* attach_parameter,

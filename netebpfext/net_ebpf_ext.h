@@ -91,7 +91,7 @@ typedef struct _net_ebpf_extension_wfp_filter_context
  * @retval EBPF_SUCCESS The filter context was created successfully.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_wfp_filter_context_create(
     size_t filter_context_size,
     _In_ const struct _net_ebpf_extension_hook_client* client_context,
@@ -166,7 +166,7 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
  * @retval EBPF_SUCCESS The operation completed successfully.
  * @retval EBPF_INVALID_ARGUMENT One or more arguments are invalid.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_add_wfp_filters(
     uint32_t filter_count,
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
