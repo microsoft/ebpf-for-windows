@@ -157,8 +157,6 @@ typedef class _server_socket : public _base_socket
     virtual void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length) = 0;
     virtual void
-    get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length) = 0;
-    virtual void
     close() = 0;
 
   protected:
@@ -184,8 +182,6 @@ typedef class _datagram_server_socket : public _server_socket
     void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
     void
-    get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
-    void
     close();
 
   private:
@@ -209,8 +205,6 @@ typedef class _stream_server_socket : public _server_socket
     complete_async_send(int timeout_in_ms);
     void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
-    void
-    get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
     void
     close();
 

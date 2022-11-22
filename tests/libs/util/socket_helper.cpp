@@ -447,14 +447,6 @@ _datagram_server_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& fr
 }
 
 void
-_datagram_server_socket::get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
-{
-    // TODO: This is wrong. Need to fix this.
-    from = (PSOCKADDR)&sender_address;
-    from_length = sender_address_size;
-}
-
-void
 _datagram_server_socket::send_async_response(_In_z_ const char* message)
 {
     int error = 0;
@@ -618,13 +610,6 @@ void
 _stream_server_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
 {
     from = (PSOCKADDR)(recv_buffer.data() + message_length);
-    from_length = sizeof(sockaddr_storage);
-}
-
-void
-_stream_server_socket::get_local_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
-{
-    from = (PSOCKADDR)(recv_buffer.data() + message_length + sizeof(sockaddr_storage) + 16);
     from_length = sizeof(sockaddr_storage);
 }
 

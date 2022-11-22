@@ -33,10 +33,6 @@ create_listener(_In_ receiver_socket_t* receiver_socket)
     receiver_socket->complete_async_receive(WSA_INFINITE, false);
     printf("Received data from remote\n");
 
-    PSOCKADDR local_address = nullptr;
-    int local_length = 0;
-    receiver_socket->get_local_address(local_address, local_length);
-
     // Send a response back.
     std::string response = SERVER_MESSAGE + std::to_string(_local_port);
     printf("Sending response: %s\n", response.c_str());
