@@ -283,7 +283,6 @@ _stream_client_socket::send_message_to_remote_host(
         int wsaerr = WSAGetLastError();
         if (wsaerr != WSA_IO_PENDING)
             FAIL("ConnectEx failed with " << wsaerr);
-        // printf("send_message_to_remote_host: IO is pending.\n");
     } else {
         // The operation completed synchronously. Close overlapped handle.
         WSACloseEvent(overlapped.hEvent);
@@ -314,7 +313,7 @@ _stream_client_socket::complete_async_send(int timeout_in_ms, expected_result_t 
     // Wait for the receiver socket to receive the message.
     error = WSAWaitForMultipleEvents(1, &overlapped.hEvent, TRUE, timeout_in_ms, TRUE);
     if (error == WSA_WAIT_EVENT_0) {
-        if (expected_result == expected_result_t::timeout) {
+        if (expected_result == expected_result_t::TIMEOUT) {
             FAIL("Send on socket succeeded when timeout was expected.");
         }
         if (!WSAGetOverlappedResult(
@@ -323,14 +322,14 @@ _stream_client_socket::complete_async_send(int timeout_in_ms, expected_result_t 
                 reinterpret_cast<LPDWORD>(&bytes_sent),
                 FALSE,
                 reinterpret_cast<LPDWORD>(&send_flags))) {
-            if (expected_result != expected_result_t::failure) {
+            if (expected_result != expected_result_t::FAILURE) {
                 FAIL("WSASend on the socket failed with error: " << WSAGetLastError());
             }
         }
         WSACloseEvent(overlapped.hEvent);
         overlapped.hEvent = INVALID_HANDLE_VALUE;
     } else if (error == WSA_WAIT_TIMEOUT) {
-        if (expected_result != expected_result_t::timeout) {
+        if (expected_result != expected_result_t::TIMEOUT) {
             FAIL("Async send timed out");
         }
     } else {

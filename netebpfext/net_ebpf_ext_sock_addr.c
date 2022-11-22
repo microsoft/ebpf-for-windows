@@ -16,6 +16,11 @@
 #define EXPIRY_TIME 60000 // 60 seconds in ms.
 #define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
 
+/**
+ * Connection context info does not contain the source IP address because
+ * the source IP address is not always available at connect_redirect layer.
+ * Source port is however available and included below for a stricter check.
+ */
 typedef struct _net_ebpf_ext_connect_context_address_info
 {
     uint32_t family;
@@ -428,7 +433,7 @@ _net_ebpf_ext_connection_context_initialize_key(
     // In case of original connection context, if the address is a v4-mapped v6 address, AUTH callout
     // does not contain the the destination IP filled for the original destination. So for v4-mapped
     // case, do not fill the destination IP in the key, to be able to match the context with the
-    // incoming values in AUTH callut.
+    // incoming values in AUTH callout.
     if (!original || !v4_mapped) {
         RtlCopyMemory(
             context_key->address_info.destination_ip.ipv6,

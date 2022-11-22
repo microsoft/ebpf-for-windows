@@ -176,28 +176,17 @@ _update_policy_map(
     destination_entry_t key = {0};
     destination_entry_t value = {0};
 
-    if (_globals.family == AF_INET) {
-        const uint8_t* v4_destination = nullptr;
-        const uint8_t* v4_proxy = nullptr;
-
-        if (dual_stack) {
-            struct sockaddr_in6* v6_destination = (struct sockaddr_in6*)&destination;
-            struct sockaddr_in6* v6_proxy = (struct sockaddr_in6*)&proxy;
-
-            v4_destination = IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_destination->sin6_addr);
-            v4_proxy = IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_proxy->sin6_addr);
-        } else {
-            v4_destination = (UCHAR*)&((struct sockaddr_in*)&destination)->sin_addr.S_un.S_addr;
-            v4_proxy = (UCHAR*)&((struct sockaddr_in*)&proxy)->sin_addr.S_un.S_addr;
-        }
-
-        key.destination_ip.ipv4 = *((uint32_t*)v4_destination);
-        value.destination_ip.ipv4 = *((uint32_t*)v4_proxy);
-    } else {
+    if (_globals.family == AF_INET && dual_stack) {
         struct sockaddr_in6* v6_destination = (struct sockaddr_in6*)&destination;
         struct sockaddr_in6* v6_proxy = (struct sockaddr_in6*)&proxy;
-        memcpy(key.destination_ip.ipv6, v6_destination->sin6_addr.u.Byte, sizeof(key.destination_ip.ipv6));
-        memcpy(value.destination_ip.ipv6, v6_proxy->sin6_addr.u.Byte, sizeof(value.destination_ip.ipv6));
+
+        INET_SET_ADDRESS(
+            AF_INET6, (PUCHAR)&key.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_destination->sin6_addr));
+        INET_SET_ADDRESS(
+            AF_INET6, (PUCHAR)&value.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_proxy->sin6_addr));
+    } else {
+        INET_SET_ADDRESS(_globals.family, (PUCHAR)&key.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&destination));
+        INET_SET_ADDRESS(_globals.family, (PUCHAR)&value.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&proxy));
     }
 
     key.destination_port = htons(destination_port);
@@ -228,7 +217,7 @@ connect_redirect_test(
 
     // Try to send and receive message to "destination". It should succeed.
     sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
-    sender_socket->complete_async_send(1000, expected_result_t::success);
+    sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
 
     sender_socket->post_async_receive();
     sender_socket->complete_async_receive(2000, false);
@@ -251,14 +240,14 @@ void
 authorize_test(
     _In_ const struct bpf_object* object,
     _In_ sender_socket_t* sender_socket,
-    _In_ sockaddr_storage& destination,
+    _Inout_ sockaddr_storage& destination,
     bool dual_stack)
 {
     // Default behavior of the eBPF program is to block the connection.
 
     // Send should fail as the connection is blocked.
     sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
-    sender_socket->complete_async_send(1000, expected_result_t::failure);
+    sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
 
     // Receive should timeout as connection is blocked.
     sender_socket->post_async_receive(true);
@@ -383,8 +372,8 @@ test_common(ADDRESS_FAMILY family, IPPROTO protocol)
     socket_family_t socket_family = (family == AF_INET) ? socket_family_t::IPv4 : socket_family_t::IPv6;
     socket_family_t dual_stack_socket_family = (family == AF_INET) ? socket_family_t::Dual : socket_family_t::IPv6;
 
-    connect_redirect_tests_common(object, false /* dual_stack */, _globals.addresses[socket_family]);
-    connect_redirect_tests_common(object, true /* dual_stack */, _globals.addresses[dual_stack_socket_family]);
+    connect_redirect_tests_common(object, false, _globals.addresses[socket_family]);
+    connect_redirect_tests_common(object, true, _globals.addresses[dual_stack_socket_family]);
 
     // This should also detach the programs as they are not pinned.
     bpf_object__close(object);

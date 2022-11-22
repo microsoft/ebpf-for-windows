@@ -42,9 +42,9 @@ get_string_from_address(_In_ const PSOCKADDR sockaddr);
 
 typedef enum _expected_result
 {
-    success,
-    timeout,
-    failure,
+    SUCCESS,
+    TIMEOUT,
+    FAILURE,
 } expected_result_t;
 
 /**
@@ -87,7 +87,7 @@ typedef class _client_socket : public _base_socket
     virtual void
     send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port) = 0;
     virtual void
-    complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::success) = 0;
+    complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::SUCCESS) = 0;
     virtual void
     post_async_receive(bool error_expected = false);
     virtual void
@@ -114,7 +114,7 @@ typedef class _datagram_client_socket : public _client_socket
     void
     cancel_send_message();
     void
-    complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::success);
+    complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::SUCCESS);
 } datagram_client_socket_t;
 
 /**
@@ -129,7 +129,7 @@ typedef class _stream_client_socket : public _client_socket
     void
     cancel_send_message();
     void
-    complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::success);
+    complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::SUCCESS);
 
   private:
     LPFN_CONNECTEX connectex;
