@@ -205,7 +205,6 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
-      pre_test: powershell Expand-Archive -Path .\corpus.zip -DestinationPath execution_context_fuzzer_corpus -Force
       test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2022
@@ -293,3 +292,19 @@ jobs:
     with:
       build_artifact: Build-x64-CodeQl
       build_codeql: true
+
+  # Run the low memory simulator in GitHub.
+  low_memory:
+    needs: regular
+    #if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    # Disable running this on PR until all low memory issues are fixed.
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: low_memory
+      test_command: .\unit_tests.exe
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: true
+      gather_dumps: true
+      low_memory: true

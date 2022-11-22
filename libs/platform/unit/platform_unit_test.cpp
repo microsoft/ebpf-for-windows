@@ -3,6 +3,7 @@
 
 // Windows build system requires include of Windows.h before other Windows
 // headers.
+#include <winsock2.h>
 #include <Windows.h>
 
 #include <chrono>
@@ -36,7 +37,7 @@ class _test_helper
         REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
         platform_initiated = true;
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
-        epoch_initated = true;
+        epoch_initiated = true;
         REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
         async_initiated = true;
     }
@@ -44,7 +45,7 @@ class _test_helper
     {
         if (async_initiated)
             ebpf_async_terminate();
-        if (epoch_initated)
+        if (epoch_initiated)
             ebpf_epoch_terminate();
         if (platform_initiated)
             ebpf_platform_terminate();
@@ -53,7 +54,7 @@ class _test_helper
 
   private:
     bool platform_initiated = false;
-    bool epoch_initated = false;
+    bool epoch_initiated = false;
     bool async_initiated = false;
 };
 
@@ -89,7 +90,9 @@ TEST_CASE("hash_table_test", "[platform]")
     }
 
     REQUIRE(
-        ebpf_hash_table_create(&table, ebpf_allocate, ebpf_free, key_1.size(), data_1.size(), 1, NULL) == EBPF_SUCCESS);
+        ebpf_hash_table_create(
+            &table, ebpf_allocate, ebpf_free, key_1.size(), data_1.size(), 1, EBPF_HASH_TABLE_NO_LIMIT, NULL) ==
+        EBPF_SUCCESS);
 
     // Insert first
     // Empty bucket case
@@ -191,6 +194,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
             sizeof(uint32_t),
             sizeof(uint64_t),
             static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
+            EBPF_HASH_TABLE_NO_LIMIT,
             NULL) == EBPF_SUCCESS);
     auto worker = [table, iterations, key_count, load_factor, &cpu_id]() {
         uint32_t next_key = 0;
@@ -209,7 +213,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
         for (size_t i = 0; i < iterations; i++) {
             for (auto& key : keys) {
                 run_in_epoch([&]() {
-                    ebpf_hash_table_update(
+                    (void)ebpf_hash_table_update(
                         table,
                         reinterpret_cast<const uint8_t*>(&key),
                         reinterpret_cast<const uint8_t*>(&value),
@@ -218,17 +222,17 @@ TEST_CASE("hash_table_stress_test", "[platform]")
             }
             for (auto& key : keys)
                 run_in_epoch([&]() {
-                    ebpf_hash_table_find(
+                    (void)ebpf_hash_table_find(
                         table, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<uint8_t**>(&returned_value));
                 });
             for (auto& key : keys)
                 run_in_epoch([&]() {
-                    ebpf_hash_table_next_key(
+                    (void)ebpf_hash_table_next_key(
                         table, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<uint8_t*>(&next_key));
                 });
 
             for (auto& key : keys)
-                run_in_epoch([&]() { ebpf_hash_table_delete(table, reinterpret_cast<const uint8_t*>(&key)); });
+                run_in_epoch([&]() { (void)ebpf_hash_table_delete(table, reinterpret_cast<const uint8_t*>(&key)); });
         }
     };
 
@@ -349,7 +353,7 @@ class _signal
 /**
  * @brief Verify that the stale item worker runs.
  * Epoch free can leave items on a CPU's free list until the next epoch exit.
- * To avoid holding onto freed items indefinetely, epoch schedules a work item
+ * To avoid holding onto freed items indefinitely, epoch schedules a work item
  * to call epoch_enter/epoch_exit on a CPU to releasing the free list.
  */
 TEST_CASE("epoch_test_stale_items", "[platform]")
@@ -368,7 +372,7 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
 
         auto t1 = [&]() {
             uintptr_t old_thread_affinity;
-            ebpf_set_current_thread_affinity(1, &old_thread_affinity);
+            ebpf_assert_success(ebpf_set_current_thread_affinity(1, &old_thread_affinity));
             bool _in_epoch = (ebpf_epoch_enter() == EBPF_SUCCESS);
             void* memory = _in_epoch ? ebpf_epoch_allocate(10) : nullptr;
             signal_2.signal();
@@ -379,7 +383,7 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         };
         auto t2 = [&]() {
             uintptr_t old_thread_affinity;
-            ebpf_set_current_thread_affinity(2, &old_thread_affinity);
+            ebpf_assert_success(ebpf_set_current_thread_affinity(2, &old_thread_affinity));
             signal_2.wait();
             if (ebpf_epoch_enter() == EBPF_SUCCESS) {
                 void* memory = ebpf_epoch_allocate(10);
@@ -405,35 +409,46 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
     }
 }
 
+static auto provider_function = []() { return EBPF_SUCCESS; };
+
+static ebpf_extension_dispatch_table_t test_provider_dispatch_table = {
+    0, sizeof(ebpf_extension_dispatch_table_t), provider_function};
+
+static NTSTATUS
+test_provider_attach_client(
+    HANDLE nmr_binding_handle,
+    _Inout_ void* provider_context,
+    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
+    _In_ void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Out_ void** provider_binding_context,
+    _Out_ const void** provider_dispatch)
+{
+    ebpf_extension_provider_t* provider = (ebpf_extension_provider_t*)provider_context;
+    UNREFERENCED_PARAMETER(nmr_binding_handle);
+    UNREFERENCED_PARAMETER(provider);
+    UNREFERENCED_PARAMETER(client_registration_instance);
+    UNREFERENCED_PARAMETER(client_binding_context);
+    UNREFERENCED_PARAMETER(client_dispatch);
+    *provider_binding_context = nullptr;
+    *provider_dispatch = &test_provider_dispatch_table;
+    return STATUS_SUCCESS;
+};
+
+static NTSTATUS
+test_provider_detach_client(_In_ void* provider_binding_context)
+{
+    UNREFERENCED_PARAMETER(provider_binding_context);
+    return STATUS_SUCCESS;
+};
+
 TEST_CASE("extension_test", "[platform]")
 {
     _test_helper test_helper;
 
     auto client_function = []() { return EBPF_SUCCESS; };
-    auto provider_function = []() { return EBPF_SUCCESS; };
-    auto provider_attach = [](ebpf_handle_t client_binding_handle,
-                              void* context,
-                              const GUID* client_id,
-                              void* client_binding_context,
-                              const ebpf_extension_data_t* client_data,
-                              const ebpf_extension_dispatch_table_t* client_dispatch_table) {
-        UNREFERENCED_PARAMETER(client_binding_handle);
-        UNREFERENCED_PARAMETER(context);
-        UNREFERENCED_PARAMETER(client_id);
-        UNREFERENCED_PARAMETER(client_data);
-        UNREFERENCED_PARAMETER(client_dispatch_table);
-        UNREFERENCED_PARAMETER(client_binding_context);
-        return EBPF_SUCCESS;
-    };
-    auto provider_detach = [](void* context, const GUID* client_id) {
-        UNREFERENCED_PARAMETER(context);
-        UNREFERENCED_PARAMETER(client_id);
-        return EBPF_SUCCESS;
-    };
     ebpf_extension_dispatch_table_t client_dispatch_table = {
         0, sizeof(ebpf_extension_dispatch_table_t), client_function};
-    ebpf_extension_dispatch_table_t provider_dispatch_table = {
-        0, sizeof(ebpf_extension_dispatch_table_t), provider_function};
     ebpf_extension_data_t client_data{};
     ebpf_extension_data_t provider_data{};
     GUID interface_id;
@@ -445,7 +460,7 @@ TEST_CASE("extension_test", "[platform]")
     ebpf_extension_client_t* client_context = nullptr;
     void* provider_binding_context = nullptr;
 
-    ebpf_guid_create(&interface_id);
+    ebpf_assert_success(ebpf_guid_create(&interface_id));
     int callback_context = 0;
     int client_binding_context = 0;
     GUID client_module_id = {};
@@ -459,10 +474,11 @@ TEST_CASE("extension_test", "[platform]")
             &provider_module_id,
             nullptr,
             &provider_data,
-            &provider_dispatch_table,
+            &test_provider_dispatch_table,
             &callback_context,
-            provider_attach,
-            provider_detach) == EBPF_SUCCESS);
+            test_provider_attach_client,
+            test_provider_detach_client,
+            nullptr) == EBPF_SUCCESS);
 
     REQUIRE(
         ebpf_extension_load(
@@ -479,7 +495,7 @@ TEST_CASE("extension_test", "[platform]")
             nullptr) == EBPF_SUCCESS);
 
     REQUIRE(returned_provider_data == &provider_data);
-    REQUIRE(returned_provider_dispatch_table == &provider_dispatch_table);
+    REQUIRE(returned_provider_dispatch_table == &test_provider_dispatch_table);
 
     ebpf_extension_unload(client_context);
     ebpf_provider_unload(provider_context);
@@ -618,24 +634,26 @@ TEST_CASE("serialize_map_test", "[platform]")
     }
 
     // Serialize.
-    ebpf_result_t result = ebpf_serialize_internal_map_info_array(
-        map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
-    REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
+    REQUIRE(
+        ebpf_serialize_internal_map_info_array(
+            map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length) ==
+        EBPF_INSUFFICIENT_BUFFER);
 
-    buffer = static_cast<uint8_t*>(calloc(required_length, 1));
-    REQUIRE(buffer != nullptr);
-    if (!buffer) {
+    buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
+    // Required to deal with code analysis warning about buffer not being checked for null.
+    if (buffer == nullptr) {
+        REQUIRE(false);
         return;
     }
     buffer_length = required_length;
 
-    result = ebpf_serialize_internal_map_info_array(
-        map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_serialize_internal_map_info_array(
+            map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length) ==
+        EBPF_SUCCESS);
 
     // Deserialize.
-    result = ebpf_deserialize_map_info_array(serialized_length, buffer, map_count, &map_info_array);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(ebpf_deserialize_map_info_array(serialized_length, buffer, map_count, &map_info_array) == EBPF_SUCCESS);
     _Analysis_assume_(map_info_array != nullptr);
     // Verify de-serialized map info array matches input.
     for (int i = 0; i < map_count; i++) {
@@ -681,20 +699,22 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     ebpf_program_info_t* out_program_info;
 
     // Serialize.
-    ebpf_result_t result =
-        ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length);
-    REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
+    REQUIRE(ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length));
 
-    buffer = static_cast<uint8_t*>(calloc(required_length, 1));
-    _Analysis_assume_(buffer != nullptr);
+    buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
+    // Work around code analysis warning about buffer not being checked for null.
+    if (buffer == nullptr) {
+        REQUIRE(false);
+        return;
+    }
     buffer_length = required_length;
 
-    result = ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length) ==
+        EBPF_SUCCESS);
 
     // Deserialize.
-    result = ebpf_deserialize_program_info(serialized_length, buffer, &out_program_info);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(ebpf_deserialize_program_info(serialized_length, buffer, &out_program_info) == EBPF_SUCCESS);
 
     // Verify de-serialized program info matches input.
     REQUIRE(
@@ -740,15 +760,15 @@ TEST_CASE("state_test", "[state]")
     {
         uint32_t some_value;
     } foo;
-    uintptr_t retreived_value = 0;
+    uintptr_t retrieved_value = 0;
     REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
     REQUIRE(ebpf_state_initiate() == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_1) == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_2) == EBPF_SUCCESS);
     REQUIRE(allocated_index_2 != allocated_index_1);
     REQUIRE(ebpf_state_store(allocated_index_1, reinterpret_cast<uintptr_t>(&foo)) == EBPF_SUCCESS);
-    REQUIRE(ebpf_state_load(allocated_index_1, &retreived_value) == EBPF_SUCCESS);
-    REQUIRE(retreived_value == reinterpret_cast<uintptr_t>(&foo));
+    REQUIRE(ebpf_state_load(allocated_index_1, &retrieved_value) == EBPF_SUCCESS);
+    REQUIRE(retrieved_value == reinterpret_cast<uintptr_t>(&foo));
     ebpf_state_terminate();
     ebpf_platform_terminate();
 }
@@ -931,13 +951,27 @@ TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
 
     uint8_t* mem1 = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem1, 10) == EBPF_SUCCESS);
-    _Analysis_assume_(mem1 != nullptr);
-    ebpf_ring_buffer_submit(mem1);
+    REQUIRE(mem1 != nullptr);
+    // Wrapping ebpf_ring_buffer_submit in a REQUIRE macro causes code analysis
+    // to fail with error warning C6001: Using uninitialized memory 'mem1'.
+    ebpf_result_t result = ebpf_ring_buffer_submit(mem1);
+    // Workaround for code analysis failure:
+    // C28193: 'result' holds a value that must be examined.
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
 
     uint8_t* mem2 = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem2, 10) == EBPF_SUCCESS);
-    _Analysis_assume_(mem2 != nullptr);
-    ebpf_ring_buffer_discard(mem2);
+    REQUIRE(mem2 != nullptr);
+    // Wrapping ebpf_ring_buffer_submit in a REQUIRE macro causes code analysis
+    // to fail with error warning C6001: Using uninitialized memory 'mem1'.
+    result = ebpf_ring_buffer_discard(mem2);
+    // Workaround for code analysis failure:
+    // C28193: 'result' holds a value that must be examined.
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
 
     uint8_t* mem3 = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem3, size + 1) == EBPF_INVALID_ARGUMENT);

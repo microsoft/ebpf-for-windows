@@ -1,18 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "netebpf_ext_helper.h" // Must be included before Windows.h
 #include <Windows.h>
 
 #include <chrono>
 #include <filesystem>
 #include <map>
 #include <vector>
-
-#define REQUIRE(X)                 \
-    {                              \
-        bool x = (X);              \
-        UNREFERENCED_PARAMETER(x); \
-    }
 
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
@@ -163,9 +158,14 @@ class fuzz_wrapper
   public:
     fuzz_wrapper()
     {
-        ebpf_core_initiate();
-        const GUID type = EBPF_PROGRAM_TYPE_XDP;
-        _program_info_provider provider(type);
+        ebpf_result_t result = ebpf_core_initiate();
+        if (result != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_core_initiate failed");
+        }
+    }
+    void
+    make_program(const GUID type)
+    {
         ebpf_handle_t program_handle;
 
         std::string program_name = "program name";
@@ -205,7 +205,9 @@ class fuzz_wrapper
             ebpf_object_release_reference((ebpf_core_object_t*)map);
         }
         for (auto& handle : handles) {
-            ebpf_handle_close(handle);
+            // Ignore invalid handle close.
+            // Fuzzing may have already closed this handle.
+            (void)ebpf_handle_close(handle);
         };
         program_information_providers.clear();
         ebpf_core_terminate();
@@ -453,6 +455,7 @@ fuzz_program(
     case 1:
         ((function1_t)helper_function_address)(argument[0]);
         break;
+
     case 2:
         ((function2_t)helper_function_address)(argument[0], argument[1]);
         break;
@@ -472,6 +475,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
     // Get the program.
     fuzz_wrapper fuzz_state;
+    netebpf_ext_helper_t helper;
+    fuzz_state.make_program(EBPF_PROGRAM_TYPE_XDP);
     ebpf_handle_t program_handle = fuzz_state.get_program_handle();
     ebpf_program_t* program = NULL;
     ebpf_result_t result =

@@ -15,7 +15,7 @@ static ebpf_hash_table_t* _ebpf_async_tracker_table = NULL;
 
 static const size_t _ebpf_async_tracker_table_bucket_count = 64;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_async_initiate()
 {
     EBPF_LOG_ENTRY();
@@ -27,6 +27,7 @@ ebpf_async_initiate()
         sizeof(void*),
         sizeof(ebpf_async_tracker_t),
         _ebpf_async_tracker_table_bucket_count,
+        EBPF_HASH_TABLE_NO_LIMIT,
         NULL));
 }
 
@@ -40,7 +41,7 @@ ebpf_async_terminate()
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_async_set_completion_callback(_In_ void* context, _In_ void (*on_complete)(_In_ void*, size_t, ebpf_result_t))
 {
     EBPF_LOG_ENTRY();
@@ -64,14 +65,14 @@ _tracker_from_context(_In_ void* context)
     }
 }
 
-static bool
+static ebpf_result_t
 _remove_tracker(_In_ void* context)
 {
     uint8_t* key = (uint8_t*)&context;
-    return ebpf_hash_table_delete(_ebpf_async_tracker_table, key) == EBPF_SUCCESS;
+    return ebpf_hash_table_delete(_ebpf_async_tracker_table, key);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_async_set_cancel_callback(
     _In_ void* context, _In_ void* cancellation_context, _In_ void (*on_cancel)(_In_ void* cancellation_context))
 {
@@ -111,7 +112,7 @@ ebpf_async_complete(_In_ void* context, size_t output_buffer_length, ebpf_result
         EBPF_RETURN_VOID();
     }
     void (*on_complete)(_In_ void*, size_t, ebpf_result_t) = tracker->on_complete;
-    if (!_remove_tracker(context)) {
+    if (_remove_tracker(context) != EBPF_SUCCESS) {
         ebpf_assert(!"Async action was double completed");
         EBPF_RETURN_VOID();
         return;
@@ -121,7 +122,7 @@ ebpf_async_complete(_In_ void* context, size_t output_buffer_length, ebpf_result
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_async_reset_completion_callback(_In_ void* context)
 {
     return _remove_tracker(context);

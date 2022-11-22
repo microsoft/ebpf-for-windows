@@ -49,8 +49,9 @@ typedef struct _ebpf_hash_bucket_header_and_lock
  */
 struct _ebpf_hash_table
 {
-    uint32_t bucket_count;          // Count of buckets.
-    volatile int32_t entry_count;   // Count of entries in the hash table.
+    size_t bucket_count;            // Count of buckets.
+    volatile size_t entry_count;    // Count of entries in the hash table.
+    size_t max_entry_count;         // Maximum number of entries allowed or EBPF_HASH_TABLE_NO_LIMIT if no maximum.
     uint32_t seed;                  // Seed used for hashing.
     size_t key_size;                // Size of key.
     size_t value_size;              // Size of value.
@@ -268,6 +269,13 @@ _ebpf_hash_table_bucket_insert(
     ebpf_hash_bucket_header_t* local_new_bucket = NULL;
     ebpf_hash_bucket_header_t* backup_bucket = NULL;
 
+    size_t new_entry_count = ebpf_interlocked_increment_int64((volatile int64_t*)&hash_table->entry_count);
+    if (new_entry_count > hash_table->max_entry_count && hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
+        ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
+        result = EBPF_OUT_OF_SPACE;
+        goto Done;
+    }
+
     // Allocate new bucket.
     local_new_bucket = hash_table->allocate(new_bucket_size);
     if (!local_new_bucket) {
@@ -336,7 +344,7 @@ _ebpf_hash_table_bucket_delete(
     if (old_bucket->count == 1) {
         ebpf_assert(backup_bucket == NULL);
         *new_bucket = backup_bucket;
-        return;
+        goto Done;
     }
     ebpf_assert(backup_bucket->count == old_bucket->count - 1);
 
@@ -370,6 +378,9 @@ _ebpf_hash_table_bucket_delete(
     }
 
     *new_bucket = backup_bucket;
+
+Done:
+    ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
 
     return;
 }
@@ -435,6 +446,7 @@ Done:
  * @retval EBPF_SUCCESS The operation succeeded.
  * @retval EBPF_KEY_NOT_FOUND The specified key is not present in the bucket.
  * @retval EBPF_NO_MEMORY Insufficient memory to construct new bucket or value.
+ * @retval EBPF_OUT_OF_SPACE Maximum number of entries reached.
  */
 static ebpf_result_t
 _ebpf_hash_table_replace_bucket(
@@ -524,15 +536,6 @@ _ebpf_hash_table_replace_bucket(
         goto Done;
     }
 
-    // If a value was deleted, decrement the count of values in the hash table.
-    if (old_data && !new_data) {
-        ebpf_interlocked_decrement_int32(&hash_table->entry_count);
-    }
-    // If a value was inserted, increment the count of values in the hash table.
-    if (!old_data && new_data) {
-        ebpf_interlocked_increment_int32(&hash_table->entry_count);
-    }
-
     // If a value was inserted and deleted, the count of values in the hash table did not change.
 
     // Update the bucket in the hash table.
@@ -555,7 +558,7 @@ Done:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_create(
     _Out_ ebpf_hash_table_t** hash_table,
     _In_ void* (*allocate)(size_t size),
@@ -563,6 +566,7 @@ ebpf_hash_table_create(
     size_t key_size,
     size_t value_size,
     size_t bucket_count,
+    size_t max_entries,
     _In_opt_ void (*extract)(
         _In_ const uint8_t* value,
         _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
@@ -590,10 +594,11 @@ ebpf_hash_table_create(
     table->value_size = value_size;
     table->allocate = allocate;
     table->free = free;
-    table->bucket_count = (uint32_t)bucket_count;
+    table->bucket_count = bucket_count;
     table->entry_count = 0;
     table->seed = ebpf_random_uint32();
     table->extract = extract;
+    table->max_entry_count = max_entries;
 
     *hash_table = table;
     retval = EBPF_SUCCESS;
@@ -626,7 +631,7 @@ ebpf_hash_table_destroy(_In_opt_ _Post_ptr_invalid_ ebpf_hash_table_t* hash_tabl
     hash_table->free(hash_table);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
 {
     ebpf_result_t retval;
@@ -666,7 +671,7 @@ Done:
     return retval;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_update(
     _In_ ebpf_hash_table_t* hash_table,
     _In_ const uint8_t* key,
@@ -701,7 +706,7 @@ Done:
     return retval;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
 {
     ebpf_result_t retval;
@@ -717,7 +722,7 @@ Done:
     return retval;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key_pointer_and_value(
     _In_ ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
@@ -791,7 +796,7 @@ Done:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key_and_value(
     _In_ ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
@@ -807,7 +812,7 @@ ebpf_hash_table_next_key_and_value(
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key(
     _In_ ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <Windows.h>
-
 #include <chrono>
 #include <filesystem>
 #include <map>
@@ -21,9 +19,8 @@
 #include "libfuzzer.h"
 #include "platform.h"
 
-extern "C" size_t ebfp_fuzzing_memory_limit;
+extern "C" size_t ebpf_fuzzing_memory_limit;
 
-static std::vector<std::unique_ptr<_program_info_provider>> _program_information_providers;
 static std::vector<GUID> _program_types = {
     EBPF_PROGRAM_TYPE_XDP,
     EBPF_PROGRAM_TYPE_BIND,
@@ -159,9 +156,12 @@ class fuzz_wrapper
   public:
     fuzz_wrapper()
     {
-        ebpf_core_initiate();
+        ebpf_result_t result = ebpf_core_initiate();
+        if (result != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_core_initiate failed");
+        }
         for (const auto& type : _program_types) {
-            _program_information_providers.push_back(std::make_unique<_program_info_provider>(type));
+            program_information_providers.push_back(std::make_unique<_program_info_provider>(type));
         }
         for (const auto& type : _program_types) {
             std::string name = "program name";
@@ -190,7 +190,9 @@ class fuzz_wrapper
     ~fuzz_wrapper()
     {
         for (auto& handle : handles) {
-            ebpf_handle_close(handle);
+            // Ignore errors.
+            // Fuzzing code is not expected to be correct.
+            (void)ebpf_handle_close(handle);
         };
         program_information_providers.clear();
         ebpf_core_terminate();
@@ -217,14 +219,18 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
     size_t minimum_request_size;
     size_t minimum_reply_size;
 
-    ebpf_core_get_protocol_handler_properties(operation_id, &minimum_request_size, &minimum_reply_size, &async);
+    ebpf_result_t result =
+        ebpf_core_get_protocol_handler_properties(operation_id, &minimum_request_size, &minimum_reply_size, &async);
+    if (result != EBPF_SUCCESS) {
+        return;
+    }
 
     if (random_buffer.size() < minimum_request_size) {
         return;
     }
 
     reply.resize(minimum_reply_size);
-    auto result = ebpf_core_invoke_protocol_handler(
+    result = ebpf_core_invoke_protocol_handler(
         operation_id,
         random_buffer.data(),
         static_cast<uint16_t>(random_buffer.size()),
@@ -240,7 +246,7 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***)
 {
-    ebfp_fuzzing_memory_limit = 1024 * 1024 * 10;
+    ebpf_fuzzing_memory_limit = 1024 * 1024 * 10;
     return 0;
 }
 

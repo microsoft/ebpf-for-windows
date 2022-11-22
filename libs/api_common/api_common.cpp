@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
-#include <Windows.h>
 
 #include "api_common.hpp"
 #include "ebpf_protocol.h"
@@ -26,7 +25,7 @@ allocate_string(const std::string& string, uint32_t* length) noexcept
 {
     char* new_string;
     size_t string_length = string.size() + 1;
-    new_string = (char*)malloc(string_length);
+    new_string = (char*)ebpf_allocate(string_length);
     if (new_string != nullptr) {
         strcpy_s(new_string, string_length, string.c_str());
         if (length != nullptr) {
@@ -59,7 +58,7 @@ get_file_size(const char* filename, size_t* byte_code_size) noexcept
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info(
     ebpf_handle_t handle,
     _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
@@ -93,7 +92,7 @@ ebpf_object_get_info(
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 query_map_definition(
     ebpf_handle_t handle,
     _Out_ uint32_t* type,

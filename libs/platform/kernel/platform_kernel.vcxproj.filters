@@ -34,9 +34,6 @@
     <ClCompile Include="..\ebpf_trampoline.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ebpf_extension_kernel.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ebpf_handle_kernel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -71,6 +68,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_interlocked.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ebpf_extension.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

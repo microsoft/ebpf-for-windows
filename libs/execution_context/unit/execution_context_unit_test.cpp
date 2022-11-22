@@ -740,7 +740,7 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
 
     ebpf_result_t result = ebpf_ring_buffer_map_async_query(map.get(), &completion.async_query_result, &completion);
     if (result != EBPF_PENDING) {
-        ebpf_async_reset_completion_callback(&completion);
+        REQUIRE(ebpf_async_reset_completion_callback(&completion) == EBPF_SUCCESS);
     }
     REQUIRE(result == EBPF_PENDING);
 
@@ -950,7 +950,7 @@ static empty_reply_t _empty_reply;
 typedef std::vector<uint8_t> ebpf_protocol_buffer_t;
 
 template <typename request_t, typename reply_t = empty_reply_t>
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 invoke_protocol(
     ebpf_operation_id_t operation_id,
     request_t& request,
@@ -1007,8 +1007,8 @@ invoke_protocol(
 extern bool _ebpf_platform_code_integrity_enabled;
 
 #define NEGATIVE_TEST_PROLOG()                                                            \
-    std::vector<std::unique_ptr<_program_info_provider>> program_info_providers;          \
     _ebpf_core_initializer core;                                                          \
+    std::vector<std::unique_ptr<_program_info_provider>> program_info_providers;          \
     for (const auto& type : _program_types) {                                             \
         program_info_providers.push_back(std::make_unique<_program_info_provider>(type)); \
     }                                                                                     \
@@ -1424,17 +1424,17 @@ TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT short header", "[execution_context][
     header->id = EBPF_OPERATION_GET_PINNED_OBJECT;
     header->length = 4; // Less than sizeof(ebpf_operation_header_t).
 
-    auto compeltion = [](void*, size_t, ebpf_result_t) {};
+    auto completion = [](void*, size_t, ebpf_result_t) {};
 
-    ebpf_result_t result = ebpf_core_invoke_protocol_handler(
-        EBPF_OPERATION_GET_PINNED_OBJECT,
-        request_ptr,
-        static_cast<uint16_t>(request_size),
-        reply_ptr,
-        static_cast<uint16_t>(reply_size),
-        nullptr,
-        compeltion);
-    REQUIRE(result == EBPF_INVALID_ARGUMENT);
+    REQUIRE(
+        ebpf_core_invoke_protocol_handler(
+            EBPF_OPERATION_GET_PINNED_OBJECT,
+            request_ptr,
+            static_cast<uint16_t>(request_size),
+            reply_ptr,
+            static_cast<uint16_t>(reply_size),
+            nullptr,
+            completion) == EBPF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("EBPF_OPERATION_LINK_PROGRAM", "[execution_context][negative]")
@@ -1450,7 +1450,7 @@ TEST_CASE("EBPF_OPERATION_LINK_PROGRAM", "[execution_context][negative]")
 
     // No provider.
     link_program_request->program_handle = program_handles[0];
-    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_EXTENSION_FAILED_TO_LOAD);
 }
 
 TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
@@ -1474,13 +1474,10 @@ TEST_CASE("EBPF_OPERATION_GET_PROGRAM_INFO", "[execution_context][negative]")
     // Invalid object type.
     REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_OBJECT);
 
-    // Invalid program type.
+    // Invalid program handle and type.
     request.program_handle = ebpf_handle_invalid;
-    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_ARGUMENT);
-
-    // Invalid handle and type.
-    request.program_handle = ebpf_handle_invalid;
-    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_ARGUMENT);
+    request.program_type = {0};
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_EXTENSION_FAILED_TO_LOAD);
 
     // Reply too small.
     request.program_handle = program_handles[0];
@@ -1558,17 +1555,17 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
     header->id = EBPF_OPERATION_LOAD_NATIVE_MODULE;
     header->length = 12; // Less than sizeof(ebpf_operation_load_native_module_request_t).
 
-    auto compeltion = [](void*, size_t, ebpf_result_t) {};
+    auto completion = [](void*, size_t, ebpf_result_t) {};
 
-    ebpf_result_t result = ebpf_core_invoke_protocol_handler(
-        EBPF_OPERATION_LOAD_NATIVE_MODULE,
-        request_ptr,
-        static_cast<uint16_t>(request_size),
-        reply_ptr,
-        static_cast<uint16_t>(reply_size),
-        nullptr,
-        compeltion);
-    REQUIRE(result == EBPF_ARITHMETIC_OVERFLOW);
+    REQUIRE(
+        ebpf_core_invoke_protocol_handler(
+            EBPF_OPERATION_LOAD_NATIVE_MODULE,
+            request_ptr,
+            static_cast<uint16_t>(request_size),
+            reply_ptr,
+            static_cast<uint16_t>(reply_size),
+            nullptr,
+            completion) == EBPF_ARITHMETIC_OVERFLOW);
 }
 
 // TODO: Add more native module loading IOCTL negative tests.

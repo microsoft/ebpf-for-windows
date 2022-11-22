@@ -3,8 +3,6 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include <Windows.h>
-
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
@@ -159,7 +157,10 @@ TEST_CASE("execution_context_direct", "[fuzz]")
             std::cout << std::dec << (i * 100) / iterations << "% completed" << std::endl;
         }
 
-        ebpf_core_get_protocol_handler_properties(operation_id, &minimum_request_size, &minimum_reply_size, &async);
+        if (ebpf_core_get_protocol_handler_properties(
+                operation_id, &minimum_request_size, &minimum_reply_size, &async) != EBPF_SUCCESS) {
+            continue;
+        }
 
         // TODO - Add support for fuzzing async requests.
         // https://github.com/microsoft/ebpf-for-windows/issues/897

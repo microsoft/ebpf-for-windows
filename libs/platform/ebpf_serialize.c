@@ -58,7 +58,7 @@ ebpf_map_info_array_free(uint16_t map_count, _In_opt_count_(map_count) _Post_ptr
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_serialize_internal_map_info_array(
     uint16_t map_count,
     _In_count_(map_count) const ebpf_map_info_internal_t* map_info,
@@ -134,7 +134,7 @@ Exit:
 
 #pragma warning(push)
 #pragma warning(disable : 6101) // ebpf_map_info_array_free at exit label
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_deserialize_map_info_array(
     size_t input_buffer_length,
     _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
@@ -264,7 +264,7 @@ ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_serialize_program_info(
     _In_ const ebpf_program_info_t* program_info,
     _Out_writes_bytes_to_(output_buffer_length, *serialized_data_length) uint8_t* output_buffer,
@@ -285,7 +285,7 @@ ebpf_serialize_program_info(
 
     *serialized_data_length = 0;
 
-    // Peform sanity check on input program info.
+    // Perform sanity check on input program info.
     program_type_descriptor = &program_info->program_type_descriptor;
 
     if (program_type_descriptor->name == NULL) {
@@ -450,7 +450,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_deserialize_program_info(
     size_t input_buffer_length,
     _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,

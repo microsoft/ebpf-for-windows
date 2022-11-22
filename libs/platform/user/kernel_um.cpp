@@ -4,8 +4,7 @@
 #include <condition_variable>
 #include <mutex>
 
-#include "netebpfext_platform.h"
-
+#include "ebpf_platform.h"
 #include "kernel_um.h"
 
 typedef struct _mock_rundown_ref
@@ -15,16 +14,6 @@ typedef struct _mock_rundown_ref
     size_t count = 0;
     bool rundown_in_progress = false;
 } mock_rundown_ref;
-
-typedef struct _MDL
-{
-    MDL* next;
-    size_t size;
-    uint64_t flags;
-    void* start_va;
-    unsigned long byte_offset;
-    unsigned long byte_count;
-} MDL, *PMDL;
 
 typedef struct _IO_WORKITEM
 {
@@ -147,7 +136,7 @@ ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_byte
 {
     UNREFERENCED_PARAMETER(pool_type);
     UNREFERENCED_PARAMETER(tag);
-    return malloc(number_of_bytes);
+    return ebpf_allocate(number_of_bytes);
 }
 
 void
@@ -185,7 +174,7 @@ IoAllocateMdl(
     UNREFERENCED_PARAMETER(charge_quota);
     UNREFERENCED_PARAMETER(irp);
 
-    mdl = reinterpret_cast<MDL*>(malloc(sizeof(MDL)));
+    mdl = reinterpret_cast<MDL*>(ebpf_allocate(sizeof(MDL)));
     if (mdl == NULL) {
         return mdl;
     }
@@ -211,7 +200,7 @@ io_work_item_wrapper(_Inout_ PTP_CALLBACK_INSTANCE instance, _Inout_opt_ PVOID c
 PIO_WORKITEM
 IoAllocateWorkItem(_In_ DEVICE_OBJECT* device_object)
 {
-    auto work_item = reinterpret_cast<IO_WORKITEM*>(malloc(sizeof(IO_WORKITEM)));
+    auto work_item = reinterpret_cast<IO_WORKITEM*>(ebpf_allocate(sizeof(IO_WORKITEM)));
     if (!work_item) {
         return nullptr;
     }

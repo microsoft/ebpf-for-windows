@@ -97,7 +97,16 @@ typedef uint8_t KIRQL;
 
 typedef KIRQL* PKIRQL;
 
-typedef struct _MDL MDL;
+typedef struct _MDL
+{
+    struct _MDL* next;
+    size_t size;
+    uint64_t flags;
+    void* start_va;
+    unsigned long byte_offset;
+    unsigned long byte_count;
+} MDL, *PMDL;
+
 typedef struct _IRP IRP;
 
 typedef enum _MM_PAGE_PRIORITY

@@ -51,16 +51,20 @@ Style Guide
 ### Automated Formatting with `clang-format`
 
 For all C/C++ files (`*.c`, `*.cpp` and `*.h`), we use `clang-format` (specifically
-version 3.6) to apply our code formatting rules. After modifying C/C++ files and
+version ```11.0.1```) to apply our code formatting rules. After modifying C/C++ files and
 before merging, be sure to run:
 
 ```sh
 $ ./scripts/format-code
 ```
 
-This allows us to apply formatting choices such as the use of [Allman style](
-http://en.wikipedia.org/wiki/Indent_style#Allman_style) braces and the 80
-character column width consistently.
+### Formatting Notes:
+
+Our coding conventions follow the [LLVM coding standards](https://llvm.org/docs/CodingStandards.html) with
+the following over-rides:
+
+* Source lines **MUST NOT** exceed 120 columns.
+* Single-line if/else/loop blocks **MUST** be enclosed in braces.
 
 Please stage the formatting changes with your commit, instead of making an extra
 "Format Code" commit. Your editor can likely be set up to automatically run

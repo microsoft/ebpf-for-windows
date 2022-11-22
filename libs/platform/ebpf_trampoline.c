@@ -22,7 +22,7 @@ typedef struct _ebpf_trampoline_table
     size_t entry_count;
 } ebpf_trampoline_table_t;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_allocate_trampoline_table(size_t entry_count, _Outptr_ ebpf_trampoline_table_t** trampoline_table)
 {
     EBPF_LOG_ENTRY();
@@ -63,7 +63,7 @@ ebpf_free_trampoline_table(_Frees_ptr_opt_ ebpf_trampoline_table_t* trampoline_t
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_update_trampoline_table(
     _Inout_ ebpf_trampoline_table_t* trampoline_table,
     uint32_t helper_function_count,
@@ -120,7 +120,7 @@ Exit:
 #endif
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_trampoline_function(_In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function)
 {
     EBPF_LOG_ENTRY();
@@ -146,7 +146,7 @@ Exit:
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_trampoline_helper_address(
     _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** helper_address)
 {

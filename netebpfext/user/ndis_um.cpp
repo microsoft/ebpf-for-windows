@@ -124,8 +124,8 @@ NdisAdvanceNetBufferDataStart(
     _In_ BOOLEAN free_mdl,
     _In_opt_ void* free_mdl_handler)
 {
-    UNREFERENCED_PARAMETER(net_buffer);
-    UNREFERENCED_PARAMETER(data_offset_delta);
     UNREFERENCED_PARAMETER(free_mdl);
     UNREFERENCED_PARAMETER(free_mdl_handler);
+    MDL* mdl_chain = net_buffer->MdlChain;
+    mdl_chain->byte_offset += data_offset_delta;
 }

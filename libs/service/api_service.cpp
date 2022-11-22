@@ -229,7 +229,7 @@ _query_and_cache_map_descriptors(
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_verify_and_load_program(
     _In_ const GUID* program_type,
     ebpf_handle_t program_handle,
@@ -311,7 +311,7 @@ ebpf_verify_and_load_program(
                 goto Exit;
             }
 
-            for (uint32_t helper_id = 0; helper_id < helper_id_address.size(); helper_id++) {
+            for (uint32_t helper_id = 0; (size_t)helper_id < helper_id_address.size(); helper_id++) {
                 if (ubpf_register(vm, helper_id, nullptr, reinterpret_cast<void*>(helper_id_address[helper_id])) < 0) {
                     result = EBPF_JIT_COMPILATION_FAILED;
                     goto Exit;
@@ -384,7 +384,7 @@ ebpf_service_initialize() noexcept
     // it will be re-attempted before an IOCTL call is made.
     // This is needed to ensure the service can successfully start
     // even if the driver is not installed.
-    initialize_device_handle();
+    (void)initialize_device_handle();
 
     return ERROR_SUCCESS;
 }

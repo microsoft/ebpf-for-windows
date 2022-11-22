@@ -99,10 +99,7 @@
     <ClCompile Include="..\net_ebpf_ext_tracelog.c" />
     <ClCompile Include="..\net_ebpf_ext_xdp.c" />
     <ClCompile Include="fwp_um.cpp" />
-    <ClCompile Include="kernel_um.cpp" />
     <ClCompile Include="ndis_um.cpp" />
-    <ClCompile Include="nmr_impl.cpp" />
-    <ClCompile Include="nmr_um.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\net_ebpf_ext.h" />
@@ -115,10 +112,8 @@
     <ClInclude Include="..\net_ebpf_ext_tracelog.h" />
     <ClInclude Include="..\net_ebpf_ext_xdp.h" />
     <ClInclude Include="fwp_um.h" />
-    <ClInclude Include="kernel_um.h" />
     <ClInclude Include="ndis.h" />
     <ClInclude Include="netebpfext_platform.h" />
-    <ClInclude Include="nmr_impl.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

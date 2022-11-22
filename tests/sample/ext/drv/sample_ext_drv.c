@@ -218,7 +218,7 @@ _sample_ebpf_ext_driver_io_device_control(
     size_t actual_output_length = 0;
     sample_program_context_t program_context = {0};
     uint32_t program_result = 0;
-    ebpf_result_t result;
+    ebpf_result_t result = EBPF_INVALID_ARGUMENT;
 
     device = WdfIoQueueGetDevice(queue);
 
@@ -355,12 +355,18 @@ _sample_ebpf_ext_driver_io_device_control(
         profile_request = input_buffer;
         profile_reply = output_buffer;
 
-        sample_ebpf_extension_profile_program(profile_request, actual_input_length, profile_reply);
+        result = sample_ebpf_extension_profile_program(profile_request, actual_input_length, profile_reply);
 
         break;
     }
     default:
+        result = EBPF_INVALID_ARGUMENT;
         break;
+    }
+
+    if (NT_SUCCESS(status) && (result != EBPF_SUCCESS)) {
+        status = STATUS_UNSUCCESSFUL;
+        goto Done;
     }
 
 Done:

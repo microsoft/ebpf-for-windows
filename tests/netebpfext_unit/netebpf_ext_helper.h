@@ -6,6 +6,16 @@
 #include <vector>
 
 #include "catch_wrapper.hpp"
+
+#ifdef FUZZER
+#undef REQUIRE
+#define REQUIRE(X)                 \
+    {                              \
+        bool x = (X);              \
+        UNREFERENCED_PARAMETER(x); \
+    }
+#endif
+
 #include "ebpf_extension_uuids.h"
 #include "ebpf_registry_helper.h"
 #include "net_ebpf_ext.h"

@@ -38,6 +38,8 @@ target_include_directories("fuzz" PRIVATE
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
   "${CMAKE_SOURCE_DIR}/tests/xdp"
   "${CMAKE_SOURCE_DIR}/tools/export_program_info"
+  "${WDK_ROOT}/include/10.0.22000.0/km"
+  "${WDK_ROOT}/include/10.0.22000.0/shared"
 )
 
 target_link_libraries("fuzz" PRIVATE

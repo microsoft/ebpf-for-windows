@@ -3,6 +3,15 @@
  *  SPDX-License-Identifier: MIT
  */
 #pragma once
+
+// We need the NET_BUFFER typedefs without the other NT kernel defines that
+// ndis.h might pull in and conflict with user-mode headers.
+#ifndef _NDIS_
+typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
+#pragma warning(disable : 4324) // structure was padded due to alignment specifier
+#include <ndis/nbl.h>
+#endif
+
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
@@ -41,27 +50,19 @@ typedef class _emulate_dpc
   public:
     _emulate_dpc(uint32_t cpu_id)
     {
-        uintptr_t new_process_affinity_mask = 1ull << cpu_id;
-        if (!GetProcessAffinityMask(GetCurrentProcess(), &old_process_affinity_mask, &old_system_affinity_mask)) {
-            throw new std::runtime_error("GetProcessAffinityMask failed");
-        }
-        if (!SetProcessAffinityMask(GetCurrentProcess(), new_process_affinity_mask)) {
-            throw new std::runtime_error("SetProcessAffinityMask failed");
-        }
+        uintptr_t new_thread_affinity_mask = 1ull << cpu_id;
+        ebpf_assert_success(ebpf_set_current_thread_affinity(new_thread_affinity_mask, &old_thread_affinity_mask));
         _ebpf_platform_is_preemptible = false;
     }
     ~_emulate_dpc()
     {
         _ebpf_platform_is_preemptible = true;
 
-        if (!SetProcessAffinityMask(GetCurrentProcess(), old_process_affinity_mask)) {
-            std::abort();
-        }
+        ebpf_restore_current_thread_affinity(old_thread_affinity_mask);
     }
 
   private:
-    uintptr_t old_process_affinity_mask;
-    uintptr_t old_system_affinity_mask;
+    uintptr_t old_thread_affinity_mask;
 
 } emulate_dpc_t;
 
@@ -70,7 +71,7 @@ typedef class _hook_helper
   public:
     _hook_helper(ebpf_attach_type_t attach_type) : _attach_type(attach_type) {}
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     attach_link(
         fd_t program_fd,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
@@ -89,9 +90,9 @@ typedef class _single_instance_hook : public _hook_helper
   public:
     _single_instance_hook(ebpf_program_type_t program_type, ebpf_attach_type_t attach_type)
         : _hook_helper{attach_type}, provider(nullptr), client_binding_context(nullptr), client_data(nullptr),
-          client_dispatch_table(nullptr), link_object(nullptr)
+          client_dispatch_table(nullptr), link_object(nullptr), client_registration_instance(nullptr),
+          nmr_binding_handle(nullptr)
     {
-        ebpf_guid_create(&client_id);
         attach_provider_data.supported_program_type = program_type;
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
@@ -105,8 +106,9 @@ typedef class _single_instance_hook : public _hook_helper
                 &provider_data,
                 nullptr,
                 this,
-                client_attach_callback,
-                client_detach_callback) == EBPF_SUCCESS);
+                provider_attach_client_callback,
+                provider_detach_client_callback,
+                nullptr) == EBPF_SUCCESS);
     }
     ~_single_instance_hook()
     {
@@ -133,13 +135,13 @@ typedef class _single_instance_hook : public _hook_helper
     detach()
     {
         if (link_object != nullptr) {
-            ebpf_link_detach(link_object);
+            REQUIRE(ebpf_link_detach(link_object) == EBPF_SUCCESS);
             ebpf_link_close(link_object);
             link_object = nullptr;
         }
     }
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     detach(
         fd_t program_fd,
         _In_reads_bytes_(attach_parameter_size) void* attach_parameter,
@@ -151,18 +153,24 @@ typedef class _single_instance_hook : public _hook_helper
     void
     detach_link(bpf_link* link)
     {
-        ebpf_link_detach(link);
+        REQUIRE(ebpf_link_detach(link) == EBPF_SUCCESS);
     }
 
     void
     close_link(bpf_link* link)
     {
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory '*link'.
         ebpf_link_close(link);
+#pragma warning(pop)
     }
 
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     fire(void* context, int* result)
     {
+        if (client_binding_context == nullptr) {
+            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        }
         ebpf_result_t (*invoke_program)(void* link, void* context, int* result) =
             reinterpret_cast<decltype(invoke_program)>(client_dispatch_table->function[0]);
 
@@ -170,35 +178,42 @@ typedef class _single_instance_hook : public _hook_helper
     }
 
   private:
-    static ebpf_result_t
-    client_attach_callback(
-        ebpf_handle_t nmr_binding_handle,
-        void* context,
-        const GUID* client_id,
-        void* client_binding_context,
-        const ebpf_extension_data_t* client_data,
-        const ebpf_extension_dispatch_table_t* client_dispatch_table)
+    static NTSTATUS
+    provider_attach_client_callback(
+        HANDLE nmr_binding_handle,
+        _Inout_ void* provider_context,
+        _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
+        _In_ void* client_binding_context,
+        _In_ const void* client_dispatch,
+        _Out_ void** provider_binding_context,
+        _Out_ const void** provider_dispatch)
     {
-        auto hook = reinterpret_cast<_single_instance_hook*>(context);
+        auto hook = reinterpret_cast<_single_instance_hook*>(provider_context);
+
         if (hook->client_binding_context != nullptr) {
-            return EBPF_OPERATION_NOT_SUPPORTED;
+            // Can't attach a single-instance provider to a second client.
+            return STATUS_NOINTERFACE;
         }
         UNREFERENCED_PARAMETER(nmr_binding_handle);
-        hook->client_id = *client_id;
+        hook->client_registration_instance = client_registration_instance;
         hook->client_binding_context = client_binding_context;
-        hook->client_data = client_data;
-        hook->client_dispatch_table = client_dispatch_table;
-        return EBPF_SUCCESS;
+        hook->nmr_binding_handle = nmr_binding_handle;
+        hook->client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
+        *provider_binding_context = provider_context;
+        *provider_dispatch = NULL;
+        return STATUS_SUCCESS;
     };
 
-    static ebpf_result_t
-    client_detach_callback(void* context, const GUID* client_id)
+    static NTSTATUS
+    provider_detach_client_callback(_In_ void* provider_binding_context)
     {
-        auto hook = reinterpret_cast<_single_instance_hook*>(context);
+        auto hook = reinterpret_cast<_single_instance_hook*>(provider_binding_context);
         hook->client_binding_context = nullptr;
         hook->client_data = nullptr;
         hook->client_dispatch_table = nullptr;
-        UNREFERENCED_PARAMETER(client_id);
+
+        // There should be no in-progress calls to any client functions,
+        // we we can return success rather than pending.
         return EBPF_SUCCESS;
     };
     ebpf_attach_type_t attach_type;
@@ -207,10 +222,11 @@ typedef class _single_instance_hook : public _hook_helper
     ebpf_extension_data_t provider_data = {
         EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(attach_provider_data), &attach_provider_data};
     ebpf_extension_provider_t* provider;
-    GUID client_id;
+    PNPI_REGISTRATION_INSTANCE client_registration_instance;
     void* client_binding_context;
     const ebpf_extension_data_t* client_data;
     const ebpf_extension_dispatch_table_t* client_dispatch_table;
+    HANDLE nmr_binding_handle;
     bpf_link* link_object;
 } single_instance_hook_t;
 
@@ -218,7 +234,17 @@ typedef class xdp_md_helper : public xdp_md_t
 {
   public:
     xdp_md_helper(std::vector<uint8_t>& packet)
-        : xdp_md_t{packet.data(), packet.data() + packet.size()}, _packet(&packet), _begin(0), _end(packet.size()){};
+        : xdp_md_t{packet.data(), packet.data() + packet.size()}, _packet(&packet), _begin(0), _end(packet.size()),
+          cloned_nbl(nullptr)
+    {
+        original_nbl = &_original_nbl_storage;
+        _original_nbl_storage.FirstNetBuffer = &_original_nb;
+        _original_nb.DataLength = (ULONG)packet.size();
+        _original_nb.MdlChain = &_original_mdl;
+        _original_mdl.byte_count = (ULONG)packet.size();
+        _original_mdl.start_va = packet.data();
+    }
+
     int
     adjust_head(int delta)
     {
@@ -256,8 +282,13 @@ typedef class xdp_md_helper : public xdp_md_t
     Done:
         return return_value;
     }
+    NET_BUFFER_LIST* original_nbl;
+    NET_BUFFER_LIST* cloned_nbl;
 
   private:
+    NET_BUFFER_LIST _original_nbl_storage;
+    NET_BUFFER _original_nb;
+    MDL _original_mdl;
     std::vector<uint8_t>* _packet;
     size_t _begin;
     size_t _end;
@@ -344,13 +375,46 @@ typedef class _program_info_provider
                 nullptr,
                 provider_data,
                 nullptr,
-                nullptr,
-                nullptr,
+                this,
+                provider_attach_client_callback,
+                provider_detach_client_callback,
                 nullptr) == EBPF_SUCCESS);
     }
     ~_program_info_provider() { ebpf_provider_unload(provider); }
 
   private:
+    static NTSTATUS
+    provider_attach_client_callback(
+        HANDLE nmr_binding_handle,
+        _Inout_ void* provider_context,
+        _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
+        _In_ void* client_binding_context,
+        _In_ const void* client_dispatch,
+        _Out_ void** provider_binding_context,
+        _Out_ const void** provider_dispatch)
+    {
+        auto hook = reinterpret_cast<_program_info_provider*>(provider_context);
+        UNREFERENCED_PARAMETER(nmr_binding_handle);
+        UNREFERENCED_PARAMETER(client_dispatch);
+        UNREFERENCED_PARAMETER(client_binding_context);
+        UNREFERENCED_PARAMETER(client_registration_instance);
+        UNREFERENCED_PARAMETER(hook);
+        *provider_binding_context = provider_context;
+        *provider_dispatch = NULL;
+        return STATUS_SUCCESS;
+    };
+
+    static NTSTATUS
+    provider_detach_client_callback(_In_ void* provider_binding_context)
+    {
+        auto hook = reinterpret_cast<_program_info_provider*>(provider_binding_context);
+        UNREFERENCED_PARAMETER(hook);
+
+        // There should be no in-progress calls to any client functions,
+        // we we can return success rather than pending.
+        return EBPF_SUCCESS;
+    };
+
     ebpf_program_type_t program_type;
 
     ebpf_extension_data_t* provider_data;

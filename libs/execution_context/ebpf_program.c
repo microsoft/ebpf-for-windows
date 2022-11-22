@@ -39,7 +39,7 @@ typedef struct _ebpf_program
         // EBPF_CODE_NATIVE
         struct
         {
-            const ebpf_native_module_t* module;
+            const ebpf_native_module_binding_context_t* module;
             const uint8_t* code_pointer;
         } native;
     } code_or_vm;
@@ -75,7 +75,7 @@ typedef struct _ebpf_program
 static ebpf_result_t
 _ebpf_program_register_helpers(_In_ const ebpf_program_t* program);
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_initiate()
 {
     return ebpf_state_allocate_index(&_ebpf_program_state_index);
@@ -83,7 +83,8 @@ ebpf_program_initiate()
 
 void
 ebpf_program_terminate()
-{}
+{
+}
 
 static void
 _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
@@ -143,6 +144,7 @@ _ebpf_program_program_info_provider_changed(
             ebpf_program_info_t* program_info = program_data->program_info;
             ebpf_helper_function_prototype_t* helper_prototypes = NULL;
             ebpf_assert(program_info != NULL);
+            _Analysis_assume_(program_info != NULL);
             if (program_info->count_of_helpers != helper_function_addresses->helper_function_count) {
                 EBPF_LOG_MESSAGE_GUID(
                     EBPF_TRACELOG_LEVEL_ERROR,
@@ -281,7 +283,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
         break;
 #endif
     case EBPF_CODE_NATIVE:
-        ebpf_native_release_reference((ebpf_native_module_t*)program->code_or_vm.native.module);
+        ebpf_native_release_reference((ebpf_native_module_binding_context_t*)program->code_or_vm.native.module);
         break;
     case EBPF_CODE_NONE:
         break;
@@ -303,13 +305,16 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
 }
 
 static ebpf_result_t
-ebpf_program_load_providers(ebpf_program_t* program)
+ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     void* provider_binding_context;
     ebpf_program_data_t* general_helper_program_data = NULL;
     GUID module_id = {0};
+
+    // First, register as a client of the general helper function
+    // provider and get the general helper program data.
 
     return_value = ebpf_guid_create(&module_id);
     if (return_value != EBPF_SUCCESS) {
@@ -361,6 +366,9 @@ ebpf_program_load_providers(ebpf_program_t* program)
         goto Done;
     }
 
+    // Next, register as a client of the specific program type
+    // provider and get the data associated with that program type.
+
     return_value = ebpf_guid_create(&module_id);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
@@ -392,7 +400,7 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_create(_Outptr_ ebpf_program_t** program)
 {
     EBPF_LOG_ENTRY();
@@ -433,7 +441,7 @@ Done:
     EBPF_RETURN_RESULT(retval);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program_parameters_t* program_parameters)
 {
     EBPF_LOG_ENTRY();
@@ -516,7 +524,7 @@ ebpf_expected_attach_type(_In_ const ebpf_program_t* program)
     return &ebpf_program_get_parameters(program)->expected_attach_type;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
 {
     EBPF_LOG_ENTRY();
@@ -547,7 +555,7 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t maps_count)
 {
     EBPF_LOG_ENTRY();
@@ -622,7 +630,7 @@ _ebpf_program_load_machine_code(
         program->code_or_vm.native.code_pointer = machine_code;
         // Acquire reference on the native module. This reference
         // will be released when the ebpf_program is freed.
-        ebpf_native_acquire_reference((ebpf_native_module_t*)code_context);
+        ebpf_native_acquire_reference((ebpf_native_module_binding_context_t*)code_context);
     }
 
     return_value = EBPF_SUCCESS;
@@ -748,7 +756,7 @@ Done:
 }
 #endif
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_load_code(
     _Inout_ ebpf_program_t* program,
     ebpf_code_type_t code_type,
@@ -789,7 +797,7 @@ typedef struct _ebpf_program_tail_call_state
     uint32_t count;
 } ebpf_program_tail_call_state_t;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
 {
     // High volume call - Skip entry/exit logging.
@@ -861,7 +869,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
         }
     }
 
-    ebpf_state_store(_ebpf_program_state_index, 0);
+    ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0));
 }
 
 static ebpf_result_t
@@ -884,13 +892,19 @@ _ebpf_program_get_helper_function_address(
         *address = (uint64_t)function_address;
     } else {
         ebpf_assert(program->general_helper_provider_data != NULL);
+        _Analysis_assume_(program->general_helper_provider_data != NULL);
         ebpf_program_data_t* general_helper_program_data =
             (ebpf_program_data_t*)program->general_helper_provider_data->data;
+
+        ebpf_assert(general_helper_program_data != NULL);
+        _Analysis_assume_(general_helper_program_data != NULL);
 
         ebpf_helper_function_addresses_t* general_helper_function_addresses =
             general_helper_program_data->helper_function_addresses;
 
         ebpf_assert(general_helper_function_addresses != NULL);
+        _Analysis_assume_(general_helper_function_addresses != NULL);
+
         if (helper_function_id > general_helper_function_addresses->helper_function_count) {
             return EBPF_INVALID_ARGUMENT;
         }
@@ -900,7 +914,7 @@ _ebpf_program_get_helper_function_address(
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_get_helper_function_addresses(
     _In_ const ebpf_program_t* program, size_t addresses_count, _Out_writes_(addresses_count) uint64_t* addresses)
 {
@@ -923,7 +937,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_set_helper_function_ids(
     _Inout_ ebpf_program_t* program,
     const size_t helper_function_count,
@@ -960,7 +974,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_program_info_t** program_info)
 {
     EBPF_LOG_ENTRY();
@@ -1082,7 +1096,7 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_get_info(
     _In_ const ebpf_program_t* program,
     _In_reads_(*info_size) const uint8_t* input_buffer,
@@ -1139,7 +1153,7 @@ ebpf_program_get_info(
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_create_and_initialize(
     _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle)
 {

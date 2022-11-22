@@ -43,7 +43,7 @@ _ebpf_link_free(ebpf_core_object_t* object)
     ebpf_epoch_free(link);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_link_create(ebpf_link_t** link)
 {
     EBPF_LOG_ENTRY();
@@ -63,7 +63,7 @@ ebpf_link_create(ebpf_link_t** link)
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_link_initialize(
     ebpf_link_t* link, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length)
 {
@@ -127,7 +127,7 @@ Exit:
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
@@ -163,21 +163,21 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
 {
     EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;
-    ebpf_program_t* program;
+    ebpf_program_t* program = NULL;
 
     state = ebpf_lock_lock(&link->attach_lock);
-    if (!link->program) {
-        ebpf_lock_unlock(&link->attach_lock, state);
-        return;
+    if (link->program != NULL) {
+        program = link->program;
+        link->program = NULL;
     }
-
-    program = link->program;
-    link->program = NULL;
     ebpf_lock_unlock(&link->attach_lock, state);
 
-    ebpf_program_detach_link(program, link);
+    if (program != NULL) {
+        ebpf_program_detach_link(program, link);
+    }
 
     ebpf_extension_unload(link->extension_client_context);
+    link->extension_client_context = NULL;
     ebpf_free(link->client_data.data);
     link->client_data.data = NULL;
     link->client_data.size = 0;
@@ -210,7 +210,7 @@ Exit:
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_link_get_info(
     _In_ const ebpf_link_t* link, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
 {

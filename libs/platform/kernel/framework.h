@@ -17,7 +17,11 @@
 #define true 1
 #define false 0
 
+#ifdef _DEBUG
 #define ebpf_assert(x) ASSERT(x)
+#else
+#define ebpf_assert(x) (void)(x)
+#endif // !_DEBUG
 
 #define ebpf_list_entry_t LIST_ENTRY
 

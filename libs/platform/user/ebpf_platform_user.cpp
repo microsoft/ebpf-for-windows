@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_platform.h"
-#include "ebpf_utilities.h"
+
 #include <intsafe.h>
 #include <functional>
 #include <map>
@@ -12,8 +12,12 @@
 #include <set>
 #include <stdbool.h>
 #include <stdint.h>
-#include <vector>
+#include <string>
 #include <TraceLoggingProvider.h>
+#include <vector>
+
+#include "ebpf_low_memory_test.h"
+#include "ebpf_utilities.h"
 
 // Global variables used to override behavior for testing.
 // Permit the test to simulate both Hyper-V Code Integrity.
@@ -22,7 +26,15 @@ bool _ebpf_platform_code_integrity_enabled = false;
 bool _ebpf_platform_is_preemptible = true;
 
 extern "C" bool ebpf_fuzzing_enabled = false;
-extern "C" size_t ebfp_fuzzing_memory_limit = MAXSIZE_T;
+extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
+
+std::unique_ptr<ebpf_low_memory_test_t> _ebpf_low_memory_test_ptr;
+
+/**
+ * @brief Environment variable to enable low memory testing.
+ *
+ */
+#define EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME "EBPF_LOW_MEMORY_SIMULATION"
 
 // Thread pool related globals.
 static TP_CALLBACK_ENVIRON _callback_environment;
@@ -130,7 +142,7 @@ class _ebpf_emulated_dpc
             ebpf_non_preemptible = true;
             std::unique_lock<std::mutex> l(mutex);
             uintptr_t old_thread_affinity;
-            ebpf_set_current_thread_affinity(1ull << i, &old_thread_affinity);
+            ebpf_assert_success(ebpf_set_current_thread_affinity(1ull << i, &old_thread_affinity));
             SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
             for (;;) {
                 if (terminate) {
@@ -213,13 +225,34 @@ class _ebpf_emulated_dpc
     bool terminate;
 };
 
-ebpf_result_t
+static std::string
+_get_environment_variable(const std::string& name)
+{
+    std::string value;
+    size_t required_size = 0;
+    getenv_s(&required_size, nullptr, 0, name.c_str());
+    if (required_size > 0) {
+        value.resize(required_size);
+        getenv_s(&required_size, &value[0], required_size, name.c_str());
+        value.resize(required_size - 1);
+    }
+    return value;
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
 
     try {
         _ebpf_platform_maximum_group_count = GetMaximumProcessorGroupCount();
         _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
+        auto low_memory_stack_depth = _get_environment_variable(EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
+        if (!low_memory_stack_depth.empty() && !_ebpf_low_memory_test_ptr) {
+            _ebpf_low_memory_test_ptr =
+                std::make_unique<ebpf_low_memory_test_t>(std::strtoul(low_memory_stack_depth.c_str(), nullptr, 10));
+            // Set flag to remove some asserts that fire from incorrect client behavior.
+            ebpf_fuzzing_enabled = true;
+        }
 
         for (size_t i = 0; i < ebpf_get_cpu_count(); i++) {
             _ebpf_emulated_dpcs.push_back(std::make_shared<_ebpf_emulated_dpc>(i));
@@ -227,9 +260,9 @@ ebpf_platform_initiate()
         // Compute the starting index of each processor group.
         _ebpf_platform_group_to_index_map.resize(_ebpf_platform_maximum_group_count);
         uint32_t base_index = 0;
-        for (uint16_t i = 0; i < _ebpf_platform_group_to_index_map.size(); i++) {
+        for (size_t i = 0; i < _ebpf_platform_group_to_index_map.size(); i++) {
             _ebpf_platform_group_to_index_map[i] = base_index;
-            base_index += GetMaximumProcessorCount(i);
+            base_index += GetMaximumProcessorCount((uint16_t)i);
         }
     } catch (...) {
         return EBPF_NO_MEMORY;
@@ -245,7 +278,7 @@ ebpf_platform_terminate()
     _ebpf_emulated_dpcs.resize(0);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 {
     EBPF_LOG_ENTRY();
@@ -259,13 +292,24 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
+bool
+ebpf_low_memory_test_in_progress()
+{
+    return _ebpf_low_memory_test_ptr != nullptr;
+}
+
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
 {
     ebpf_assert(size);
-    if (size > ebfp_fuzzing_memory_limit) {
+    if (size > ebpf_fuzzing_memory_limit) {
         return nullptr;
     }
+
+    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
+        return nullptr;
+    }
+
     void* memory;
     memory = calloc(size, 1);
     if (memory != nullptr)
@@ -278,9 +322,14 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(new_size) void* ebpf_reallocate(_In_ void* memory, size_t old_size, size_t new_size)
 {
     UNREFERENCED_PARAMETER(old_size);
-    if (new_size > ebfp_fuzzing_memory_limit) {
+    if (new_size > ebpf_fuzzing_memory_limit) {
         return nullptr;
     }
+
+    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
+        return nullptr;
+    }
+
     void* p = realloc(memory, new_size);
     if (p && (new_size > old_size))
         memset(((char*)p) + old_size, 0, new_size - old_size);
@@ -296,7 +345,11 @@ ebpf_free(_Frees_ptr_opt_ void* memory)
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate_cache_aligned(size_t size)
 {
-    if (size > ebfp_fuzzing_memory_limit) {
+    if (size > ebpf_fuzzing_memory_limit) {
+        return nullptr;
+    }
+
+    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
         return nullptr;
     }
 
@@ -331,7 +384,7 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 ebpf_memory_descriptor_t*
 ebpf_map_memory(size_t length)
 {
-    ebpf_memory_descriptor_t* descriptor = (ebpf_memory_descriptor_t*)malloc(sizeof(ebpf_memory_descriptor_t));
+    ebpf_memory_descriptor_t* descriptor = (ebpf_memory_descriptor_t*)ebpf_allocate(sizeof(ebpf_memory_descriptor_t));
     if (!descriptor) {
         return nullptr;
     }
@@ -522,7 +575,7 @@ ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring)
     EBPF_RETURN_POINTER(void*, ebpf_ring_descriptor_get_base_address(ring));
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
     EBPF_LOG_ENTRY();
@@ -632,7 +685,7 @@ ebpf_query_time_since_boot(bool include_suspended_time)
     return interrupt_time;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
 {
     uintptr_t old_mask = SetThreadAffinityMask(GetCurrentThread(), new_thread_affinity_mask);
@@ -679,7 +732,7 @@ ebpf_get_current_thread_id()
     return GetCurrentThreadId();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
     _Out_ ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
@@ -742,7 +795,7 @@ ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item)
     SubmitThreadpoolWork(work_item->work);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_allocate_preemptible_work_item(
     _Outptr_ ebpf_preemptible_work_item_t** work_item,
     _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
@@ -787,7 +840,7 @@ _ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* c
         timer_work_item->work_item_routine(timer_work_item->work_item_context);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_allocate_timer_work_item(
     _Out_ ebpf_timer_work_item_t** work_item,
     _In_ void (*work_item_routine)(void* work_item_context),
@@ -847,7 +900,7 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
     ebpf_free(work_item);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_guid_create(_Out_ GUID* new_guid)
 {
     if (UuidCreate(new_guid) == RPC_S_OK)
@@ -870,7 +923,7 @@ ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
     return 0;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_access_check(
     _In_ ebpf_security_descriptor_t* security_descriptor,
     ebpf_security_access_mask_t request_access,
@@ -919,7 +972,7 @@ Done:
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_validate_security_descriptor(
     _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
@@ -980,7 +1033,7 @@ ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
     return bytes_written;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_update_global_helpers(
     _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
 {

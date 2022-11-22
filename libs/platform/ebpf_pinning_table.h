@@ -29,7 +29,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  pinning table.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table);
 
     /**
@@ -51,7 +51,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  entry.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_pinning_table_insert(
         ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t* object);
 
@@ -66,7 +66,7 @@ extern "C"
      * @retval EBPF_OBJECT_NOT_FOUND The path is not present in the pinning
      *  table.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_pinning_table_find(
         ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t** object);
 
@@ -80,7 +80,7 @@ extern "C"
      * @retval EBPF_OBJECT_NOT_FOUND The path is not present in the pinning
      *  table.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path);
 
     /**
@@ -94,7 +94,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Output array of entries could not be allocated.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_pinning_table_enumerate_entries(
         _In_ ebpf_pinning_table_t* pinning_table,
         ebpf_object_type_t object_type,
@@ -111,7 +111,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS No more entries found.
      */
-    ebpf_result_t
+    _Must_inspect_result_ ebpf_result_t
     ebpf_pinning_table_get_next_path(
         _In_ ebpf_pinning_table_t* pinning_table,
         ebpf_object_type_t object_type,

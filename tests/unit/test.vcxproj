@@ -166,9 +166,6 @@
     <ProjectReference Include="..\..\libs\service\service.vcxproj">
       <Project>{af85c549-57cc-40a5-bdfc-dcf1998de80f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\libs\spec\spec.vcxproj">
-      <Project>{c3d2cd73-bf4c-47df-8808-2a9996124d5b}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\libs\ubpf\user\ubpf_user.vcxproj">
       <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>
     </ProjectReference>

@@ -40,7 +40,7 @@ typedef enum _ebpf_pool_tag
 static KDEFERRED_ROUTINE _ebpf_deferred_routine;
 static KDEFERRED_ROUTINE _ebpf_timer_routine;
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
     _ebpf_platform_maximum_processor_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
@@ -142,7 +142,7 @@ ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
     EBPF_LOG_ENTRY();
@@ -317,7 +317,7 @@ NtQuerySystemInformation(
     uint32_t* return_length);
 // End code pulled from winternl.h.
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 {
     NTSTATUS status;
@@ -385,7 +385,7 @@ _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVE
     KeReleaseSpinLock(lock, state);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
 {
     if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
@@ -446,7 +446,7 @@ _ebpf_deferred_routine(
     deferred_routine_context->work_item_routine(deferred_context, system_argument_1);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
     _Out_ ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
@@ -503,7 +503,7 @@ _ebpf_preemptible_routine(_In_ PDEVICE_OBJECT device_object, _In_opt_ PVOID cont
     ebpf_free(work_item);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_allocate_preemptible_work_item(
     _Outptr_ ebpf_preemptible_work_item_t** work_item,
     _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
@@ -555,7 +555,7 @@ _ebpf_timer_routine(
     timer_work_item->work_item_routine(deferred_context);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_allocate_timer_work_item(
     _Out_ ebpf_timer_work_item_t** timer_work_item,
     _In_ void (*work_item_routine)(void* work_item_context),
@@ -617,7 +617,7 @@ ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
     return 0;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_access_check(
     _In_ ebpf_security_descriptor_t* security_descriptor,
     ebpf_security_access_mask_t request_access,
@@ -650,7 +650,7 @@ ebpf_access_check(
     return result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_validate_security_descriptor(
     _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
@@ -699,7 +699,7 @@ ebpf_query_time_since_boot(bool include_suspended_time)
     }
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_guid_create(_Out_ GUID* new_guid)
 {
     if (NT_SUCCESS(ExUuidCreate(new_guid)))
@@ -731,7 +731,7 @@ ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
     return bytes_written;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_update_global_helpers(
     _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
 {

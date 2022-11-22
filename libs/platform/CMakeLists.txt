@@ -85,6 +85,7 @@ set(platform_user_sources
   ebpf_program_types.c
   ebpf_error.c
   ebpf_etw.c
+  ebpf_extension.c
   ebpf_hash_table.c
   ebpf_interlocked.c
   ebpf_serialize.c
@@ -104,10 +105,13 @@ set(platform_kernel_include_dirs
 add_library("platform_user" STATIC
   ${platform_user_sources}
   user/framework.h
-  user/ebpf_extension_user.c
   user/ebpf_handle_user.c
+  user/ebpf_low_memory_test.cpp
   user/ebpf_platform_user.cpp
   user/ebpf_native_user.c
+  user/kernel_um.cpp
+  user/nmr_impl.cpp
+  user/nmr_um.cpp
 )
 
 target_include_directories("platform_user" PRIVATE
@@ -132,7 +136,6 @@ target_compile_definitions("platform_user" PRIVATE
 
 wdk_add_library("platform_kernel" STATIC WINVER "${EBPFFORWINDOWS_WDK_WINVER}"
   ${platform_user_sources}
-  kernel/ebpf_extension_kernel.c
   kernel/ebpf_handle_kernel.c
   kernel/ebpf_platform_kernel.c
   kernel/ebpf_native_kernel.c

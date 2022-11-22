@@ -106,7 +106,38 @@ static ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
     sizeof(_ebpf_global_helper_function_program_data),
     &_ebpf_global_helper_function_program_data};
 
-ebpf_result_t
+NTSTATUS
+ebpf_general_helper_function_provider_attach_client(
+    HANDLE nmr_binding_handle,
+    _Inout_ void* provider_context,
+    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
+    _In_ void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Out_ void** provider_binding_context,
+    _Out_ const void** provider_dispatch)
+{
+    UNREFERENCED_PARAMETER(nmr_binding_handle);
+    UNREFERENCED_PARAMETER(provider_context);
+    UNREFERENCED_PARAMETER(client_registration_instance);
+    UNREFERENCED_PARAMETER(client_binding_context);
+    UNREFERENCED_PARAMETER(client_dispatch);
+
+    *provider_binding_context = NULL;
+    *provider_dispatch = NULL;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+ebpf_general_helper_function_provider_detach_client(_Inout_ void* provider_binding_context)
+{
+    UNREFERENCED_PARAMETER(provider_binding_context);
+
+    // There are no outstanding calls to the client dispatch table,
+    // so return success synchronously.
+    return STATUS_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_initiate()
 {
     ebpf_result_t return_value;
@@ -162,7 +193,8 @@ ebpf_core_initiate()
         &_ebpf_global_helper_function_extension_data,
         NULL,
         NULL,
-        NULL,
+        ebpf_general_helper_function_provider_attach_client,
+        ebpf_general_helper_function_provider_detach_client,
         NULL);
 
     if (return_value != EBPF_SUCCESS) {
@@ -208,7 +240,7 @@ ebpf_core_terminate()
     // Terminate native module. This is a blocking call and will return only when
     // all the native drivers have been detached and unloaded. Hence this needs
     // to be called after ebpf_epoch_terminate() to ensure all the program epoch
-    // cleanup workitems have been executed by this time.
+    // cleanup work items have been executed by this time.
     ebpf_native_terminate();
 
     // Verify that all ebpf_core_object_t objects have been freed.
@@ -219,7 +251,7 @@ ebpf_core_terminate()
     ebpf_platform_terminate();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_load_code(
     ebpf_handle_t program_handle,
     ebpf_code_type_t code_type,
@@ -285,7 +317,7 @@ Done:
     EBPF_RETURN_RESULT(retval);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_helper(
     ebpf_handle_t program_handle,
     const size_t count_of_helpers,
@@ -358,7 +390,7 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_maps(
     ebpf_handle_t program_handle,
     uint32_t count_of_maps,
@@ -432,7 +464,7 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_create_map(
     _In_ const ebpf_utf8_string_t* map_name,
     _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
@@ -652,7 +684,14 @@ Done:
     // If this call failed, stop the native driver. ebpfapi will create a
     // new service for the driver in the next attempt.
     if (result != EBPF_SUCCESS) {
-        ebpf_native_unload(&request->module_id);
+        ebpf_result_t native_unload_result = ebpf_native_unload(&request->module_id);
+        if (native_unload_result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "Failed to unload native driver",
+                request->module_id);
+        }
     }
 
     EBPF_RETURN_RESULT(result);
@@ -889,7 +928,7 @@ Done:
     EBPF_RETURN_RESULT(retval);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const ebpf_utf8_string_t* path)
 {
     EBPF_LOG_ENTRY();
@@ -935,7 +974,7 @@ Done:
     EBPF_RETURN_RESULT(retval);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_get_pinned_object(_In_ const ebpf_utf8_string_t* path, _Out_ ebpf_handle_t* handle)
 {
     EBPF_LOG_ENTRY();
@@ -1338,7 +1377,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_handle_t* handle)
 {
     EBPF_LOG_ENTRY();
@@ -1986,7 +2025,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(load_native_programs, data, PROTOCOL_NATIVE_MODE),
 };
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_get_protocol_handler_properties(
     ebpf_operation_id_t operation_id,
     _Out_ size_t* minimum_request_size,
@@ -2038,7 +2077,7 @@ ebpf_core_get_protocol_handler_properties(
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_invoke_protocol_handler(
     ebpf_operation_id_t operation_id,
     _In_reads_bytes_(input_buffer_length) const void* input_buffer,
@@ -2161,7 +2200,7 @@ ebpf_core_invoke_protocol_handler(
         retval =
             handler->dispatch.async_protocol_handler_with_reply(request, reply, output_buffer_length, async_context);
         if ((retval != EBPF_SUCCESS) && (retval != EBPF_PENDING)) {
-            ebpf_async_reset_completion_callback(async_context);
+            ebpf_assert_success(ebpf_async_reset_completion_callback(async_context));
         }
         break;
 

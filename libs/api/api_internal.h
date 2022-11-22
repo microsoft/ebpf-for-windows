@@ -137,7 +137,7 @@ ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_unload(_In_ struct bpf_program* program) noexcept;
 
 /**
@@ -149,7 +149,7 @@ ebpf_program_unload(_In_ struct bpf_program* program) noexcept;
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_bind_map(fd_t program_fd, fd_t map_fd) noexcept;
 
 /**
@@ -188,7 +188,7 @@ ebpf_map_previous(_In_opt_ const struct bpf_map* next, _In_ const struct bpf_obj
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_create(
     enum bpf_map_type map_type,
     _In_opt_z_ const char* map_name,
@@ -226,7 +226,7 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache) noexcep
  *
  * @retval EBPF_SUCCESS The operation was successful.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept;
 
 /**
@@ -236,7 +236,7 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept;
  *
  * @retval EBPF_SUCCESS The operation was successful.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept;
 
 /**
@@ -244,11 +244,11 @@ ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept;
  * @param[in] map Pointer to eBPF map.
  * @param[in] path Pin path for the map.
  *
- * @retval EBPF_SUCCESS The API suceeded.
+ * @retval EBPF_SUCCESS The API succeeded.
  * @retval EBPF_NO_MEMORY Out of memory.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept;
 
 /**
@@ -260,7 +260,7 @@ ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noe
  *
  * @retval EBPF_SUCCESS The operation was successful.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* value, uint64_t flags) noexcept;
 
 /**
@@ -271,7 +271,7 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
  *
  * @retval EBPF_SUCCESS The operation was successful.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) noexcept;
 
 /**
@@ -285,7 +285,7 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) noexcept;
  *
  * @retval EBPF_SUCCESS The operation was successful.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) noexcept;
 
 /**
@@ -300,7 +300,7 @@ ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value
  *
  * @retval EBPF_SUCCESS The operation was successful.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) noexcept;
 
 /**
@@ -315,7 +315,7 @@ ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ 
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MORE_KEYS previous_key was the last key.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key) noexcept;
 
 /**
@@ -326,7 +326,7 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_FD The file descriptor was not valid.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_detach_link_by_fd(fd_t fd) noexcept;
 
 /**
@@ -338,7 +338,7 @@ ebpf_detach_link_by_fd(fd_t fd) noexcept;
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_PARAMETER No such ID found.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_map_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept;
 
 /**
@@ -350,7 +350,7 @@ ebpf_get_map_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept;
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_PARAMETER No such ID found.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_program_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept;
 
 /**
@@ -362,7 +362,7 @@ ebpf_get_program_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept;
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_PARAMETER No such ID found.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept;
 
 /**
@@ -374,7 +374,7 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept;
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MORE_KEYS No more IDs found.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_next_link_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
 
 /**
@@ -386,7 +386,7 @@ ebpf_get_next_link_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MORE_KEYS No more IDs found.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_next_map_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
 
 /**
@@ -398,7 +398,7 @@ ebpf_get_next_map_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MORE_KEYS No more IDs found.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_next_program_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
 
 /**
@@ -420,7 +420,7 @@ ebpf_get_next_program_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info_by_fd(
     fd_t bpf_fd, _Inout_updates_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size) noexcept;
 
@@ -431,7 +431,7 @@ ebpf_object_get_info_by_fd(
  *
  * @retval EBPF_SUCCESS The operation was successful.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_pin(fd_t fd, _In_z_ const char* path) noexcept;
 
 /**
@@ -462,7 +462,7 @@ ebpf_object_get(_In_z_ const char* path) noexcept;
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_open(
     _In_z_ const char* path,
     _In_opt_z_ const char* object_name,
@@ -481,7 +481,7 @@ ebpf_object_open(
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_load(_Inout_ struct bpf_object* object) noexcept;
 
 /**
@@ -492,7 +492,7 @@ ebpf_object_load(_Inout_ struct bpf_object* object) noexcept;
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_object_unload(_In_ struct bpf_object* object) noexcept;
 
 typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
@@ -508,7 +508,7 @@ typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_subscribe(
     fd_t ring_buffer_map_fd,
     _In_opt_ void* sample_callback_context,
@@ -562,7 +562,7 @@ ebpf_api_elf_enumerate_sections(
  * @retval EBPF_VERIFICATION_FAILED The program failed verification.
  * @retval EBPF_FAILED Some other error occured.
  */
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_load_bytes(
     _In_ const ebpf_program_type_t* program_type,
     _In_opt_z_ const char* program_name,

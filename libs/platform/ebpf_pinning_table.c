@@ -45,7 +45,7 @@ _ebpf_pinning_entry_free(ebpf_pinning_entry_t* pinning_entry)
     ebpf_free(pinning_entry);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
 {
     EBPF_LOG_ENTRY();
@@ -67,6 +67,7 @@ ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
         sizeof(ebpf_utf8_string_t*),
         sizeof(ebpf_pinning_entry_t*),
         EBPF_PINNING_TABLE_BUCKET_COUNT,
+        EBPF_HASH_TABLE_NO_LIMIT,
         _ebpf_pinning_table_extract);
 
     if (return_value != EBPF_SUCCESS)
@@ -97,7 +98,7 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
             if (return_value != EBPF_SUCCESS) {
                 break;
             }
-            ebpf_pinning_table_delete(pinning_table, key);
+            ebpf_assert_success(ebpf_pinning_table_delete(pinning_table, key));
         }
         ebpf_hash_table_destroy(pinning_table->hash_table);
     }
@@ -107,7 +108,7 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
     EBPF_RETURN_VOID();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_insert(
     ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t* object)
 {
@@ -167,7 +168,7 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_find(
     ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t** object)
 {
@@ -191,7 +192,7 @@ ebpf_pinning_table_find(
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path)
 {
     EBPF_LOG_ENTRY();
@@ -226,7 +227,7 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_enumerate_entries(
     _In_ ebpf_pinning_table_t* pinning_table,
     ebpf_object_type_t object_type,
@@ -323,7 +324,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_get_next_path(
     _In_ ebpf_pinning_table_t* pinning_table,
     ebpf_object_type_t object_type,

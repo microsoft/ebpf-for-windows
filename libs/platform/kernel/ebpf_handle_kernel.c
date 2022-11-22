@@ -7,7 +7,7 @@
 extern DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_handle_table_initiate()
 {
     return EBPF_SUCCESS;
@@ -17,7 +17,7 @@ void
 ebpf_handle_table_terminate()
 {}
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_handle_create(ebpf_handle_t* handle, ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
@@ -75,7 +75,7 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_handle_close(ebpf_handle_t handle)
 {
     EBPF_LOG_ENTRY();
@@ -128,7 +128,7 @@ Done:
     return return_value;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_get_next_handle_by_type(ebpf_handle_t previous_handle, ebpf_object_type_t object_type, ebpf_handle_t* next_handle)
 {
     UNREFERENCED_PARAMETER(previous_handle);
