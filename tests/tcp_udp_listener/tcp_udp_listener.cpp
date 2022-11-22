@@ -45,7 +45,7 @@ void
 create_tcp_listener(uint16_t local_port)
 {
     stream_server_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, local_port);
-    // Create a listener in a loop to accpet new connections.
+    // Create a listener in a loop to accept new connections.
     // The tests / user need to kill the process to stop the listener.
     while (true) {
         create_listener((receiver_socket_t*)&receiver_socket);
@@ -57,7 +57,7 @@ create_udp_listener(uint16_t local_port)
 {
     printf("Creating UDP listener socket with local port %d ...\n", local_port);
     datagram_server_socket_t receiver_socket(SOCK_DGRAM, IPPROTO_UDP, local_port);
-    // Create a listener in a loop to accpet new connections.
+    // Create a listener in a loop to accept new connections.
     // The tests / user need to kill the process to stop the listener.
     while (true) {
         create_listener((receiver_socket_t*)&receiver_socket);

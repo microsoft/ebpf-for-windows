@@ -415,16 +415,12 @@ _net_ebpf_ext_compare_destination_address(_In_ const bpf_sock_addr_t* addr1, _In
         return false;
     }
 
-    if (addr1->family == AF_INET) {
-        return addr1->user_ip4 == addr2->user_ip4;
-    } else {
-        return (memcmp(&addr1->user_ip6[0], &addr2->user_ip6[0], 16) == 0);
-    }
+    return INET_ADDR_EQUAL(addr1->family, &addr1->user_ip4, &addr2->user_ip4);
 }
 
 static void
 _net_ebpf_ext_connection_context_initialize_key(
-    _In_ net_ebpf_ext_connection_context_key_t* context_key,
+    _Inout_ net_ebpf_ext_connection_context_key_t* context_key,
     _In_ const bpf_sock_addr_t* sock_addr_ctx,
     uint64_t transport_endpoint_handle,
     bool original,
