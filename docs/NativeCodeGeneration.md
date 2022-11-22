@@ -55,7 +55,7 @@ program is safe does the process proceed to the next step.
 
 ## Step 3 – Generation of the C code from the eBPF byte code
 
-The third step is to automatically generate C code that maps one to one with the eBPF instructions in the ELF file. The eBPF
+The third step is to automatically generate C code that maps one to one with the [eBPF instructions](isa-support.rst) in the ELF file. The eBPF
 registers are mapped to local variables in the generated C function and each eBPF instruction is used to generate
 equivalent C operations. In addition, the generated C file also contains bindings for any helper functions referenced
 by the eBPF program and any maps the eBPF program uses.

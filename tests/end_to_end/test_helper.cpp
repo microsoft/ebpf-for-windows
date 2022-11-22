@@ -455,9 +455,10 @@ Glue_close(int file_descriptor)
         return -1;
     } else {
         bool found = _duplicate_handles.dereference_if_found(it->second);
-        if (!found)
+        if (!found) {
             // No duplicates. Close the handle.
-            REQUIRE((ebpf_fuzzing_enabled || ebpf_api_close_handle(it->second) == EBPF_SUCCESS));
+            REQUIRE((ebpf_api_close_handle(it->second) == EBPF_SUCCESS || ebpf_fuzzing_enabled));
+        }
         _fd_to_handle_map.erase(file_descriptor);
         return 0;
     }
@@ -623,7 +624,7 @@ get_native_module_failures()
     return _expect_native_module_load_failures || ebpf_low_memory_test_in_progress();
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 get_service_details_for_file(
     _In_ const std::wstring& file_path, _Out_ const wchar_t** service_name, _Out_ GUID* provider_guid)
 {

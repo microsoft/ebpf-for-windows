@@ -197,7 +197,7 @@ Windows requires that one of the following criteria be met prior to loading a dr
  the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature)
   and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
 
-Since the eBPF for Wndows binaries are not yet signed by Microsoft, they will only work on a machine with
+Since the eBPF for Windows binaries are not yet signed by Microsoft, they will only work on a machine with
 a kernel debugger (KD) attached and running, or test signing is enabled. (It is expected that official
 releases of eBPF for Windows will eventually be production signed at some point in the future after
 security hardening is completed.)

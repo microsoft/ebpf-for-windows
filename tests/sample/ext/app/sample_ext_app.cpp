@@ -85,8 +85,8 @@ sample_ebpf_ext_test(_In_ const struct bpf_object* object)
 {
     struct bpf_map* map = nullptr;
     fd_t map_fd;
-    const char* strings[2] = {"rainy", "sunny"};
-    std::vector<std::vector<char>> map_entry_buffers(2, std::vector<char>(32));
+    const char* strings[] = {"rainy", "sunny"};
+    std::vector<std::vector<char>> map_entry_buffers(EBPF_COUNT_OF(strings), std::vector<char>(32));
     const char* input_string = "Seattle is a rainy city";
     std::vector<char> input_buffer(input_string, input_string + strlen(input_string));
     const char* expected_output = "Seattle is a sunny city";
@@ -99,7 +99,7 @@ sample_ebpf_ext_test(_In_ const struct bpf_object* object)
     map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
 
-    for (uint32_t key = 0; key < map_entry_buffers.size(); key++) {
+    for (uint32_t key = 0; key < EBPF_COUNT_OF(strings); key++) {
         std::copy(strings[key], strings[key] + strlen(strings[key]), map_entry_buffers[key].begin());
         REQUIRE(bpf_map_update_elem(map_fd, &key, map_entry_buffers[key].data(), EBPF_ANY) == EBPF_SUCCESS);
     }

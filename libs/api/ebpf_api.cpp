@@ -760,7 +760,7 @@ void
 ebpf_free_string(_In_opt_ _Post_invalid_ const char* error_message)
 {
     EBPF_LOG_ENTRY();
-    free(const_cast<char*>(error_message));
+    ebpf_free(const_cast<char*>(error_message));
     EBPF_LOG_EXIT();
 }
 
@@ -830,7 +830,7 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept
         if (map->pin_path != nullptr && strcmp(path, map->pin_path) != 0) {
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
-        free(map->pin_path);
+        ebpf_free(map->pin_path);
         map->pin_path = _strdup(path);
         if (map->pin_path == nullptr) {
             EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
@@ -859,7 +859,7 @@ ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noe
         }
     }
     map->pin_path = const_cast<char*>(path);
-    free(old_path);
+    ebpf_free(old_path);
 
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
@@ -952,12 +952,12 @@ ebpf_program_query_info(
 
     size_t file_name_length = reply->section_name_offset - reply->file_name_offset;
     size_t section_name_length = reply->header.length - reply->section_name_offset;
-    char* local_file_name = reinterpret_cast<char*>(calloc(file_name_length + 1, sizeof(char)));
-    char* local_section_name = reinterpret_cast<char*>(calloc(section_name_length + 1, sizeof(char)));
+    char* local_file_name = reinterpret_cast<char*>(ebpf_allocate(file_name_length + 1));
+    char* local_section_name = reinterpret_cast<char*>(ebpf_allocate(section_name_length + 1));
 
     if (!local_file_name || !local_section_name) {
-        free(local_file_name);
-        free(local_section_name);
+        ebpf_free(local_file_name);
+        ebpf_free(local_section_name);
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
 
@@ -994,7 +994,7 @@ _link_ebpf_program(
     ebpf_assert(attach_parameter || !attach_parameter_size);
 
     *link = nullptr;
-    ebpf_link_t* new_link = (ebpf_link_t*)calloc(1, sizeof(ebpf_link_t));
+    ebpf_link_t* new_link = (ebpf_link_t*)ebpf_allocate(sizeof(ebpf_link_t));
     if (new_link == nullptr) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
@@ -1061,10 +1061,8 @@ _clean_up_ebpf_link(_Frees_ptr_opt_ ebpf_link_t* link) noexcept
     if (link->fd != ebpf_fd_invalid) {
         Platform::_close(link->fd);
     }
-
-    free(link->pin_path);
-
-    free(link);
+    ebpf_free(link->pin_path);
+    ebpf_free(link);
 #pragma warning(pop)
     EBPF_RETURN_VOID();
 }
@@ -1354,12 +1352,12 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program) noexcept
     ebpf_assert(program);
     ebpf_assert_success(ebpf_program_unload(program));
 
-    free(program->instructions);
-    free(program->program_name);
-    free(program->section_name);
-    free((void*)program->log_buffer);
+    ebpf_free(program->instructions);
+    ebpf_free(program->program_name);
+    ebpf_free(program->section_name);
+    ebpf_free((void*)program->log_buffer);
 
-    free(program);
+    ebpf_free(program);
 }
 
 void
@@ -1383,10 +1381,10 @@ clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map) noexcept
     if (map->map_handle != ebpf_handle_invalid) {
         _ebpf_maps.erase(map->map_handle);
     }
-    free(map->name);
-    free(map->pin_path);
+    ebpf_free(map->name);
+    ebpf_free(map->pin_path);
 
-    free(map);
+    ebpf_free(map);
 }
 
 void
@@ -1407,8 +1405,8 @@ _clean_up_ebpf_object(_In_opt_ ebpf_object_t* object) noexcept
         clean_up_ebpf_programs(object->programs);
         clean_up_ebpf_maps(object->maps);
 
-        free(object->object_name);
-        free(object->file_name);
+        ebpf_free(object->object_name);
+        ebpf_free(object->file_name);
     }
 }
 
@@ -1645,7 +1643,7 @@ _initialize_ebpf_object_from_native_file(
     object.execution_type = EBPF_EXECUTION_NATIVE;
 
     for (ebpf_section_info_t* info = infos; info; info = info->next) {
-        program = (ebpf_program_t*)calloc(1, sizeof(ebpf_program_t));
+        program = (ebpf_program_t*)ebpf_allocate(sizeof(ebpf_program_t));
         if (program == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -1680,7 +1678,7 @@ _initialize_ebpf_object_from_native_file(
     }
 
 Exit:
-    free(program);
+    ebpf_free(program);
     if (result != EBPF_SUCCESS) {
         clean_up_ebpf_programs(object.programs);
         clean_up_ebpf_maps(object.maps);
@@ -1825,15 +1823,15 @@ _ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info) noexcept
 #pragma warning(disable : 6001)
         // MSVC incorrectly reports this as using uninitialized memory.
         info->stats = stat->next;
-        free((void*)stat->key);
+        ebpf_free((void*)stat->key);
 #pragma warning(pop)
-        free(stat);
+        ebpf_free(stat);
     }
-    free((void*)info->program_name);
-    free((void*)info->section_name);
-    free((void*)info->program_type_name);
-    free(info->raw_data);
-    free(info);
+    ebpf_free((void*)info->program_name);
+    ebpf_free((void*)info->section_name);
+    ebpf_free((void*)info->program_type_name);
+    ebpf_free(info->raw_data);
+    ebpf_free(info);
     EBPF_LOG_EXIT();
 }
 
@@ -1906,7 +1904,7 @@ _ebpf_pe_get_map_definitions(
                     break;
                 }
 
-                map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
+                map = (ebpf_map_t*)ebpf_allocate(sizeof(ebpf_map_t));
                 if (map == nullptr) {
                     goto Error;
                 }
@@ -2079,7 +2077,7 @@ _ebpf_pe_add_section(
     std::string elf_section_name = pe_context->section_names[pe_section_name];
     std::string program_name = pe_context->program_names[pe_section_name];
 
-    ebpf_section_info_t* info = (ebpf_section_info_t*)malloc(sizeof(*info));
+    ebpf_section_info_t* info = (ebpf_section_info_t*)ebpf_allocate(sizeof(*info));
     if (info == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         EBPF_LOG_EXIT();
@@ -2099,7 +2097,7 @@ _ebpf_pe_add_section(
     }
     info->program_type_name = _strdup(info->program_type_name);
     info->raw_data_size = section_header.Misc.VirtualSize;
-    info->raw_data = (char*)malloc(section_header.Misc.VirtualSize);
+    info->raw_data = (char*)ebpf_allocate(section_header.Misc.VirtualSize);
     if (info->raw_data == nullptr || info->program_type_name == nullptr || info->section_name == nullptr) {
         _ebpf_free_section_info(info);
         EBPF_LOG_EXIT();
@@ -2848,7 +2846,7 @@ _ebpf_program_load_native(
     SC_HANDLE service_handle = nullptr;
     SERVICE_STATUS status = {0};
     std::wstring service_path(SERVICE_PATH_PREFIX);
-    std::wstring paramaters_path(PARAMETERS_PATH_PREFIX);
+    std::wstring parameters_path(PARAMETERS_PATH_PREFIX);
     ebpf_protocol_buffer_t request_buffer;
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
@@ -2886,15 +2884,15 @@ _ebpf_program_load_native(
         }
 
         // Create registry path and update module ID in the service path.
-        paramaters_path = paramaters_path + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
-        error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, paramaters_path.c_str());
+        parameters_path = parameters_path + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
+        error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, parameters_path.c_str());
         if (error != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(error);
             EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_create_registry_key);
             goto Done;
         }
         error = _ebpf_update_registry_value(
-            HKEY_LOCAL_MACHINE, paramaters_path.c_str(), REG_BINARY, NPI_MODULE_ID, &provider_module_id, sizeof(GUID));
+            HKEY_LOCAL_MACHINE, parameters_path.c_str(), REG_BINARY, NPI_MODULE_ID, &provider_module_id, sizeof(GUID));
         if (error != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(error);
             EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_update_registry_value);
@@ -2918,14 +2916,14 @@ _ebpf_program_load_native(
         }
 
         // Allocate buffer for program and map handles.
-        program_handles = (ebpf_handle_t*)calloc(count_of_programs, sizeof(ebpf_handle_t));
+        program_handles = (ebpf_handle_t*)ebpf_allocate(count_of_programs * sizeof(ebpf_handle_t));
         if (program_handles == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Done;
         }
 
         if (count_of_maps > 0) {
-            map_handles = (ebpf_handle_t*)calloc(count_of_maps, sizeof(ebpf_handle_t));
+            map_handles = (ebpf_handle_t*)ebpf_allocate(count_of_maps * sizeof(ebpf_handle_t));
             if (map_handles == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Done;
@@ -2976,8 +2974,8 @@ Done:
 
         Platform::_stop_service(service_handle);
     }
-    free(map_handles);
-    free(program_handles);
+    ebpf_free(map_handles);
+    ebpf_free(program_handles);
 
     // Workaround: Querying service status hydrates service reference count in SCM.
     // This ensures that when _delete_service() is called, the service is marked
@@ -3592,7 +3590,7 @@ ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription
         // Set the unsubscribed flag, so that if a completion callback is ongoing, it does not issue another async
         // IOCTL.
         subscription->unsubscribed = true;
-        // Check if an earlier async opeeration has failed. In that case a new async operation will not be queued. This
+        // Check if an earlier async operation has failed. In that case a new async operation will not be queued. This
         // is the only case in which the subscription object can be freed in this function.
         if (subscription->async_ioctl_failed)
             free_subscription = true;

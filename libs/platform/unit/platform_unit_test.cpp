@@ -37,7 +37,7 @@ class _test_helper
         REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
         platform_initiated = true;
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
-        epoch_initated = true;
+        epoch_initiated = true;
         REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
         async_initiated = true;
     }
@@ -45,7 +45,7 @@ class _test_helper
     {
         if (async_initiated)
             ebpf_async_terminate();
-        if (epoch_initated)
+        if (epoch_initiated)
             ebpf_epoch_terminate();
         if (platform_initiated)
             ebpf_platform_terminate();
@@ -54,7 +54,7 @@ class _test_helper
 
   private:
     bool platform_initiated = false;
-    bool epoch_initated = false;
+    bool epoch_initiated = false;
     bool async_initiated = false;
 };
 
@@ -353,7 +353,7 @@ class _signal
 /**
  * @brief Verify that the stale item worker runs.
  * Epoch free can leave items on a CPU's free list until the next epoch exit.
- * To avoid holding onto freed items indefinetely, epoch schedules a work item
+ * To avoid holding onto freed items indefinitely, epoch schedules a work item
  * to call epoch_enter/epoch_exit on a CPU to releasing the free list.
  */
 TEST_CASE("epoch_test_stale_items", "[platform]")
@@ -634,13 +634,15 @@ TEST_CASE("serialize_map_test", "[platform]")
     }
 
     // Serialize.
-    ebpf_result_t result = ebpf_serialize_internal_map_info_array(
-        map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
-    REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
+    REQUIRE(
+        ebpf_serialize_internal_map_info_array(
+            map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length) ==
+        EBPF_INSUFFICIENT_BUFFER);
 
-    buffer = static_cast<uint8_t*>(calloc(required_length, 1));
-    REQUIRE(buffer != nullptr);
-    if (!buffer) {
+    buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
+    // Required to deal with code analysis warning about buffer not being checked for null.
+    if (buffer == nullptr) {
+        REQUIRE(false);
         return;
     }
     buffer_length = required_length;
@@ -699,8 +701,12 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     // Serialize.
     REQUIRE(ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length));
 
-    buffer = static_cast<uint8_t*>(calloc(required_length, 1));
-    _Analysis_assume_(buffer != nullptr);
+    buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
+    // Work around code analysis warning about buffer not being checked for null.
+    if (buffer == nullptr) {
+        REQUIRE(false);
+        return;
+    }
     buffer_length = required_length;
 
     REQUIRE(
@@ -754,15 +760,15 @@ TEST_CASE("state_test", "[state]")
     {
         uint32_t some_value;
     } foo;
-    uintptr_t retreived_value = 0;
+    uintptr_t retrieved_value = 0;
     REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
     REQUIRE(ebpf_state_initiate() == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_1) == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_2) == EBPF_SUCCESS);
     REQUIRE(allocated_index_2 != allocated_index_1);
     REQUIRE(ebpf_state_store(allocated_index_1, reinterpret_cast<uintptr_t>(&foo)) == EBPF_SUCCESS);
-    REQUIRE(ebpf_state_load(allocated_index_1, &retreived_value) == EBPF_SUCCESS);
-    REQUIRE(retreived_value == reinterpret_cast<uintptr_t>(&foo));
+    REQUIRE(ebpf_state_load(allocated_index_1, &retrieved_value) == EBPF_SUCCESS);
+    REQUIRE(retrieved_value == reinterpret_cast<uintptr_t>(&foo));
     ebpf_state_terminate();
     ebpf_platform_terminate();
 }

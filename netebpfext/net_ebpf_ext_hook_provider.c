@@ -198,7 +198,7 @@ net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_h
     return provider_context->custom_data;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_hook_invoke_program(
     _In_ const net_ebpf_extension_hook_client_t* client, _In_ void* context, _Out_ uint32_t* result)
 {
@@ -211,7 +211,7 @@ net_ebpf_extension_hook_invoke_program(
     return invoke_result;
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_hook_check_attach_parameter(
     size_t attach_parameter_size,
     _In_reads_(attach_parameter_size) const void* attach_parameter,

@@ -6,11 +6,13 @@
 #include <ntddk.h>
 
 #define __return_type NTSTATUS
-#define IS_SUCCESS(x) (NT_SUCCESS(x))
 #define _SUCCESS STATUS_SUCCESS
+#define IS_SUCCESS(x) (NT_SUCCESS(x))
 
 #define REG_CREATE_FLAGS 0
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
+
+typedef _Return_type_success_(NT_SUCCESS(return )) uint32_t ebpf_registry_result_t;
 
 typedef HANDLE ebpf_registry_key_t;
 
@@ -44,7 +46,7 @@ Exit:
     return status;
 }
 
-static uint32_t
+static _Must_inspect_result_ ebpf_registry_result_t
 write_registry_value_binary(
     ebpf_registry_key_t key,
     _In_z_ const wchar_t* value_name,
@@ -57,7 +59,7 @@ write_registry_value_binary(
     return ZwSetValueKey(key, &unicode_value_name, 0, REG_BINARY, value, (ULONG)value_size);
 }
 
-static uint32_t
+static _Must_inspect_result_ ebpf_registry_result_t
 write_registry_value_ansi_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
 {
     NTSTATUS status;
@@ -80,7 +82,7 @@ Exit:
     return status;
 }
 
-static uint32_t
+static _Must_inspect_result_ ebpf_registry_result_t
 write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, uint32_t value)
 {
     UNICODE_STRING unicode_name;
@@ -88,7 +90,7 @@ write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_
     return ZwSetValueKey(key, &unicode_name, 0, REG_DWORD, &value, sizeof(uint32_t));
 }
 
-static uint32_t
+static _Must_inspect_result_ ebpf_registry_result_t
 create_registry_key(
     ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
@@ -107,7 +109,7 @@ create_registry_key(
     return status;
 }
 
-static uint32_t
+static _Must_inspect_result_ ebpf_registry_result_t
 create_registry_key_ansi(
     ebpf_registry_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {

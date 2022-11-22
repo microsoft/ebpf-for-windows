@@ -2,6 +2,7 @@
 
 # File extensions that don't support embedding license info
 .*\.md$
+.*\.rst$
 .*\.o$
 .*\.png$
 .*\.proj$

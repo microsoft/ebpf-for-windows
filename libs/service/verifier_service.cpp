@@ -41,7 +41,7 @@ _analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_mess
     return EBPF_SUCCESS; // Success.
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 verify_byte_code(
     const GUID* program_type,
     _In_reads_(instruction_count) const ebpf_inst* instruction_array,

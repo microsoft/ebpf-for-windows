@@ -29,6 +29,31 @@
 
 #define EBPF_MODULE_SIZE_IN_BYTES (10 * 1024 * 1024)
 
+/**
+ * @brief Thread local storage to track recursing from the low memory callback.
+ */
+static thread_local int _ebpf_low_memory_test_recursion = 0;
+
+/**
+ * @brief Class to automatically increment and decrement the recursion count.
+ */
+class ebpf_low_memory_test_recursion_guard
+{
+  public:
+    ebpf_low_memory_test_recursion_guard() { _ebpf_low_memory_test_recursion++; }
+    ~ebpf_low_memory_test_recursion_guard() { _ebpf_low_memory_test_recursion--; }
+    /**
+     * @brief Return true if the current thread is recursing from the low memory callback.
+     * @retval true
+     * @retval false
+     */
+    bool
+    is_recursing()
+    {
+        return (_ebpf_low_memory_test_recursion > 1);
+    }
+};
+
 _ebpf_low_memory_test::_ebpf_low_memory_test(size_t stack_depth = EBPF_ALLOCATION_STACK_CAPTURE_FRAME_COUNT_FOR_HASH)
     : _stack_depth(stack_depth)
 {
@@ -52,8 +77,14 @@ _ebpf_low_memory_test::fail_stack_allocation()
 bool
 _ebpf_low_memory_test::is_new_stack()
 {
+    // Prevent infinite recursion during allocation.
+    ebpf_low_memory_test_recursion_guard recursion_guard;
+    if (recursion_guard.is_recursing()) {
+        return false;
+    }
     std::vector<uintptr_t> stack(EBPF_ALLOCATION_STACK_CAPTURE_FRAME_COUNT);
     std::vector<uintptr_t> canonical_stack(_stack_depth);
+
     DWORD hash;
     // Capture EBPF_ALLOCATION_STACK_CAPTURE_FRAME_COUNT_FOR_HASH frames of the current stack trace.
     if (CaptureStackBackTrace(
@@ -92,12 +123,15 @@ _ebpf_low_memory_test::log_stack_trace(
     }
     _log_file << std::endl;
 
+    _last_failure_stack.resize(0);
+
     std::vector<uint8_t> symbol_buffer(sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR));
     SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(symbol_buffer.data());
     IMAGEHLP_LINE64 line;
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
     symbol->MaxNameLen = MAX_SYM_NAME;
     for (auto frame : stack) {
+        std::string string_stack_frame;
         if (frame == 0) {
             break;
         }
@@ -105,14 +139,18 @@ _ebpf_low_memory_test::log_stack_trace(
         _log_file << "# ";
         if (SymFromAddr(GetCurrentProcess(), frame, &displacement, symbol)) {
             _log_file << std::hex << frame << " " << symbol->Name << " + " << displacement;
+            string_stack_frame = std::string(symbol->Name) + " + " + std::to_string(displacement);
             DWORD displacement32 = (DWORD)displacement;
             if (SymGetLineFromAddr64(GetCurrentProcess(), frame, &displacement32, &line)) {
                 _log_file << " " << line.FileName << std::dec << " " << line.LineNumber;
+                string_stack_frame += " " + std::string(line.FileName) + " " + std::to_string(line.LineNumber);
             }
             _log_file << std::endl;
         } else {
             _log_file << std::hex << frame << std::endl;
+            string_stack_frame = std::to_string(frame);
         }
+        _last_failure_stack.push_back(string_stack_frame);
     }
     _log_file << std::endl;
     // Flush the file after every write to prevent loss on crash.
