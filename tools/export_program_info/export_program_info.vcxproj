@@ -152,6 +152,7 @@ $(OutputPath)export_program_info.exe</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <LinkTimeCodeGeneration />
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)

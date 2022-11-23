@@ -67,6 +67,7 @@
     <CopyFileToFolders Include="..\test_execution.json">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Test-LowMemory.ps1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\pre-commit">

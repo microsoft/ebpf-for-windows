@@ -232,6 +232,7 @@
     </Midl>
     <Lib>
       <AdditionalOptions>/INFERASANLIBS:NO $(TargetDir)\no_asan_kernel.lib %(AdditionalOptions)</AdditionalOptions>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -245,6 +246,7 @@
     </Midl>
     <Lib>
       <AdditionalOptions>/INFERASANLIBS:NO $(TargetDir)\no_asan_kernel.lib %(AdditionalOptions)</AdditionalOptions>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
