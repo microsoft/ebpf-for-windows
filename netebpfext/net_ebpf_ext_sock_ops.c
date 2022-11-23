@@ -39,12 +39,12 @@ typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context_list
 
 const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_sock_ops_wfp_filter_parameters[] = {
     {&FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4,
-     NULL,
+     NULL, // Default sublayer.
      &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4_CALLOUT,
      L"net eBPF sock_ops hook",
      L"net eBPF sock_ops hook WFP filter"},
     {&FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6,
-     NULL,
+     NULL, // Default sublayer.
      &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6_CALLOUT,
      L"net eBPF sock_ops hook",
      L"net eBPF sock_ops hook WFP filter"}};

@@ -43,12 +43,12 @@ Exit:
 
 const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_xdp_wfp_filter_parameters[] = {
     {&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE,
-     NULL,
+     NULL, // Default sublayer.
      &EBPF_HOOK_INBOUND_L2_CALLOUT,
      L"net eBPF xdp hook",
      L"net eBPF xdp hook WFP filter"},
     {&FWPM_LAYER_OUTBOUND_MAC_FRAME_NATIVE,
-     NULL,
+     NULL, // Default sublayer.
      &EBPF_HOOK_OUTBOUND_L2_CALLOUT,
      L"net eBPF xdp hook",
      L"net eBPF xdp hook WFP filter"}};

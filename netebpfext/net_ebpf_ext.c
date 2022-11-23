@@ -37,14 +37,14 @@ static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
         FWP_EMPTY // Auto weight.
     },
     {
-        &EBPF_HOOK_ALE_CONNECT_REDIRECT_V4_SUBLAYER,
+        &EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER,
         L"EBPF Connect Redirect V4 Sub-Layer",
         L"Sub-Layer for use by eBPF connect redirect callouts",
         0,
         FWP_EMPTY // Auto weight.
     },
     {
-        &EBPF_HOOK_ALE_CONNECT_REDIRECT_V6_SUBLAYER,
+        &EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
         L"EBPF Connect Redirect V6 Sub-Layer",
         L"Sub-Layer for use by eBPF connect redirect callouts",
         0,
@@ -403,7 +403,7 @@ net_ebpf_extension_add_wfp_filters(
         filter.action.calloutKey = *filter_parameter->callout_guid;
         filter.filterCondition = (FWPM_FILTER_CONDITION*)conditions;
         filter.numFilterConditions = condition_count;
-        if (filter_parameter->sublayer_guid) {
+        if (filter_parameter->sublayer_guid != NULL) {
             filter.subLayerKey = *(filter_parameter->sublayer_guid);
         } else {
             filter.subLayerKey = EBPF_DEFAULT_SUBLAYER;

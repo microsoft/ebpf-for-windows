@@ -92,39 +92,39 @@ const uint32_t _net_ebpf_extension_sock_addr_bpf_attach_types[] = {
 
 net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_connect_filter_parameters[] = {
     {&FWPM_LAYER_ALE_AUTH_CONNECT_V4,
-     NULL,
+     NULL, // Default sublayer.
      &EBPF_HOOK_ALE_AUTH_CONNECT_V4_CALLOUT,
      L"net eBPF sock_addr hook",
      L"net eBPF sock_addr hook WFP filter"},
 
     {&FWPM_LAYER_ALE_CONNECT_REDIRECT_V4,
-     NULL,
+     NULL, // Default sublayer.
      &EBPF_HOOK_ALE_CONNECT_REDIRECT_V4_CALLOUT,
      L"net eBPF sock_addr hook",
      L"net eBPF sock_addr hook WFP filter"},
 
     {&FWPM_LAYER_ALE_CONNECT_REDIRECT_V6,
-     &EBPF_HOOK_ALE_CONNECT_REDIRECT_V4_SUBLAYER,
+     &EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER,
      &EBPF_HOOK_ALE_CONNECT_REDIRECT_V6_CALLOUT,
      L"net eBPF sock_addr hook",
      L"net eBPF sock_addr hook WFP filter"}};
 
 net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_connect_filter_parameters[] = {
     {&FWPM_LAYER_ALE_AUTH_CONNECT_V6,
-     NULL,
+     NULL, // Default sublayer.
      &EBPF_HOOK_ALE_AUTH_CONNECT_V6_CALLOUT,
      L"net eBPF sock_addr hook",
      L"net eBPF sock_addr hook WFP filter"},
 
     {&FWPM_LAYER_ALE_CONNECT_REDIRECT_V6,
-     &EBPF_HOOK_ALE_CONNECT_REDIRECT_V6_SUBLAYER,
+     &EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
      &EBPF_HOOK_ALE_CONNECT_REDIRECT_V6_CALLOUT,
      L"net eBPF sock_addr hook",
      L"net eBPF sock_addr hook WFP filter"}};
 
 net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_recv_accept_filter_parameters[] = {
     {&FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4,
-     NULL,
+     NULL, // Default sublayer.
      &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4_CALLOUT,
      L"net eBPF sock_addr hook",
      L"net eBPF sock_addr hook WFP filter"}};
@@ -421,17 +421,17 @@ _net_ebpf_ext_compare_destination_address(_In_ const bpf_sock_addr_t* addr1, _In
 
 static void
 _net_ebpf_ext_connection_context_initialize_key(
-    _Inout_ net_ebpf_ext_connection_context_key_t* context_key,
     _In_ const bpf_sock_addr_t* sock_addr_ctx,
     uint64_t transport_endpoint_handle,
     bool original,
-    bool v4_mapped)
+    bool v4_mapped,
+    _Out_ net_ebpf_ext_connection_context_key_t* context_key)
 {
-    // In case of original connection context, if the address is a v4-mapped v6 address, AUTH callout
-    // does not contain the the destination IP filled for the original destination. So for v4-mapped
-    // case, do not fill the destination IP in the key, to be able to match the context with the
-    // incoming values in AUTH callout.
-    if (!original || !v4_mapped) {
+    // In case of original connection context, Destination IP classifiable field for classify
+    // callback at the AUTH_CONNECT_V4 layer is not populated for v4-mapped v6 address case.
+    // So for v4-mapped case, do not fill the destination IP in the key, to be able to match
+    // the context with the incoming values in AUTH callout.
+    if (!(original && v4_mapped)) {
         RtlCopyMemory(
             context_key->address_info.destination_ip.ipv6,
             sock_addr_ctx->user_ip6,
@@ -457,7 +457,7 @@ _net_ebpf_ext_get_connection_context(
     net_ebpf_ext_connection_context_key_t key = {0};
 
     *connection_context = NULL;
-    _net_ebpf_ext_connection_context_initialize_key(&key, sock_addr_ctx, transport_endpoint_handle, true, false);
+    _net_ebpf_ext_connection_context_initialize_key(sock_addr_ctx, transport_endpoint_handle, true, false, &key);
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
 
     LIST_ENTRY* list_entry = _net_ebpf_ext_connect_context_list.Flink;
@@ -1077,9 +1077,9 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     // program from the filter context.
     // If the callout is invoked for v6:
     // 1. Check if the destination is v4-mapped v6 address or pure v6 address.
-    // 2. If it is v4-mapped v6 address, then we should procced only if this callout
+    // 2. If it is v4-mapped v6 address, then we should proceed only if this callout
     //    is invoked for v4 attach type.
-    // 3. If it is pure v6 address, then we should procced only if this callout is
+    // 3. If it is pure v6 address, then we should proceed only if this callout is
     //    invoked for v6 attach type.
     if (sock_addr_ctx->family == AF_INET6) {
         if (IN6_IS_ADDR_V4MAPPED((IN6_ADDR*)sock_addr_ctx->user_ip6)) {
@@ -1106,6 +1106,20 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             action = FWP_ACTION_PERMIT;
             goto Exit;
         }
+    }
+
+    compartment_id = filter_context->compartment_id;
+    ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
+    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
+        // The client is not interested in this compartment Id. Change action to PERMIT.
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
+            sock_addr_ctx->compartment_id);
+
+        action = FWP_ACTION_PERMIT;
+        goto Exit;
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
@@ -1160,19 +1174,19 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             (uint64_t)sock_addr_ctx->compartment_id);
 
         // We have already looked at this connection. Permit and exit. Populate connection
-        // contexts for this new connection, so that AUTH claasify can permit this connection.
+        // contexts for this new connection, so that AUTH classify can permit this connection.
         _net_ebpf_ext_connection_context_initialize_key(
-            &connection_context_original->key,
             sock_addr_ctx,
             incoming_metadata_values->transportEndpointHandle,
             true, /* original */
-            v4_mapped);
+            v4_mapped,
+            &connection_context_original->key);
         _net_ebpf_ext_connection_context_initialize_key(
-            &connection_context_redirected->key,
             sock_addr_ctx,
             incoming_metadata_values->transportEndpointHandle,
             false, /* original */
-            v4_mapped);
+            v4_mapped,
+            &connection_context_redirected->key);
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         redirected = true;
@@ -1202,26 +1216,12 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         sock_addr_ctx->user_ip4 = local_v4_ip;
     }
 
-    compartment_id = filter_context->compartment_id;
-    ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
-    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
-        // The client is not interested in this compartment Id. Change action to PERMIT.
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
-            sock_addr_ctx->compartment_id);
-
-        action = FWP_ACTION_PERMIT;
-        goto Exit;
-    }
-
     _net_ebpf_ext_connection_context_initialize_key(
-        &connection_context_original->key,
         sock_addr_ctx,
         incoming_metadata_values->transportEndpointHandle,
         true,
-        v4_mapped);
+        v4_mapped,
+        &connection_context_original->key);
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &verdict) != EBPF_SUCCESS) {
         status = STATUS_UNSUCCESSFUL;
@@ -1230,11 +1230,11 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     // Initialize connection_context_redirected destination with the redirected address.
     _net_ebpf_ext_connection_context_initialize_key(
-        &connection_context_redirected->key,
         sock_addr_ctx,
         incoming_metadata_values->transportEndpointHandle,
         false,
-        v4_mapped);
+        v4_mapped,
+        &connection_context_redirected->key);
 
     if (v4_mapped) {
         sock_addr_ctx->family = AF_INET6;
