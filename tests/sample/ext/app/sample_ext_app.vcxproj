@@ -135,9 +135,6 @@
     <ProjectReference Include="..\..\..\..\external\Catch2\build\src\Catch2WithMain.vcxproj">
       <Project>{8bd3552a-2cfb-4a59-ab15-2031b97ada1e}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\no_asan_kernel\no_asan_kernel.vcxproj">
-      <Project>{9524f151-1ff8-4da3-8dc1-33f264131d74}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -8,7 +8,6 @@
  * and link the proper ASAN libs.
  **/
 
-// TODO: Split asan and coverage into different libs
 extern "C"
 {
     void

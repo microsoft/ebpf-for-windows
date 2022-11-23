@@ -47,6 +47,7 @@
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
     <RootNamespace>EbpfDriver</RootNamespace>
     <ProjectName>EbpfCore</ProjectName>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -143,14 +144,14 @@
     <ProjectReference Include="..\libs\execution_context\kernel\execution_context_kernel.vcxproj">
       <Project>{26e7ed0b-c128-4d7c-a90e-c246def40ad3}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\libs\no_asan\no_asan_kernel.vcxproj">
+      <Project>{9524f151-1ff8-4da3-8dc1-33f264131d74}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libs\platform\kernel\platform_kernel.vcxproj">
       <Project>{fc3f9998-4085-4767-8386-5453f07c3aad}</Project>
     </ProjectReference>
     <ProjectReference Include="..\libs\ubpf\kernel\ubpf_kernel.vcxproj">
       <Project>{675b59f8-089e-40b5-8388-56254447cfa3}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\no_asan_kernel\no_asan_kernel.vcxproj">
-      <Project>{9524f151-1ff8-4da3-8dc1-33f264131d74}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

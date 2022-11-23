@@ -10,18 +10,15 @@
     <CodeAnalysisRuleSet>$(SolutionDir)Analyze.default.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(AddressSanitizer)'=='True'">
-    <!-- TODO: revert back to 'true' within #1563 -->
-    <EnableASAN>false</EnableASAN>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Release|True'">
-    <!-- TODO: revert back to 'true' within #1563 -->
-    <EnableASAN>false</EnableASAN>
+    <EnableASAN>true</EnableASAN>
     <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
     <SanitizerLibs>libsancov.lib;clang_rt.fuzzer_MD-x86_64.lib</SanitizerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Debug|True'">
-    <!-- TODO: revert back to 'true' within #1563 -->
-    <EnableASAN>false</EnableASAN>
+    <EnableASAN>true</EnableASAN>
     <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
     <SanitizerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</SanitizerLibs>
   </PropertyGroup>
@@ -40,7 +37,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <AdditionalOptions>/ZH:SHA_256 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22621.0\km</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22000.0\km</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <CETCompat>true</CETCompat>
