@@ -70,6 +70,7 @@ typedef struct _net_ebpf_ext_sock_addr_statistics
 static net_ebpf_ext_sock_addr_statistics_t _net_ebpf_ext_statistics;
 
 static EX_SPIN_LOCK _net_ebpf_ext_sock_addr_lock;
+// TODO: Issue #1675 (Use hash table to store connection contexts in netebpfext)
 _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_redirect_handle_list;
 _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_connect_context_list;
 static uint32_t _net_ebpf_ext_connect_context_count = 0;
@@ -415,7 +416,7 @@ _net_ebpf_ext_compare_destination_address(_In_ const bpf_sock_addr_t* addr1, _In
         return false;
     }
 
-    return INET_ADDR_EQUAL(addr1->family, &addr1->user_ip4, &addr2->user_ip4);
+    return INET_ADDR_EQUAL((ADDRESS_FAMILY)addr1->family, &addr1->user_ip4, &addr2->user_ip4);
 }
 
 static void
