@@ -122,6 +122,11 @@
       <TargetEnvironment Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Win32</TargetEnvironment>
     </Midl>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\no_asan_kernel\no_asan_kernel.vcxproj">
+      <Project>{9524f151-1ff8-4da3-8dc1-33f264131d74}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FC3F9998-4085-4767-8386-5453F07C3AAD}</ProjectGuid>
     <TemplateGuid>{0a049372-4c4d-4ea0-a64e-dc6ad88ceca1}</TemplateGuid>
@@ -225,6 +230,9 @@
     <Midl>
       <PreprocessorDefinitions>_KRPCENV_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </Midl>
+    <Lib>
+      <AdditionalOptions>/INFERASANLIBS:NO $(TargetDir)\no_asan_kernel.lib %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -235,6 +243,9 @@
     <Midl>
       <PreprocessorDefinitions>_KRPCENV_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </Midl>
+    <Lib>
+      <AdditionalOptions>/INFERASANLIBS:NO $(TargetDir)\no_asan_kernel.lib %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>

@@ -73,6 +73,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;NO_CATCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\ubpf\vm;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tools\bpf2c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

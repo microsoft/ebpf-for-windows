@@ -149,6 +149,9 @@
     <ProjectReference Include="..\libs\ubpf\kernel\ubpf_kernel.vcxproj">
       <Project>{675b59f8-089e-40b5-8388-56254447cfa3}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\no_asan_kernel\no_asan_kernel.vcxproj">
+      <Project>{9524f151-1ff8-4da3-8dc1-33f264131d74}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />

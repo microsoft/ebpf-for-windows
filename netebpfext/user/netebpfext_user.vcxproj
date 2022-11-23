@@ -81,6 +81,7 @@
       <CompileAs>CompileAsCpp</CompileAs>
       <AdditionalOptions>/Zc:strictStrings- %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4505</DisableSpecificWarnings>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

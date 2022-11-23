@@ -141,6 +141,9 @@
     <ProjectReference Include="$(SolutionDir)libs\platform\kernel\platform_kernel.vcxproj">
       <Project>{fc3f9998-4085-4767-8386-5453f07c3aad}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\..\no_asan_kernel\no_asan_kernel.vcxproj">
+      <Project>{9524f151-1ff8-4da3-8dc1-33f264131d74}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -117,7 +117,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /fno-sanitize-address-vcasan-lib %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -139,7 +139,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /fno-sanitize-address-vcasan-lib %(AdditionalOptions)</AdditionalOptions>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>
