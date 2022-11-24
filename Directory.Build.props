@@ -38,6 +38,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <AdditionalOptions>/ZH:SHA_256 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22000.0\km</AdditionalIncludeDirectories>
+	  <LibraryPath>$(VC_LibraryPath_VC_x64_Desktop)</LibraryPath>
     </ClCompile>
     <Link>
       <CETCompat>true</CETCompat>
