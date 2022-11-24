@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @brief Includes all required ASAN externs to link binaries that include ASAN instramented binaries
+ * @brief Includes all required ASAN externs to link binaries that include ASAN instrumented binaries
  * but don't enable ASAN themselves.
  * These binaries are not expected to work unless they are also compiled with ASAN
  * and link the proper ASAN libs.
