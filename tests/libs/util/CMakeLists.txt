@@ -31,8 +31,8 @@ target_include_directories("test_util" PRIVATE
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
   "${CMAKE_SOURCE_DIR}/netebpfext"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
-  "${WDK_ROOT}/include/10.0.22000.0/km"
-  "${WDK_ROOT}/include/10.0.22000.0/shared"
+  "${WDK_ROOT}/include/${WDK_VERSION}/km"
+  "${WDK_ROOT}/include/${WDK_VERSION}/shared"
 )
 
 target_include_directories("test_util" SYSTEM INTERFACE

@@ -43,8 +43,8 @@ target_include_directories("unit_tests" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/thunk"
   "${CMAKE_SOURCE_DIR}/libs/thunk/mock"
   "${CMAKE_SOURCE_DIR}//netebpfext"
-  "${WDK_ROOT}/include/10.0.22000.0/km"
-  "${WDK_ROOT}/include/10.0.22000.0/shared"
+  "${WDK_ROOT}/include/${WDK_VERSION}/km"
+  "${WDK_ROOT}/include/${WDK_VERSION}/shared"
 )
 
 target_link_libraries("unit_tests" PRIVATE
