@@ -38,14 +38,14 @@ static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
     },
     {
         &EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER,
-        L"EBPF Connect Redirect V4 Sub-Layer",
+        L"EBPF CGroup Connect V4 Sub-Layer",
         L"Sub-Layer for use by eBPF connect redirect callouts",
         0,
         FWP_EMPTY // Auto weight.
     },
     {
         &EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
-        L"EBPF Connect Redirect V6 Sub-Layer",
+        L"EBPF CGroup Connect V6 Sub-Layer",
         L"Sub-Layer for use by eBPF connect redirect callouts",
         0,
         FWP_EMPTY // Auto weight.

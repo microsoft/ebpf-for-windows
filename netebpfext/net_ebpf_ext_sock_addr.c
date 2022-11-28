@@ -252,7 +252,8 @@ _net_ebpf_extension_sock_addr_on_client_attach(
     ASSERT(filter_parameters_array != NULL);
     filter_context->base.filter_ids_count = filter_parameters_array->count;
 
-    // Special case of connect_redirect. If the attach type is v4, set is_v4 in the filter context.
+    // Special case of connect_redirect. If the attach type is v4, set v4_attach_type in the filter
+    // context to true.
     if (memcmp(filter_parameters_array->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0) {
         filter_context->v4_attach_type = true;
     }
@@ -303,14 +304,14 @@ _net_ebpf_sock_addr_update_store_entries()
     uint32_t section_info_count = sizeof(_ebpf_sock_addr_section_info) / sizeof(ebpf_program_section_info_t);
     status = ebpf_store_update_section_information(&_ebpf_sock_addr_section_info[0], section_info_count);
     if (!NT_SUCCESS(status)) {
-        return status;
+        NET_EBPF_EXT_RETURN_NTSTATUS(status);
     }
 
     // Update program information.
     _ebpf_sock_addr_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     status = ebpf_store_update_program_information(&_ebpf_sock_addr_program_info, 1);
 
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 static void
@@ -342,7 +343,7 @@ _net_ebpf_ext_sock_addr_update_redirect_handle(uint64_t filter_id, HANDLE redire
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 
 Exit:
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 static void
@@ -388,7 +389,7 @@ _net_ebpf_ext_sock_addr_get_redirect_handle(uint64_t filter_id, _Out_ HANDLE* re
 
     ExReleaseSpinLockShared(&_net_ebpf_ext_sock_addr_lock, old_irql);
 
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 static void
@@ -406,7 +407,8 @@ _net_ebpf_ext_connection_context_initialize_value(
  * @param[in] addr1 Pointer to first sock_addr struct to compare.
  * @param[in] addr2 Pointer to second sock_addr struct to compare.
 
- * @return true, if the addresses are same, false otherwise.
+ * @return true if the addresses are same.
+   @return false otherwise.
  */
 static inline bool
 _net_ebpf_ext_compare_destination_address(_In_ const bpf_sock_addr_t* addr1, _In_ const bpf_sock_addr_t* addr2)
@@ -427,7 +429,7 @@ _net_ebpf_ext_connection_context_initialize_key(
     bool v4_mapped,
     _Out_ net_ebpf_ext_connection_context_key_t* context_key)
 {
-    // In case of original connection context, Destination IP classifiable field for classify
+    // In case of original connection context, the destination IP classifiable field for classify
     // callback at the AUTH_CONNECT_V4 layer is not populated for v4-mapped v6 address case.
     // So for v4-mapped case, do not fill the destination IP in the key, to be able to match
     // the context with the incoming values in AUTH callout.
@@ -479,7 +481,7 @@ _net_ebpf_ext_get_connection_context(
 
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 static void
@@ -494,8 +496,8 @@ _net_ebpf_ext_delete_connection_context(_In_ _Post_invalid_ net_ebpf_extension_c
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 }
 
-static void
-_net_ebpf_ext_purge_lru_contexts_under_lock(bool delete_all)
+_Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_lock) static void _net_ebpf_ext_purge_lru_contexts_under_lock(
+    bool delete_all)
 {
     uint64_t expiry_time = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime()) - EXPIRY_TIME;
 
@@ -557,7 +559,7 @@ net_ebpf_ext_sock_addr_register_providers()
 
     status = _net_ebpf_sock_addr_update_store_entries();
     if (!NT_SUCCESS(status)) {
-        return status;
+        NET_EBPF_EXT_RETURN_NTSTATUS(status);
     }
 
     _net_ebpf_sock_addr_initialize_globals();
@@ -773,7 +775,7 @@ net_ebpf_ext_connect_redirect_filter_change_notify(
     net_ebpf_ext_filter_change_notify(callout_notification_type, filter_key, filter);
 
 Exit:
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 //
@@ -983,10 +985,6 @@ _net_ebpf_ext_process_redirect_verdict(
                 INETADDR_SET_ADDRESS((PSOCKADDR)&connect_request->remoteAddressAndPort, address);
             }
 
-            // Target process id and local redirect handle needs to be set in two cases:
-            // 1. The redirected address is loopback.
-            // 2. The redirected address is a local non-loopback address.
-            // To simplify the design, always set these values.
             connect_request->localRedirectTargetPID = TARGET_PROCESS_ID;
             connect_request->localRedirectHandle = redirect_handle;
         } else {
@@ -1001,7 +999,7 @@ Exit:
         FwpsApplyModifiedLayerData(classify_handle, connect_request, 0);
     }
 
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 /*
