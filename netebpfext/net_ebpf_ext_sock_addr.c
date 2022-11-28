@@ -1036,6 +1036,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     FWP_ACTION_TYPE action = FWP_ACTION_BLOCK;
     bool classify_handle_acquired = false;
     bool v4_mapped = false;
+    bool is_original_connection;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
@@ -1214,10 +1215,11 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         sock_addr_ctx->user_ip4 = local_v4_ip;
     }
 
+    is_original_connection = true;
     _net_ebpf_ext_connection_context_initialize_key(
         sock_addr_ctx,
         incoming_metadata_values->transportEndpointHandle,
-        true,
+        is_original_connection,
         v4_mapped,
         &connection_context_original->key);
 
@@ -1227,10 +1229,11 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
 
     // Initialize connection_context_redirected destination with the redirected address.
+    is_original_connection = false;
     _net_ebpf_ext_connection_context_initialize_key(
         sock_addr_ctx,
         incoming_metadata_values->transportEndpointHandle,
-        false,
+        is_original_connection,
         v4_mapped,
         &connection_context_redirected->key);
 
