@@ -31,7 +31,19 @@ class _test_helper_netsh
 
 _test_helper_netsh::_test_helper_netsh() { _ebpf_netsh_objects.clear(); }
 
-_test_helper_netsh::~_test_helper_netsh() { REQUIRE(_ebpf_netsh_objects.empty()); }
+extern bool
+ebpf_low_memory_test_in_progress();
+
+_test_helper_netsh::~_test_helper_netsh()
+{
+    if (ebpf_low_memory_test_in_progress()) {
+        for (auto& object : _ebpf_netsh_objects) {
+            bpf_object__close(object);
+        }
+        _ebpf_netsh_objects.clear();
+    }
+    REQUIRE(_ebpf_netsh_objects.size() == 0);
+}
 
 std::string
 strip_paths(const std::string& original_string)
