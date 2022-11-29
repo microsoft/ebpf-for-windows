@@ -26,7 +26,7 @@ using namespace std::chrono_literals;
 void
 connection_test(
     ADDRESS_FAMILY address_family,
-    _In_ sender_socket_t& sender_socket,
+    _In_ client_socket_t& sender_socket,
     _In_ receiver_socket_t& receiver_socket,
     uint32_t protocol)
 {
@@ -48,20 +48,16 @@ connection_test(
     int local_address_length = 0;
     sender_socket.get_local_address(local_address, local_address_length);
 
-    connection_tuple_t tuple{};
+    connection_tuple_t tuple = {0};
     if (address_family == AF_INET) {
-        tuple.src_ip.ipv4 = htonl(INADDR_LOOPBACK);
         tuple.dst_ip.ipv4 = htonl(INADDR_LOOPBACK);
+        printf("tuple.dst_ip.ipv4 = %x\n", tuple.dst_ip.ipv4);
     } else {
-        memcpy(tuple.src_ip.ipv6, &in6addr_loopback, sizeof(tuple.src_ip.ipv6));
-        memcpy(tuple.dst_ip.ipv6, &in6addr_loopback, sizeof(tuple.src_ip.ipv6));
+        memcpy(tuple.dst_ip.ipv6, &in6addr_loopback, sizeof(tuple.dst_ip.ipv6));
     }
-    tuple.src_port = INETADDR_PORT(local_address);
     tuple.dst_port = htons(SOCKET_TEST_PORT);
+    printf("tuple.dst_port = %x\n", tuple.dst_port);
     tuple.protocol = protocol;
-    NET_LUID net_luid = {};
-    net_luid.Info.IfType = IF_TYPE_SOFTWARE_LOOPBACK;
-    tuple.interface_luid = net_luid.Value;
 
     bpf_map* ingress_connection_policy_map = bpf_object__find_map_by_name(object, "ingress_connection_policy_map");
     REQUIRE(ingress_connection_policy_map != nullptr);
@@ -84,7 +80,7 @@ connection_test(
     REQUIRE(result == 0);
 
     // Send loopback message to test port.
-    const char* message = "eBPF for Windows!";
+    const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
     if (address_family == AF_INET)
         IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
@@ -128,32 +124,32 @@ connection_test(
 
 TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP);
+    connection_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
 TEST_CASE("connection_test_udp_v6", "[sock_addr_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET6, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP);
+    connection_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
 
 TEST_CASE("connection_test_tcp_v4", "[sock_addr_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP);
+    connection_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET6, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP);
+    connection_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
@@ -247,7 +243,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 void
 connection_monitor_test(
     ADDRESS_FAMILY address_family,
-    _In_ sender_socket_t& sender_socket,
+    _In_ client_socket_t& sender_socket,
     _In_ receiver_socket_t& receiver_socket,
     uint32_t protocol,
     bool disconnect)
@@ -335,7 +331,7 @@ connection_monitor_test(
     REQUIRE(result == 0);
 
     // Send loopback message to test port.
-    const char* message = "eBPF for Windows!";
+    const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
     if (address_family == AF_INET)
         IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
@@ -367,62 +363,62 @@ connection_monitor_test(
 
 TEST_CASE("connection_monitor_test_udp_v4", "[sock_ops_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, false);
+    connection_monitor_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP, false);
 }
 TEST_CASE("connection_monitor_test_disconnect_udp_v4", "[sock_ops_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, true);
+    connection_monitor_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP, true);
 }
 
 TEST_CASE("connection_monitor_test_udp_v6", "[sock_ops_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET6, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, false);
+    connection_monitor_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP, false);
 }
 TEST_CASE("connection_monitor_test_disconnect_udp_v6", "[sock_ops_tests]")
 {
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET6, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, true);
+    connection_monitor_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP, true);
 }
 
 TEST_CASE("connection_monitor_test_tcp_v4", "[sock_ops_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, false);
+    connection_monitor_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP, false);
 }
 TEST_CASE("connection_monitor_test_disconnect_tcp_v4", "[sock_ops_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, true);
+    connection_monitor_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP, true);
 }
 
 TEST_CASE("connection_monitor_test_tcp_v6", "[sock_ops_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET6, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, false);
+    connection_monitor_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP, false);
 }
 TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
 {
-    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_monitor_test(AF_INET6, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, true);
+    connection_monitor_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP, true);
 }
 
 TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")

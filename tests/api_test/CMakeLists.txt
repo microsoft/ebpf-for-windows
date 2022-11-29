@@ -33,7 +33,6 @@ target_link_libraries("api_test" PRIVATE
 )
 
 target_compile_definitions("api_test" PRIVATE
-  _WINSOCK_DEPRECATED_NO_WARNINGS
   _CONSOLE
 )
 
