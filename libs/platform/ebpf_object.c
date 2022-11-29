@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_handle.h"
 #include "ebpf_object.h"
 
-static const uint32_t _ebpf_object_marker = 0x67453201;
+static const uint32_t _ebpf_object_marker = 'eobj';
 
 static ebpf_lock_t _ebpf_object_tracking_list_lock = {0};
 
@@ -142,8 +143,10 @@ ebpf_object_initialize(
 {
     EBPF_LOG_MESSAGE_POINTER_ENUM(
         EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object initialized", object, object_type);
-    object->marker = _ebpf_object_marker;
-    object->reference_count = 1;
+    object->base.marker = _ebpf_object_marker;
+    object->base.reference_count = 1;
+    object->base.acquire_reference = ebpf_object_acquire_reference;
+    object->base.release_reference = ebpf_object_release_reference;
     object->type = object_type;
     object->free_function = free_function;
     object->get_program_type = get_program_type_function;
@@ -155,30 +158,30 @@ ebpf_object_initialize(
 void
 ebpf_object_acquire_reference(ebpf_core_object_t* object)
 {
-    ebpf_assert(object->marker == _ebpf_object_marker);
-    ebpf_assert(object->reference_count != 0);
-    ebpf_interlocked_increment_int32(&object->reference_count);
+    ebpf_assert(object->base.marker == _ebpf_object_marker);
+    int32_t new_ref_count = ebpf_interlocked_increment_int32(&object->base.reference_count);
+    ebpf_assert(new_ref_count != 1);
 }
 
-_Requires_lock_held_(&_ebpf_object_tracking_list_lock) void _ebpf_object_release_reference_under_lock(
+_Requires_lock_held_(&_ebpf_object_tracking_list_lock) static void _ebpf_object_release_reference_under_lock(
     ebpf_core_object_t* object)
 {
-    uint32_t new_ref_count;
+    int32_t new_ref_count;
 
     if (!object)
         return;
 
-    ebpf_assert(object->marker == _ebpf_object_marker);
-    ebpf_assert(object->reference_count != 0);
+    ebpf_assert(object->base.marker == _ebpf_object_marker);
 
-    new_ref_count = ebpf_interlocked_decrement_int32(&object->reference_count);
+    new_ref_count = ebpf_interlocked_decrement_int32(&object->base.reference_count);
+    ebpf_assert(new_ref_count != -1);
 
     if (new_ref_count == 0) {
         EBPF_LOG_MESSAGE_POINTER_ENUM(
             EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object terminated", object, object->type);
 
         _ebpf_object_tracking_list_remove(object);
-        object->marker = ~object->marker;
+        object->base.marker = ~object->base.marker;
         object->free_function(object);
     }
 }
@@ -186,15 +189,15 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) void _ebpf_object_release
 void
 ebpf_object_release_reference(ebpf_core_object_t* object)
 {
-    uint32_t new_ref_count;
+    int32_t new_ref_count;
 
     if (!object)
         return;
 
-    ebpf_assert(object->marker == _ebpf_object_marker);
-    ebpf_assert(object->reference_count != 0);
+    ebpf_assert(object->base.marker == _ebpf_object_marker);
 
-    new_ref_count = ebpf_interlocked_decrement_int32(&object->reference_count);
+    new_ref_count = ebpf_interlocked_decrement_int32(&object->base.reference_count);
+    ebpf_assert(new_ref_count != -1);
 
     if (new_ref_count == 0) {
         EBPF_LOG_MESSAGE_POINTER_ENUM(
@@ -202,7 +205,7 @@ ebpf_object_release_reference(ebpf_core_object_t* object)
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
         _ebpf_object_tracking_list_remove(object);
         ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
-        object->marker = ~object->marker;
+        object->base.marker = ~object->base.marker;
         object->free_function(object);
     }
 }
@@ -325,4 +328,31 @@ ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type)
 
     ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
     return return_value;
+}
+
+static bool
+_ebpf_object_compare(_In_ const ebpf_base_object_t* object, _In_ const void* context)
+{
+    ebpf_assert(context != NULL);
+    __analysis_assume(context != NULL);
+
+    if (object->marker != _ebpf_object_marker) {
+        return false;
+    }
+
+    ebpf_core_object_t* local_object = (ebpf_core_object_t*)object;
+    ebpf_object_type_t object_type = *((ebpf_object_type_t*)context);
+    if ((object_type != EBPF_OBJECT_UNKNOWN) && (ebpf_object_get_type(local_object) != object_type)) {
+        return false;
+    }
+
+    return true;
+}
+
+ebpf_result_t
+ebpf_object_reference_by_handle(
+    ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
+{
+    return ebpf_reference_base_object_by_handle(
+        handle, _ebpf_object_compare, &object_type, (ebpf_base_object_t**)object);
 }

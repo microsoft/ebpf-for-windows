@@ -785,6 +785,17 @@ _ebpf_preemptible_routine(_Inout_ PTP_CALLBACK_INSTANCE instance, _In_opt_ PVOID
     ebpf_preemptible_work_item_t* work_item = (ebpf_preemptible_work_item_t*)parameter;
     work_item->work_item_routine(work_item->work_item_context);
 
+    ebpf_free_preemptible_work_item(work_item);
+}
+
+void
+ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* work_item)
+{
+    if (!work_item) {
+        return;
+    }
+
+    CloseThreadpoolWork(work_item->work);
     ebpf_free(work_item->work_item_context);
     ebpf_free(work_item);
 }

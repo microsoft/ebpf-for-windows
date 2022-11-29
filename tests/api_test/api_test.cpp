@@ -11,6 +11,7 @@
 #include <ws2tcpip.h>
 #include <mstcpip.h>
 
+#include "api_internal.h"
 #include "api_test.h"
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
@@ -645,4 +646,59 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
 
     // Clean up.
     WSACleanup();
+}
+
+TEST_CASE("native_module_handle_test", "[native_tests]")
+{
+    int result;
+    const char* file_name = "bindmonitor.sys";
+    struct bpf_object* object = nullptr;
+    struct bpf_object* object2 = nullptr;
+    fd_t program_fd;
+
+    result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    ebpf_handle_t native_module_handle = object->native_module_handle;
+    REQUIRE(native_module_handle != ebpf_handle_invalid);
+
+    // Bindmonitor has 2 maps and 1 program. Fetch and close all these fds.
+    bpf_map* map1 = bpf_object__find_map_by_name(object, "process_map");
+    REQUIRE(map1 != nullptr);
+    REQUIRE(map1->map_fd != ebpf_fd_invalid);
+    bpf_map* map2 = bpf_object__find_map_by_name(object, "limits_map");
+    REQUIRE(map2 != nullptr);
+    REQUIRE(map2->map_fd != ebpf_fd_invalid);
+    bpf_program* program = bpf_object__find_program_by_name(object, "BindMonitor");
+    REQUIRE(program != nullptr);
+    REQUIRE(program->fd != ebpf_fd_invalid);
+
+    _close(map1->map_fd);
+    _close(map2->map_fd);
+    _close(program->fd);
+
+    // Set the above closed FDs to ebpf_fd_invalid to avoid double close of FDs.
+    map1->map_fd = ebpf_fd_invalid;
+    map2->map_fd = ebpf_fd_invalid;
+    program->fd = ebpf_fd_invalid;
+
+    // Try to load the same native module again, which should fail.
+    result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd);
+    REQUIRE(result == -ENOENT);
+
+    // Close the native module handle. That should result in the module to be unloaded.
+    REQUIRE(ebpf_api_close_handle(native_module_handle) == EBPF_SUCCESS);
+    object->native_module_handle = ebpf_handle_invalid;
+
+    // Add a sleep to allow the previous driver to be unloaded successfully.
+    Sleep(1000);
+
+    // Try to load the same native module again. It should succeed this time.
+    object2 = nullptr;
+    result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd);
+    REQUIRE(result == 0);
+
+    bpf_object__close(object);
+    bpf_object__close(object2);
 }

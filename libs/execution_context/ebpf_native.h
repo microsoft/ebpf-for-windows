@@ -36,6 +36,7 @@ extern "C"
      * @param[in] service_name Name of the service for the native module.
      * @param[in] service_name_length Length of service_name.
      * @param[in] module_id Identifier of the native eBPF module to load.
+     * @param[out] module_handle Handle to the loaded native module.
      * @param[out] count_of_maps Count of maps in the native module.
      * @param[out] count_of_programs Count of programs in the native module.
      *
@@ -51,6 +52,7 @@ extern "C"
         _In_reads_(service_name_length) const wchar_t* service_name,
         uint16_t service_name_length,
         _In_ const GUID* module_id,
+        _Out_ ebpf_handle_t* module_handle,
         _Out_ size_t* count_of_maps,
         _Out_ size_t* count_of_programs);
 
@@ -103,17 +105,6 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_native_get_count_of_maps(_In_ const GUID* module_id, _Out_ size_t* count_of_maps);
-
-    /**
-     * @brief Unload driver for the specified module id.
-     *
-     * @param[in] module_id Pointer to module id whose driver is to be unloaded.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate memory for service name.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_native_unload(_In_ const GUID* module_id);
 
     /**
      * @brief Acquire reference on the native module.
