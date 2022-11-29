@@ -1,0 +1,40 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+#
+# See https://github.com/marketplace/actions/auto-update for documentation on this file.
+
+name: autoupdate
+
+# Controls when the action will run. Triggers the workflow on push # events
+# but only for the main branch
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+    contents: read
+
+jobs:
+  autoupdate:
+    name: autoupdate
+    permissions:
+      contents: write  # for Git to git push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@ebacdc22ef6c2cfb85ee5ded8f2e640f4c776dd5
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: docker://chinthakagodawita/autoupdate-action@sha256:a3e234f9fce69dd9b3a205acfd55bf9d5c94f0f7cf119f0267a5ab54220e8f56 # v1
+        env:
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          PR_FILTER: "auto_merge"
+          PR_READY_STATE: "ready_for_review"
+          MERGE_MSG: "Branch was auto-updated."
+
+      - run: echo 'Merge conflicts found!'
+        if: ${{ steps.autoupdate.outputs.conflicted }}
+
+      - run: echo 'No merge conflicts'
+        if: ${{ !steps.autoupdate.outputs.conflicted }}
