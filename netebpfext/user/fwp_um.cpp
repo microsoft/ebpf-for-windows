@@ -338,3 +338,71 @@ _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) _Must_ins
     UNREFERENCED_PARAMETER(completion_context);
     return STATUS_NOT_IMPLEMENTED;
 }
+
+_IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS NTAPI FwpsAcquireWritableLayerDataPointer0(
+    _In_ UINT64 classifyHandle,
+    _In_ UINT64 filterId,
+    _In_ UINT32 flags,
+    _Out_ PVOID* writableLayerData,
+    _Inout_opt_ FWPS_CLASSIFY_OUT0* classifyOut)
+{
+    UNREFERENCED_PARAMETER(classifyHandle);
+    UNREFERENCED_PARAMETER(filterId);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(classifyOut);
+
+    *writableLayerData = NULL;
+
+    return STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS NTAPI
+    FwpsAcquireClassifyHandle0(_In_ void* classifyContext, _In_ UINT32 flags, _Out_ UINT64* classifyHandle)
+{
+    UNREFERENCED_PARAMETER(classifyContext);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(classifyHandle);
+
+    *classifyHandle = 0;
+
+    return STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL) void NTAPI FwpsReleaseClassifyHandle0(_In_ UINT64 classifyHandle)
+{
+    UNREFERENCED_PARAMETER(classifyHandle);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL) void NTAPI
+    FwpsApplyModifiedLayerData0(_In_ UINT64 classifyHandle, _In_ PVOID modifiedLayerData, _In_ UINT32 flags)
+{
+    UNREFERENCED_PARAMETER(classifyHandle);
+    UNREFERENCED_PARAMETER(modifiedLayerData);
+    UNREFERENCED_PARAMETER(flags);
+}
+
+_IRQL_requires_(PASSIVE_LEVEL) NTSTATUS NTAPI
+    FwpsRedirectHandleCreate0(_In_ const GUID* providerGuid, _Reserved_ UINT32 flags, _Out_ HANDLE* redirectHandle)
+{
+    UNREFERENCED_PARAMETER(providerGuid);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(redirectHandle);
+
+    *redirectHandle = 0;
+
+    return STATUS_SUCCESS;
+}
+
+_IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) FWPS_CONNECTION_REDIRECT_STATE NTAPI
+    FwpsQueryConnectionRedirectState0(
+        _In_ HANDLE redirectRecords, _In_ HANDLE redirectHandle, _Outptr_opt_result_maybenull_ void** redirectContext)
+{
+    UNREFERENCED_PARAMETER(redirectRecords);
+    UNREFERENCED_PARAMETER(redirectHandle);
+
+    if (redirectContext) {
+        *redirectContext = NULL;
+    }
+
+    return FWPS_CONNECTION_NOT_REDIRECTED;
+}

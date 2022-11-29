@@ -131,6 +131,48 @@ _Releases_shared_lock_(push_lock->lock) void ExReleasePushLockSharedEx(
     ReleaseSRWLockShared(&push_lock->lock);
 }
 
+_Acquires_exclusive_lock_(spin_lock->lock) KIRQL
+    ExAcquireSpinLockExclusiveEx(_Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
+                                     EX_SPIN_LOCK* spin_lock)
+{
+    AcquireSRWLockExclusive(&spin_lock->lock);
+    return PASSIVE_LEVEL;
+}
+
+_Acquires_exclusive_lock_(spin_lock->lock) void ExAcquireSpinLockExclusiveAtDpcLevelEx(
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock)
+{
+    AcquireSRWLockExclusive(&spin_lock->lock);
+}
+
+_Acquires_shared_lock_(spin_lock->lock) KIRQL
+    ExAcquireSpinLockSharedEx(_Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
+                                  EX_SPIN_LOCK* spin_lock)
+{
+    AcquireSRWLockShared(&spin_lock->lock);
+    return PASSIVE_LEVEL;
+}
+
+_Releases_exclusive_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveEx(
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock, KIRQL old_irql)
+{
+    UNREFERENCED_PARAMETER(old_irql);
+    ReleaseSRWLockExclusive(&spin_lock->lock);
+}
+
+_Releases_exclusive_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveFromDpcLevelEx(
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock)
+{
+    ReleaseSRWLockExclusive(&spin_lock->lock);
+}
+
+_Releases_shared_lock_(spin_lock->lock) void ExReleaseSpinLockSharedEx(
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock, KIRQL old_irql)
+{
+    UNREFERENCED_PARAMETER(old_irql);
+    ReleaseSRWLockShared(&spin_lock->lock);
+}
+
 void*
 ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_bytes, _In_ unsigned long tag)
 {
@@ -296,4 +338,13 @@ RtlULongAdd(
 {
     *result = augend + addend;
     return STATUS_SUCCESS;
+}
+
+ULONGLONG
+QueryInterruptTimeEx()
+{
+    ULONGLONG time = 0;
+    QueryInterruptTime(&time);
+
+    return time;
 }
