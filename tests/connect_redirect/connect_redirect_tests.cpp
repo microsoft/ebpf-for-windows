@@ -203,7 +203,7 @@ _update_policy_map(
 void
 connect_redirect_test(
     _In_ const struct bpf_object* object,
-    _In_ sender_socket_t* sender_socket,
+    _In_ client_socket_t* sender_socket,
     _In_ sockaddr_storage& destination,
     _In_ sockaddr_storage& proxy,
     uint16_t destination_port,
@@ -239,7 +239,7 @@ connect_redirect_test(
 void
 authorize_test(
     _In_ const struct bpf_object* object,
-    _In_ sender_socket_t* sender_socket,
+    _In_ client_socket_t* sender_socket,
     _Inout_ sockaddr_storage& destination,
     bool dual_stack)
 {
@@ -265,17 +265,17 @@ authorize_test(
 }
 
 void
-get_client_socket(bool dual_stack, _Inout_ sender_socket_t** sender_socket)
+get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket)
 {
-    sender_socket_t* old_socket = *sender_socket;
-    sender_socket_t* new_socket = nullptr;
+    client_socket_t* old_socket = *sender_socket;
+    client_socket_t* new_socket = nullptr;
     socket_family_t family = dual_stack
                                  ? socket_family_t::Dual
                                  : ((_globals.family == AF_INET) ? socket_family_t::IPv4 : socket_family_t::IPv6);
     if (_globals.protocol == IPPROTO_TCP) {
-        new_socket = (sender_socket_t*)new stream_client_socket_t(SOCK_STREAM, IPPROTO_TCP, 0, family);
+        new_socket = (client_socket_t*)new stream_client_socket_t(SOCK_STREAM, IPPROTO_TCP, 0, family);
     } else {
-        new_socket = (sender_socket_t*)new datagram_client_socket_t(SOCK_DGRAM, IPPROTO_UDP, 0, family);
+        new_socket = (client_socket_t*)new datagram_client_socket_t(SOCK_DGRAM, IPPROTO_UDP, 0, family);
     }
 
     *sender_socket = new_socket;
@@ -287,7 +287,7 @@ get_client_socket(bool dual_stack, _Inout_ sender_socket_t** sender_socket)
 void
 authorize_test_wrapper(_In_ const struct bpf_object* object, bool dual_stack, _In_ sockaddr_storage& destination)
 {
-    sender_socket_t* sender_socket = nullptr;
+    client_socket_t* sender_socket = nullptr;
 
     get_client_socket(dual_stack, &sender_socket);
     authorize_test(object, sender_socket, destination, dual_stack);
@@ -301,7 +301,7 @@ connect_redirect_test_wrapper(
     _In_ sockaddr_storage& proxy,
     bool dual_stack)
 {
-    sender_socket_t* sender_socket = nullptr;
+    client_socket_t* sender_socket = nullptr;
     get_client_socket(dual_stack, &sender_socket);
     connect_redirect_test(
         object, sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
@@ -311,7 +311,7 @@ connect_redirect_test_wrapper(
 void
 connect_redirect_tests_common(_In_ const struct bpf_object* object, bool dual_stack, _In_ test_addresses_t& addresses)
 {
-    // First cateogory is authorize tests.
+    // First category is authorize tests.
     const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";
     const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";
     const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";

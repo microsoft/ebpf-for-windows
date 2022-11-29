@@ -26,7 +26,7 @@ using namespace std::chrono_literals;
 void
 connection_test(
     ADDRESS_FAMILY address_family,
-    _In_ sender_socket_t& sender_socket,
+    _In_ client_socket_t& sender_socket,
     _In_ receiver_socket_t& receiver_socket,
     uint32_t protocol)
 {
@@ -243,7 +243,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 void
 connection_monitor_test(
     ADDRESS_FAMILY address_family,
-    _In_ sender_socket_t& sender_socket,
+    _In_ client_socket_t& sender_socket,
     _In_ receiver_socket_t& receiver_socket,
     uint32_t protocol,
     bool disconnect)

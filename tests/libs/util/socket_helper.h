@@ -78,7 +78,7 @@ typedef class _base_socket
 } base_socket_t;
 
 /**
- * @class An abstract base class for a sender socket.
+ * @class An abstract base class for a client socket.
  */
 typedef class _client_socket : public _base_socket
 {
@@ -100,7 +100,7 @@ typedef class _client_socket : public _base_socket
   protected:
     WSAOVERLAPPED overlapped;
     bool receive_posted;
-} sender_socket_t;
+} client_socket_t;
 
 /**
  * @class A dual stack UDP or raw socket bound to wildcard address that is used to send messages to a remote host.
