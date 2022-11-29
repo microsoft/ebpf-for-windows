@@ -20,29 +20,29 @@ TEST_CASE("xdp_encap_reflect_test", "[xdp_tests]")
     // Initialize the remote address.
     struct sockaddr_storage remote_address = {};
     ADDRESS_FAMILY address_family;
-    get_address_from_string(_remote_ip, remote_address, &address_family);
+    get_address_from_string(_remote_ip, remote_address, true, &address_family);
     REQUIRE((address_family == AF_INET || address_family == AF_INET6));
     int protocol = (address_family == AF_INET) ? IPPROTO_IPV4 : IPPROTO_IPV6;
     // Create a RAW receiver socket with protocol being IPv4 or IPv6 based on the address family of the remote host.
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_RAW, protocol, _reflection_port);
+    datagram_server_socket_t datagram_server_socket(SOCK_RAW, protocol, _reflection_port);
     // Post an asynchronous receive on the receiver socket.
-    datagram_receiver_socket.post_async_receive();
+    datagram_server_socket.post_async_receive();
     // Send message to remote host on reflection port.
     const char* message = "Bo!ng";
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_sender_socket.send_message_to_remote_host(message, remote_address, _reflection_port);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_client_socket.send_message_to_remote_host(message, remote_address, _reflection_port);
     // Complete the asynchronous receive and obtain the reflected message.
-    datagram_receiver_socket.complete_async_receive();
+    datagram_server_socket.complete_async_receive();
     // Verify if the received message was reflected by remote host.
     PSOCKADDR sender_address = nullptr;
     int sender_length = 0;
-    datagram_receiver_socket.get_sender_address(sender_address, sender_length);
+    datagram_server_socket.get_sender_address(sender_address, sender_length);
     REQUIRE(INET_ADDR_EQUAL(
         remote_address.ss_family, INETADDR_ADDRESS((PSOCKADDR)&remote_address), INETADDR_ADDRESS(sender_address)));
     // Verify if the received message is expected.
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
-    datagram_receiver_socket.get_received_message(bytes_received, received_message);
+    datagram_server_socket.get_received_message(bytes_received, received_message);
     if (address_family == AF_INET) {
         // Raw sockets with protocol IPPROTO_IPV4 receives the IP header in received message.
         // So skip over outer IP header to get the inner IP datagram.
@@ -70,22 +70,22 @@ TEST_CASE("xdp_encap_reflect_test", "[xdp_tests]")
 TEST_CASE("xdp_reflect_test", "[xdp_tests]")
 {
     // Create a UDP receiver socket.
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, REFLECTION_TEST_PORT);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, REFLECTION_TEST_PORT);
     // Post an asynchronous receive on the receiver socket.
-    datagram_receiver_socket.post_async_receive();
+    datagram_server_socket.post_async_receive();
     // Initialize the remote address.
     struct sockaddr_storage remote_address = {};
-    get_address_from_string(_remote_ip, remote_address);
+    get_address_from_string(_remote_ip, remote_address, true);
     // Send message to remote host on reflection port.
     const char* message = "Bo!ng";
-    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_sender_socket.send_message_to_remote_host(message, remote_address, REFLECTION_TEST_PORT);
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_client_socket.send_message_to_remote_host(message, remote_address, REFLECTION_TEST_PORT);
     // Complete the asynchronous receive and obtain the reflected message.
-    datagram_receiver_socket.complete_async_receive();
+    datagram_server_socket.complete_async_receive();
     // Verify if the received message is expected.
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
-    datagram_receiver_socket.get_received_message(bytes_received, received_message);
+    datagram_server_socket.get_received_message(bytes_received, received_message);
     REQUIRE(bytes_received == strlen(message));
     REQUIRE(memcmp(received_message, message, strlen(message)) == 0);
 }
