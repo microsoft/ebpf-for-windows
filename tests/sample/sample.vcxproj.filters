@@ -108,5 +108,11 @@
     <CustomBuild Include="sockops.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="xref_direct.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="xref_indirect.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

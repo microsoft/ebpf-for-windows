@@ -272,6 +272,22 @@ extern "C"
     ebpf_program_create_and_initialize(
         _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle);
 
+    /**
+     * @brief Save the index in the map where this program's id
+     * is stored at.
+     *
+     * @param[in] map Array map that has stored this program's id.
+     * @param[in] object Pointer to the program.
+     * @param[in] index that stores the program Id.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_OPERATION_NOT_SUPPORTED The program has no
+     *         associated maps of 'program array' type.
+     * @retval EBPF_FAILURE An internal error has occured.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_update_associated_map_index(
+        _Inout_ ebpf_map_t* map, _In_opt_ ebpf_core_object_t* object, uint32_t index);
+
 #ifdef __cplusplus
 }
 #endif

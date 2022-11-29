@@ -158,7 +158,15 @@ $source_directory="."
     "unit_tests.exe",
     "unit_tests.pdb",
     "xdp_tests.exe",
-    "xdp_tests.pdb")
+    "xdp_tests.pdb",
+    "xref_direct.o",
+    "xref_direct_um.dll",
+    "xref_direct_um.pdb",
+    "xref_direct.sys",
+    "xref_indirect.o",
+    "xref_indirect_um.dll",
+    "xref_indirect_um.pdb",
+    "xref_indirect.sys")
 
 [System.Collections.ArrayList]$built_files= $built_runtime_files
 [System.Collections.ArrayList]$source_files= $source_script_files

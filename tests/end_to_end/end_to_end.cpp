@@ -2681,3 +2681,49 @@ TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
 
     bpf_object__close(jit_object);
 }
+
+TEST_CASE("close_unload_test", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object* object = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+
+    const char* file_name = "bindmonitor_tailcall_um.dll";
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    // Set up tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+}

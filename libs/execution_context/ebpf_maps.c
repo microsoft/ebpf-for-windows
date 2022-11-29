@@ -627,6 +627,7 @@ _update_array_map_entry_with_handle(
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
         result = ebpf_object_reference_by_handle(value_handle, value_type, &value_object);
         if (result != EBPF_SUCCESS) {
+            // TODO: log error.
             return result;
         }
     }
@@ -636,26 +637,28 @@ _update_array_map_entry_with_handle(
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
         result = _validate_map_value_object(object_map, value_type, value_object);
         if (result != EBPF_SUCCESS) {
+
+            // TODO: log error.
             goto Done;
         }
     }
 
-    // Release the reference on the old ID stored here, if any.
-    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
-    ebpf_id_t old_id = *(ebpf_id_t*)entry;
-    if (old_id) {
-        ebpf_assert_success(ebpf_object_dereference_by_id(old_id, value_type));
+    // Save/Update the index for this program in this map. We need this for 'self-cleanup' work during program unload.
+    result = ebpf_program_update_associated_map_index((ebpf_map_t*)map, value_object, index);
+    if (result != EBPF_SUCCESS) {
+
+        // TODO: log error.
+        goto Done;
     }
 
+    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
     ebpf_id_t id = value_object ? value_object->id : 0;
 
     // Store the object ID as the value.
     memcpy(entry, &id, map->ebpf_map_definition.value_size);
 
 Done:
-    if (result != EBPF_SUCCESS && value_object != NULL) {
-        ebpf_object_release_reference((ebpf_core_object_t*)value_object);
-    }
+    ebpf_object_release_reference((ebpf_core_object_t*)value_object);
     ebpf_lock_unlock(&object_map->lock, lock_state);
 
     return result;
@@ -688,7 +691,7 @@ _delete_array_map_entry_with_reference(
     result = _find_array_map_entry(map, key, false, &entry);
     if (result == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)entry;
-        if (id) {
+        if (id && value_type != EBPF_OBJECT_PROGRAM) {
             ebpf_assert_success(ebpf_object_dereference_by_id(id, value_type));
         }
         _delete_array_map_entry(map, key);

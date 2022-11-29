@@ -713,3 +713,89 @@ TEST_CASE("nomap_load_test", "[native_tests]")
     auto object = _helper.get_object();
     REQUIRE(object != nullptr);
 }
+
+TEST_CASE("xref_direct_test", "[native_tests]")
+{
+    // This test case tests post-unloading clean-up of programs that contain direct program -> map -> program
+    // cross references and which exit without explicitly closing handles to these bpf objects.
+
+    // Load BPF object from file.
+    struct bpf_object* object = bpf_object__open("xref_direct.sys");
+    REQUIRE(object != nullptr);
+
+    // Set program execution type
+    REQUIRE(ebpf_object_set_execution_type(object, EBPF_EXECUTION_NATIVE) == EBPF_SUCCESS);
+
+    // Load program by name.
+    struct bpf_program* start_prog = bpf_object__find_program_by_name(object, "xref_direct_start");
+    REQUIRE(start_prog != nullptr);
+
+    // Set program type
+    REQUIRE(bpf_program__set_type(start_prog, BPF_PROG_TYPE_BIND) == 0);
+
+    // Load (driver) program into memory, i.e. create driver service
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // attach the program to link
+    fd_t start_prog_fd = bpf_program__fd(start_prog);
+    REQUIRE(start_prog_fd > 0);
+
+    ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_BIND;
+    bpf_link* link;
+    REQUIRE(ebpf_program_attach_by_fd(start_prog_fd, &attach_type, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    // Now set up the prog_array map with our tail calls.
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    REQUIRE(prog_map_fd > 0);
+
+    struct bpf_program* first_prog = bpf_object__find_program_by_name(object, "xref_direct_first");
+    REQUIRE(first_prog != nullptr);
+    fd_t first_prog_fd = bpf_program__fd(first_prog);
+    REQUIRE(first_prog_fd > 0);
+
+    struct bpf_program* second_prog = bpf_object__find_program_by_name(object, "xref_direct_second");
+    REQUIRE(second_prog != nullptr);
+    fd_t second_prog_fd = bpf_program__fd(second_prog);
+    REQUIRE(second_prog_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &first_prog_fd, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &second_prog_fd, 0) == 0);
+
+    // Exit w/o closing handles.
+}
+
+TEST_CASE("indirect_xref_test", "[native_tests]")
+{
+    // This test case tests post-unloading clean-up of programs that contain indirect circular references, i.e.
+    // like so: program1 -> map-of-maps -> map1 --> program2 --> map2 --> program1
+    // and which exit without explicitly closing handles to these bpf objects.
+
+    // Load BPF object from file.
+    struct bpf_object* object = bpf_object__open("xref_direct.sys");
+    REQUIRE(object != nullptr);
+
+    // Set program execution type
+    REQUIRE(ebpf_object_set_execution_type(object, EBPF_EXECUTION_NATIVE) == EBPF_SUCCESS);
+
+    // Load program by name.
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "func");
+    REQUIRE(program != nullptr);
+
+    // Set program type
+    REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_BIND) == 0);
+
+    // Load (driver) program into memory, i.e. create driver service
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // get a handle to the bpf program
+    struct bpf_program* prog = bpf_object__find_program_by_name(object, "func");
+    REQUIRE(prog != nullptr);
+    fd_t prog_fd = bpf_program__fd(prog);
+    REQUIRE(prog_fd > 0);
+
+    //
+    //  TBD (In Progress)
+    //
+}
