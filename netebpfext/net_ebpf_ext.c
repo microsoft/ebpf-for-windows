@@ -28,11 +28,34 @@ NDIS_HANDLE _net_ebpf_ext_ndis_handle = NULL;
 NDIS_HANDLE _net_ebpf_ext_nbl_pool_handle = NULL;
 HANDLE _net_ebpf_ext_l2_injection_handle = NULL;
 
+static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
+    {
+        &EBPF_DEFAULT_SUBLAYER,
+        L"EBPF Sub-Layer",
+        L"Sub-Layer for use by eBPF callouts",
+        0,
+        FWP_EMPTY // Auto weight.
+    },
+    {
+        &EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER,
+        L"EBPF CGroup Connect V4 Sub-Layer",
+        L"Sub-Layer for use by eBPF connect redirect callouts",
+        0,
+        FWP_EMPTY // Auto weight.
+    },
+    {
+        &EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
+        L"EBPF CGroup Connect V6 Sub-Layer",
+        L"Sub-Layer for use by eBPF connect redirect callouts",
+        0,
+        FWP_EMPTY // Auto weight.
+    }};
+
 static void
 _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_context);
 
-static NTSTATUS
-_net_ebpf_ext_filter_change_notify(
+NTSTATUS
+net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
 
 typedef struct _net_ebpf_ext_wfp_callout_state
@@ -48,13 +71,13 @@ typedef struct _net_ebpf_ext_wfp_callout_state
     uint32_t assigned_callout_id;
 } net_ebpf_ext_wfp_callout_state_t;
 
-static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
+static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
     // EBPF_HOOK_OUTBOUND_L2
     {
         &EBPF_HOOK_OUTBOUND_L2_CALLOUT,
         &FWPM_LAYER_OUTBOUND_MAC_FRAME_NATIVE,
         net_ebpf_ext_layer_2_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"L2 Outbound",
         L"L2 Outbound Callout for eBPF",
@@ -65,7 +88,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         &EBPF_HOOK_INBOUND_L2_CALLOUT,
         &FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE,
         net_ebpf_ext_layer_2_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"L2 Inbound",
         L"L2 Inbound Callout for eBPF",
@@ -76,7 +99,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         &EBPF_HOOK_ALE_RESOURCE_ALLOC_V4_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
         net_ebpf_ext_resource_allocation_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"Resource Allocation v4",
         L"Resource Allocation v4 callout for eBPF",
@@ -87,7 +110,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         &EBPF_HOOK_ALE_RESOURCE_RELEASE_V4_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_RELEASE_V4,
         net_ebpf_ext_resource_release_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"Resource Release v4",
         L"Resource Release v4 callout for eBPF",
@@ -98,7 +121,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         &EBPF_HOOK_ALE_RESOURCE_ALLOC_V6_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6,
         net_ebpf_ext_resource_allocation_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"Resource Allocation v6",
         L"Resource Allocation v6 callout for eBPF",
@@ -109,7 +132,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         &EBPF_HOOK_ALE_RESOURCE_RELEASE_V6_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_RELEASE_V6,
         net_ebpf_ext_resource_release_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"Resource Release eBPF Callout v6",
         L"Resource Release callout for eBPF",
@@ -120,7 +143,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         &EBPF_HOOK_ALE_AUTH_CONNECT_V4_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_CONNECT_V4,
         net_ebpf_extension_sock_addr_authorize_connection_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"ALE Authorize Connect eBPF Callout v4",
         L"ALE Authorize Connect callout for eBPF",
@@ -131,7 +154,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         &EBPF_HOOK_ALE_AUTH_CONNECT_V6_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_CONNECT_V6,
         net_ebpf_extension_sock_addr_authorize_connection_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"ALE Authorize Connect eBPF Callout v6",
         L"ALE Authorize Connect callout for eBPF",
@@ -141,8 +164,8 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4,
-        net_ebpf_extension_sock_addr_authorize_connection_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_extension_sock_addr_authorize_recv_accept_classify,
+        net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"ALE Authorize Receive or Accept eBPF Callout v4",
         L"ALE Authorize Receive or Accept callout for eBPF",
@@ -152,11 +175,33 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6,
-        net_ebpf_extension_sock_addr_authorize_connection_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_extension_sock_addr_authorize_recv_accept_classify,
+        net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"ALE Authorize Receive or Accept eBPF Callout v6",
         L"ALE Authorize Receive or Accept callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    // EBPF_HOOK_ALE_CONNECT_REDIRECT_V4
+    {
+        &EBPF_HOOK_ALE_CONNECT_REDIRECT_V4_CALLOUT,
+        &FWPM_LAYER_ALE_CONNECT_REDIRECT_V4,
+        net_ebpf_extension_sock_addr_redirect_connection_classify,
+        net_ebpf_ext_connect_redirect_filter_change_notify,
+        _net_ebpf_ext_flow_delete,
+        L"ALE Connect Redirect eBPF Callout v4",
+        L"ALE Connect Redirect callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    // EBPF_HOOK_ALE_CONNECT_REDIRECT_V6
+    {
+        &EBPF_HOOK_ALE_CONNECT_REDIRECT_V6_CALLOUT,
+        &FWPM_LAYER_ALE_CONNECT_REDIRECT_V6,
+        net_ebpf_extension_sock_addr_redirect_connection_classify,
+        net_ebpf_ext_connect_redirect_filter_change_notify,
+        _net_ebpf_ext_flow_delete,
+        L"ALE Connect Redirect eBPF Callout v6",
+        L"ALE Connect Redirect callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
     // EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4
@@ -164,7 +209,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4_CALLOUT,
         &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4,
         net_ebpf_extension_sock_ops_flow_established_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_ext_filter_change_notify,
         net_ebpf_extension_sock_ops_flow_delete,
         L"ALE Flow Established Callout v4",
         L"ALE Flow Established callout for eBPF",
@@ -175,7 +220,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6_CALLOUT,
         &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6,
         net_ebpf_extension_sock_ops_flow_established_classify,
-        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_ext_filter_change_notify,
         net_ebpf_extension_sock_ops_flow_delete,
         L"ALE Flow Established Callout v4",
         L"ALE Flow Established callout for eBPF",
@@ -276,6 +321,12 @@ net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
     case FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6:
         hook_id = EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6;
         break;
+    case FWPS_LAYER_ALE_CONNECT_REDIRECT_V4:
+        hook_id = EBPF_HOOK_ALE_CONNECT_REDIRECT_V4;
+        break;
+    case FWPS_LAYER_ALE_CONNECT_REDIRECT_V6:
+        hook_id = EBPF_HOOK_ALE_CONNECT_REDIRECT_V6;
+        break;
     default:
         ASSERT(FALSE);
         break;
@@ -289,8 +340,8 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 {
     uint32_t callout_id = 0;
 
-    if (hook_id < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_state))
-        callout_id = _net_ebpf_ext_wfp_callout_state[hook_id].assigned_callout_id;
+    if (hook_id < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states))
+        callout_id = _net_ebpf_ext_wfp_callout_states[hook_id].assigned_callout_id;
 
     return callout_id;
 }
@@ -352,7 +403,11 @@ net_ebpf_extension_add_wfp_filters(
         filter.action.calloutKey = *filter_parameter->callout_guid;
         filter.filterCondition = (FWPM_FILTER_CONDITION*)conditions;
         filter.numFilterConditions = condition_count;
-        filter.subLayerKey = EBPF_SUBLAYER;
+        if (filter_parameter->sublayer_guid != NULL) {
+            filter.subLayerKey = *(filter_parameter->sublayer_guid);
+        } else {
+            filter.subLayerKey = EBPF_DEFAULT_SUBLAYER;
+        }
         filter.weight.type = FWP_EMPTY; // auto-weight.
         REFERENCE_FILTER_CONTEXT(filter_context);
         filter.rawContext = (uint64_t)(uintptr_t)filter_context;
@@ -549,28 +604,31 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     }
     is_in_transaction = TRUE;
 
-    RtlZeroMemory(&ebpf_hook_sub_layer, sizeof(FWPM_SUBLAYER));
+    // Add all the sub layers.
+    for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_sublayers); index++) {
+        RtlZeroMemory(&ebpf_hook_sub_layer, sizeof(FWPM_SUBLAYER));
 
-    ebpf_hook_sub_layer.subLayerKey = EBPF_SUBLAYER;
-    ebpf_hook_sub_layer.displayData.name = L"EBPF Sub-Layer";
-    ebpf_hook_sub_layer.displayData.description = L"Sub-Layer for use by EBPF callouts";
-    ebpf_hook_sub_layer.flags = 0;
-    ebpf_hook_sub_layer.weight = FWP_EMPTY; // auto-weight.;
+        ebpf_hook_sub_layer.subLayerKey = *(_net_ebpf_ext_sublayers[index].sublayer_guid);
+        ebpf_hook_sub_layer.displayData.name = (wchar_t*)_net_ebpf_ext_sublayers[index].name;
+        ebpf_hook_sub_layer.displayData.description = (wchar_t*)_net_ebpf_ext_sublayers[index].description;
+        ebpf_hook_sub_layer.flags = _net_ebpf_ext_sublayers[index].flags;
+        ebpf_hook_sub_layer.weight = _net_ebpf_ext_sublayers[index].weight;
 
-    status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpf_hook_sub_layer, NULL);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmSubLayerAdd", status);
-        goto Exit;
+        status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpf_hook_sub_layer, NULL);
+        if (!NT_SUCCESS(status)) {
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmSubLayerAdd", status);
+            goto Exit;
+        }
     }
 
-    for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_state); index++) {
-        status = _net_ebpf_ext_register_wfp_callout(&_net_ebpf_ext_wfp_callout_state[index], device_object);
+    for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
+        status = _net_ebpf_ext_register_wfp_callout(&_net_ebpf_ext_wfp_callout_states[index], device_object);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_MESSAGE_STRING(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
                 NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,
                 "_net_ebpf_ext_register_wfp_callout() failed to register callout",
-                (char*)_net_ebpf_ext_wfp_callout_state[index].name);
+                (char*)_net_ebpf_ext_wfp_callout_states[index].name);
             goto Exit;
         }
     }
@@ -612,16 +670,16 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         FwpmEngineClose(_fwp_engine_handle);
         _fwp_engine_handle = NULL;
 
-        for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_state); index++) {
-            FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_state[index].assigned_callout_id);
+        for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
+            FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_states[index].assigned_callout_id);
         }
     }
 
     FwpsInjectionHandleDestroy(_net_ebpf_ext_l2_injection_handle);
 }
 
-static NTSTATUS
-_net_ebpf_ext_filter_change_notify(
+NTSTATUS
+net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter)
 {
     NET_EBPF_EXT_LOG_ENTRY();

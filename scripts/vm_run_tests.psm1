@@ -117,6 +117,45 @@ function Remove-eBPFProgramFromVM
     } -ArgumentList ($VM, $ProgId, "eBPF", $LogFileName) -ErrorAction Stop
 }
 
+function Start-ProcessOnVM
+{
+    param ([parameter(Mandatory=$true)] [string] $VM,
+           [parameter(Mandatory=$true)] [string] $ProgramName,
+           [string] $Parameters)
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    # Start process on VM.
+    Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
+        param([Parameter(Mandatory=$True)] [string] $VM,
+              [parameter(Mandatory=$true)] [string] $ProgramName,
+              [string] $Parameters,
+              [Parameter(Mandatory=$True)] [string] $WorkingDirectory)
+
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        $ProgramName = "$WorkingDirectory\$ProgramName"
+
+        Start-Process -FilePath $ProgramName -ArgumentList $Parameters
+    } -ArgumentList ($VM, $ProgramName, $Parameters, "eBPF") -ErrorAction Stop
+}
+
+function Stop-ProcessOnVM
+{
+    param ([parameter(Mandatory=$true)] [string] $VM,
+           [parameter(Mandatory=$true)] [string] $ProgramName)
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    # Stop process on VM.
+    Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
+        param([Parameter(Mandatory=$True)] [string] $VM,
+              [parameter(Mandatory=$true)] [string] $ProgramName)
+
+        $ProgramName = [io.path]::GetFileNameWithoutExtension($ProgramName)
+        Stop-Process -Name $ProgramName
+    } -ArgumentList ($VM, $ProgramName) -ErrorAction Stop
+}
+
 function Invoke-XDPTestOnVM
 {
     param ([parameter(Mandatory=$true)] [string] $VM,
@@ -144,8 +183,10 @@ function Invoke-XDPTestOnVM
     } -ArgumentList ($VM, $XDPTestName, $RemoteIPV4Address, $RemoteIPV6Address, "eBPF", $LogFileName) -ErrorAction Stop
 }
 
-function Add-XDPTestFirewallRuleOnVM {
+function Add-FirewallRuleOnVM {
     param ([parameter(Mandatory=$true)] [string] $VM,
+           [parameter(Mandatory=$true)] [string] $ProgramName,
+           [parameter(Mandatory=$true)] [string] $RuleName,
            [Parameter(Mandatory=$True)] [string] $LogFileName)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -153,14 +194,16 @@ function Add-XDPTestFirewallRuleOnVM {
     # Allow XDP Test in Firewwall on VM.
     Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $VM,
+              [Parameter(Mandatory=$True)] [string] $ProgramName,
+              [Parameter(Mandatory=$True)] [string] $RuleName,
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
-        Write-Log "Allowing XDP test app through firewall on $VM."
-        New-NetFirewallRule -DisplayName "XDP_Test" -Program "$WorkingDirectory\xdp_tests.exe" -Direction Inbound -Action Allow
-    } -ArgumentList ($VM, "eBPF", $LogFileName) -ErrorAction Stop
+        Write-Log "Allowing $ProgramName test app through firewall on $VM."
+        New-NetFirewallRule -DisplayName $RuleName -Program "$WorkingDirectory\$ProgramName" -Direction Inbound -Action Allow
+    } -ArgumentList ($VM, $ProgramName, $RuleName, "eBPF", $LogFileName) -ErrorAction Stop
 }
 
 function Invoke-XDPTest1
@@ -294,11 +337,79 @@ function Invoke-XDPTestsOnVM
 
     $VM2 = $MultiVMTestConfig[1]
 
-    Add-XDPTestFirewallRuleOnVM $VM2.Name $LogFileName
+    Add-FirewallRuleOnVM -VM $VM2.Name -RuleName "XDP_Test" -ProgramName "xdp_tests.exe" -LogFileName $LogFileName
     Invoke-XDPTest1 $VM1.Name $VM2.Name $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
     Invoke-XDPTest2 $VM1.Name $VM2.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
     Invoke-XDPTest3 $VM1.Name $VM2.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
     Invoke-XDPTest4 $VM1.Name $VM2.Name $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
+}
+
+function Invoke-ConnectRedirectTestsOnVM
+{
+    param([parameter(Mandatory=$true)] $MultiVMTestConfig,
+          [parameter(Mandatory=$true)] $ConnectRedirectTestConfig)
+
+    $VM1 = $MultiVMTestConfig[0]
+    $VM1Interface = $VM1.Interfaces[0]
+    $VM1V4Address = $VM1Interface.V4Address
+    $VM1V6Address = $VM1Interface.V6Address
+
+    $VM2 = $MultiVMTestConfig[1]
+    $VM2Interface = $VM2.Interfaces[0]
+    $VM2V4Address = $VM2Interface.V4Address
+    $VM2V6Address = $VM2Interface.V6Address
+
+    $VipV4Address = $ConnectRedirectTestConfig.V4VipAddress
+    $VipV6Address = $ConnectRedirectTestConfig.V6VipAddress
+    $DestinationPort = $ConnectRedirectTestConfig.DestinationPort
+    $ProxyPort = $ConnectRedirectTestConfig.ProxyPort
+
+    $ProgramName = "tcp_udp_listener.exe"
+    $TcpServerParameters = "--protocol tcp --local-port $DestinationPort"
+    $TcpProxyParameters = "--protocol tcp --local-port $ProxyPort"
+    $UdpServerParameters = "--protocol udp --local-port $DestinationPort"
+    $UdpProxyParameters = "--protocol udp --local-port $ProxyPort"
+
+    $ParamaterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
+    $VMArray = @($VM1.Name, $VM2.Name)
+
+    Add-FirewallRuleOnVM -VM $VM1.Name -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
+    Add-FirewallRuleOnVM -VM $VM2.Name -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
+
+    # Start TCP and UDP listeners on both the VMs.
+    foreach ($vm in $VMArray)
+    {
+        foreach ($param in $ParamaterArray)
+        {
+            Start-ProcessOnVM -VM $vm -ProgramName $ProgramName -Parameters $param
+        }
+    }
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    Invoke-Command -VMName $VM1.Name -Credential $TestCredential -ScriptBlock {
+        param([Parameter(Mandatory=$True)][string] $VM,
+              [parameter(Mandatory=$true)][string] $LocalIPv4Address,
+              [parameter(Mandatory=$true)][string] $LocalIPv6Address,
+              [parameter(Mandatory=$true)][string] $RemoteIPv4Address,
+              [parameter(Mandatory=$true)][string] $RemoteIPv6Address,
+              [parameter(Mandatory=$true)][string] $VirtualIPv4Address,
+              [parameter(Mandatory=$true)][string] $VirtualIPv6Address,
+              [parameter(Mandatory=$true)][int] $DestinationPort,
+              [parameter(Mandatory=$true)][int] $ProxyPort,
+              [parameter(Mandatory=$true)][string] $WorkingDirectory,
+              [Parameter(Mandatory=$true)][string] $LogFileName)
+
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
+        Write-Log "Invoking connect redirect tests on $VM"
+        Invoke-ConnectRedirectTest -LocalIPv4Address $LocalIPv4Address -LocalIPv6Address $LocalIPv6Address -RemoteIPv4Address $RemoteIPv4Address -RemoteIPv6Address $RemoteIPv6Address -VirtualIPv4Address $VirtualIPv4Address -VirtualIPv6Address $VirtualIPv6Address -DestinationPort $DestinationPort -ProxyPort $ProxyPort -WorkingDirectory $WorkingDirectory
+    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, "eBPF", $LogFileName) -ErrorAction Stop
+
+    Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
+    Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName
 }
 
 function Stop-eBPFComponentsOnVM

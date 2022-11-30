@@ -30,6 +30,7 @@ get_metadata_table();
 static bool _expect_native_module_load_failures = false;
 
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
+#define CREATE_FILE_HANDLE 0x12345678
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                              0xc847aac8,
@@ -164,13 +165,22 @@ GlueCreateFileW(
     UNREFERENCED_PARAMETER(dwFlagsAndAttributes);
     UNREFERENCED_PARAMETER(hTemplateFile);
 
-    return (HANDLE)0x12345678;
+    return (HANDLE)CREATE_FILE_HANDLE;
 }
 
 BOOL
 GlueCloseHandle(HANDLE hObject)
 {
-    _duplicate_handles.dereference_if_found(reinterpret_cast<ebpf_handle_t>(hObject));
+    if (hObject == (HANDLE)CREATE_FILE_HANDLE) {
+        return TRUE;
+    }
+
+    ebpf_handle_t handle = reinterpret_cast<ebpf_handle_t>(hObject);
+    bool found = _duplicate_handles.dereference_if_found(handle);
+    if (!found) {
+        // No duplicates. Close the handle.
+        REQUIRE((ebpf_api_close_handle(handle) == EBPF_SUCCESS || ebpf_fuzzing_enabled));
+    }
 
     return TRUE;
 }
@@ -454,11 +464,7 @@ Glue_close(int file_descriptor)
         errno = EINVAL;
         return -1;
     } else {
-        bool found = _duplicate_handles.dereference_if_found(it->second);
-        if (!found) {
-            // No duplicates. Close the handle.
-            REQUIRE((ebpf_api_close_handle(it->second) == EBPF_SUCCESS || ebpf_fuzzing_enabled));
-        }
+        GlueCloseHandle(reinterpret_cast<HANDLE>(it->second));
         _fd_to_handle_map.erase(file_descriptor);
         return 0;
     }
