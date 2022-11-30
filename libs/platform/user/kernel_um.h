@@ -12,14 +12,26 @@
 #define ExAcquirePushLockShared(Lock) ExAcquirePushLockSharedEx(Lock, EX_DEFAULT_PUSH_LOCK_FLAGS)
 #define ExReleasePushLockExclusive(Lock) ExReleasePushLockExclusiveEx(Lock, EX_DEFAULT_PUSH_LOCK_FLAGS)
 #define ExReleasePushLockShared(Lock) ExReleasePushLockSharedEx(Lock, EX_DEFAULT_PUSH_LOCK_FLAGS)
+#define ExAcquireSpinLockExclusive(Lock) ExAcquireSpinLockExclusiveEx(Lock)
+#define ExAcquireSpinLockShared(Lock) ExAcquireSpinLockSharedEx(Lock)
+#define ExAcquireSpinLockExclusiveAtDpcLevel(Lock) ExAcquireSpinLockExclusiveAtDpcLevelEx(Lock)
+#define ExReleaseSpinLockExclusive(Lock, Irql) ExReleaseSpinLockExclusiveEx(Lock, Irql)
+#define ExReleaseSpinLockShared(Lock, Irql) ExReleaseSpinLockSharedEx(Lock, Irql)
+#define ExReleaseSpinLockExclusiveFromDpcLevel(Lock) ExReleaseSpinLockExclusiveFromDpcLevelEx(Lock)
 #define KdPrintEx(_x_) DbgPrintEx _x_
 #define KeAcquireSpinLock(spin_lock, OldIrql) *(OldIrql) = KeAcquireSpinLockRaiseToDpc(spin_lock)
+#define KeQueryInterruptTime QueryInterruptTimeEx
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 #define PAGED_CODE()
+
 #define STATUS_SUCCESS 0
 #define STATUS_INSUFFICIENT_RESOURCES ((NTSTATUS)0xC000009AL)
 #define STATUS_ACCESS_DENIED ((NTSTATUS)0xC0000022L)
 #define STATUS_NOT_IMPLEMENTED ((NTSTATUS)0xC0000002L)
+#define STATUS_NOT_FOUND ((NTSTATUS)0xC0000225L)
+#define STATUS_UNSUCCESSFUL ((NTSTATUS)0xC0000001L)
+#define PASSIVE_LEVEL 0
+#define DISPATCH_LEVEL 2
 
 // Typedefs
 typedef struct _DEVICE_OBJECT DEVICE_OBJECT;
@@ -30,6 +42,10 @@ typedef struct _EX_PUSH_LOCK
 {
     SRWLOCK lock;
 } EX_PUSH_LOCK;
+typedef struct _EX_SPIN_LOCK
+{
+    SRWLOCK lock;
+} EX_SPIN_LOCK;
 typedef struct _EX_RUNDOWN_REF
 {
     struct _mock_rundown_ref* inner;
@@ -147,8 +163,31 @@ _Releases_exclusive_lock_(push_lock->lock) void ExReleasePushLockExclusiveEx(
 _Releases_shared_lock_(push_lock->lock) void ExReleasePushLockSharedEx(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ unsigned long flags);
 
+_Acquires_exclusive_lock_(spin_lock->lock) KIRQL
+    ExAcquireSpinLockExclusiveEx(_Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
+                                     EX_SPIN_LOCK* spin_lock);
+
+_Acquires_exclusive_lock_(spin_lock->lock) void ExAcquireSpinLockExclusiveAtDpcLevelEx(
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock);
+
+_Acquires_shared_lock_(spin_lock->lock) KIRQL
+    ExAcquireSpinLockSharedEx(_Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
+                                  EX_SPIN_LOCK* spin_lock);
+
+_Releases_exclusive_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveEx(
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock, KIRQL old_irql);
+
+_Releases_shared_lock_(spin_lock->lock) void ExReleaseSpinLockSharedEx(
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock, KIRQL old_irql);
+
+_Releases_exclusive_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveFromDpcLevelEx(
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock);
+
 void*
 ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_bytes, _In_ unsigned long tag);
+
+ULONGLONG
+QueryInterruptTimeEx();
 
 void
 ExFreePool(void* p);
@@ -237,6 +276,23 @@ InsertTailList(_Inout_ LIST_ENTRY* list_head, _Out_ __drv_aliasesMem LIST_ENTRY*
     entry->Blink = PrevEntry;
     PrevEntry->Flink = entry;
     list_head->Blink = entry;
+    return;
+}
+
+FORCEINLINE
+void
+InsertHeadList(_Inout_ LIST_ENTRY* list_head, _Out_ __drv_aliasesMem LIST_ENTRY* entry)
+{
+    LIST_ENTRY* NextEntry;
+    NextEntry = list_head->Flink;
+    if (NextEntry->Blink != list_head) {
+        FatalListEntryError((void*)NextEntry, (void*)list_head, (void*)NextEntry->Blink);
+    }
+
+    entry->Flink = NextEntry;
+    entry->Blink = list_head;
+    NextEntry->Blink = entry;
+    list_head->Flink = entry;
     return;
 }
 

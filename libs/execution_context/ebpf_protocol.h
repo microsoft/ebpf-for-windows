@@ -387,6 +387,7 @@ typedef struct _ebpf_operation_load_native_module_request
 typedef struct _ebpf_operation_load_native_module_reply
 {
     struct _ebpf_operation_header header;
+    ebpf_handle_t native_module_handle;
     size_t count_of_maps;
     size_t count_of_programs;
 } ebpf_operation_load_native_module_reply_t;

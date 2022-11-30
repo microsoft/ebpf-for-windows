@@ -18,6 +18,7 @@ uint32_t
 test_ioctl_load_native_module(
     _In_ const std::wstring& service_path,
     _In_ const GUID* module_id,
+    _Out_ ebpf_handle_t* module_handle,
     _Out_ size_t* count_of_maps,
     _Out_ size_t* count_of_programs)
 {
@@ -29,6 +30,7 @@ test_ioctl_load_native_module(
 
     *count_of_maps = 0;
     *count_of_programs = 0;
+    *module_handle = ebpf_handle_invalid;
 
     size_t buffer_size = offsetof(ebpf_operation_load_native_module_request_t, data) + service_path_size;
     request_buffer.resize(buffer_size);
@@ -49,6 +51,7 @@ test_ioctl_load_native_module(
 
     *count_of_maps = reply.count_of_maps;
     *count_of_programs = reply.count_of_programs;
+    *module_handle = reply.native_module_handle;
 
 Done:
     return error;

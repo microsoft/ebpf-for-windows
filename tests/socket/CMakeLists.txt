@@ -29,7 +29,6 @@ target_link_libraries("socket_tests" PRIVATE
 
 target_compile_definitions("socket_tests" PRIVATE
   _CONSOLE
-  _WINSOCK_DEPRECATED_NO_WARNINGS
 )
 
 add_test(
