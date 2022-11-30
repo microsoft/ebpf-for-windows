@@ -114,7 +114,8 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      test_command: .\bpf_conformance_runner.exe --test_file_directory tests --plugin_path bpf2c_plugin.exe --cpu_version v2 --debug true --plugin_options "--include %SOURCE_ROOT%\include"
+      pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.1/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
+      test_command: .\bpf_conformance_runner.exe --test_file_directory %SOURCE_ROOT%\external\bpf_conformance\tests --plugin_path bpf2c_plugin.exe --debug true --plugin_options "--include %SOURCE_ROOT%\include" --exclude_regex "(lock|call-local)"
       name: bpf2c_conformance
       build_artifact: Build-x64
       environment: windows-2019
