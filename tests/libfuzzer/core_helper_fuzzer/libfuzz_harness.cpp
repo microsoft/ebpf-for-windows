@@ -11,6 +11,7 @@
 
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
+#include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "helpers.h"
 #include "libfuzzer.h"
@@ -189,7 +190,7 @@ class fuzz_wrapper
                 handles.push_back(handle);
 
                 ebpf_map_t* map = NULL;
-                if (ebpf_reference_object_by_handle(handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map) ==
+                if (ebpf_object_reference_by_handle(handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map) ==
                     EBPF_SUCCESS) {
                     maps[def.type] = map;
                     if (def.type == BPF_MAP_TYPE_PROG_ARRAY) {
@@ -480,7 +481,7 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     ebpf_handle_t program_handle = fuzz_state.get_program_handle();
     ebpf_program_t* program = NULL;
     ebpf_result_t result =
-        ebpf_reference_object_by_handle(program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
+        ebpf_object_reference_by_handle(program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
     if (result != EBPF_SUCCESS) {
         return 0;
     }

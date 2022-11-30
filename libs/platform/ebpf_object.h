@@ -20,14 +20,25 @@ extern "C"
         EBPF_OBJECT_PROGRAM,
     } ebpf_object_type_t;
 
+    typedef struct _ebpf_base_object ebpf_base_object_t;
+    typedef void (*ebpf_base_release_reference_t)(_Inout_ void* base_object);
+    typedef void (*ebpf_base_acquire_reference_t)(_Inout_ void* base_object);
+
     typedef struct _ebpf_core_object ebpf_core_object_t;
     typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);
     typedef const ebpf_program_type_t* (*ebpf_object_get_program_type_t)(_In_ const ebpf_core_object_t* object);
 
-    typedef struct _ebpf_core_object
+    typedef struct _ebpf_base_object
     {
         uint32_t marker;
         volatile int32_t reference_count;
+        ebpf_base_acquire_reference_t acquire_reference;
+        ebpf_base_release_reference_t release_reference;
+    } ebpf_base_object_t;
+
+    typedef struct _ebpf_core_object
+    {
+        ebpf_base_object_t base;
         ebpf_object_type_t type;
         ebpf_free_object_t free_function;
         ebpf_object_get_program_type_t get_program_type;
@@ -148,6 +159,20 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id);
+
+    /**
+     * @brief Find the corresponding handle in the handle table, verify the type matches,
+     *  acquire a reference to the object and return it.
+     *
+     * @param[in] handle Handle to find in table.
+     * @param[in] object_type Object type to match.
+     * @param[out] object Pointer to memory that contains object success.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
+     */
+    ebpf_result_t
+    ebpf_object_reference_by_handle(
+        ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ struct _ebpf_core_object** object);
 
 #ifdef __cplusplus
 }

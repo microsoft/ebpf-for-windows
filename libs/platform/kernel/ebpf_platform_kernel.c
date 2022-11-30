@@ -498,6 +498,15 @@ _ebpf_preemptible_routine(_In_ PDEVICE_OBJECT device_object, _In_opt_ PVOID cont
     ebpf_preemptible_work_item_t* work_item = (ebpf_preemptible_work_item_t*)context;
     work_item->work_item_routine(work_item->work_item_context);
 
+    ebpf_free_preemptible_work_item(work_item);
+}
+
+void
+ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* work_item)
+{
+    if (!work_item)
+        return;
+
     IoFreeWorkItem(work_item->io_work_item);
     ebpf_free(work_item->work_item_context);
     ebpf_free(work_item);

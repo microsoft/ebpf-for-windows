@@ -18,7 +18,7 @@ ebpf_handle_table_terminate()
 {}
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_handle_create(ebpf_handle_t* handle, ebpf_core_object_t* object)
+ebpf_handle_create(ebpf_handle_t* handle, ebpf_base_object_t* object)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
@@ -59,7 +59,7 @@ ebpf_handle_create(ebpf_handle_t* handle, ebpf_core_object_t* object)
         goto Done;
     }
 
-    ebpf_object_acquire_reference(object);
+    object->acquire_reference(object);
     file_object->FsContext2 = object;
 
     *handle = (ebpf_handle_t)file_handle;
@@ -87,13 +87,16 @@ ebpf_handle_close(ebpf_handle_t handle)
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_object_by_handle(
-    ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
+_IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_handle(
+    ebpf_handle_t handle,
+    _In_opt_ ebpf_compare_object_t compare_function,
+    _In_opt_ const void* context,
+    _Outptr_ struct _ebpf_base_object** object)
 {
     ebpf_result_t return_value;
     NTSTATUS status;
     FILE_OBJECT* file_object = NULL;
-    ebpf_core_object_t* local_object;
+    ebpf_base_object_t* local_object;
 
     status = ObReferenceObjectByHandle((HANDLE)handle, 0, NULL, UserMode, &file_object, NULL);
     if (!NT_SUCCESS(status)) {
@@ -107,18 +110,20 @@ _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_object_by_handle
         goto Done;
     }
 
-    local_object = (ebpf_core_object_t*)file_object->FsContext2;
+    local_object = (ebpf_base_object_t*)file_object->FsContext2;
     if (local_object == NULL) {
         return_value = EBPF_INVALID_OBJECT;
         goto Done;
     }
 
-    if ((object_type != EBPF_OBJECT_UNKNOWN) && (ebpf_object_get_type(local_object) != object_type)) {
-        return_value = EBPF_INVALID_OBJECT;
-        goto Done;
+    if (compare_function) {
+        if (!compare_function(local_object, context)) {
+            return_value = EBPF_INVALID_OBJECT;
+            goto Done;
+        }
     }
 
-    ebpf_object_acquire_reference(local_object);
+    local_object->acquire_reference(local_object);
     *object = local_object;
     return_value = EBPF_SUCCESS;
 
@@ -126,13 +131,4 @@ Done:
     if (file_object)
         ObDereferenceObject(file_object);
     return return_value;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_get_next_handle_by_type(ebpf_handle_t previous_handle, ebpf_object_type_t object_type, ebpf_handle_t* next_handle)
-{
-    UNREFERENCED_PARAMETER(previous_handle);
-    UNREFERENCED_PARAMETER(object_type);
-    UNREFERENCED_PARAMETER(next_handle);
-    return EBPF_OPERATION_NOT_SUPPORTED;
 }
