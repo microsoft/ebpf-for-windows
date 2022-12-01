@@ -99,7 +99,7 @@ opcode  src  imm   description                                          PREVAIL 
 0x7f    any  0x00  dst >>= src                                             Y      Y      Y    rsh-reg
 0x84    0x0  0x00  dst = (uint32_t)-dst                                    Y      Y      Y    neg
 0x85    0x0  any   call helper function imm                                Y      Y      Y    call_unwind_fail
-0x85    0x1  any   call PC += offset                                       no     no     no   ???
+0x85    0x1  any   call PC += offset                                       no     no     no   call_local
 0x85    0x2  any   call runtime function imm                               no     no     no   ???
 0x87    0x0  0x00  dst = -dst                                              Y      Y      Y    neg64
 0x94    0x0  any   dst = (uint32_t)((imm != 0) ? (dst % imm) : dst)        Y      Y      Y    mod
@@ -124,22 +124,22 @@ opcode  src  imm   description                                          PREVAIL 
 0xbe    any  0x00  if (uint32_t)dst <= (uint32_t)src goto +offset          Y      Y      no   jle32-reg
 0xbf    any  0x00  dst = src                                               Y      Y      Y    ldxb-all
 0xc3    any  0x00  lock \*(uint32_t \*)(dst + offset) += src               no     no     no   lock_add32
-0xc3    any  0x01  lock::                                                  no     no     no   ???
+0xc3    any  0x01  lock::                                                  no     no     no   lock_fetch_add32
 
                        *(uint32_t *)(dst + offset) += src
                        src = *(uint32_t *)(dst + offset)
 0xc3    any  0x40  \*(uint32_t \*)(dst + offset) \|= src                   no     no     no   lock_or32
-0xc3    any  0x41  lock::                                                  no     no     no   ???
+0xc3    any  0x41  lock::                                                  no     no     no   lock_fetch_or32
 
                        *(uint32_t *)(dst + offset) |= src
                        src = *(uint32_t *)(dst + offset)
 0xc3    any  0x50  \*(uint32_t \*)(dst + offset) &= src                    no     no     no   lock_and32
-0xc3    any  0x51  lock::                                                  no     no     no   ???
+0xc3    any  0x51  lock::                                                  no     no     no   lock_fetch_and32
 
                        *(uint32_t *)(dst + offset) &= src
                        src = *(uint32_t *)(dst + offset)
 0xc3    any  0xa0  \*(uint32_t \*)(dst + offset) ^= src                    no     no     no   lock_xor32
-0xc3    any  0xa1  lock::                                                  no     no     no   ???
+0xc3    any  0xa1  lock::                                                  no     no     no   lock_fetch_xor32
 
                        *(uint32_t *)(dst + offset) ^= src
                        src = *(uint32_t *)(dst + offset)
@@ -168,22 +168,22 @@ opcode  src  imm   description                                          PREVAIL 
 0xd5    0x0  any   if dst s<= imm goto +offset                             Y      Y      Y    jsle-imm
 0xd6    0x0  any   if (int32_t)dst s<= (int32_t)imm goto +offset           Y      Y      no   jsle32-imm
 0xdb    any  0x00  lock \*(uint64_t \*)(dst + offset) += src               no     no     no   lock_add
-0xdb    any  0x01  lock::                                                  no     no     no   ???
+0xdb    any  0x01  lock::                                                  no     no     no   lock_fetch_add
 
                        *(uint64_t *)(dst + offset) += src
                        src = *(uint64_t *)(dst + offset)
 0xdb    any  0x40  \*(uint64_t \*)(dst + offset) \|= src                   no     no     no   lock_or
-0xdb    any  0x41  lock::                                                  no     no     no   ???
+0xdb    any  0x41  lock::                                                  no     no     no   lock_fetch_or
 
                        *(uint64_t *)(dst + offset) |= src
                        lock src = *(uint64_t *)(dst + offset)
 0xdb    any  0x50  \*(uint64_t \*)(dst + offset) &= src                    no     no     no   lock_and
-0xdb    any  0x51  lock::                                                  no     no     no   ???
+0xdb    any  0x51  lock::                                                  no     no     no   lock_fetch_and
 
                        *(uint64_t *)(dst + offset) &= src
                        src = *(uint64_t *)(dst + offset)
 0xdb    any  0xa0  \*(uint64_t \*)(dst + offset) ^= src                    no     no     no   lock_xor
-0xdb    any  0xa1  lock::                                                  no     no     no   ???
+0xdb    any  0xa1  lock::                                                  no     no     no   lock_fetch_xor
 
                        *(uint64_t *)(dst + offset) ^= src
                        src = *(uint64_t *)(dst + offset)
@@ -216,7 +216,3 @@ Some takeaways:
   as they will not be generated by clang when an older "cpu version" is specified on the command line.
 * The conformance suite does not support most 64-bit immediate instructions
   (https://github.com/Alan-Jowett/bpf_conformance/issues/59).
-* The conformance suite does not support extended call instructions
-  (https://github.com/Alan-Jowett/bpf_conformance/issues/60).
-* The conformance suite does not support atomic instructions with BPF_FETCH set
-  (https://github.com/Alan-Jowett/bpf_conformance/issues/61).
