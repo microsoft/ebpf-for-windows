@@ -271,7 +271,6 @@ _ebpf_hash_table_bucket_insert(
 
     size_t new_entry_count = ebpf_interlocked_increment_int64((volatile int64_t*)&hash_table->entry_count);
     if (new_entry_count > hash_table->max_entry_count && hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
-        ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
         result = EBPF_OUT_OF_SPACE;
         goto Done;
     }
@@ -314,6 +313,10 @@ _ebpf_hash_table_bucket_insert(
 Done:
     hash_table->free(local_new_bucket);
     hash_table->free(backup_bucket);
+
+    if (result != EBPF_SUCCESS) {
+        ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
+    }
 
     return result;
 }
