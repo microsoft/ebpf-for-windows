@@ -1491,7 +1491,7 @@ _initialize_ebpf_maps_native(
     _Inout_ std::vector<ebpf_map_t*>& maps) noexcept
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(map_handles);
+    ebpf_assert(count_of_maps == 0 || map_handles);
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_t* map = nullptr;
 
@@ -1590,7 +1590,8 @@ _initialize_ebpf_object_native(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_assert(map_handles);
+
+    ebpf_assert(count_of_maps == 0 || map_handles);
     ebpf_assert(program_handles);
 
     object.native_module_fd = native_module_fd;
@@ -2717,7 +2718,6 @@ _load_native_module(
     ebpf_assert(count_of_maps);
     ebpf_assert(count_of_programs);
 
-    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error = ERROR_SUCCESS;
     ebpf_protocol_buffer_t request_buffer;
@@ -2788,10 +2788,14 @@ _load_native_programs(
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(module_id);
-    ebpf_assert(map_handles);
+
+    // Map count can be 0 (a program without any maps is a valid use case).
+    ebpf_assert(count_of_maps == 0 || map_handles);
+
+    // Program count *must* be non-zero.
+    ebpf_assert(count_of_programs);
     ebpf_assert(program_handles);
 
-    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error = ERROR_SUCCESS;
     ebpf_protocol_buffer_t reply_buffer;
@@ -2800,6 +2804,11 @@ _load_native_programs(
     size_t map_handles_size = count_of_maps * sizeof(ebpf_handle_t);
     size_t program_handles_size = count_of_programs * sizeof(ebpf_handle_t);
     size_t handles_size = map_handles_size + program_handles_size;
+
+    if (map_handles) {
+        memset(map_handles, 0, map_handles_size);
+    }
+    memset(program_handles, 0, program_handles_size);
 
     size_t buffer_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) + handles_size;
     reply_buffer.resize(buffer_size);
@@ -2827,7 +2836,9 @@ _load_native_programs(
         goto Done;
     }
 
-    memcpy(map_handles, reply->data, map_handles_size);
+    if (count_of_maps) {
+        memcpy(map_handles, reply->data, map_handles_size);
+    }
     memcpy(program_handles, reply->data + map_handles_size, program_handles_size);
 
 Done:
@@ -2844,11 +2855,13 @@ _ebpf_program_load_native(
     _Out_ fd_t* program_fd) noexcept
 {
     EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(attach_type);
+    UNREFERENCED_PARAMETER(execution_type);
+
     ebpf_assert(file_name);
     ebpf_assert(object);
     ebpf_assert(program_fd);
 
-    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error;
     GUID service_name_guid;
@@ -2867,13 +2880,21 @@ _ebpf_program_load_native(
     ebpf_handle_t* map_handles = nullptr;
     ebpf_handle_t* program_handles = nullptr;
 
-    UNREFERENCED_PARAMETER(attach_type);
-    UNREFERENCED_PARAMETER(execution_type);
-
     if (UuidCreate(&service_name_guid) != RPC_S_OK) {
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "_ebpf_program_load_native: Create UUID (service name) failed.",
+            file_name);
         EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
     }
+
     if (UuidCreate(&provider_module_id) != RPC_S_OK) {
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "_ebpf_program_load_native: Create UUID (provider module) failed.",
+            file_name);
         EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
     }
 
@@ -2917,6 +2938,11 @@ _ebpf_program_load_native(
         result = _load_native_module(
             service_path, &provider_module_id, &native_module_handle, &count_of_maps, &count_of_programs);
         if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_WSTRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "_ebpf_program_load_native: load native module failed",
+                service_path.c_str());
             goto Done;
         }
 
@@ -2943,6 +2969,11 @@ _ebpf_program_load_native(
         program_handles = (ebpf_handle_t*)ebpf_allocate(count_of_programs * sizeof(ebpf_handle_t));
         if (program_handles == nullptr) {
             result = EBPF_NO_MEMORY;
+            EBPF_LOG_MESSAGE_STRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "_ebpf_program_load_native: program handle buffer allocation failed.",
+                file_name);
             goto Done;
         }
 
@@ -2950,6 +2981,11 @@ _ebpf_program_load_native(
             map_handles = (ebpf_handle_t*)ebpf_allocate(count_of_maps * sizeof(ebpf_handle_t));
             if (map_handles == nullptr) {
                 result = EBPF_NO_MEMORY;
+                EBPF_LOG_MESSAGE_STRING(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_API,
+                    "_ebpf_program_load_native: map handle buffer allocation failed.",
+                    file_name);
                 goto Done;
             }
         }
@@ -2957,12 +2993,22 @@ _ebpf_program_load_native(
         result = _load_native_programs(
             &provider_module_id, program_type, count_of_maps, map_handles, count_of_programs, program_handles);
         if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_STRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "_ebpf_program_load_native: load native programs failed",
+                file_name);
             goto Done;
         }
 
         result = _initialize_ebpf_object_native(
             native_module_fd, count_of_maps, map_handles, count_of_programs, program_handles, *object);
         if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_STRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "_ebpf_program_load_native: inititialize native ebpf object failed",
+                file_name);
             goto Done;
         }
         native_module_fd = ebpf_fd_invalid;

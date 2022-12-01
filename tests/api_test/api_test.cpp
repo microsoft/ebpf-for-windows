@@ -702,3 +702,14 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
     bpf_object__close(object);
     bpf_object__close(object2);
 }
+
+TEST_CASE("nomap_load_test", "[native_tests]")
+{
+    // This test case tests loading of native ebpf programs that do not contain/refer-to any map.
+    // This test should succeed as this is a valid use case.
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "printk.sys", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+    auto object = _helper.get_object();
+    REQUIRE(object != nullptr);
+}
