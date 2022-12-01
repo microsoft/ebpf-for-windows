@@ -1405,10 +1405,10 @@ _clean_up_ebpf_object(_In_opt_ ebpf_object_t* object) noexcept
         clean_up_ebpf_programs(object->programs);
         clean_up_ebpf_maps(object->maps);
 
-        if (object->native_module_handle != ebpf_handle_invalid) {
+        if (object->native_module_fd != ebpf_fd_invalid) {
             ebpf_assert(object->execution_type == EBPF_EXECUTION_NATIVE);
-            Platform::CloseHandle(object->native_module_handle);
-            object->native_module_handle = ebpf_handle_invalid;
+            Platform::_close(object->native_module_fd);
+            object->native_module_fd = ebpf_fd_invalid;
         }
 
         ebpf_free(object->object_name);
@@ -1593,7 +1593,7 @@ _initialize_ebpf_object_native(
     ebpf_assert(map_handles);
     ebpf_assert(program_handles);
 
-    object.native_module_handle = native_module_handle;
+    object.native_module_fd = _create_file_descriptor_for_handle(native_module_handle);
 
     result = _initialize_ebpf_programs_native(count_of_programs, program_handles, object.programs);
     if (result != EBPF_SUCCESS) {

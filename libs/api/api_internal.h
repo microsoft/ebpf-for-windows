@@ -70,7 +70,7 @@ typedef struct bpf_object
 {
     char* object_name = nullptr;
     char* file_name = nullptr;
-    ebpf_handle_t native_module_handle = ebpf_handle_invalid;
+    fd_t native_module_fd = ebpf_fd_invalid;
     std::vector<ebpf_program_t*> programs;
     std::vector<ebpf_map_t*> maps;
     bool loaded = false;
