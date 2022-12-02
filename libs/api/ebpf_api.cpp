@@ -2109,6 +2109,7 @@ _ebpf_pe_add_section(
     info->raw_data_size = section_header.Misc.VirtualSize;
     info->raw_data = (char*)ebpf_allocate(section_header.Misc.VirtualSize);
     if (info->raw_data == nullptr || info->program_type_name == nullptr || info->section_name == nullptr) {
+        pe_context->result = EBPF_NO_MEMORY;
         _ebpf_free_section_info(info);
         EBPF_LOG_EXIT();
         return 1;
