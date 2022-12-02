@@ -42,10 +42,11 @@ This section outlines the steps to build, prepare and build the eBPF-For-Windows
 1. ```git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git```.
 By default this will clone the project under the `ebpf-for-windows` directory.
 
-#### Exclusion of PE parse directory from Windows Security
-1. Select Start , then open Settings. Under Privacy & security, select Virus & threat protection.
+#### Exclusion of PE parse directory from Windows Defender Antivirus
+PE parse directory includes some malformed PE images as a part of the test suite for PE image parser and Windows Defender flags these files. Following steps are needed to exempt PE directory:
+1. Select Start, then open Settings. Under Privacy & security, select Virus & threat protection.
 2. Under Virus & threat protection settings, select Manage settings, and then under Exclusions, select Add or remove exclusions.
-3. Select Add an exclusion, and then select from files, folders, file types, or process. Choose the following direcory ```ebpf-for-windows/external/pe-parse``` to exclude the folder and sub folders to get flagged by anti virus. 
+3. Select Add an exclusion, and then select from files, folders, file types, or process. Choose the following direcory ```ebpf-for-windows/external/pe-parse``` to exclude the folder and sub folders to get flagged by antivirus. 
 #### Prepare for first build
 The following steps need to be executed _once_ before the first build on a new clone.
 1. Launch `Developer Command Prompt for VS 2019` by running `"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"`.
