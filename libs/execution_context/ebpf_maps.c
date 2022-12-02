@@ -377,7 +377,7 @@ _associate_inner_map(_Inout_ ebpf_core_object_map_t* object_map, ebpf_handle_t i
     }
 
     // Convert value handle to an object pointer.
-    result = ebpf_reference_object_by_handle(inner_map_handle, EBPF_OBJECT_MAP, &inner_map_template_object);
+    result = ebpf_object_reference_by_handle(inner_map_handle, EBPF_OBJECT_MAP, &inner_map_template_object);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -564,7 +564,7 @@ _update_array_map_entry_with_handle(
     ebpf_core_object_t* value_object = NULL;
 
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
-        result = ebpf_reference_object_by_handle(value_handle, value_type, &value_object);
+        result = ebpf_object_reference_by_handle(value_handle, value_type, &value_object);
         if (result != EBPF_SUCCESS) {
             return result;
         }
@@ -1077,7 +1077,7 @@ _update_hash_map_entry_with_handle(
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
     ebpf_core_object_t* value_object = NULL;
-    result = ebpf_reference_object_by_handle(value_handle, value_type, &value_object);
+    result = ebpf_object_reference_by_handle(value_handle, value_type, &value_object);
     if (result != EBPF_SUCCESS) {
         return result;
     }

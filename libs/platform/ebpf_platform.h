@@ -452,6 +452,14 @@ extern "C"
         _In_opt_ void* work_item_context);
 
     /**
+     * @brief Free a preemptible work item.
+     *
+     * @param[in] work_item Pointer to the work item to free.
+     */
+    void
+    ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* work_item);
+
+    /**
      * @brief Schedule a preemptible work item to run.
      *
      * @param[in] work_item Work item to schedule.
