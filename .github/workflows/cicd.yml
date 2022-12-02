@@ -284,22 +284,9 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
-  # Additional jobs to on a schedule only (skip push and pull request).
-  # ---------------------------------------------------------------------------
-  codeql:
-    # Only run during daily scheduled run
-    if: github.event_name == 'schedule'
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      build_artifact: Build-x64-CodeQl
-      build_codeql: true
-
   # Run the low memory simulator in GitHub.
   low_memory:
     needs: regular
-    #if: github.event_name == 'schedule' || github.event_name == 'pull_request'
-    # Disable running this on PR until all low memory issues are fixed.
-    if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: low_memory
@@ -309,3 +296,13 @@ jobs:
       code_coverage: true
       gather_dumps: true
       low_memory: true
+
+  # Additional jobs to on a schedule only (skip push and pull request).
+  # ---------------------------------------------------------------------------
+  codeql:
+    # Only run during daily scheduled run
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build-x64-CodeQl
+      build_codeql: true

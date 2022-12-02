@@ -1405,10 +1405,10 @@ _clean_up_ebpf_object(_In_opt_ ebpf_object_t* object) noexcept
         clean_up_ebpf_programs(object->programs);
         clean_up_ebpf_maps(object->maps);
 
-        if (object->native_module_handle != ebpf_handle_invalid) {
+        if (object->native_module_fd != ebpf_fd_invalid) {
             ebpf_assert(object->execution_type == EBPF_EXECUTION_NATIVE);
-            Platform::CloseHandle(object->native_module_handle);
-            object->native_module_handle = ebpf_handle_invalid;
+            Platform::_close(object->native_module_fd);
+            object->native_module_fd = ebpf_fd_invalid;
         }
 
         ebpf_free(object->object_name);
@@ -1581,7 +1581,7 @@ Exit:
 
 static ebpf_result_t
 _initialize_ebpf_object_native(
-    ebpf_handle_t native_module_handle,
+    fd_t native_module_fd,
     size_t count_of_maps,
     _In_reads_(count_of_maps) ebpf_handle_t* map_handles,
     size_t count_of_programs,
@@ -1594,7 +1594,7 @@ _initialize_ebpf_object_native(
     ebpf_assert(count_of_maps == 0 || map_handles);
     ebpf_assert(program_handles);
 
-    object.native_module_handle = native_module_handle;
+    object.native_module_fd = native_module_fd;
 
     result = _initialize_ebpf_programs_native(count_of_programs, program_handles, object.programs);
     if (result != EBPF_SUCCESS) {
@@ -2876,6 +2876,7 @@ _ebpf_program_load_native(
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     ebpf_handle_t native_module_handle = ebpf_handle_invalid;
+    fd_t native_module_fd = ebpf_fd_invalid;
     ebpf_handle_t* map_handles = nullptr;
     ebpf_handle_t* program_handles = nullptr;
 
@@ -2945,6 +2946,15 @@ _ebpf_program_load_native(
             goto Done;
         }
 
+        // Create a file descriptor for the native module.
+        native_module_fd = _create_file_descriptor_for_handle(native_module_handle);
+        if (native_module_fd == ebpf_fd_invalid) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+
+        native_module_handle = ebpf_handle_invalid;
+
         if (count_of_programs == 0) {
             result = EBPF_INVALID_OBJECT;
             EBPF_LOG_MESSAGE_STRING(
@@ -2992,7 +3002,7 @@ _ebpf_program_load_native(
         }
 
         result = _initialize_ebpf_object_native(
-            native_module_handle, count_of_maps, map_handles, count_of_programs, program_handles, *object);
+            native_module_fd, count_of_maps, map_handles, count_of_programs, program_handles, *object);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -3001,7 +3011,7 @@ _ebpf_program_load_native(
                 file_name);
             goto Done;
         }
-        native_module_handle = ebpf_handle_invalid;
+        native_module_fd = ebpf_fd_invalid;
 
         *program_fd = object->programs[0]->fd;
     } catch (const std::bad_alloc&) {
@@ -3032,7 +3042,9 @@ Done:
             }
         }
 #pragma warning(pop)
-        if (native_module_handle != ebpf_handle_invalid) {
+        if (native_module_fd != ebpf_fd_invalid) {
+            Platform::_close(native_module_fd);
+        } else if (native_module_handle != ebpf_handle_invalid) {
             Platform::CloseHandle(native_module_handle);
         }
 
