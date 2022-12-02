@@ -83,8 +83,7 @@ ebpf_program_initiate()
 
 void
 ebpf_program_terminate()
-{
-}
+{}
 
 static void
 _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
@@ -1168,7 +1167,7 @@ ebpf_program_create_and_initialize(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    retval = ebpf_handle_create(program_handle, (ebpf_core_object_t*)program);
+    retval = ebpf_handle_create(program_handle, (ebpf_base_object_t*)program);
     if (retval != EBPF_SUCCESS)
         goto Done;
 

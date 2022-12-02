@@ -35,6 +35,8 @@ namespace ebpf {
 #include "net/udp.h"
 }; // namespace ebpf
 
+using namespace Platform;
+
 CATCH_REGISTER_LISTENER(_passed_test_log)
 
 #define NATIVE_DRIVER_SERVICE_NAME L"test_service"
@@ -2213,6 +2215,7 @@ TEST_CASE("load_native_program_negative", "[end-to-end]")
     GUID provider_module_id;
     SC_HANDLE service_handle = nullptr;
     std::wstring service_path(SERVICE_PATH_PREFIX);
+    ebpf_handle_t module_handle = ebpf_handle_invalid;
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     set_native_module_failures(true);
@@ -2225,7 +2228,8 @@ TEST_CASE("load_native_program_negative", "[end-to-end]")
     // Load native module. It should fail.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
     REQUIRE(
-        test_ioctl_load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs) ==
+        test_ioctl_load_native_module(
+            service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) ==
         ERROR_PATH_NOT_FOUND);
 }
 
@@ -2237,6 +2241,7 @@ TEST_CASE("load_native_program_negative2", "[end-to-end]")
     GUID provider_module_id;
     SC_HANDLE service_handle = nullptr;
     std::wstring service_path(L"");
+    ebpf_handle_t module_handle = ebpf_handle_invalid;
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     set_native_module_failures(true);
@@ -2250,7 +2255,8 @@ TEST_CASE("load_native_program_negative2", "[end-to-end]")
 
     // Load native module. It should fail.
     REQUIRE(
-        test_ioctl_load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs) ==
+        test_ioctl_load_native_module(
+            service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) ==
         ERROR_PATH_NOT_FOUND);
 }
 
@@ -2271,6 +2277,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     fd_t program_fd;
     std::wstring file_path(L"droppacket_um.dll");
     const wchar_t* service_name = nullptr;
+    ebpf_handle_t module_handle = ebpf_handle_invalid;
     ebpf_handle_t map_handles[MAP_COUNT];
     ebpf_handle_t program_handles[PROGRAM_COUNT];
 
@@ -2293,7 +2300,8 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     // Try to reload the same native module. It should fail.
     service_path = service_path + service_name;
     REQUIRE(
-        test_ioctl_load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs) ==
+        test_ioctl_load_native_module(
+            service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) ==
         ERROR_OBJECT_ALREADY_EXISTS);
 
     // Try to load the programs from the same module again. It should fail.
@@ -2324,6 +2332,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     std::wstring file_path(L"droppacket_um.dll");
+    ebpf_handle_t module_handle = ebpf_handle_invalid;
     ebpf_handle_t map_handles[INCORRECT_MAP_COUNT];
     ebpf_handle_t program_handles[PROGRAM_COUNT];
 
@@ -2341,8 +2350,8 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
     REQUIRE(
-        test_ioctl_load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs) ==
-        ERROR_SUCCESS);
+        test_ioctl_load_native_module(
+            service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) == ERROR_SUCCESS);
 
     // Try to load the programs by passing wrong map and program handles size. This should fail.
     REQUIRE(
@@ -2352,6 +2361,9 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
+
+    // Close the module handle.
+    Platform::CloseHandle(module_handle);
 }
 
 // Try to load a .sys in user mode.
@@ -2383,6 +2395,8 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     SC_HANDLE service_handle2 = nullptr;
     std::wstring service_path(SERVICE_PATH_PREFIX);
     std::wstring service_path2(SERVICE_PATH_PREFIX);
+    ebpf_handle_t module_handle = ebpf_handle_invalid;
+    ebpf_handle_t module_handle2 = ebpf_handle_invalid;
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     set_native_module_failures(true);
@@ -2395,8 +2409,8 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
     REQUIRE(
-        test_ioctl_load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs) ==
-        ERROR_SUCCESS);
+        test_ioctl_load_native_module(
+            service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) == ERROR_SUCCESS);
 
     // Create a new service with same driver and same module id.
     _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME_2, &provider_module_id, &service_handle2);
@@ -2406,8 +2420,11 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     // Load native module. It should fail.
     service_path2 = service_path2 + NATIVE_DRIVER_SERVICE_NAME_2;
     REQUIRE(
-        test_ioctl_load_native_module(service_path2, &provider_module_id, &count_of_maps, &count_of_programs) ==
+        test_ioctl_load_native_module(
+            service_path2, &provider_module_id, &module_handle2, &count_of_maps, &count_of_programs) ==
         ERROR_OBJECT_ALREADY_EXISTS);
+
+    Platform::CloseHandle(module_handle);
 }
 
 // The below tests try to load native drivers for invalid programs (that will fail verification).
@@ -2416,7 +2433,7 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
 #ifdef _DEBUG
 
 // Load programs from a native module which has 0 programs.
-TEST_CASE("load_native_program_negative7", "[end-to-end]")
+TEST_CASE("load_native_program_negative8", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
 
@@ -2426,6 +2443,7 @@ TEST_CASE("load_native_program_negative7", "[end-to-end]")
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     std::wstring file_path(L"droppacket_um.dll");
+    ebpf_handle_t module_handle = ebpf_handle_invalid;
     ebpf_handle_t map_handles;
     ebpf_handle_t program_handles;
 
@@ -2437,13 +2455,15 @@ TEST_CASE("load_native_program_negative7", "[end-to-end]")
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
     REQUIRE(
-        test_ioctl_load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs) ==
-        ERROR_SUCCESS);
+        test_ioctl_load_native_module(
+            service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) == ERROR_SUCCESS);
 
     // Try to load the programs from the module with 0 programs.
     REQUIRE(
         test_ioctl_load_native_programs(&provider_module_id, nullptr, 1, &map_handles, 1, &program_handles) ==
         ERROR_INVALID_PARAMETER);
+
+    Platform::CloseHandle(module_handle);
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
@@ -2493,6 +2513,42 @@ TEST_CASE("load_native_program_invalid5-non-preemptible", "[end-to-end]")
     ebpf_non_preemptible = false;
 }
 #endif
+
+// Load native module and then use module handle for a different purpose.
+TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    GUID provider_module_id;
+    SC_HANDLE service_handle = nullptr;
+    std::wstring service_path(SERVICE_PATH_PREFIX);
+    ebpf_handle_t module_handle = ebpf_handle_invalid;
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+    set_native_module_failures(true);
+
+    REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
+
+    // Create a valid service with valid driver.
+    _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+
+    // Load native module. It should succeed.
+    service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
+    REQUIRE(
+        test_ioctl_load_native_module(
+            service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) == ERROR_SUCCESS);
+
+    // Create an fd for the module handle.
+    fd_t module_fd = Platform::_open_osfhandle(module_handle, 0);
+    REQUIRE(module_fd != ebpf_fd_invalid);
+
+    // Try to use the native module fd as a program or map fd.
+    bpf_prog_info program_info = {};
+    uint32_t program_info_size = sizeof(program_info);
+    REQUIRE(bpf_obj_get_info_by_fd(module_fd, &program_info, &program_info_size) == -EINVAL);
+
+    Platform::_close(module_fd);
+}
 
 TEST_CASE("ebpf_get_program_type_by_name invalid name", "[end-to-end]")
 {

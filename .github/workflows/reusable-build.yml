@@ -143,30 +143,11 @@ jobs:
         search_artifacts: false
         skip_unpack: true
 
-    - name: Download demo bpf_conformance repository artifacts
-      uses: dawidd6/action-download-artifact@e6e25ac3a2b93187502a8be1ef9e9603afc34925
-      with:
-        github_token: ${{secrets.GITHUB_TOKEN}}
-        workflow: CICD.yml
-        workflow_conclusion: success
-        name: bpf_conformance-${{ matrix.configurations }}
-        path: ${{github.workspace}}
-        repo: Alan-Jowett/bpf_conformance
-        check_artifacts:  false
-        search_artifacts: false
-        skip_unpack: true
-
     - name: Extract artifacts to build path
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         tar -xf ..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
-
-    - name: Extract bpf_conformance repository artifacts to build path
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        tar -xf ..\..\bpf_conformance-${{ matrix.configurations }}.zip
 
     - name: Upload Build Output
       uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb

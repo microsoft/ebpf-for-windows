@@ -11,6 +11,7 @@
 #include <ws2tcpip.h>
 #include <mstcpip.h>
 
+#include "api_internal.h"
 #include "api_test.h"
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
@@ -622,7 +623,7 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
     // Bind a socket.
     WSAData data;
     REQUIRE(WSAStartup(2, &data) == 0);
-    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
     // Read from map.
     struct bpf_map* map = bpf_object__find_map_by_name(object, "pidtgid_map");
@@ -645,4 +646,70 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
 
     // Clean up.
     WSACleanup();
+}
+
+TEST_CASE("native_module_handle_test", "[native_tests]")
+{
+    int result;
+    const char* file_name = "bindmonitor.sys";
+    struct bpf_object* object = nullptr;
+    struct bpf_object* object2 = nullptr;
+    fd_t program_fd;
+
+    result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    fd_t native_module_fd = object->native_module_fd;
+    REQUIRE(native_module_fd != ebpf_fd_invalid);
+
+    // Bindmonitor has 2 maps and 1 program. Fetch and close all these fds.
+    bpf_map* map1 = bpf_object__find_map_by_name(object, "process_map");
+    REQUIRE(map1 != nullptr);
+    REQUIRE(map1->map_fd != ebpf_fd_invalid);
+    bpf_map* map2 = bpf_object__find_map_by_name(object, "limits_map");
+    REQUIRE(map2 != nullptr);
+    REQUIRE(map2->map_fd != ebpf_fd_invalid);
+    bpf_program* program = bpf_object__find_program_by_name(object, "BindMonitor");
+    REQUIRE(program != nullptr);
+    REQUIRE(program->fd != ebpf_fd_invalid);
+
+    _close(map1->map_fd);
+    _close(map2->map_fd);
+    _close(program->fd);
+
+    // Set the above closed FDs to ebpf_fd_invalid to avoid double close of FDs.
+    map1->map_fd = ebpf_fd_invalid;
+    map2->map_fd = ebpf_fd_invalid;
+    program->fd = ebpf_fd_invalid;
+
+    // Try to load the same native module again, which should fail.
+    result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd);
+    REQUIRE(result == -ENOENT);
+
+    // Close the native module handle. That should result in the module to be unloaded.
+    REQUIRE(_close(native_module_fd) == 0);
+    object->native_module_fd = ebpf_fd_invalid;
+
+    // Add a sleep to allow the previous driver to be unloaded successfully.
+    Sleep(1000);
+
+    // Try to load the same native module again. It should succeed this time.
+    object2 = nullptr;
+    result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd);
+    REQUIRE(result == 0);
+
+    bpf_object__close(object);
+    bpf_object__close(object2);
+}
+
+TEST_CASE("nomap_load_test", "[native_tests]")
+{
+    // This test case tests loading of native ebpf programs that do not contain/refer-to any map.
+    // This test should succeed as this is a valid use case.
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "printk.sys", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+    auto object = _helper.get_object();
+    REQUIRE(object != nullptr);
 }

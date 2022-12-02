@@ -17,8 +17,9 @@ target_include_directories("api_test" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/Platform/user"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
   "${CMAKE_SOURCE_DIR}/netebpfext"
-  "${WDK_ROOT}/include/10.0.22621.0/km"
-  "${WDK_ROOT}/include/10.0.22621.0/shared"
+  "${CMAKE_SOURCE_DIR}/libs/api_common"
+  "${WDK_ROOT}/include/${WDK_VERSION}/km"
+  "${WDK_ROOT}/include/${WDK_VERSION}/shared"
 )
 
 target_link_libraries("api_test" PRIVATE
@@ -32,7 +33,6 @@ target_link_libraries("api_test" PRIVATE
 )
 
 target_compile_definitions("api_test" PRIVATE
-  _WINSOCK_DEPRECATED_NO_WARNINGS
   _CONSOLE
 )
 
