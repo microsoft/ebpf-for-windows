@@ -5,8 +5,8 @@ cmake_minimum_required(VERSION 3.20)
 # It is necessary to set this before the first project directive.
 # Use the CMAKE_SYSTEM_VERSION directive to select the SDK version.
 # The docs/GettingStarted.md guide points developers to the 2004 version of the
-# SDK which corresponds to 19041.
-set(CMAKE_SYSTEM_VERSION 10.0.19041.0)
+# SDK which corresponds to 22621.
+set(CMAKE_SYSTEM_VERSION 10.0.22621.0)
 
 # Uncomment the following line for debugging project dependencies.
 # set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_DEBUG_MODE 1)

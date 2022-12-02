@@ -169,7 +169,6 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Sanitize
-      #TODO: revert back to 'True' within #1563
       build_options: /p:AddressSanitizer='True'
 
   # Run the fuzzing tests in GitHub.
@@ -274,6 +273,7 @@ jobs:
     needs: sanitize
     # Only run on schedule and pull request.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    #if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -292,7 +292,7 @@ jobs:
       name: low_memory
       test_command: .\unit_tests.exe
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: true
       gather_dumps: true
       low_memory: true

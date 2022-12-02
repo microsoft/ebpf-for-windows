@@ -65,7 +65,7 @@ jobs:
         cmake --build build --config ${{env.BUILD_CONFIGURATION }}
 
     # Download and extract demo repo artifacts. These then get uploaded along with the build artifacts.
-    # The subequent tests will directly get these when they download the build artifacts. In case
+    # The subsequent tests will directly get these when they download the build artifacts. In case
     # a test fails, the .o files used for the test will be available in the uploaded build artifacts.
     - name: Download demo repository artifacts
       uses: dawidd6/action-download-artifact@e6e25ac3a2b93187502a8be1ef9e9603afc34925
