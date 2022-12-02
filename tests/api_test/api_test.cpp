@@ -660,8 +660,8 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
     REQUIRE(result == 0);
     REQUIRE(program_fd != ebpf_fd_invalid);
 
-    ebpf_handle_t native_module_handle = object->native_module_handle;
-    REQUIRE(native_module_handle != ebpf_handle_invalid);
+    fd_t native_module_fd = object->native_module_fd;
+    REQUIRE(native_module_fd != ebpf_fd_invalid);
 
     // Bindmonitor has 2 maps and 1 program. Fetch and close all these fds.
     bpf_map* map1 = bpf_object__find_map_by_name(object, "process_map");
@@ -688,8 +688,8 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
     REQUIRE(result == -ENOENT);
 
     // Close the native module handle. That should result in the module to be unloaded.
-    REQUIRE(ebpf_api_close_handle(native_module_handle) == EBPF_SUCCESS);
-    object->native_module_handle = ebpf_handle_invalid;
+    REQUIRE(_close(native_module_fd) == 0);
+    object->native_module_fd = ebpf_fd_invalid;
 
     // Add a sleep to allow the previous driver to be unloaded successfully.
     Sleep(1000);
@@ -701,4 +701,15 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
 
     bpf_object__close(object);
     bpf_object__close(object2);
+}
+
+TEST_CASE("nomap_load_test", "[native_tests]")
+{
+    // This test case tests loading of native ebpf programs that do not contain/refer-to any map.
+    // This test should succeed as this is a valid use case.
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "printk.sys", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+    auto object = _helper.get_object();
+    REQUIRE(object != nullptr);
 }
