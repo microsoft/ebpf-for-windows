@@ -319,6 +319,9 @@ _ebpf_native_provider_attach_client_callback(
     }
 
     ebpf_lock_create(&client_context->lock);
+    client_context->base.marker = _ebpf_native_marker;
+    client_context->base.acquire_reference = ebpf_native_acquire_reference;
+    client_context->base.release_reference = ebpf_native_release_reference;
     // Acquire "attach" reference. Released when detach is called for this module.
     client_context->base.reference_count = 1;
     client_context->client_module_id = *client_module_id;
@@ -1119,9 +1122,6 @@ ebpf_native_load(
         goto Done;
     }
     // Mark the module as initializing.
-    module->base.marker = _ebpf_native_marker;
-    module->base.acquire_reference = ebpf_native_acquire_reference;
-    module->base.release_reference = ebpf_native_release_reference;
     module->state = MODULE_STATE_INITIALIZING;
     ebpf_lock_unlock(&module->lock, state);
 
