@@ -68,7 +68,7 @@ _get_program_and_map_names(
     }
 
     ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
-    for (const auto section : reader.sections) {
+    for (const auto& section : reader.sections) {
         const string name = section->get_name();
         bool found = false;
         int index;
