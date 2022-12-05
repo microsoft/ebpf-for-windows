@@ -353,7 +353,10 @@ ebpf_program_load(
         if (log_buffer) {
             size_t log_buffer_size;
             if (program != nullptr) {
-                *log_buffer = _strdup(bpf_program__log_buf(program, &log_buffer_size));
+                const char* log_buffer_str = bpf_program__log_buf(program, &log_buffer_size);
+                if (log_buffer_str != nullptr) {
+                    *log_buffer = _strdup(log_buffer_str);
+                }
             }
         }
         bpf_object__close(new_object);
