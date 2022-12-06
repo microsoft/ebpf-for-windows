@@ -90,9 +90,8 @@ load_random_seed(const std::filesystem::path& file)
 {
     std::ifstream input(file);
     std::vector<std::mt19937::result_type> random_data(std::mt19937::state_size);
-    for (auto& value : random_data) {
-        input >> std::hex >> value;
-        random_data.emplace_back(value);
+    for (size_t i = 0; i < random_data.size(); i++) {
+        input >> std::hex >> random_data[i];
     }
     return random_data;
 }
@@ -112,7 +111,7 @@ seed_random_engine()
 
     std::cout << "[Begin random seed]" << std::endl;
     size_t i = 0;
-    for (auto& value : random_data) {
+    for (const auto& value : random_data) {
         std::cout << std::hex << std::setw(8) << std::setfill('0') << value << ' ';
         if (++i % 8 == 0) {
             std::cout << std::endl;
@@ -173,9 +172,7 @@ TEST_CASE("execution_context_direct", "[fuzz]")
         // 2. Fill buffer with random values.
         // 3. Insert a handle value at offset 0 in the request.
         request.resize(minimum_request_size + mt() % 1024);
-        for (auto& b : request) {
-            b = static_cast<uint8_t>(mt());
-        }
+        std::fill(request.begin(), request.end(), static_cast<uint8_t>(mt()));
         auto header = reinterpret_cast<ebpf_operation_header_t*>(request.data());
         header->id = operation_id;
         header->length = static_cast<uint16_t>(request.size());
