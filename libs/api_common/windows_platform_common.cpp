@@ -504,6 +504,7 @@ _update_global_helpers_for_program_information(
         // Copy the global helpers to the new helpers.
         for (uint32_t i = 0; i < global_helper_count; i++) {
             new_helpers[i] = global_helpers[i];
+            new_helpers[i].name = nullptr;
             auto name = ebpf_duplicate_string(global_helpers[i].name);
             if (name == nullptr) {
                 result = EBPF_NO_MEMORY;
@@ -523,6 +524,8 @@ _update_global_helpers_for_program_information(
 
         program_info->helper_prototype = new_helpers;
         program_info->count_of_helpers = (uint32_t)total_helper_count;
+        new_helpers = nullptr;
+        total_helper_count = 0;
     }
 
 Exit:
