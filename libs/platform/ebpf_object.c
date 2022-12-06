@@ -356,3 +356,15 @@ ebpf_object_reference_by_handle(
     return ebpf_reference_base_object_by_handle(
         handle, _ebpf_object_compare, &object_type, (ebpf_base_object_t**)object);
 }
+
+_Must_inspect_result_ char*
+ebpf_duplicate_string(_In_ const char* source)
+{
+    size_t length = strlen(source) + 1;
+    char* destination = ebpf_allocate(length);
+    if (destination == NULL) {
+        return NULL;
+    }
+    memcpy(destination, source, length);
+    return destination;
+}

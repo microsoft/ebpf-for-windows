@@ -134,7 +134,7 @@ _get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_
             goto Exit;
         }
 
-        name = _strdup(info->program_type_descriptor.name);
+        name = ebpf_duplicate_string(info->program_type_descriptor.name);
         if (name == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -504,7 +504,7 @@ _update_global_helpers_for_program_information(
         // Copy the global helpers to the new helpers.
         for (uint32_t i = 0; i < global_helper_count; i++) {
             new_helpers[i] = global_helpers[i];
-            auto name = _strdup(global_helpers[i].name);
+            auto name = ebpf_duplicate_string(global_helpers[i].name);
             if (name == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
