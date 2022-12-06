@@ -70,6 +70,14 @@ Clone the eBPF for Windows projects and its submodules by running:
    git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git
    ```
 >Note: by default this will clone the project under the `ebpf-for-windows` directory.
+
+#### Exclusion of PE parse directory from Windows Defender Antivirus
+
+PE parse directory includes some malformed PE images as a part of the test suite for PE image parser and Windows Defender flags these files as viruses. Please note that similar exclusions have to be done for other Antivirus products as needed. The following steps are needed to exempt PE directory from Windows Defender Antivirus:
+1. Select *Start*, then open *Settings*. Under *Privacy & Security*, select *Virus & threat protection*.
+2. Under *Virus & threat protection* settings, select *Manage settings*, and then under *Exclusions*, select *Add or remove exclusions*.
+3. Select *Add an exclusion*, and then select from files, folders, file types, or processes. Choose the following directory ```ebpf-for-windows/external/pe-parse``` to exclude the folder and subfolders to get flagged by the antivirus.
+
 #### Prepare for first build
 
 The following steps need to be executed *once* before the first build on a new clone:
