@@ -286,7 +286,7 @@ extern "C"
      * @return Pointer to the duplicated string or NULL if out of memory.
      */
     _Must_inspect_result_ char*
-    ebpf_duplicate_string(_In_ const char* source);
+    ebpf_duplicate_string(_In_z_ const char* source);
 
     /**
      * @brief Get the code integrity state from the platform.

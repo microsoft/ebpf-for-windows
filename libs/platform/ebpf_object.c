@@ -358,7 +358,7 @@ ebpf_object_reference_by_handle(
 }
 
 _Must_inspect_result_ char*
-ebpf_duplicate_string(_In_ const char* source)
+ebpf_duplicate_string(_In_z_ const char* source)
 {
     size_t length = strlen(source) + 1;
     char* destination = ebpf_allocate(length);

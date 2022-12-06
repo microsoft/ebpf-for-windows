@@ -2096,7 +2096,17 @@ _ebpf_pe_add_section(
 
     memset(info, 0, sizeof(*info));
     info->section_name = ebpf_duplicate_string(elf_section_name.c_str());
+    if (info->section_name == nullptr) {
+        pe_context->result = EBPF_NO_MEMORY;
+        EBPF_LOG_EXIT();
+        return 1;
+    }
     info->program_name = ebpf_duplicate_string(program_name.c_str());
+    if (info->program_name == nullptr) {
+        pe_context->result = EBPF_NO_MEMORY;
+        EBPF_LOG_EXIT();
+        return 1;
+    }
     info->program_type = pe_context->section_program_types[pe_section_name];
     info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
     info->program_type_name = ebpf_get_program_type_name(&pe_context->section_program_types[pe_section_name]);
@@ -2106,6 +2116,11 @@ _ebpf_pe_add_section(
         return 1;
     }
     info->program_type_name = ebpf_duplicate_string(info->program_type_name);
+    if (info->program_type_name == nullptr) {
+        pe_context->result = EBPF_NO_MEMORY;
+        EBPF_LOG_EXIT();
+        return 1;
+    }
     info->raw_data_size = section_header.Misc.VirtualSize;
     info->raw_data = (char*)ebpf_allocate(section_header.Misc.VirtualSize);
     if (info->raw_data == nullptr || info->program_type_name == nullptr || info->section_name == nullptr) {
