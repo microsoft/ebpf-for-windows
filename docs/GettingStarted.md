@@ -29,9 +29,10 @@ The following must be installed in order to build this project:
 
 1. [Visual Studio Build Tools 2022](https://aka.ms/vs/17/release/vs_buildtools.exe) (version **17.3.6 or higher**).
 1. [SDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/p/?linkid=2196241) (version **10.0.22621.x**).
-1. [WDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/?linkid=2166289) (version **10.0.22621.x**), including the
+1. [WDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/?linkid=2196230) (version **10.0.22621.x**), including the
  "*Windows Driver Kit Visual Studio extension*" (make sure the "*Install Windows Driver Kit Visual Studio Extension*"
   check box is checked before completing the installer).
+    >Note: as multiple versions of WDKs cannot coexist side-by-side, you may be asked to uninstall previous versions.
 1. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe) (version **11.0.1**).
  Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
 1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.31 or higher**), which can be installed to a location
