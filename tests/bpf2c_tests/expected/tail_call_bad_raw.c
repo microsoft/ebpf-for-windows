@@ -230,4 +230,12 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
     *count = 2;
 }
 
-metadata_table_t tail_call_bad_metadata_table = {_get_programs, _get_maps, _get_hash};
+static void
+_get_version(_Out_ bpf2c_version_t* version)
+{
+    version->major = 0;
+    version->minor = 5;
+    version->revision = 0;
+}
+
+metadata_table_t tail_call_bad_metadata_table = {_get_programs, _get_maps, _get_hash, _get_version};
