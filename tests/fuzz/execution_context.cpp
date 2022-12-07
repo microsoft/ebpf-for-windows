@@ -24,6 +24,9 @@
 
 #define ONE_MB_IN_BYTE (1024 * 1024)
 
+extern "C" size_t ebpf_fuzzing_memory_limit;
+extern "C" bool ebpf_fuzzing_enabled;
+
 std::vector<ebpf_handle_t>
 get_handles()
 {
@@ -71,8 +74,6 @@ get_handles()
     handles.push_back(Platform::_get_osfhandle(link_fd));
     return handles;
 }
-
-extern "C" bool ebpf_fuzzing_enabled;
 
 std::vector<std::mt19937::result_type>
 create_random_seed()
@@ -131,19 +132,12 @@ TEST_CASE("execution_context_direct", "[fuzz]")
     ebpf_fuzzing_enabled = true;
     auto mt = seed_random_engine();
 
-    // Limit this processes memory to 50MB
-    HANDLE job = CreateJobObject(nullptr, nullptr);
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
-    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_PROCESS_MEMORY;
-    limits.ProcessMemoryLimit = 50 * ONE_MB_IN_BYTE;
-    REQUIRE(job != INVALID_HANDLE_VALUE);
-
-    REQUIRE(SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits)));
-    REQUIRE(AssignProcessToJobObject(job, GetCurrentProcess()));
+    ebpf_fuzzing_memory_limit = 50 * ONE_MB_IN_BYTE;
 
     ebpf_protocol_buffer_t request;
     ebpf_protocol_buffer_t reply;
 
+    REQUIRE(handles.size() > 0);
     request.reserve(UINT16_MAX);
     reply.reserve(UINT16_MAX);
     for (size_t i = 0; i < iterations; i++) {
@@ -176,8 +170,10 @@ TEST_CASE("execution_context_direct", "[fuzz]")
         auto header = reinterpret_cast<ebpf_operation_header_t*>(request.data());
         header->id = operation_id;
         header->length = static_cast<uint16_t>(request.size());
-        *reinterpret_cast<ebpf_handle_t*>(request.data() + sizeof(ebpf_operation_header_t)) =
-            handles[mt() % handles.size()];
+        if (request.size() >= sizeof(ebpf_operation_header_t) + sizeof(handles[0])) {
+            *reinterpret_cast<ebpf_handle_t*>(request.data() + sizeof(ebpf_operation_header_t)) =
+                handles[mt() % handles.size()];
+        }
         if (minimum_reply_size != 0) {
             reply.resize(minimum_reply_size + mt() % 1024);
             invoke_ioctl(request, reply);
