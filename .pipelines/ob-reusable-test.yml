@@ -39,6 +39,9 @@ parameters:
   - name: vs_dev
     type: boolean
     default: false
+  - name: low_memory
+    type: boolean
+    default: false
 
 jobs:
   - job: ${{parameters.name}}
@@ -147,17 +150,31 @@ jobs:
       - script: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe --sources $(Build.SourcesDirectory)\$(PROJECT_NAME) --excluded_sources $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION) -- $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)\$(TEST_COMMAND)
+          OpenCppCoverage.exe -q --cover_children --sources $(Build.SourcesDirectory)\$(PROJECT_NAME) --excluded_sources $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION) -- $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)\$(TEST_COMMAND)
         workingDirectory: $(Build.SourcesDirectory)/$(PROJECT_NAME)
         condition: and(eq('${{parameters.code_coverage}}', 'true'), eq('${{parameters.vs_dev}}', 'true'))
         name: run_test_with_code_coverage_in_vs_dev
         displayName: Run test with Code Coverage in VS Dev environment
 
       - script: |
-          set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe --sources $(Build.SourcesDirectory)\$(PROJECT_NAME) --excluded_sources $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION) -- $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)\$(TEST_COMMAND)
+          OpenCppCoverage.exe -q --cover_children --sources $(Build.SourcesDirectory)\$(PROJECT_NAME) --excluded_sources $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION) -- powershell.exe .\Test-LowMemory.ps1 $(TEST_COMMAND) 4
         workingDirectory: $(Build.SourcesDirectory)/$(PROJECT_NAME)
-        condition: and(eq('${{parameters.code_coverage}}', 'true'), ne('${{parameters.vs_dev}}', 'true'))
+        condition: and(eq('${{parameters.code_coverage}}', 'true'), eq('${{parameters.low_memory}}', 'true'))
+        name: run_test_with_code_coverage_in_low_memory
+        displayName: Run test with Code Coverage and low resource simulation
+
+      - script: |
+          powershell.exe .\Test-LowMemory.ps1 $(TEST_COMMAND) 16
+        workingDirectory: $(Build.SourcesDirectory)/$(PROJECT_NAME)/$(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)
+        condition: and(ne('${{parameters.code_coverage}}', 'true'), eq('${{parameters.low_memory}}', 'true'))
+        name: run_test_with_low_memory
+        displayName: Run test with low resource simulation
+
+      - script: |
+          set EBPF_ENABLE_WER_REPORT=yes
+          OpenCppCoverage.exe -q --sources $(Build.SourcesDirectory)\$(PROJECT_NAME) --excluded_sources $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION) -- $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)\$(TEST_COMMAND)
+        workingDirectory: $(Build.SourcesDirectory)/$(PROJECT_NAME)
+        condition: and(eq('${{parameters.code_coverage}}', 'true'), ne('${{parameters.vs_dev}}', 'true'), ne('${{parameters.low_memory}}', 'true'))
         name: run_test_with_code_coverage
         displayName: Run test with Code Coverage
 
@@ -207,7 +224,7 @@ jobs:
 
       - publish: 'c:/dumps/$(BUILD_PLATFORM)/$(buildConfiguration)'
         artifact: 'Crash-Dumps-$(NAME)-$(BUILD_PLATFORM)-$(BUILD_CONFIGURATION)'
-        condition: and(failed(), eq('${{parameters.gather_dumps}}', 'true'), eq(variables['check_dumps.FileExists'], 'True'))
+        condition: and(succeededOrFailed(), eq('${{parameters.gather_dumps}}', 'true'), eq(variables['check_dumps.FileExists'], 'True'))
         displayName: "Upload any crash dumps"
 
       - powershell: |

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
 #################################################################################
 #                      OneBranch Pipelines - PR Build                           #
 # This pipeline was created by EasyStart from a sample located at:              #
@@ -111,6 +114,36 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
+# bpf2c_conformance
+# Always run this job.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: bpf2c_conformance
+      pre_test: 'powershell.exe Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.3/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe'
+      test_command: '.\bpf_conformance_runner.exe --test_file_directory $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\bpf_conformance\tests --plugin_path bpf2c_plugin.exe --cpu_version v2 --debug true --plugin_options "--include $(Build.SourcesDirectory)\$(PROJECT_NAME)\include"'
+      dependency: regular
+      build_artifact: Build-x64
+      environment: windows-2019
+      vs_dev: true
+      code_coverage: true
+      gather_dumps: true
+      capture_etw: true
+
+# Run the low memory simulator.
+# Always run this job.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: low_memory
+      test_command: '.\unit_tests.exe'
+      dependency: regular
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: true
+      gather_dumps: true
+      low_memory: true
+
 # Additional jobs to run on pull and schedule only (skip push).
 # ---------------------------------------------------------------------------
 # Build with C++ static analyzer.
@@ -163,7 +196,6 @@ jobs:
   - template: ./ob-reusable-test.yml
     parameters:
       name: execution_context_fuzzer
-      pre_test: 'powershell Expand-Archive -Path .\corpus.zip -DestinationPath execution_context_fuzzer_corpus -Force'
       test_command: '.\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\'
       dependency: libfuzzer
       build_artifact: Build-x64-fuzzer
@@ -216,7 +248,7 @@ jobs:
   - template: ./ob-reusable-test.yml
     parameters:
       name: sanitize_unit_tests
-      test_command: '.\ebpf_performance.exe'
+      test_command: '.\unit_tests.exe -d yes'
       dependency: sanitize
       build_artifact: Build-x64-Sanitize
       environment: windows-2019
