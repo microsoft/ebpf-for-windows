@@ -352,7 +352,22 @@ void
 test_bpf_map_update_lru_elem(bool preemptible)
 {
     size_t iterations = 1000;
-    ebpf_map_test_state_t map_test_state(map_type, {100});
+    ebpf_map_test_state_t map_test_state(map_type, {1024});
+    _ebpf_map_test_state_instance = &map_test_state;
+    std::string name = __FUNCTION__;
+    name += "<";
+    name += _ebpf_map_type_t_to_string(map_type);
+    name += ">";
+    _performance_measure measure(name.c_str(), preemptible, _map_update_lru_test, iterations);
+    measure.run_test();
+}
+
+template <ebpf_map_type_t map_type>
+void
+test_bpf_map_lookup_lru_elem(bool preemptible)
+{
+    size_t iterations = 1000;
+    ebpf_map_test_state_t map_test_state(map_type, {1024});
     _ebpf_map_test_state_instance = &map_test_state;
     std::string name = __FUNCTION__;
     name += "<";
