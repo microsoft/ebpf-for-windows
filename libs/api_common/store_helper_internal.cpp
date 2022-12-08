@@ -58,7 +58,7 @@ _load_helper_prototype(
         memcpy(&helper_prototype->arguments, serialized_data + offset, sizeof(helper_prototype->arguments));
         offset += sizeof(helper_prototype->arguments);
 
-        helper_prototype->name = _strdup(ebpf_down_cast_from_wstring(std::wstring(helper_name)).c_str());
+        helper_prototype->name = ebpf_duplicate_string(ebpf_down_cast_from_wstring(std::wstring(helper_name)).c_str());
         if (helper_prototype->name == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -165,7 +165,7 @@ _load_program_data_information(
             goto Exit;
         }
 
-        program_information->program_type_descriptor.name = _strdup(program_type_name_string.c_str());
+        program_information->program_type_descriptor.name = ebpf_duplicate_string(program_type_name_string.c_str());
         if (program_information->program_type_descriptor.name == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -431,7 +431,7 @@ _load_section_data_information(
             result = EBPF_SUCCESS;
         }
 
-        section_prefix = _strdup(ebpf_down_cast_from_wstring(section_name).c_str());
+        section_prefix = ebpf_duplicate_string(ebpf_down_cast_from_wstring(section_name).c_str());
         if (section_prefix == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;

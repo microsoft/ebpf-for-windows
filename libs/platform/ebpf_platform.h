@@ -280,6 +280,15 @@ extern "C"
     ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source);
 
     /**
+     * @brief Duplicate a null-terminated string.
+     *
+     * @param[in] source String to duplicate.
+     * @return Pointer to the duplicated string or NULL if out of memory.
+     */
+    _Must_inspect_result_ char*
+    ebpf_duplicate_string(_In_z_ const char* source);
+
+    /**
      * @brief Get the code integrity state from the platform.
      * @param[out] state The code integrity state being enforced.
      * @retval EBPF_SUCCESS The operation was successful.
