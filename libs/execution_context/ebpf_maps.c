@@ -31,9 +31,7 @@ typedef struct _ebpf_core_object_map
 typedef struct _ebpf_core_lru_map
 {
     ebpf_core_map_t core_map;
-    // https://github.com/microsoft/ebpf-for-windows/issues/557
-    // Investigate replacing this with a heap to speed up finding oldest key.
-    ebpf_hash_table_t* key_history;
+    // LRU hash map stores the key age at the end of the value.
 } ebpf_core_lru_map_t;
 
 typedef struct _ebpf_core_lpm_map
@@ -690,18 +688,25 @@ static ebpf_result_t
 _create_hash_map_internal(
     size_t map_struct_size,
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
+    _In_ const size_t supplemental_value_size,
     _In_opt_ void (*extract_function)(
         _In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length_in_bits),
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t retval;
     ebpf_core_map_t* local_map = NULL;
+    size_t actual_value_size;
 
     *map = NULL;
 
     local_map = ebpf_epoch_allocate(map_struct_size);
     if (local_map == NULL) {
         retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    retval = ebpf_safe_size_t_add(map_definition->value_size, supplemental_value_size, &actual_value_size);
+    if (retval != EBPF_SUCCESS) {
         goto Done;
     }
 
@@ -716,7 +721,7 @@ _create_hash_map_internal(
         ebpf_epoch_allocate,
         ebpf_epoch_free,
         local_map->ebpf_map_definition.key_size,
-        local_map->ebpf_map_definition.value_size,
+        actual_value_size,
         local_map->ebpf_map_definition.max_entries,
         local_map->ebpf_map_definition.max_entries,
         extract_function);
@@ -747,7 +752,7 @@ _create_hash_map(
 {
     if (inner_map_handle != ebpf_handle_invalid)
         return EBPF_INVALID_ARGUMENT;
-    return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, NULL, map);
+    return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, 0, NULL, map);
 }
 
 static void
@@ -802,7 +807,7 @@ _create_object_hash_map(
 
     *map = NULL;
 
-    result = _create_hash_map_internal(sizeof(ebpf_core_object_map_t), map_definition, NULL, &local_map);
+    result = _create_hash_map_internal(sizeof(ebpf_core_object_map_t), map_definition, 0, NULL, &local_map);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -841,23 +846,8 @@ _create_lru_hash_map(
         goto Exit;
     }
 
-    retval = _create_hash_map_internal(sizeof(ebpf_core_lru_map_t), map_definition, NULL, (ebpf_core_map_t**)&lru_map);
-    if (retval != EBPF_SUCCESS)
-        goto Exit;
-
-    // Note:
-    // ebpf_hash_table_t doesn't require synchronization as long as allocations
-    // are performed using the epoch allocator.
-    retval = ebpf_hash_table_create(
-        &lru_map->key_history,
-        ebpf_epoch_allocate,
-        ebpf_epoch_free,
-        lru_map->core_map.ebpf_map_definition.key_size,
-        sizeof(uint64_t),
-        lru_map->core_map.ebpf_map_definition.max_entries,
-        lru_map->core_map.ebpf_map_definition.max_entries,
-        NULL);
-
+    retval = _create_hash_map_internal(
+        sizeof(ebpf_core_lru_map_t), map_definition, sizeof(uint64_t), NULL, (ebpf_core_map_t**)&lru_map);
     if (retval != EBPF_SUCCESS)
         goto Exit;
 
@@ -878,28 +868,34 @@ static void
 _delete_lru_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     ebpf_core_lru_map_t* lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
-    ebpf_hash_table_destroy(lru_map->key_history);
     ebpf_hash_table_destroy((ebpf_hash_table_t*)lru_map->core_map.data);
     ebpf_epoch_free(map);
 }
 
-static ebpf_result_t
-_update_key_history(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, bool remove)
+static uint8_t*
+_get_value_supplement(_In_ ebpf_core_map_t* map, _In_ uint8_t* value)
 {
-    uint64_t now;
-    ebpf_core_lru_map_t* lru_map;
+    return value + map->ebpf_map_definition.value_size;
+}
+
+static ebpf_result_t
+_update_key_history(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ uint8_t* value)
+{
     if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].key_history)) {
         return EBPF_SUCCESS;
     }
 
-    lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
-    now = ebpf_query_time_since_boot(true);
-
-    if (!remove) {
-        return ebpf_hash_table_update(lru_map->key_history, key, (uint8_t*)&now, EBPF_HASH_TABLE_OPERATION_ANY);
-    } else {
-        return ebpf_hash_table_delete(lru_map->key_history, key);
+    if (value == NULL) {
+        ebpf_result_t find_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value);
+        if (find_result != EBPF_SUCCESS) {
+            return find_result;
+        }
     }
+    if (value) {
+        uint64_t* key_age = (uint64_t*)_get_value_supplement(map, value);
+        *key_age = ebpf_query_time_since_boot(false);
+    }
+    return EBPF_SUCCESS;
 }
 
 static bool
@@ -908,7 +904,7 @@ _reap_oldest_map_entry(_In_ ebpf_core_map_t* map)
     uint8_t* previous_key = NULL;
     uint8_t* next_key = NULL;
     uint8_t* oldest_key = NULL;
-    uint64_t* key_age = NULL;
+    uint8_t* value = NULL;
     uint64_t oldest_key_age = MAXUINT64;
     ebpf_result_t result;
     ebpf_core_lru_map_t* lru_map;
@@ -921,12 +917,14 @@ _reap_oldest_map_entry(_In_ ebpf_core_map_t* map)
 
     // Walk through all the keys and values and find the oldest one.
     for (;;) {
+        uint64_t* key_age = NULL;
         result = ebpf_hash_table_next_key_pointer_and_value(
-            lru_map->key_history, previous_key, &next_key, (uint8_t**)&key_age);
+            (ebpf_hash_table_t*)lru_map->core_map.data, previous_key, &next_key, (uint8_t**)&value);
         if (result != EBPF_SUCCESS) {
             break;
         }
 
+        key_age = (uint64_t*)_get_value_supplement(map, value);
         if (*key_age < oldest_key_age) {
             oldest_key_age = *key_age;
             oldest_key = next_key;
@@ -937,13 +935,9 @@ _reap_oldest_map_entry(_In_ ebpf_core_map_t* map)
     // If we reached the end of the keys, delete the oldest one found.
     if (result == EBPF_NO_MORE_KEYS && oldest_key != NULL) {
         ebpf_result_t delete_result = ebpf_hash_table_delete((ebpf_hash_table_t*)lru_map->core_map.data, oldest_key);
-        // See issue #557 for why the delete can fail.
-        // https://github.com/microsoft/ebpf-for-windows/issues/557
-        // This can result in map having more entries than max_entries.
         if (delete_result == EBPF_SUCCESS) {
-            _update_key_history(map, oldest_key, true);
+            return true;
         }
-        return true;
     }
     return false;
 }
@@ -964,7 +958,7 @@ _find_hash_map_entry(
     }
 
     if (value)
-        _update_key_history(map, key, false);
+        _update_key_history(map, key, value);
 
     if (delete_on_success) {
         // Delete is atomic.
@@ -1159,7 +1153,7 @@ _delete_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
     if (!map || !key)
         return EBPF_INVALID_ARGUMENT;
 
-    _update_key_history(map, key, true);
+    _update_key_history(map, key, NULL);
     return ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, key);
 }
 
@@ -1262,6 +1256,7 @@ _create_lpm_map(
     result = _create_hash_map_internal(
         EBPF_OFFSET_OF(ebpf_core_lpm_map_t, data) + ebpf_bitmap_size(max_prefix_length),
         map_definition,
+        0,
         _lpm_extract,
         (ebpf_core_map_t**)&lpm_map);
     if (result != EBPF_SUCCESS)
@@ -1755,7 +1750,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
     {
         BPF_MAP_TYPE_LRU_HASH,
         _create_lru_hash_map,
-        _delete_lru_hash_map,
+        _delete_hash_map,
         NULL,
         _find_hash_map_entry,
         NULL,
@@ -1807,7 +1802,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
     {
         BPF_MAP_TYPE_LRU_PERCPU_HASH,
         _create_lru_hash_map,
-        _delete_lru_hash_map,
+        _delete_hash_map,
         NULL,
         _find_hash_map_entry,
         NULL,
