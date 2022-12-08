@@ -2079,6 +2079,7 @@ _ebpf_pe_add_section(
         return 0;
     }
     ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
+    const char* program_type_name = nullptr;
 
     // Get ELF section name.
     if (!pe_context->section_names.contains(pe_section_name)) {
@@ -2115,14 +2116,14 @@ _ebpf_pe_add_section(
     info->program_type = pe_context->section_program_types[pe_section_name];
     info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
 
-    info->program_type_name = ebpf_get_program_type_name(&pe_context->section_program_types[pe_section_name]);
-    if (info->program_type_name == nullptr) {
+    program_type_name = ebpf_get_program_type_name(&pe_context->section_program_types[pe_section_name]);
+    if (program_type_name == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
         goto Exit;
     }
 
-    info->program_type_name = ebpf_duplicate_string(info->program_type_name);
+    info->program_type_name = ebpf_duplicate_string(program_type_name);
     if (info->program_type_name == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
