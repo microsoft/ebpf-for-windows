@@ -86,15 +86,6 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
-    # - name: Cache verifier project
-    #   uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
-    #   env:
-    #     cache-name: cache-verifier-project
-    #   with:
-    #     path: external/ebpf-verifier/build
-    #     # Increase the version of the cache each time the CXXFLAGS are modified to invalidate the cache.
-    #     key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}-v2
-
     - name: Create verifier project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
