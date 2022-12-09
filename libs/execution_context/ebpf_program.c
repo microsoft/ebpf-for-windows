@@ -83,8 +83,7 @@ ebpf_program_initiate()
 
 void
 ebpf_program_terminate()
-{
-}
+{}
 
 static void
 _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)

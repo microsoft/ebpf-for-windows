@@ -201,8 +201,13 @@ void
 ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 {
     ebpf_assert(module->base.marker == _ebpf_native_marker);
+
+// Locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
+#pragma warning(push)
+#pragma warning(disable : 4189)
     int32_t new_ref_count = ebpf_interlocked_increment_int32(&module->base.reference_count);
     ebpf_assert(new_ref_count != 1);
+#pragma warning(pop)
 }
 
 void
