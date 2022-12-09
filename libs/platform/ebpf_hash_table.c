@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_platform.h"
+#include "ebpf_epoch.h"
 
 // Buckets contain an array of pointers to value and keys.
 // Buckets are immutable once inserted in to the hash-table and replaced when
@@ -55,6 +56,7 @@ struct _ebpf_hash_table
     uint32_t seed;                  // Seed used for hashing.
     size_t key_size;                // Size of key.
     size_t value_size;              // Size of value.
+    size_t supplemental_value_size; // Size of supplemental value.
     void* (*allocate)(size_t size); // Function to allocate memory.
     void (*free)(void* memory);     // Function to free memory.
     void (*extract)(
@@ -473,7 +475,7 @@ _ebpf_hash_table_replace_bucket(
 
     // Make a copy of the value to insert.
     if (operation != EBPF_HASH_BUCKET_OPERATION_DELETE) {
-        new_data = hash_table->allocate(hash_table->value_size);
+        new_data = hash_table->allocate(hash_table->value_size + hash_table->supplemental_value_size);
         if (!new_data) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -481,8 +483,9 @@ _ebpf_hash_table_replace_bucket(
         // If the value is NULL, then the caller wants to insert a zeroed value.
         if (value) {
             memcpy(new_data, value, hash_table->value_size);
+            memset(new_data + hash_table->value_size, 0, hash_table->supplemental_value_size);
         } else {
-            memset(new_data, 0, hash_table->value_size);
+            memset(new_data, 0, hash_table->value_size + hash_table->supplemental_value_size);
         }
     }
 
@@ -562,22 +565,16 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_create(
-    _Out_ ebpf_hash_table_t** hash_table,
-    _In_ void* (*allocate)(size_t size),
-    _In_ void (*free)(void* memory),
-    size_t key_size,
-    size_t value_size,
-    size_t bucket_count,
-    size_t max_entries,
-    _In_opt_ void (*extract)(
-        _In_ const uint8_t* value,
-        _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
-        _Out_ size_t* length_in_bits))
+ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_hash_table_creation_options_t* options)
 {
     ebpf_result_t retval;
     ebpf_hash_table_t* table = NULL;
     size_t table_size = 0;
+    // Select default values for the hash table.
+    size_t bucket_count = options->bucket_count ? options->bucket_count : EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT;
+    void* (*allocate)(size_t size) = options->allocate ? options->allocate : ebpf_epoch_allocate;
+    void (*free)(void* memory) = options->free ? options->free : ebpf_epoch_free;
+
     retval = ebpf_safe_size_t_multiply(sizeof(ebpf_hash_bucket_header_and_lock_t), bucket_count, &table_size);
     if (retval != EBPF_SUCCESS) {
         goto Done;
@@ -593,15 +590,16 @@ ebpf_hash_table_create(
         goto Done;
     }
 
-    table->key_size = key_size;
-    table->value_size = value_size;
+    table->key_size = options->key_size;
+    table->value_size = options->value_size;
     table->allocate = allocate;
     table->free = free;
     table->bucket_count = bucket_count;
     table->entry_count = 0;
     table->seed = ebpf_random_uint32();
-    table->extract = extract;
-    table->max_entry_count = max_entries;
+    table->extract = options->extract_function;
+    table->max_entry_count = options->max_entries;
+    table->supplemental_value_size = options->supplemental_data_size;
 
     *hash_table = table;
     retval = EBPF_SUCCESS;

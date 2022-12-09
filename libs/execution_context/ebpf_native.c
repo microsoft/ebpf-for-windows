@@ -419,15 +419,14 @@ ebpf_native_initiate()
 
     ebpf_lock_create(&_ebpf_native_client_table_lock);
 
-    return_value = ebpf_hash_table_create(
-        &_ebpf_native_client_table,
-        ebpf_allocate,
-        ebpf_free,
-        sizeof(GUID),
-        sizeof(ebpf_native_module_t*),
-        EBPF_CLIENT_TABLE_BUCKET_COUNT,
-        EBPF_HASH_TABLE_NO_LIMIT,
-        NULL);
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = sizeof(GUID),
+        .value_size = sizeof(ebpf_native_module_t*),
+        .allocate = ebpf_allocate,
+        .free = ebpf_free,
+    };
+
+    return_value = ebpf_hash_table_create(&_ebpf_native_client_table, &options);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }

@@ -695,8 +695,6 @@ _create_hash_map_internal(
 {
     ebpf_result_t retval;
     ebpf_core_map_t* local_map = NULL;
-    size_t actual_value_size;
-
     *map = NULL;
 
     local_map = ebpf_epoch_allocate(map_struct_size);
@@ -705,26 +703,23 @@ _create_hash_map_internal(
         goto Done;
     }
 
-    retval = ebpf_safe_size_t_add(map_definition->value_size, supplemental_value_size, &actual_value_size);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
     local_map->ebpf_map_definition = *map_definition;
     local_map->data = NULL;
+
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = local_map->ebpf_map_definition.key_size,
+        .value_size = local_map->ebpf_map_definition.value_size,
+        .bucket_count = local_map->ebpf_map_definition.max_entries,
+        .max_entries = local_map->ebpf_map_definition.max_entries,
+        .extract_function = extract_function,
+        .supplemental_data_size = supplemental_value_size,
+    };
 
     // Note:
     // ebpf_hash_table_t doesn't require synchronization as long as allocations
     // are performed using the epoch allocator.
-    retval = ebpf_hash_table_create(
-        (ebpf_hash_table_t**)&local_map->data,
-        ebpf_epoch_allocate,
-        ebpf_epoch_free,
-        local_map->ebpf_map_definition.key_size,
-        actual_value_size,
-        local_map->ebpf_map_definition.max_entries,
-        local_map->ebpf_map_definition.max_entries,
-        extract_function);
+    retval = ebpf_hash_table_create((ebpf_hash_table_t**)&local_map->data, &options);
+
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
