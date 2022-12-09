@@ -71,7 +71,7 @@ jobs:
       name: unit_tests
       test_command: .\unit_tests.exe -d yes
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: true
       gather_dumps: true
       capture_etw: true
@@ -86,7 +86,7 @@ jobs:
       name: netebpf_ext_unit_tests
       test_command: .\netebpfext_unit.exe -d yes
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: true
       gather_dumps: true
       capture_etw: true
@@ -101,7 +101,7 @@ jobs:
       test_command: .\bpf2c_tests.exe -d yes
       name: bpf2c
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       vs_dev: true
       code_coverage: true
       gather_dumps: true
@@ -118,7 +118,7 @@ jobs:
       test_command: .\bpf_conformance_runner.exe --test_file_directory %SOURCE_ROOT%\external\bpf_conformance\tests --plugin_path bpf2c_plugin.exe --cpu_version v2 --debug true --plugin_options "--include %SOURCE_ROOT%\include"
       name: bpf2c_conformance
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       vs_dev: true
       code_coverage: true
       gather_dumps: true
@@ -160,7 +160,8 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Analyze
-      build_options: /p:Analysis='True'
+      # Analysis on external projects is conditional, as on small CI/CD VMs the compiler can run OOM
+      build_options: /p:Analysis='True' /p:AnalysisOnExternal='False'
 
   # Build with C++ address sanitizer.
   sanitize:
@@ -169,7 +170,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Sanitize
-      build_options: /p:Sanitizer='True'
+      build_options: /p:AddressSanitizer='True'
 
   # Run the fuzzing tests in GitHub.
   fuzzing:
@@ -181,7 +182,7 @@ jobs:
       name: fuzzing
       test_command: .\fuzz.exe -d yes
       build_artifact: Build-x64-Sanitize
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -194,7 +195,7 @@ jobs:
       name: bpf2c_fuzzer
       test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -207,7 +208,7 @@ jobs:
       name: execution_context_fuzzer
       test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -221,7 +222,7 @@ jobs:
       name: verifier_fuzzer
       test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -234,7 +235,7 @@ jobs:
       name: core_helper_fuzzer
       test_command: .\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -248,7 +249,7 @@ jobs:
       name: cilium_tests
       test_command: .\cilium_tests.exe -d yes
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -263,7 +264,7 @@ jobs:
       # Until there is a dedicated stress test, re-use the perf test.
       test_command: .\ebpf_performance.exe
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       # No code coverage on stress.
       code_coverage: false
       gather_dumps: true
@@ -271,14 +272,13 @@ jobs:
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     needs: sanitize
-    # Only run on schedule and pull request.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
       test_command: .\unit_tests.exe -d yes
       build_artifact: Build-x64-Sanitize
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
       capture_etw: true
@@ -291,7 +291,7 @@ jobs:
       name: low_memory
       test_command: .\unit_tests.exe
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: true
       gather_dumps: true
       low_memory: true
