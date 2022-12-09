@@ -39,6 +39,7 @@ extern "C"
 
 #define EBPF_HASH_TABLE_NO_LIMIT 0
 
+// Macro locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
 #define ebpf_assert_success(x)                                     \
     _Pragma("warning(push)") _Pragma("warning(disable : 4189)") do \
     {                                                              \
