@@ -841,8 +841,13 @@ _create_lru_hash_map(
         goto Exit;
     }
 
+    // Align the supplemental value to 8 byte boundary.
+    // Pad value_size to next 8 byte boundary and subtract the value_size to get the padding.
+    size_t supplemental_value_size =
+        sizeof(uint64_t) + EBPF_PAD_8(map_definition->value_size) - map_definition->value_size;
+
     retval = _create_hash_map_internal(
-        sizeof(ebpf_core_lru_map_t), map_definition, sizeof(uint64_t), NULL, (ebpf_core_map_t**)&lru_map);
+        sizeof(ebpf_core_lru_map_t), map_definition, supplemental_value_size, NULL, (ebpf_core_map_t**)&lru_map);
     if (retval != EBPF_SUCCESS)
         goto Exit;
 
@@ -870,7 +875,7 @@ _delete_lru_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 static uint8_t*
 _get_value_supplement(_In_ ebpf_core_map_t* map, _In_ uint8_t* value)
 {
-    return value + map->ebpf_map_definition.value_size;
+    return value + EBPF_PAD_8(map->ebpf_map_definition.value_size);
 }
 
 static ebpf_result_t
