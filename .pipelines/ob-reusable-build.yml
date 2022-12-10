@@ -44,7 +44,7 @@ jobs:
       maxParallel: 2
 
     pool:
-      vmImage: 'windows-2019'
+      vmImage: 'windows-2022'
       type: windows
 
     variables:
@@ -56,7 +56,7 @@ jobs:
       BUILD_OPTIONS: ${{parameters.build_options}}
       CXX_FLAGS: ${{parameters.cxx_flags}}
       LD_FLAGS: ${{parameters.ld_flags}}
-      MSBUILD_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\amd64'
+      MSBUILD_PATH: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\amd64'
       GDN_CODESIGN_TARGETDIRECTORY: '$(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)'
 
     steps:
@@ -64,6 +64,15 @@ jobs:
         displayName: 'Checkout Repo'
         submodules: 'recursive'
         fetchDepth: 0
+
+      - bash: |
+          echo BUILD_CONFIGURATION: $BUILD_CONFIGURATION
+          echo CXX_FLAGS: $CXX_FLAGS
+          echo LD_FLAGS: $LD_FLAGS
+          echo "*** All environment variables ***"
+          env | sort
+        displayName: 'Environment variables dump'
+        workingDirectory: $(Build.SourcesDirectory)
 
       - bash: |
           choco install -y llvm --version 11.0.1 --allow-downgrade
@@ -78,17 +87,32 @@ jobs:
         displayName: 'Restore Nuget Packages'
 
       - bash: |
-          cmake -G "Visual Studio 16 2019" -S external/ebpf-verifier -B external/ebpf-verifier/build
+          echo CXXFLAGS: $CXXFLAGS
+          echo LDFLAGS: $LDFLAGS
+          cmake -G "Visual Studio 17 2022" -S external/ebpf-verifier -B external/ebpf-verifier/build
+        env:
+          CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
+          LDFLAGS: $(LD_FLAGS)
         displayName: 'Create verifier project'
         workingDirectory: $(Build.SourcesDirectory)
 
       - bash: |
-          cmake -G "Visual Studio 16 2019" -S external/catch2 -B external/catch2/build -DBUILD_TESTING=OFF
+          echo CXXFLAGS: $CXXFLAGS
+          echo LDFLAGS: $LDFLAGS
+          cmake -G "Visual Studio 17 2022" -S external/catch2 -B external/catch2/build -DBUILD_TESTING=OFF
+        env:
+          CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
+          LDFLAGS: $(LD_FLAGS)
         displayName: 'Create catch2 project'
         workingDirectory: $(Build.SourcesDirectory)
 
       - bash: |
-          cmake -G "Visual Studio 16 2019" -S external/ubpf -B external/ubpf/build
+          echo CXXFLAGS: $CXXFLAGS
+          echo LDFLAGS: $LDFLAGS
+          cmake -G "Visual Studio 17 2022" -S external/ubpf -B external/ubpf/build
+        env:
+          CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
+          LDFLAGS: $(LD_FLAGS)
         displayName: 'Create ubpf project'
         workingDirectory: $(Build.SourcesDirectory)
 
@@ -98,7 +122,7 @@ jobs:
         workingDirectory: $(Build.SourcesDirectory)
 
       - script: |
-          copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\Hostx64\x64\clang*" .
+          copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
         workingDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
         displayName: Copy VC Libs for Sanitizer
 
