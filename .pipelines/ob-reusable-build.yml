@@ -155,7 +155,7 @@ jobs:
         condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.generate_release_package}}', 'true'))
 
       - script: |
-          "$(MSBUILD_PATH)\msbuild.exe" /m /p:Configuration="$(BUILD_CONFIGURATION)" /p:Platform="$(BUILD_PLATFORM)" "$(SOLUTION_FILE_PATH)" "$(BUILD_OPTIONS)" /t:tools\nuget
+          "$(MSBUILD_PATH)\msbuild.exe" /m /p:Configuration="$(BUILD_CONFIGURATION)" /p:Platform="$(BUILD_PLATFORM)" "$(SOLUTION_FILE_PATH)" $(BUILD_OPTIONS) /t:tools\nuget
         condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'))
         workingDirectory: $(Build.SourcesDirectory)
         displayName: 'Build nuget package'
