@@ -448,7 +448,7 @@ _ebpf_deferred_routine(
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
-    _Out_ ebpf_non_preemptible_work_item_t** work_item,
+    _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
     _In_ void (*work_item_routine)(void* work_item_context, void* parameter_1),
     _In_opt_ void* work_item_context)
@@ -566,7 +566,7 @@ _ebpf_timer_routine(
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_timer_work_item(
-    _Out_ ebpf_timer_work_item_t** timer_work_item,
+    _Outptr_ ebpf_timer_work_item_t** timer_work_item,
     _In_ void (*work_item_routine)(void* work_item_context),
     _In_opt_ void* work_item_context)
 {

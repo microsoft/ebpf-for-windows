@@ -49,7 +49,7 @@ struct _ebpf_program_info_deleter
 };
 
 static void
-_ebpf_program_descriptor_free(_In_opt_ EbpfProgramType* descriptor)
+_ebpf_program_descriptor_free(_Frees_ptr_opt_ EbpfProgramType* descriptor)
 {
     EBPF_LOG_ENTRY();
     if (descriptor == nullptr) {
@@ -74,7 +74,7 @@ struct EbpfProgramType_deleter
 };
 
 static void
-_ebpf_section_info_free(_In_opt_ ebpf_section_definition_t* info)
+_ebpf_section_info_free(_Frees_ptr_opt_ ebpf_section_definition_t* info)
 {
     EBPF_LOG_ENTRY();
     if (info == nullptr) {
@@ -134,7 +134,7 @@ _get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_
             goto Exit;
         }
 
-        name = _strdup(info->program_type_descriptor.name);
+        name = ebpf_duplicate_string(info->program_type_descriptor.name);
         if (name == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -504,7 +504,8 @@ _update_global_helpers_for_program_information(
         // Copy the global helpers to the new helpers.
         for (uint32_t i = 0; i < global_helper_count; i++) {
             new_helpers[i] = global_helpers[i];
-            auto name = _strdup(global_helpers[i].name);
+            new_helpers[i].name = nullptr;
+            auto name = ebpf_duplicate_string(global_helpers[i].name);
             if (name == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -523,6 +524,8 @@ _update_global_helpers_for_program_information(
 
         program_info->helper_prototype = new_helpers;
         program_info->count_of_helpers = (uint32_t)total_helper_count;
+        new_helpers = nullptr;
+        total_helper_count = 0;
     }
 
 Exit:
