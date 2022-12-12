@@ -49,7 +49,7 @@ struct _ebpf_program_info_deleter
 };
 
 static void
-_ebpf_program_descriptor_free(_In_opt_ EbpfProgramType* descriptor)
+_ebpf_program_descriptor_free(_Frees_ptr_opt_ EbpfProgramType* descriptor)
 {
     EBPF_LOG_ENTRY();
     if (descriptor == nullptr) {
@@ -74,7 +74,7 @@ struct EbpfProgramType_deleter
 };
 
 static void
-_ebpf_section_info_free(_In_opt_ ebpf_section_definition_t* info)
+_ebpf_section_info_free(_Frees_ptr_opt_ ebpf_section_definition_t* info)
 {
     EBPF_LOG_ENTRY();
     if (info == nullptr) {

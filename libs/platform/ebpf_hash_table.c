@@ -99,7 +99,7 @@ _ebpf_rol(uint32_t value, size_t count)
  * @return Hash of key.
  */
 static unsigned long
-_ebpf_murmur3_32(_In_ const uint8_t* key, size_t length_in_bits, uint32_t seed)
+_ebpf_murmur3_32(_In_reads_((length_in_bits + 7) / 8) const uint8_t* key, size_t length_in_bits, uint32_t seed)
 {
     uint32_t c1 = 0xcc9e2d51;
     uint32_t c2 = 0x1b873593;
@@ -563,7 +563,7 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_create(
-    _Out_ ebpf_hash_table_t** hash_table,
+    _Outptr_ ebpf_hash_table_t** hash_table,
     _In_ void* (*allocate)(size_t size),
     _In_ void (*free)(void* memory),
     size_t key_size,
@@ -727,7 +727,7 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key_pointer_and_value(
-    _In_ ebpf_hash_table_t* hash_table,
+    _In_ const ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
     _Outptr_ uint8_t** next_key_pointer,
     _Outptr_opt_ uint8_t** value)
@@ -801,7 +801,7 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key_and_value(
-    _In_ ebpf_hash_table_t* hash_table,
+    _In_ const ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
     _Out_ uint8_t* next_key,
     _Inout_opt_ uint8_t** next_value)
@@ -817,13 +817,13 @@ ebpf_hash_table_next_key_and_value(
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key(
-    _In_ ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
+    _In_ const ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {
     return ebpf_hash_table_next_key_and_value(hash_table, previous_key, next_key, NULL);
 }
 
 size_t
-ebpf_hash_table_key_count(_In_ ebpf_hash_table_t* hash_table)
+ebpf_hash_table_key_count(_In_ const ebpf_hash_table_t* hash_table)
 {
     return hash_table->entry_count;
 }

@@ -12,8 +12,8 @@
 
 // This should be consistent with _ebpf_result_mapping[]
 // in ebpf_error.c
-__forceinline ebpf_result_t
-win32_error_code_to_ebpf_result(uint32_t error)
+_When_(error != ERROR_SUCCESS, _Ret_range_(1, 65535)) __forceinline ebpf_result_t
+    win32_error_code_to_ebpf_result(uint32_t error)
 {
     ebpf_result_t result;
 

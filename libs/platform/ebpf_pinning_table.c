@@ -35,7 +35,7 @@ _ebpf_pinning_table_extract(_In_ const uint8_t* value, _Outptr_ const uint8_t** 
 }
 
 static void
-_ebpf_pinning_entry_free(ebpf_pinning_entry_t* pinning_entry)
+_ebpf_pinning_entry_free(_Frees_ptr_opt_ ebpf_pinning_entry_t* pinning_entry)
 {
     if (!pinning_entry) {
         return;

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // This file contains function implementations for serializing and de-serializing
-// various eBPF structures to/from ebpf_operation*_request/response structures.
+// various eBPF structures to/from ebpf_operation_*_request/reply_t structures.
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 

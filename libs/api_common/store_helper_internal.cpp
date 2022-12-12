@@ -77,7 +77,9 @@ Exit:
 
 static ebpf_result_t
 _load_program_data_information(
-    HKEY program_data_key, _In_z_ const wchar_t* program_type_string, _Out_ ebpf_program_info_t** program_info) noexcept
+    HKEY program_data_key,
+    _In_z_ const wchar_t* program_type_string,
+    _Outptr_ ebpf_program_info_t** program_info) noexcept
 {
     uint32_t status;
     ebpf_result_t result = EBPF_SUCCESS;
@@ -367,7 +369,9 @@ Exit:
 
 static ebpf_result_t
 _load_section_data_information(
-    HKEY section_data_key, _In_z_ const wchar_t* section_name, _Out_ ebpf_section_definition_t** section_info) noexcept
+    HKEY section_data_key,
+    _In_z_ const wchar_t* section_name,
+    _Outptr_ ebpf_section_definition_t** section_info) noexcept
 {
     int32_t status;
     ebpf_result_t result = EBPF_SUCCESS;
