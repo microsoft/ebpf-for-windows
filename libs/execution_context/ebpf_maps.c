@@ -688,7 +688,7 @@ static ebpf_result_t
 _create_hash_map_internal(
     size_t map_struct_size,
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
-    _In_ const size_t supplemental_value_size,
+    size_t supplemental_value_size,
     _In_opt_ void (*extract_function)(
         _In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length_in_bits),
     _Outptr_ ebpf_core_map_t** map)
@@ -1030,8 +1030,17 @@ _update_hash_map_entry(
 
     entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
+    // https://github.com/microsoft/ebpf-for-windows/issues/1741
+    // This second insert can still fail with EBPF_OUT_OF_SPACE due to a race with another ebpf_hash_table_update. This
+    // is a known issue and will be fixed in a future PR. In addition, the _reap_oldest_map_entry can fail if the map is
+    // empty, which can happen if the map is full and all the entries are deleted by other threads between the
+    // ebpf_hash_table_update and the call to _reap_oldest_map_entry.
+
     result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
+    // If the map is a LRU map, and the update failed because the map is full, try to free up space by deleting the
+    // oldest entry.
     if (result == EBPF_OUT_OF_SPACE && _reap_oldest_map_entry(map)) {
+        // Attempt to update the map again.
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
     }
 
