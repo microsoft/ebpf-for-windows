@@ -13,22 +13,17 @@ typedef struct _ebpf_async_tracker
 
 static ebpf_hash_table_t* _ebpf_async_tracker_table = NULL;
 
-static const size_t _ebpf_async_tracker_table_bucket_count = 64;
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_async_initiate()
 {
     EBPF_LOG_ENTRY();
 
-    EBPF_RETURN_RESULT(ebpf_hash_table_create(
-        &_ebpf_async_tracker_table,
-        ebpf_epoch_allocate,
-        ebpf_epoch_free,
-        sizeof(void*),
-        sizeof(ebpf_async_tracker_t),
-        _ebpf_async_tracker_table_bucket_count,
-        EBPF_HASH_TABLE_NO_LIMIT,
-        NULL));
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = sizeof(ebpf_handle_t),
+        .value_size = sizeof(ebpf_async_tracker_t),
+    };
+
+    EBPF_RETURN_RESULT(ebpf_hash_table_create(&_ebpf_async_tracker_table, &options));
 }
 
 void
