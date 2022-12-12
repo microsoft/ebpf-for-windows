@@ -118,12 +118,13 @@ jobs:
 
       - bash: |
           "$(MSBUILD_PATH)\msbuild.exe" //m //p:Configuration="$(BUILD_CONFIGURATION)" //p:Platform="$(BUILD_PLATFORM)" "$(SOLUTION_FILE_PATH)" "$(BUILD_OPTIONS)"
-        displayName: 'Build'
         workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Build'
       
       - script: |
           copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
-        workingDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)        
+        workingDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
+        displayName: Copy VC Libs for Sanitizer
 
       - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
         artifact: "${{parameters.build_artifact}} $(buildConfiguration)"
