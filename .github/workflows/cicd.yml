@@ -69,7 +69,6 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
-      test_command: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       test_command: .\unit_tests.exe -d yes
       build_artifact: Build-x64
       environment: windows-2022
