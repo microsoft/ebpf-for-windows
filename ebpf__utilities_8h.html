@@ -85,8 +85,8 @@ Macros</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a7d83d74a974c4fd180f638ca9b28bf9f"><td class="memItemLeft" align="right" valign="top">__forceinline <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__utilities_8h.html#a7d83d74a974c4fd180f638ca9b28bf9f">win32_error_code_to_ebpf_result</a> (uint32_t error)</td></tr>
-<tr class="separator:a7d83d74a974c4fd180f638ca9b28bf9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aec984ca719d11b96a5abeef195a01f0b"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__utilities_8h.html#aec984ca719d11b96a5abeef195a01f0b">_When_</a> (error !=ERROR_SUCCESS, _Ret_range_(1, 65535)) __forceinline <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> win32_error_code_to_ebpf_result(uint32_t error)</td></tr>
+<tr class="separator:aec984ca719d11b96a5abeef195a01f0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="ac7bef5d85e3dcd73eef56ad39ffc84a9"></a>
@@ -104,18 +104,28 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="a7d83d74a974c4fd180f638ca9b28bf9f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7d83d74a974c4fd180f638ca9b28bf9f">&#9670;&nbsp;</a></span>win32_error_code_to_ebpf_result()</h2>
+<a id="aec984ca719d11b96a5abeef195a01f0b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aec984ca719d11b96a5abeef195a01f0b">&#9670;&nbsp;</a></span>_When_()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">__forceinline <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> win32_error_code_to_ebpf_result </td>
+          <td class="memname">_When_ </td>
           <td>(</td>
-          <td class="paramtype">uint32_t&#160;</td>
-          <td class="paramname"><em>error</em></td><td>)</td>
+          <td class="paramtype">error !&#160;</td>
+          <td class="paramname"> = <code>ERROR_SUCCESS</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">_Ret_range_(1, 65535)&#160;</td>
+          <td class="paramname">&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">

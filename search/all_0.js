@@ -46,5 +46,6 @@ var searchData=
   ['_5fmetadata_5ftable_43',['_metadata_table',['../struct__metadata__table.html',1,'']]],
   ['_5fprogram_5fentry_44',['_program_entry',['../struct__program__entry.html',1,'']]],
   ['_5fsuccess_45',['_SUCCESS',['../kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2',1,'_SUCCESS():&#160;ebpf_registry_helper.h'],['../user_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2',1,'_SUCCESS():&#160;ebpf_registry_helper.h']]],
-  ['_5fxdp_5faction_46',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
+  ['_5fwhen_5f_46',['_When_',['../ebpf__utilities_8h.html#aec984ca719d11b96a5abeef195a01f0b',1,'ebpf_utilities.h']]],
+  ['_5fxdp_5faction_47',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
 ];
