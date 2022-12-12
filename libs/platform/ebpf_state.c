@@ -39,15 +39,13 @@ ebpf_state_initiate()
         }
     }
 
-    return_value = ebpf_hash_table_create(
-        &_ebpf_state_thread_table,
-        ebpf_epoch_allocate,
-        ebpf_epoch_free,
-        sizeof(uint64_t),
-        sizeof(ebpf_state_entry_t),
-        ebpf_get_cpu_count(),
-        EBPF_HASH_TABLE_NO_LIMIT,
-        NULL);
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = sizeof(uint64_t),
+        .value_size = sizeof(ebpf_state_entry_t),
+        .bucket_count = ebpf_get_cpu_count(),
+    };
+
+    return_value = ebpf_hash_table_create(&_ebpf_state_thread_table, &options);
     if (return_value != EBPF_SUCCESS) {
         goto Error;
     }
