@@ -122,7 +122,7 @@ jobs:
         workingDirectory: $(Build.SourcesDirectory)
       
       - bash: |
-          copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
+          cp "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
         displayName: Copy VC Libs for Sanitizer
         workingDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)
         
