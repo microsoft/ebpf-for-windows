@@ -192,7 +192,7 @@ typedef struct _ebpf_map_metadata_table
     void (*delete_map)(_In_ ebpf_core_map_t* map);
     ebpf_result_t (*associate_program)(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* program);
     ebpf_result_t (*find_entry)(
-        _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data);
+        _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data);
     ebpf_core_object_t* (*get_object_from_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*update_entry)(
         _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
@@ -279,7 +279,7 @@ _delete_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
 static ebpf_result_t
 _find_array_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
     uint32_t key_value;
     if (!map || !key || delete_on_success)
@@ -953,7 +953,7 @@ _delete_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
 
 static ebpf_result_t
 _find_hash_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
     uint8_t* value = NULL;
     if (!map || !key)
@@ -1277,7 +1277,7 @@ Exit:
 
 static ebpf_result_t
 _find_lpm_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
     if (!map || !key || delete_on_success)
         return EBPF_INVALID_ARGUMENT;
@@ -1388,7 +1388,7 @@ _delete_circular_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
 static ebpf_result_t
 _find_circular_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
     if (!map)
         return EBPF_INVALID_ARGUMENT;
