@@ -461,7 +461,7 @@ Done:
 }
 
 static ebpf_native_map_t*
-_ebpf_native_get_next_map_to_create(_In_ ebpf_native_map_t* maps, size_t map_count)
+_ebpf_native_get_next_map_to_create(_In_reads_(map_count) ebpf_native_map_t* maps, size_t map_count)
 {
     for (uint32_t i = 0; i < map_count; i++) {
         ebpf_native_map_t* map = &maps[i];

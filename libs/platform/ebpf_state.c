@@ -84,8 +84,8 @@ ebpf_state_allocate_index(_Out_ size_t* new_index)
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-_Must_inspect_result_ ebpf_result_t
-_ebpf_state_get_entry(_Out_ ebpf_state_entry_t** entry)
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_state_get_entry(_Outptr_ ebpf_state_entry_t** entry)
 {
     // High frequency call, don't log entry/exit.
     ebpf_state_entry_t* local_entry = NULL;
