@@ -30,22 +30,22 @@ typedef struct _ebpf_core_object_map
 
 // Generations:
 // 0: Uninitialized.
-// 1-2^64-1: Valid generations.
-// 2^64: Invalid generation (being deleted).
+// 1 to 2^64-1: Valid generations.
+// 2^64-1: Invalid generation (being deleted).
 
 #define EBPF_LRU_INITIAL_GENERATION 1
 #define EBPF_LRU_INVALID_GENERATION 0xFFFFFFFFFFFFFFFF
 
 // Define the granularity at which the LRU list is updated.
-#define EPF_LRU_GENERATION_COUNT 10
+#define EBPF_LRU_GENERATION_COUNT 10
 
 /**
  * @brief Each LRU entry tracks a key for an entry stored in a LRU map. The entry is stored in one of two lists: hot or
  * cold. The hot list is for items that have been accessed in the current generation, where a generation is defined as a
- * period of time during which max_entries/EPF_LRU_GENERATION_COUNT elements have been accessed in the map. The cold
+ * period of time during which max_entries/EBPF_LRU_GENERATION_COUNT elements have been accessed in the map. The cold
  * list is for items that have not been accessed in the current generation. When the hot list reaches
- * max_entries/EPF_LRU_GENERATION_COUNT, the hot list is merged into the cold list, a new generation is started, and the
- * hot list is cleared.  When space is needed in the map, the cold list is trimmed to make room for new entries. The
+ * max_entries/EBPF_LRU_GENERATION_COUNT, the hot list is merged into the cold list, a new generation is started, and
+ * the hot list is cleared.  When space is needed in the map, the cold list is trimmed to make room for new entries. The
  * cold list is trimmed by removing the oldest entries in the list, which are part of the oldest generation. The benefit
  * is that the lock only needs to be acquired when moving items between generations, and not on every access.
  */
@@ -82,9 +82,8 @@ typedef enum _ebpf_lru_key_operation
 /**
  * @brief LRU keys follow a lifecycle of being uninitialized, hot, cold, and deleted. The state of the key is used to
  * determine how to update the LRU map key history. Given that the keys are not directly controlled, the state of the
- * can transition to the deleted state at any point. Excluding transitions to the deleted state, the state transitions
- * are as follows:
- * Uninitialized -> Hot -> Cold -> Hot -> Cold -> ...
+ * key can transition to the deleted state at any point. Excluding transitions to the deleted state, the state
+ * transitions are as follows: Uninitialized -> Hot -> Cold -> Hot -> Cold -> ... -> Deleted.
  */
 typedef enum _ebpf_lru_key_state
 {
@@ -929,7 +928,7 @@ _create_lru_hash_map(
 
     lru_map->current_generation = EBPF_LRU_INITIAL_GENERATION;
     lru_map->hot_list_size = 0;
-    lru_map->hot_list_limit = min(map_definition->max_entries / EPF_LRU_GENERATION_COUNT, 1);
+    lru_map->hot_list_limit = min(map_definition->max_entries / EBPF_LRU_GENERATION_COUNT, 1);
 
     *map = &lru_map->core_map;
 
@@ -960,7 +959,7 @@ _delete_lru_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
  * @return Pointer to the supplemental value.
  */
 static uint8_t*
-_get_value_supplement(_In_ ebpf_core_map_t* map, _In_ uint8_t* value)
+_get_value_supplement(_In_ const ebpf_core_map_t* map, _In_ uint8_t* value)
 {
     return value + EBPF_PAD_8(map->ebpf_map_definition.value_size);
 }
@@ -969,11 +968,11 @@ _get_value_supplement(_In_ ebpf_core_map_t* map, _In_ uint8_t* value)
  * @brief Helper function to translate generation into key state.
  *
  * @param[in] map Pointer to the map. Used to determine the current generation.
- * @param[in] entry Lru entry to get the key state for.
+ * @param[in] entry LRU entry to get the key state for.
  * @return The key state.
  */
 static ebpf_lru_key_state_t
-_get_key_state(_In_ ebpf_core_lru_map_t* map, _In_ ebpf_lru_entry_t* entry)
+_get_key_state(_In_ const ebpf_core_lru_map_t* map, _In_ const ebpf_lru_entry_t* entry)
 {
     if (entry->generation == 0) {
         return EBPF_LRU_KEY_UNINITIALIZED;
@@ -989,11 +988,11 @@ _get_key_state(_In_ ebpf_core_lru_map_t* map, _In_ ebpf_lru_entry_t* entry)
 /**
  * @brief Helper function to insert an entry into the hot list if it is in the cold list and update the hot list size.
  *
- * @param[in] map Pointer to the map.
- * @param[in] entry Entry to insert into the hot list.
+ * @param[in,out] map Pointer to the map.
+ * @param[in,out] entry Entry to insert into the hot list.
  */
 _Requires_lock_held_(map->lock) static void _insert_into_hot_list(
-    _In_ ebpf_core_lru_map_t* map, _In_ ebpf_lru_entry_t* entry)
+    _Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry)
 {
     ebpf_lru_key_state_t key_state = _get_key_state(map, entry);
     // Skip if not in the cold list.
@@ -1008,15 +1007,15 @@ _Requires_lock_held_(map->lock) static void _insert_into_hot_list(
 }
 
 /**
- * @brief Helper function to initialize an lru entry that was created when an entry was inserted into the hash table.
+ * @brief Helper function to initialize an LRU entry that was created when an entry was inserted into the hash table.
  * Sets the current generation, populates the key, and inserts the entry into the hot list.
  *
- * @param[in] map Pointer to the map.
- * @param[in] entry Entry to initialize.
+ * @param[in,out] map Pointer to the map.
+ * @param[in,out] entry Entry to initialize.
  * @param[in] key Key to initialize the entry with.
  */
 _Requires_lock_held_(map->lock) static void _initialize_lru_entry(
-    _In_ ebpf_core_lru_map_t* map, _In_ ebpf_lru_entry_t* entry, _In_ const uint8_t* key)
+    _Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry, _In_ const uint8_t* key)
 {
     ebpf_lru_key_state_t key_state = _get_key_state(map, entry);
     // Skip if already initialized.
@@ -1032,14 +1031,14 @@ _Requires_lock_held_(map->lock) static void _initialize_lru_entry(
 
 /**
  * @brief Helper function called when an entry is deleted from the hash table. Removes the entry from the hot or cold
- * and sets the generation to EBPF_LRU_INVALID_GENERATION so that subsequent access doesn't reinsert it into the hot
- * list.
+ * list and sets the generation to EBPF_LRU_INVALID_GENERATION so that subsequent access doesn't reinsert it into the
+ * hot list.
  *
- * @param[in] map Pointer to the map.
- * @param[in] entry Entry being deleted.
+ * @param[in,out] map Pointer to the map.
+ * @param[in,out] entry Entry being deleted.
  */
 _Requires_lock_held_(map->lock) static void _uninitialize_lru_entry(
-    _In_ ebpf_core_lru_map_t* map, _In_ ebpf_lru_entry_t* entry)
+    _Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry)
 {
     ebpf_lru_key_state_t key_state = _get_key_state(map, entry);
 
@@ -1059,8 +1058,9 @@ _Requires_lock_held_(map->lock) static void _uninitialize_lru_entry(
  * @brief Helper function to merge the hot list into the cold list if the hot list size exceeds the hot list limit.
  * Resets the hot list size and increments the current generation.
  *
+ * @param[in,out] map Pointer to the map.
  */
-_Requires_lock_held_(map->lock) static void _merge_hot_into_cold_list_if_needed(_In_ ebpf_core_lru_map_t* map)
+_Requires_lock_held_(map->lock) static void _merge_hot_into_cold_list_if_needed(_Inout_ ebpf_core_lru_map_t* map)
 {
     if (map->hot_list_size <= map->hot_list_limit) {
         return;
@@ -1075,9 +1075,19 @@ _Requires_lock_held_(map->lock) static void _merge_hot_into_cold_list_if_needed(
     map->current_generation++;
 }
 
+/**
+ * @brief Helper function to update the LRU key history for a given key if the map tracks key history.
+ *
+ * @param[in,out] map Pointer to the map.
+ * @param[in] key Key to update.
+ * @param[in] value Optional value for the key. If NULL, the value will be looked up.
+ * @param[in] operation Operation to perform on the key.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_KEY_NOT_FOUND The key was not found in the map.
+ */
 static ebpf_result_t
 _update_key_history(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ uint8_t* value, ebpf_lru_key_operation_t operation)
+    _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ uint8_t* value, ebpf_lru_key_operation_t operation)
 {
     // Fast path:
     // If this map doesn't track key history, return success.
@@ -1134,10 +1144,17 @@ _update_key_history(
 }
 
 static ebpf_result_t
-_delete_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
+_delete_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key);
 
+/**
+ * @brief Helper function to reap the oldest entry from the map if the map tracks key history.
+ *
+ * @param[in,out] map Pointer to the map.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_KEY_NOT_FOUND The key selected for deletion was not found in the map.
+ */
 static ebpf_result_t
-_reap_oldest_map_entry(_In_ ebpf_core_map_t* map)
+_reap_oldest_map_entry(_Inout_ ebpf_core_map_t* map)
 {
     ebpf_result_t result;
     ebpf_core_lru_map_t* lru_map;
@@ -1375,7 +1392,7 @@ _delete_map_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 }
 
 static ebpf_result_t
-_delete_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+_delete_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     if (!map || !key)
         return EBPF_INVALID_ARGUMENT;
