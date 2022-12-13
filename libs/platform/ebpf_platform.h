@@ -38,12 +38,17 @@ extern "C"
 #define EBPF_PAD_8(X) ((X + 7) & ~7)
 
 #define EBPF_HASH_TABLE_NO_LIMIT 0
+#define EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT 64
 
-#define ebpf_assert_success(x)                      \
-    do {                                            \
-        ebpf_result_t _result = (x);                \
-        ebpf_assert(_result == EBPF_SUCCESS && #x); \
-    } while (0)
+// Macro locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
+#define ebpf_assert_success(x)                                     \
+    _Pragma("warning(push)") _Pragma("warning(disable : 4189)") do \
+    {                                                              \
+        ebpf_result_t _result = (x);                               \
+        ebpf_assert(_result == EBPF_SUCCESS && #x);                \
+    }                                                              \
+    while (0)                                                      \
+    _Pragma("warning(pop)")
 
     /**
      * @brief A UTF-8 encoded string.
@@ -280,6 +285,15 @@ extern "C"
     ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source);
 
     /**
+     * @brief Duplicate a null-terminated string.
+     *
+     * @param[in] source String to duplicate.
+     * @return Pointer to the duplicated string or NULL if out of memory.
+     */
+    _Must_inspect_result_ char*
+    ebpf_duplicate_string(_In_z_ const char* source);
+
+    /**
      * @brief Get the code integrity state from the platform.
      * @param[out] state The code integrity state being enforced.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -343,7 +357,7 @@ extern "C"
     /**
      * @brief Acquire exclusive access to the lock.
      * @param[in] lock Pointer to memory location that contains the lock.
-     * @returns - The previous lock_state required for unlock.
+     * @returns The previous lock_state required for unlock.
      */
     _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
         _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock);
@@ -410,7 +424,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_non_preemptible_work_item(
-        _Out_ ebpf_non_preemptible_work_item_t** work_item,
+        _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
         uint32_t cpu_id,
         _In_ void (*work_item_routine)(void* work_item_context, void* parameter_1),
         _In_opt_ void* work_item_context);
@@ -479,7 +493,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_timer_work_item(
-        _Out_ ebpf_timer_work_item_t** timer,
+        _Outptr_ ebpf_timer_work_item_t** timer,
         _In_ void (*work_item_routine)(void* work_item_context),
         _In_opt_ void* work_item_context);
 
@@ -504,37 +518,41 @@ extern "C"
     typedef struct _ebpf_hash_table ebpf_hash_table_t;
 
     /**
+     * @brief Options to pass to ebpf_hash_table_create.
+     *
+     * Some fields are required, others are optional.  If an optional field is
+     * not specified, a default value will be used.
+     */
+    typedef struct _ebpf_hash_table_creation_options
+    {
+        // Required fields.
+        size_t key_size;   //< Size of key in bytes.
+        size_t value_size; //< Size of value in bytes.
+        // Optional fields.
+        void (*extract_function)(
+            _In_ const uint8_t* value,
+            _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
+            _Out_ size_t* length_in_bits); //< Function to extract key from stored value.
+        void* (*allocate)(size_t size);    //< Function to allocate memory - defaults to ebpf_epoch_allocate.
+        void (*free)(void* memory);        //< Function to free memory - defaults to ebpf_epoch_free.
+        size_t bucket_count; //< Number of buckets to use - defaults to EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT.
+        size_t max_entries;  //< Maximum number of entries in the hash table - defaults to EBPF_HASH_TABLE_NO_LIMIT.
+        size_t supplemental_data_size; //< Size of supplemental data to store in each entry - defaults to 0.
+    } ebpf_hash_table_creation_options_t;
+
+    /**
      * @brief Allocate and initialize a hash table.
      *
      * @param[out] hash_table Pointer to memory that will contain hash table on
      *   success.
-     * @param[in] allocate Function to use when allocating elements in the
-     *   hash table.
-     * @param[in] free Function to use when freeing elements in the hash table.
-     * @param[in] key_size Size of the keys used in the hash table.
-     * @param[in] value_size Size of the values used in the hash table.
-     * @param[in] bucket_count Count of buckets to use.
-     * @param[in] max_entries Maximum number of entries in the hash table or 0 for no limit.
-     * @param[in] extract_function Function used to convert a key into a value
-     * that can be hashed and compared. If NULL, key is assumes to be
-     * comparable.
+     * @param[in] options Options to control hash table creation.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  hash table.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_create(
-        _Out_ ebpf_hash_table_t** hash_table,
-        _In_ void* (*allocate)(size_t size),
-        _In_ void (*free)(void* memory),
-        size_t key_size,
-        size_t value_size,
-        size_t bucket_count,
-        size_t max_entries,
-        _In_opt_ void (*extract_function)(
-            _In_ const uint8_t* value,
-            _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
-            _Out_ size_t* length_in_bits));
+        _Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_hash_table_creation_options_t* options);
 
     /**
      * @brief Remove all items from the hash table and release memory.
@@ -598,7 +616,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_next_key(
-        _In_ ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
+        _In_ const ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 
     /**
      * @brief Returns the next (key, value) pair in the hash table.
@@ -613,7 +631,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_next_key_and_value(
-        _In_ ebpf_hash_table_t* hash_table,
+        _In_ const ebpf_hash_table_t* hash_table,
         _In_opt_ const uint8_t* previous_key,
         _Out_ uint8_t* next_key,
         _Inout_opt_ uint8_t** next_value);
@@ -631,7 +649,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_next_key_pointer_and_value(
-        _In_ ebpf_hash_table_t* hash_table,
+        _In_ const ebpf_hash_table_t* hash_table,
         _In_opt_ const uint8_t* previous_key,
         _Outptr_ uint8_t** next_key_pointer,
         _Outptr_opt_ uint8_t** next_value);
@@ -639,11 +657,11 @@ extern "C"
     /**
      * @brief Get the number of keys in the hash table
      *
-     * @param[in] hash_table  Hash-table to query.
+     * @param[in] hash_table Hash-table to query.
      * @return Count of entries in the hash table.
      */
     size_t
-    ebpf_hash_table_key_count(_In_ ebpf_hash_table_t* hash_table);
+    ebpf_hash_table_key_count(_In_ const ebpf_hash_table_t* hash_table);
 
     /**
      * @brief Atomically increase the value of addend by 1 and return the new
@@ -687,40 +705,40 @@ extern "C"
 
     /**
      * @brief Performs an atomic operation that compares the input value pointed
-     *  to by destination with the value of comperand and replaces it with
+     *  to by destination with the value of comparand and replaces it with
      *  exchange.
      *
      * @param[in,out] destination A pointer to the input value that is compared
-     *  with the value of comperand.
+     *  with the value of comparand.
      * @param[in] exchange Specifies the output value pointed to by destination
      *  if the input value pointed to by destination equals the value of
-     *  comperand.
-     * @param[in] comperand Specifies the value that is compared with the input
+     *  comparand.
+     * @param[in] comparand Specifies the value that is compared with the input
      *  value pointed to by destination.
      * @return Returns the original value of memory pointed to by
      *  destination.
      */
     int32_t
-    ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comperand);
+    ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comparand);
 
     /**
      * @brief Performs an atomic operation that compares the input value pointed
-     *  to by destination with the value of comperand and replaces it with
+     *  to by destination with the value of comparand and replaces it with
      *  exchange.
      *
      * @param[in,out] destination A pointer to the input value that is compared
-     *  with the value of comperand.
+     *  with the value of comparand.
      * @param[in] exchange Specifies the output value pointed to by destination
      *  if the input value pointed to by destination equals the value of
-     *  comperand.
-     * @param[in] comperand Specifies the value that is compared with the input
+     *  comparand.
+     * @param[in] comparand Specifies the value that is compared with the input
      *  value pointed to by destination.
      * @return Returns the original value of memory pointed to by
      *  destination.
      */
     void*
     ebpf_interlocked_compare_exchange_pointer(
-        _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comperand);
+        _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comparand);
 
     /**
      * @brief Performs an atomic OR of the value stored at destination with mask and stores the result in destination.
@@ -947,7 +965,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_get_trampoline_function(
-        _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function);
+        _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Outptr_ void** function);
 
     /**
      * @brief Get the address of the helper function from the trampoline table entry.
@@ -962,7 +980,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_get_trampoline_helper_address(
-        _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** helper_address);
+        _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Outptr_ void** helper_address);
 
     typedef struct _ebpf_program_info ebpf_program_info_t;
 
