@@ -77,16 +77,12 @@ typedef class _ebpf_hash_table_test_state
 
         REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
         keys.resize(static_cast<size_t>(cpu_count) * 4ull);
-        REQUIRE(
-            ebpf_hash_table_create(
-                &table,
-                ebpf_epoch_allocate,
-                ebpf_epoch_free,
-                sizeof(uint32_t),
-                sizeof(uint64_t),
-                keys.size(),
-                EBPF_HASH_TABLE_NO_LIMIT,
-                nullptr) == EBPF_SUCCESS);
+        const ebpf_hash_table_creation_options_t options = {
+            .key_size = sizeof(uint32_t),
+            .value_size = sizeof(uint64_t),
+            .bucket_count = keys.size(),
+        };
+        REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
         for (auto& key : keys) {
             uint64_t value = 12345678;
             key = ebpf_random_uint32();
