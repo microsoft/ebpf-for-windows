@@ -928,7 +928,7 @@ _create_lru_hash_map(
 
     lru_map->current_generation = EBPF_LRU_INITIAL_GENERATION;
     lru_map->hot_list_size = 0;
-    lru_map->hot_list_limit = min(map_definition->max_entries / EBPF_LRU_GENERATION_COUNT, 1);
+    lru_map->hot_list_limit = max(map_definition->max_entries / EBPF_LRU_GENERATION_COUNT, 1);
 
     *map = &lru_map->core_map;
 
@@ -1043,11 +1043,11 @@ _Requires_lock_held_(map->lock) static void _uninitialize_lru_entry(
     ebpf_lru_key_state_t key_state = _get_key_state(map, entry);
 
     // Remove from hot or cold list.
+    ebpf_list_remove_entry(&entry->list_entry);
+
+    // If the entry was in the hot list, decrement the hot list size.
     if (key_state == EBPF_LRU_KEY_HOT) {
-        ebpf_list_remove_entry(&entry->list_entry);
         map->hot_list_size--;
-    } else if (key_state == EBPF_LRU_KEY_COLD) {
-        ebpf_list_remove_entry(&entry->list_entry);
     }
 
     // Always mark as uninitialized.
