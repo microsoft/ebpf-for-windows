@@ -95,6 +95,8 @@
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
+      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
@@ -110,6 +112,8 @@
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
+      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='Release'">
@@ -120,6 +124,7 @@
         clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <!-- Build BPF programs that pass verification and build native images for them but require custom program type. -->
@@ -133,6 +138,8 @@
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
+      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
