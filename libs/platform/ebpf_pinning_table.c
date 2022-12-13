@@ -35,7 +35,7 @@ _ebpf_pinning_table_extract(_In_ const uint8_t* value, _Outptr_ const uint8_t** 
 }
 
 static void
-_ebpf_pinning_entry_free(ebpf_pinning_entry_t* pinning_entry)
+_ebpf_pinning_entry_free(_Frees_ptr_opt_ ebpf_pinning_entry_t* pinning_entry)
 {
     if (!pinning_entry) {
         return;
@@ -60,15 +60,15 @@ ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
 
     ebpf_lock_create(&(*pinning_table)->lock);
 
-    return_value = ebpf_hash_table_create(
-        &(*pinning_table)->hash_table,
-        ebpf_allocate,
-        ebpf_free,
-        sizeof(ebpf_utf8_string_t*),
-        sizeof(ebpf_pinning_entry_t*),
-        EBPF_PINNING_TABLE_BUCKET_COUNT,
-        EBPF_HASH_TABLE_NO_LIMIT,
-        _ebpf_pinning_table_extract);
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = sizeof(ebpf_utf8_string_t*),
+        .value_size = sizeof(ebpf_pinning_entry_t*),
+        .extract_function = _ebpf_pinning_table_extract,
+        .allocate = ebpf_allocate,
+        .free = ebpf_free,
+    };
+
+    return_value = ebpf_hash_table_create(&(*pinning_table)->hash_table, &options);
 
     if (return_value != EBPF_SUCCESS)
         goto Done;

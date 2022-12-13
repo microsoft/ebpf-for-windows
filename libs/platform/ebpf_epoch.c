@@ -222,15 +222,14 @@ ebpf_epoch_initiate()
     }
 
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
-        return_value = ebpf_hash_table_create(
-            &_ebpf_epoch_cpu_table[cpu_id].thread_table,
-            ebpf_allocate,
-            ebpf_free,
-            sizeof(uintptr_t),
-            sizeof(ebpf_epoch_thread_entry_t),
-            _ebpf_epoch_cpu_count,
-            EBPF_HASH_TABLE_NO_LIMIT,
-            NULL);
+        const ebpf_hash_table_creation_options_t options = {
+            .key_size = sizeof(uintptr_t),
+            .value_size = sizeof(ebpf_epoch_thread_entry_t),
+            .bucket_count = _ebpf_epoch_cpu_count,
+            .allocate = ebpf_allocate,
+            .free = ebpf_free,
+        };
+        return_value = ebpf_hash_table_create(&_ebpf_epoch_cpu_table[cpu_id].thread_table, &options);
         if (return_value != EBPF_SUCCESS) {
             goto Error;
         }

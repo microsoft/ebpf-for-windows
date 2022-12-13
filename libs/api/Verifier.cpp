@@ -68,7 +68,7 @@ _get_program_and_map_names(
     }
 
     ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
-    for (const auto section : reader.sections) {
+    for (const auto& section : reader.sections) {
         const string name = section->get_name();
         bool found = false;
         int index;
@@ -224,7 +224,7 @@ load_byte_code(
 
             program->handle = ebpf_handle_invalid;
             program->program_type = *(const GUID*)raw_program.info.type.platform_specific_data;
-            program->section_name = _strdup(raw_program.section.c_str());
+            program->section_name = ebpf_duplicate_string(raw_program.section.c_str());
             if (program->section_name == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -294,7 +294,7 @@ load_byte_code(
                 goto Exit;
             }
             initialize_map(map, descriptor);
-            map->name = _strdup(map_names[index].map_name.c_str());
+            map->name = ebpf_duplicate_string(map_names[index].map_name.c_str());
             if (map->name == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -306,7 +306,7 @@ load_byte_code(
                     result = EBPF_INVALID_ARGUMENT;
                     goto Exit;
                 }
-                map->pin_path = _strdup(buffer);
+                map->pin_path = ebpf_duplicate_string(buffer);
                 if (map->pin_path == nullptr) {
                     result = EBPF_NO_MEMORY;
                     goto Exit;
@@ -318,7 +318,7 @@ load_byte_code(
 
         int index = 0;
         for (auto& iterator : programs) {
-            iterator->program_name = _strdup(section_to_program_map[index].program_name.c_str());
+            iterator->program_name = ebpf_duplicate_string(section_to_program_map[index].program_name.c_str());
             if (iterator->program_name == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -365,7 +365,7 @@ _ebpf_add_stat(_Inout_ ebpf_section_info_t* info, std::string key, int value) no
     if (stat == nullptr) {
         throw std::runtime_error("Out of memory");
     }
-    stat->key = _strdup(key.c_str());
+    stat->key = ebpf_duplicate_string(key.c_str());
     if (stat->key == nullptr) {
         ebpf_free(stat);
         throw std::runtime_error("Out of memory");
@@ -416,8 +416,8 @@ ebpf_api_elf_enumerate_sections(
                 _ebpf_add_stat(info, "Instructions", (int)raw_program.prog.size());
             }
 
-            info->section_name = _strdup(raw_program.section.c_str());
-            info->program_type_name = _strdup(raw_program.info.type.name.c_str());
+            info->section_name = ebpf_duplicate_string(raw_program.section.c_str());
+            info->program_type_name = ebpf_duplicate_string(raw_program.info.type.name.c_str());
 
             std::vector<uint8_t> raw_data = convert_ebpf_program_to_bytes(raw_program.prog);
             info->raw_data_size = raw_data.size();

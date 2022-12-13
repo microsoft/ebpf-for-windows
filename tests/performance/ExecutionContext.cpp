@@ -92,10 +92,10 @@ typedef class _ebpf_map_test_state
     _ebpf_map_test_state(ebpf_map_type_t type, std::optional<uint32_t> map_size = {})
     {
         ebpf_utf8_string_t name{(uint8_t*)"test", 4};
+        REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
         ebpf_map_definition_in_memory_t definition{
             type, sizeof(uint32_t), sizeof(uint64_t), map_size.has_value() ? map_size.value() : ebpf_get_cpu_count()};
 
-        REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
         REQUIRE(ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map) == EBPF_SUCCESS);
 
         for (uint32_t i = 0; i < ebpf_get_cpu_count(); i++) {

@@ -50,7 +50,7 @@ extern "C"
      * returned ebpf_map_definition_t.
      *
      * @param[in] map Map to query
-     * @return uint32_t effective value size of the entry.
+     * @return Effective value size of the entry.
      */
     uint32_t
     ebpf_map_get_effective_value_size(_In_ const ebpf_map_t* map);
@@ -81,8 +81,7 @@ extern "C"
      * @param[in] option One of ebpf_map_option_t options.
      * @param[in] flags EBPF_MAP_FLAG_HELPER if called from helper function.
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  entry.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this entry.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_update_entry(
@@ -135,7 +134,7 @@ extern "C"
      * @param[out] next_key Next key on success.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS There is no key following the specified
-     * key in lexicographically order.
+     * key in lexicographical order.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_next_key(
