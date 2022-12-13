@@ -149,6 +149,7 @@ typedef struct bpf_sock_addr
     uint32_t protocol;       ///< IP protocol.
     uint32_t compartment_id; ///< Network compartment Id.
     uint64_t interface_luid; ///< Interface LUID.
+    uint64_t process_id;     ///< Process Id.
 } bpf_sock_addr_t;
 
 /**

@@ -157,6 +157,22 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 }
 
 static void
+_validate_process_id_verdict_map(_In_ const struct bpf_object* object, uint32_t expected_verdict)
+{
+    bpf_map* verdict_map = bpf_object__find_map_by_name(object, "verdict_map");
+    REQUIRE(verdict_map != nullptr);
+
+    fd_t map_fd = bpf_map__fd(verdict_map);
+    REQUIRE(map_fd != ebpf_fd_invalid);
+
+    uint64_t process_id = GetCurrentProcessId();
+    uint32_t verdict;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &process_id, &verdict) == 0);
+
+    REQUIRE(verdict == expected_verdict);
+}
+
+static void
 _update_policy_map(
     _In_ const struct bpf_object* object,
     _In_ sockaddr_storage& destination,
@@ -219,6 +235,8 @@ connect_redirect_test(
     sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
     sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
 
+    _validate_process_id_verdict_map(object, BPF_SOCK_ADDR_VERDICT_PROCEED);
+
     sender_socket->post_async_receive();
     sender_socket->complete_async_receive(2000, false);
 
@@ -252,6 +270,8 @@ authorize_test(
     // Receive should timeout as connection is blocked.
     sender_socket->post_async_receive(true);
     sender_socket->complete_async_receive(1000, true);
+
+    _validate_process_id_verdict_map(object, BPF_SOCK_ADDR_VERDICT_REJECT);
 
     // Now update the policy map to allow the connection and test again.
     connect_redirect_test(

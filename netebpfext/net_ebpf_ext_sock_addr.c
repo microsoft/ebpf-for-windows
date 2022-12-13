@@ -702,7 +702,9 @@ wfp_ale_layer_fields_t wfp_connection_fields[] = {
 
 static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values, _Out_ bpf_sock_addr_t* sock_addr_ctx)
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Out_ bpf_sock_addr_t* sock_addr_ctx)
 {
     net_ebpf_extension_hook_id_t hook_id =
         net_ebpf_extension_get_hook_id_from_wfp_layer_id(incoming_fixed_values->layerId);
@@ -742,6 +744,11 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     sock_addr_ctx->user_port = htons(incoming_values[destination_port_field].value.uint16);
     sock_addr_ctx->protocol = incoming_values[fields->protocol_field].value.uint8;
     sock_addr_ctx->compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
+    if (incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
+        sock_addr_ctx->process_id = incoming_metadata_values->processId;
+    } else {
+        sock_addr_ctx->process_id = 0;
+    }
 
     if (hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V4 || hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V6) {
         sock_addr_ctx->interface_luid = 0;
@@ -819,7 +826,8 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, &sock_addr_ctx);
+    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
+        incoming_fixed_values, incoming_metadata_values, &sock_addr_ctx);
 
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx.compartment_id));
@@ -886,7 +894,8 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     if (filter_context == NULL)
         goto Exit;
 
-    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, &sock_addr_ctx);
+    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
+        incoming_fixed_values, incoming_metadata_values, &sock_addr_ctx);
 
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx.compartment_id));
@@ -1061,7 +1070,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     memset(sock_addr_ctx, 0, sizeof(bpf_sock_addr_t));
     memset(sock_addr_ctx_original, 0, sizeof(bpf_sock_addr_t));
 
-    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, sock_addr_ctx);
+    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
+        incoming_fixed_values, incoming_metadata_values, sock_addr_ctx);
     *sock_addr_ctx_original = *sock_addr_ctx;
 
     // Check if this call is intended for us.

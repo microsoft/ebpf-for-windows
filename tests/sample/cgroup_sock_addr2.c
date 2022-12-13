@@ -27,6 +27,10 @@ struct bpf_map_def policy_map = {
     .value_size = sizeof(destination_entry_t),
     .max_entries = 100};
 
+SEC("maps")
+struct bpf_map_def verdict_map = {
+    .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(uint64_t), .value_size = sizeof(uint32_t), .max_entries = 100};
+
 __inline int
 redirect_v4(bpf_sock_addr_t* ctx)
 {
@@ -53,6 +57,9 @@ redirect_v4(bpf_sock_addr_t* ctx)
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
     }
+
+    uint64_t process_id = ctx->process_id;
+    bpf_map_update_elem(&verdict_map, &process_id, &verdict, 0);
 
     return verdict;
 }
