@@ -95,6 +95,9 @@ redirect_v6(bpf_sock_addr_t* ctx)
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
     }
 
+    uint64_t process_id = ctx->process_id;
+    bpf_map_update_elem(&verdict_map, &process_id, &verdict, 0);
+
     return verdict;
 }
 
