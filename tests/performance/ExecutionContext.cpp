@@ -98,10 +98,11 @@ typedef class _ebpf_map_test_state
 
         REQUIRE(ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map) == EBPF_SUCCESS);
 
-        for (uint32_t i = 0; i < ebpf_get_cpu_count(); i++) {
+        for (uint32_t i = 0; i < definition.max_entries; i++) {
             uint64_t value = 0;
             (void)ebpf_map_update_entry(map, 0, (uint8_t*)&i, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
         }
+        lru_key = definition.max_entries;
     }
     ~_ebpf_map_test_state()
     {
@@ -153,7 +154,32 @@ typedef class _ebpf_map_test_state
         ebpf_epoch_exit();
     }
 
+    void
+    test_rolling_update_lru(uint32_t cpu_id)
+    {
+        uint64_t value = 0;
+        static uint64_t iteration = 0;
+        // Rotate key every 10 lookups.
+        if (cpu_id == 0) {
+            iteration++;
+            if (iteration % 10 == 0) {
+                lru_key++;
+            }
+        }
+        REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
+        // Check if the current key is present.
+        if (ebpf_map_find_entry(map, 0, (uint8_t*)&lru_key, 0, (uint8_t*)&value, EBPF_MAP_FLAG_HELPER) ==
+            EBPF_SUCCESS) {
+        } else {
+            // Insert the key if it's not present.
+            (void)ebpf_map_update_entry(
+                map, 0, (uint8_t*)&lru_key, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
+        }
+        ebpf_epoch_exit();
+    }
+
   private:
+    uint32_t lru_key;
     ebpf_map_t* map;
 } ebpf_map_test_state_t;
 
@@ -268,6 +294,12 @@ _map_update_lru_test()
 }
 
 static void
+_map_lookup_lru_test(uint32_t cpu_id)
+{
+    _ebpf_map_test_state_instance->test_rolling_update_lru(cpu_id);
+}
+
+static void
 _lpm_trie_ipv4_find()
 {
     _ebpf_map_lpm_trie_test_state_instance->test_find_ipv4_route();
@@ -347,12 +379,14 @@ test_bpf_map_update_elem(bool preemptible)
     measure.run_test();
 }
 
+#define LRU_MAP_SIZE 8192
+
 template <ebpf_map_type_t map_type>
 void
 test_bpf_map_update_lru_elem(bool preemptible)
 {
-    size_t iterations = 1000;
-    ebpf_map_test_state_t map_test_state(map_type, {1024});
+    size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT / 100;
+    ebpf_map_test_state_t map_test_state(map_type, {LRU_MAP_SIZE});
     _ebpf_map_test_state_instance = &map_test_state;
     std::string name = __FUNCTION__;
     name += "<";
@@ -366,14 +400,14 @@ template <ebpf_map_type_t map_type>
 void
 test_bpf_map_lookup_lru_elem(bool preemptible)
 {
-    size_t iterations = 1000;
-    ebpf_map_test_state_t map_test_state(map_type, {1024});
+    size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT / 100;
+    ebpf_map_test_state_t map_test_state(map_type, {LRU_MAP_SIZE});
     _ebpf_map_test_state_instance = &map_test_state;
     std::string name = __FUNCTION__;
     name += "<";
     name += _ebpf_map_type_t_to_string(map_type);
     name += ">";
-    _performance_measure measure(name.c_str(), preemptible, _map_update_lru_test, iterations);
+    _performance_measure measure(name.c_str(), preemptible, _map_lookup_lru_test, iterations);
     measure.run_test();
 }
 
@@ -443,6 +477,7 @@ PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_PERCPU_ARRAY>);
 PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_LRU_HASH>);
 
 PERF_TEST(test_bpf_map_update_lru_elem<BPF_MAP_TYPE_LRU_HASH>);
+PERF_TEST(test_bpf_map_lookup_lru_elem<BPF_MAP_TYPE_LRU_HASH>);
 
 PERF_TEST(test_lpm_trie_ipv4<1024>);
 PERF_TEST(test_lpm_trie_ipv4<1024 * 16>);
