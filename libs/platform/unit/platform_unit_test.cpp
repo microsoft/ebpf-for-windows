@@ -89,10 +89,15 @@ TEST_CASE("hash_table_test", "[platform]")
         v = static_cast<uint8_t>(ebpf_random_uint32());
     }
 
-    REQUIRE(
-        ebpf_hash_table_create(
-            &table, ebpf_allocate, ebpf_free, key_1.size(), data_1.size(), 1, EBPF_HASH_TABLE_NO_LIMIT, NULL) ==
-        EBPF_SUCCESS);
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = key_1.size(),
+        .value_size = data_1.size(),
+        .allocate = ebpf_allocate,
+        .free = ebpf_free,
+        .bucket_count = 1,
+    };
+
+    REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
 
     // Insert first
     // Empty bucket case
@@ -186,16 +191,12 @@ TEST_CASE("hash_table_stress_test", "[platform]")
     uint32_t key_count = 4;
     uint32_t load_factor = 4;
     int32_t cpu_id = 0;
-    REQUIRE(
-        ebpf_hash_table_create(
-            &table,
-            ebpf_epoch_allocate,
-            ebpf_epoch_free,
-            sizeof(uint32_t),
-            sizeof(uint64_t),
-            static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
-            EBPF_HASH_TABLE_NO_LIMIT,
-            NULL) == EBPF_SUCCESS);
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = sizeof(uint32_t),
+        .value_size = sizeof(uint64_t),
+        .bucket_count = static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
+    };
+    REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
     auto worker = [table, iterations, key_count, load_factor, &cpu_id]() {
         uint32_t next_key = 0;
         uint64_t value = 11;
