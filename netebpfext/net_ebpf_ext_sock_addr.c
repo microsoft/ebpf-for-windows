@@ -538,7 +538,7 @@ _net_ebpf_ext_purge_lru_contexts(bool delete_all)
 }
 
 static void
-_net_ebpf_ext_insert_connection_context_to_list(_In_ net_ebpf_extension_connection_context_t* connection_context)
+_net_ebpf_ext_insert_connection_context_to_list(_Inout_ net_ebpf_extension_connection_context_t* connection_context)
 {
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
 

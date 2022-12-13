@@ -58,14 +58,14 @@ extern "C"
     /**
      * @brief Get a pointer to an entry in the map.
      *
-     * @param[in] map Map to search.
+     * @param[in,out] map Map to search and update metadata in.
      * @param[in] key Key to use when searching map.
      * @param[in] flags Zero or more EBPF_MAP_FIND_ENTRY_FLAG_* flags.
      * @return Pointer to the value if found or NULL.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_find_entry(
-        _In_ ebpf_map_t* map,
+        _Inout_ ebpf_map_t* map,
         size_t key_size,
         _In_reads_(key_size) const uint8_t* key,
         size_t value_size,
@@ -75,7 +75,7 @@ extern "C"
     /**
      * @brief Insert or update an entry in the map.
      *
-     * @param[in] map Map to update.
+     * @param[in,out] map Map to update.
      * @param[in] key Key to use when searching and updating the map.
      * @param[in] value Value to insert into the map.
      * @param[in] option One of ebpf_map_option_t options.
@@ -85,7 +85,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_update_entry(
-        _In_ ebpf_map_t* map,
+        _Inout_ ebpf_map_t* map,
         size_t key_size,
         _In_reads_(key_size) const uint8_t* key,
         size_t value_size,
@@ -96,7 +96,7 @@ extern "C"
     /**
      * @brief Insert or update an entry in the map.
      *
-     * @param[in] map Map to update.
+     * @param[in,out] map Map to update.
      * @param[in] key Key to use when searching and updating the map.
      * @param[in] value_handle Handle associated with the value to insert.
      * @param[in] option One of ebpf_map_option_t options.
@@ -106,7 +106,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_update_entry_with_handle(
-        _In_ ebpf_map_t* map,
+        _Inout_ ebpf_map_t* map,
         size_t key_size,
         _In_reads_(key_size) const uint8_t* key,
         uintptr_t value_handle,
@@ -127,7 +127,7 @@ extern "C"
     /**
      * @brief Retrieve the next key from the map.
      *
-     * @param[in] map Map to search.
+     * @param[in,out] map Map to search and update metadata in.
      * @param[in] previous_key The previous key need not be present. This will
      * return the next key lexicographically after the specified key.  A value of
      * null indicates that the first key is to be returned.
@@ -138,7 +138,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_next_key(
-        _In_ ebpf_map_t* map,
+        _Inout_ ebpf_map_t* map,
         size_t key_size,
         _In_reads_opt_(key_size) const uint8_t* previous_key,
         _Out_writes_(key_size) uint8_t* next_key);
@@ -148,26 +148,26 @@ extern "C"
      * program returned holds a reference that the caller is responsible for
      * releasing.
      *
-     * @param[in] map Map to search.
+     * @param[in,out] map Map to search and update metadata in.
      * @param[in] key Pointer to key to search for.
      * @param[in] key_size Size of value to search for.
      * @returns Program pointer, or NULL if none.
      */
     _Ret_maybenull_ struct _ebpf_program*
-    ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key);
+    ebpf_map_get_program_from_entry(_Inout_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key);
 
     /**
      * @brief Let a map take any actions when first
      * associated with a program.
      *
-     * @param[in] map Map to update.
+     * @param[in,out] map Map to update.
      * @param[in] program Program being associated with.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_FD The program is incompatible with this map.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_map_associate_program(_In_ ebpf_map_t* map, _In_ const struct _ebpf_program* program);
+    ebpf_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const struct _ebpf_program* program);
 
     /**
      * @brief Get bpf_map_info about a map.
@@ -211,34 +211,34 @@ extern "C"
     /**
      * @brief Issue an asynchronous query to ring buffer map.
      *
-     * @param[in] map Ring buffer map to issue the async query on.
-     * @param[in, out] async_query_result Pointer to structure for storing result of the async query.
-     * @param[in] async_context Async context associated with the query.
+     * @param[in,out] map Ring buffer map to issue the async query on.
+     * @param[in,out] async_query_result Pointer to structure for storing result of the async query.
+     * @param[in,out] async_context Async context associated with the query.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Insufficient memory to complete this operation.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_async_query(
-        _In_ ebpf_map_t* map,
+        _Inout_ ebpf_map_t* map,
         _Inout_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
-        _In_ void* async_context);
+        _Inout_ void* async_context);
 
     /**
      * @brief Write out a variable sized record to the ring buffer map.
      *
-     * @param[in] map Pointer to map of type EBPF_MAP_TYPE_RINGBUF.
+     * @param[in,out] map Pointer to map of type EBPF_MAP_TYPE_RINGBUF.
      * @param[in] data Data of record to write into ring buffer map.
      * @param[in] length Length of data.
      * @retval EPBF_SUCCESS Successfully wrote record into ring buffer.
      * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_ring_buffer_map_output(_In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
+    ebpf_ring_buffer_map_output(_Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
     /**
      * @brief Insert an element at the end of the map (only valid for stack and queue).
      *
-     * @param[in] map Map to update.
+     * @param[in,out] map Map to update.
      * @param[in] value_size Size of value to insert into the map.
      * @param[in] value Value to insert into the map.
      * @param[in] flags Map flags - BPF_EXIST: If the map is full, the entry at the start of the map is discarded.
@@ -249,35 +249,35 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_push_entry(
-        _In_ ebpf_map_t* map, size_t value_size, _In_reads_(value_size) const uint8_t* value, int flags);
+        _Inout_ ebpf_map_t* map, size_t value_size, _In_reads_(value_size) const uint8_t* value, int flags);
 
     /**
      * @brief Copy an entry from the map and remove it from the map (only valid for stack and queue).
      * Queue pops from the beginning of the map.
      * Stack pops from the end of the map.
      *
-     * @param[in] map Map to search.
+     * @param[in,out] map Map to search and update metadata on.
      * @param[in] value_size Size of the value buffer to copy value from map into.
      * @param[out] value Value buffer to copy value from map into.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_OBJECT_NOT_FOUND The map is empty.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_map_pop_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags);
+    ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags);
 
     /**
      * @brief Copy an entry from the map (only valid for stack and queue).
      * Queue peeks at the beginning of the map.
      * Stack peeks at the end of the map.
      *
-     * @param[in] map Map to search.
+     * @param[in,out] map Map to search and update metadata on.
      * @param[in] value_size Size of the value buffer to copy value from map into.
      * @param[out] value Value buffer to copy value from map into.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_OBJECT_NOT_FOUND The map is empty.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_map_peek_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags);
+    ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags);
 
     /**
      * @brief Get the ID of a given map.

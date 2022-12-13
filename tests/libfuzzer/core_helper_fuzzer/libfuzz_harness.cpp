@@ -280,7 +280,7 @@ void
 fuzz_program(
     fuzz_wrapper& fuzz_state,
     ebpf_handle_t program_handle,
-    _In_ ebpf_program_t* program,
+    _In_ const ebpf_program_t* program,
     _In_reads_(data_left_size) const uint8_t* data_left,
     size_t data_left_size)
 {

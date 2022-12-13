@@ -152,8 +152,8 @@ extern "C"
      * @param[in] new_size New size of memory to reallocate.
      * @returns Pointer to memory block allocated, or null on failure.
      */
-    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
-        _Post_writable_byte_size_(new_size) void* ebpf_reallocate(_In_ void* memory, size_t old_size, size_t new_size);
+    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(
+        new_size) void* ebpf_reallocate(_In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size);
 
     /**
      * @brief Free memory.
@@ -260,7 +260,7 @@ extern "C"
      * @return Base virtual address of pages that have been allocated.
      */
     void*
-    ebpf_ring_descriptor_get_base_address(_In_ ebpf_ring_descriptor_t* ring);
+    ebpf_ring_descriptor_get_base_address(_In_ const ebpf_ring_descriptor_t* ring);
 
     /**
      * @brief Create a read-only mapping in the calling process of the ring buffer.
@@ -269,7 +269,7 @@ extern "C"
      * @return Pointer to the base of the ring buffer.
      */
     _Ret_maybenull_ void*
-    ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring);
+    ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring);
 
     /**
      * @brief Allocate and copy a UTF-8 string.
@@ -352,23 +352,23 @@ extern "C"
      * @param[in] lock Pointer to memory location that contains the lock.
      */
     void
-    ebpf_lock_destroy(_In_ ebpf_lock_t* lock);
+    ebpf_lock_destroy(_In_ _Post_invalid_ ebpf_lock_t* lock);
 
     /**
      * @brief Acquire exclusive access to the lock.
-     * @param[in] lock Pointer to memory location that contains the lock.
+     * @param[in,out] lock Pointer to memory location that contains the lock.
      * @returns The previous lock_state required for unlock.
      */
     _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-        _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock);
+        _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock);
 
     /**
      * @brief Release exclusive access to the lock.
-     * @param[in] lock Pointer to memory location that contains the lock.
+     * @param[in,out] lock Pointer to memory location that contains the lock.
      * @param[in] state The state returned from ebpf_lock_lock.
      */
     _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
-        _In_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state);
+        _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state);
 
     /**
      * @brief Query the platform for the total number of CPUs.
@@ -417,7 +417,7 @@ extern "C"
      *  the non-preemptible work item on success.
      * @param[in] cpu_id Associate the work item with this CPU.
      * @param[in] work_item_routine Routine to execute as a work item.
-     * @param[in] work_item_context Context to pass to the routine.
+     * @param[in,out] work_item_context Context to pass to the routine.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  work item.
@@ -426,8 +426,8 @@ extern "C"
     ebpf_allocate_non_preemptible_work_item(
         _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
         uint32_t cpu_id,
-        _In_ void (*work_item_routine)(void* work_item_context, void* parameter_1),
-        _In_opt_ void* work_item_context);
+        _In_ const void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1),
+        _Inout_opt_ void* work_item_context);
 
     /**
      * @brief Free a non-preemptible work item.
@@ -440,13 +440,14 @@ extern "C"
     /**
      * @brief Schedule a non-preemptible work item to run.
      *
-     * @param[in] work_item Work item to schedule.
-     * @param[in] parameter_1 Parameter to pass to work item.
+     * @param[in,out] work_item Work item to schedule.
+     * @param[in,out] parameter_1 Parameter to pass to work item.
      * @retval true Work item was queued.
      * @retval false Work item is already queued.
      */
     bool
-    ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1);
+    ebpf_queue_non_preemptible_work_item(
+        _Inout_ ebpf_non_preemptible_work_item_t* work_item, _Inout_opt_ void* parameter_1);
 
     /**
      * @brief Create a preemptible work item.
@@ -454,7 +455,7 @@ extern "C"
      * @param[out] work_item Pointer to memory that will contain the pointer to
      *  the preemptible work item on success.
      * @param[in] work_item_routine Routine to execute as a work item.
-     * @param[in] work_item_context Context to pass to the routine.
+     * @param[in,out] work_item_context Context to pass to the routine.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  work item.
@@ -462,8 +463,8 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_preemptible_work_item(
         _Outptr_ ebpf_preemptible_work_item_t** work_item,
-        _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
-        _In_opt_ void* work_item_context);
+        _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
+        _Inout_opt_ void* work_item_context);
 
     /**
      * @brief Free a preemptible work item.
@@ -476,17 +477,17 @@ extern "C"
     /**
      * @brief Schedule a preemptible work item to run.
      *
-     * @param[in] work_item Work item to schedule.
+     * @param[in,out] work_item Work item to schedule.
      */
     void
-    ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item);
+    ebpf_queue_preemptible_work_item(_Inout_ ebpf_preemptible_work_item_t* work_item);
 
     /**
      * @brief Allocate a timer to run a non-preemptible work item.
      *
      * @param[out] timer Pointer to memory that will contain timer on success.
      * @param[in] work_item_routine Routine to execute when time expires.
-     * @param[in] work_item_context Context to pass to routine.
+     * @param[in,out] work_item_context Context to pass to routine.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  timer.
@@ -494,18 +495,18 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_timer_work_item(
         _Outptr_ ebpf_timer_work_item_t** timer,
-        _In_ void (*work_item_routine)(void* work_item_context),
-        _In_opt_ void* work_item_context);
+        _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
+        _Inout_opt_ void* work_item_context);
 
     /**
      * @brief Schedule a work item to be executed after elapsed_microseconds.
      *
-     * @param[in] timer Pointer to timer to schedule.
+     * @param[in,out] timer Pointer to timer to schedule.
      * @param[in] elapsed_microseconds Microseconds to delay before executing
      *   work item.
      */
     void
-    ebpf_schedule_timer_work_item(_In_ ebpf_timer_work_item_t* timer, uint32_t elapsed_microseconds);
+    ebpf_schedule_timer_work_item(_Inout_ ebpf_timer_work_item_t* timer, uint32_t elapsed_microseconds);
 
     /**
      * @brief Free a timer.
@@ -572,12 +573,12 @@ extern "C"
      * @retval EBPF_NOT_FOUND Key not found in hash table.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
+    ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
 
     /**
      * @brief Insert or update an entry in the hash table.
      *
-     * @param[in] hash_table Hash-table to update.
+     * @param[in,out] hash_table Hash-table to update.
      * @param[in] key Key to find and insert or update.
      * @param[in] value Value to insert into hash table or NULL to insert zero entry.
      * @param[in] operation One of ebpf_hash_table_operations_t operations.
@@ -588,7 +589,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_update(
-        _In_ ebpf_hash_table_t* hash_table,
+        _Inout_ ebpf_hash_table_t* hash_table,
         _In_ const uint8_t* key,
         _In_opt_ const uint8_t* value,
         ebpf_hash_table_operations_t operation);
@@ -596,13 +597,13 @@ extern "C"
     /**
      * @brief Remove an entry from the hash table.
      *
-     * @param[in] hash_table Hash-table to update.
+     * @param[in,out] hash_table Hash-table to update.
      * @param[in] key Key to find and remove.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_FOUND Key not found in hash table.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key);
+    ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key);
 
     /**
      * @brief Find the next key in the hash table.
@@ -801,7 +802,7 @@ extern "C"
     ebpf_interlocked_xor_int64(_Inout_ volatile int64_t* destination, int64_t mask);
 
     typedef void (*ebpf_extension_change_callback_t)(
-        _In_ void* client_binding_context,
+        _In_ const void* client_binding_context,
         _In_ const void* provider_binding_context,
         _In_opt_ const ebpf_extension_data_t* provider_data);
 
@@ -835,7 +836,7 @@ extern "C"
         _In_ const GUID* interface_id,
         _In_ const GUID* expected_provider_module_id,
         _In_ const GUID* client_module_id,
-        _In_ void* extension_client_context,
+        _In_ const void* extension_client_context,
         _In_opt_ const ebpf_extension_data_t* client_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
         _Outptr_opt_ void** provider_binding_context,
@@ -873,9 +874,11 @@ extern "C"
      * @param[out] provider_context Context used to unload the provider.
      * @param[in] interface_id GUID representing the identity of the interface.
      * @param[in] provider_module_id GUID representing the identity of the provider.
+     * @param[in,out] provider_binding_context Provider binding context.
      * @param[in] provider_data Opaque provider data.
      * @param[in] provider_dispatch_table Table of function pointers the
      *  provider exposes.
+     * @param[in,out] callback_context Opaque per-instance pointer passed to the callback functions.
      * @param[in] attach_client_callback Function invoked when a client attaches.
      * @param[in] detach_client_callback Function invoked when a client detaches.
      * @param[in] provider_cleanup_binding_context_callback Function invoked when a binding context can be cleaned up.
@@ -890,10 +893,10 @@ extern "C"
         _Outptr_ ebpf_extension_provider_t** provider_context,
         _In_ const GUID* interface_id,
         _In_ const GUID* provider_module_id,
-        _In_opt_ void* provider_binding_context,
+        _Inout_opt_ void* provider_binding_context,
         _In_opt_ const ebpf_extension_data_t* provider_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
-        _In_opt_ void* callback_context,
+        _Inout_opt_ void* callback_context,
         _In_ NPI_PROVIDER_ATTACH_CLIENT_FN attach_client_callback,
         _In_ NPI_PROVIDER_DETACH_CLIENT_FN detach_client_callback,
         _In_opt_ PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN provider_cleanup_binding_context_callback);
@@ -936,7 +939,7 @@ extern "C"
     /**
      * @brief Populate the function pointers in a trampoline table.
      *
-     * @param[in] trampoline_table Trampoline table to populate.
+     * @param[in,out] trampoline_table Trampoline table to populate.
      * @param[in] helper_function_count Count of helper functions.
      * @param[in] helper_function_ids Array of helper function IDs.
      * @param[in] dispatch_table Dispatch table to populate from.
@@ -998,9 +1001,9 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_access_check(
-        _In_ ebpf_security_descriptor_t* security_descriptor,
+        _In_ const ebpf_security_descriptor_t* security_descriptor,
         ebpf_security_access_mask_t request_access,
-        _In_ ebpf_security_generic_mapping_t* generic_mapping);
+        _In_ const ebpf_security_generic_mapping_t* generic_mapping);
 
     /**
      * @brief Check the validity of the provided security descriptor.
@@ -1012,7 +1015,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_validate_security_descriptor(
-        _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
+        _In_ const ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
 
     /**
      * @brief Return a pseudorandom number.

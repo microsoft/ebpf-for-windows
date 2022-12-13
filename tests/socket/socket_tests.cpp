@@ -26,8 +26,8 @@ using namespace std::chrono_literals;
 void
 connection_test(
     ADDRESS_FAMILY address_family,
-    _In_ client_socket_t& sender_socket,
-    _In_ receiver_socket_t& receiver_socket,
+    _Inout_ client_socket_t& sender_socket,
+    _Inout_ receiver_socket_t& receiver_socket,
     uint32_t protocol)
 {
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
@@ -243,8 +243,8 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 void
 connection_monitor_test(
     ADDRESS_FAMILY address_family,
-    _In_ client_socket_t& sender_socket,
-    _In_ receiver_socket_t& receiver_socket,
+    _Inout_ client_socket_t& sender_socket,
+    _Inout_ receiver_socket_t& receiver_socket,
     uint32_t protocol,
     bool disconnect)
 {
@@ -312,8 +312,8 @@ connection_monitor_test(
     // Create a new ring buffer manager and subscribe to ring buffer events.
     bpf_map* ring_buffer_map = bpf_object__find_map_by_name(object, "audit_map");
     REQUIRE(ring_buffer_map != nullptr);
-    context->ring_buffer =
-        ring_buffer__new(bpf_map__fd(ring_buffer_map), ring_buffer_test_event_handler, context.get(), nullptr);
+    context->ring_buffer = ring_buffer__new(
+        bpf_map__fd(ring_buffer_map), (ring_buffer_sample_fn)ring_buffer_test_event_handler, context.get(), nullptr);
     REQUIRE(context->ring_buffer != nullptr);
 
     bpf_map* connection_map = bpf_object__find_map_by_name(object, "connection_map");

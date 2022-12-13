@@ -59,7 +59,7 @@ _net_ebpf_ext_driver_uninitialize_objects()
 }
 
 static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
-    _IRQL_requires_max_(PASSIVE_LEVEL) void _net_ebpf_ext_driver_unload(_In_ WDFDRIVER driver_object)
+    _IRQL_requires_max_(PASSIVE_LEVEL) void _net_ebpf_ext_driver_unload(_In_ const WDFDRIVER driver_object)
 {
     UNREFERENCED_PARAMETER(driver_object);
     _net_ebpf_ext_driver_uninitialize_objects();

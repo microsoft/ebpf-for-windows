@@ -212,7 +212,7 @@ Exit:
 }
 
 bool
-cancel_async_ioctl(_In_opt_ OVERLAPPED* overlapped = nullptr)
+cancel_async_ioctl(_Inout_opt_ OVERLAPPED* overlapped = nullptr)
 {
     return Platform::CancelIoEx(get_device_handle(), overlapped);
 }

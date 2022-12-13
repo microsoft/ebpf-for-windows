@@ -257,8 +257,7 @@ ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data)
 }
 
 const ebpf_ring_buffer_record_t*
-ebpf_ring_buffer_next_record(
-    _In_ const uint8_t* buffer, _In_ size_t buffer_length, _In_ size_t consumer, _In_ size_t producer)
+ebpf_ring_buffer_next_record(_In_ const uint8_t* buffer, size_t buffer_length, size_t consumer, size_t producer)
 {
     if (producer == consumer) {
         return NULL;

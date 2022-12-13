@@ -86,7 +86,7 @@ extern "C"
     /**
      * @brief Returns all entries in the pinning table of specified object type after acquiring a reference.
      *
-     * @param[in] pinning_table Pinning table to enumerate.
+     * @param[in,out] pinning_table Pinning table to enumerate.
      * @param[in] object_type eBPF object type that will be used to filter pinning entries.
      * @param[out] entry_count Number of pinning entries being returned.
      * @param[out] pinning_entries Array of pinning entries being returned. Must be freed by caller
@@ -96,7 +96,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_pinning_table_enumerate_entries(
-        _In_ ebpf_pinning_table_t* pinning_table,
+        _Inout_ ebpf_pinning_table_t* pinning_table,
         ebpf_object_type_t object_type,
         _Out_ uint16_t* entry_count,
         _Outptr_result_buffer_maybenull_(*entry_count) ebpf_pinning_entry_t** pinning_entries);
@@ -104,16 +104,16 @@ extern "C"
     /**
      * @brief Gets the next path in the pinning table after a given path.
      *
-     * @param[in] pinning_table Pinning table to enumerate.
+     * @param[in,out] pinning_table Pinning table to enumerate.
      * @param[in] object_type Object type.
      * @param[in] start_path Path to look for an entry greater than.
-     * @param[out] next_path Returns the next path, if one exists.
+     * @param[in,out] next_path Returns the next path, if one exists.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS No more entries found.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_pinning_table_get_next_path(
-        _In_ ebpf_pinning_table_t* pinning_table,
+        _Inout_ ebpf_pinning_table_t* pinning_table,
         ebpf_object_type_t object_type,
         _In_ const ebpf_utf8_string_t* start_path,
         _Inout_ ebpf_utf8_string_t* next_path);

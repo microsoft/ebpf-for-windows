@@ -6,9 +6,9 @@
 
 typedef struct _ebpf_async_tracker
 {
-    void (*on_complete)(_In_ void*, size_t, ebpf_result_t);
+    void (*on_complete)(_Inout_ void*, size_t, ebpf_result_t);
     void* cancellation_context;
-    void (*on_cancel)(_In_ void*);
+    void (*on_cancel)(_Inout_ void*);
 } ebpf_async_tracker_t;
 
 static ebpf_hash_table_t* _ebpf_async_tracker_table = NULL;
@@ -37,7 +37,8 @@ ebpf_async_terminate()
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_async_set_completion_callback(_In_ void* context, _In_ void (*on_complete)(_In_ void*, size_t, ebpf_result_t))
+ebpf_async_set_completion_callback(
+    _In_ const void* context, _In_ void (*on_complete)(_Inout_ void*, size_t, ebpf_result_t))
 {
     EBPF_LOG_ENTRY();
     ebpf_async_tracker_t tracker = {on_complete};
@@ -48,7 +49,7 @@ ebpf_async_set_completion_callback(_In_ void* context, _In_ void (*on_complete)(
 }
 
 static ebpf_async_tracker_t*
-_tracker_from_context(_In_ void* context)
+_tracker_from_context(_In_ const void* context)
 {
     uint8_t* key = (uint8_t*)&context;
     ebpf_async_tracker_t* tracker = NULL;
@@ -61,7 +62,7 @@ _tracker_from_context(_In_ void* context)
 }
 
 static ebpf_result_t
-_remove_tracker(_In_ void* context)
+_remove_tracker(_In_ const void* context)
 {
     uint8_t* key = (uint8_t*)&context;
     return ebpf_hash_table_delete(_ebpf_async_tracker_table, key);
@@ -69,7 +70,9 @@ _remove_tracker(_In_ void* context)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_async_set_cancel_callback(
-    _In_ void* context, _In_ void* cancellation_context, _In_ void (*on_cancel)(_In_ void* cancellation_context))
+    _In_ const void* context,
+    _Inout_opt_ void* cancellation_context,
+    _In_ void (*on_cancel)(_Inout_opt_ void* cancellation_context))
 {
     EBPF_LOG_ENTRY();
     ebpf_async_tracker_t* tracker = _tracker_from_context(context);
@@ -82,7 +85,7 @@ ebpf_async_set_cancel_callback(
 }
 
 bool
-ebpf_async_cancel(_In_ void* context)
+ebpf_async_cancel(_Inout_ void* context)
 {
     EBPF_LOG_ENTRY();
     ebpf_async_tracker_t* tracker = _tracker_from_context(context);
@@ -90,7 +93,7 @@ ebpf_async_cancel(_In_ void* context)
         EBPF_RETURN_BOOL(false);
 
     void* cancellation_context = tracker->cancellation_context;
-    void (*on_cancellation)(_In_ void* context) = tracker->on_cancel;
+    void (*on_cancellation)(_Inout_ void* context) = tracker->on_cancel;
     if (on_cancellation)
         on_cancellation(cancellation_context);
 
@@ -98,7 +101,7 @@ ebpf_async_cancel(_In_ void* context)
 }
 
 void
-ebpf_async_complete(_In_ void* context, size_t output_buffer_length, ebpf_result_t result)
+ebpf_async_complete(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result)
 {
     EBPF_LOG_ENTRY();
     ebpf_async_tracker_t* tracker = _tracker_from_context(context);
@@ -106,7 +109,7 @@ ebpf_async_complete(_In_ void* context, size_t output_buffer_length, ebpf_result
         ebpf_assert(!"Async action was double completed");
         EBPF_RETURN_VOID();
     }
-    void (*on_complete)(_In_ void*, size_t, ebpf_result_t) = tracker->on_complete;
+    void (*on_complete)(_Inout_ void*, size_t, ebpf_result_t) = tracker->on_complete;
     if (_remove_tracker(context) != EBPF_SUCCESS) {
         ebpf_assert(!"Async action was double completed");
         EBPF_RETURN_VOID();
@@ -118,7 +121,7 @@ ebpf_async_complete(_In_ void* context, size_t output_buffer_length, ebpf_result
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_async_reset_completion_callback(_In_ void* context)
+ebpf_async_reset_completion_callback(_In_ const void* context)
 {
     return _remove_tracker(context);
 }

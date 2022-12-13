@@ -57,7 +57,7 @@ typedef class _base_socket
     virtual ~_base_socket();
 
     void
-    get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length);
+    get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length) const;
 
     void
     get_received_message(_Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message);
@@ -85,7 +85,8 @@ typedef class _client_socket : public _base_socket
   public:
     _client_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family);
     virtual void
-    send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port) = 0;
+    send_message_to_remote_host(
+        _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port) = 0;
     virtual void
     complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::SUCCESS) = 0;
     virtual void
@@ -110,7 +111,8 @@ typedef class _datagram_client_socket : public _client_socket
   public:
     _datagram_client_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual);
     void
-    send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port);
+    send_message_to_remote_host(
+        _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
     void
     cancel_send_message();
     void
@@ -125,7 +127,8 @@ typedef class _stream_client_socket : public _client_socket
   public:
     _stream_client_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual);
     void
-    send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port);
+    send_message_to_remote_host(
+        _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
     void
     cancel_send_message();
     void

@@ -234,7 +234,7 @@ _ebpf_hash_table_compute_hash(_In_ const ebpf_hash_table_t* hash_table, _In_ con
  * @return Pointer to the ebpf_hash_bucket_entry_t.
  */
 static ebpf_hash_bucket_entry_t*
-_ebpf_hash_table_bucket_entry(size_t key_size, _In_ ebpf_hash_bucket_header_t* bucket, size_t index)
+_ebpf_hash_table_bucket_entry(size_t key_size, _In_ const ebpf_hash_bucket_header_t* bucket, size_t index)
 {
     uint8_t* offset = (uint8_t*)bucket->entries;
     size_t entry_size = EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key) + key_size;
@@ -250,17 +250,17 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ ebpf_hash_bucket_header_t* b
  * @param[in] hash_table The hash table.
  * @param[in] old_bucket The immutable bucket to copy.
  * @param[in] key The key to insert.
- * @param[in] data The copy of the value to insert. On success the new_bucket owns this memory.
+ * @param[in,out] data The copy of the value to insert. On success the new_bucket owns this memory.
  * @param[out] new_bucket The new bucket with the entry inserted. On success the caller owns this memory.
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
  */
 static ebpf_result_t
 _ebpf_hash_table_bucket_insert(
-    _In_ ebpf_hash_table_t* hash_table,
+    _Inout_ ebpf_hash_table_t* hash_table,
     _In_opt_ const ebpf_hash_bucket_header_t* old_bucket,
     _In_ const uint8_t* key,
-    _In_opt_ uint8_t* data,
+    _Inout_opt_ uint8_t* data,
     _Outptr_ ebpf_hash_bucket_header_t** new_bucket)
 {
     ebpf_result_t result;
@@ -337,9 +337,9 @@ Done:
  */
 static void
 _ebpf_hash_table_bucket_delete(
-    _In_ ebpf_hash_table_t* hash_table,
-    _In_ ebpf_hash_bucket_header_t* old_bucket,
-    _In_ size_t key_index,
+    _Inout_ ebpf_hash_table_t* hash_table,
+    _In_ const ebpf_hash_bucket_header_t* old_bucket,
+    size_t key_index,
     _Outptr_result_maybenull_ ebpf_hash_bucket_header_t** new_bucket)
 {
     ebpf_hash_bucket_header_t* backup_bucket =
@@ -398,7 +398,7 @@ Done:
  * @param[in] hash_table Hash table.
  * @param[in] old_bucket The immutable old bucket to copy.
  * @param[in] key_index The location of the key to update.
- * @param[in] data A copy of the data to update.
+ * @param[in,out] data A copy of the data to update.
  * @param[out] new_bucket The new bucket with the entry updated. On success the caller owns this memory.
  *
  * @retval EBPF_SUCCESS The operation was successful.
@@ -406,10 +406,10 @@ Done:
  */
 static ebpf_result_t
 _ebpf_hash_table_bucket_update(
-    _In_ ebpf_hash_table_t* hash_table,
+    _Inout_ ebpf_hash_table_t* hash_table,
     _In_ const ebpf_hash_bucket_header_t* old_bucket,
-    _In_ size_t key_index,
-    _In_opt_ uint8_t* data,
+    size_t key_index,
+    _Inout_opt_ uint8_t* data,
     _Outptr_ ebpf_hash_bucket_header_t** new_bucket)
 {
     ebpf_result_t result;
@@ -455,7 +455,7 @@ Done:
  */
 static ebpf_result_t
 _ebpf_hash_table_replace_bucket(
-    _In_ ebpf_hash_table_t* hash_table,
+    _Inout_ ebpf_hash_table_t* hash_table,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
     ebpf_hash_bucket_operation_t operation)
@@ -633,7 +633,7 @@ ebpf_hash_table_destroy(_In_opt_ _Post_ptr_invalid_ ebpf_hash_table_t* hash_tabl
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
+ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
 {
     ebpf_result_t retval;
     uint32_t hash;
@@ -674,7 +674,7 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_update(
-    _In_ ebpf_hash_table_t* hash_table,
+    _Inout_ ebpf_hash_table_t* hash_table,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
     ebpf_hash_table_operations_t operation)
@@ -708,7 +708,7 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
+ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
 {
     ebpf_result_t retval;
 

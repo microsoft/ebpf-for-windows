@@ -120,7 +120,7 @@ extern "C"
      * @param[in] module Optionally, pointer to native module.
      */
     void
-    ebpf_native_release_reference(_In_opt_ ebpf_native_module_binding_context_t* module);
+    ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_binding_context_t* module);
 
 #ifdef __cplusplus
 }

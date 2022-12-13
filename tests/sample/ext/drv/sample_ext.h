@@ -60,15 +60,15 @@ sample_ebpf_extension_invoke_program(_In_ const sample_program_context_t* contex
 /**
  * @brief Invoke eBPF program attached to a hook provider instance and measure the execution time.
  *
- * @param[in] request Request containing the parameters of the sample.
+ * @param[in,out] request Request containing the parameters of the sample.
  * @param[in] request_length Length of the request buffer.
- * @param[out] reply Reply containing the results of the sample.
+ * @param[in,out] reply Reply containing the results of the sample.
  *
  * @retval EBPF_SUCCESS Operation succeeded.
  * @retval EBPF_OPERATION_NOT_SUPPORTED Operation not supported.
  */
 _Must_inspect_result_ ebpf_result_t
 sample_ebpf_extension_profile_program(
-    _In_ sample_ebpf_ext_profile_request_t* request,
+    _Inout_ sample_ebpf_ext_profile_request_t* request,
     size_t request_length,
     _Inout_ sample_ebpf_ext_profile_reply_t* reply);

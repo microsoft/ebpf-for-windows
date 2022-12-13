@@ -69,15 +69,15 @@ typedef class _netebpf_ext_helper
 
     static NTSTATUS
     _program_info_client_attach_provider(
-        _In_ HANDLE nmr_binding_handle,
-        _In_ PVOID client_context,
-        _In_ PNPI_REGISTRATION_INSTANCE provider_registration_instance);
+        _In_ const HANDLE nmr_binding_handle,
+        _In_ const PVOID client_context,
+        _In_ const PNPI_REGISTRATION_INSTANCE provider_registration_instance);
 
     static NTSTATUS
-    _program_info_client_detach_provider(_In_ PVOID client_binding_context);
+    _program_info_client_detach_provider(_In_ const PVOID client_binding_context);
 
     static void
-    _program_info_client_cleanup_binding_context(_In_ PVOID client_binding_context);
+    _program_info_client_cleanup_binding_context(_In_ const PVOID client_binding_context);
 
     NPI_MODULEID module_id = {};
     NPI_CLIENT_CHARACTERISTICS client{

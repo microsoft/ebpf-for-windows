@@ -60,8 +60,8 @@ netebpfext_unit_invoke_program(
 // Netebpfext is ready for us to attach to it as if we were ebpfcore.
 NTSTATUS
 netebpf_unit_attach_extension(
-    _In_ HANDLE nmr_binding_handle,
-    _In_ void* client_context,
+    _In_ const HANDLE nmr_binding_handle,
+    _In_ const void* client_context,
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
     const void* provider_dispatch_table;
@@ -85,7 +85,7 @@ netebpf_unit_attach_extension(
 
 // Detach from netebpfext.
 NTSTATUS
-netebpf_unit_detach_extension(_In_ void* client_binding_context)
+netebpf_unit_detach_extension(_In_ const void* client_binding_context)
 {
     auto test_client_context = (test_client_context_t*)client_binding_context;
     UNREFERENCED_PARAMETER(test_client_context);
@@ -96,7 +96,7 @@ netebpf_unit_detach_extension(_In_ void* client_binding_context)
 }
 
 void
-netebpfext_unit_cleanup_binding_context(_In_ void* client_binding_context)
+netebpfext_unit_cleanup_binding_context(_In_ const void* client_binding_context)
 {
     auto test_client_context = (test_client_context_t*)client_binding_context;
     UNREFERENCED_PARAMETER(test_client_context);
@@ -114,9 +114,10 @@ TEST_CASE("classify_packet", "[netebpfext]")
     NET_IFINDEX if_index = 0;
     ebpf_extension_data_t npi_specific_characteristics = {.size = sizeof(if_index), .data = &if_index};
     client_characteristics.ClientRegistrationInstance.NpiSpecificCharacteristics = &npi_specific_characteristics;
-    client_characteristics.ClientAttachProvider = netebpf_unit_attach_extension;
-    client_characteristics.ClientDetachProvider = netebpf_unit_detach_extension;
-    client_characteristics.ClientCleanupBindingContext = netebpfext_unit_cleanup_binding_context;
+    client_characteristics.ClientAttachProvider = (NPI_CLIENT_ATTACH_PROVIDER_FN*)netebpf_unit_attach_extension;
+    client_characteristics.ClientDetachProvider = (NPI_CLIENT_DETACH_PROVIDER_FN*)netebpf_unit_detach_extension;
+    client_characteristics.ClientCleanupBindingContext =
+        (NPI_CLIENT_CLEANUP_BINDING_CONTEXT_FN*)netebpfext_unit_cleanup_binding_context;
     test_client_context_t client_context = {.desired_attach_type = BPF_XDP};
     HANDLE nmr_client_handle;
     REQUIRE(NmrRegisterClient(&client_characteristics, &client_context, &nmr_client_handle) == STATUS_SUCCESS);

@@ -20,14 +20,14 @@
 
 DWORD WINAPI
 PreprocessCommand(
-    _In_opt_ HANDLE hModule,
+    _In_opt_ const HANDLE hModule,
     _Inout_updates_(dwArgCount) LPWSTR* ppwcArguments,
-    _In_ DWORD dwCurrentIndex,
-    _In_ DWORD dwArgCount,
+    _In_ const DWORD dwCurrentIndex,
+    _In_ const DWORD dwArgCount,
     _Inout_updates_opt_(dwTagCount) TAG_TYPE* pttTags,
-    _In_ DWORD dwTagCount,
-    _In_ DWORD dwMinArgs,
-    _In_ DWORD dwMaxArgs,
+    _In_ const DWORD dwTagCount,
+    _In_ const DWORD dwMinArgs,
+    _In_ const DWORD dwMaxArgs,
     _Out_writes_opt_(dwArgCount - dwCurrentIndex) DWORD* pdwTagType);
 
 DWORD

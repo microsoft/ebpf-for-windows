@@ -145,7 +145,7 @@ extern "C"
     /**
      * @brief Load a block of eBPF code into the program instance.
      *
-     * @param[in, out] program Program instance to load the eBPF code into.
+     * @param[in,out] program Program instance to load the eBPF code into.
      * @param[in] code_type Specifies whether eBPF code is JIT compiled or byte code.
      * @param[in] code_context Optionally, pointer to code context.
      * @param[in] code Pointer to memory containing the eBPF code.
@@ -171,14 +171,14 @@ extern "C"
      * @param[out] result Output from the program.
      */
     void
-    ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result);
+    ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _Out_ uint32_t* result);
 
     /**
      * @brief Store the helper function IDs that are used by the eBPF program in an array
      *  inside the program object. The array index is the helper function ID to be used by
      *  uBPF whereas the array value is the actual helper ID.
      *
-     * @param[in, out] program Program object to query this on.
+     * @param[in,out] program Program object to query this on.
      * @param[in] helper_function_count Count of helper functions.
      * @param[in] helper_function_ids Array of helper function IDs to store.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -211,8 +211,8 @@ extern "C"
     /**
      * @brief Attach a link object to an eBPF program.
      *
-     * @param[in] program Program to attach to the link object.
-     * @param[in] link The link object.
+     * @param[in,out] program Program to attach to the link object.
+     * @param[in,out] link The link object.
      */
     void
     ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
@@ -220,8 +220,8 @@ extern "C"
     /**
      * @brief Detach a link object from the eBPF program it is attached to.
      *
-     * @param[in] program Program to detach to the link object from.
-     * @param[in] link The link object.
+     * @param[in,out] program Program to detach to the link object from.
+     * @param[in,out] link The link object.
      */
     void
     ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);

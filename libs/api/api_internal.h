@@ -133,13 +133,13 @@ ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct
 /**
  * @brief Unload an eBPF program.
  *
- * @param[in] program Program to unload.
+ * @param[in,out] program Program to unload.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_unload(_In_ struct bpf_program* program) noexcept;
+ebpf_program_unload(_Inout_ struct bpf_program* program) noexcept;
 
 /**
  * @brief Bind a map to a program so that it holds a reference on the map.
@@ -476,7 +476,7 @@ ebpf_object_open(
 /**
  * @brief Load all the programs in a given object.
  *
- * @param[in] object Object from which to load programs.
+ * @param[in,out] object Object from which to load programs.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
@@ -488,13 +488,13 @@ ebpf_object_load(_Inout_ struct bpf_object* object) noexcept;
 /**
  * @brief Unload all the programs in a given object.
  *
- * @param[in] object Object in which to unload programs.
+ * @param[in,out] object Object in which to unload programs.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_object_unload(_In_ struct bpf_object* object) noexcept;
+ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept;
 
 typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
 
@@ -502,7 +502,7 @@ typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
  * @brief Subscribe for notifications from the input ring buffer map.
  *
  * @param[in] ring_buffer_map_fd File descriptor to the ring buffer map.
- * @param[in] sample_callback_context Pointer to supplied context to be passed in notification callback.
+ * @param[in,out] sample_callback_context Pointer to supplied context to be passed in notification callback.
  * @param[in] sample_callback Function pointer to notification handler.
  * @param[out] subscription Opaque pointer to ring buffer subscription object.
  *
@@ -512,7 +512,7 @@ typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_subscribe(
     fd_t ring_buffer_map_fd,
-    _In_opt_ void* sample_callback_context,
+    _Inout_opt_ void* sample_callback_context,
     ring_buffer_sample_fn sample_callback,
     _Outptr_ ring_buffer_subscription_t** subscription) noexcept;
 
@@ -522,7 +522,7 @@ ebpf_ring_buffer_map_subscribe(
  * @param[in] subscription Pointer to ring buffer subscription to be canceled.
  */
 bool
-ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription_t* subscription) noexcept;
+ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t* subscription) noexcept;
 
 /**
  * @brief Get list of programs and stats in an ELF eBPF file.

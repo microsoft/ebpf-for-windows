@@ -419,8 +419,8 @@ static NTSTATUS
 test_provider_attach_client(
     HANDLE nmr_binding_handle,
     _Inout_ void* provider_context,
-    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const PNPI_REGISTRATION_INSTANCE client_registration_instance,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Out_ void** provider_binding_context,
     _Out_ const void** provider_dispatch)
@@ -437,7 +437,7 @@ test_provider_attach_client(
 };
 
 static NTSTATUS
-test_provider_detach_client(_In_ void* provider_binding_context)
+test_provider_detach_client(_In_ const void* provider_binding_context)
 {
     UNREFERENCED_PARAMETER(provider_binding_context);
     return STATUS_SUCCESS;
@@ -477,8 +477,8 @@ TEST_CASE("extension_test", "[platform]")
             &provider_data,
             &test_provider_dispatch_table,
             &callback_context,
-            test_provider_attach_client,
-            test_provider_detach_client,
+            (NPI_PROVIDER_ATTACH_CLIENT_FN*)test_provider_attach_client,
+            (NPI_PROVIDER_DETACH_CLIENT_FN*)test_provider_detach_client,
             nullptr) == EBPF_SUCCESS);
 
     REQUIRE(
