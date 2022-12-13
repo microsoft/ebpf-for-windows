@@ -32,7 +32,7 @@ extern "C"
      * @brief Create a handle that holds a reference on the object.
      *
      * @param[out] handle Pointer to memory that contains the handle on success.
-     * @param[in] object Object to be referenced by this handle.
+     * @param[in,out] object Object to write to.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
