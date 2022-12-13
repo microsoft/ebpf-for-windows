@@ -38,7 +38,7 @@ extern "C"
      *  operation.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_handle_create(_Out_ ebpf_handle_t* handle, _In_ struct _ebpf_base_object* object);
+    ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ struct _ebpf_base_object* object);
 
     /**
      * @brief Remove an existing handle from the handle table and release its
