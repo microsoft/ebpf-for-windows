@@ -30,7 +30,7 @@ typedef struct _ebpf_core_object_map
 
 // Generations:
 // 0: Uninitialized.
-// 1 to 2^64-1: Valid generations.
+// 1 to 2^64-2: Valid generations.
 // 2^64-1: Invalid generation (being deleted).
 
 #define EBPF_LRU_INITIAL_GENERATION 1
