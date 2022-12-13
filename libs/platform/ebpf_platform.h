@@ -38,6 +38,7 @@ extern "C"
 #define EBPF_PAD_8(X) ((X + 7) & ~7)
 
 #define EBPF_HASH_TABLE_NO_LIMIT 0
+#define EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT 64
 
 // Macro locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
 #define ebpf_assert_success(x)                                     \
@@ -517,37 +518,41 @@ extern "C"
     typedef struct _ebpf_hash_table ebpf_hash_table_t;
 
     /**
+     * @brief Options to pass to ebpf_hash_table_create.
+     *
+     * Some fields are required, others are optional.  If an optional field is
+     * not specified, a default value will be used.
+     */
+    typedef struct _ebpf_hash_table_creation_options
+    {
+        // Required fields.
+        size_t key_size;   //< Size of key in bytes.
+        size_t value_size; //< Size of value in bytes.
+        // Optional fields.
+        void (*extract_function)(
+            _In_ const uint8_t* value,
+            _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
+            _Out_ size_t* length_in_bits); //< Function to extract key from stored value.
+        void* (*allocate)(size_t size);    //< Function to allocate memory - defaults to ebpf_epoch_allocate.
+        void (*free)(void* memory);        //< Function to free memory - defaults to ebpf_epoch_free.
+        size_t bucket_count; //< Number of buckets to use - defaults to EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT.
+        size_t max_entries;  //< Maximum number of entries in the hash table - defaults to EBPF_HASH_TABLE_NO_LIMIT.
+        size_t supplemental_data_size; //< Size of supplemental data to store in each entry - defaults to 0.
+    } ebpf_hash_table_creation_options_t;
+
+    /**
      * @brief Allocate and initialize a hash table.
      *
      * @param[out] hash_table Pointer to memory that will contain hash table on
      *   success.
-     * @param[in] allocate Function to use when allocating elements in the
-     *   hash table.
-     * @param[in] free Function to use when freeing elements in the hash table.
-     * @param[in] key_size Size of the keys used in the hash table.
-     * @param[in] value_size Size of the values used in the hash table.
-     * @param[in] bucket_count Count of buckets to use.
-     * @param[in] max_entries Maximum number of entries in the hash table or 0 for no limit.
-     * @param[in] extract_function Function used to convert a key into a value
-     * that can be hashed and compared. If NULL, key is assumes to be
-     * comparable.
+     * @param[in] options Options to control hash table creation.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  hash table.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_create(
-        _Outptr_ ebpf_hash_table_t** hash_table,
-        _In_ void* (*allocate)(size_t size),
-        _In_ void (*free)(void* memory),
-        size_t key_size,
-        size_t value_size,
-        size_t bucket_count,
-        size_t max_entries,
-        _In_opt_ void (*extract_function)(
-            _In_ const uint8_t* value,
-            _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
-            _Out_ size_t* length_in_bits));
+        _Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_hash_table_creation_options_t* options);
 
     /**
      * @brief Remove all items from the hash table and release memory.
