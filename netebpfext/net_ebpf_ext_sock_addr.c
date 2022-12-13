@@ -744,11 +744,8 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     sock_addr_ctx->user_port = htons(incoming_values[destination_port_field].value.uint16);
     sock_addr_ctx->protocol = incoming_values[fields->protocol_field].value.uint8;
     sock_addr_ctx->compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
-    if (incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
-        sock_addr_ctx->process_id = incoming_metadata_values->processId;
-    } else {
-        sock_addr_ctx->process_id = 0;
-    }
+    ASSERT(incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID);
+    sock_addr_ctx->process_id = incoming_metadata_values->processId;
 
     if (hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V4 || hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V6) {
         sock_addr_ctx->interface_luid = 0;
