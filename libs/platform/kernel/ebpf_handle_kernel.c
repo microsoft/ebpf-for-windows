@@ -18,7 +18,7 @@ ebpf_handle_table_terminate()
 {}
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_handle_create(ebpf_handle_t* handle, ebpf_base_object_t* object)
+ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ ebpf_base_object_t* object)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
