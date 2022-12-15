@@ -517,6 +517,19 @@ extern "C"
 
     typedef struct _ebpf_hash_table ebpf_hash_table_t;
 
+    typedef enum _ebpf_hash_table_notification_type
+    {
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE, //< A key + value have been allocated.
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,     //< A key + value have been freed.
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE,      //< A key + value have been used.
+    } ebpf_hash_table_notification_type_t;
+
+    typedef void (*ebpf_hash_table_notification_function)(
+        _Inout_ void* context,
+        _In_ ebpf_hash_table_notification_type_t type,
+        _In_ const uint8_t* key,
+        _Inout_ uint8_t* value);
+
     /**
      * @brief Options to pass to ebpf_hash_table_create.
      *
@@ -537,7 +550,10 @@ extern "C"
         void (*free)(void* memory);        //< Function to free memory - defaults to ebpf_epoch_free.
         size_t bucket_count; //< Number of buckets to use - defaults to EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT.
         size_t max_entries;  //< Maximum number of entries in the hash table - defaults to EBPF_HASH_TABLE_NO_LIMIT.
-        size_t supplemental_data_size; //< Size of supplemental data to store in each entry - defaults to 0.
+        size_t supplemental_value_size; //< Size of supplemental value to store in each entry - defaults to 0.
+        void* notification_context;     //< Context to pass to notification functions.
+        ebpf_hash_table_notification_function
+            notification_callback; //< Function to call when value storage is allocated or freed.
     } ebpf_hash_table_creation_options_t;
 
     /**
