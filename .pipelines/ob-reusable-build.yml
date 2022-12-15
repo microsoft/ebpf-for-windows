@@ -66,12 +66,9 @@ jobs:
         fetchDepth: 0
 
       - bash: |
-          echo BUILD_CONFIGURATION: $BUILD_CONFIGURATION
-          echo CXX_FLAGS: $CXX_FLAGS
-          echo LD_FLAGS: $LD_FLAGS
           echo "*** All environment variables ***"
           env | sort
-        displayName: 'Environment variables dump'
+        displayName: 'Dump Environment variables'
         workingDirectory: $(Build.SourcesDirectory)
 
       - bash: |
@@ -90,9 +87,9 @@ jobs:
           echo CXXFLAGS: $CXXFLAGS
           echo LDFLAGS: $LDFLAGS
           cmake -G "Visual Studio 17 2022" -S external/ebpf-verifier -B external/ebpf-verifier/build
-        # env:
-        #   CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
-        #   LDFLAGS: $(LD_FLAGS)
+        env:
+          CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
+          LDFLAGS: $(LD_FLAGS)
         displayName: 'Create verifier project'
         workingDirectory: $(Build.SourcesDirectory)
 
@@ -100,9 +97,9 @@ jobs:
           echo CXXFLAGS: $CXXFLAGS
           echo LDFLAGS: $LDFLAGS
           cmake -G "Visual Studio 17 2022" -S external/catch2 -B external/catch2/build -DBUILD_TESTING=OFF
-        # env:
-        #   CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
-        #   LDFLAGS: $(LD_FLAGS)
+        env:
+          CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
+          LDFLAGS: $(LD_FLAGS)
         displayName: 'Create catch2 project'
         workingDirectory: $(Build.SourcesDirectory)
 
@@ -110,17 +107,17 @@ jobs:
           echo CXXFLAGS: $CXXFLAGS
           echo LDFLAGS: $LDFLAGS
           cmake -G "Visual Studio 17 2022" -S external/ubpf -B external/ubpf/build
-        # env:
-        #   CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
-        #   LDFLAGS: $(LD_FLAGS)
+        env:
+          CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
+          LDFLAGS: $(LD_FLAGS)
         displayName: 'Create ubpf project'
         workingDirectory: $(Build.SourcesDirectory)
 
       - bash: |
           "$(MSBUILD_PATH)\msbuild.exe" //m //p:Configuration="$(BUILD_CONFIGURATION)" //p:Platform="$(BUILD_PLATFORM)" "$(SOLUTION_FILE_PATH)" "$(BUILD_OPTIONS)"
-        workingDirectory: $(Build.SourcesDirectory)
         displayName: 'Build'
-      
+        workingDirectory: $(Build.SourcesDirectory)
+
       - script: |
           copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
         workingDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
