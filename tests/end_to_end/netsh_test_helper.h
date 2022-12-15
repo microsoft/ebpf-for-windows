@@ -18,16 +18,17 @@
 #pragma region
 // Mock Netsh.exe APIs.
 
+// This function has incorrect SAL annotations, but it's declared in public headers so we can't fix it.
 DWORD WINAPI
 PreprocessCommand(
-    _In_opt_ const HANDLE hModule,
+    _In_opt_ HANDLE hModule,
     _Inout_updates_(dwArgCount) LPWSTR* ppwcArguments,
-    DWORD dwCurrentIndex,
-    DWORD dwArgCount,
+    _In_ DWORD dwCurrentIndex,
+    _In_ DWORD dwArgCount,
     _Inout_updates_opt_(dwTagCount) TAG_TYPE* pttTags,
-    DWORD dwTagCount,
-    DWORD dwMinArgs,
-    DWORD dwMaxArgs,
+    _In_ DWORD dwTagCount,
+    _In_ DWORD dwMinArgs,
+    _In_ DWORD dwMaxArgs,
     _Out_writes_opt_(dwArgCount - dwCurrentIndex) DWORD* pdwTagType);
 
 DWORD
