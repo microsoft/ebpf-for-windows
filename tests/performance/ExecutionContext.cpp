@@ -102,7 +102,10 @@ typedef class _ebpf_map_test_state
             uint64_t value = 0;
             (void)ebpf_map_update_entry(map, 0, (uint8_t*)&i, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
         }
-        lru_key = definition.max_entries;
+        // Make the active key range 10% of the map size.
+        lru_key_range = definition.max_entries / 10;
+        // Start at the end of the key range so that we start evicting keys.
+        lru_key_base = definition.max_entries;
     }
     ~_ebpf_map_test_state()
     {
@@ -163,23 +166,25 @@ typedef class _ebpf_map_test_state
         if (cpu_id == 0) {
             iteration++;
             if (iteration % 10 == 0) {
-                lru_key++;
+                lru_key_base++;
             }
         }
+        uint32_t key = lru_key_base + (ebpf_random_uint32() % lru_key_range);
         REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
         // Check if the current key is present.
-        if (ebpf_map_find_entry(map, 0, (uint8_t*)&lru_key, 0, (uint8_t*)&value, EBPF_MAP_FLAG_HELPER) ==
-            EBPF_SUCCESS) {
+        if (ebpf_map_find_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS) {
+            // Cache hit.
         } else {
-            // Insert the key if it's not present.
-            (void)ebpf_map_update_entry(
-                map, 0, (uint8_t*)&lru_key, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
+            // Cache miss. Add it to the LRU map.
+            (void)ebpf_map_update_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
         }
         ebpf_epoch_exit();
     }
 
   private:
-    uint32_t lru_key;
+    // Searches are performed in the LRU map using keys in the range [lru_key_base, lru_key_base + lru_key_range).
+    uint32_t lru_key_base;
+    uint32_t lru_key_range;
     ebpf_map_t* map;
 } ebpf_map_test_state_t;
 
@@ -385,7 +390,7 @@ template <ebpf_map_type_t map_type>
 void
 test_bpf_map_update_lru_elem(bool preemptible)
 {
-    size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT / 100;
+    size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT / 10;
     ebpf_map_test_state_t map_test_state(map_type, {LRU_MAP_SIZE});
     _ebpf_map_test_state_instance = &map_test_state;
     std::string name = __FUNCTION__;
@@ -400,7 +405,7 @@ template <ebpf_map_type_t map_type>
 void
 test_bpf_map_lookup_lru_elem(bool preemptible)
 {
-    size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT / 100;
+    size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT / 10;
     ebpf_map_test_state_t map_test_state(map_type, {LRU_MAP_SIZE});
     _ebpf_map_test_state_instance = &map_test_state;
     std::string name = __FUNCTION__;
