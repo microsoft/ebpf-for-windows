@@ -1126,21 +1126,14 @@ static ebpf_result_t
 _delete_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key);
 
 /**
- * @brief Helper function to reap the oldest N entries from the map if the map tracks key history.
+ * @brief Helper function to reap the oldest entry from the map.
  *
  * @param[in,out] map Pointer to the map.
- * @param[in] count Number of entries to reap.
- * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_KEY_NOT_FOUND The key selected for deletion was not found in the map.
  */
 static void
-_reap_oldest_map_entry(_Inout_ ebpf_core_map_t* map, size_t count_of_entries_to_reap)
+_reap_oldest_map_entry(_Inout_ ebpf_core_map_t* map)
 {
     ebpf_core_lru_map_t* lru_map;
-
-    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].key_history)) {
-        return;
-    }
 
     lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
 
@@ -1150,21 +1143,20 @@ _reap_oldest_map_entry(_Inout_ ebpf_core_map_t* map, size_t count_of_entries_to_
     // Grab count_of_entries_to_reap keys from the front of the cold list.
     ebpf_lock_state_t state = ebpf_lock_lock(&lru_map->lock);
     ebpf_lru_entry_t* entry = EBPF_FROM_FIELD(ebpf_lru_entry_t, list_entry, lru_map->cold_list.Flink);
-    for (size_t i = 0; i < count_of_entries_to_reap; i++) {
-        if (ebpf_list_is_empty(&lru_map->cold_list)) {
-            break;
-        }
-        // Remove from the cold list.
+    if (ebpf_list_is_empty(&lru_map->cold_list)) {
+        entry = NULL;
+    } else {
+        // Remove from cold list.
         ebpf_list_remove_entry(&entry->list_entry);
-        ebpf_assert(_get_key_state(lru_map, entry) == EBPF_LRU_KEY_COLD);
-        ebpf_list_insert_tail(&entries_to_reap, &entry->list_entry);
+        // Reset head and tail pointers.
+        ebpf_list_initialize(&entry->list_entry);
     }
     ebpf_lock_unlock(&lru_map->lock, state);
 
-    // Delete may fail if the key was already deleted. Caller should attempt the insert again and if it fails with map
-    // full, then it should call this function again.
-    while (!ebpf_list_is_empty(&entries_to_reap)) {
-        // When the entry is deleted, it will be removed from this list.
+    if (entry) {
+        // Attempt to delete the entry from the cold list.
+        // This may fail if the entry has already been freed, but that's okay as the caller will
+        // attempt to reap again if the next insert fails.
         (void)_delete_hash_map_entry(map, entry->key);
     }
 }
@@ -1224,6 +1216,8 @@ _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* k
     return object;
 }
 
+volatile int32_t reap_attempt_counts[64] = {0};
+
 static ebpf_result_t
 _update_hash_map_entry(
     _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
@@ -1249,22 +1243,22 @@ _update_hash_map_entry(
     }
 
     // If the map is full, try to delete the oldest entry and try again.
-    // It can fail again if another thread uses the entry that was made available.
-    // If it fails, delete twice as many entries and try again.
-    // Repeat until the insert of entries succeeds.
-    // This is to deal with the case where concurrent threads are trying to insert entries into the map.
-    size_t entries_to_reap = 1;
+    // Repeat while the insert fails with EBPF_NO_MEMORY.
     for (;;) {
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
         if (result != EBPF_OUT_OF_SPACE) {
             break;
         }
-        // Reap i oldest entries and try again.
-        // Each attempt is more aggressive about freeing old entries.
-        _reap_oldest_map_entry(map, entries_to_reap);
 
-        // Investigate if this is the correct rate to escalate the reaping at.
-        entries_to_reap *= 2;
+        // If this is not an LRU map, break.
+        if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].key_history)) {
+            break;
+        }
+
+        // Reap the oldest entry and try again.
+        // Data from measurements shows that reaping one entry or many entries doesn't materially affect performance.
+        // To make this simple, reap one entry at a time.
+        _reap_oldest_map_entry(map);
     }
 
     return result;
