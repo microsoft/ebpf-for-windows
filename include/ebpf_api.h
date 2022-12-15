@@ -85,7 +85,7 @@ extern "C"
      * @param[in] data Memory to free.
      */
     void
-    ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos);
+    ebpf_free_sections(_In_opt_ _Post_invalid_ ebpf_section_info_t* infos);
 
     /**
      * @brief Convert an eBPF program to human readable byte code.
@@ -237,19 +237,19 @@ extern "C"
      * @returns Execution type.
      */
     ebpf_execution_type_t
-    ebpf_object_get_execution_type(_In_ struct bpf_object* object);
+    ebpf_object_get_execution_type(_In_ const struct bpf_object* object);
 
     /**
      * @brief Set the execution type for an eBPF object file.
      *
-     * @param[in] object The eBPF object file.
+     * @param[in, out] object The eBPF object file.
      * @param[in] execution_type Execution type to set.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type);
+    ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type);
 
     /**
      * @brief Attach an eBPF program.
@@ -272,7 +272,7 @@ extern "C"
         _In_ const struct bpf_program* program,
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
-        _In_ size_t attach_params_size,
+        size_t attach_params_size,
         _Outptr_ struct bpf_link** link);
 
     /**
@@ -296,20 +296,20 @@ extern "C"
         fd_t program_fd,
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
-        _In_ size_t attach_parameters_size,
+        size_t attach_parameters_size,
         _Outptr_ struct bpf_link** link);
 
     /**
      * @brief Detach an eBPF program from an attach point represented by
      *  the bpf_link structure.
      *
-     * @param[in] link Pointer to bpf_link structure.
+     * @param[in, out] link Pointer to bpf_link structure.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_OBJECT Invalid object was passed.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_link_detach(_In_ struct bpf_link* link);
+    ebpf_link_detach(_Inout_ struct bpf_link* link);
 
     /**
      * @brief Detach an eBPF program.

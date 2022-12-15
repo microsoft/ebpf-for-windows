@@ -56,7 +56,7 @@ _prog_type_supports_interface(bpf_prog_type prog_type)
 }
 
 _Must_inspect_result_ ebpf_result_t
-_process_interface_parameter(_In_ LPWSTR interface_parameter, bpf_prog_type prog_type, _Out_ uint32_t* if_index)
+_process_interface_parameter(_In_ const LPWSTR interface_parameter, bpf_prog_type prog_type, _Out_ uint32_t* if_index)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     if (_prog_type_supports_interface(prog_type)) {
@@ -368,7 +368,8 @@ handle_ebpf_delete_program(
 }
 
 _Must_inspect_result_ ebpf_result_t
-_ebpf_program_attach_by_id(ebpf_id_t program_id, ebpf_attach_type_t attach_type, _In_opt_ LPWSTR interface_parameter)
+_ebpf_program_attach_by_id(
+    ebpf_id_t program_id, ebpf_attach_type_t attach_type, _In_opt_ const LPWSTR interface_parameter)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t if_index;

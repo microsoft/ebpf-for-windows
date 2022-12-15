@@ -55,7 +55,7 @@ struct _thread_local_storage_cache
 
 static void
 _get_program_and_map_names(
-    _In_ string& path,
+    _In_ const string& path,
     _Inout_ vector<section_program_map_t>& section_to_program_map,
     _Inout_ vector<section_offset_to_map_t>& map_names,
     uint32_t expected_map_count) noexcept(false)
@@ -162,7 +162,7 @@ _Must_inspect_result_ ebpf_result_t
 load_byte_code(
     _In_z_ const char* filename,
     _In_opt_z_ const char* section_name,
-    _In_ ebpf_verifier_options_t* verifier_options,
+    _In_ const ebpf_verifier_options_t* verifier_options,
     _In_z_ const char* pin_root_path,
     _Inout_ std::vector<ebpf_program_t*>& programs,
     _Inout_ std::vector<ebpf_map_t*>& maps,

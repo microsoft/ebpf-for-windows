@@ -23,13 +23,17 @@ static bool _binding_initialized = false;
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_rpc_load_program(
-    _In_ ebpf_program_load_info* info,
+    _In_ const ebpf_program_load_info* info,
     _Outptr_result_maybenull_z_ const char** logs,
     _Inout_ uint32_t* logs_size) noexcept
 {
     ebpf_result_t result;
 
-    RpcTryExcept { result = ebpf_client_verify_and_load_program(info, logs_size, const_cast<char**>(logs)); }
+    RpcTryExcept
+    {
+        result = ebpf_client_verify_and_load_program(
+            const_cast<ebpf_program_load_info*>(info), logs_size, const_cast<char**>(logs));
+    }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         EBPF_LOG_MESSAGE_UINT64(

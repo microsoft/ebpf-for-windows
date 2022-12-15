@@ -217,7 +217,7 @@ bpf_obj_get(const char* pathname);
  *
  * @param[in] bpf_fd File descriptor referring to an eBPF object.
  * @param[out] info Pointer to memory in which to write the info obtained.
- * @param[in,out] info_len On input, contains the maximum number of bytes to
+ * @param[in, out] info_len On input, contains the maximum number of bytes to
  * write into the info.  On output, contains the actual number of bytes written.
  *
  * @retval 0 The operation was successful.

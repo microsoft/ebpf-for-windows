@@ -1096,7 +1096,7 @@ ebpf_program_attach(
     _In_ const struct bpf_program* program,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
-    _In_ size_t attach_params_size,
+    size_t attach_params_size,
     _Outptr_ struct bpf_link** link)
 {
     EBPF_LOG_ENTRY();
@@ -1133,7 +1133,7 @@ ebpf_program_attach_by_fd(
     fd_t program_fd,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
-    _In_ size_t attach_parameters_size,
+    size_t attach_parameters_size,
     _Outptr_ struct bpf_link** link)
 {
     EBPF_LOG_ENTRY();
@@ -1173,7 +1173,7 @@ ebpf_api_unlink_program(ebpf_handle_t link_handle)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_link_detach(_In_ struct bpf_link* link)
+ebpf_link_detach(_Inout_ struct bpf_link* link)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(link);
@@ -1398,7 +1398,7 @@ clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps) noexcept
 }
 
 static void
-_clean_up_ebpf_object(_In_opt_ ebpf_object_t* object) noexcept
+_clean_up_ebpf_object(_In_opt_ _Post_invalid_ ebpf_object_t* object) noexcept
 {
     EBPF_LOG_ENTRY();
     if (object != nullptr) {
@@ -1846,7 +1846,7 @@ _ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info) noexcept
 }
 
 void
-ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos)
+ebpf_free_sections(_In_opt_ _Post_invalid_ ebpf_section_info_t* infos)
 {
     EBPF_LOG_ENTRY();
     while (infos != nullptr) {
@@ -2261,7 +2261,7 @@ Done:
 }
 
 static inline bool
-_ebpf_is_map_in_map(ebpf_map_t* map) noexcept
+_ebpf_is_map_in_map(_In_ const ebpf_map_t* map) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(map);
@@ -2274,7 +2274,7 @@ _ebpf_is_map_in_map(ebpf_map_t* map) noexcept
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type)
+ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type)
 {
     if (Platform::_is_native_program(object->file_name)) {
         if (execution_type == EBPF_EXECUTION_INTERPRET || execution_type == EBPF_EXECUTION_JIT) {
@@ -2296,13 +2296,13 @@ ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_ty
 }
 
 ebpf_execution_type_t
-ebpf_object_get_execution_type(_In_ struct bpf_object* object)
+ebpf_object_get_execution_type(_In_ const struct bpf_object* object)
 {
     return object->execution_type;
 }
 
 static ebpf_result_t
-_ebpf_validate_map(_In_ ebpf_map_t* map, fd_t original_map_fd) noexcept
+_ebpf_validate_map(_In_ const ebpf_map_t* map, fd_t original_map_fd) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(map);
@@ -2349,7 +2349,7 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_object_reuse_map(_In_ ebpf_map_t* map) noexcept
+_ebpf_object_reuse_map(_Inout_ ebpf_map_t* map) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -2683,7 +2683,7 @@ Done:
 
 // This function is intended to work like libbpf's bpf_object__unload().
 _Must_inspect_result_ ebpf_result_t
-ebpf_object_unload(_In_ struct bpf_object* object) noexcept
+ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(object);
@@ -2708,7 +2708,7 @@ ebpf_object_unload(_In_ struct bpf_object* object) noexcept
 
 // This function is intended to work like libbpf's bpf_program__unload().
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_unload(_In_ struct bpf_program* program) noexcept
+ebpf_program_unload(_Inout_ struct bpf_program* program) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program);
@@ -3610,7 +3610,7 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) n
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_subscribe(
     fd_t ring_buffer_map_fd,
-    _In_opt_ void* sample_callback_context,
+    _Inout_opt_ void* sample_callback_context,
     ring_buffer_sample_fn sample_callback,
     _Outptr_ ring_buffer_subscription_t** subscription) noexcept
 {
@@ -3689,7 +3689,7 @@ ebpf_ring_buffer_map_subscribe(
 }
 
 bool
-ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription_t* subscription) noexcept
+ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t* subscription) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(subscription);
