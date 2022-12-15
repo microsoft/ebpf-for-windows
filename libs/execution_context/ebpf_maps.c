@@ -774,7 +774,7 @@ _create_hash_map_internal(
         .bucket_count = local_map->ebpf_map_definition.max_entries,
         .max_entries = local_map->ebpf_map_definition.max_entries,
         .extract_function = extract_function,
-        .supplemental_data_size = supplemental_value_size,
+        .supplemental_value_size = supplemental_value_size,
         .notification_context = local_map,
         .notification_callback = notification_callback,
     };
@@ -895,7 +895,7 @@ Exit:
  * @return Pointer to the supplemental value.
  */
 static uint8_t*
-_get_value_supplement(_In_ const ebpf_core_map_t* map, _In_ uint8_t* value)
+_get_supplemental_value(_In_ const ebpf_core_map_t* map, _In_ uint8_t* value)
 {
     return value + EBPF_PAD_8(map->ebpf_map_definition.value_size);
 }
@@ -1039,7 +1039,7 @@ _lru_hash_table_notification(
     _In_ void* context, _In_ ebpf_hash_table_notification_type_t type, _In_ const uint8_t* key, _In_ uint8_t* value)
 {
     ebpf_core_lru_map_t* lru_map = (ebpf_core_lru_map_t*)context;
-    ebpf_lru_entry_t* entry = (ebpf_lru_entry_t*)_get_value_supplement(&lru_map->core_map, value);
+    ebpf_lru_entry_t* entry = (ebpf_lru_entry_t*)_get_supplemental_value(&lru_map->core_map, value);
     switch (type) {
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
         _initialize_lru_entry(lru_map, entry, key);
