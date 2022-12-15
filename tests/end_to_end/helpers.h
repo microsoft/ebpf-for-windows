@@ -164,12 +164,12 @@ typedef class _single_instance_hook : public _hook_helper
     }
 
     _Must_inspect_result_ ebpf_result_t
-    fire(void* context, int* result)
+    fire(_Inout_ void* context, _Out_ int* result)
     {
         if (client_binding_context == nullptr) {
             return EBPF_EXTENSION_FAILED_TO_LOAD;
         }
-        ebpf_result_t (*invoke_program)(_In_ const void* link, void* context, int* result) =
+        ebpf_result_t (*invoke_program)(_In_ const void* link, _Inout_ void* context, _Out_ int* result) =
             reinterpret_cast<decltype(invoke_program)>(client_dispatch_table->function[0]);
 
         return invoke_program(client_binding_context, context, result);

@@ -614,9 +614,8 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     // Apply policy of maximum 2 binds per process
     set_bind_limit(limit_map_fd, 2);
 
-    std::function<ebpf_result_t(void*, int*)> invoke = [&hook](void* context, int* result) -> ebpf_result_t {
-        return hook.fire(context, result);
-    };
+    std::function<ebpf_result_t(void*, int*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
     // Bind first port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
@@ -730,9 +729,8 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     // Apply policy of maximum 2 binds per process
     set_bind_limit(limit_map_fd, 2);
 
-    std::function<ebpf_result_t(void*, int*)> invoke = [&hook](void* context, int* result) -> ebpf_result_t {
-        return hook.fire(context, result);
-    };
+    std::function<ebpf_result_t(void*, int*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
     // Bind first port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
@@ -821,9 +819,8 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
     }
 
     uint64_t fake_pid = 12345;
-    std::function<ebpf_result_t(void*, int*)> invoke = [&hook](void* context, int* result) -> ebpf_result_t {
-        return hook.fire(context, result);
-    };
+    std::function<ebpf_result_t(void*, int*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
 
     ring_buffer_api_test_helper(process_map_fd, fake_app_ids, [&](int i) {
         // Emulate bind operation.
