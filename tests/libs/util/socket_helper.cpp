@@ -40,13 +40,13 @@ get_address_from_string(
 }
 
 std::string
-get_string_from_address(_In_ const PSOCKADDR sockaddr)
+get_string_from_address(_In_ const SOCKADDR* sockaddr)
 {
     char ip_string[MAXIMUM_IP_BUFFER_SIZE] = {0};
 
     DWORD length = sizeof(ip_string);
-    int error =
-        WSAAddressToStringA(sockaddr, (DWORD)INET_SOCKADDR_LENGTH(sockaddr->sa_family), nullptr, ip_string, &length);
+    int error = WSAAddressToStringA(
+        const_cast<SOCKADDR*>(sockaddr), (DWORD)INET_SOCKADDR_LENGTH(sockaddr->sa_family), nullptr, ip_string, &length);
     if (error != 0) {
         error = WSAGetLastError();
         printf("Failure calling WSAAddressToStringA with error code %d\n", error);
@@ -220,7 +220,7 @@ _datagram_client_socket::send_message_to_remote_host(
         1,
         reinterpret_cast<LPDWORD>(&bytes_sent),
         send_flags,
-        (const PSOCKADDR)&remote_address,
+        (const SOCKADDR*)&remote_address,
         sizeof(remote_address),
         nullptr,
         nullptr);

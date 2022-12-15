@@ -177,7 +177,7 @@ initialize_async_ioctl_operation(
 
     // Set up threadpool wait for the overlapped hEvent and pass the async completion context as wait callback context.
     local_async_ioctl_completion->wait = CreateThreadpoolWait(
-        [](_In_ const PTP_CALLBACK_INSTANCE instance,
+        [](_Inout_ TP_CALLBACK_INSTANCE* instance,
            _Inout_ void* context,
            _Inout_ PTP_WAIT wait,
            TP_WAIT_RESULT wait_result) {

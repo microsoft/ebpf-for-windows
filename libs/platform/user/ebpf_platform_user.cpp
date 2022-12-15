@@ -773,7 +773,7 @@ typedef struct _ebpf_preemptible_work_item
 } ebpf_preemptible_work_item_t;
 
 static void
-_ebpf_preemptible_routine(_Inout_ PTP_CALLBACK_INSTANCE instance, _In_opt_ const PVOID parameter, _Inout_ PTP_WORK work)
+_ebpf_preemptible_routine(_Inout_ PTP_CALLBACK_INSTANCE instance, _Inout_opt_ void* parameter, _Inout_ PTP_WORK work)
 {
     UNREFERENCED_PARAMETER(instance);
     UNREFERENCED_PARAMETER(work);

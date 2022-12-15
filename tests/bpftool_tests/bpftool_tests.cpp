@@ -12,7 +12,7 @@
 
 // Run a given command and return the output and exit code.
 std::string
-run_command(_In_ const PCSTR command_line, _Out_ int* result)
+run_command(_In_ _Null_terminated_ const char* command_line, _Out_ int* result)
 {
     printf("Running command: %s\n\n", command_line);
 

@@ -180,7 +180,7 @@ typedef class _single_instance_hook : public _hook_helper
     provider_attach_client_callback(
         HANDLE nmr_binding_handle,
         _Inout_ void* provider_context,
-        _In_ const PNPI_REGISTRATION_INSTANCE client_registration_instance,
+        _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
         _In_ const void* client_binding_context,
         _In_ const void* client_dispatch,
         _Out_ void** provider_binding_context,
@@ -385,7 +385,7 @@ typedef class _program_info_provider
     provider_attach_client_callback(
         HANDLE nmr_binding_handle,
         _Inout_ void* provider_context,
-        _In_ const PNPI_REGISTRATION_INSTANCE client_registration_instance,
+        _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
         _In_ const void* client_binding_context,
         _In_ const void* client_dispatch,
         _Out_ void** provider_binding_context,

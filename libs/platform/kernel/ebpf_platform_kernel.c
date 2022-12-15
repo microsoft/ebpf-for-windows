@@ -489,7 +489,7 @@ typedef struct _ebpf_preemptible_work_item
 } ebpf_preemptible_work_item_t;
 
 void
-_ebpf_preemptible_routine(_In_ PDEVICE_OBJECT device_object, _In_opt_ const PVOID context)
+_ebpf_preemptible_routine(_In_ PDEVICE_OBJECT device_object, _In_opt_ const void* context)
 {
     UNREFERENCED_PARAMETER(device_object);
     if (context == NULL) {
