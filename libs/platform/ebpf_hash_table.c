@@ -63,6 +63,9 @@ struct _ebpf_hash_table
         _In_ const uint8_t* value,
         _Outptr_ const uint8_t** data,
         _Out_ size_t* num); // Function to extract bytes to hash from key.
+
+    void* notification_context; //< Context to pass to notification functions.
+    ebpf_hash_table_notification_function notification_callback;
     _Field_size_(bucket_count) ebpf_hash_bucket_header_and_lock_t buckets[1]; // Pointer to array of buckets.
 };
 
@@ -483,9 +486,12 @@ _ebpf_hash_table_replace_bucket(
         // If the value is NULL, then the caller wants to insert a zeroed value.
         if (value) {
             memcpy(new_data, value, hash_table->value_size);
-            memset(new_data + hash_table->value_size, 0, hash_table->supplemental_value_size);
         } else {
             memset(new_data, 0, hash_table->value_size + hash_table->supplemental_value_size);
+        }
+        if (hash_table->notification_callback) {
+            hash_table->notification_callback(
+                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE, key, new_data);
         }
     }
 
@@ -553,6 +559,17 @@ _ebpf_hash_table_replace_bucket(
 Done:
     ebpf_lock_unlock(&hash_table->buckets[hash % hash_table->bucket_count].lock, state);
 
+    if (hash_table->notification_callback) {
+        if (new_data) {
+            hash_table->notification_callback(
+                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, key, new_data);
+        }
+        if (old_data) {
+            hash_table->notification_callback(
+                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, key, old_data);
+        }
+    }
+
     // Free new_data if any. This occurs if the insert failed.
     hash_table->free(new_data);
     // Free old_data if any. This occurs if a delete or update succeeded.
@@ -599,7 +616,9 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     table->seed = ebpf_random_uint32();
     table->extract = options->extract_function;
     table->max_entry_count = options->max_entries;
-    table->supplemental_value_size = options->supplemental_data_size;
+    table->supplemental_value_size = options->supplemental_value_size;
+    table->notification_context = options->notification_context;
+    table->notification_callback = options->notification_callback;
 
     *hash_table = table;
     retval = EBPF_SUCCESS;
@@ -667,6 +686,10 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     }
 
     *value = data;
+    if (hash_table->notification_callback) {
+        hash_table->notification_callback(
+            hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE, key, data);
+    }
     retval = EBPF_SUCCESS;
 Done:
     return retval;
