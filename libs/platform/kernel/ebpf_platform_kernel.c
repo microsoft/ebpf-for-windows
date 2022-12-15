@@ -433,7 +433,7 @@ ebpf_get_current_thread_id()
 typedef struct _ebpf_non_preemptible_work_item
 {
     KDPC deferred_procedure_call;
-    const void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1);
+    void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1);
 } ebpf_non_preemptible_work_item_t;
 
 static void
@@ -450,7 +450,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
     _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
-    _In_ const void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1),
+    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1),
     _Inout_opt_ void* work_item_context)
 {
     *work_item = ebpf_allocate(sizeof(ebpf_non_preemptible_work_item_t));

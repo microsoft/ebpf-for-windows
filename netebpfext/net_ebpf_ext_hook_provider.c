@@ -282,7 +282,7 @@ Exit:
  */
 static NTSTATUS
 _net_ebpf_extension_hook_provider_attach_client(
-    _In_ const HANDLE nmr_binding_handle,
+    _In_ HANDLE nmr_binding_handle,
     _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
     _In_ const void* client_binding_context,
@@ -417,8 +417,8 @@ net_ebpf_extension_hook_provider_unregister(_Frees_ptr_opt_ net_ebpf_extension_h
 NTSTATUS
 net_ebpf_extension_hook_provider_register(
     _In_ const net_ebpf_extension_hook_provider_parameters_t* parameters,
-    _In_ const net_ebpf_extension_hook_on_client_attach attach_callback,
-    _In_ const net_ebpf_extension_hook_on_client_detach detach_callback,
+    _In_ net_ebpf_extension_hook_on_client_attach attach_callback,
+    _In_ net_ebpf_extension_hook_on_client_detach detach_callback,
     _In_opt_ const void* custom_data,
     _Outptr_ net_ebpf_extension_hook_provider_t** provider_context)
 {

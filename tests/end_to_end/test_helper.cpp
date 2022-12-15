@@ -215,7 +215,7 @@ _complete_overlapped(void* context, size_t output_buffer_length, ebpf_result_t r
 }
 
 BOOL
-GlueCancelIoEx(_In_ const HANDLE hFile, _In_opt_ LPOVERLAPPED lpOverlapped)
+GlueCancelIoEx(_In_ HANDLE hFile, _In_opt_ LPOVERLAPPED lpOverlapped)
 {
     UNREFERENCED_PARAMETER(hFile);
     BOOL return_value = FALSE;

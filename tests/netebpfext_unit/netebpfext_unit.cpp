@@ -60,7 +60,7 @@ netebpfext_unit_invoke_program(
 // Netebpfext is ready for us to attach to it as if we were ebpfcore.
 NTSTATUS
 netebpf_unit_attach_extension(
-    _In_ const HANDLE nmr_binding_handle,
+    _In_ HANDLE nmr_binding_handle,
     _Inout_ void* client_context,
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {

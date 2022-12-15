@@ -71,7 +71,7 @@ NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_program_info_provider_mod
  */
 static NTSTATUS
 _sample_ebpf_extension_program_info_provider_attach_client(
-    _In_ const HANDLE nmr_binding_handle,
+    _In_ HANDLE nmr_binding_handle,
     _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
     _In_ const void* client_binding_context,
@@ -156,7 +156,7 @@ NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_hook_provider_moduleid = 
  */
 static NTSTATUS
 _sample_ebpf_extension_hook_provider_attach_client(
-    _In_ const HANDLE nmr_binding_handle,
+    _In_ HANDLE nmr_binding_handle,
     _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
     _In_ const void* client_binding_context,
@@ -238,7 +238,7 @@ static sample_ebpf_extension_hook_provider_t _sample_ebpf_extension_hook_provide
 
 static NTSTATUS
 _sample_ebpf_extension_program_info_provider_attach_client(
-    _In_ const HANDLE nmr_binding_handle,
+    _In_ HANDLE nmr_binding_handle,
     _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
     _In_ const void* client_binding_context,
@@ -379,7 +379,7 @@ Exit:
 
 static NTSTATUS
 _sample_ebpf_extension_hook_provider_attach_client(
-    _In_ const HANDLE nmr_binding_handle,
+    _In_ HANDLE nmr_binding_handle,
     _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
     _In_ const void* client_binding_context,

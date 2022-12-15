@@ -426,7 +426,7 @@ extern "C"
     ebpf_allocate_non_preemptible_work_item(
         _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
         uint32_t cpu_id,
-        _In_ const void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1),
+        _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1),
         _Inout_opt_ void* work_item_context);
 
     /**
