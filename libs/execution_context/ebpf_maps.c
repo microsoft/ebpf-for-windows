@@ -951,7 +951,7 @@ _Requires_lock_held_(map->lock) static void _merge_hot_into_cold_list_if_needed(
 static void
 _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry)
 {
-
+    bool lock_held = false;
     ebpf_lru_key_state_t key_state = _get_key_state(map, entry);
     ebpf_assert(key_state == EBPF_LRU_KEY_HOT || key_state == EBPF_LRU_KEY_COLD || key_state == EBPF_LRU_KEY_DELETED);
 
@@ -959,14 +959,14 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t
     // If not yet initialized, it will be added to the hot list when initialized.
     // If already deleted, don't add it to the hot list.
     if (key_state != EBPF_LRU_KEY_COLD) {
-        return;
+        goto Exit;
     }
 
     ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
+    lock_held = true;
 
     if (key_state != EBPF_LRU_KEY_COLD) {
-        ebpf_lock_unlock(&map->lock, state);
-        return;
+        goto Exit;
     }
 
     ebpf_list_remove_entry(&entry->list_entry);
@@ -975,7 +975,10 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t
 
     _merge_hot_into_cold_list_if_needed(map);
 
-    ebpf_lock_unlock(&map->lock, state);
+Exit:
+    if (lock_held) {
+        ebpf_lock_unlock(&map->lock, state);
+    }
 }
 
 /**
