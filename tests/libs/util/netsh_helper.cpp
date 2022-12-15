@@ -16,12 +16,12 @@ DWORD WINAPI
 PreprocessCommand(
     _In_opt_ const HANDLE hModule,
     _Inout_updates_(dwArgCount) LPWSTR* ppwcArguments,
-    _In_ const DWORD dwCurrentIndex,
-    _In_ const DWORD dwArgCount,
+    DWORD dwCurrentIndex,
+    DWORD dwArgCount,
     _Inout_updates_opt_(dwTagCount) TAG_TYPE* pttTags,
-    _In_ const DWORD dwTagCount,
-    _In_ const DWORD dwMinArgs,
-    _In_ const DWORD dwMaxArgs,
+    DWORD dwTagCount,
+    DWORD dwMinArgs,
+    DWORD dwMaxArgs,
     _Out_writes_opt_(dwArgCount - dwCurrentIndex) DWORD* pdwTagType)
 {
     UNREFERENCED_PARAMETER(hModule);

@@ -51,7 +51,7 @@ extern "C"
      * @param[out] output_buffer Pointer to memory that will contain the
      *  encoded result parameters for this operation.
      * @param[in] output_buffer_length Length of the output buffer.
-     * @param[in,out] async_context Async context to be passed to on_complete.
+     * @param[in, out] async_context Async context to be passed to on_complete.
      * @param[in] on_complete Callback to be invoked when the operation is complete.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
@@ -88,7 +88,7 @@ extern "C"
     /**
      * @brief Cancel an async protocol operation that returned EBPF_PENDING from ebpf_core_invoke_protocol_handler.
      *
-     * @param[in,out] async_context Async context passed to ebpf_core_invoke_protocol_handler.
+     * @param[in, out] async_context Async context passed to ebpf_core_invoke_protocol_handler.
      * @retval true Operation was canceled.
      * @retval false Operation was already completed.
      */

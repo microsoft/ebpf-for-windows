@@ -80,7 +80,7 @@ extern "C"
      * @brief Set a cancellation function to be called when actions associated with this context are canceled.
      *
      * @param[in] context Context of action to track.
-     * @param[in,out] cancellation_context Context to pass when this action is canceled.
+     * @param[in, out] cancellation_context Context to pass when this action is canceled.
      * @param[in] on_cancel Function to call if this action is canceled.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT The action context hasn't been registered.
@@ -94,7 +94,7 @@ extern "C"
     /**
      * @brief Cancel the action associated with this context.
      *
-     * @param[in,out] context Context associated with the action.
+     * @param[in, out] context Context associated with the action.
      * @retval true Action was canceled.
      * @retval false Action was already completed.
      */
@@ -104,7 +104,7 @@ extern "C"
     /**
      * @brief Complete the action associated with this context.
      *
-     * @param[in,out] context Context associated with the action.
+     * @param[in, out] context Context associated with the action.
      * @param[in] output_buffer_length Length (in bytes) of the buffer containing the result of the async operation.
      * @param[in] result The outcome of the action.
      */

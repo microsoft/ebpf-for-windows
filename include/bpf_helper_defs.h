@@ -134,7 +134,7 @@ EBPF_HELPER(int, bpf_csum_diff, (void* from, int from_size, void* to, int to_siz
 /**
  * @brief Copy data into the ring buffer map.
  *
- * @param[in,out] map Pointer to ring buffer map.
+ * @param[in, out] map Pointer to ring buffer map.
  * @param[in] data Data to copy into ring buffer map.
  * @param[in] size Length of data.
  * @param[in] flags Flags indicating if notification for new data availability should be sent.

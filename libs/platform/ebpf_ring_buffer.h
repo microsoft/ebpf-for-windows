@@ -45,7 +45,7 @@ extern "C"
     /**
      * @brief Write out a variable sized record to the ring buffer.
      *
-     * @param[in,out] ring_buffer Ring buffer to write to.
+     * @param[in, out] ring_buffer Ring buffer to write to.
      * @param[in] data Data to copy into record.
      * @param[in] length Length of data to copy.
      * @retval EPBF_SUCCESS Successfully wrote record ring buffer.
@@ -68,7 +68,7 @@ extern "C"
     /**
      * @brief Mark one or more records in the ring buffer as returned to the ring.
      *
-     * @param[in,out] ring_buffer Ring buffer to update.
+     * @param[in, out] ring_buffer Ring buffer to update.
      * @param[in] length Length of bytes to return to the ring buffer.
      * @retval EPBF_SUCCESS Successfully returned records to the ring buffer.
      * @retval EBPF_INVALID_ARGUMENT Unable to return records to the ring buffer.
@@ -91,7 +91,7 @@ extern "C"
      * @brief Reserve a buffer in the ring buffer. Buffer is valid until either ebpf_ring_buffer_submit,
      * ebpf_ring_buffer_discard, or the end of the current epoch.
      *
-     * @param[in,out] ring_buffer Ring buffer to update.
+     * @param[in, out] ring_buffer Ring buffer to update.
      * @param[out] data Pointer to start of reserved buffer on success.
      * @param[in] length Length of buffer to reserve.
      * @retval EPBF_SUCCESS Successfully reserved space in the ring buffer.

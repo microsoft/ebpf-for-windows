@@ -196,7 +196,7 @@ class _ebpf_emulated_dpc
     /**
      * @brief Insert a work item into its associated queue.
      *
-     * @param[in,out] work_item Work item to be enqueued.
+     * @param[in, out] work_item Work item to be enqueued.
      * @param[in] parameter_1 Parameter to pass to worker function.
      * @retval true Work item wasn't already queued.
      * @retval false Work item is already queued.

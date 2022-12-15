@@ -86,7 +86,7 @@ extern "C"
     /**
      * @brief Returns all entries in the pinning table of specified object type after acquiring a reference.
      *
-     * @param[in,out] pinning_table Pinning table to enumerate.
+     * @param[in, out] pinning_table Pinning table to enumerate.
      * @param[in] object_type eBPF object type that will be used to filter pinning entries.
      * @param[out] entry_count Number of pinning entries being returned.
      * @param[out] pinning_entries Array of pinning entries being returned. Must be freed by caller
@@ -104,10 +104,10 @@ extern "C"
     /**
      * @brief Gets the next path in the pinning table after a given path.
      *
-     * @param[in,out] pinning_table Pinning table to enumerate.
+     * @param[in, out] pinning_table Pinning table to enumerate.
      * @param[in] object_type Object type.
      * @param[in] start_path Path to look for an entry greater than.
-     * @param[in,out] next_path Returns the next path, if one exists.
+     * @param[in, out] next_path Returns the next path, if one exists.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS No more entries found.
      */

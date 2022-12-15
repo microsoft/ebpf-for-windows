@@ -242,7 +242,7 @@ extern "C"
     /**
      * @brief Set the execution type for an eBPF object file.
      *
-     * @param[in,out] object The eBPF object file.
+     * @param[in, out] object The eBPF object file.
      * @param[in] execution_type Execution type to set.
      *
      * @retval EBPF_SUCCESS The operation was successful.
@@ -303,7 +303,7 @@ extern "C"
      * @brief Detach an eBPF program from an attach point represented by
      *  the bpf_link structure.
      *
-     * @param[in,out] link Pointer to bpf_link structure.
+     * @param[in, out] link Pointer to bpf_link structure.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_OBJECT Invalid object was passed.

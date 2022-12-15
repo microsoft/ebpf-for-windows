@@ -80,7 +80,7 @@ typedef struct _net_ebpf_extension_hook_provider
 /**
  * @brief Initialize the hook client rundown state.
  *
- * @param[in,out] hook_client Pointer to the attached hook NPI client.
+ * @param[in, out] hook_client Pointer to the attached hook NPI client.
  *
  * @retval STATUS_SUCCESS Operation succeeded.
  * @retval STATUS_INSUFFICIENT_RESOURCES IO work item could not be allocated.
@@ -110,7 +110,7 @@ Exit:
 /**
  * @brief Block execution of the thread until all invocations are completed.
  *
- * @param[in,out] rundown Rundown object to wait for.
+ * @param[in, out] rundown Rundown object to wait for.
  *
  */
 static void

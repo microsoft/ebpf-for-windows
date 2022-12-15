@@ -990,8 +990,8 @@ _get_key_state(_In_ const ebpf_core_lru_map_t* map, _In_ const ebpf_lru_entry_t*
 /**
  * @brief Helper function to insert an entry into the hot list if it is in the cold list and update the hot list size.
  *
- * @param[in,out] map Pointer to the map.
- * @param[in,out] entry Entry to insert into the hot list.
+ * @param[in, out] map Pointer to the map.
+ * @param[in, out] entry Entry to insert into the hot list.
  */
 _Requires_lock_held_(map->lock) static void _insert_into_hot_list(
     _Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry)
@@ -1012,8 +1012,8 @@ _Requires_lock_held_(map->lock) static void _insert_into_hot_list(
  * @brief Helper function to initialize an LRU entry that was created when an entry was inserted into the hash table.
  * Sets the current generation, populates the key, and inserts the entry into the hot list.
  *
- * @param[in,out] map Pointer to the map.
- * @param[in,out] entry Entry to initialize.
+ * @param[in, out] map Pointer to the map.
+ * @param[in, out] entry Entry to initialize.
  * @param[in] key Key to initialize the entry with.
  */
 _Requires_lock_held_(map->lock) static void _initialize_lru_entry(
@@ -1036,8 +1036,8 @@ _Requires_lock_held_(map->lock) static void _initialize_lru_entry(
  * list and sets the generation to EBPF_LRU_INVALID_GENERATION so that subsequent access doesn't reinsert it into the
  * hot list.
  *
- * @param[in,out] map Pointer to the map.
- * @param[in,out] entry Entry being deleted.
+ * @param[in, out] map Pointer to the map.
+ * @param[in, out] entry Entry being deleted.
  */
 _Requires_lock_held_(map->lock) static void _uninitialize_lru_entry(
     _Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry)
@@ -1060,7 +1060,7 @@ _Requires_lock_held_(map->lock) static void _uninitialize_lru_entry(
  * @brief Helper function to merge the hot list into the cold list if the hot list size exceeds the hot list limit.
  * Resets the hot list size and increments the current generation.
  *
- * @param[in,out] map Pointer to the map.
+ * @param[in, out] map Pointer to the map.
  */
 _Requires_lock_held_(map->lock) static void _merge_hot_into_cold_list_if_needed(_Inout_ ebpf_core_lru_map_t* map)
 {
@@ -1080,7 +1080,7 @@ _Requires_lock_held_(map->lock) static void _merge_hot_into_cold_list_if_needed(
 /**
  * @brief Helper function to update the LRU key history for a given key if the map tracks key history.
  *
- * @param[in,out] map Pointer to the map.
+ * @param[in, out] map Pointer to the map.
  * @param[in] key Key to update.
  * @param[in] value Optional value for the key. If NULL, the value will be looked up.
  * @param[in] operation Operation to perform on the key.
@@ -1154,7 +1154,7 @@ _delete_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key);
 /**
  * @brief Helper function to reap the oldest entry from the map if the map tracks key history.
  *
- * @param[in,out] map Pointer to the map.
+ * @param[in, out] map Pointer to the map.
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_KEY_NOT_FOUND The key selected for deletion was not found in the map.
  */

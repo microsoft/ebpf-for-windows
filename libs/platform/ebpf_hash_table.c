@@ -250,7 +250,7 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ const ebpf_hash_bucket_heade
  * @param[in] hash_table The hash table.
  * @param[in] old_bucket The immutable bucket to copy.
  * @param[in] key The key to insert.
- * @param[in,out] data The copy of the value to insert. On success the new_bucket owns this memory.
+ * @param[in, out] data The copy of the value to insert. On success the new_bucket owns this memory.
  * @param[out] new_bucket The new bucket with the entry inserted. On success the caller owns this memory.
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
@@ -398,7 +398,7 @@ Done:
  * @param[in] hash_table Hash table.
  * @param[in] old_bucket The immutable old bucket to copy.
  * @param[in] key_index The location of the key to update.
- * @param[in,out] data A copy of the data to update.
+ * @param[in, out] data A copy of the data to update.
  * @param[out] new_bucket The new bucket with the entry updated. On success the caller owns this memory.
  *
  * @retval EBPF_SUCCESS The operation was successful.

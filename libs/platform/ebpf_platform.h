@@ -356,7 +356,7 @@ extern "C"
 
     /**
      * @brief Acquire exclusive access to the lock.
-     * @param[in,out] lock Pointer to memory location that contains the lock.
+     * @param[in, out] lock Pointer to memory location that contains the lock.
      * @returns The previous lock_state required for unlock.
      */
     _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
@@ -364,7 +364,7 @@ extern "C"
 
     /**
      * @brief Release exclusive access to the lock.
-     * @param[in,out] lock Pointer to memory location that contains the lock.
+     * @param[in, out] lock Pointer to memory location that contains the lock.
      * @param[in] state The state returned from ebpf_lock_lock.
      */
     _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
@@ -417,7 +417,7 @@ extern "C"
      *  the non-preemptible work item on success.
      * @param[in] cpu_id Associate the work item with this CPU.
      * @param[in] work_item_routine Routine to execute as a work item.
-     * @param[in,out] work_item_context Context to pass to the routine.
+     * @param[in, out] work_item_context Context to pass to the routine.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  work item.
@@ -440,8 +440,8 @@ extern "C"
     /**
      * @brief Schedule a non-preemptible work item to run.
      *
-     * @param[in,out] work_item Work item to schedule.
-     * @param[in,out] parameter_1 Parameter to pass to work item.
+     * @param[in, out] work_item Work item to schedule.
+     * @param[in, out] parameter_1 Parameter to pass to work item.
      * @retval true Work item was queued.
      * @retval false Work item is already queued.
      */
@@ -455,7 +455,7 @@ extern "C"
      * @param[out] work_item Pointer to memory that will contain the pointer to
      *  the preemptible work item on success.
      * @param[in] work_item_routine Routine to execute as a work item.
-     * @param[in,out] work_item_context Context to pass to the routine.
+     * @param[in, out] work_item_context Context to pass to the routine.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  work item.
@@ -477,7 +477,7 @@ extern "C"
     /**
      * @brief Schedule a preemptible work item to run.
      *
-     * @param[in,out] work_item Work item to schedule.
+     * @param[in, out] work_item Work item to schedule.
      */
     void
     ebpf_queue_preemptible_work_item(_Inout_ ebpf_preemptible_work_item_t* work_item);
@@ -487,7 +487,7 @@ extern "C"
      *
      * @param[out] timer Pointer to memory that will contain timer on success.
      * @param[in] work_item_routine Routine to execute when time expires.
-     * @param[in,out] work_item_context Context to pass to routine.
+     * @param[in, out] work_item_context Context to pass to routine.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  timer.
@@ -501,7 +501,7 @@ extern "C"
     /**
      * @brief Schedule a work item to be executed after elapsed_microseconds.
      *
-     * @param[in,out] timer Pointer to timer to schedule.
+     * @param[in, out] timer Pointer to timer to schedule.
      * @param[in] elapsed_microseconds Microseconds to delay before executing
      *   work item.
      */
@@ -578,7 +578,7 @@ extern "C"
     /**
      * @brief Insert or update an entry in the hash table.
      *
-     * @param[in,out] hash_table Hash-table to update.
+     * @param[in, out] hash_table Hash-table to update.
      * @param[in] key Key to find and insert or update.
      * @param[in] value Value to insert into hash table or NULL to insert zero entry.
      * @param[in] operation One of ebpf_hash_table_operations_t operations.
@@ -597,7 +597,7 @@ extern "C"
     /**
      * @brief Remove an entry from the hash table.
      *
-     * @param[in,out] hash_table Hash-table to update.
+     * @param[in, out] hash_table Hash-table to update.
      * @param[in] key Key to find and remove.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_FOUND Key not found in hash table.
@@ -668,7 +668,7 @@ extern "C"
      * @brief Atomically increase the value of addend by 1 and return the new
      *  value.
      *
-     * @param[in,out] addend Value to increase by 1.
+     * @param[in, out] addend Value to increase by 1.
      * @return The new value.
      */
     int32_t
@@ -678,7 +678,7 @@ extern "C"
      * @brief Atomically decrease the value of addend by 1 and return the new
      *  value.
      *
-     * @param[in,out] addend Value to decrease by 1.
+     * @param[in, out] addend Value to decrease by 1.
      * @return The new value.
      */
     int32_t
@@ -688,7 +688,7 @@ extern "C"
      * @brief Atomically increase the value of addend by 1 and return the new
      *  value.
      *
-     * @param[in,out] addend Value to increase by 1.
+     * @param[in, out] addend Value to increase by 1.
      * @return The new value.
      */
     int64_t
@@ -698,7 +698,7 @@ extern "C"
      * @brief Atomically decrease the value of addend by 1 and return the new
      *  value.
      *
-     * @param[in,out] addend Value to increase by 1.
+     * @param[in, out] addend Value to increase by 1.
      * @return The new value.
      */
     int64_t
@@ -709,7 +709,7 @@ extern "C"
      *  to by destination with the value of comparand and replaces it with
      *  exchange.
      *
-     * @param[in,out] destination A pointer to the input value that is compared
+     * @param[in, out] destination A pointer to the input value that is compared
      *  with the value of comparand.
      * @param[in] exchange Specifies the output value pointed to by destination
      *  if the input value pointed to by destination equals the value of
@@ -727,7 +727,7 @@ extern "C"
      *  to by destination with the value of comparand and replaces it with
      *  exchange.
      *
-     * @param[in,out] destination A pointer to the input value that is compared
+     * @param[in, out] destination A pointer to the input value that is compared
      *  with the value of comparand.
      * @param[in] exchange Specifies the output value pointed to by destination
      *  if the input value pointed to by destination equals the value of
@@ -744,7 +744,7 @@ extern "C"
     /**
      * @brief Performs an atomic OR of the value stored at destination with mask and stores the result in destination.
      *
-     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in, out] destination A pointer to the memory for this operation to be applied to.
      * @param[in] mask Value to be applied to the value stored at the destination.
      * @return The original value stored at destination.
      */
@@ -754,7 +754,7 @@ extern "C"
     /**
      * @brief Performs an atomic AND of the value stored at destination with mask and stores the result in destination.
      *
-     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in, out] destination A pointer to the memory for this operation to be applied to.
      * @param[in] mask Value to be applied to the value stored at the destination.
      * @return The original value stored at destination.
      */
@@ -764,7 +764,7 @@ extern "C"
     /**
      * @brief Performs an atomic XOR of the value stored at destination with mask and stores the result in destination.
      *
-     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in, out] destination A pointer to the memory for this operation to be applied to.
      * @param[in] mask Value to be applied to the value stored at the destination.
      * @return The original value stored at destination.
      */
@@ -774,7 +774,7 @@ extern "C"
     /**
      * @brief Performs an atomic OR of the value stored at destination with mask and stores the result in destination.
      *
-     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in, out] destination A pointer to the memory for this operation to be applied to.
      * @param[in] mask Value to be applied to the value stored at the destination.
      * @return The original value stored at destination.
      */
@@ -784,7 +784,7 @@ extern "C"
     /**
      * @brief Performs an atomic AND of the value stored at destination with mask and stores the result in destination.
      *
-     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in, out] destination A pointer to the memory for this operation to be applied to.
      * @param[in] mask Value to be applied to the value stored at the destination.
      * @return The original value stored at destination.
      */
@@ -794,7 +794,7 @@ extern "C"
     /**
      * @brief Performs an atomic XOR of the value stored at destination with mask and stores the result in destination.
      *
-     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in, out] destination A pointer to the memory for this operation to be applied to.
      * @param[in] mask Value to be applied to the value stored at the destination.
      * @return The original value stored at destination.
      */
@@ -874,11 +874,11 @@ extern "C"
      * @param[out] provider_context Context used to unload the provider.
      * @param[in] interface_id GUID representing the identity of the interface.
      * @param[in] provider_module_id GUID representing the identity of the provider.
-     * @param[in,out] provider_binding_context Provider binding context.
+     * @param[in, out] provider_binding_context Provider binding context.
      * @param[in] provider_data Opaque provider data.
      * @param[in] provider_dispatch_table Table of function pointers the
      *  provider exposes.
-     * @param[in,out] callback_context Opaque per-instance pointer passed to the callback functions.
+     * @param[in, out] callback_context Opaque per-instance pointer passed to the callback functions.
      * @param[in] attach_client_callback Function invoked when a client attaches.
      * @param[in] detach_client_callback Function invoked when a client detaches.
      * @param[in] provider_cleanup_binding_context_callback Function invoked when a binding context can be cleaned up.
@@ -939,7 +939,7 @@ extern "C"
     /**
      * @brief Populate the function pointers in a trampoline table.
      *
-     * @param[in,out] trampoline_table Trampoline table to populate.
+     * @param[in, out] trampoline_table Trampoline table to populate.
      * @param[in] helper_function_count Count of helper functions.
      * @param[in] helper_function_ids Array of helper function IDs.
      * @param[in] dispatch_table Dispatch table to populate from.

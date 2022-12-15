@@ -81,7 +81,7 @@ extern "C"
      * @brief Schedule a previously allocated work-item to run when the current
      * epoch ends.
      *
-     * @param[in,out] work_item Pointer to work item to run on epoch end.
+     * @param[in, out] work_item Pointer to work item to run on epoch end.
      */
     void
     ebpf_epoch_schedule_work_item(_Inout_ ebpf_epoch_work_item_t* work_item);

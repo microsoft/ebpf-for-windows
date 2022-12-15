@@ -183,7 +183,7 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
  * @param[in]  parameters Filter parameters.
  * @param[in]  condition_count Count of filter conditions.
  * @param[in]  conditions Common filter conditions to be applied to each filter.
- * @param[in,out]  filter_context Caller supplied context to be associated with the WFP filter.
+ * @param[in, out]  filter_context Caller supplied context to be associated with the WFP filter.
  * @param[out] filter_ids Output buffer where the added filter IDs are stored.
  *
  * @retval EBPF_SUCCESS The operation completed successfully.

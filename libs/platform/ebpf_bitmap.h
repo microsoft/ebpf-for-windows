@@ -31,7 +31,7 @@ extern "C"
     /**
      * @brief Set bit at index to true.
      *
-     * @param[in,out] bitmap Pointer to the bitmap.
+     * @param[in, out] bitmap Pointer to the bitmap.
      * @param[in] index Index to modify.
      * @param[in] interlocked Perform the operation using interlocked.
      * @return true if the bit was set, false otherwise.
@@ -42,7 +42,7 @@ extern "C"
     /**
      * @brief Set bit at index to false.
      *
-     * @param[in,out] bitmap Pointer to the bitmap.
+     * @param[in, out] bitmap Pointer to the bitmap.
      * @param[in] index Index to modify.
      * @param[in] interlocked Perform the operation using interlocked.
      * @return true if the bit was set, false otherwise.
@@ -81,7 +81,7 @@ extern "C"
     /**
      * @brief Find the next set bit in the bitmap via forward search.
      *
-     * @param[in,out] cursor Pointer to cursor.
+     * @param[in, out] cursor Pointer to cursor.
      * @return Offset of the next set bit.
      */
     size_t
@@ -90,7 +90,7 @@ extern "C"
     /**
      * @brief Find the next set bit in the bitmap via reverse search.
      *
-     * @param[in,out] cursor Pointer to cursor.
+     * @param[in, out] cursor Pointer to cursor.
      * @return Offset of the next set bit.
      */
     size_t

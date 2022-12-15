@@ -67,7 +67,7 @@ extern "C"
     /**
      * @brief Initialize an ebpf_core_object_t structure.
      *
-     * @param[in,out] object ebpf_core_object_t structure to initialize.
+     * @param[in, out] object ebpf_core_object_t structure to initialize.
      * @param[in] object_type The type of the object.
      * @param[in] free_function The function used to free the object.
      * @param[in] get_program_type_function The function used to get a program type, or NULL.  Each program

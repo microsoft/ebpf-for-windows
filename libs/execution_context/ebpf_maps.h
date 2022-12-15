@@ -58,7 +58,7 @@ extern "C"
     /**
      * @brief Get a pointer to an entry in the map.
      *
-     * @param[in,out] map Map to search and update metadata in.
+     * @param[in, out] map Map to search and update metadata in.
      * @param[in] key Key to use when searching map.
      * @param[in] flags Zero or more EBPF_MAP_FIND_ENTRY_FLAG_* flags.
      * @return Pointer to the value if found or NULL.
@@ -75,7 +75,7 @@ extern "C"
     /**
      * @brief Insert or update an entry in the map.
      *
-     * @param[in,out] map Map to update.
+     * @param[in, out] map Map to update.
      * @param[in] key Key to use when searching and updating the map.
      * @param[in] value Value to insert into the map.
      * @param[in] option One of ebpf_map_option_t options.
@@ -96,7 +96,7 @@ extern "C"
     /**
      * @brief Insert or update an entry in the map.
      *
-     * @param[in,out] map Map to update.
+     * @param[in, out] map Map to update.
      * @param[in] key Key to use when searching and updating the map.
      * @param[in] value_handle Handle associated with the value to insert.
      * @param[in] option One of ebpf_map_option_t options.
@@ -127,7 +127,7 @@ extern "C"
     /**
      * @brief Retrieve the next key from the map.
      *
-     * @param[in,out] map Map to search and update metadata in.
+     * @param[in, out] map Map to search and update metadata in.
      * @param[in] previous_key The previous key need not be present. This will
      * return the next key lexicographically after the specified key.  A value of
      * null indicates that the first key is to be returned.
@@ -148,7 +148,7 @@ extern "C"
      * program returned holds a reference that the caller is responsible for
      * releasing.
      *
-     * @param[in,out] map Map to search and update metadata in.
+     * @param[in, out] map Map to search and update metadata in.
      * @param[in] key Pointer to key to search for.
      * @param[in] key_size Size of value to search for.
      * @returns Program pointer, or NULL if none.
@@ -160,7 +160,7 @@ extern "C"
      * @brief Let a map take any actions when first
      * associated with a program.
      *
-     * @param[in,out] map Map to update.
+     * @param[in, out] map Map to update.
      * @param[in] program Program being associated with.
      *
      * @retval EBPF_SUCCESS The operation was successful.
@@ -174,7 +174,7 @@ extern "C"
      *
      * @param[in] map The map to get info about.
      * @param[out] buffer Buffer to write bpf_map_info into.
-     * @param[in,out] info_size On input, the size in bytes of the buffer.
+     * @param[in, out] info_size On input, the size in bytes of the buffer.
      * On output, the number of bytes actually written.
      *
      * @retval EBPF_SUCCESS The operation was successful.
@@ -211,9 +211,9 @@ extern "C"
     /**
      * @brief Issue an asynchronous query to ring buffer map.
      *
-     * @param[in,out] map Ring buffer map to issue the async query on.
-     * @param[in,out] async_query_result Pointer to structure for storing result of the async query.
-     * @param[in,out] async_context Async context associated with the query.
+     * @param[in, out] map Ring buffer map to issue the async query on.
+     * @param[in, out] async_query_result Pointer to structure for storing result of the async query.
+     * @param[in, out] async_context Async context associated with the query.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Insufficient memory to complete this operation.
      */
@@ -226,7 +226,7 @@ extern "C"
     /**
      * @brief Write out a variable sized record to the ring buffer map.
      *
-     * @param[in,out] map Pointer to map of type EBPF_MAP_TYPE_RINGBUF.
+     * @param[in, out] map Pointer to map of type EBPF_MAP_TYPE_RINGBUF.
      * @param[in] data Data of record to write into ring buffer map.
      * @param[in] length Length of data.
      * @retval EPBF_SUCCESS Successfully wrote record into ring buffer.
@@ -238,7 +238,7 @@ extern "C"
     /**
      * @brief Insert an element at the end of the map (only valid for stack and queue).
      *
-     * @param[in,out] map Map to update.
+     * @param[in, out] map Map to update.
      * @param[in] value_size Size of value to insert into the map.
      * @param[in] value Value to insert into the map.
      * @param[in] flags Map flags - BPF_EXIST: If the map is full, the entry at the start of the map is discarded.
@@ -256,7 +256,7 @@ extern "C"
      * Queue pops from the beginning of the map.
      * Stack pops from the end of the map.
      *
-     * @param[in,out] map Map to search and update metadata on.
+     * @param[in, out] map Map to search and update metadata on.
      * @param[in] value_size Size of the value buffer to copy value from map into.
      * @param[out] value Value buffer to copy value from map into.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -270,7 +270,7 @@ extern "C"
      * Queue peeks at the beginning of the map.
      * Stack peeks at the end of the map.
      *
-     * @param[in,out] map Map to search and update metadata on.
+     * @param[in, out] map Map to search and update metadata on.
      * @param[in] value_size Size of the value buffer to copy value from map into.
      * @param[out] value Value buffer to copy value from map into.
      * @retval EBPF_SUCCESS The operation was successful.

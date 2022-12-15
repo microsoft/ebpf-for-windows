@@ -14,7 +14,7 @@ typedef struct _net_ebpf_extension_hook_client net_ebpf_extension_hook_client_t;
 /**
  * @brief Attempt to acquire rundown.
  *
- * @param[in,out] hook_client Pointer to attached hook NPI client.
+ * @param[in, out] hook_client Pointer to attached hook NPI client.
  *
  * @retval true The caller should proceed.
  * @retval false Rundown has occurred.
@@ -25,7 +25,7 @@ net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_cli
 /**
  * @brief Release rundown.
  *
- * @param[in,out] hook_client Pointer to attached hook NPI client.
+ * @param[in, out] hook_client Pointer to attached hook NPI client.
 
  */
 void
@@ -124,7 +124,7 @@ typedef struct _net_ebpf_extension_hook_provider_parameters
  * @param[in] attach_callback Pointer to callback function to be invoked when a client attaches.
  * @param[in] detach_callback Pointer to callback function to be invoked when a client detaches.
  * @param[in] custom_data (Optional) Opaque pointer to hook-specific custom data.
- * @param[in,out] provider_context Pointer to the provider context being registered.
+ * @param[in, out] provider_context Pointer to the provider context being registered.
  *
  * @retval STATUS_SUCCESS Operation succeeded.
  * @retval STATUS_NO_MEMORY Not enough memory to allocate resources.
@@ -154,7 +154,7 @@ net_ebpf_extension_hook_invoke_program(
 
 /**
  * @brief Return client attached to the hook NPI provider.
- * @param[in,out] provider_context Provider module's context.
+ * @param[in, out] provider_context Provider module's context.
  * @returns Attached client.
  * (Note: this is a temporary helper routine that will be re-written when multiple attached clients are supported as fix
  * to #754)
@@ -164,7 +164,7 @@ net_ebpf_extension_hook_get_attached_client(_Inout_ net_ebpf_extension_hook_prov
 
 /**
  * @brief Return the next client attached to the hook NPI provider.
- * @param[in,out] provider_context Provider module's context.
+ * @param[in, out] provider_context Provider module's context.
  * @param[in] client_context Caller supplied pointer to client_context. May be NULL.
  * @returns The next client after the one passed in client_context parameter. If the input client context is NULL, then
  * the first attached client context (if any) is returned.
@@ -180,7 +180,7 @@ net_ebpf_extension_hook_get_next_attached_client(
  * @param[in] attach_parameter_size The expected length (in bytes) of attach parameter for this type of hook.
  * @param[in] attach_parameter The attach parameter supplied by the client requesting to be attached.
  * @param[in] wild_card_attach_parameter Pointer to wild card parameter for this type of hook.
- * @param[in,out] provider_context Provider module's context.
+ * @param[in, out] provider_context Provider module's context.
  * @retval EBPF_SUCCESS The operation succeeded.
  * @retval EBPF_ACCESS_DENIED Request to attach client is denied by the provider.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
