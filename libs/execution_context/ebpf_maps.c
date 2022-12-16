@@ -153,14 +153,14 @@ typedef struct _ebpf_core_circular_map
 } ebpf_core_circular_map_t;
 
 static size_t
-_ebpf_core_circular_map_add(_In_ ebpf_core_circular_map_t* map, size_t value, int delta)
+_ebpf_core_circular_map_add(_In_ const ebpf_core_circular_map_t* map, size_t value, int delta)
 {
     return (map->core_map.ebpf_map_definition.max_entries + value + (size_t)delta) %
            map->core_map.ebpf_map_definition.max_entries;
 }
 
 static uint8_t*
-_ebpf_core_circular_map_peek_or_pop(_In_ ebpf_core_circular_map_t* map, bool pop)
+_ebpf_core_circular_map_peek_or_pop(_Inout_ ebpf_core_circular_map_t* map, bool pop)
 {
     uint8_t* return_value = NULL;
 
@@ -193,7 +193,7 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_core_circular_map_push(_In_ ebpf_core_circular_map_t* map, _In_ const uint8_t* data, bool replace)
+_ebpf_core_circular_map_push(_Inout_ ebpf_core_circular_map_t* map, _In_ const uint8_t* data, bool replace)
 {
     ebpf_result_t return_value;
     uint8_t* new_data = NULL;
@@ -248,19 +248,19 @@ typedef struct _ebpf_map_metadata_table
         _In_ const ebpf_map_definition_in_memory_t* map_definition,
         ebpf_handle_t inner_map_handle,
         _Outptr_ ebpf_core_map_t** map);
-    void (*delete_map)(_In_ ebpf_core_map_t* map);
-    ebpf_result_t (*associate_program)(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* program);
+    void (*delete_map)(_In_ _Post_invalid_ ebpf_core_map_t* map);
+    ebpf_result_t (*associate_program)(_Inout_ ebpf_map_t* map, _In_ const ebpf_program_t* program);
     ebpf_result_t (*find_entry)(
-        _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data);
-    ebpf_core_object_t* (*get_object_from_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
+        _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data);
+    ebpf_core_object_t* (*get_object_from_entry)(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*update_entry)(
-        _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
+        _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
     ebpf_result_t (*update_entry_with_handle)(
-        _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, uintptr_t value_handle, ebpf_map_option_t option);
+        _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, uintptr_t value_handle, ebpf_map_option_t option);
     ebpf_result_t (*update_entry_per_cpu)(
-        _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
-    ebpf_result_t (*delete_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
-    ebpf_result_t (*next_key)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
+        _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
+    ebpf_result_t (*delete_entry)(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key);
+    ebpf_result_t (*next_key)(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
     int zero_length_key : 1;
     int zero_length_value : 1;
     int per_cpu : 1;
@@ -338,7 +338,7 @@ _delete_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
 static ebpf_result_t
 _find_array_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
     uint32_t key_value;
     if (!map || !key || delete_on_success)
@@ -356,7 +356,7 @@ _find_array_map_entry(
 
 static ebpf_result_t
 _update_array_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     uint32_t key_value;
 
@@ -378,7 +378,7 @@ _update_array_map_entry(
 }
 
 static ebpf_result_t
-_delete_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+_delete_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     uint32_t key_value;
     if (!map || !key)
@@ -396,7 +396,7 @@ _delete_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 }
 
 static ebpf_result_t
-_next_array_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
+_next_array_map_key(_In_ const ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {
     uint32_t key_value;
     if (!map || !next_key)
@@ -448,7 +448,7 @@ Exit:
 }
 
 static void
-_delete_object_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
+_delete_object_array_map(_Inout_ _Post_invalid_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
 {
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
@@ -469,7 +469,7 @@ _delete_object_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map, ebpf_object_t
 
 static ebpf_result_t
 _create_object_array_map(
-    _In_ const ebpf_map_definition_in_memory_t* map_definition,
+    _Inout_ const ebpf_map_definition_in_memory_t* map_definition,
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_core_map_t** map)
 {
@@ -519,7 +519,7 @@ _delete_map_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 }
 
 static ebpf_result_t
-_associate_program_with_prog_array_map(_In_ ebpf_core_map_t* map, _In_ const ebpf_program_t* program)
+_associate_program_with_prog_array_map(_Inout_ ebpf_core_map_t* map, _In_ const ebpf_program_t* program)
 {
     ebpf_assert(map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY);
     ebpf_core_object_map_t* program_array = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
@@ -567,7 +567,9 @@ _check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_core_ob
 // Validate that a value object is appropriate for this map.
 // Also set the program type if not yet set.
 static _Requires_lock_held_(object_map->lock) ebpf_result_t _validate_map_value_object(
-    _In_ ebpf_core_object_map_t* object_map, ebpf_object_type_t value_type, _In_ const ebpf_core_object_t* value_object)
+    _Inout_ ebpf_core_object_map_t* object_map,
+    ebpf_object_type_t value_type,
+    _In_ const ebpf_core_object_t* value_object)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     const ebpf_core_map_t* map = &object_map->core_map;
@@ -603,7 +605,7 @@ Error:
 
 static ebpf_result_t
 _update_array_map_entry_with_handle(
-    _In_ ebpf_core_map_t* map,
+    _Inout_ ebpf_core_map_t* map,
     _In_ const uint8_t* key,
     ebpf_object_type_t value_type,
     uintptr_t value_handle,
@@ -661,21 +663,21 @@ Done:
 
 static ebpf_result_t
 _update_prog_array_map_entry_with_handle(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, uintptr_t value_handle, ebpf_map_option_t option)
+    _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, uintptr_t value_handle, ebpf_map_option_t option)
 {
     return _update_array_map_entry_with_handle(map, key, EBPF_OBJECT_PROGRAM, value_handle, option);
 }
 
 static ebpf_result_t
 _update_map_array_map_entry_with_handle(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, uintptr_t value_handle, ebpf_map_option_t option)
+    _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, uintptr_t value_handle, ebpf_map_option_t option)
 {
     return _update_array_map_entry_with_handle(map, key, EBPF_OBJECT_MAP, value_handle, option);
 }
 
 static ebpf_result_t
 _delete_array_map_entry_with_reference(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, ebpf_object_type_t value_type)
+    _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, ebpf_object_type_t value_type)
 {
     if (value_type == EBPF_OBJECT_UNKNOWN)
         return EBPF_INVALID_ARGUMENT;
@@ -697,13 +699,13 @@ _delete_array_map_entry_with_reference(
 }
 
 static ebpf_result_t
-_delete_program_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+_delete_program_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     return _delete_array_map_entry_with_reference(map, key, EBPF_OBJECT_PROGRAM);
 }
 
 static ebpf_result_t
-_delete_map_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+_delete_map_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     return _delete_array_map_entry_with_reference(map, key, EBPF_OBJECT_MAP);
 }
@@ -718,7 +720,7 @@ _delete_map_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
  * @returns Object pointer, or NULL if none.
  */
 static _Ret_maybenull_ ebpf_core_object_t*
-_get_object_from_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+_get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     uint32_t index = *(uint32_t*)key;
 
@@ -752,6 +754,7 @@ _create_hash_map_internal(
     size_t supplemental_value_size,
     _In_opt_ void (*extract_function)(
         _In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length_in_bits),
+    _In_opt_ ebpf_hash_table_notification_function notification_callback,
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t retval;
@@ -773,7 +776,9 @@ _create_hash_map_internal(
         .bucket_count = local_map->ebpf_map_definition.max_entries,
         .max_entries = local_map->ebpf_map_definition.max_entries,
         .extract_function = extract_function,
-        .supplemental_data_size = supplemental_value_size,
+        .supplemental_value_size = supplemental_value_size,
+        .notification_context = local_map,
+        .notification_callback = notification_callback,
     };
 
     // Note:
@@ -808,7 +813,7 @@ _create_hash_map(
 {
     if (inner_map_handle != ebpf_handle_invalid)
         return EBPF_INVALID_ARGUMENT;
-    return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, 0, NULL, map);
+    return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, 0, NULL, NULL, map);
 }
 
 static void
@@ -863,7 +868,7 @@ _create_object_hash_map(
 
     *map = NULL;
 
-    result = _create_hash_map_internal(sizeof(ebpf_core_object_map_t), map_definition, 0, NULL, &local_map);
+    result = _create_hash_map_internal(sizeof(ebpf_core_object_map_t), map_definition, 0, NULL, NULL, &local_map);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -882,6 +887,172 @@ Exit:
     }
 
     EBPF_RETURN_RESULT(result);
+}
+
+/**
+ * @brief Given a pointer to a value, return a pointer to the supplemental value.
+ *
+ * @param[in] map Pointer to the map, used to determine the size of the value.
+ * @param[in] value Pointer to the value.
+ * @return Pointer to the supplemental value.
+ */
+static uint8_t*
+_get_supplemental_value(_In_ const ebpf_core_map_t* map, _In_ uint8_t* value)
+{
+    return value + EBPF_PAD_8(map->ebpf_map_definition.value_size);
+}
+
+/**
+ * @brief Helper function to translate generation into key state.
+ *
+ * @param[in] map Pointer to the map. Used to determine the current generation.
+ * @param[in] entry LRU entry to get the key state for.
+ * @return The key state.
+ */
+static ebpf_lru_key_state_t
+_get_key_state(_In_ const ebpf_core_lru_map_t* map, _In_ const ebpf_lru_entry_t* entry)
+{
+    if (entry->generation == 0) {
+        return EBPF_LRU_KEY_UNINITIALIZED;
+    } else if (entry->generation == EBPF_LRU_INVALID_GENERATION) {
+        return EBPF_LRU_KEY_DELETED;
+    } else if (entry->generation == map->current_generation) {
+        return EBPF_LRU_KEY_HOT;
+    } else {
+        return EBPF_LRU_KEY_COLD;
+    }
+}
+
+/**
+ * @brief Helper function to merge the hot list into the cold list if the hot list size exceeds the hot list limit.
+ * Resets the hot list size and increments the current generation.
+ *
+ * @param[in,out] map Pointer to the map.
+ */
+_Requires_lock_held_(map->lock) static void _merge_hot_into_cold_list_if_needed(_Inout_ ebpf_core_lru_map_t* map)
+{
+    if (map->hot_list_size <= map->hot_list_limit) {
+        return;
+    }
+
+    ebpf_list_entry_t* list_entry = map->hot_list.Flink;
+    ebpf_list_remove_entry(&map->hot_list);
+    ebpf_list_append_tail_list(&map->cold_list, list_entry);
+
+    ebpf_list_initialize(&map->hot_list);
+    map->hot_list_size = 0;
+    map->current_generation++;
+}
+
+/**
+ * @brief Helper function to insert an entry into the hot list if it is in the cold list and update the hot list size.
+ *
+ * @param[in,out] map Pointer to the map.
+ * @param[in,out] entry Entry to insert into the hot list.
+ */
+static void
+_insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry)
+{
+    bool lock_held = false;
+    ebpf_lru_key_state_t key_state = _get_key_state(map, entry);
+    ebpf_assert(key_state == EBPF_LRU_KEY_HOT || key_state == EBPF_LRU_KEY_COLD || key_state == EBPF_LRU_KEY_DELETED);
+    ebpf_lock_state_t state = 0;
+    // Skip if not in the cold list.
+    // If not yet initialized, it will be added to the hot list when initialized.
+    // If already deleted, don't add it to the hot list.
+    if (key_state != EBPF_LRU_KEY_COLD) {
+        goto Exit;
+    }
+
+    state = ebpf_lock_lock(&map->lock);
+    lock_held = true;
+
+    if (key_state != EBPF_LRU_KEY_COLD) {
+        goto Exit;
+    }
+
+    ebpf_list_remove_entry(&entry->list_entry);
+    ebpf_list_insert_tail(&map->hot_list, &entry->list_entry);
+    map->hot_list_size++;
+
+    _merge_hot_into_cold_list_if_needed(map);
+
+Exit:
+    if (lock_held) {
+        ebpf_lock_unlock(&map->lock, state);
+    }
+}
+
+/**
+ * @brief Helper function to initialize an LRU entry that was created when an entry was inserted into the hash table.
+ * Sets the current generation, populates the key, and inserts the entry into the hot list.
+ *
+ * @param[in,out] map Pointer to the map.
+ * @param[in,out] entry Entry to initialize.
+ * @param[in] key Key to initialize the entry with.
+ */
+static void
+_initialize_lru_entry(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry, _In_ const uint8_t* key)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
+    ebpf_assert(_get_key_state(map, entry) == EBPF_LRU_KEY_UNINITIALIZED);
+
+    ebpf_list_initialize(&entry->list_entry);
+    entry->generation = map->current_generation;
+    memcpy(entry->key, key, map->core_map.ebpf_map_definition.key_size);
+    ebpf_list_insert_tail(&map->hot_list, &entry->list_entry);
+    map->hot_list_size++;
+
+    _merge_hot_into_cold_list_if_needed(map);
+
+    ebpf_lock_unlock(&map->lock, state);
+}
+
+/**
+ * @brief Helper function called when an entry is deleted from the hash table. Removes the entry from the hot or cold
+ * list and sets the generation to EBPF_LRU_INVALID_GENERATION so that subsequent access doesn't reinsert it into the
+ * hot list.
+ *
+ * @param[in,out] map Pointer to the map.
+ * @param[in,out] entry Entry being deleted.
+ */
+static void
+_uninitialize_lru_entry(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
+    ebpf_lru_key_state_t key_state = _get_key_state(map, entry);
+    ebpf_assert(key_state == EBPF_LRU_KEY_HOT || key_state == EBPF_LRU_KEY_COLD);
+
+    // Remove from hot or cold list.
+    ebpf_list_remove_entry(&entry->list_entry);
+
+    // If the entry was in the hot list, decrement the hot list size.
+    if (key_state == EBPF_LRU_KEY_HOT) {
+        map->hot_list_size--;
+    }
+
+    // Always mark as uninitialized.
+    entry->generation = EBPF_LRU_INVALID_GENERATION;
+    ebpf_lock_unlock(&map->lock, state);
+}
+
+static void
+_lru_hash_table_notification(
+    _In_ void* context, _In_ ebpf_hash_table_notification_type_t type, _In_ const uint8_t* key, _In_ uint8_t* value)
+{
+    ebpf_core_lru_map_t* lru_map = (ebpf_core_lru_map_t*)context;
+    ebpf_lru_entry_t* entry = (ebpf_lru_entry_t*)_get_supplemental_value(&lru_map->core_map, value);
+    switch (type) {
+    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
+        _initialize_lru_entry(lru_map, entry, key);
+        break;
+    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
+        _uninitialize_lru_entry(lru_map, entry);
+        break;
+    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
+        _insert_into_hot_list(lru_map, entry);
+        break;
+    }
 }
 
 static ebpf_result_t
@@ -918,7 +1089,12 @@ _create_lru_hash_map(
     }
 
     retval = _create_hash_map_internal(
-        sizeof(ebpf_core_lru_map_t), map_definition, supplemental_value_size, NULL, (ebpf_core_map_t**)&lru_map);
+        sizeof(ebpf_core_lru_map_t),
+        map_definition,
+        supplemental_value_size,
+        NULL,
+        _lru_hash_table_notification,
+        (ebpf_core_map_t**)&lru_map);
     if (retval != EBPF_SUCCESS)
         goto Exit;
 
@@ -951,234 +1127,48 @@ _delete_lru_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
     ebpf_epoch_free(map);
 }
 
-/**
- * @brief Given a pointer to a value, return a pointer to the supplemental value.
- *
- * @param[in] map Pointer to the map, used to determine the size of the value.
- * @param[in] value Pointer to the value.
- * @return Pointer to the supplemental value.
- */
-static uint8_t*
-_get_value_supplement(_In_ const ebpf_core_map_t* map, _In_ uint8_t* value)
-{
-    return value + EBPF_PAD_8(map->ebpf_map_definition.value_size);
-}
-
-/**
- * @brief Helper function to translate generation into key state.
- *
- * @param[in] map Pointer to the map. Used to determine the current generation.
- * @param[in] entry LRU entry to get the key state for.
- * @return The key state.
- */
-static ebpf_lru_key_state_t
-_get_key_state(_In_ const ebpf_core_lru_map_t* map, _In_ const ebpf_lru_entry_t* entry)
-{
-    if (entry->generation == 0) {
-        return EBPF_LRU_KEY_UNINITIALIZED;
-    } else if (entry->generation == EBPF_LRU_INVALID_GENERATION) {
-        return EBPF_LRU_KEY_DELETED;
-    } else if (entry->generation == map->current_generation) {
-        return EBPF_LRU_KEY_HOT;
-    } else {
-        return EBPF_LRU_KEY_COLD;
-    }
-}
-
-/**
- * @brief Helper function to insert an entry into the hot list if it is in the cold list and update the hot list size.
- *
- * @param[in,out] map Pointer to the map.
- * @param[in,out] entry Entry to insert into the hot list.
- */
-_Requires_lock_held_(map->lock) static void _insert_into_hot_list(
-    _Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry)
-{
-    ebpf_lru_key_state_t key_state = _get_key_state(map, entry);
-    // Skip if not in the cold list.
-    // If not yet initialized, it will be added to the hot list when initialized.
-    // If already deleted, don't add it to the hot list.
-    if (key_state != EBPF_LRU_KEY_COLD) {
-        return;
-    }
-    ebpf_list_remove_entry(&entry->list_entry);
-    ebpf_list_insert_tail(&map->hot_list, &entry->list_entry);
-    map->hot_list_size++;
-}
-
-/**
- * @brief Helper function to initialize an LRU entry that was created when an entry was inserted into the hash table.
- * Sets the current generation, populates the key, and inserts the entry into the hot list.
- *
- * @param[in,out] map Pointer to the map.
- * @param[in,out] entry Entry to initialize.
- * @param[in] key Key to initialize the entry with.
- */
-_Requires_lock_held_(map->lock) static void _initialize_lru_entry(
-    _Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry, _In_ const uint8_t* key)
-{
-    ebpf_lru_key_state_t key_state = _get_key_state(map, entry);
-    // Skip if already initialized.
-    if (key_state != EBPF_LRU_KEY_UNINITIALIZED) {
-        return;
-    }
-    ebpf_list_initialize(&entry->list_entry);
-    entry->generation = map->current_generation;
-    memcpy(entry->key, key, map->core_map.ebpf_map_definition.key_size);
-    ebpf_list_insert_tail(&map->hot_list, &entry->list_entry);
-    map->hot_list_size++;
-}
-
-/**
- * @brief Helper function called when an entry is deleted from the hash table. Removes the entry from the hot or cold
- * list and sets the generation to EBPF_LRU_INVALID_GENERATION so that subsequent access doesn't reinsert it into the
- * hot list.
- *
- * @param[in,out] map Pointer to the map.
- * @param[in,out] entry Entry being deleted.
- */
-_Requires_lock_held_(map->lock) static void _uninitialize_lru_entry(
-    _Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry)
-{
-    ebpf_lru_key_state_t key_state = _get_key_state(map, entry);
-
-    // Remove from hot or cold list.
-    ebpf_list_remove_entry(&entry->list_entry);
-
-    // If the entry was in the hot list, decrement the hot list size.
-    if (key_state == EBPF_LRU_KEY_HOT) {
-        map->hot_list_size--;
-    }
-
-    // Always mark as uninitialized.
-    entry->generation = EBPF_LRU_INVALID_GENERATION;
-}
-
-/**
- * @brief Helper function to merge the hot list into the cold list if the hot list size exceeds the hot list limit.
- * Resets the hot list size and increments the current generation.
- *
- * @param[in,out] map Pointer to the map.
- */
-_Requires_lock_held_(map->lock) static void _merge_hot_into_cold_list_if_needed(_Inout_ ebpf_core_lru_map_t* map)
-{
-    if (map->hot_list_size <= map->hot_list_limit) {
-        return;
-    }
-
-    ebpf_list_entry_t* list_entry = map->hot_list.Flink;
-    ebpf_list_remove_entry(&map->hot_list);
-    ebpf_list_append_tail_list(&map->cold_list, list_entry);
-
-    ebpf_list_initialize(&map->hot_list);
-    map->hot_list_size = 0;
-    map->current_generation++;
-}
-
-/**
- * @brief Helper function to update the LRU key history for a given key if the map tracks key history.
- *
- * @param[in,out] map Pointer to the map.
- * @param[in] key Key to update.
- * @param[in] value Optional value for the key. If NULL, the value will be looked up.
- * @param[in] operation Operation to perform on the key.
- * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_KEY_NOT_FOUND The key was not found in the map.
- */
-static ebpf_result_t
-_update_key_history(
-    _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ uint8_t* value, ebpf_lru_key_operation_t operation)
-{
-    // Fast path:
-    // If this map doesn't track key history, return success.
-    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].key_history)) {
-        return EBPF_SUCCESS;
-    }
-
-    // If value was not provided, attempt to find it.
-    if (value == NULL) {
-        ebpf_result_t find_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value);
-        if (find_result != EBPF_SUCCESS) {
-            return find_result;
-        }
-    }
-
-    // If the value is not found, return success as it has already been deleted.
-
-    // If the value is found, update the key history.
-    if (value) {
-        ebpf_lru_entry_t* entry = (ebpf_lru_entry_t*)_get_value_supplement(map, value);
-        ebpf_core_lru_map_t* lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
-
-        ebpf_lru_key_state_t key_state = _get_key_state(lru_map, entry);
-
-        // Fast path:
-        // If the key is already in the hot list, no need to update the key history.
-        if (key_state == EBPF_LRU_KEY_HOT && operation == EBPF_LRU_KEY_OPERATION_UPDATE) {
-            // Key is already in the hot list. No need to update the key history.
-            return EBPF_SUCCESS;
-        }
-
-        ebpf_lock_state_t state = ebpf_lock_lock(&lru_map->lock);
-
-        // Code needs to handle all possible combinations of key_state and operation.
-        switch (operation) {
-        case EBPF_LRU_KEY_OPERATION_INSERT:
-            _initialize_lru_entry(lru_map, entry, key);
-            break;
-        case EBPF_LRU_KEY_OPERATION_UPDATE:
-            _insert_into_hot_list(lru_map, entry);
-            break;
-        case EBPF_LRU_KEY_OPERATION_DELETE:
-            _uninitialize_lru_entry(lru_map, entry);
-            break;
-        }
-
-        // If the hot list is full, move the entire hot list to the cold list, and start a new generation.
-        _merge_hot_into_cold_list_if_needed(lru_map);
-
-        ebpf_lock_unlock(&lru_map->lock, state);
-    }
-
-    return EBPF_SUCCESS;
-}
-
 static ebpf_result_t
 _delete_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key);
 
 /**
- * @brief Helper function to reap the oldest entry from the map if the map tracks key history.
+ * @brief Helper function to reap the oldest entry from the map.
  *
  * @param[in,out] map Pointer to the map.
- * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_KEY_NOT_FOUND The key selected for deletion was not found in the map.
  */
-static ebpf_result_t
+static void
 _reap_oldest_map_entry(_Inout_ ebpf_core_map_t* map)
 {
-    ebpf_result_t result;
     ebpf_core_lru_map_t* lru_map;
-
-    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].key_history)) {
-        return EBPF_SUCCESS;
-    }
 
     lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
 
-    // Grab key from the front of the cold list.
+    ebpf_list_entry_t entries_to_reap;
+    ebpf_list_initialize(&entries_to_reap);
+
+    // Grab count_of_entries_to_reap keys from the front of the cold list.
     ebpf_lock_state_t state = ebpf_lock_lock(&lru_map->lock);
     ebpf_lru_entry_t* entry = EBPF_FROM_FIELD(ebpf_lru_entry_t, list_entry, lru_map->cold_list.Flink);
+    if (ebpf_list_is_empty(&lru_map->cold_list)) {
+        entry = NULL;
+    } else {
+        // Remove from cold list.
+        ebpf_list_remove_entry(&entry->list_entry);
+        // Reset head and tail pointers.
+        ebpf_list_initialize(&entry->list_entry);
+    }
     ebpf_lock_unlock(&lru_map->lock, state);
 
-    // Delete may fail if the key was already deleted. Caller should attempt the insert again and if it fails with map
-    // full, then it should call this function again.
-    result = _delete_hash_map_entry(map, entry->key);
-    return result;
+    if (entry) {
+        // Attempt to delete the entry from the cold list.
+        // This may fail if the entry has already been freed, but that's okay as the caller will
+        // attempt to reap again if the next insert fails.
+        (void)_delete_hash_map_entry(map, entry->key);
+    }
 }
 
 static ebpf_result_t
 _find_hash_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
     uint8_t* value = NULL;
     if (!map || !key)
@@ -1187,9 +1177,6 @@ _find_hash_map_entry(
     if (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) {
         value = NULL;
     }
-
-    if (value)
-        _update_key_history(map, key, value, EBPF_LRU_KEY_OPERATION_UPDATE);
 
     if (delete_on_success) {
         // Delete is atomic.
@@ -1234,9 +1221,11 @@ _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* k
     return object;
 }
 
+volatile int32_t reap_attempt_counts[64] = {0};
+
 static ebpf_result_t
 _update_hash_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     ebpf_result_t result;
     ebpf_hash_table_operations_t hash_table_operation;
@@ -1258,36 +1247,31 @@ _update_hash_map_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    // Note:
-    // Update replaces the value in the map if the key already exists.
-    // If the key exists, we need to unlink the entry from the LRU list.
-
-    // Unlink the entry from the LRU list if needed.
-    _update_key_history(map, key, NULL, EBPF_LRU_KEY_OPERATION_DELETE);
-
-    // https://github.com/microsoft/ebpf-for-windows/issues/1741
-    // This second insert can still fail with EBPF_OUT_OF_SPACE due to a race with another ebpf_hash_table_update. This
-    // is a known issue and will be fixed in a future PR. In addition, the _reap_oldest_map_entry can fail if the map is
-    // empty, which can happen if the map is full and all the entries are deleted by other threads between the
-    // ebpf_hash_table_update and the call to _reap_oldest_map_entry.
-
-    result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
-    // If the map is a LRU map, and the update failed because the map is full, try to free up space by deleting the
-    // oldest entry.
-    if (result == EBPF_OUT_OF_SPACE && _reap_oldest_map_entry(map) == EBPF_SUCCESS) {
-        // Attempt to update the map again.
+    // If the map is full, try to delete the oldest entry and try again.
+    // Repeat while the insert fails with EBPF_NO_MEMORY.
+    for (;;) {
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
-    }
+        if (result != EBPF_OUT_OF_SPACE) {
+            break;
+        }
 
-    // Attempt to add the entry to the LRU list if needed.
-    _update_key_history(map, key, NULL, EBPF_LRU_KEY_OPERATION_INSERT);
+        // If this is not an LRU map, break.
+        if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].key_history)) {
+            break;
+        }
+
+        // Reap the oldest entry and try again.
+        // Data from measurements shows that reaping one entry or many entries doesn't materially affect performance.
+        // To make this simple, reap one entry at a time.
+        _reap_oldest_map_entry(map);
+    }
 
     return result;
 }
 
 static ebpf_result_t
 _update_hash_map_entry_with_handle(
-    _In_ ebpf_core_map_t* map,
+    _Inout_ ebpf_core_map_t* map,
     _In_ const uint8_t* key,
     ebpf_object_type_t value_type,
     ebpf_handle_t value_handle,
@@ -1361,13 +1345,13 @@ Done:
 
 static ebpf_result_t
 _update_map_hash_map_entry_with_handle(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, uintptr_t value_handle, ebpf_map_option_t option)
+    _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, uintptr_t value_handle, ebpf_map_option_t option)
 {
     return _update_hash_map_entry_with_handle(map, key, EBPF_OBJECT_MAP, value_handle, option);
 }
 
 static ebpf_result_t
-_delete_map_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+_delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     ebpf_result_t result;
     if (!map || !key)
@@ -1397,12 +1381,11 @@ _delete_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
     if (!map || !key)
         return EBPF_INVALID_ARGUMENT;
 
-    _update_key_history(map, key, NULL, EBPF_LRU_KEY_OPERATION_DELETE);
     return ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, key);
 }
 
 static ebpf_result_t
-_next_hash_map_key(_In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
+_next_hash_map_key(_Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {
     ebpf_result_t result;
     if (!map || !next_key)
@@ -1413,7 +1396,7 @@ _next_hash_map_key(_In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* previous_k
 }
 
 static ebpf_result_t
-_ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
+_ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
     uint32_t max_cpu = map->ebpf_map_definition.value_size / EBPF_PAD_8(map->original_value_size);
@@ -1448,7 +1431,7 @@ _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
  */
 _Must_inspect_result_ ebpf_result_t
 _update_entry_per_cpu(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option)
+    _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option)
 {
     uint8_t* target;
     if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry(map, key, false, &target) != EBPF_SUCCESS) {
@@ -1502,6 +1485,7 @@ _create_lpm_map(
         map_definition,
         0,
         _lpm_extract,
+        NULL,
         (ebpf_core_map_t**)&lpm_map);
     if (result != EBPF_SUCCESS)
         goto Exit;
@@ -1516,7 +1500,7 @@ Exit:
 
 static ebpf_result_t
 _find_lpm_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
     if (!map || !key || delete_on_success)
         return EBPF_INVALID_ARGUMENT;
@@ -1545,7 +1529,7 @@ _find_lpm_map_entry(
 }
 
 static ebpf_result_t
-_delete_lpm_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+_delete_lpm_map_entry(_In_ ebpf_core_map_t* map, _Inout_ const uint8_t* key)
 {
     ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
     uint32_t prefix_length = *(uint32_t*)key;
@@ -1558,7 +1542,7 @@ _delete_lpm_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 
 static ebpf_result_t
 _update_lpm_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
     if (!key) {
@@ -1627,7 +1611,7 @@ _delete_circular_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
 static ebpf_result_t
 _find_circular_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
     if (!map)
         return EBPF_INVALID_ARGUMENT;
@@ -1645,7 +1629,7 @@ _find_circular_map_entry(
 
 static ebpf_result_t
 _update_circular_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     ebpf_result_t result;
 
@@ -1664,7 +1648,7 @@ _update_circular_map_entry(
 }
 
 static _Requires_lock_held_(ring_buffer_map->lock) void _ebpf_ring_buffer_map_signal_async_query_complete(
-    _In_ ebpf_core_ring_buffer_map_t* ring_buffer_map)
+    _Inout_ ebpf_core_ring_buffer_map_t* ring_buffer_map)
 {
     EBPF_LOG_ENTRY();
     // Skip if no async_contexts have ever been queued.
@@ -1760,7 +1744,7 @@ Exit:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_output(_In_ ebpf_core_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length)
+ebpf_ring_buffer_map_output(_Inout_ ebpf_core_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
     ebpf_result_t result = EBPF_SUCCESS;
 
@@ -1819,9 +1803,9 @@ Exit:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_async_query(
-    _In_ ebpf_map_t* map,
+    _Inout_ ebpf_map_t* map,
     _Inout_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
-    _In_ void* async_context)
+    _Inout_ void* async_context)
 {
     ebpf_result_t result = EBPF_PENDING;
     EBPF_LOG_ENTRY();
@@ -2097,7 +2081,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
 };
 
 static void
-_ebpf_map_delete(_In_ ebpf_core_object_t* object)
+_ebpf_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
     ebpf_map_t* map = (ebpf_map_t*)object;
@@ -2191,7 +2175,7 @@ Exit:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_find_entry(
-    _In_ ebpf_map_t* map,
+    _Inout_ ebpf_map_t* map,
     size_t key_size,
     _In_reads_(key_size) const uint8_t* key,
     size_t value_size,
@@ -2271,7 +2255,7 @@ ebpf_map_find_entry(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_map_associate_program(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* program)
+ebpf_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].associate_program)
@@ -2280,7 +2264,7 @@ ebpf_map_associate_program(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* prog
 }
 
 _Ret_maybenull_ ebpf_program_t*
-ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key)
+ebpf_map_get_program_from_entry(_Inout_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key)
 {
     // High volume call - Skip entry/exit logging.
     if (key_size != map->ebpf_map_definition.key_size) {
@@ -2306,7 +2290,7 @@ ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_update_entry(
-    _In_ ebpf_map_t* map,
+    _Inout_ ebpf_map_t* map,
     size_t key_size,
     _In_reads_(key_size) const uint8_t* key,
     size_t value_size,
@@ -2369,7 +2353,7 @@ ebpf_map_update_entry(
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_update_entry_with_handle(
-    _In_ ebpf_map_t* map,
+    _Inout_ ebpf_map_t* map,
     size_t key_size,
     _In_reads_(key_size) const uint8_t* key,
     uintptr_t value_handle,
@@ -2427,7 +2411,7 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_next_key(
-    _In_ ebpf_map_t* map,
+    _Inout_ ebpf_map_t* map,
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* previous_key,
     _Out_writes_(key_size) uint8_t* next_key)
@@ -2491,7 +2475,7 @@ ebpf_map_get_info(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_map_push_entry(_In_ ebpf_map_t* map, size_t value_size, _In_reads_(value_size) const uint8_t* value, int flags)
+ebpf_map_push_entry(_Inout_ ebpf_map_t* map, size_t value_size, _In_reads_(value_size) const uint8_t* value, int flags)
 {
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
         return EBPF_INVALID_ARGUMENT;
@@ -2510,7 +2494,7 @@ ebpf_map_push_entry(_In_ ebpf_map_t* map, size_t value_size, _In_reads_(value_si
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_map_pop_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
+ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
 {
     uint8_t* return_value;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
@@ -2538,7 +2522,7 @@ ebpf_map_pop_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_s
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_map_peek_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
+ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
 {
     uint8_t* return_value;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {

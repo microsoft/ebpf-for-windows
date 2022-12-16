@@ -72,9 +72,9 @@ NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_program_info_provider_mod
 static NTSTATUS
 _sample_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
+    _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Outptr_ void** provider_binding_context,
     _Outptr_result_maybenull_ const void** provider_dispatch);
@@ -87,7 +87,7 @@ _sample_ebpf_extension_program_info_provider_attach_client(
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
 static NTSTATUS
-_sample_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context);
+_sample_ebpf_extension_program_info_provider_detach_client(_In_ const void* provider_binding_context);
 
 /**
  * @brief Callback invoked after the provider module and a client module have detached from one another.
@@ -157,9 +157,9 @@ NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_hook_provider_moduleid = 
 static NTSTATUS
 _sample_ebpf_extension_hook_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
+    _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Outptr_ void** provider_binding_context,
     _Outptr_result_maybenull_ const void** provider_dispatch);
@@ -172,7 +172,7 @@ _sample_ebpf_extension_hook_provider_attach_client(
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
 static NTSTATUS
-_sample_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context);
+_sample_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_binding_context);
 
 /**
  * @brief Callback invoked after the provider module and a client module have detached from one another.
@@ -239,9 +239,9 @@ static sample_ebpf_extension_hook_provider_t _sample_ebpf_extension_hook_provide
 static NTSTATUS
 _sample_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
+    _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Outptr_ void** provider_binding_context,
     _Outptr_result_maybenull_ const void** provider_dispatch)
@@ -282,7 +282,7 @@ Exit:
 }
 
 static NTSTATUS
-_sample_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context)
+_sample_ebpf_extension_program_info_provider_detach_client(_In_ const void* provider_binding_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -380,9 +380,9 @@ Exit:
 static NTSTATUS
 _sample_ebpf_extension_hook_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
+    _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Outptr_ void** provider_binding_context,
     _Outptr_result_maybenull_ const void** provider_dispatch)
@@ -439,7 +439,7 @@ Exit:
 }
 
 static NTSTATUS
-_sample_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context)
+_sample_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_binding_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -527,7 +527,7 @@ Exit:
 
 _Must_inspect_result_ ebpf_result_t
 sample_ebpf_extension_profile_program(
-    _In_ sample_ebpf_ext_profile_request_t* request,
+    _Inout_ sample_ebpf_ext_profile_request_t* request,
     size_t request_length,
     _Inout_ sample_ebpf_ext_profile_reply_t* reply)
 {

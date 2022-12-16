@@ -44,9 +44,9 @@ typedef struct _net_ebpf_extension_program_info_provider
 static NTSTATUS
 _net_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
+    _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Outptr_ void** provider_binding_context,
     _Outptr_result_maybenull_ const void** provider_dispatch)
@@ -98,7 +98,7 @@ Exit:
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
 static NTSTATUS
-_net_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context)
+_net_ebpf_extension_program_info_provider_detach_client(_In_ const void* provider_binding_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -146,8 +146,10 @@ net_ebpf_extension_program_info_provider_register(
 
     characteristics = &local_provider_context->characteristics;
     characteristics->Length = sizeof(NPI_PROVIDER_CHARACTERISTICS);
-    characteristics->ProviderAttachClient = _net_ebpf_extension_program_info_provider_attach_client;
-    characteristics->ProviderDetachClient = _net_ebpf_extension_program_info_provider_detach_client;
+    characteristics->ProviderAttachClient =
+        (PNPI_PROVIDER_ATTACH_CLIENT_FN)_net_ebpf_extension_program_info_provider_attach_client;
+    characteristics->ProviderDetachClient =
+        (PNPI_PROVIDER_DETACH_CLIENT_FN)_net_ebpf_extension_program_info_provider_detach_client;
     characteristics->ProviderCleanupBindingContext = _net_ebpf_extension_program_info_provider_cleanup_binding_context;
     characteristics->ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
     characteristics->ProviderRegistrationInstance.NpiId = &EBPF_PROGRAM_INFO_EXTENSION_IID;

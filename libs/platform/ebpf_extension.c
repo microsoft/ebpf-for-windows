@@ -156,7 +156,7 @@ _ebpf_extension_client_detach_provider(void* client_binding_context)
 }
 
 static void
-_ebpf_extension_client_cleanup_binding_context(_In_opt_ void* client_binding_context)
+_ebpf_extension_client_cleanup_binding_context(_In_opt_ _Post_invalid_ void* client_binding_context)
 {
     EBPF_LOG_ENTRY();
     if (client_binding_context != NULL) {
@@ -177,7 +177,7 @@ ebpf_extension_load(
     _In_ const GUID* interface_id,
     _In_ const GUID* expected_provider_module_id,
     _In_ const GUID* client_module_id,
-    _In_ void* extension_client_context,
+    _In_ const void* extension_client_context,
     _In_opt_ const ebpf_extension_data_t* client_data,
     _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
     _Outptr_opt_ void** provider_binding_context,
@@ -207,7 +207,7 @@ ebpf_extension_load(
 
     local_client_context->client_data = client_data;
     local_client_context->npi_id = *interface_id;
-    local_client_context->extension_client_context = extension_client_context;
+    local_client_context->extension_client_context = (void*)extension_client_context;
     local_client_context->client_module_id.Length = sizeof(local_client_context->client_module_id);
     local_client_context->client_module_id.Type = MIT_GUID;
     local_client_context->client_module_id.Guid = *client_module_id;
@@ -333,10 +333,10 @@ ebpf_provider_load(
     _Outptr_ ebpf_extension_provider_t** provider_context,
     _In_ const GUID* interface_id,
     _In_ const GUID* provider_module_id,
-    _In_opt_ void* provider_binding_context,
+    _Inout_opt_ void* provider_binding_context,
     _In_opt_ const ebpf_extension_data_t* provider_data,
     _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
-    _In_opt_ void* callback_context,
+    _Inout_opt_ void* callback_context,
     _In_ PNPI_PROVIDER_ATTACH_CLIENT_FN provider_attach_client_callback,
     _In_ PNPI_PROVIDER_DETACH_CLIENT_FN provider_detach_client_callback,
     _In_opt_ PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN provider_cleanup_binding_context_callback)

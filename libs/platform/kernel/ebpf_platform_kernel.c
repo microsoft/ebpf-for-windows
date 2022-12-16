@@ -63,8 +63,8 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     return p;
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
-    _Post_writable_byte_size_(new_size) void* ebpf_reallocate(_In_ void* memory, size_t old_size, size_t new_size)
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(new_size) void* ebpf_reallocate(
+    _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
 {
     void* p = ebpf_allocate(new_size);
     if (p) {
@@ -282,13 +282,13 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
 }
 
 void*
-ebpf_ring_descriptor_get_base_address(_In_ ebpf_ring_descriptor_t* memory_descriptor)
+ebpf_ring_descriptor_get_base_address(_In_ const ebpf_ring_descriptor_t* memory_descriptor)
 {
     return memory_descriptor->base_address;
 }
 
 _Ret_maybenull_ void*
-ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring)
+ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
 {
     __try {
         return MmMapLockedPagesSpecifyCache(
@@ -368,19 +368,19 @@ ebpf_lock_create(_Out_ ebpf_lock_t* lock)
 }
 
 void
-ebpf_lock_destroy(_In_ ebpf_lock_t* lock)
+ebpf_lock_destroy(_In_ _Post_invalid_ ebpf_lock_t* lock)
 {
     UNREFERENCED_PARAMETER(lock);
 }
 
 _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock)
+    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
 {
     return KeAcquireSpinLockRaiseToDpc(lock);
 }
 
 _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
-    _In_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
+    _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
     KeReleaseSpinLock(lock, state);
 }
@@ -433,7 +433,7 @@ ebpf_get_current_thread_id()
 typedef struct _ebpf_non_preemptible_work_item
 {
     KDPC deferred_procedure_call;
-    void (*work_item_routine)(void* work_item_context, void* parameter_1);
+    void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1);
 } ebpf_non_preemptible_work_item_t;
 
 static void
@@ -450,8 +450,8 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
     _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
-    _In_ void (*work_item_routine)(void* work_item_context, void* parameter_1),
-    _In_opt_ void* work_item_context)
+    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1),
+    _Inout_opt_ void* work_item_context)
 {
     *work_item = ebpf_allocate(sizeof(ebpf_non_preemptible_work_item_t));
     if (*work_item == NULL) {
@@ -476,7 +476,7 @@ ebpf_free_non_preemptible_work_item(_Frees_ptr_opt_ ebpf_non_preemptible_work_it
 }
 
 bool
-ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1)
+ebpf_queue_non_preemptible_work_item(_Inout_ ebpf_non_preemptible_work_item_t* work_item, _Inout_opt_ void* parameter_1)
 {
     return KeInsertQueueDpc(&work_item->deferred_procedure_call, parameter_1, NULL);
 }
@@ -484,12 +484,12 @@ ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work
 typedef struct _ebpf_preemptible_work_item
 {
     PIO_WORKITEM io_work_item;
-    void (*work_item_routine)(_In_opt_ void* work_item_context);
+    void (*work_item_routine)(_Inout_opt_ void* work_item_context);
     void* work_item_context;
 } ebpf_preemptible_work_item_t;
 
 void
-_ebpf_preemptible_routine(_In_ PDEVICE_OBJECT device_object, _In_opt_ PVOID context)
+_ebpf_preemptible_routine(_In_ PDEVICE_OBJECT device_object, _In_opt_ void* context)
 {
     UNREFERENCED_PARAMETER(device_object);
     if (context == NULL) {
@@ -515,8 +515,8 @@ ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* wo
 _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_preemptible_work_item(
     _Outptr_ ebpf_preemptible_work_item_t** work_item,
-    _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
-    _In_opt_ void* work_item_context)
+    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
+    _Inout_opt_ void* work_item_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     *work_item = ebpf_allocate(sizeof(ebpf_preemptible_work_item_t));
@@ -541,7 +541,7 @@ Done:
 }
 
 void
-ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item)
+ebpf_queue_preemptible_work_item(_Inout_ ebpf_preemptible_work_item_t* work_item)
 {
     IoQueueWorkItem(work_item->io_work_item, _ebpf_preemptible_routine, DelayedWorkQueue, work_item);
 }
@@ -550,7 +550,7 @@ typedef struct _ebpf_timer_work_item
 {
     KDPC deferred_procedure_call;
     KTIMER timer;
-    void (*work_item_routine)(void* work_item_context);
+    void (*work_item_routine)(_Inout_opt_ void* work_item_context);
     void* work_item_context;
 } ebpf_timer_work_item_t;
 
@@ -567,8 +567,8 @@ _ebpf_timer_routine(
 _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_timer_work_item(
     _Outptr_ ebpf_timer_work_item_t** timer_work_item,
-    _In_ void (*work_item_routine)(void* work_item_context),
-    _In_opt_ void* work_item_context)
+    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
+    _Inout_opt_ void* work_item_context)
 {
     *timer_work_item = ebpf_allocate(sizeof(ebpf_timer_work_item_t));
     if (*timer_work_item == NULL)
@@ -587,7 +587,7 @@ ebpf_allocate_timer_work_item(
 #define MICROSECONDS_PER_MILLISECOND 1000
 
 void
-ebpf_schedule_timer_work_item(_In_ ebpf_timer_work_item_t* work_item, uint32_t elapsed_microseconds)
+ebpf_schedule_timer_work_item(_Inout_ ebpf_timer_work_item_t* work_item, uint32_t elapsed_microseconds)
 {
     LARGE_INTEGER due_time;
     due_time.QuadPart = -((int64_t)elapsed_microseconds * MICROSECONDS_PER_TICK);
@@ -628,9 +628,9 @@ ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_access_check(
-    _In_ ebpf_security_descriptor_t* security_descriptor,
+    _In_ const ebpf_security_descriptor_t* security_descriptor,
     ebpf_security_access_mask_t request_access,
-    _In_ ebpf_security_generic_mapping_t* generic_mapping)
+    _In_ const ebpf_security_generic_mapping_t* generic_mapping)
 {
     ebpf_result_t result;
     NTSTATUS status;
@@ -640,13 +640,13 @@ ebpf_access_check(
     SeCaptureSubjectContext(&subject_context);
     SeLockSubjectContext(&subject_context);
     if (!SeAccessCheck(
-            security_descriptor,
+            (ebpf_security_descriptor_t*)security_descriptor,
             &subject_context,
             true,
             request_access,
             0,
             NULL,
-            generic_mapping,
+            (ebpf_security_generic_mapping_t*)generic_mapping,
             KernelMode,
             &granted_access,
             &status)) {
@@ -661,7 +661,7 @@ ebpf_access_check(
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_validate_security_descriptor(
-    _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
+    _In_ const ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
     ebpf_result_t result;
     if ((security_descriptor->Control & SE_SELF_RELATIVE) == 0) {
@@ -670,7 +670,7 @@ ebpf_validate_security_descriptor(
     }
 
     if (!RtlValidRelativeSecurityDescriptor(
-            security_descriptor,
+            (ebpf_security_descriptor_t*)security_descriptor,
             (ULONG)security_descriptor_length,
             DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION)) {
         result = EBPF_INVALID_ARGUMENT;

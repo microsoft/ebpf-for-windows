@@ -361,7 +361,7 @@ net_ebpf_extension_add_wfp_filters(
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
-    _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _Outptr_result_buffer_maybenull_(filter_count) uint64_t** filter_ids)
 {
     NTSTATUS status = STATUS_SUCCESS;

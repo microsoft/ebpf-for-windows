@@ -76,8 +76,8 @@ _netebpf_ext_helper::get_program_info_provider_data(const GUID& program_info_pro
 NTSTATUS
 _netebpf_ext_helper::_program_info_client_attach_provider(
     _In_ HANDLE nmr_binding_handle,
-    _In_ PVOID client_context,
-    _In_ PNPI_REGISTRATION_INSTANCE provider_registration_instance)
+    _Inout_ void* client_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
     auto& helper = *reinterpret_cast<_netebpf_ext_helper*>(client_context);
     auto client_binding_context = std::make_unique<program_info_provider_t>();
@@ -101,7 +101,7 @@ _netebpf_ext_helper::_program_info_client_attach_provider(
 }
 
 NTSTATUS
-_netebpf_ext_helper::_program_info_client_detach_provider(_In_ PVOID client_binding_context)
+_netebpf_ext_helper::_program_info_client_detach_provider(_Inout_ void* client_binding_context)
 {
     auto& program_info_provider = *reinterpret_cast<program_info_provider_t*>(client_binding_context);
     program_info_provider.parent->program_info_providers.erase(program_info_provider.module_id.Guid);
@@ -109,7 +109,7 @@ _netebpf_ext_helper::_program_info_client_detach_provider(_In_ PVOID client_bind
 }
 
 void
-_netebpf_ext_helper::_program_info_client_cleanup_binding_context(_In_ PVOID client_binding_context)
+_netebpf_ext_helper::_program_info_client_cleanup_binding_context(_In_ _Post_invalid_ void* client_binding_context)
 {
     UNREFERENCED_PARAMETER(client_binding_context);
 }

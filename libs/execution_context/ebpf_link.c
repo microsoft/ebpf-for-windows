@@ -27,7 +27,7 @@ typedef struct _ebpf_link
 
 static ebpf_result_t
 _ebpf_link_instance_invoke(
-    _In_ const void* extension_client_binding_context, _In_ void* program_context, _Out_ uint32_t* result);
+    _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result);
 
 static struct
 {
@@ -189,7 +189,7 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
 
 static ebpf_result_t
 _ebpf_link_instance_invoke(
-    _In_ const void* extension_client_binding_context, _In_ void* program_context, _Out_ uint32_t* result)
+    _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result)
 {
     // No function entry exit traces as this is a high volume function.
     ebpf_result_t return_value;
