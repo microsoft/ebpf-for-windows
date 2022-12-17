@@ -52,8 +52,9 @@ Done:
     return result;
 }
 
+// SAL annotation must be _In_opt_ as this function looks inside the structure to free entries.
 void
-ebpf_cryptographic_hash_destroy(_Frees_ptr_opt_ ebpf_cryptographic_hash_t* hash)
+ebpf_cryptographic_hash_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_cryptographic_hash_t* hash)
 {
     if (hash) {
         if (hash->hash_handle) {
