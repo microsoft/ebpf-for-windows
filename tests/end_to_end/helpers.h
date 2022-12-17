@@ -75,7 +75,7 @@ typedef class _hook_helper
     attach_link(
         fd_t program_fd,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
-        _In_ size_t attach_parameters_size,
+        size_t attach_parameters_size,
         _Outptr_ bpf_link** link)
     {
         return ebpf_program_attach_by_fd(program_fd, &_attach_type, attach_parameters, attach_parameters_size, link);
@@ -106,8 +106,8 @@ typedef class _single_instance_hook : public _hook_helper
                 &provider_data,
                 nullptr,
                 this,
-                provider_attach_client_callback,
-                provider_detach_client_callback,
+                (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
+                (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
                 nullptr) == EBPF_SUCCESS);
     }
     ~_single_instance_hook()
@@ -143,9 +143,7 @@ typedef class _single_instance_hook : public _hook_helper
 
     _Must_inspect_result_ ebpf_result_t
     detach(
-        fd_t program_fd,
-        _In_reads_bytes_(attach_parameter_size) void* attach_parameter,
-        _In_ size_t attach_parameter_size)
+        fd_t program_fd, _In_reads_bytes_(attach_parameter_size) void* attach_parameter, size_t attach_parameter_size)
     {
         return ebpf_program_detach(program_fd, &attach_type, attach_parameter, attach_parameter_size);
     }
@@ -166,12 +164,12 @@ typedef class _single_instance_hook : public _hook_helper
     }
 
     _Must_inspect_result_ ebpf_result_t
-    fire(void* context, int* result)
+    fire(_Inout_ void* context, _Out_ int* result)
     {
         if (client_binding_context == nullptr) {
             return EBPF_EXTENSION_FAILED_TO_LOAD;
         }
-        ebpf_result_t (*invoke_program)(void* link, void* context, int* result) =
+        ebpf_result_t (*invoke_program)(_In_ const void* link, _Inout_ void* context, _Out_ int* result) =
             reinterpret_cast<decltype(invoke_program)>(client_dispatch_table->function[0]);
 
         return invoke_program(client_binding_context, context, result);
@@ -182,8 +180,8 @@ typedef class _single_instance_hook : public _hook_helper
     provider_attach_client_callback(
         HANDLE nmr_binding_handle,
         _Inout_ void* provider_context,
-        _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
-        _In_ void* client_binding_context,
+        _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+        _In_ const void* client_binding_context,
         _In_ const void* client_dispatch,
         _Out_ void** provider_binding_context,
         _Out_ const void** provider_dispatch)
@@ -205,7 +203,7 @@ typedef class _single_instance_hook : public _hook_helper
     };
 
     static NTSTATUS
-    provider_detach_client_callback(_In_ void* provider_binding_context)
+    provider_detach_client_callback(_Inout_ void* provider_binding_context)
     {
         auto hook = reinterpret_cast<_single_instance_hook*>(provider_binding_context);
         hook->client_binding_context = nullptr;
@@ -223,7 +221,7 @@ typedef class _single_instance_hook : public _hook_helper
         EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(attach_provider_data), &attach_provider_data};
     ebpf_extension_provider_t* provider;
     PNPI_REGISTRATION_INSTANCE client_registration_instance;
-    void* client_binding_context;
+    const void* client_binding_context;
     const ebpf_extension_data_t* client_data;
     const ebpf_extension_dispatch_table_t* client_dispatch_table;
     HANDLE nmr_binding_handle;
@@ -298,7 +296,7 @@ typedef class _test_xdp_helper
 {
   public:
     static int
-    adjust_head(_In_ xdp_md_t* ctx, int delta)
+    adjust_head(_In_ const xdp_md_t* ctx, int delta)
     {
         return ((xdp_md_helper_t*)ctx)->adjust_head(delta);
     }
@@ -376,8 +374,8 @@ typedef class _program_info_provider
                 provider_data,
                 nullptr,
                 this,
-                provider_attach_client_callback,
-                provider_detach_client_callback,
+                (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
+                (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
                 nullptr) == EBPF_SUCCESS);
     }
     ~_program_info_provider() { ebpf_provider_unload(provider); }
@@ -387,8 +385,8 @@ typedef class _program_info_provider
     provider_attach_client_callback(
         HANDLE nmr_binding_handle,
         _Inout_ void* provider_context,
-        _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
-        _In_ void* client_binding_context,
+        _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+        _In_ const void* client_binding_context,
         _In_ const void* client_dispatch,
         _Out_ void** provider_binding_context,
         _Out_ const void** provider_dispatch)
@@ -405,7 +403,7 @@ typedef class _program_info_provider
     };
 
     static NTSTATUS
-    provider_detach_client_callback(_In_ void* provider_binding_context)
+    provider_detach_client_callback(_Inout_ void* provider_binding_context)
     {
         auto hook = reinterpret_cast<_program_info_provider*>(provider_binding_context);
         UNREFERENCED_PARAMETER(hook);

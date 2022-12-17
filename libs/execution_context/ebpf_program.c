@@ -106,7 +106,7 @@ _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
 
 static void
 _ebpf_program_program_info_provider_changed(
-    _In_ void* client_binding_context,
+    _In_ const void* client_binding_context,
     _In_ const void* provider_binding_context,
     _In_opt_ const ebpf_extension_data_t* provider_data)
 {
@@ -282,7 +282,7 @@ Exit:
  * @param[in] object Pointer to ebpf_core_object_t whose ref-count reached zero.
  */
 static void
-_ebpf_program_free(ebpf_core_object_t* object)
+_ebpf_program_free(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
     size_t index;
@@ -872,7 +872,7 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
 }
 
 void
-ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result)
+ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _Out_ uint32_t* result)
 {
     // High volume call - Skip entry/exit logging.
     ebpf_program_tail_call_state_t state = {0};

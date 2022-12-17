@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_epoch.h"
 #include "ebpf_platform.h"
 
 // Buckets contain an array of pointers to value and keys.
@@ -55,12 +56,16 @@ struct _ebpf_hash_table
     uint32_t seed;                  // Seed used for hashing.
     size_t key_size;                // Size of key.
     size_t value_size;              // Size of value.
+    size_t supplemental_value_size; // Size of supplemental value.
     void* (*allocate)(size_t size); // Function to allocate memory.
     void (*free)(void* memory);     // Function to free memory.
     void (*extract)(
         _In_ const uint8_t* value,
         _Outptr_ const uint8_t** data,
         _Out_ size_t* num); // Function to extract bytes to hash from key.
+
+    void* notification_context; //< Context to pass to notification functions.
+    ebpf_hash_table_notification_function notification_callback;
     _Field_size_(bucket_count) ebpf_hash_bucket_header_and_lock_t buckets[1]; // Pointer to array of buckets.
 };
 
@@ -99,7 +104,7 @@ _ebpf_rol(uint32_t value, size_t count)
  * @return Hash of key.
  */
 static unsigned long
-_ebpf_murmur3_32(_In_ const uint8_t* key, size_t length_in_bits, uint32_t seed)
+_ebpf_murmur3_32(_In_reads_((length_in_bits + 7) / 8) const uint8_t* key, size_t length_in_bits, uint32_t seed)
 {
     uint32_t c1 = 0xcc9e2d51;
     uint32_t c2 = 0x1b873593;
@@ -232,7 +237,7 @@ _ebpf_hash_table_compute_hash(_In_ const ebpf_hash_table_t* hash_table, _In_ con
  * @return Pointer to the ebpf_hash_bucket_entry_t.
  */
 static ebpf_hash_bucket_entry_t*
-_ebpf_hash_table_bucket_entry(size_t key_size, _In_ ebpf_hash_bucket_header_t* bucket, size_t index)
+_ebpf_hash_table_bucket_entry(size_t key_size, _In_ const ebpf_hash_bucket_header_t* bucket, size_t index)
 {
     uint8_t* offset = (uint8_t*)bucket->entries;
     size_t entry_size = EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key) + key_size;
@@ -248,17 +253,17 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ ebpf_hash_bucket_header_t* b
  * @param[in] hash_table The hash table.
  * @param[in] old_bucket The immutable bucket to copy.
  * @param[in] key The key to insert.
- * @param[in] data The copy of the value to insert. On success the new_bucket owns this memory.
+ * @param[in, out] data The copy of the value to insert. On success the new_bucket owns this memory.
  * @param[out] new_bucket The new bucket with the entry inserted. On success the caller owns this memory.
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
  */
 static ebpf_result_t
 _ebpf_hash_table_bucket_insert(
-    _In_ ebpf_hash_table_t* hash_table,
+    _Inout_ ebpf_hash_table_t* hash_table,
     _In_opt_ const ebpf_hash_bucket_header_t* old_bucket,
     _In_ const uint8_t* key,
-    _In_opt_ uint8_t* data,
+    _Inout_opt_ uint8_t* data,
     _Outptr_ ebpf_hash_bucket_header_t** new_bucket)
 {
     ebpf_result_t result;
@@ -335,9 +340,9 @@ Done:
  */
 static void
 _ebpf_hash_table_bucket_delete(
-    _In_ ebpf_hash_table_t* hash_table,
-    _In_ ebpf_hash_bucket_header_t* old_bucket,
-    _In_ size_t key_index,
+    _Inout_ ebpf_hash_table_t* hash_table,
+    _In_ const ebpf_hash_bucket_header_t* old_bucket,
+    size_t key_index,
     _Outptr_result_maybenull_ ebpf_hash_bucket_header_t** new_bucket)
 {
     ebpf_hash_bucket_header_t* backup_bucket =
@@ -396,7 +401,7 @@ Done:
  * @param[in] hash_table Hash table.
  * @param[in] old_bucket The immutable old bucket to copy.
  * @param[in] key_index The location of the key to update.
- * @param[in] data A copy of the data to update.
+ * @param[in, out] data A copy of the data to update.
  * @param[out] new_bucket The new bucket with the entry updated. On success the caller owns this memory.
  *
  * @retval EBPF_SUCCESS The operation was successful.
@@ -404,10 +409,10 @@ Done:
  */
 static ebpf_result_t
 _ebpf_hash_table_bucket_update(
-    _In_ ebpf_hash_table_t* hash_table,
+    _Inout_ ebpf_hash_table_t* hash_table,
     _In_ const ebpf_hash_bucket_header_t* old_bucket,
-    _In_ size_t key_index,
-    _In_opt_ uint8_t* data,
+    size_t key_index,
+    _Inout_opt_ uint8_t* data,
     _Outptr_ ebpf_hash_bucket_header_t** new_bucket)
 {
     ebpf_result_t result;
@@ -453,7 +458,7 @@ Done:
  */
 static ebpf_result_t
 _ebpf_hash_table_replace_bucket(
-    _In_ ebpf_hash_table_t* hash_table,
+    _Inout_ ebpf_hash_table_t* hash_table,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
     ebpf_hash_bucket_operation_t operation)
@@ -473,7 +478,7 @@ _ebpf_hash_table_replace_bucket(
 
     // Make a copy of the value to insert.
     if (operation != EBPF_HASH_BUCKET_OPERATION_DELETE) {
-        new_data = hash_table->allocate(hash_table->value_size);
+        new_data = hash_table->allocate(hash_table->value_size + hash_table->supplemental_value_size);
         if (!new_data) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -482,7 +487,11 @@ _ebpf_hash_table_replace_bucket(
         if (value) {
             memcpy(new_data, value, hash_table->value_size);
         } else {
-            memset(new_data, 0, hash_table->value_size);
+            memset(new_data, 0, hash_table->value_size + hash_table->supplemental_value_size);
+        }
+        if (hash_table->notification_callback) {
+            hash_table->notification_callback(
+                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE, key, new_data);
         }
     }
 
@@ -550,6 +559,17 @@ _ebpf_hash_table_replace_bucket(
 Done:
     ebpf_lock_unlock(&hash_table->buckets[hash % hash_table->bucket_count].lock, state);
 
+    if (hash_table->notification_callback) {
+        if (new_data) {
+            hash_table->notification_callback(
+                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, key, new_data);
+        }
+        if (old_data) {
+            hash_table->notification_callback(
+                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, key, old_data);
+        }
+    }
+
     // Free new_data if any. This occurs if the insert failed.
     hash_table->free(new_data);
     // Free old_data if any. This occurs if a delete or update succeeded.
@@ -562,22 +582,16 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_create(
-    _Out_ ebpf_hash_table_t** hash_table,
-    _In_ void* (*allocate)(size_t size),
-    _In_ void (*free)(void* memory),
-    size_t key_size,
-    size_t value_size,
-    size_t bucket_count,
-    size_t max_entries,
-    _In_opt_ void (*extract)(
-        _In_ const uint8_t* value,
-        _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
-        _Out_ size_t* length_in_bits))
+ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_hash_table_creation_options_t* options)
 {
     ebpf_result_t retval;
     ebpf_hash_table_t* table = NULL;
     size_t table_size = 0;
+    // Select default values for the hash table.
+    size_t bucket_count = options->bucket_count ? options->bucket_count : EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT;
+    void* (*allocate)(size_t size) = options->allocate ? options->allocate : ebpf_epoch_allocate;
+    void (*free)(void* memory) = options->free ? options->free : ebpf_epoch_free;
+
     retval = ebpf_safe_size_t_multiply(sizeof(ebpf_hash_bucket_header_and_lock_t), bucket_count, &table_size);
     if (retval != EBPF_SUCCESS) {
         goto Done;
@@ -593,15 +607,18 @@ ebpf_hash_table_create(
         goto Done;
     }
 
-    table->key_size = key_size;
-    table->value_size = value_size;
+    table->key_size = options->key_size;
+    table->value_size = options->value_size;
     table->allocate = allocate;
     table->free = free;
     table->bucket_count = bucket_count;
     table->entry_count = 0;
     table->seed = ebpf_random_uint32();
-    table->extract = extract;
-    table->max_entry_count = max_entries;
+    table->extract = options->extract_function;
+    table->max_entry_count = options->max_entries;
+    table->supplemental_value_size = options->supplemental_value_size;
+    table->notification_context = options->notification_context;
+    table->notification_callback = options->notification_callback;
 
     *hash_table = table;
     retval = EBPF_SUCCESS;
@@ -635,7 +652,7 @@ ebpf_hash_table_destroy(_In_opt_ _Post_ptr_invalid_ ebpf_hash_table_t* hash_tabl
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
+ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
 {
     ebpf_result_t retval;
     uint32_t hash;
@@ -669,6 +686,10 @@ ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key
     }
 
     *value = data;
+    if (hash_table->notification_callback) {
+        hash_table->notification_callback(
+            hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE, key, data);
+    }
     retval = EBPF_SUCCESS;
 Done:
     return retval;
@@ -676,7 +697,7 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_update(
-    _In_ ebpf_hash_table_t* hash_table,
+    _Inout_ ebpf_hash_table_t* hash_table,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
     ebpf_hash_table_operations_t operation)
@@ -710,7 +731,7 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
+ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
 {
     ebpf_result_t retval;
 
@@ -727,7 +748,7 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key_pointer_and_value(
-    _In_ ebpf_hash_table_t* hash_table,
+    _In_ const ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
     _Outptr_ uint8_t** next_key_pointer,
     _Outptr_opt_ uint8_t** value)
@@ -801,7 +822,7 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key_and_value(
-    _In_ ebpf_hash_table_t* hash_table,
+    _In_ const ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
     _Out_ uint8_t* next_key,
     _Inout_opt_ uint8_t** next_value)
@@ -817,13 +838,13 @@ ebpf_hash_table_next_key_and_value(
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key(
-    _In_ ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
+    _In_ const ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {
     return ebpf_hash_table_next_key_and_value(hash_table, previous_key, next_key, NULL);
 }
 
 size_t
-ebpf_hash_table_key_count(_In_ ebpf_hash_table_t* hash_table)
+ebpf_hash_table_key_count(_In_ const ebpf_hash_table_t* hash_table)
 {
     return hash_table->entry_count;
 }

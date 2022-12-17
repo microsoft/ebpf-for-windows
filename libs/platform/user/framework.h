@@ -70,7 +70,7 @@ extern "C"
     }
 
     inline bool
-    ebpf_list_remove_entry(_In_ ebpf_list_entry_t* entry)
+    ebpf_list_remove_entry(_Inout_ ebpf_list_entry_t* entry)
     {
         ebpf_list_entry_t* previous_entry;
         ebpf_list_entry_t* next_entry;

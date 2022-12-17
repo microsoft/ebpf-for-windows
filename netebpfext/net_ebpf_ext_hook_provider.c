@@ -200,7 +200,7 @@ net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_h
 
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_hook_invoke_program(
-    _In_ const net_ebpf_extension_hook_client_t* client, _In_ void* context, _Out_ uint32_t* result)
+    _In_ const net_ebpf_extension_hook_client_t* client, _In_ const void* context, _Out_ uint32_t* result)
 {
     ebpf_invoke_program_function_t invoke_program = client->invoke_program;
     const void* client_binding_context = client->client_binding_context;
@@ -216,7 +216,7 @@ net_ebpf_extension_hook_check_attach_parameter(
     size_t attach_parameter_size,
     _In_reads_(attach_parameter_size) const void* attach_parameter,
     _In_reads_(attach_parameter_size) const void* wild_card_attach_parameter,
-    _In_ net_ebpf_extension_hook_provider_t* provider_context)
+    _Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     bool using_wild_card_attach_parameter = FALSE;
@@ -283,9 +283,9 @@ Exit:
 static NTSTATUS
 _net_ebpf_extension_hook_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
+    _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Outptr_ void** provider_binding_context,
     _Outptr_result_maybenull_ const void** provider_dispatch)
@@ -361,7 +361,7 @@ Exit:
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
 static NTSTATUS
-_net_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context)
+_net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_binding_context)
 {
     NTSTATUS status = STATUS_PENDING;
 
@@ -439,8 +439,10 @@ net_ebpf_extension_hook_provider_register(
 
     characteristics = &local_provider_context->characteristics;
     characteristics->Length = sizeof(NPI_PROVIDER_CHARACTERISTICS);
-    characteristics->ProviderAttachClient = _net_ebpf_extension_hook_provider_attach_client;
-    characteristics->ProviderDetachClient = _net_ebpf_extension_hook_provider_detach_client;
+    characteristics->ProviderAttachClient =
+        (PNPI_PROVIDER_ATTACH_CLIENT_FN)_net_ebpf_extension_hook_provider_attach_client;
+    characteristics->ProviderDetachClient =
+        (PNPI_PROVIDER_DETACH_CLIENT_FN)_net_ebpf_extension_hook_provider_detach_client;
     characteristics->ProviderCleanupBindingContext = _net_ebpf_extension_hook_provider_cleanup_binding_context;
     characteristics->ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
     characteristics->ProviderRegistrationInstance.NpiId = &EBPF_HOOK_EXTENSION_IID;
@@ -466,7 +468,7 @@ Exit:
 }
 
 net_ebpf_extension_hook_client_t*
-net_ebpf_extension_hook_get_attached_client(_In_ net_ebpf_extension_hook_provider_t* provider_context)
+net_ebpf_extension_hook_get_attached_client(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
     net_ebpf_extension_hook_client_t* client_context = NULL;
     ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
@@ -479,7 +481,7 @@ net_ebpf_extension_hook_get_attached_client(_In_ net_ebpf_extension_hook_provide
 
 net_ebpf_extension_hook_client_t*
 net_ebpf_extension_hook_get_next_attached_client(
-    _In_ net_ebpf_extension_hook_provider_t* provider_context,
+    _Inout_ net_ebpf_extension_hook_provider_t* provider_context,
     _In_opt_ const net_ebpf_extension_hook_client_t* client_context)
 {
     net_ebpf_extension_hook_client_t* next_client = NULL;

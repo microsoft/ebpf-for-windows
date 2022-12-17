@@ -730,7 +730,7 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
 
     REQUIRE(
         ebpf_async_set_completion_callback(
-            &completion, [](void* context, size_t output_buffer_length, ebpf_result_t result) {
+            &completion, [](_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result) {
                 UNREFERENCED_PARAMETER(output_buffer_length);
                 auto completion = reinterpret_cast<_completion*>(context);
                 auto async_query_result = &completion->async_query_result;

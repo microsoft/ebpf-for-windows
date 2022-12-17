@@ -36,6 +36,18 @@ if (!$fileExists) {
     throw $errorString
 }
 
+$TempDir = "$OutDir\$ProgramName"
+
+if ($KernelMode) {
+    $TempDir += "_km"
+}
+else {
+    $TempDir += "_um"
+}
+
+mkdir -Force $TempDir
+Copy-Item -Path "$ProgramName.o" -Destination "$TempDir\"
+cd $TempDir
 
 if ($KernelMode) {
     $ProjectFile = "$ProgramName.vcxproj"
@@ -52,7 +64,7 @@ if ($PSBoundParameters.ContainsKey("Type")) {
     $AdditionalOptions += " --type $Type"
 }
 
-msbuild /p:BinDir="$BinDir\" /p:OutDir="$PWD\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:ProgramName="$ProgramName" /p:AdditionalOptions="$AdditionalOptions" $ProjectFile
+msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:ProgramName="$ProgramName" /p:AdditionalOptions="$AdditionalOptions" $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed for $ProgramName.o"
