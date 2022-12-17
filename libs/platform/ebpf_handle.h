@@ -32,13 +32,13 @@ extern "C"
      * @brief Create a handle that holds a reference on the object.
      *
      * @param[out] handle Pointer to memory that contains the handle on success.
-     * @param[in] object Object to be referenced by this handle.
+     * @param[in, out] object Object to write to.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_handle_create(ebpf_handle_t* handle, struct _ebpf_base_object* object);
+    ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ struct _ebpf_base_object* object);
 
     /**
      * @brief Remove an existing handle from the handle table and release its

@@ -22,5 +22,7 @@
       <Rule Id="C26817" Action="Warning" />
       <!-- Assigning by value when a const-reference would suffice, use const auto& instead (p.9). -->
       <Rule Id="C26820" Action="Warning" />
+      <!--  Don't try to declare a local variable with no name (es.84) -->
+      <Rule Id="C26444" Action="Warning" />
   </Rules>
 </RuleSet>

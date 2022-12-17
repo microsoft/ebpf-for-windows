@@ -138,7 +138,7 @@ Exit:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_trampoline_function(
-    _In_ const ebpf_trampoline_table_t* trampoline_table, size_t helper_id, _Out_ void** function)
+    _In_ const ebpf_trampoline_table_t* trampoline_table, size_t helper_id, _Outptr_ void** function)
 {
     EBPF_LOG_ENTRY();
     ebpf_trampoline_entry_t* local_entries;
@@ -171,7 +171,7 @@ Exit:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_trampoline_helper_address(
-    _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** helper_address)
+    _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Outptr_ void** helper_address)
 {
     EBPF_LOG_ENTRY();
     ebpf_trampoline_entry_t* local_entries;

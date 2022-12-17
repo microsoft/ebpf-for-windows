@@ -119,7 +119,7 @@ ring_buffer_test_event_context_t::unsubscribe()
 }
 
 int
-ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size)
+ring_buffer_test_event_handler(_Inout_ void* ctx, _In_opt_ const void* data, size_t size)
 {
     ring_buffer_test_event_context_t* event_context = reinterpret_cast<ring_buffer_test_event_context_t*>(ctx);
 
@@ -139,7 +139,7 @@ ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size)
         // Required number of event notifications already received.
         return 0;
 
-    std::vector<char> event_record(reinterpret_cast<char*>(data), reinterpret_cast<char*>(data) + size);
+    std::vector<char> event_record(reinterpret_cast<const char*>(data), reinterpret_cast<const char*>(data) + size);
     // Check if indicated event record matches an entry in the context records.
     auto records = event_context->records;
     auto it = std::find(records->begin(), records->end(), event_record);
@@ -173,7 +173,8 @@ ring_buffer_api_test_helper(
 
     // Create a new ring buffer manager and subscribe to ring buffer events.
     // The notifications for the events that were generated before should occur after the subscribe call.
-    context->ring_buffer = ring_buffer__new(ring_buffer_map, ring_buffer_test_event_handler, context.get(), nullptr);
+    context->ring_buffer = ring_buffer__new(
+        ring_buffer_map, (ring_buffer_sample_fn)ring_buffer_test_event_handler, context.get(), nullptr);
     REQUIRE(context->ring_buffer != nullptr);
 
     // Generate more events, post-subscription.

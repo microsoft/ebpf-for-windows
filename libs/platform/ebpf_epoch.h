@@ -74,16 +74,17 @@ extern "C"
      * @return Pointer to work item that can be scheduled.
      */
     ebpf_epoch_work_item_t*
-    ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ void (*callback)(void* context));
+    ebpf_epoch_allocate_work_item(
+        _In_ const void* callback_context, _In_ const void (*callback)(_Inout_ void* context));
 
     /**
      * @brief Schedule a previously allocated work-item to run when the current
      * epoch ends.
      *
-     * @param[in] work_item Pointer to work item to run on epoch end.
+     * @param[in, out] work_item Pointer to work item to run on epoch end.
      */
     void
-    ebpf_epoch_schedule_work_item(_In_ ebpf_epoch_work_item_t* work_item);
+    ebpf_epoch_schedule_work_item(_Inout_ ebpf_epoch_work_item_t* work_item);
 
     /**
      * @brief Free an epoch work item.

@@ -205,7 +205,7 @@ bpf_code_generator::program_sections()
 {
     std::vector<bpf_code_generator::unsafe_string> section_names;
     for (const auto& section : reader.sections) {
-        if (!is_section_valid(section)) {
+        if (!is_section_valid(section.get())) {
             continue;
         }
         bpf_code_generator::unsafe_string name = section->get_name();

@@ -40,13 +40,13 @@ get_address_from_string(
 }
 
 std::string
-get_string_from_address(_In_ const PSOCKADDR sockaddr)
+get_string_from_address(_In_ const SOCKADDR* sockaddr)
 {
     char ip_string[MAXIMUM_IP_BUFFER_SIZE] = {0};
 
     DWORD length = sizeof(ip_string);
-    int error =
-        WSAAddressToStringA(sockaddr, (DWORD)INET_SOCKADDR_LENGTH(sockaddr->sa_family), nullptr, ip_string, &length);
+    int error = WSAAddressToStringA(
+        const_cast<SOCKADDR*>(sockaddr), (DWORD)INET_SOCKADDR_LENGTH(sockaddr->sa_family), nullptr, ip_string, &length);
     if (error != 0) {
         error = WSAGetLastError();
         printf("Failure calling WSAAddressToStringA with error code %d\n", error);
@@ -95,7 +95,7 @@ _base_socket::~_base_socket()
 }
 
 void
-_base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length)
+_base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length) const
 {
     address = (PSOCKADDR)&local_address;
     address_length = local_address_size;
@@ -204,7 +204,7 @@ _datagram_client_socket::_datagram_client_socket(int _sock_type, int _protocol, 
 
 void
 _datagram_client_socket::send_message_to_remote_host(
-    _In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port)
+    _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port)
 {
     int error = 0;
 
@@ -220,7 +220,7 @@ _datagram_client_socket::send_message_to_remote_host(
         1,
         reinterpret_cast<LPDWORD>(&bytes_sent),
         send_flags,
-        (PSOCKADDR)&remote_address,
+        (const SOCKADDR*)&remote_address,
         sizeof(remote_address),
         nullptr,
         nullptr);
@@ -265,7 +265,7 @@ _stream_client_socket::_stream_client_socket(int _sock_type, int _protocol, uint
 
 void
 _stream_client_socket::send_message_to_remote_host(
-    _In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port)
+    _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port)
 {
     // Send a message to the remote host using the sender socket.
     ((PSOCKADDR_IN6)&remote_address)->sin6_port = htons(remote_port);

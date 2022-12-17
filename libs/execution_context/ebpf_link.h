@@ -24,13 +24,13 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_link_create(ebpf_link_t** link);
+    ebpf_link_create(_Outptr_ ebpf_link_t** link);
 
     /**
      * @brief Initialize this link object and load the associated hook
      *  provider if needed.
      *
-     * @param[in] link The link object to initialize.
+     * @param[in, out] link The link object to initialize.
      * @param[in] attach_type Attach type to load.
      * @param[in] context_data Data to be passed to the hook provider.
      * @param[in] context_data_length Length of the data to be passed to the hook
@@ -39,19 +39,22 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_link_initialize(
-        ebpf_link_t* link, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length);
+        _Inout_ ebpf_link_t* link,
+        ebpf_attach_type_t attach_type,
+        _In_reads_(context_data_length) const uint8_t* context_data,
+        size_t context_data_length);
 
     /**
      * @brief Attach a program to this link object.
      *
-     * @param[in] link The link object to attach the program to.
-     * @param[in] program The program to attach to this link object.
+     * @param[in, out] link The link object to attach the program to.
+     * @param[in, out] program The program to attach to this link object.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT Hook instance has not been
      *  initialized.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program);
+    ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* program);
 
     /**
      * @brief Detach a program from this link object.
@@ -66,7 +69,7 @@ extern "C"
      *
      * @param[in] link The link object to get info about.
      * @param[out] buffer Buffer to write bpf_link_info into.
-     * @param[in,out] info_size On input, the size in bytes of the buffer.
+     * @param[in, out] info_size On input, the size in bytes of the buffer.
      * On output, the number of bytes actually written.
      *
      * @retval EBPF_SUCCESS The operation was successful.

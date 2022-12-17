@@ -149,7 +149,7 @@ _ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program
 }
 
 static void
-_ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
+_ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
 {
     _ebpf_native_clean_up_maps(module->maps, module->map_count, false);
     _ebpf_native_clean_up_programs(module->programs, module->program_count);
@@ -168,7 +168,7 @@ _ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
     ebpf_free(module);
 }
 
-_Requires_lock_held_(module->lock) static ebpf_result_t _ebpf_native_unload(_In_ ebpf_native_module_t* module)
+_Requires_lock_held_(module->lock) static ebpf_result_t _ebpf_native_unload(_Inout_ ebpf_native_module_t* module)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -201,12 +201,17 @@ void
 ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 {
     ebpf_assert(module->base.marker == _ebpf_native_marker);
+
+// Locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
+#pragma warning(push)
+#pragma warning(disable : 4189)
     int32_t new_ref_count = ebpf_interlocked_increment_int32(&module->base.reference_count);
     ebpf_assert(new_ref_count != 1);
+#pragma warning(pop)
 }
 
 void
-ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
+ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* module)
 {
     int32_t new_ref_count;
     ebpf_lock_state_t module_lock_state = 0;
@@ -281,9 +286,9 @@ ebpf_native_terminate()
 static NTSTATUS
 _ebpf_native_provider_attach_client_callback(
     HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
-    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* provider_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Out_ void** provider_binding_context,
     _Out_ const void** provider_dispatch)
@@ -366,7 +371,7 @@ Done:
 }
 
 static NTSTATUS
-_ebpf_native_provider_detach_client_callback(_In_ void* provider_binding_context)
+_ebpf_native_provider_detach_client_callback(_In_ const void* provider_binding_context)
 {
     ebpf_native_module_t* context = (ebpf_native_module_t*)provider_binding_context;
 
@@ -414,15 +419,14 @@ ebpf_native_initiate()
 
     ebpf_lock_create(&_ebpf_native_client_table_lock);
 
-    return_value = ebpf_hash_table_create(
-        &_ebpf_native_client_table,
-        ebpf_allocate,
-        ebpf_free,
-        sizeof(GUID),
-        sizeof(ebpf_native_module_t*),
-        EBPF_CLIENT_TABLE_BUCKET_COUNT,
-        EBPF_HASH_TABLE_NO_LIMIT,
-        NULL);
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = sizeof(GUID),
+        .value_size = sizeof(ebpf_native_module_t*),
+        .allocate = ebpf_allocate,
+        .free = ebpf_free,
+    };
+
+    return_value = ebpf_hash_table_create(&_ebpf_native_client_table, &options);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
@@ -436,8 +440,8 @@ ebpf_native_initiate()
         NULL,
         NULL,
         NULL,
-        _ebpf_native_provider_attach_client_callback,
-        _ebpf_native_provider_detach_client_callback,
+        (NPI_PROVIDER_ATTACH_CLIENT_FN*)_ebpf_native_provider_attach_client_callback,
+        (NPI_PROVIDER_DETACH_CLIENT_FN*)_ebpf_native_provider_detach_client_callback,
         NULL);
 
     if (return_value != EBPF_SUCCESS) {
@@ -457,7 +461,7 @@ Done:
 }
 
 static ebpf_native_map_t*
-_ebpf_native_get_next_map_to_create(_In_ ebpf_native_map_t* maps, size_t map_count)
+_ebpf_native_get_next_map_to_create(_In_reads_(map_count) ebpf_native_map_t* maps, size_t map_count)
 {
     for (uint32_t i = 0; i < map_count; i++) {
         ebpf_native_map_t* map = &maps[i];
@@ -847,7 +851,8 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_native_resolve_helpers_for_program(_In_ ebpf_native_module_t* module, _In_ ebpf_native_program_t* program)
+_ebpf_native_resolve_helpers_for_program(
+    _In_ const ebpf_native_module_t* module, _In_ const ebpf_native_program_t* program)
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(module);
@@ -901,7 +906,8 @@ Done:
 }
 
 static void
-_ebpf_native_initialize_helpers_for_program(_In_ ebpf_native_module_t* module, _In_ ebpf_native_program_t* program)
+_ebpf_native_initialize_helpers_for_program(
+    _In_ const ebpf_native_module_t* module, _Inout_ ebpf_native_program_t* program)
 {
     UNREFERENCED_PARAMETER(module);
     size_t helper_count = program->entry->helper_count;
@@ -916,7 +922,7 @@ _ebpf_native_initialize_helpers_for_program(_In_ ebpf_native_module_t* module, _
 }
 
 static ebpf_result_t
-_ebpf_native_load_programs(_In_ ebpf_native_module_t* module)
+_ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_native_program_t* native_programs = NULL;

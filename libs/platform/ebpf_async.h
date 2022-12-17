@@ -65,7 +65,8 @@ extern "C"
      *  operation.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_async_set_completion_callback(_In_ void* context, _In_ void (*on_complete)(_In_ void*, size_t, ebpf_result_t));
+    ebpf_async_set_completion_callback(
+        _In_ const void* context, _In_ void (*on_complete)(_Inout_ void*, size_t, ebpf_result_t));
 
     /**
      * @brief Set a completion function to be called when actions associated with this context complete.
@@ -73,40 +74,42 @@ extern "C"
      * @param[in] context Context of action to stop tracking.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_async_reset_completion_callback(_In_ void* context);
+    ebpf_async_reset_completion_callback(_In_ const void* context);
 
     /**
      * @brief Set a cancellation function to be called when actions associated with this context are canceled.
      *
      * @param[in] context Context of action to track.
-     * @param[in] cancellation_context Context to pass when this action is canceled.
+     * @param[in, out] cancellation_context Context to pass when this action is canceled.
      * @param[in] on_cancel Function to call if this action is canceled.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT The action context hasn't been registered.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_async_set_cancel_callback(
-        _In_ void* context, _In_ void* cancellation_context, _In_ void (*on_cancel)(_In_ void* cancellation_context));
+        _In_ const void* context,
+        _Inout_opt_ const void* cancellation_context,
+        _In_ void (*on_cancel)(_Inout_opt_ void* cancellation_context));
 
     /**
      * @brief Cancel the action associated with this context.
      *
-     * @param[in] context Context associated with the action.
+     * @param[in, out] context Context associated with the action.
      * @retval true Action was canceled.
      * @retval false Action was already completed.
      */
     bool
-    ebpf_async_cancel(_In_ void* context);
+    ebpf_async_cancel(_Inout_ void* context);
 
     /**
      * @brief Complete the action associated with this context.
      *
-     * @param[in] context Context associated with the action.
+     * @param[in, out] context Context associated with the action.
      * @param[in] output_buffer_length Length (in bytes) of the buffer containing the result of the async operation.
      * @param[in] result The outcome of the action.
      */
     void
-    ebpf_async_complete(_In_ void* context, size_t output_buffer_length, ebpf_result_t result);
+    ebpf_async_complete(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result);
 
 #ifdef __cplusplus
 }

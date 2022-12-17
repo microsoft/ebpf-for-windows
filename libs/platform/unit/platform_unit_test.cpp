@@ -89,10 +89,15 @@ TEST_CASE("hash_table_test", "[platform]")
         v = static_cast<uint8_t>(ebpf_random_uint32());
     }
 
-    REQUIRE(
-        ebpf_hash_table_create(
-            &table, ebpf_allocate, ebpf_free, key_1.size(), data_1.size(), 1, EBPF_HASH_TABLE_NO_LIMIT, NULL) ==
-        EBPF_SUCCESS);
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = key_1.size(),
+        .value_size = data_1.size(),
+        .allocate = ebpf_allocate,
+        .free = ebpf_free,
+        .bucket_count = 1,
+    };
+
+    REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
 
     // Insert first
     // Empty bucket case
@@ -186,16 +191,12 @@ TEST_CASE("hash_table_stress_test", "[platform]")
     uint32_t key_count = 4;
     uint32_t load_factor = 4;
     int32_t cpu_id = 0;
-    REQUIRE(
-        ebpf_hash_table_create(
-            &table,
-            ebpf_epoch_allocate,
-            ebpf_epoch_free,
-            sizeof(uint32_t),
-            sizeof(uint64_t),
-            static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
-            EBPF_HASH_TABLE_NO_LIMIT,
-            NULL) == EBPF_SUCCESS);
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = sizeof(uint32_t),
+        .value_size = sizeof(uint64_t),
+        .bucket_count = static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
+    };
+    REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
     auto worker = [table, iterations, key_count, load_factor, &cpu_id]() {
         uint32_t next_key = 0;
         uint64_t value = 11;
@@ -418,8 +419,8 @@ static NTSTATUS
 test_provider_attach_client(
     HANDLE nmr_binding_handle,
     _Inout_ void* provider_context,
-    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Out_ void** provider_binding_context,
     _Out_ const void** provider_dispatch)
@@ -436,7 +437,7 @@ test_provider_attach_client(
 };
 
 static NTSTATUS
-test_provider_detach_client(_In_ void* provider_binding_context)
+test_provider_detach_client(_In_ const void* provider_binding_context)
 {
     UNREFERENCED_PARAMETER(provider_binding_context);
     return STATUS_SUCCESS;
@@ -476,8 +477,8 @@ TEST_CASE("extension_test", "[platform]")
             &provider_data,
             &test_provider_dispatch_table,
             &callback_context,
-            test_provider_attach_client,
-            test_provider_detach_client,
+            (NPI_PROVIDER_ATTACH_CLIENT_FN*)test_provider_attach_client,
+            (NPI_PROVIDER_DETACH_CLIENT_FN*)test_provider_detach_client,
             nullptr) == EBPF_SUCCESS);
 
     REQUIRE(

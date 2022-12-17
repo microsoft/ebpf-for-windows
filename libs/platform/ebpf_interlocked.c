@@ -64,14 +64,14 @@ ebpf_interlocked_decrement_int64(_Inout_ volatile int64_t* addend)
 }
 
 int32_t
-ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comperand)
+ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comparand)
 {
-    return InterlockedCompareExchange((long volatile*)destination, exchange, comperand);
+    return InterlockedCompareExchange((long volatile*)destination, exchange, comparand);
 }
 
 void*
 ebpf_interlocked_compare_exchange_pointer(
-    _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comperand)
+    _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comparand)
 {
-    return InterlockedCompareExchangePointer((void* volatile*)destination, (void*)exchange, (void*)comperand);
+    return InterlockedCompareExchangePointer((void* volatile*)destination, (void*)exchange, (void*)comparand);
 }
