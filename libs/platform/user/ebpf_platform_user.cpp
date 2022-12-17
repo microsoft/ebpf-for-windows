@@ -317,8 +317,8 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void*
     return memory;
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(_In_ void* memory, size_t old_size, size_t new_size)
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
+    _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
 {
     UNREFERENCED_PARAMETER(old_size);
     if (new_size > ebpf_fuzzing_memory_limit) {

@@ -151,8 +151,8 @@ extern "C"
      * @param[in] new_size New size of memory to reallocate.
      * @returns Pointer to memory block allocated, or null on failure.
      */
-    __drv_allocatesMem(Mem) _Must_inspect_result_
-        _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(_In_ void* memory, size_t old_size, size_t new_size);
+    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
+        _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size);
 
     /**
      * @brief Free memory.
@@ -1134,7 +1134,7 @@ extern "C"
      * @return EBPF_INVALID_ARGUMENT The algorithm is not supported.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_cryptographic_hash_create(const wchar_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash);
+    ebpf_cryptographic_hash_create(_In_z_ const wchar_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash);
 
     /**
      * @brief Destroy a cryptographic hash object.
@@ -1142,7 +1142,7 @@ extern "C"
      * @param[in] hash The hash object to destroy.
      */
     void
-    ebpf_cryptographic_hash_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_cryptographic_hash_t* hash);
+    ebpf_cryptographic_hash_destroy(_Frees_ptr_opt_ ebpf_cryptographic_hash_t* hash);
 
     /**
      * @brief Append data to a cryptographic hash object.
@@ -1160,7 +1160,7 @@ extern "C"
     /**
      * @brief Finalize the hash and return the hash value.
      *
-     * @param[in,out] hash The hash object to finalize.
+     * @param[in, out] hash The hash object to finalize.
      * @param[out] buffer The buffer to receive the hash value.
      * @param[in] input_length The length of the buffer.
      * @param[out] output_length The length of the hash value.
