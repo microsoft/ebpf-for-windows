@@ -19,5 +19,8 @@ vasprintf(char** target, const char* format, va_list argptr)
 {
     int length = 1024;
     *target = calloc(length, sizeof(const char));
+    if (target == NULL) {
+        return -1;
+    }
     return vsprintf_s(*target, length, format, argptr);
 }
