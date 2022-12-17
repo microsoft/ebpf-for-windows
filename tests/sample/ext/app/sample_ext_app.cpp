@@ -149,7 +149,7 @@ utility_helpers_test(ebpf_execution_type_t execution_type)
 
     extension.invoke(dummy, dummy);
 
-    verify_utility_helper_results(object);
+    verify_utility_helper_results(object, true);
 }
 
 #if !defined(CONFIG_BPF_JIT_ALWAYS_ON)

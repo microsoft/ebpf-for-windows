@@ -527,7 +527,9 @@ TEST_CASE("trampoline_test", "[platform]")
             EBPF_COUNT_OF(provider_helper_function_ids),
             provider_helper_function_ids,
             &helper_function_addresses1) == EBPF_SUCCESS);
-    REQUIRE(ebpf_get_trampoline_function(table, 0, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_get_trampoline_function(
+            table, EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
 
     // Verify that the trampoline function invokes the provider function
     REQUIRE(test_function() == EBPF_SUCCESS);

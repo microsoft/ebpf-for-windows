@@ -858,7 +858,7 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 0);
 
-    verify_utility_helper_results(object);
+    verify_utility_helper_results(object, false);
 }
 
 void

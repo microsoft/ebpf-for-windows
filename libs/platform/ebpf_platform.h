@@ -938,7 +938,7 @@ extern "C"
      * @brief Get the address of a trampoline function.
      *
      * @param[in] trampoline_table Trampoline table to query.
-     * @param[in] index Index of function to get.
+     * @param[in] helper_id Id of the helper function to get.
      * @param[out] function Pointer to memory that contains the function on success.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
@@ -947,7 +947,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_get_trampoline_function(
-        _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function);
+        _In_ const ebpf_trampoline_table_t* trampoline_table, size_t helper_id, _Out_ void** function);
 
     /**
      * @brief Get the address of the helper function from the trampoline table entry.

@@ -78,7 +78,7 @@ Exit:
 }
 
 void
-verify_utility_helper_results(_In_ const bpf_object* object)
+verify_utility_helper_results(_In_ const bpf_object* object, bool helper_override)
 {
     fd_t utility_map_fd = bpf_object__find_map_fd_by_name(object, "utility_map");
     ebpf_utility_helpers_data_t test_data[UTILITY_MAP_SIZE];
@@ -91,6 +91,14 @@ verify_utility_helper_results(_In_ const bpf_object* object)
     REQUIRE(
         (test_data[1].boot_timestamp - test_data[0].boot_timestamp) >=
         (test_data[1].timestamp - test_data[0].timestamp));
+
+    if (helper_override) {
+        REQUIRE(test_data[0].pid_tgid == SAMPLE_EXT_PID_TGID);
+        REQUIRE(test_data[1].pid_tgid == SAMPLE_EXT_PID_TGID);
+    } else {
+        REQUIRE(test_data[0].pid_tgid != SAMPLE_EXT_PID_TGID);
+        REQUIRE(test_data[1].pid_tgid != SAMPLE_EXT_PID_TGID);
+    }
 }
 
 ring_buffer_test_event_context_t::_ring_buffer_test_event_context()
