@@ -95,7 +95,7 @@ ebpf_cryptographic_hash_get_hash(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (*output_length > input_length) {
+    if ((*output_length > input_length) && (*output_length < UINT32_MAX)) {
         return EBPF_INSUFFICIENT_BUFFER;
     }
 
