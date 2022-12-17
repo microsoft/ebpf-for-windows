@@ -1142,7 +1142,7 @@ extern "C"
      * @param[in] hash The hash object to destroy.
      */
     void
-    ebpf_cryptographic_hash_destroy(_Frees_ptr_opt_ ebpf_cryptographic_hash_t* hash);
+    ebpf_cryptographic_hash_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_cryptographic_hash_t* hash);
 
     /**
      * @brief Append data to a cryptographic hash object.
