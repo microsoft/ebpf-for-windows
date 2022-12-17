@@ -46,7 +46,7 @@ typedef struct _ebpf_program
 
     ebpf_extension_client_t* general_helper_extension_client;
     ebpf_extension_data_t* general_helper_provider_data;
-    ebpf_extension_dispatch_table_t* general_helper_provider_dispatch_table; // useless. Not used anywhere.
+    ebpf_extension_dispatch_table_t* general_helper_provider_dispatch_table;
 
     ebpf_extension_client_t* info_extension_client;
     const void* info_extension_provider_binding_context;
@@ -933,7 +933,6 @@ _ebpf_program_get_helper_function_address(
     EBPF_LOG_ENTRY();
 
     if (helper_function_id > EBPF_MAX_GENERAL_HELPER_FUNCTION) {
-        // uint32_t trampoline_table_index = helper_function_id - (EBPF_MAX_GENERAL_HELPER_FUNCTION + 1);
         if (!program->trampoline_table) {
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
