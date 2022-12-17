@@ -88,25 +88,25 @@ jobs:
 
     - name: Create verifier project
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      env:
-        CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
-        LDFLAGS: ${{env.LD_FLAGS}}
+      # env:
+      #   CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
+      #   LDFLAGS: ${{env.LD_FLAGS}}
       run: |
         cmake -G "Visual Studio 17 2022" -S external\ebpf-verifier -B external\ebpf-verifier\build
 
     - name: Create catch2 project
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      env:
-        CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
-        LDFLAGS: ${{env.LD_FLAGS}}
+      # env:
+      #   CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
+      #   LDFLAGS: ${{env.LD_FLAGS}}
       run: |
         cmake -G "Visual Studio 17 2022" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
     - name: Create ubpf project
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      env:
-        CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
-        LDFLAGS: ${{env.LD_FLAGS}}
+      # env:
+      #   CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
+      #   LDFLAGS: ${{env.LD_FLAGS}}
       run: |
         cmake -G "Visual Studio 17 2022" -S external\ubpf -B external\ubpf\build
 
