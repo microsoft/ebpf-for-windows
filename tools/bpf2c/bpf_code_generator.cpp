@@ -14,8 +14,8 @@
 #include <cassert>
 #include <iomanip>
 #include <iostream>
-#include <vector>
 #include <sstream>
+#include <vector>
 #include <windows.h>
 #undef max
 
