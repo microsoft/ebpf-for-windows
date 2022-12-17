@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_platform.h"
+// Include framework.h to capture the platform specific Windows headers.
+// Required by bcrypt.h.
+#include "framework.h"
 
 #include <bcrypt.h>
-
 #pragma comment(lib, "bcrypt")
+#include "ebpf_platform.h"
 
 // This file contains the wrapper around the crypto API.
 
@@ -16,7 +18,7 @@ typedef struct _ebpf_cryptographic_hash
 } ebpf_cryptographic_hash_t;
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_cryptographic_hash_create(const wchar_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash)
+ebpf_cryptographic_hash_create(_In_z_ const wchar_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash)
 {
     ebpf_result_t result;
     NTSTATUS nt_status;
@@ -51,7 +53,7 @@ Done:
 }
 
 void
-ebpf_cryptographic_hash_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_cryptographic_hash_t* hash)
+ebpf_cryptographic_hash_destroy(_Frees_ptr_opt_ ebpf_cryptographic_hash_t* hash)
 {
     if (hash) {
         if (hash->hash_handle) {

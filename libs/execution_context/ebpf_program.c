@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <stdlib.h>
+
 #include "bpf_helpers.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
@@ -12,7 +14,6 @@
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_program_types.h"
 #include "ebpf_state.h"
-#include <stdlib.h>
 
 #include "ubpf.h"
 
@@ -1241,14 +1242,14 @@ _ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
     ebpf_cryptographic_hash_t* cryptographic_hash = NULL;
-
+    ebpf_helper_id_to_index_t* helper_id_to_index = NULL;
     const ebpf_program_info_t* program_info = NULL;
+
     result = ebpf_program_get_program_info(program, &program_info);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    ebpf_helper_id_to_index_t* helper_id_to_index = NULL;
     helper_id_to_index =
         (ebpf_helper_id_to_index_t*)ebpf_allocate(program_info->count_of_helpers * sizeof(ebpf_helper_id_to_index_t));
     if (helper_id_to_index == NULL) {
@@ -1382,6 +1383,7 @@ _ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
     result = EBPF_SUCCESS;
 
 Exit:
+    ebpf_free(helper_id_to_index);
     ebpf_program_free_program_info((ebpf_program_info_t*)program_info);
 
     EBPF_RETURN_RESULT(result);

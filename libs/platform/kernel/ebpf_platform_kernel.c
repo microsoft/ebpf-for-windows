@@ -62,8 +62,8 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void*
     return p;
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(_In_ void* memory, size_t old_size, size_t new_size)
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
+    _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
 {
     void* p = ebpf_allocate(new_size);
     if (p) {
