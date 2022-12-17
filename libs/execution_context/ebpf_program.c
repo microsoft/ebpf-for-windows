@@ -12,10 +12,13 @@
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_program_types.h"
 #include "ebpf_state.h"
+#include <stdlib.h>
 
 #include "ubpf.h"
 
 static size_t _ebpf_program_state_index = MAXUINT64;
+#define EBPF_MAX_HASH_SIZE 128
+#define EBPF_HASH_ALGORITHM L"SHA256"
 
 typedef struct _ebpf_program
 {
@@ -96,6 +99,9 @@ _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
     }
     EBPF_RETURN_VOID();
 }
+
+static ebpf_result_t
+_ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program);
 
 static void
 _ebpf_program_program_info_provider_changed(
@@ -202,6 +208,20 @@ _ebpf_program_program_info_provider_changed(
 
     program->info_extension_provider_binding_context = provider_binding_context;
     program->info_extension_provider_data = provider_data;
+
+    if (program->parameters.program_info_hash != NULL) {
+        return_value = _ebpf_program_verify_program_info_hash(program);
+        if (return_value != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "The program info used to verify the program doesn't match the program info provided by the "
+                "extension",
+                program->parameters.program_type);
+            goto Exit;
+        }
+    }
+
 Exit:
     ebpf_free(provider_helper_function_ids);
     program->invalidated = (program->info_extension_provider_data == NULL);
@@ -448,6 +468,7 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
     ebpf_utf8_string_t local_program_name = {NULL, 0};
     ebpf_utf8_string_t local_section_name = {NULL, 0};
     ebpf_utf8_string_t local_file_name = {NULL, 0};
+    uint8_t* local_program_info_hash = NULL;
 
     if (program->parameters.code_type != EBPF_CODE_NONE) {
         EBPF_LOG_MESSAGE_UINT64(
@@ -480,6 +501,18 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
+    if (program_parameters->program_info_hash_length > 0) {
+        local_program_info_hash = ebpf_allocate(program_parameters->program_info_hash_length);
+        if (!local_program_info_hash) {
+            return_value = EBPF_NO_MEMORY;
+            goto Done;
+        }
+        memcpy(
+            local_program_info_hash,
+            program_parameters->program_info_hash,
+            program_parameters->program_info_hash_length);
+    }
+
     program->parameters = *program_parameters;
 
     program->parameters.program_name = local_program_name;
@@ -490,6 +523,8 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
     local_file_name.value = NULL;
 
     program->parameters.code_type = EBPF_CODE_NONE;
+    program->parameters.program_info_hash = local_program_info_hash;
+    local_program_info_hash = NULL;
 
     return_value = ebpf_program_load_providers(program);
     if (return_value != EBPF_SUCCESS) {
@@ -499,6 +534,7 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
     return_value = EBPF_SUCCESS;
 
 Done:
+    ebpf_free(local_program_info_hash);
     ebpf_free(local_program_name.value);
     ebpf_free(local_section_name.value);
     ebpf_free(local_file_name.value);
@@ -1174,4 +1210,179 @@ ebpf_program_create_and_initialize(
 Done:
     ebpf_object_release_reference((ebpf_core_object_t*)program);
     return retval;
+}
+
+typedef struct _ebpf_helper_id_to_index
+{
+    uint32_t helper_id;
+    uint32_t index;
+} ebpf_helper_id_to_index_t;
+
+int
+_ebpf_helper_id_to_index_compare(const void* lhs, const void* rhs)
+{
+    const ebpf_helper_id_to_index_t* left = (const ebpf_helper_id_to_index_t*)lhs;
+    const ebpf_helper_id_to_index_t* right = (const ebpf_helper_id_to_index_t*)rhs;
+    return (left->helper_id < right->helper_id) ? -1 : (left->helper_id > right->helper_id) ? 1 : 0;
+}
+
+/**
+ * @brief Compute the hash of the program info and compare it with the hash stored in the program. If the hash does not
+ * match then the program was verified against the wrong program info.
+ *
+ * @param[in] program Program to validate.
+ * @param[in] program_info Program info to validate against.
+ * @return EBPF_SUCCESS the program info hash matches.
+ * @return EBPF_INVALID_ARGUMENT the program info hash does not match.
+ */
+static ebpf_result_t
+_ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result;
+    ebpf_cryptographic_hash_t* cryptographic_hash = NULL;
+
+    const ebpf_program_info_t* program_info = NULL;
+    result = ebpf_program_get_program_info(program, &program_info);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    ebpf_helper_id_to_index_t* helper_id_to_index = NULL;
+    helper_id_to_index =
+        (ebpf_helper_id_to_index_t*)ebpf_allocate(program_info->count_of_helpers * sizeof(ebpf_helper_id_to_index_t));
+    if (helper_id_to_index == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    for (uint32_t index = 0; index < program_info->count_of_helpers; index++) {
+        helper_id_to_index[index].helper_id = program_info->helper_prototype[index].helper_id;
+        helper_id_to_index[index].index = index;
+    }
+
+    // Sort helper_id_to_index by helper_id.
+    qsort(
+        helper_id_to_index,
+        program_info->count_of_helpers,
+        sizeof(ebpf_helper_id_to_index_t),
+        _ebpf_helper_id_to_index_compare);
+
+    result = ebpf_cryptographic_hash_create(EBPF_HASH_ALGORITHM, &cryptographic_hash);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    // Hash is performed over the following fields:
+    // 1. Program type name.
+    // 2. Context descriptor.
+    // 3. Program type.
+    // 4. BPF program type.
+    // 5. Is_privileged flag.
+    // 6. Count of helpers.
+    // 7. For each helper (in helper id order).
+    //   a. Helper id.
+    //   b. Helper name.
+    //   c. Helper return type.
+    //   d. Helper argument types.
+
+    result = ebpf_cryptographic_hash_append(
+        cryptographic_hash,
+        (uint8_t*)program_info->program_type_descriptor.name,
+        strlen(program_info->program_type_descriptor.name));
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = ebpf_cryptographic_hash_append(
+        cryptographic_hash,
+        (uint8_t*)program_info->program_type_descriptor.context_descriptor,
+        sizeof(ebpf_context_descriptor_t));
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = ebpf_cryptographic_hash_append(
+        cryptographic_hash, (uint8_t*)&program_info->program_type_descriptor.program_type, sizeof(ebpf_program_type_t));
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = ebpf_cryptographic_hash_append(
+        cryptographic_hash, (uint8_t*)&program_info->program_type_descriptor.bpf_prog_type, sizeof(uint32_t));
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = ebpf_cryptographic_hash_append(
+        cryptographic_hash, (uint8_t*)&program_info->program_type_descriptor.is_privileged, sizeof(char));
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result =
+        ebpf_cryptographic_hash_append(cryptographic_hash, (uint8_t*)&program_info->count_of_helpers, sizeof(uint32_t));
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    for (uint32_t i = 0; i < program_info->count_of_helpers; i++) {
+        uint32_t index = helper_id_to_index[i].index;
+        result = ebpf_cryptographic_hash_append(
+            cryptographic_hash, (uint8_t*)&program_info->helper_prototype[index].helper_id, sizeof(uint32_t));
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        result = ebpf_cryptographic_hash_append(
+            cryptographic_hash,
+            (uint8_t*)program_info->helper_prototype[index].name,
+            strlen(program_info->helper_prototype[index].name));
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        result = ebpf_cryptographic_hash_append(
+            cryptographic_hash,
+            (uint8_t*)&program_info->helper_prototype[index].return_type,
+            sizeof(ebpf_return_type_t));
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        for (uint32_t j = 0; j < EBPF_COUNT_OF(program_info->helper_prototype[index].arguments); j++) {
+            result = ebpf_cryptographic_hash_append(
+                cryptographic_hash,
+                (uint8_t*)&program_info->helper_prototype[index].arguments[j],
+                sizeof(ebpf_argument_type_t));
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+        }
+    }
+
+    uint8_t hash[EBPF_MAX_HASH_SIZE];
+    size_t hash_length = EBPF_MAX_HASH_SIZE;
+    size_t output_hash_length = 0;
+    result = ebpf_cryptographic_hash_get_hash(cryptographic_hash, hash, hash_length, &output_hash_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    if (output_hash_length != program->parameters.program_info_hash_length) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    if (memcmp(hash, program->parameters.program_info_hash, output_hash_length) != 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    result = EBPF_SUCCESS;
+
+Exit:
+    ebpf_program_free_program_info((ebpf_program_info_t*)program_info);
+
+    EBPF_RETURN_RESULT(result);
 }
