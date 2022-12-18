@@ -31,6 +31,7 @@
     <ClCompile Include="..\ebpf_state.c" />
     <ClCompile Include="..\ebpf_trampoline.c" />
     <ClCompile Include="ebpf_handle_user.c" />
+    <ClCompile Include="ebpf_leak_detector.cpp" />
     <ClCompile Include="ebpf_low_memory_test.cpp" />
     <ClCompile Include="ebpf_native_user.c" />
     <ClCompile Include="ebpf_platform_user.cpp" />
@@ -46,7 +47,9 @@
     <ClInclude Include="..\ebpf_platform.h" />
     <ClInclude Include="..\ebpf_ring_buffer.h" />
     <ClInclude Include="..\ebpf_state.h" />
+    <ClInclude Include="ebpf_leak_detector.h" />
     <ClInclude Include="ebpf_low_memory_test.h" />
+    <ClInclude Include="ebpf_symbol_decoder.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="kernel_um.h" />
     <ClInclude Include="nmr_impl.h" />
