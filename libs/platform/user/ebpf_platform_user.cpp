@@ -368,6 +368,9 @@ ebpf_free(_Frees_ptr_opt_ void* memory)
         _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
     }
     free(memory);
+    if (_ebpf_leak_detector_ptr) {
+        _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
+    }
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_
