@@ -1384,6 +1384,7 @@ _ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
 
 Exit:
     ebpf_free(helper_id_to_index);
+    ebpf_cryptographic_hash_destroy(cryptographic_hash);
     ebpf_program_free_program_info((ebpf_program_info_t*)program_info);
 
     EBPF_RETURN_RESULT(result);
