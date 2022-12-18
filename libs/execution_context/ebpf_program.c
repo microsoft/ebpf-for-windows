@@ -312,6 +312,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
     ebpf_free(program->parameters.program_name.value);
     ebpf_free(program->parameters.section_name.value);
     ebpf_free(program->parameters.file_name.value);
+    ebpf_free((void*)program->parameters.program_info_hash);
 
     ebpf_free(program->maps);
 
