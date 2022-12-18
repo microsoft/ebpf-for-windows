@@ -33,7 +33,7 @@ typedef class _ebpf_leak_detector
     std::unordered_map<unsigned long, std::vector<uintptr_t>> _stack_hashes;
     std::unordered_map<uintptr_t, allocation_t> _allocations;
     std::mutex _mutex;
-    const unsigned long _stack_depth = 32;
+    const size_t _stack_depth = 32;
 } ebpf_leak_detector_t;
 
 typedef std::unique_ptr<ebpf_leak_detector_t> ebpf_leak_detector_ptr;

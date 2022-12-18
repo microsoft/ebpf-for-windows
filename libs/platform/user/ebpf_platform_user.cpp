@@ -365,10 +365,10 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_ _Post_writable_byt
 void
 ebpf_free(_Frees_ptr_opt_ void* memory)
 {
-    free(memory);
     if (_ebpf_leak_detector_ptr) {
         _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
     }
+    free(memory);
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
