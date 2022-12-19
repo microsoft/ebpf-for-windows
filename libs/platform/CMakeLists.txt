@@ -64,6 +64,8 @@ set(platform_user_sources
   ebpf_bitmap.h
   ebpf_bitmap.c
 
+  ebpf_crypto_hash.c
+
   ebpf_epoch.h
   ebpf_epoch.c
 
