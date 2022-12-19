@@ -142,8 +142,7 @@ extern "C"
      * @param[in] size Size of memory to allocate.
      * @returns Pointer to memory block allocated, or null on failure.
      */
-    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
-        _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size);
+    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size);
 
     /**
      * @brief Reallocate memory.
@@ -152,8 +151,8 @@ extern "C"
      * @param[in] new_size New size of memory to reallocate.
      * @returns Pointer to memory block allocated, or null on failure.
      */
-    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(
-        new_size) void* ebpf_reallocate(_In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size);
+    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
+        _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size);
 
     /**
      * @brief Free memory.
@@ -167,8 +166,8 @@ extern "C"
      * @param[in] size Size of memory to allocate
      * @returns Pointer to memory block allocated, or null on failure.
      */
-    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
-        _Post_writable_byte_size_(size) void* ebpf_allocate_cache_aligned(size_t size);
+    __drv_allocatesMem(Mem) _Must_inspect_result_
+        _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size);
 
     /**
      * @brief Free memory that has a starting address that is cache aligned.
@@ -1122,6 +1121,75 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_update_global_helpers(
         _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
+
+    typedef struct _ebpf_cryptographic_hash ebpf_cryptographic_hash_t;
+
+    /**
+     * @brief Create a cryptographic hash object.
+     *
+     * @param[in] algorithm The algorithm to use. Recommended values are "SHA256".
+     * @param[out] hash The hash object.
+     * @return EBPF_SUCCESS The hash object was created.
+     * @return EBPF_NO_MEMORY Unable to allocate memory for the hash object.
+     * @return EBPF_INVALID_ARGUMENT The algorithm is not supported.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_cryptographic_hash_create(_In_z_ const wchar_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash);
+
+    /**
+     * @brief Destroy a cryptographic hash object.
+     *
+     * @param[in] hash The hash object to destroy.
+     */
+    void
+    ebpf_cryptographic_hash_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_cryptographic_hash_t* hash);
+
+    /**
+     * @brief Append data to a cryptographic hash object.
+     *
+     * @param[in] hash The hash object to update.
+     * @param[in] buffer The data to append.
+     * @param[in] length The length of the data to append.
+     * @return EBPF_SUCCESS The hash object was created.
+     * @return EBPF_INVALID_ARGUMENT An error occurred while computing the hash.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_cryptographic_hash_append(
+        _Inout_ ebpf_cryptographic_hash_t* hash, _In_reads_bytes_(length) const uint8_t* buffer, size_t length);
+
+    /**
+     * @brief Finalize the hash and return the hash value.
+     *
+     * @param[in, out] hash The hash object to finalize.
+     * @param[out] buffer The buffer to receive the hash value.
+     * @param[in] input_length The length of the buffer.
+     * @param[out] output_length The length of the hash value.
+     * @return EBPF_SUCCESS The hash object was created.
+     * @return EBPF_INVALID_ARGUMENT An error occurred while computing the hash.
+     * @return EBPF_INSUFFICIENT_BUFFER The buffer is not large enough to receive the hash value.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_cryptographic_hash_get_hash(
+        _Inout_ ebpf_cryptographic_hash_t* hash,
+        _Out_writes_to_(input_length, *output_length) uint8_t* buffer,
+        size_t input_length,
+        _Out_ size_t* output_length);
+
+/**
+ * @brief Append a value to a cryptographic hash object.
+ * @param[in] hash The hash object to update.
+ * @param[in] value The value to append. Size is determined by the type of the value.
+ */
+#define EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(hash, value) \
+    ebpf_cryptographic_hash_append(hash, (const uint8_t*)&(value), sizeof((value)))
+
+/**
+ * @brief Append a value to a cryptographic hash object.
+ * @param[in] hash The hash object to update.
+ * @param[in] string The string to append. Size is determined by the length of the string.
+ */
+#define EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(hash, string) \
+    ebpf_cryptographic_hash_append(hash, (const uint8_t*)(string), strlen(string))
 
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"
