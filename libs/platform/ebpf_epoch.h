@@ -49,8 +49,7 @@ extern "C"
      * @param[in] size Size of memory to allocate
      * @returns Pointer to memory block allocated, or null on failure.
      */
-    void*
-    ebpf_epoch_allocate(size_t size);
+    _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(size_t size);
 
     /**
      * @brief Free memory under epoch control.

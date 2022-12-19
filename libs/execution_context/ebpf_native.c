@@ -988,6 +988,9 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
         parameters.file_name.value = NULL;
         parameters.file_name.length = 0;
 
+        parameters.program_info_hash = program->program_info_hash;
+        parameters.program_info_hash_length = program->program_info_hash_length;
+
         result = ebpf_program_create_and_initialize(&parameters, &native_program->handle);
         if (result != EBPF_SUCCESS) {
             break;
