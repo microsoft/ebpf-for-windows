@@ -1175,6 +1175,22 @@ extern "C"
         size_t input_length,
         _Out_ size_t* output_length);
 
+/**
+ * @brief Append a value to a cryptographic hash object.
+ * @param[in] hash The hash object to update.
+ * @param[in] value The value to append. Size is determined by the type of the value.
+ */
+#define EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(hash, value) \
+    ebpf_cryptographic_hash_append(hash, (const uint8_t*)&(value), sizeof((value)))
+
+/**
+ * @brief Append a value to a cryptographic hash object.
+ * @param[in] hash The hash object to update.
+ * @param[in] string The string to append. Size is determined by the length of the string.
+ */
+#define EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(hash, string) \
+    ebpf_cryptographic_hash_append(hash, (const uint8_t*)(string), strlen(string))
+
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"
 #define EBPF_TRACELOG_EVENT_GENERIC_ERROR "EbpfGenericError"

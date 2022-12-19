@@ -87,7 +87,8 @@ ebpf_program_initiate()
 
 void
 ebpf_program_terminate()
-{}
+{
+}
 
 static void
 _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
@@ -1288,75 +1289,67 @@ _ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
     //   c. Helper return type.
     //   d. Helper argument types.
 
-    result = ebpf_cryptographic_hash_append(
-        cryptographic_hash,
-        (uint8_t*)program_info->program_type_descriptor.name,
-        strlen(program_info->program_type_descriptor.name));
+    // Note:
+    // Order and fields being hashed is important. The order and fields being hashed must match the order and fields
+    // being hashed in bpf2c. If new fields are added to the program info, then the hash must be updated to include the
+    // new fields, both here and in bpf2c.
+
+    result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(cryptographic_hash, program_info->program_type_descriptor.name);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    result = ebpf_cryptographic_hash_append(
-        cryptographic_hash,
-        (uint8_t*)program_info->program_type_descriptor.context_descriptor,
-        sizeof(ebpf_context_descriptor_t));
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    result = ebpf_cryptographic_hash_append(
-        cryptographic_hash, (uint8_t*)&program_info->program_type_descriptor.program_type, sizeof(ebpf_program_type_t));
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    result = ebpf_cryptographic_hash_append(
-        cryptographic_hash, (uint8_t*)&program_info->program_type_descriptor.bpf_prog_type, sizeof(uint32_t));
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    result = ebpf_cryptographic_hash_append(
-        cryptographic_hash, (uint8_t*)&program_info->program_type_descriptor.is_privileged, sizeof(char));
+    result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(
+        cryptographic_hash, *program_info->program_type_descriptor.context_descriptor);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
     result =
-        ebpf_cryptographic_hash_append(cryptographic_hash, (uint8_t*)&program_info->count_of_helpers, sizeof(uint32_t));
+        EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, program_info->program_type_descriptor.program_type);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result =
+        EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, program_info->program_type_descriptor.bpf_prog_type);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result =
+        EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, program_info->program_type_descriptor.is_privileged);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, program_info->count_of_helpers);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
     for (uint32_t i = 0; i < program_info->count_of_helpers; i++) {
         uint32_t index = helper_id_to_index[i].index;
-        result = ebpf_cryptographic_hash_append(
-            cryptographic_hash, (uint8_t*)&program_info->helper_prototype[index].helper_id, sizeof(uint32_t));
+        result =
+            EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, program_info->helper_prototype[index].helper_id);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
 
-        result = ebpf_cryptographic_hash_append(
-            cryptographic_hash,
-            (uint8_t*)program_info->helper_prototype[index].name,
-            strlen(program_info->helper_prototype[index].name));
+        result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(cryptographic_hash, program_info->helper_prototype[index].name);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
 
-        result = ebpf_cryptographic_hash_append(
-            cryptographic_hash,
-            (uint8_t*)&program_info->helper_prototype[index].return_type,
-            sizeof(ebpf_return_type_t));
+        result =
+            EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, program_info->helper_prototype[index].return_type);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
 
         for (uint32_t j = 0; j < EBPF_COUNT_OF(program_info->helper_prototype[index].arguments); j++) {
-            result = ebpf_cryptographic_hash_append(
-                cryptographic_hash,
-                (uint8_t*)&program_info->helper_prototype[index].arguments[j],
-                sizeof(ebpf_argument_type_t));
+            result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(
+                cryptographic_hash, program_info->helper_prototype[index].arguments[j]);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
