@@ -88,6 +88,9 @@
     <ClCompile Include="ebpf_low_memory_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_crypto_hash.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="..\ebpf_program_types.idl">

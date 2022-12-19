@@ -16,13 +16,15 @@ _perf_epoch_enter_alloc_free_exit()
 {
     REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
     void* p = ebpf_epoch_allocate(10);
-    ebpf_epoch_free(p);
-    // Disable C6001
-    // We are intentionally modifying memory after free, but relying on epoch protection.
+    if (p != NULL) {
+        ebpf_epoch_free(p);
+        // Disable C6001
+        // We are intentionally modifying memory after free, but relying on epoch protection.
 #pragma warning(push)
 #pragma warning(disable : 6001)
-    memset(p, 0xAA, 10);
+        memset(p, 0xAA, 10);
 #pragma warning(pop)
+    }
     ebpf_epoch_exit();
 }
 

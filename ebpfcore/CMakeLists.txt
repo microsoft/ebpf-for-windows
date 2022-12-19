@@ -28,6 +28,7 @@ target_link_libraries("EbpfCore"
   "ubpf_kernel"
   "git_commit_id"
   "Netio.lib"
+  "ksecdd.lib"
 )
 
 target_compile_definitions("EbpfCore" PRIVATE
