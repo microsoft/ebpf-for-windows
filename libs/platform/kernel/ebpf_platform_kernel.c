@@ -53,8 +53,7 @@ ebpf_platform_terminate()
     KeFlushQueuedDpcs();
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
-    _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
 {
     ebpf_assert(size);
     void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size, EBPF_POOL_TAG);
@@ -63,7 +62,7 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     return p;
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(new_size) void* ebpf_reallocate(
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
     _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
 {
     void* p = ebpf_allocate(new_size);
@@ -83,8 +82,8 @@ ebpf_free(_Frees_ptr_opt_ void* memory)
         ExFreePool(memory);
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
-    _Post_writable_byte_size_(size) void* ebpf_allocate_cache_aligned(size_t size)
+__drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
 {
     void* p = ExAllocatePoolUninitialized(NonPagedPoolNxCacheAligned, size, EBPF_POOL_TAG);
     if (p)
