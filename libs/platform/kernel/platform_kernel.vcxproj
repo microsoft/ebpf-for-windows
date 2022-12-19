@@ -25,6 +25,7 @@
   <ItemGroup>
     <ClCompile Include="..\ebpf_bitmap.c" />
     <ClCompile Include="..\ebpf_async.c" />
+    <ClCompile Include="..\ebpf_crypto_hash.c" />
     <ClCompile Include="..\ebpf_epoch.c" />
     <ClCompile Include="..\ebpf_error.c" />
     <ClCompile Include="..\ebpf_etw.c" />
