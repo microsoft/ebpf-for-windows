@@ -429,8 +429,7 @@ ebpf_epoch_flush()
     }
 }
 
-void*
-ebpf_epoch_allocate(size_t size)
+_Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(size_t size)
 {
     ebpf_assert(size);
     ebpf_epoch_allocation_header_t* header;
