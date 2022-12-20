@@ -40,13 +40,19 @@ class _test_helper
         epoch_initiated = true;
         REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
         async_initiated = true;
+        REQUIRE(ebpf_state_initiate() == EBPF_SUCCESS);
+        state_initiated = true;
     }
     ~_test_helper()
     {
+        if (state_initiated)
+            ebpf_state_terminate();
         if (async_initiated)
             ebpf_async_terminate();
-        if (epoch_initiated)
+        if (epoch_initiated) {
+            ebpf_epoch_flush();
             ebpf_epoch_terminate();
+        }
         if (platform_initiated)
             ebpf_platform_terminate();
         ebpf_object_tracking_terminate();
@@ -56,6 +62,7 @@ class _test_helper
     bool platform_initiated = false;
     bool epoch_initiated = false;
     bool async_initiated = false;
+    bool state_initiated = false;
 };
 
 TEST_CASE("hash_table_test", "[platform]")
@@ -669,7 +676,7 @@ TEST_CASE("serialize_map_test", "[platform]")
     // Free de-serialized map info array.
     ebpf_map_info_array_free(map_count, map_info_array);
 
-    free(buffer);
+    ebpf_free(buffer);
 }
 
 TEST_CASE("serialize_program_info_test", "[platform]")
@@ -750,11 +757,12 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     // Free de-serialized program info.
     ebpf_program_info_free(out_program_info);
 
-    free(buffer);
+    ebpf_free(buffer);
 }
 
 TEST_CASE("state_test", "[state]")
 {
+    _test_helper test_helper;
     size_t allocated_index_1 = 0;
     size_t allocated_index_2 = 0;
     struct
@@ -762,16 +770,12 @@ TEST_CASE("state_test", "[state]")
         uint32_t some_value;
     } foo;
     uintptr_t retrieved_value = 0;
-    REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
-    REQUIRE(ebpf_state_initiate() == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_1) == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_2) == EBPF_SUCCESS);
     REQUIRE(allocated_index_2 != allocated_index_1);
     REQUIRE(ebpf_state_store(allocated_index_1, reinterpret_cast<uintptr_t>(&foo)) == EBPF_SUCCESS);
     REQUIRE(ebpf_state_load(allocated_index_1, &retrieved_value) == EBPF_SUCCESS);
     REQUIRE(retrieved_value == reinterpret_cast<uintptr_t>(&foo));
-    ebpf_state_terminate();
-    ebpf_platform_terminate();
 }
 
 template <size_t bit_count, bool interlocked>
