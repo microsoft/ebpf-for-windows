@@ -69,28 +69,28 @@ opcode  src  imm   description                                          PREVAIL 
 0x5d    any  0x00  if dst != src goto +offset                              Y      Y      Y    jne-reg
 0x5e    any  0x00  if (uint32_t)dst != (uint32_t)src goto +offset          Y      Y      no   jne32-reg
 0x5f    any  0x00  dst &= src                                              Y      Y      Y    alu64-bit
-0x61    any  0x00  dst = \*(uint32_t \*)(src + offset)                    ???     Y      Y    ldxw
+0x61    any  0x00  dst = \*(uint32_t \*)(src + offset)                     no     Y      Y    ldxw
 0x62    0x0  any   \*(uint32_t \*)(dst + offset) = imm                     Y      Y      Y    stw
 0x63    any  0x00  \*(uint32_t \*)(dst + offset) = src                     Y      Y      Y    stxw
 0x64    0x0  any   dst = (uint32_t)(dst << imm)                            Y      Y      Y    alu-bit
 0x65    0x0  any   if dst s> imm goto +offset                              Y      Y      Y    jsgt-imm
 0x66    0x0  any   if (int32_t)dst s> (int32_t)imm goto +offset            Y      Y      no   jsgt32-imm
 0x67    0x0  any   dst <<= imm                                             Y      Y      Y    alu64-bit
-0x69    any  0x00  dst = \*(uint16_t \*)(src + offset)                    ???     Y      Y    ldxh
+0x69    any  0x00  dst = \*(uint16_t \*)(src + offset)                     no     Y      Y    ldxh
 0x6a    0x0  any   \*(uint16_t \*)(dst + offset) = imm                     Y      Y      Y    sth
 0x6b    any  0x00  \*(uint16_t \*)(dst + offset) = src                     Y      Y      Y    stxh
 0x6c    any  0x00  dst = (uint32_t)(dst << src)                            Y      Y      Y    alu-bit
 0x6d    any  0x00  if dst s> src goto +offset                              Y      Y      Y    jsgt-reg
 0x6e    any  0x00  if (int32_t)dst s> (int32_t)src goto +offset            Y      Y      no   jsgt32-reg
 0x6f    any  0x00  dst <<= src                                             Y      Y      Y    lsh-reg
-0x71    any  0x00  dst = \*(uint8_t \*)(src + offset)                     ???     Y      Y    ldxb
+0x71    any  0x00  dst = \*(uint8_t \*)(src + offset)                      no     Y      Y    ldxb
 0x72    0x0  any   \*(uint8_t \*)(dst + offset) = imm                      Y      Y      Y    stb
 0x73    any  0x00  \*(uint8_t \*)(dst + offset) = src                      Y      Y      Y    stxb
 0x74    0x0  any   dst = (uint32_t)(dst >> imm)                            Y      Y      Y    rsh32
 0x75    0x0  any   if dst s>= imm goto +offset                             Y      Y      Y    jsge-imm
 0x76    0x0  any   if (int32_t)dst s>= (int32_t)imm goto +offset           Y      Y      no   jsge32-imm
 0x77    0x0  any   dst >>= imm                                             Y      Y      Y    alu64-bit
-0x79    any  0x00  dst = \*(uint64_t \*)(src + offset)                    ???     Y      Y    ldxdw
+0x79    any  0x00  dst = \*(uint64_t \*)(src + offset)                     no     Y      Y    ldxdw
 0x7a    0x0  any   \*(uint64_t \*)(dst + offset) = imm                     Y      Y      Y    stdw
 0x7b    any  0x00  \*(uint64_t \*)(dst + offset) = src                     Y      Y      Y    stxdw
 0x7c    any  0x00  dst = (uint32_t)(dst >> src)                            Y      Y      Y    alu-bit
