@@ -9,6 +9,7 @@ add_executable("bpf2c_plugin"
 
 target_include_directories("bpf2c_plugin" PRIVATE
   "${CMAKE_SOURCE_DIR}/include"
+  "${CMAKE_SOURCE_DIR}/resource"
   "${CMAKE_SOURCE_DIR}/tools/bpf2c"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"

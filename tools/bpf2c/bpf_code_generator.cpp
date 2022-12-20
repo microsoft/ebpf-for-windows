@@ -11,19 +11,21 @@
 // Example:
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
+#include <cassert>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include <windows.h>
 #undef max
 
 #include "btf_parser.h"
 #include "bpf_code_generator.h"
+#include "ebpf_version.h"
 
 #if !defined(_countof)
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 #endif
-#include <cassert>
-#include <iomanip>
 
 #define INDENT "    "
 #define LINE_BREAK_WIDTH 120
@@ -1069,8 +1071,26 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
+    std::istringstream version_stream(EBPF_VERSION);
+    std::string version_major;
+    std::string version_minor;
+    std::string version_revision;
+    std::getline(version_stream, version_major, '.');
+    std::getline(version_stream, version_minor, '.');
+    std::getline(version_stream, version_revision, '.');
+
+    output_stream << "static void" << std::endl
+                  << "_get_version(_Out_ bpf2c_version_t* version)" << std::endl
+                  << "{" << std::endl
+                  << INDENT "version->major = " << version_major << ";" << std::endl
+                  << INDENT "version->minor = " << version_minor << ";" << std::endl
+                  << INDENT "version->revision = " << version_revision << ";" << std::endl
+                  << "}" << std::endl
+                  << std::endl;
+
     output_stream << format_string(
-        "metadata_table_t %s = {_get_programs, _get_maps, _get_hash};\n", c_name.c_identifier() + "_metadata_table");
+        "metadata_table_t %s = {_get_programs, _get_maps, _get_hash, _get_version};\n",
+        c_name.c_identifier() + "_metadata_table");
 }
 
 std::string
