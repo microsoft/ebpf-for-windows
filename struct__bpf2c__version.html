@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>eBPF for Windows: _metadata_table Struct Reference</title>
+<title>eBPF for Windows: _bpf2c_version Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -64,7 +64,7 @@ $(function() {
   <div class="summary">
 <a href="#pub-attribs">Data Fields</a>  </div>
   <div class="headertitle">
-<div class="title">_metadata_table Struct Reference</div>  </div>
+<div class="title">_bpf2c_version Struct Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -72,66 +72,50 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a6f52bf71d3bcb5ddd1066f0fd7a9df07"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html#a6f52bf71d3bcb5ddd1066f0fd7a9df07">programs</a> )((*count) <a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a> **programs, size_t *count)</td></tr>
-<tr class="separator:a6f52bf71d3bcb5ddd1066f0fd7a9df07"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac54d0c39c8fef470699b9f3c6a662ab5"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html#ac54d0c39c8fef470699b9f3c6a662ab5">maps</a> )((*count) <a class="el" href="bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707">map_entry_t</a> **maps, size_t *count)</td></tr>
-<tr class="separator:ac54d0c39c8fef470699b9f3c6a662ab5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab1b7a44d3c51d7293c636babe15cb184"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html#ab1b7a44d3c51d7293c636babe15cb184">hash</a> )((*size) const uint8_t **hash, size_t *size)</td></tr>
-<tr class="separator:ab1b7a44d3c51d7293c636babe15cb184"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a211a5e958e5e5319f247cdc311dd6f02"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html#a211a5e958e5e5319f247cdc311dd6f02">version</a> )(<a class="el" href="bpf2c_8h.html#ab89f9a3008e6862217c45fc719bc5869">bpf2c_version_t</a> *version)</td></tr>
-<tr class="separator:a211a5e958e5e5319f247cdc311dd6f02"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6679b94465a4de568d747d2ed0f646ed"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bpf2c__version.html#a6679b94465a4de568d747d2ed0f646ed">major</a></td></tr>
+<tr class="separator:a6679b94465a4de568d747d2ed0f646ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abc026a444dc06c7c49fccb74d2ca90e2"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bpf2c__version.html#abc026a444dc06c7c49fccb74d2ca90e2">minor</a></td></tr>
+<tr class="separator:abc026a444dc06c7c49fccb74d2ca90e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8ae84369bccb3346eb2aa3ce84e60758"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bpf2c__version.html#a8ae84369bccb3346eb2aa3ce84e60758">revision</a></td></tr>
+<tr class="separator:a8ae84369bccb3346eb2aa3ce84e60758"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Field Documentation</h2>
-<a id="ab1b7a44d3c51d7293c636babe15cb184"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab1b7a44d3c51d7293c636babe15cb184">&#9670;&nbsp;</a></span>hash</h2>
+<a id="a6679b94465a4de568d747d2ed0f646ed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6679b94465a4de568d747d2ed0f646ed">&#9670;&nbsp;</a></span>major</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void(* _metadata_table::hash) ((*size) const uint8_t **hash, size_t *size)</td>
+          <td class="memname">uint32_t _bpf2c_version::major</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="ac54d0c39c8fef470699b9f3c6a662ab5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac54d0c39c8fef470699b9f3c6a662ab5">&#9670;&nbsp;</a></span>maps</h2>
+<a id="abc026a444dc06c7c49fccb74d2ca90e2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abc026a444dc06c7c49fccb74d2ca90e2">&#9670;&nbsp;</a></span>minor</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void(* _metadata_table::maps) ((*count) <a class="el" href="bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707">map_entry_t</a> **maps, size_t *count)</td>
+          <td class="memname">uint32_t _bpf2c_version::minor</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="a6f52bf71d3bcb5ddd1066f0fd7a9df07"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6f52bf71d3bcb5ddd1066f0fd7a9df07">&#9670;&nbsp;</a></span>programs</h2>
+<a id="a8ae84369bccb3346eb2aa3ce84e60758"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8ae84369bccb3346eb2aa3ce84e60758">&#9670;&nbsp;</a></span>revision</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void(* _metadata_table::programs) ((*count) <a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a> **programs, size_t *count)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a211a5e958e5e5319f247cdc311dd6f02"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a211a5e958e5e5319f247cdc311dd6f02">&#9670;&nbsp;</a></span>version</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void(* _metadata_table::version) (<a class="el" href="bpf2c_8h.html#ab89f9a3008e6862217c45fc719bc5869">bpf2c_version_t</a> *version)</td>
+          <td class="memname">uint32_t _bpf2c_version::revision</td>
         </tr>
       </table>
 </div><div class="memdoc">
