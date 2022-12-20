@@ -630,41 +630,58 @@ _update_array_map_entry_with_handle(
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
     ebpf_core_object_t* value_object = NULL;
+    bool association_flag;
 
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
         result = ebpf_object_reference_by_handle(value_handle, value_type, &value_object);
         if (result != EBPF_SUCCESS) {
+            // TODO: Log error.
             return result;
         }
+        association_flag = TRUE;
+    } else {
+        // If the handle is invalid, get the program ptr from the program id stored at the passed-in index in a
+        // previous invocation of this call (with a valid handle).
+        uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
+        ebpf_id_t old_id = *(ebpf_id_t*)entry;
+        if (old_id) {
+            result = ebpf_object_reference_by_id(old_id, value_type, &value_object);
+            if (result != EBPF_SUCCESS) {
+                // TODO: Log error.
+                return result;
+            }
+        }
+        association_flag = FALSE;
     }
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
-
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
         result = _validate_map_value_object(object_map, value_type, value_object);
         if (result != EBPF_SUCCESS) {
+            // TODO: Log error.
             goto Done;
         }
     }
 
-    // Release the reference on the old ID stored here, if any.
-    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
-    ebpf_id_t old_id = *(ebpf_id_t*)entry;
-    if (old_id) {
-        ebpf_assert_success(ebpf_object_dereference_by_id(old_id, value_type));
+    if (value_type == EBPF_OBJECT_PROGRAM) {
+        result = ebpf_program_update_associated_map_index(map, (ebpf_program_t*)value_object, index, association_flag);
+        if (result != EBPF_SUCCESS) {
+            // TODO: Log error.
+            goto Done;
+        }
+    } else {
+        // TODO: map-in-map TBD
+        ebpf_assert(0);
     }
 
-    ebpf_id_t id = value_object ? value_object->id : 0;
-
-    // Store the object ID as the value.
+    // Store/update the object ID as the value.
+    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
+    ebpf_id_t id = association_flag ? value_object->id : 0;
     memcpy(entry, &id, map->ebpf_map_definition.value_size);
 
 Done:
-    if (result != EBPF_SUCCESS && value_object != NULL) {
-        ebpf_object_release_reference((ebpf_core_object_t*)value_object);
-    }
+    ebpf_object_release_reference((ebpf_core_object_t*)value_object);
     ebpf_lock_unlock(&object_map->lock, lock_state);
-
     return result;
 }
 
@@ -708,7 +725,7 @@ _delete_array_map_entry_with_reference(
 static ebpf_result_t
 _delete_program_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
-    return _delete_array_map_entry_with_reference(map, key, EBPF_OBJECT_PROGRAM);
+    return _delete_array_map_entry(map, key);
 }
 
 static ebpf_result_t

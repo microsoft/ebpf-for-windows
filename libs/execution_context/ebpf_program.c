@@ -21,6 +21,17 @@ static size_t _ebpf_program_state_index = MAXUINT64;
 #define EBPF_MAX_HASH_SIZE 128
 #define EBPF_HASH_ALGORITHM L"SHA256"
 
+// Struct to store required info re. all maps a program is 'associated' with. In case of 'program_array_map' maps, the
+// program also stores the program's key used to store this program's id in such a map.  While the program also takes a
+// reference to all such maps, these maps in turn do not have a 'reverse' reference to the program itself.  This
+// information is used by the program to 'self clean-up' from all such maps at program unload.
+typedef struct _ebpf_associated_map_info
+{
+    ebpf_map_t* map;  // Pointer to map.
+    uint32_t map_key; // Key used to store the program's id in the above map.
+    bool stored;      // TRUE if this program _is_ stored in this map.
+} ebpf_associated_map_info_t;
+
 typedef struct _ebpf_program
 {
     ebpf_core_object_t object;
@@ -74,7 +85,7 @@ typedef struct _ebpf_program
 
     ebpf_list_entry_t links;
     uint32_t link_count;
-    ebpf_map_t** maps;
+    ebpf_associated_map_info_t* associated_maps;
     uint32_t count_of_maps;
 } ebpf_program_t;
 
@@ -340,8 +351,34 @@ _ebpf_program_free(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
     _ebpf_program_detach_links(program);
     ebpf_assert(ebpf_list_is_empty(&program->links));
 
-    for (index = 0; index < program->count_of_maps; index++)
-        ebpf_object_release_reference((ebpf_core_object_t*)program->maps[index]);
+    // remove this program's id from all associated (prog array) maps that store it.
+    // This seems paradoxical.  the 'ebpf_map_delete_entry()' code path checks if the id points to a 'valid' program by
+    // checking for it's presense in the global id table. But '_ebpf_program_free()' is called _only_ after the
+    // program's ref count goes to 0. In this case, the program is removed from the global id table and _then_ the
+    // program's 'free' function is called, thus leading to an assert re. 'invalid program id'
+    for (index = 0; index < program->count_of_maps; index++) {
+        ebpf_associated_map_info_t* associated_map = &program->associated_maps[index];
+        if (associated_map->stored) {
+
+            ebpf_result_t result = ebpf_map_delete_entry(
+                associated_map->map, sizeof(associated_map->map_key), (uint8_t*)&associated_map->map_key, 0);
+
+            ebpf_assert(result == EBPF_SUCCESS);
+            if (result != EBPF_SUCCESS) {
+
+                // This should _never_ happen as this means things have gone seriously wrong.  We can't really bail
+                // here so we'll just log this error and continue cleaning up whatever we can.
+
+                // TODO: Log error.
+
+                continue;
+            }
+
+            associated_map->stored = FALSE;
+        }
+
+        ebpf_object_release_reference((ebpf_core_object_t*)associated_map->map);
+    }
 
     ebpf_epoch_schedule_work_item(program->cleanup_work_item);
     EBPF_RETURN_VOID();
@@ -406,7 +443,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
     ebpf_free(program->parameters.file_name.value);
     ebpf_free((void*)program->parameters.program_info_hash);
 
-    ebpf_free(program->maps);
+    ebpf_free(program->associated_maps);
 
     ebpf_free_trampoline_table(program->trampoline_table);
 
@@ -666,16 +703,20 @@ ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
 
     uint32_t map_count = program->count_of_maps + 1;
-    ebpf_map_t** program_maps =
-        ebpf_reallocate(program->maps, program->count_of_maps * sizeof(ebpf_map_t*), map_count * sizeof(ebpf_map_t*));
-    if (program_maps == NULL) {
+    ebpf_associated_map_info_t* associated_maps = ebpf_reallocate(
+        program->associated_maps,
+        program->count_of_maps * sizeof(ebpf_associated_map_info_t),
+        map_count * sizeof(ebpf_associated_map_info_t));
+    if (associated_maps == NULL) {
         result = EBPF_NO_MEMORY;
+        // TODO: Log error
         goto Done;
     }
 
     ebpf_object_acquire_reference((ebpf_core_object_t*)map);
-    program_maps[map_count - 1] = map;
-    program->maps = program_maps;
+    associated_maps[map_count - 1].map = map;
+    associated_maps[map_count - 1].stored = FALSE;
+    program->associated_maps = associated_maps;
     program->count_of_maps = map_count;
 
 Done:
@@ -689,29 +730,34 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
 {
     EBPF_LOG_ENTRY();
     size_t index;
-    ebpf_map_t** program_maps = ebpf_allocate(maps_count * sizeof(ebpf_map_t*));
-    if (!program_maps)
+    ebpf_associated_map_info_t* associated_maps = ebpf_allocate(maps_count * sizeof(ebpf_associated_map_info_t));
+    if (!associated_maps) {
+        // TODO: Log error
         return EBPF_NO_MEMORY;
+    }
 
-    memcpy(program_maps, maps, sizeof(ebpf_map_t*) * maps_count);
+    for (index = 0; index < maps_count; index++) {
+        associated_maps[index].map = maps[index];
+    }
 
     // Before we acquire any references, make sure
     // all maps can be associated.
     ebpf_result_t result = EBPF_SUCCESS;
     for (index = 0; index < maps_count; index++) {
-        ebpf_map_t* map = program_maps[index];
+        ebpf_map_t* map = associated_maps[index].map;
         result = ebpf_map_associate_program(map, program);
         if (result != EBPF_SUCCESS) {
-            ebpf_free(program_maps);
+            // TODO: Log error
+            ebpf_free(associated_maps);
             EBPF_RETURN_RESULT(result);
         }
     }
 
     // Now go through again and acquire references.
-    program->maps = program_maps;
+    program->associated_maps = associated_maps;
     program->count_of_maps = maps_count;
     for (index = 0; index < maps_count; index++) {
-        ebpf_object_acquire_reference((ebpf_core_object_t*)program_maps[index]);
+        ebpf_object_acquire_reference((ebpf_core_object_t*)associated_maps[index].map);
     }
 
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
@@ -1253,7 +1299,7 @@ ebpf_program_get_info(
                     // No more space left.
                     EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
                 } else {
-                    ebpf_map_t* map = program->maps[i];
+                    ebpf_map_t* map = program->associated_maps[i].map;
                     map_ids[i] = ebpf_map_get_id(map);
                 }
             }
@@ -1473,6 +1519,79 @@ Exit:
     ebpf_free(helper_id_to_index);
     ebpf_cryptographic_hash_destroy(cryptographic_hash);
     ebpf_program_free_program_info((ebpf_program_info_t*)program_info);
+
+    EBPF_RETURN_RESULT(result);
+}
+
+/**
+ * @brief Save/Update the index in the map where this program's
+ *        id is stored at.
+ *
+ * @param[in] map Array map that has stored this program's id.
+ * @param[in, opt] object Pointer to the program.
+ * @param[in] index that stores the program Id.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_KEY_NOT_FOUND An invalid key value was
+ *         specified.
+ * @retval EBPF_NO_MEMORY A memory allocation failure has
+ *         occured.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_update_associated_map_index(
+    _Inout_ ebpf_map_t* map, _In_ ebpf_program_t* program, uint32_t index, bool association_flag)
+{
+    UNREFERENCED_PARAMETER(index);
+    UNREFERENCED_PARAMETER(association_flag);
+    EBPF_LOG_ENTRY();
+
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_assert(map);
+    ebpf_assert(program);
+
+    ebpf_lock_state_t lock_state = ebpf_lock_lock(&program->lock);
+    ebpf_assert(program->count_of_maps == 0 || program->associated_maps);
+
+    ebpf_associated_map_info_t* associated_map_info = program->associated_maps;
+    uint32_t i;
+    for (i = 0; i < program->count_of_maps; i++, associated_map_info++) {
+        if (associated_map_info->map == map) {
+            break;
+        }
+    }
+
+    if (i >= program->count_of_maps) {
+
+        // We did not find the passed in map in our array. Add it.
+        uint32_t map_count = (program->count_of_maps + 1);
+        ebpf_associated_map_info_t* associated_maps = ebpf_reallocate(
+            program->associated_maps,
+            (program->count_of_maps * sizeof(ebpf_associated_map_info_t)),
+            (map_count * sizeof(ebpf_associated_map_info_t)));
+        if (associated_maps == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+
+        // Now add the new map to our array.
+        associated_map_info = &associated_maps[map_count - 1];
+        associated_map_info->map = map;
+        program->count_of_maps = map_count;
+        program->associated_maps = associated_maps;
+    }
+
+    if (association_flag) {
+        ebpf_object_acquire_reference((ebpf_core_object_t*)associated_map_info->map);
+        associated_map_info->map_key = index;
+        associated_map_info->stored = TRUE;
+
+    } else {
+        associated_map_info->stored = FALSE;
+        ebpf_object_release_reference((ebpf_core_object_t*)associated_map_info->map);
+    }
+    result = EBPF_SUCCESS;
+
+Done:
+    ebpf_lock_unlock(&program->lock, lock_state);
 
     EBPF_RETURN_RESULT(result);
 }

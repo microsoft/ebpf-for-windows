@@ -274,6 +274,10 @@ extern "C"
     ebpf_program_create_and_initialize(
         _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle);
 
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_update_associated_map_index(
+        _Inout_ ebpf_map_t* map, _In_ ebpf_program_t* program, uint32_t index, bool association_flag);
+
 #ifdef __cplusplus
 }
 #endif
