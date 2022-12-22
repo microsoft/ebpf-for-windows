@@ -125,9 +125,9 @@ _get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_
 {
     ebpf_result_t result = EBPF_SUCCESS;
     EbpfProgramType* type = nullptr;
+    char* name = nullptr;
 
     try {
-        char* name = nullptr;
         type = new (std::nothrow) EbpfProgramType();
         if (type == nullptr) {
             result = EBPF_NO_MEMORY;
@@ -140,8 +140,6 @@ _get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_
             goto Exit;
         }
         type->name = std::string(name);
-        ebpf_free(name);
-        name = nullptr;
         type->context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
         if (type->context_descriptor == nullptr) {
             result = EBPF_NO_MEMORY;
@@ -166,6 +164,8 @@ _get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_
     }
 
 Exit:
+    ebpf_free(name);
+
     if (result != EBPF_SUCCESS) {
         _ebpf_program_descriptor_free(type);
     }

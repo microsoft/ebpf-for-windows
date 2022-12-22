@@ -161,8 +161,6 @@ _load_program_data_information(
         }
 
         auto program_type_name_string = ebpf_down_cast_from_wstring(std::wstring(program_type_name));
-        ebpf_free(program_type_name);
-        program_type_name = nullptr;
 
         program_information = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
         if (program_information == nullptr) {
@@ -180,9 +178,6 @@ _load_program_data_information(
         program_information->program_type_descriptor.is_privileged = !!is_privileged;
         program_information->program_type_descriptor.bpf_prog_type = bpf_program_type;
         program_information->program_type_descriptor.program_type = *program_type;
-
-        ebpf_free(program_type);
-        program_type = nullptr;
 
         if (helper_count > 0) {
             // Read the helper functions prototypes.
@@ -276,6 +271,9 @@ Exit:
     if (program_info_key) {
         close_registry_key(program_info_key);
     }
+    ebpf_free(program_type_name);
+    ebpf_free(program_type);
+
     if (helper_key) {
         close_registry_key(helper_key);
     }
