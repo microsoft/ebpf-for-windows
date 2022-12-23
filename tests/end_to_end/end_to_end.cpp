@@ -2649,6 +2649,8 @@ TEST_CASE("get_bpf_attach_type", "[end_to_end]")
 
 TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
 {
+    _test_helper_end_to_end test_helper;
+
     // First open a .dll file
     bpf_object* native_object = bpf_object__open("droppacket_um.dll");
     REQUIRE(native_object != nullptr);
