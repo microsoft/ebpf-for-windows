@@ -48,6 +48,9 @@ on:
       low_memory:
         required: false
         type: boolean
+      leak_detection:
+        required: false
+        type: boolean
 
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
@@ -71,6 +74,7 @@ jobs:
       TEST_COMMAND: ${{inputs.test_command}}
       PRE_COMMAND: ${{inputs.pre_test}}
       POST_COMMAND: ${{inputs.post_test}}
+      EBPF_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
 
     # Checking out the branch is needed to gather correct code coverage data.
     steps:

@@ -7,6 +7,8 @@
 #include <sstream>
 #include <string>
 
+#include "ebpf_symbol_decoder.h"
+
 // Link with DbgHelp.lib
 #pragma comment(lib, "dbghelp.lib")
 
@@ -125,31 +127,25 @@ _ebpf_low_memory_test::log_stack_trace(
 
     _last_failure_stack.resize(0);
 
-    std::vector<uint8_t> symbol_buffer(sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR));
-    SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(symbol_buffer.data());
-    IMAGEHLP_LINE64 line;
-    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-    symbol->MaxNameLen = MAX_SYM_NAME;
     for (auto frame : stack) {
+        std::string name;
         std::string string_stack_frame;
+        uint64_t displacement;
+        std::optional<uint32_t> line_number;
+        std::optional<std::string> file_name;
         if (frame == 0) {
             break;
         }
-        DWORD64 displacement = 0;
         _log_file << "# ";
-        if (SymFromAddr(GetCurrentProcess(), frame, &displacement, symbol)) {
-            _log_file << std::hex << frame << " " << symbol->Name << " + " << displacement;
-            string_stack_frame = std::string(symbol->Name) + " + " + std::to_string(displacement);
-            DWORD displacement32 = (DWORD)displacement;
-            if (SymGetLineFromAddr64(GetCurrentProcess(), frame, &displacement32, &line)) {
-                _log_file << " " << line.FileName << std::dec << " " << line.LineNumber;
-                string_stack_frame += " " + std::string(line.FileName) + " " + std::to_string(line.LineNumber);
+        if (_ebpf_decode_symbol(frame, name, displacement, line_number, file_name) == EBPF_SUCCESS) {
+            _log_file << std::hex << frame << " " << name << " + " << displacement;
+            string_stack_frame = name + " + " + std::to_string(displacement);
+            if (line_number.has_value() && file_name.has_value()) {
+                _log_file << " " << file_name.value() << " " << line_number.value();
+                string_stack_frame += " " + file_name.value() + " " + std::to_string(line_number.value());
             }
-            _log_file << std::endl;
-        } else {
-            _log_file << std::hex << frame << std::endl;
-            string_stack_frame = std::to_string(frame);
         }
+        _log_file << std::endl;
         _last_failure_stack.push_back(string_stack_frame);
     }
     _log_file << std::endl;
@@ -197,9 +193,4 @@ _ebpf_low_memory_test::load_allocation_log()
 
     // Add the current iteration number to the log file.
     _log_file << "# Iteration: " << ++_iteration << std::endl;
-
-    // Initialize DbgHelp.dll.
-    SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
-    SymInitialize(GetCurrentProcess(), nullptr, TRUE);
-    SymSetOptions(SYMOPT_LOAD_LINES);
 }
