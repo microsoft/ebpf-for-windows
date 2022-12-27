@@ -677,8 +677,6 @@ Exit:
             ebpf_free(helper_prototype);
         }
     }
-    if (helper_name) {
-        ebpf_free(helper_name);
-    }
+    ebpf_free(helper_name);
     return result;
 }
