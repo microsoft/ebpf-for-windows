@@ -264,8 +264,6 @@ Exit:
     ebpf_free(helper_name);
     if (result != EBPF_SUCCESS) {
         ebpf_free(descriptor);
-        ebpf_free(program_type_name);
-        ebpf_free(program_type);
         ebpf_program_info_free(program_information);
     }
     if (program_info_key) {
