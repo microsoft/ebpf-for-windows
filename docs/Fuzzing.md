@@ -30,3 +30,16 @@ file (```random_seed.txt``` as an example) and then set the environment variable
 ```RANDOM_SEED``` to the path of the file containing the random seed. The tests
 will then use the provided seed instead of generating a new one, which results
 in the tests repeating the sequence of steps that resulted in the crash.
+
+## Reproducing a failure from artifacts
+When a crash happens, a folder containing the unique crash will be created. Click on *Summary* in the build section. The following example shows the process of debugging for *verifier_fuzzer* which can then be used for other CI/CD steps as well. 
+Download *Artifacts-verifier_fuzzer-x64-Release*, build folders including debug and/or release directories e.g. *Build-x64-fuzzer Debug*, and/or *Build-x64-fuzzer Release*. Please note that using debug version gives more extensive tools to debug the crash compared to the release version. 
+
+Copy the crash file from the artifact folder to a separate directory,  *verifier_fuzzer* files including *verifier_fuzzer.pdb*, *verifier_fuzzer.lib*, *verifier_fuzzer.exp*, and *verifier_fuzzer.exe* from debug directory. The C Runtime library, entitled, *ucrtbased.dll*, and address sanitizer files, marked by ASAN need to be included, *clang_rt.asan_dbg_dynamic-x86_64.dll* ,and *clang_rt.asan_dynamic-x86_64.dll*. 
+
+Run a desired admin CMD locating to the copied files in the new directory, and enter with the following command:
+```
+windbgx -y SRV*;. -srcpath <your-path-to-ebpf-for-windows> verifier_fuzzer.exe <crash-file-name>
+```
+
+A window containing the windbg debugger opens up and enter ```g``` in the command box of windbg. If an access violation indicating ```Access violation - code c0000005 (first chance)``` shows up, please use ```sxi c0000005``` to ignore this error. Please use ```g``` again to see the line that crashes. 
