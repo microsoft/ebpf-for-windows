@@ -41,5 +41,10 @@ Run a desired admin CMD locating to the copied files in the new directory, and e
 ```
 windbgx -y SRV*;. -srcpath <your-path-to-ebpf-for-windows> verifier_fuzzer.exe <crash-file-name>
 ```
-
 A window containing the windbg debugger opens up and enter ```g``` in the command box of windbg. If an access violation indicating ```Access violation - code c0000005 (first chance)``` shows up, please use ```sxi c0000005``` to ignore this error. Please use ```g``` again to see the line that crashes. 
+
+An alternative of running an admin CMD is to reproduce a crash to use the local latest build and run 
+```
+verifier_fuzzer.exe <crash-file-name>
+```
+This method will show the line of crash in the source file. 
