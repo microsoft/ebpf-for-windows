@@ -15,9 +15,9 @@
 static ebpf_helper_function_prototype_t*
 _get_helper_function_prototype(const ebpf_program_info_t* info, unsigned int n)
 {
-    for (uint32_t i = 0; i < info->count_of_helpers; i++) {
-        if (n == info->helper_prototype[i].helper_id) {
-            return &info->helper_prototype[i];
+    for (uint32_t i = 0; i < info->count_of_program_specific_helpers; i++) {
+        if (n == info->program_specific_helper_prototype[i].helper_id) {
+            return &info->program_specific_helper_prototype[i];
         }
     }
     return nullptr;

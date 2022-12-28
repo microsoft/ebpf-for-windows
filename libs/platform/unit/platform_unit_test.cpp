@@ -736,11 +736,11 @@ TEST_CASE("serialize_program_info_test", "[platform]")
             in_program_info.program_type_descriptor.name,
             out_program_info->program_type_descriptor.name,
             EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH) == 0);
-    REQUIRE(in_program_info.count_of_helpers == out_program_info->count_of_helpers);
-    REQUIRE(out_program_info->helper_prototype != nullptr);
-    for (uint32_t i = 0; i < in_program_info.count_of_helpers; i++) {
-        ebpf_helper_function_prototype_t* in_prototype = &in_program_info.helper_prototype[i];
-        ebpf_helper_function_prototype_t* out_prototype = &out_program_info->helper_prototype[i];
+    REQUIRE(in_program_info.count_of_program_specific_helpers == out_program_info->count_of_program_specific_helpers);
+    REQUIRE(out_program_info->program_specific_helper_prototype != nullptr);
+    for (uint32_t i = 0; i < in_program_info.count_of_program_specific_helpers; i++) {
+        ebpf_helper_function_prototype_t* in_prototype = &in_program_info.program_specific_helper_prototype[i];
+        ebpf_helper_function_prototype_t* out_prototype = &out_program_info->program_specific_helper_prototype[i];
         REQUIRE(in_prototype->helper_id == out_prototype->helper_id);
         REQUIRE(in_prototype->return_type == out_prototype->return_type);
         for (int j = 0; j < _countof(in_prototype->arguments); j++)

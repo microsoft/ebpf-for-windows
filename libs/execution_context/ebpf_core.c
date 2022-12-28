@@ -183,8 +183,8 @@ ebpf_core_initiate()
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
-    _ebpf_global_helper_program_info.count_of_helpers = ebpf_core_helper_functions_count;
-    _ebpf_global_helper_program_info.helper_prototype = ebpf_core_helper_function_prototype;
+    _ebpf_global_helper_program_info.count_of_program_specific_helpers = ebpf_core_helper_functions_count;
+    _ebpf_global_helper_program_info.program_specific_helper_prototype = ebpf_core_helper_function_prototype;
     return_value = ebpf_provider_load(
         &_ebpf_global_helper_function_provider_context,
         &ebpf_program_information_extension_interface_id,

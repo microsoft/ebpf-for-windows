@@ -483,9 +483,10 @@ _update_global_helpers_for_program_information(
     // helper functions to each of the program information.
     for (auto& iterator : _windows_program_information) {
         ebpf_program_info_t* program_info = iterator.second.get();
-        total_helper_count =
-            static_cast<size_t>(global_helper_count) + static_cast<size_t>(program_info->count_of_helpers);
-        if (total_helper_count < global_helper_count || total_helper_count < program_info->count_of_helpers) {
+        total_helper_count = static_cast<size_t>(global_helper_count) +
+                             static_cast<size_t>(program_info->count_of_program_specific_helpers);
+        if (total_helper_count < global_helper_count ||
+            total_helper_count < program_info->count_of_program_specific_helpers) {
             result = EBPF_ARITHMETIC_OVERFLOW;
             goto Exit;
         }
@@ -514,16 +515,16 @@ _update_global_helpers_for_program_information(
         }
 #pragma warning(pop)
 
-        if (program_info->count_of_helpers > 0) {
+        if (program_info->count_of_program_specific_helpers > 0) {
             memcpy(
                 new_helpers + global_helper_count,
-                program_info->helper_prototype,
-                (program_info->count_of_helpers * sizeof(ebpf_helper_function_prototype_t)));
-            ebpf_free(program_info->helper_prototype);
+                program_info->program_specific_helper_prototype,
+                (program_info->count_of_program_specific_helpers * sizeof(ebpf_helper_function_prototype_t)));
+            ebpf_free(program_info->program_specific_helper_prototype);
         }
 
-        program_info->helper_prototype = new_helpers;
-        program_info->count_of_helpers = (uint32_t)total_helper_count;
+        program_info->program_specific_helper_prototype = new_helpers;
+        program_info->count_of_program_specific_helpers = (uint32_t)total_helper_count;
         new_helpers = nullptr;
         total_helper_count = 0;
     }
