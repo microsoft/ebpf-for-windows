@@ -33,7 +33,7 @@ in the tests repeating the sequence of steps that resulted in the crash.
 
 ## Reproducing a failure from artifacts
 When a crash happens, a folder containing the unique crash will be created. Click on *Summary* in the build section. The following example shows the process of debugging for *verifier_fuzzer* which can then be used for other CI/CD steps as well. 
-Download *Artifacts-verifier_fuzzer-x64-Release*, build folders including debug and/or release directories e.g. *Build-x64-fuzzer Debug*, and/or *Build-x64-fuzzer Release*. Please note that using debug version gives more extensive tools to debug the crash compared to the release version. 
+Download the artifact and the associated build.  For example, if verifier_fuzzer "run_test (Release)" failed, download *Artifacts-verifier_fuzzer-x64-Release* and *Build-x64-fuzzer Release*. 
 
 Copy the crash file from the artifact folder to a separate directory,  *verifier_fuzzer* files including *verifier_fuzzer.pdb*, *verifier_fuzzer.lib*, *verifier_fuzzer.exp*, and *verifier_fuzzer.exe* from debug directory. The C Runtime library, entitled, *ucrtbased.dll*, and address sanitizer files, marked by ASAN need to be included, *clang_rt.asan_dbg_dynamic-x86_64.dll* ,and *clang_rt.asan_dynamic-x86_64.dll*. 
 
