@@ -93,8 +93,7 @@ ebpf_program_initiate()
 
 void
 ebpf_program_terminate()
-{
-}
+{}
 
 static void
 _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
@@ -1338,22 +1337,22 @@ _ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
         goto Exit;
     }
 
-    helper_id_to_index =
-        (ebpf_helper_id_to_index_t*)ebpf_allocate(program_info->count_of_helpers * sizeof(ebpf_helper_id_to_index_t));
+    helper_id_to_index = (ebpf_helper_id_to_index_t*)ebpf_allocate(
+        program_info->count_of_program_specific_helpers * sizeof(ebpf_helper_id_to_index_t));
     if (helper_id_to_index == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
 
-    for (uint32_t index = 0; index < program_info->count_of_helpers; index++) {
-        helper_id_to_index[index].helper_id = program_info->helper_prototype[index].helper_id;
+    for (uint32_t index = 0; index < program_info->count_of_program_specific_helpers; index++) {
+        helper_id_to_index[index].helper_id = program_info->program_specific_helper_prototype[index].helper_id;
         helper_id_to_index[index].index = index;
     }
 
     // Sort helper_id_to_index by helper_id.
     qsort(
         helper_id_to_index,
-        program_info->count_of_helpers,
+        program_info->count_of_program_specific_helpers,
         sizeof(ebpf_helper_id_to_index_t),
         _ebpf_helper_id_to_index_compare);
 
@@ -1369,7 +1368,7 @@ _ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
     // 4. BPF program type.
     // 5. Is_privileged flag.
     // 6. Count of helpers.
-    // 7. For each helper (in helper id order).
+    // 7. For each program type specific helper (in helper id order).
     //   a. Helper id.
     //   b. Helper name.
     //   c. Helper return type.
@@ -1409,33 +1408,34 @@ _ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
         goto Exit;
     }
 
-    result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, program_info->count_of_helpers);
+    result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, program_info->count_of_program_specific_helpers);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    for (uint32_t i = 0; i < program_info->count_of_helpers; i++) {
+    for (uint32_t i = 0; i < program_info->count_of_program_specific_helpers; i++) {
         uint32_t index = helper_id_to_index[i].index;
-        result =
-            EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, program_info->helper_prototype[index].helper_id);
+        result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(
+            cryptographic_hash, program_info->program_specific_helper_prototype[index].helper_id);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
 
-        result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(cryptographic_hash, program_info->helper_prototype[index].name);
+        result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(
+            cryptographic_hash, program_info->program_specific_helper_prototype[index].name);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
 
-        result =
-            EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, program_info->helper_prototype[index].return_type);
+        result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(
+            cryptographic_hash, program_info->program_specific_helper_prototype[index].return_type);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
 
-        for (uint32_t j = 0; j < EBPF_COUNT_OF(program_info->helper_prototype[index].arguments); j++) {
+        for (uint32_t j = 0; j < EBPF_COUNT_OF(program_info->program_specific_helper_prototype[index].arguments); j++) {
             result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(
-                cryptographic_hash, program_info->helper_prototype[index].arguments[j]);
+                cryptographic_hash, program_info->program_specific_helper_prototype[index].arguments[j]);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
