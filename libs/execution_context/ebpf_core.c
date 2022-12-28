@@ -518,7 +518,7 @@ _ebpf_core_protocol_create_program(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
-    ebpf_program_parameters_t parameters;
+    ebpf_program_parameters_t parameters = {0};
     uint8_t* file_name = NULL;
     size_t file_name_length = 0;
     uint8_t* section_name = NULL;

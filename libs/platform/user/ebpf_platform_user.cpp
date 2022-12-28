@@ -16,7 +16,9 @@
 #include <TraceLoggingProvider.h>
 #include <vector>
 
+#include "ebpf_leak_detector.h"
 #include "ebpf_low_memory_test.h"
+#include "ebpf_symbol_decoder.h"
 #include "ebpf_utilities.h"
 
 // Global variables used to override behavior for testing.
@@ -29,12 +31,14 @@ extern "C" bool ebpf_fuzzing_enabled = false;
 extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
 std::unique_ptr<ebpf_low_memory_test_t> _ebpf_low_memory_test_ptr;
+ebpf_leak_detector_ptr _ebpf_leak_detector_ptr;
 
 /**
  * @brief Environment variable to enable low memory testing.
  *
  */
 #define EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME "EBPF_LOW_MEMORY_SIMULATION"
+#define EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME "EBPF_MEMORY_LEAK_DETECTION"
 
 // Thread pool related globals.
 static TP_CALLBACK_ENVIRON _callback_environment;
@@ -247,11 +251,19 @@ ebpf_platform_initiate()
         _ebpf_platform_maximum_group_count = GetMaximumProcessorGroupCount();
         _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
         auto low_memory_stack_depth = _get_environment_variable(EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
+        auto leak_detector = _get_environment_variable(EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME);
+        if (!low_memory_stack_depth.empty() || !leak_detector.empty()) {
+            _ebpf_symbol_decoder_initialize();
+        }
         if (!low_memory_stack_depth.empty() && !_ebpf_low_memory_test_ptr) {
             _ebpf_low_memory_test_ptr =
                 std::make_unique<ebpf_low_memory_test_t>(std::strtoul(low_memory_stack_depth.c_str(), nullptr, 10));
             // Set flag to remove some asserts that fire from incorrect client behavior.
             ebpf_fuzzing_enabled = true;
+        }
+
+        if (!leak_detector.empty()) {
+            _ebpf_leak_detector_ptr = std::make_unique<ebpf_leak_detector_t>();
         }
 
         for (size_t i = 0; i < ebpf_get_cpu_count(); i++) {
@@ -276,6 +288,10 @@ ebpf_platform_terminate()
 {
     _clean_up_thread_pool();
     _ebpf_emulated_dpcs.resize(0);
+    if (_ebpf_leak_detector_ptr) {
+        _ebpf_leak_detector_ptr->dump_leaks();
+        _ebpf_leak_detector_ptr.reset();
+    }
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -298,8 +314,7 @@ ebpf_low_memory_test_in_progress()
     return _ebpf_low_memory_test_ptr != nullptr;
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
-    _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
 {
     ebpf_assert(size);
     if (size > ebpf_fuzzing_memory_limit) {
@@ -315,10 +330,14 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     if (memory != nullptr)
         memset(memory, 0, size);
 
+    if (memory && _ebpf_leak_detector_ptr) {
+        _ebpf_leak_detector_ptr->register_allocation(reinterpret_cast<uintptr_t>(memory), size);
+    }
+
     return memory;
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(new_size) void* ebpf_reallocate(
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
     _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
 {
     UNREFERENCED_PARAMETER(old_size);
@@ -333,17 +352,26 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_ _Post_writable_byt
     void* p = realloc(memory, new_size);
     if (p && (new_size > old_size))
         memset(((char*)p) + old_size, 0, new_size - old_size);
+
+    if (_ebpf_leak_detector_ptr) {
+        _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
+        _ebpf_leak_detector_ptr->register_allocation(reinterpret_cast<uintptr_t>(p), new_size);
+    }
+
     return p;
 }
 
 void
 ebpf_free(_Frees_ptr_opt_ void* memory)
 {
+    if (_ebpf_leak_detector_ptr) {
+        _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
+    }
     free(memory);
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
-    _Post_writable_byte_size_(size) void* ebpf_allocate_cache_aligned(size_t size)
+__drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
 {
     if (size > ebpf_fuzzing_memory_limit) {
         return nullptr;

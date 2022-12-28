@@ -170,6 +170,10 @@ get_program_info_type_hash(const std::string& algorithm)
         throw std::runtime_error(std::string("Failed to get program information"));
     }
 
+    // Note:
+    // Order and fields being hashed is important. The order and fields being hashed must match the order and fields
+    // being hashed in _ebpf_program_verify_program_info_hash. If new fields are added to the program info, then the
+    // hash must be updated to include the new fields, both here and in _ebpf_program_verify_program_info_hash.
     hash_t::byte_range_t byte_range;
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.name);
     hash_t::append_byte_range(byte_range, *program_info->program_type_descriptor.context_descriptor);

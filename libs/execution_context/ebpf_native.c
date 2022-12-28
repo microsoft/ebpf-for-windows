@@ -13,6 +13,9 @@
 
 static const uint32_t _ebpf_native_marker = 'entv';
 
+// Set this value if there is a need to block older version of the native driver.
+static bpf2c_version_t _ebpf_minimum_version = {0, 0, 0};
+
 #ifndef GUID_NULL
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
@@ -88,6 +91,32 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
 void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
+
+static int
+_ebpf_compare_versions(bpf2c_version_t* lhs, bpf2c_version_t* rhs)
+{
+    if (lhs->major < rhs->major) {
+        return -1;
+    }
+    if (lhs->major > rhs->major) {
+        return 1;
+    }
+    ebpf_assert(lhs->major == rhs->major);
+    if (lhs->minor < rhs->major) {
+        return -1;
+    }
+    if (lhs->minor > rhs->major) {
+        return 1;
+    }
+    ebpf_assert(lhs->minor == rhs->minor);
+    if (lhs->revision < rhs->revision) {
+        return -1;
+    }
+    if (lhs->revision > rhs->revision) {
+        return 1;
+    }
+    return 0;
+}
 
 static void
 _ebpf_native_unload_work_item(_In_opt_ const void* service)
@@ -319,6 +348,13 @@ _ebpf_native_provider_attach_client_callback(
     }
     table = (metadata_table_t*)client_registration_instance->NpiSpecificCharacteristics;
     if (!table->programs || !table->maps) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    bpf2c_version_t client_version = {0, 0, 0};
+    table->version(&client_version);
+    if (_ebpf_compare_versions(&client_version, &_ebpf_minimum_version) < 0) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -987,6 +1023,9 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
         parameters.file_name.value = NULL;
         parameters.file_name.length = 0;
+
+        parameters.program_info_hash = program->program_info_hash;
+        parameters.program_info_hash_length = program->program_info_hash_length;
 
         result = ebpf_program_create_and_initialize(&parameters, &native_program->handle);
         if (result != EBPF_SUCCESS) {

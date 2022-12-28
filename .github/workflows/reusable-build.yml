@@ -55,13 +55,13 @@ jobs:
       LD_FLAGS: ${{inputs.ld_flags}}
 
     steps:
-    - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
+    - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
       with:
         submodules: 'recursive'
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true
-      uses: github/codeql-action/init@a669cc5936cc5e1b6a362ec1ff9e410dc570d190
+      uses: github/codeql-action/init@959cbb7472c4d4ad70cdfe6f4976053fe48ab394
       with:
         languages: 'cpp'
 
@@ -75,7 +75,7 @@ jobs:
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache nuget packages
-      uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+      uses: actions/cache@4723a57e26efda3a62cbde1812113b730952852d
       env:
         cache-name: cache-nuget-modules
       with:
@@ -193,4 +193,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true
-      uses: github/codeql-action/analyze@a669cc5936cc5e1b6a362ec1ff9e410dc570d190
+      uses: github/codeql-action/analyze@959cbb7472c4d4ad70cdfe6f4976053fe48ab394

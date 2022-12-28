@@ -88,6 +88,12 @@
     <ClCompile Include="ebpf_low_memory_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ebpf_leak_detector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ebpf_crypto_hash.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="..\ebpf_program_types.idl">
@@ -137,6 +143,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ebpf_low_memory_test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ebpf_leak_detector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ebpf_symbol_decoder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
