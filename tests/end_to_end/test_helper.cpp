@@ -549,6 +549,9 @@ _rundown_osfhandles()
     }
 }
 
+void
+clear_program_info_cache();
+
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
     try {
@@ -569,6 +572,7 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
     // Detach all the native module clients.
     _unload_all_native_modules();
 
+    clear_program_info_cache();
     if (api_initialized)
         ebpf_api_terminate();
     if (ec_initialized)
