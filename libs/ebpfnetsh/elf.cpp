@@ -303,6 +303,7 @@ handle_ebpf_show_verification(
     if (status == ERROR_SUCCESS) {
         std::cout << report;
         std::cout << "\nProgram terminates within " << stats.max_instruction_count << " instructions\n";
+        ebpf_free_string(report);
         return NO_ERROR;
     } else {
         if (error_message) {
