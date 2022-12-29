@@ -76,6 +76,21 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
+  unit_tests_leak_detection:
+    # Always run this job.
+    needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: unit_tests_with_leak_detection
+      test_command: .\unit_tests.exe -d yes
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: true
+      gather_dumps: true
+      capture_etw: true
+      leak_detection: true
+
   # Run the netebpfext unit tests in GitHub.
   netebpf_ext_unit_tests:
     # Always run this job.
