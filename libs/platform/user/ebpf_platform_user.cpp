@@ -422,7 +422,7 @@ ebpf_map_memory(size_t length)
 
     if (!descriptor->base) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualAlloc);
-        free(descriptor);
+        ebpf_free(descriptor);
         descriptor = nullptr;
     }
     return descriptor;
@@ -435,7 +435,7 @@ ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
         if (!VirtualFree(memory_descriptor->base, 0, MEM_RELEASE)) {
             EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
         }
-        free(memory_descriptor);
+        ebpf_free(memory_descriptor);
     }
 }
 

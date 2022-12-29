@@ -656,6 +656,7 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(addresses[0] != 0);
     REQUIRE(addresses[1] == 0);
     REQUIRE(addresses[2] != 0);
+    ebpf_free_trampoline_table(table);
 }
 
 TEST_CASE("name size", "[execution_context]")
