@@ -116,7 +116,7 @@ struct helper_function_info_t
 };
 
 const std::map<ebpf_program_type_t, helper_function_info_t, ebpf_attach_type_compare>
-    program_specific_helper_functions = {
+    program_type_specific_helper_functions = {
         {EBPF_PROGRAM_TYPE_XDP, _xdp_ebpf_extension_helper_function_prototype},
         {EBPF_PROGRAM_TYPE_SAMPLE, _sample_ebpf_extension_helper_function_prototype},
 };

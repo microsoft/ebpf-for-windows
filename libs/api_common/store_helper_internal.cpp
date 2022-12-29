@@ -218,9 +218,10 @@ _load_program_data_information(
                 goto Exit;
             }
 
-            program_information->program_specific_helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate(
-                helper_count * sizeof(ebpf_helper_function_prototype_t));
-            if (program_information->program_specific_helper_prototype == nullptr) {
+            program_information->program_type_specific_helper_prototype =
+                (ebpf_helper_function_prototype_t*)ebpf_allocate(
+                    helper_count * sizeof(ebpf_helper_function_prototype_t));
+            if (program_information->program_type_specific_helper_prototype == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
@@ -245,13 +246,13 @@ _load_program_data_information(
                 }
 
                 result = _load_helper_prototype(
-                    helper_key, helper_name, &program_information->program_specific_helper_prototype[index]);
+                    helper_key, helper_name, &program_information->program_type_specific_helper_prototype[index]);
                 if (result != EBPF_SUCCESS) {
                     goto Exit;
                 }
             }
 
-            program_information->count_of_program_specific_helpers = helper_count;
+            program_information->count_of_program_type_specific_helpers = helper_count;
         }
 
         *program_info = program_information;

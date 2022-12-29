@@ -294,11 +294,11 @@ fuzz_program(
     // Get helper index.
     uint8_t helper_index;
     if (!consume_data(&data_left, &data_left_size, &helper_index, sizeof(helper_index)) ||
-        (helper_index >= program_info->count_of_program_specific_helpers)) {
+        (helper_index >= program_info->count_of_program_type_specific_helpers)) {
         // No such helper id.
         return;
     }
-    ebpf_helper_function_prototype_t* prototype = &program_info->program_specific_helper_prototype[helper_index];
+    ebpf_helper_function_prototype_t* prototype = &program_info->program_type_specific_helper_prototype[helper_index];
 
     // Get the helper function pointer.
     ebpf_helper_id_t helper_function_id = (ebpf_helper_id_t)prototype->helper_id;
