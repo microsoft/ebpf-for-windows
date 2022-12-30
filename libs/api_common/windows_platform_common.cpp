@@ -125,9 +125,9 @@ _get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_
 {
     ebpf_result_t result = EBPF_SUCCESS;
     EbpfProgramType* type = nullptr;
+    char* name = nullptr;
 
     try {
-        char* name = nullptr;
         type = new (std::nothrow) EbpfProgramType();
         if (type == nullptr) {
             result = EBPF_NO_MEMORY;
@@ -164,6 +164,8 @@ _get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_
     }
 
 Exit:
+    ebpf_free(name);
+
     if (result != EBPF_SUCCESS) {
         _ebpf_program_descriptor_free(type);
     }
@@ -607,8 +609,8 @@ _load_all_section_data_information()
     try {
         for (uint32_t index = 0; index < section_info_count; index++) {
             ebpf_section_definition_t* info = section_info[index];
-
             _windows_section_definitions.emplace_back(ebpf_section_info_ptr_t(info));
+            section_info[index] = nullptr;
         }
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
@@ -619,6 +621,13 @@ _load_all_section_data_information()
 Exit:
     if (result != EBPF_SUCCESS) {
         _windows_section_definitions.clear();
+    }
+    if (section_info) {
+        for (uint32_t index = 0; index < section_info_count; index++) {
+            _ebpf_section_info_free(section_info[index]);
+            section_info[index] = nullptr;
+        }
+        ebpf_free(section_info);
     }
     return result;
 }
@@ -645,6 +654,7 @@ _load_all_program_data_information()
             ebpf_program_info_t* info = program_info[index];
             ebpf_program_type_t program_type = info->program_type_descriptor.program_type;
             _windows_program_information[program_type] = ebpf_program_info_ptr_t(info);
+            program_info[index] = nullptr;
 
             EbpfProgramType* program_data = nullptr;
             result = _get_program_descriptor_from_info(info, &program_data);
@@ -663,6 +673,13 @@ Exit:
     if (result != EBPF_SUCCESS) {
         _windows_program_information.clear();
         _windows_program_types.clear();
+    }
+    if (program_info) {
+        for (uint32_t index = 0; index < program_info_count; index++) {
+            ebpf_program_info_free(program_info[index]);
+            program_info[index] = nullptr;
+        }
+        ebpf_free(program_info);
     }
     return result;
 }

@@ -161,6 +161,7 @@ _load_program_data_information(
         }
 
         auto program_type_name_string = ebpf_down_cast_from_wstring(std::wstring(program_type_name));
+
         program_information = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
         if (program_information == nullptr) {
             result = EBPF_NO_MEMORY;
@@ -265,13 +266,14 @@ Exit:
     ebpf_free(helper_name);
     if (result != EBPF_SUCCESS) {
         ebpf_free(descriptor);
-        ebpf_free(program_type_name);
-        ebpf_free(program_type);
         ebpf_program_info_free(program_information);
     }
     if (program_info_key) {
         close_registry_key(program_info_key);
     }
+    ebpf_free(program_type_name);
+    ebpf_free(program_type);
+
     if (helper_key) {
         close_registry_key(helper_key);
     }
@@ -677,5 +679,6 @@ Exit:
             ebpf_free(helper_prototype);
         }
     }
+    ebpf_free(helper_name);
     return result;
 }
