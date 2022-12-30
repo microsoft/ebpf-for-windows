@@ -20,6 +20,7 @@
 #include "socket_tests_common.h"
 
 #include <mstcpip.h>
+#include <ntsecapi.h>
 
 static std::string _family;
 static std::string _protocol;
@@ -133,6 +134,28 @@ _initialize_test_globals()
 }
 
 static void
+_validate_audit_map_entry(_In_ const struct bpf_object* object)
+{
+    bpf_map* audit_map = bpf_object__find_map_by_name(object, "audit_map");
+    REQUIRE(audit_map != nullptr);
+
+    fd_t map_fd = bpf_map__fd(audit_map);
+
+    sock_addr_audit_entry_t entry = {0};
+    int result = bpf_map_lookup_elem(map_fd, 0, &entry);
+    REQUIRE(result == 0);
+
+    uint64_t process_id = (uint64_t)GetCurrentProcessId();
+    REQUIRE(process_id == entry.process_id);
+
+    SECURITY_LOGON_SESSION_DATA* data = NULL;
+    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    LsaFreeReturnBuffer(data);
+}
+
+static void
 _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 {
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
@@ -230,6 +253,8 @@ connect_redirect_test(
     REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
     REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
 
+    _validate_audit_map_entry(object);
+
     // Remove entry from policy map.
     add_policy = false;
     _update_policy_map(
@@ -252,6 +277,8 @@ authorize_test(
     // Receive should timeout as connection is blocked.
     sender_socket->post_async_receive(true);
     sender_socket->complete_async_receive(1000, true);
+
+    _validate_audit_map_entry(object);
 
     // Now update the policy map to allow the connection and test again.
     connect_redirect_test(

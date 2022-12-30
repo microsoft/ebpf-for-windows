@@ -309,3 +309,46 @@ EBPF_HELPER(uint64_t, bpf_get_current_pid_tgid, ());
 #ifndef __doxygen
 #define bpf_get_current_pid_tgid ((bpf_get_current_pid_tgid_t)BPF_FUNC_get_current_pid_tgid)
 #endif
+
+/**
+ * @brief Get the user process ID.
+ *
+ * @param[in] ctx Context passed to the eBPF program.
+ *
+ * @returns A 64-bit integer containing the process ID of the user mode process. In case of
+ * sock_addr attach types, returns the process ID of the user mode app making the request.
+ * In other cases, returns the process ID of the current thread.
+ */
+EBPF_HELPER(uint64_t, bpf_get_user_process_id, (void* ctx));
+#ifndef __doxygen
+#define bpf_get_user_process_id ((bpf_get_user_process_id_t)BPF_FUNC_get_user_process_id)
+#endif
+
+/**
+ * @brief Get the user logon ID.
+ *
+ * @param[in] ctx Context passed to the eBPF program.
+ *
+ * @returns A 64-bit integer logon ID of the user mode process. In case of sock_addr
+ * attach types, returns the logon ID of the user mode app making the request. In other
+ * cases, returns the logon ID of the current thread.
+ */
+EBPF_HELPER(uint64_t, bpf_get_user_logon_id, (void* ctx));
+#ifndef __doxygen
+#define bpf_get_user_logon_id ((bpf_get_user_logon_id_t)BPF_FUNC_get_user_logon_id)
+#endif
+
+/**
+ * @brief Get whether the current user is admin. In case of sock_addr attach types,
+ * returns whether the user initiating the request is admin or not. In other
+ * cases, returns whether the current thread user is admin or not.
+ *
+ * @param[in] ctx Context passed to the eBPF program.
+ * @param[out] is_admin Value whether user is admin or not.
+ *
+ * @returns 0 if the operation was successful, 1 otherwise.
+ */
+EBPF_HELPER(uint32_t, bpf_is_user_admin, (void* ctx, uint32_t* is_admin));
+#ifndef __doxygen
+#define bpf_is_user_admin ((bpf_is_user_admin_t)BPF_FUNC_is_user_admin)
+#endif

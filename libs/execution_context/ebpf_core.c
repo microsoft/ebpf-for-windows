@@ -63,6 +63,11 @@ static uint64_t
 _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value);
 static uint64_t
 _ebpf_core_get_pid_tgid();
+static uint64_t
+_ebpf_core_get_user_process_id(_In_ void* ctx);
+static uint64_t
+_ebpf_core_get_user_logon_id(_In_ const void* ctx);
+_Success_(return == 0) static uint32_t _ebpf_core_is_user_admin(_In_ void* ctx, _Out_ uint32_t* is_admin);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -93,6 +98,9 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_map_pop_elem,
     (void*)&_ebpf_core_map_peek_elem,
     (void*)&_ebpf_core_get_pid_tgid,
+    (void*)&_ebpf_core_get_user_process_id,
+    (void*)&_ebpf_core_get_user_logon_id,
+    (void*)&_ebpf_core_is_user_admin,
 };
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
@@ -1687,6 +1695,29 @@ static uint64_t
 _ebpf_core_get_pid_tgid()
 {
     return ((uint64_t)ebpf_platform_process_id() << 32) | ebpf_platform_thread_id();
+}
+
+static uint64_t
+_ebpf_core_get_user_process_id(_In_ const void* ctx)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    return (uint64_t)ebpf_platform_process_id();
+}
+
+static uint64_t
+_ebpf_core_get_user_logon_id(_In_ const void* ctx)
+{
+    // TODO: Implement this function.
+    UNREFERENCED_PARAMETER(ctx);
+    return 0;
+}
+
+_Success_(return == 0) static uint32_t _ebpf_core_is_user_admin(_In_ void* ctx, _Out_ uint32_t* is_admin)
+{
+    // TODO: Implement this function.
+    UNREFERENCED_PARAMETER(ctx);
+    UNREFERENCED_PARAMETER(is_admin);
+    return 1;
 }
 
 // Pick a limit on string size based on the size of the eBPF stack.

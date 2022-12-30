@@ -40,3 +40,11 @@ typedef struct _destination_entry
     uint16_t destination_port;
     uint32_t protocol;
 } destination_entry_t;
+
+typedef struct _sock_addr_audit_entry
+{
+    uint64_t logon_id;
+    uint64_t process_id;
+    uint32_t is_admin;
+    uint32_t is_admin_valid;
+} sock_addr_audit_entry_t;

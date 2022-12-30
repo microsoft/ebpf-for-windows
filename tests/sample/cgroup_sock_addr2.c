@@ -27,6 +27,26 @@ struct bpf_map_def policy_map = {
     .value_size = sizeof(destination_entry_t),
     .max_entries = 100};
 
+SEC("maps")
+struct bpf_map_def audit_map = {
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(sock_addr_audit_entry_t),
+    .max_entries = 1};
+
+__inline void
+update_audit_map_entry(bpf_sock_addr_t* ctx)
+{
+    uint32_t key = 0;
+    sock_addr_audit_entry_t entry = {0};
+    entry.process_id = bpf_get_user_process_id(ctx);
+    entry.logon_id = bpf_get_user_logon_id(ctx);
+    // int result = bpf_is_user_admin(ctx, &entry.is_admin);
+    // entry.is_admin_valid = result == 0 ? 1 : 0;
+
+    bpf_map_update_elem(&audit_map, &key, &entry, 0);
+}
+
 __inline int
 redirect_v4(bpf_sock_addr_t* ctx)
 {
@@ -53,6 +73,8 @@ redirect_v4(bpf_sock_addr_t* ctx)
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
     }
+
+    update_audit_map_entry(ctx);
 
     return verdict;
 }
@@ -87,6 +109,8 @@ redirect_v6(bpf_sock_addr_t* ctx)
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
     }
+
+    update_audit_map_entry(ctx);
 
     return verdict;
 }

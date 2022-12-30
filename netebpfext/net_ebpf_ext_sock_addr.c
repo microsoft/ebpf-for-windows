@@ -7,14 +7,22 @@
  *
  */
 
+// net_ebpf_ext.h needs to be included ahead of other headers to satisfy the Windows
+// build system.
 #include "net_ebpf_ext.h"
-
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_addr.h"
 
 #define TARGET_PROCESS_ID 1234
 #define EXPIRY_TIME 60000 // 60 seconds in ms.
 #define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
+
+typedef struct _net_ebpf_bpf_sock_addr
+{
+    bpf_sock_addr_t base;
+    TOKEN_ACCESS_INFORMATION* access_information;
+    uint64_t process_id;
+} net_ebpf_sock_addr_t;
 
 /**
  * Connection context info does not contain the source IP address because
@@ -74,6 +82,34 @@ static EX_SPIN_LOCK _net_ebpf_ext_sock_addr_lock;
 _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_redirect_handle_list;
 _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_connect_context_list;
 static uint32_t _net_ebpf_ext_connect_context_count = 0;
+
+//
+// sock_addr helper functions.
+//
+static uint64_t
+_ebpf_sock_addr_get_user_process_id(_In_ const bpf_sock_addr_t* ctx)
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    return sock_addr_ctx->process_id;
+}
+
+static uint64_t
+_ebpf_sock_addr_get_user_logon_id(_In_ const bpf_sock_addr_t* ctx)
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    return *(uint64_t*)(&(sock_addr_ctx->access_information->AuthenticationId));
+}
+
+/*
+static uint32_t
+_ebpf_sock_addr_is_user_admin(_In_ const bpf_sock_addr_t* ctx, _Out_ uint32_t* is_admin)
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+
+
+    return 0;
+}
+*/
 
 //
 // WFP filter related types & globals for SOCK_ADDR hook.
@@ -162,7 +198,14 @@ typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
 // SOCK_ADDR Program Information NPI Provider.
 //
 
-static ebpf_program_data_t _ebpf_sock_addr_program_data = {&_ebpf_sock_addr_program_info, NULL};
+static const void* _ebpf_sock_addr_helper_functions[] = {
+    (void*)_ebpf_sock_addr_get_user_process_id, (void*)_ebpf_sock_addr_get_user_logon_id};
+
+static ebpf_helper_function_addresses_t _ebpf_sock_addr_helper_function_address_table = {
+    EBPF_COUNT_OF(_ebpf_sock_addr_helper_functions), (uint64_t*)_ebpf_sock_addr_helper_functions};
+
+static ebpf_program_data_t _ebpf_sock_addr_program_data = {
+    &_ebpf_sock_addr_program_info, NULL, &_ebpf_sock_addr_helper_function_address_table};
 
 static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_addr_program_data), &_ebpf_sock_addr_program_data};
@@ -702,7 +745,9 @@ wfp_ale_layer_fields_t wfp_connection_fields[] = {
 
 static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values, _Out_ bpf_sock_addr_t* sock_addr_ctx)
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Out_ net_ebpf_sock_addr_t* sock_addr_ctx)
 {
     net_ebpf_extension_hook_id_t hook_id =
         net_ebpf_extension_get_hook_id_from_wfp_layer_id(incoming_fixed_values->layerId);
@@ -724,30 +769,36 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     // Copy IP address fields.
     if ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4) ||
         (hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V4)) {
-        sock_addr_ctx->family = AF_INET;
-        sock_addr_ctx->msg_src_ip4 = htonl(incoming_values[source_ip_address_field].value.uint32);
-        sock_addr_ctx->user_ip4 = htonl(incoming_values[destination_ip_address_field].value.uint32);
+        sock_addr_ctx->base.family = AF_INET;
+        sock_addr_ctx->base.msg_src_ip4 = htonl(incoming_values[source_ip_address_field].value.uint32);
+        sock_addr_ctx->base.user_ip4 = htonl(incoming_values[destination_ip_address_field].value.uint32);
     } else {
-        sock_addr_ctx->family = AF_INET6;
+        sock_addr_ctx->base.family = AF_INET6;
         RtlCopyMemory(
-            sock_addr_ctx->msg_src_ip6,
+            sock_addr_ctx->base.msg_src_ip6,
             incoming_values[source_ip_address_field].value.byteArray16,
             sizeof(FWP_BYTE_ARRAY16));
         RtlCopyMemory(
-            sock_addr_ctx->user_ip6,
+            sock_addr_ctx->base.user_ip6,
             incoming_values[destination_ip_address_field].value.byteArray16,
             sizeof(FWP_BYTE_ARRAY16));
     }
-    sock_addr_ctx->msg_src_port = htons(incoming_values[source_port_field].value.uint16);
-    sock_addr_ctx->user_port = htons(incoming_values[destination_port_field].value.uint16);
-    sock_addr_ctx->protocol = incoming_values[fields->protocol_field].value.uint8;
-    sock_addr_ctx->compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
+    sock_addr_ctx->base.msg_src_port = htons(incoming_values[source_port_field].value.uint16);
+    sock_addr_ctx->base.user_port = htons(incoming_values[destination_port_field].value.uint16);
+    sock_addr_ctx->base.protocol = incoming_values[fields->protocol_field].value.uint8;
+    sock_addr_ctx->base.compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
 
     if (hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V4 || hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V6) {
-        sock_addr_ctx->interface_luid = 0;
+        sock_addr_ctx->base.interface_luid = 0;
     } else {
-        sock_addr_ctx->interface_luid = *incoming_values[fields->interface_luid_field].value.uint64;
+        sock_addr_ctx->base.interface_luid = *incoming_values[fields->interface_luid_field].value.uint64;
     }
+
+    sock_addr_ctx->access_information =
+        (TOKEN_ACCESS_INFORMATION*)(incoming_values[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_USER_ID]
+                                        .value.byteBlob->data);
+    ASSERT(incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID);
+    sock_addr_ctx->process_id = incoming_metadata_values->processId;
 }
 
 NTSTATUS
@@ -795,7 +846,8 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     uint32_t result;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
-    bpf_sock_addr_t sock_addr_ctx = {0};
+    net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
+    bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
@@ -819,22 +871,23 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, &sock_addr_ctx);
+    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
+        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
     compartment_id = filter_context->compartment_id;
-    ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx.compartment_id));
-    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx.compartment_id) {
+    ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
+    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
         // The client is not interested in this compartment Id.
         NET_EBPF_EXT_LOG_MESSAGE_UINT32(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
-            sock_addr_ctx.compartment_id);
+            sock_addr_ctx->compartment_id);
 
         goto Exit;
     }
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, &sock_addr_ctx, &result) != EBPF_SUCCESS)
+    if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &result) != EBPF_SUCCESS)
         goto Exit;
 
     classify_output->actionType = (result == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
@@ -846,7 +899,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
         "net_ebpf_extension_sock_addr_authorize_recv_accept_classify",
         incoming_metadata_values->transportEndpointHandle,
-        sock_addr_ctx.protocol,
+        sock_addr_ctx->protocol,
         result);
 
 Exit:
@@ -872,7 +925,8 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     NTSTATUS status;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
-    bpf_sock_addr_t sock_addr_ctx = {0};
+    net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
+    bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     net_ebpf_extension_connection_context_t* connection_context = NULL;
 
@@ -886,17 +940,18 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     if (filter_context == NULL)
         goto Exit;
 
-    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, &sock_addr_ctx);
+    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
+        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
     compartment_id = filter_context->compartment_id;
-    ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx.compartment_id));
-    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx.compartment_id) {
+    ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
+    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
         // The client is not interested in this compartment Id.
         NET_EBPF_EXT_LOG_MESSAGE_UINT32(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
-            sock_addr_ctx.compartment_id);
+            sock_addr_ctx->compartment_id);
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
@@ -904,7 +959,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 
     // Get the connection context for this connection.
     status = _net_ebpf_ext_get_connection_context(
-        incoming_metadata_values->transportEndpointHandle, &sock_addr_ctx, &connection_context);
+        incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, &connection_context);
     if (!NT_SUCCESS(status)) {
         // We did not find any connection context for this AUTH request. Block.
         verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
@@ -927,7 +982,7 @@ Exit:
         NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
         "authorize_connection_classify",
         incoming_metadata_values->transportEndpointHandle,
-        sock_addr_ctx.protocol,
+        sock_addr_ctx->protocol,
         verdict);
 
     return;
@@ -1024,6 +1079,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
+    net_ebpf_sock_addr_t* net_ebpf_sock_addr_ctx = NULL;
     bpf_sock_addr_t* sock_addr_ctx = NULL;
     bpf_sock_addr_t* sock_addr_ctx_original = NULL;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
@@ -1046,22 +1102,24 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         return;
     }
 
-    sock_addr_ctx = (bpf_sock_addr_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(bpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (sock_addr_ctx == NULL) {
+    net_ebpf_sock_addr_ctx = (net_ebpf_sock_addr_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
+    if (net_ebpf_sock_addr_ctx == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
+    sock_addr_ctx = &net_ebpf_sock_addr_ctx->base;
     sock_addr_ctx_original = (bpf_sock_addr_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(bpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
     if (sock_addr_ctx_original == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
-    memset(sock_addr_ctx, 0, sizeof(bpf_sock_addr_t));
+    memset(net_ebpf_sock_addr_ctx, 0, sizeof(bpf_sock_addr_t));
     memset(sock_addr_ctx_original, 0, sizeof(bpf_sock_addr_t));
 
-    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, sock_addr_ctx);
+    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
+        incoming_fixed_values, incoming_metadata_values, net_ebpf_sock_addr_ctx);
     *sock_addr_ctx_original = *sock_addr_ctx;
 
     // Check if this call is intended for us.
@@ -1168,7 +1226,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "Connection redireced by self, ignoring",
+            "Connection redirected by self, ignoring",
             filter->filterId,
             (uint64_t)sock_addr_ctx->compartment_id);
 
@@ -1299,8 +1357,9 @@ Exit:
     if (classify_handle_acquired) {
         FwpsReleaseClassifyHandle(classify_handle);
     }
-    if (sock_addr_ctx) {
-        ExFreePool(sock_addr_ctx);
+    if (net_ebpf_sock_addr_ctx) {
+        ExFreePool(net_ebpf_sock_addr_ctx);
+        sock_addr_ctx = NULL;
     }
     if (sock_addr_ctx_original) {
         ExFreePool(sock_addr_ctx_original);

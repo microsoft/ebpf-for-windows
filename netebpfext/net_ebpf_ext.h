@@ -16,8 +16,8 @@ Environment:
 
 #pragma once
 
-#include "framework.h"
 #include "netebpfext_platform.h"
+#include "framework.h"
 
 #include <guiddef.h>
 #include <netioapi.h>

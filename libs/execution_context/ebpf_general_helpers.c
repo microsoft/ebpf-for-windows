@@ -89,6 +89,15 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
     {BPF_FUNC_get_current_pid_tgid, "bpf_get_current_pid_tgid", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {BPF_FUNC_get_user_process_id,
+     "bpf_get_user_process_id",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
+    {BPF_FUNC_get_user_logon_id, "bpf_get_user_logon_id", EBPF_RETURN_TYPE_INTEGER, {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
+    {BPF_FUNC_is_user_admin,
+     "bpf_is_user_admin",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM}},
 };
 
 #ifdef __cplusplus
