@@ -1,14 +1,14 @@
 var searchData=
 [
-  ['tail_5fcall_1168',['tail_call',['../struct__helper__function__entry.html#a0c402220e2c9d0a84a60ce091c7f361d',1,'_helper_function_entry']]],
-  ['target_5fbtf_5fpath_1169',['target_btf_path',['../structbpf__object__load__attr.html#abfc5cac3c6e46f1fc0bf4cb9b98bb49b',1,'bpf_object_load_attr']]],
-  ['timetolive_1170',['TimeToLive',['../struct___i_p_v4___h_e_a_d_e_r.html#a52a04ad14019bd81fbae52897d0478c6',1,'_IPV4_HEADER']]],
-  ['total_5funreachable_1171',['total_unreachable',['../structebpf__api__verifier__stats__t.html#a8c63d828b7004160dcb961cfd4832649',1,'ebpf_api_verifier_stats_t']]],
-  ['total_5fwarnings_1172',['total_warnings',['../structebpf__api__verifier__stats__t.html#a3208c61600bdee5b04f21c7e96270a65',1,'ebpf_api_verifier_stats_t']]],
-  ['totallength_1173',['TotalLength',['../struct___i_p_v4___h_e_a_d_e_r.html#aa3839b5c6aebfb8f595ae7f4c8faa55f',1,'_IPV4_HEADER']]],
-  ['type_1174',['type',['../struct__ebpf__map__definition__in__memory.html#a121c9bc8e7b1f94baa28e0e131fa14e7',1,'_ebpf_map_definition_in_memory::type()'],['../struct__ebpf__map__definition__in__file.html#a2b92d3e4d6864a6e4bb917546b2fd9c3',1,'_ebpf_map_definition_in_file::type()'],['../structbpf__link__info.html#a9de2daef9739178a6c654228e8ef0961',1,'bpf_link_info::type()'],['../structbpf__map__info.html#a4e61eb0078f44387f5334fa3adc60201',1,'bpf_map_info::type()'],['../structbpf__prog__info.html#a4e9d6f19ea338703f116b2557dd61363',1,'bpf_prog_info::type()']]],
-  ['type_1175',['Type',['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#abe35d2b08d00984010d7648f5a2975b7',1,'_ETHERNET_HEADER']]],
-  ['type_5fuuid_1176',['type_uuid',['../structbpf__prog__info.html#acbb1379ce1dbc7fe7ef223edf2f50420',1,'bpf_prog_info']]],
-  ['typeofservice_1177',['TypeOfService',['../struct___i_p_v4___h_e_a_d_e_r.html#a566acae880d636865908339d9d0ba6dd',1,'_IPV4_HEADER']]],
-  ['typeofserviceandecnfield_1178',['TypeOfServiceAndEcnField',['../struct___i_p_v4___h_e_a_d_e_r.html#ab91f271617d728d4b38031f2b3650674',1,'_IPV4_HEADER']]]
+  ['section_5fname_1163',['section_name',['../struct__program__entry.html#aa0bcbf657cbd42813672cd7405ea8749',1,'_program_entry::section_name()'],['../struct__ebpf__section__info.html#a4499d796b8c43df1a71a286257e5a155',1,'_ebpf_section_info::section_name()'],['../struct__ebpf__program__section__info.html#a2f049ca717ca716cacd2f660ccd5c5b2',1,'_ebpf_program_section_info::section_name()']]],
+  ['sequence_5fnumber_1164',['sequence_number',['../structtcphdr.html#aecac46c92e92e6dff81a4fee15f27b58',1,'tcphdr']]],
+  ['socket_5faddress_1165',['socket_address',['../struct__bind__md.html#a4e6ab6ab7b7b7e88e0c73ba99caa2e90',1,'_bind_md']]],
+  ['socket_5faddress_5flength_1166',['socket_address_length',['../struct__bind__md.html#afe6ac1515f579d5f1b8667946ddac668',1,'_bind_md']]],
+  ['source_1167',['source',['../structtcphdr.html#ac3e6c13e4fefb7a5fa91d27b9aac2d3c',1,'tcphdr']]],
+  ['source_1168',['Source',['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#a09a294715c845ec74323de381df6afe7',1,'_ETHERNET_HEADER']]],
+  ['sourceaddress_1169',['SourceAddress',['../struct___i_p_v4___h_e_a_d_e_r.html#a44eab13ab96011c8aa2abbc374188115',1,'_IPV4_HEADER::SourceAddress()'],['../struct___i_p_v6___h_e_a_d_e_r.html#a6cc60095ffc72250042d28ded6d7e2f1',1,'_IPV6_HEADER::SourceAddress()']]],
+  ['srcport_1170',['srcPort',['../struct_u_d_p___h_e_a_d_e_r__.html#a7d291a5c8ddf8bcdd2f5d38f311a7d3f',1,'UDP_HEADER_']]],
+  ['start_5fid_1171',['start_id',['../unionbpf__attr.html#a5d5f66dac9e6ade3f6e4d532d6e1e899',1,'bpf_attr']]],
+  ['stats_1172',['stats',['../struct__ebpf__section__info.html#aa3cf14adb3f680f38912c9eff61eeba4',1,'_ebpf_section_info']]],
+  ['syn_1173',['syn',['../structtcphdr.html#a37abb1d4677e10fe527cfd75b038a083',1,'tcphdr']]]
 ];

@@ -1,11 +1,18 @@
 var searchData=
 [
-  ['name_1108',['name',['../structbpf__create__map__attr.html#a89d39bdbe4f165ae7a1ec0834e703464',1,'bpf_create_map_attr::name()'],['../structbpf__load__program__attr.html#a9cd42ca0e93ad8dcbb4ec9b1d2e3945b',1,'bpf_load_program_attr::name()'],['../struct__helper__function__entry.html#a42474f72009d53976dd8fcd8809a8bd4',1,'_helper_function_entry::name()'],['../struct__map__entry.html#a9b2c00fca7e13af746057d80389477a5',1,'_map_entry::name()'],['../struct__ebpf__program__type__descriptor.html#aa8eadff23c7b5afbed237afb25b1d786',1,'_ebpf_program_type_descriptor::name()'],['../struct__ebpf__helper__function__prototype.html#a1a6d70e24351bd63a00eca803ad4ccd8',1,'_ebpf_helper_function_prototype::name()'],['../structbpf__map__info.html#a4088a9691f52efbd8bfbb1b3b12d195a',1,'bpf_map_info::name()'],['../structbpf__prog__info.html#a583e0a419308b97503899bac3a3139d2',1,'bpf_prog_info::name()']]],
-  ['next_1109',['next',['../struct__ebpf__stat.html#a3eb52849b71a9a14a108fa12e4001908',1,'_ebpf_stat::next()'],['../struct__ebpf__section__info.html#a37825751b391d525a9337fb66026ee87',1,'_ebpf_section_info::next()']]],
-  ['next_5fid_1110',['next_id',['../unionbpf__attr.html#a0de98bd862a75a822063ca9581971d54',1,'bpf_attr']]],
-  ['next_5fkey_1111',['next_key',['../unionbpf__attr.html#a9f5cbc94b29edcbf51700d126a64fceb',1,'bpf_attr']]],
-  ['nextheader_1112',['NextHeader',['../struct___i_p_v6___h_e_a_d_e_r.html#a9acad219469f6f2d7683349bc5d79e7c',1,'_IPV6_HEADER']]],
-  ['nr_5fmap_5fids_1113',['nr_map_ids',['../structbpf__prog__info.html#ab707e966eb488feaf4268784ddc9735c',1,'bpf_prog_info']]],
-  ['ns_1114',['ns',['../structtcphdr.html#a495f777d346bb790e1ec0f2b7126c769',1,'tcphdr']]],
-  ['numa_5fnode_1115',['numa_node',['../structbpf__create__map__attr.html#af8723e4fa2d0798c321986487589a18e',1,'bpf_create_map_attr']]]
+  ['major_1097',['major',['../struct__bpf2c__version.html#a6679b94465a4de568d747d2ed0f646ed',1,'_bpf2c_version']]],
+  ['map_5ffd_1098',['map_fd',['../structbpf__prog__bind__map__attr__t.html#accf54481d118c7b1b38c7d90ba03a9dd',1,'bpf_prog_bind_map_attr_t::map_fd()'],['../unionbpf__attr.html#a86dcea0ed146554375fe1f1041b22ef3',1,'bpf_attr::map_fd()']]],
+  ['map_5fflags_1099',['map_flags',['../structbpf__create__map__attr.html#ab0e3991ce3aaa6df15e51dc3a7e6aa5d',1,'bpf_create_map_attr::map_flags()'],['../structbpf__map__info.html#abec4297437ea312d782616d1090a6a98',1,'bpf_map_info::map_flags()'],['../unionbpf__attr.html#ab4497e4fb88641516d8b15edcc1873b8',1,'bpf_attr::map_flags()']]],
+  ['map_5fid_1100',['map_id',['../unionbpf__attr.html#a070d808e64fe40239aa61f5f7f540905',1,'bpf_attr']]],
+  ['map_5fids_1101',['map_ids',['../structbpf__prog__info.html#a74cb864c0b19997329c32e9859f509e6',1,'bpf_prog_info']]],
+  ['map_5fifindex_1102',['map_ifindex',['../structbpf__create__map__attr.html#a3461ea155dc3b65b0a941a88827d2e61',1,'bpf_create_map_attr']]],
+  ['map_5ftype_1103',['map_type',['../structbpf__create__map__attr.html#aea93b09169bbc7abe6f72f45ec1567ff',1,'bpf_create_map_attr::map_type()'],['../unionbpf__attr.html#ae8009f878a49a0053c7064e5f883a80f',1,'bpf_attr::map_type()']]],
+  ['maps_1104',['maps',['../struct__metadata__table.html#ac54d0c39c8fef470699b9f3c6a662ab5',1,'_metadata_table']]],
+  ['max_5fentries_1105',['max_entries',['../structbpf__create__map__attr.html#ab0efff56d41565bf33870e45e104fa65',1,'bpf_create_map_attr::max_entries()'],['../struct__ebpf__map__definition__in__memory.html#a7adf106f9e4bb08e7333afead721794f',1,'_ebpf_map_definition_in_memory::max_entries()'],['../struct__ebpf__map__definition__in__file.html#a1407325983023afd43c1caa73d2344b4',1,'_ebpf_map_definition_in_file::max_entries()'],['../structbpf__map__info.html#a0238f04b0912d7be44ba22f6b8f4101f',1,'bpf_map_info::max_entries()'],['../unionbpf__attr.html#aefd617ff69e03e11ae9e08979c48d212',1,'bpf_attr::max_entries()']]],
+  ['max_5finstruction_5fcount_1106',['max_instruction_count',['../structebpf__api__verifier__stats__t.html#ac0b14f4498797ed6aebffb06f19c0f20',1,'ebpf_api_verifier_stats_t']]],
+  ['minor_1107',['minor',['../struct__bpf2c__version.html#abc026a444dc06c7c49fccb74d2ca90e2',1,'_bpf2c_version']]],
+  ['morefragments_1108',['MoreFragments',['../struct___i_p_v4___h_e_a_d_e_r.html#a45dd3730b51b983fd1f23f86ad3a7b47',1,'_IPV4_HEADER']]],
+  ['msg_5fsrc_5fip4_1109',['msg_src_ip4',['../structbpf__sock__addr.html#ac203d3d0d866b6c4b544c0320c593eba',1,'bpf_sock_addr']]],
+  ['msg_5fsrc_5fip6_1110',['msg_src_ip6',['../structbpf__sock__addr.html#aa66a141e6de7391bee151df2557737e7',1,'bpf_sock_addr']]],
+  ['msg_5fsrc_5fport_1111',['msg_src_port',['../structbpf__sock__addr.html#a4f4a15408de0ae5424ce276111a5b358',1,'bpf_sock_addr']]]
 ];

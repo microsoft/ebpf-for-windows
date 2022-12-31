@@ -73,19 +73,23 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a1790ac66e704de97367583bd59348c85"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__info.html#a1790ac66e704de97367583bd59348c85">MIDL</a> ([size_is(<a class="el" href="struct__ebpf__program__info.html#a47cc7a213e8f92d73af70df122fc25fe">count_of_helpers</a>)]) <a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a> *helper_prototype</td></tr>
-<tr class="separator:a1790ac66e704de97367583bd59348c85"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a860300a5f3bddda1e88beb7b26fbd8c9"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__info.html#a860300a5f3bddda1e88beb7b26fbd8c9">MIDL</a> ([size_is(<a class="el" href="struct__ebpf__program__info.html#a9d05f0c59dc1b574f135332d055d2cfa">count_of_global_helpers</a>)]) <a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a> *global_helper_prototype</td></tr>
+<tr class="separator:a860300a5f3bddda1e88beb7b26fbd8c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
 <tr class="memitem:a68aea61fc3da3fc4903ee41903e5cc85"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__program__types_8h.html#a15c99d9ad970c656327b558ac17c0b89">ebpf_program_type_descriptor_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__info.html#a68aea61fc3da3fc4903ee41903e5cc85">program_type_descriptor</a></td></tr>
 <tr class="separator:a68aea61fc3da3fc4903ee41903e5cc85"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a47cc7a213e8f92d73af70df122fc25fe"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__info.html#a47cc7a213e8f92d73af70df122fc25fe">count_of_helpers</a></td></tr>
-<tr class="separator:a47cc7a213e8f92d73af70df122fc25fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a814e4733081f56a11fccc56cb44bf5b9"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__info.html#a814e4733081f56a11fccc56cb44bf5b9">count_of_program_type_specific_helpers</a></td></tr>
+<tr class="separator:a814e4733081f56a11fccc56cb44bf5b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac08c2c6774270e5f6e431edb7cd9b0c0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__info.html#ac08c2c6774270e5f6e431edb7cd9b0c0">program_type_specific_helper_prototype</a></td></tr>
+<tr class="separator:ac08c2c6774270e5f6e431edb7cd9b0c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9d05f0c59dc1b574f135332d055d2cfa"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__info.html#a9d05f0c59dc1b574f135332d055d2cfa">count_of_global_helpers</a></td></tr>
+<tr class="separator:a9d05f0c59dc1b574f135332d055d2cfa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="a1790ac66e704de97367583bd59348c85"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1790ac66e704de97367583bd59348c85">&#9670;&nbsp;</a></span>MIDL()</h2>
+<a id="a860300a5f3bddda1e88beb7b26fbd8c9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a860300a5f3bddda1e88beb7b26fbd8c9">&#9670;&nbsp;</a></span>MIDL()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -102,14 +106,28 @@ Data Fields</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Field Documentation</h2>
-<a id="a47cc7a213e8f92d73af70df122fc25fe"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a47cc7a213e8f92d73af70df122fc25fe">&#9670;&nbsp;</a></span>count_of_helpers</h2>
+<a id="a9d05f0c59dc1b574f135332d055d2cfa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9d05f0c59dc1b574f135332d055d2cfa">&#9670;&nbsp;</a></span>count_of_global_helpers</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t _ebpf_program_info::count_of_helpers</td>
+          <td class="memname">uint32_t _ebpf_program_info::count_of_global_helpers</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a814e4733081f56a11fccc56cb44bf5b9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a814e4733081f56a11fccc56cb44bf5b9">&#9670;&nbsp;</a></span>count_of_program_type_specific_helpers</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t _ebpf_program_info::count_of_program_type_specific_helpers</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -124,6 +142,20 @@ Data Fields</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="ebpf__program__types_8h.html#a15c99d9ad970c656327b558ac17c0b89">ebpf_program_type_descriptor_t</a> _ebpf_program_info::program_type_descriptor</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ac08c2c6774270e5f6e431edb7cd9b0c0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac08c2c6774270e5f6e431edb7cd9b0c0">&#9670;&nbsp;</a></span>program_type_specific_helper_prototype</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a>* _ebpf_program_info::program_type_specific_helper_prototype</td>
         </tr>
       </table>
 </div><div class="memdoc">

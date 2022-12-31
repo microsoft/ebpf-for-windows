@@ -1,6 +1,18 @@
 var searchData=
 [
-  ['kern_5fversion_1074',['kern_version',['../structbpf__load__program__attr.html#aafd5999d1bd27a4c480bb64ba081bf4e',1,'bpf_load_program_attr::kern_version()'],['../unionbpf__attr.html#abf7fc80cbc0f38ee22b53ecef983c476',1,'bpf_attr::kern_version()']]],
-  ['key_1075',['key',['../struct__ebpf__stat.html#addc6dec45f103009797c811d68f17869',1,'_ebpf_stat::key()'],['../unionbpf__attr.html#a7260a58d9ee514dac13f7d7ad16fa5e0',1,'bpf_attr::key()']]],
-  ['key_5fsize_1076',['key_size',['../structbpf__create__map__attr.html#aeb279d0f5545e4da94b4349a21a9515a',1,'bpf_create_map_attr::key_size()'],['../struct__ebpf__map__definition__in__memory.html#a3355e179c8e1ad58c8f111c96c3d5879',1,'_ebpf_map_definition_in_memory::key_size()'],['../struct__ebpf__map__definition__in__file.html#a103d15ebb247ecc8e060be0347aa4303',1,'_ebpf_map_definition_in_file::key_size()'],['../structbpf__map__info.html#a59d3a53b2bec2c49d3955f25707cb337',1,'bpf_map_info::key_size()'],['../unionbpf__attr.html#a9b6dae0c5e5c8c15a529f7ec93d1ce92',1,'bpf_attr::key_size()']]]
+  ['id_1063',['id',['../structbpf__link__info.html#af38c04d5b8713678bd18719734398a73',1,'bpf_link_info::id()'],['../structbpf__map__info.html#abadc9741409bc738b2b7c290a505034e',1,'bpf_map_info::id()'],['../structbpf__prog__info.html#ac93577683e5e340b94b9fca9b12efd02',1,'bpf_prog_info::id()'],['../struct__ebpf__map__definition__in__file.html#ac9a38cca019c84ea3d49845db60bbe99',1,'_ebpf_map_definition_in_file::id()']]],
+  ['identification_1064',['Identification',['../struct___i_p_v4___h_e_a_d_e_r.html#a563a15dd67b9a9bf5f4fca318e3182d0',1,'_IPV4_HEADER']]],
+  ['ifindex_1065',['ifindex',['../structbpf__link__info.html#a99a3d3bc732e8b2a052058d1ee1178f6',1,'bpf_link_info']]],
+  ['info_1066',['info',['../structbpf__obj__info__attr__t.html#abab916a0a3a758fedcdbb5fd03b4c6ec',1,'bpf_obj_info_attr_t::info()'],['../unionbpf__attr.html#ab55018c05b15b605d48ae9f55ab8c060',1,'bpf_attr::info()']]],
+  ['info_5flen_1067',['info_len',['../structbpf__obj__info__attr__t.html#a38dcccde5119d691892422b8b10483c4',1,'bpf_obj_info_attr_t']]],
+  ['ingress_5fifindex_1068',['ingress_ifindex',['../structxdp__md.html#aed8d30ce88a012cdd83404980512ef1e',1,'xdp_md']]],
+  ['inner_5fid_1069',['inner_id',['../struct__ebpf__map__definition__in__file.html#a0bb84e3cada95d12d3cc0a1c24061aa6',1,'_ebpf_map_definition_in_file']]],
+  ['inner_5fmap_5ffd_1070',['inner_map_fd',['../structbpf__create__map__attr.html#a1dd086f9bf6e270211fbdf8fb1708e1f',1,'bpf_create_map_attr']]],
+  ['inner_5fmap_5fid_1071',['inner_map_id',['../struct__ebpf__map__definition__in__memory.html#a3b8e470365252209c395e43a6f6268e5',1,'_ebpf_map_definition_in_memory::inner_map_id()'],['../structbpf__map__info.html#aefd5ad96b9dac363133f7eec528241d9',1,'bpf_map_info::inner_map_id()']]],
+  ['inner_5fmap_5fidx_1072',['inner_map_idx',['../struct__ebpf__map__definition__in__file.html#a1bc0c265be49ca02958cad64cd952a46',1,'_ebpf_map_definition_in_file']]],
+  ['insn_5fcnt_1073',['insn_cnt',['../unionbpf__attr.html#a05b01ad0d596faa1988d6c213c301e8c',1,'bpf_attr']]],
+  ['insns_1074',['insns',['../structbpf__load__program__attr.html#a56b58c5cecf868bf4bbbe0faf0885933',1,'bpf_load_program_attr::insns()'],['../unionbpf__attr.html#a710ff83ea658eb8bede97bc8baa7981c',1,'bpf_attr::insns()']]],
+  ['insns_5fcnt_1075',['insns_cnt',['../structbpf__load__program__attr.html#a3b8461c73f29ad562402eee25176de96',1,'bpf_load_program_attr']]],
+  ['interface_5fluid_1076',['interface_luid',['../structbpf__sock__addr.html#aac2c7b68bd8f71553f5449f225a0e6a3',1,'bpf_sock_addr::interface_luid()'],['../struct__bpf__sock__ops.html#aaf26ad8f372bc7456645690f5a9a602e',1,'_bpf_sock_ops::interface_luid()']]],
+  ['is_5fprivileged_1077',['is_privileged',['../struct__ebpf__program__type__descriptor.html#aafa9c2f4ceef8b382998f6e445c38121',1,'_ebpf_program_type_descriptor']]]
 ];

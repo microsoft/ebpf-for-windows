@@ -10,8 +10,9 @@ var searchData=
   ['context_5fdescriptor_310',['context_descriptor',['../struct__ebpf__program__type__descriptor.html#a96b4a2cc58ac7f1cdc12c4a57585b794',1,'_ebpf_program_type_descriptor']]],
   ['convert_5fguid_5fto_5fstring_311',['convert_guid_to_string',['../user_2ebpf__registry__helper_8h.html#a60f37fbfe3244a650cf03b41e8ef111a',1,'ebpf_registry_helper.h']]],
   ['convert_5fstring_5fto_5fguid_312',['convert_string_to_guid',['../user_2ebpf__registry__helper_8h.html#a02b9678d923be400e54fda9be10e238c',1,'ebpf_registry_helper.h']]],
-  ['count_5fof_5fhelpers_313',['count_of_helpers',['../struct__ebpf__program__info.html#a47cc7a213e8f92d73af70df122fc25fe',1,'_ebpf_program_info']]],
-  ['create_5fregistry_5fkey_314',['create_registry_key',['../user_2ebpf__registry__helper_8h.html#afcae0fbb5f62ebc33103fb9acaa5bbd3',1,'ebpf_registry_helper.h']]],
-  ['create_5fregistry_5fkey_5fansi_315',['create_registry_key_ansi',['../user_2ebpf__registry__helper_8h.html#a2820194bdada65c152e55df8b9b869b9',1,'ebpf_registry_helper.h']]],
-  ['cwr_316',['cwr',['../structtcphdr.html#a0d9296ee404181ec6bb4844034a205cc',1,'tcphdr']]]
+  ['count_5fof_5fglobal_5fhelpers_313',['count_of_global_helpers',['../struct__ebpf__program__info.html#a9d05f0c59dc1b574f135332d055d2cfa',1,'_ebpf_program_info']]],
+  ['count_5fof_5fprogram_5ftype_5fspecific_5fhelpers_314',['count_of_program_type_specific_helpers',['../struct__ebpf__program__info.html#a814e4733081f56a11fccc56cb44bf5b9',1,'_ebpf_program_info']]],
+  ['create_5fregistry_5fkey_315',['create_registry_key',['../user_2ebpf__registry__helper_8h.html#afcae0fbb5f62ebc33103fb9acaa5bbd3',1,'ebpf_registry_helper.h']]],
+  ['create_5fregistry_5fkey_5fansi_316',['create_registry_key_ansi',['../user_2ebpf__registry__helper_8h.html#a2820194bdada65c152e55df8b9b869b9',1,'ebpf_registry_helper.h']]],
+  ['cwr_317',['cwr',['../structtcphdr.html#a0d9296ee404181ec6bb4844034a205cc',1,'tcphdr']]]
 ];

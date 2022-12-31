@@ -1,14 +1,14 @@
 var searchData=
 [
-  ['section_5fname_1157',['section_name',['../struct__program__entry.html#aa0bcbf657cbd42813672cd7405ea8749',1,'_program_entry::section_name()'],['../struct__ebpf__section__info.html#a4499d796b8c43df1a71a286257e5a155',1,'_ebpf_section_info::section_name()'],['../struct__ebpf__program__section__info.html#a2f049ca717ca716cacd2f660ccd5c5b2',1,'_ebpf_program_section_info::section_name()']]],
-  ['sequence_5fnumber_1158',['sequence_number',['../structtcphdr.html#aecac46c92e92e6dff81a4fee15f27b58',1,'tcphdr']]],
-  ['socket_5faddress_1159',['socket_address',['../struct__bind__md.html#a4e6ab6ab7b7b7e88e0c73ba99caa2e90',1,'_bind_md']]],
-  ['socket_5faddress_5flength_1160',['socket_address_length',['../struct__bind__md.html#afe6ac1515f579d5f1b8667946ddac668',1,'_bind_md']]],
-  ['source_1161',['source',['../structtcphdr.html#ac3e6c13e4fefb7a5fa91d27b9aac2d3c',1,'tcphdr']]],
-  ['source_1162',['Source',['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#a09a294715c845ec74323de381df6afe7',1,'_ETHERNET_HEADER']]],
-  ['sourceaddress_1163',['SourceAddress',['../struct___i_p_v4___h_e_a_d_e_r.html#a44eab13ab96011c8aa2abbc374188115',1,'_IPV4_HEADER::SourceAddress()'],['../struct___i_p_v6___h_e_a_d_e_r.html#a6cc60095ffc72250042d28ded6d7e2f1',1,'_IPV6_HEADER::SourceAddress()']]],
-  ['srcport_1164',['srcPort',['../struct_u_d_p___h_e_a_d_e_r__.html#a7d291a5c8ddf8bcdd2f5d38f311a7d3f',1,'UDP_HEADER_']]],
-  ['start_5fid_1165',['start_id',['../unionbpf__attr.html#a5d5f66dac9e6ade3f6e4d532d6e1e899',1,'bpf_attr']]],
-  ['stats_1166',['stats',['../struct__ebpf__section__info.html#aa3cf14adb3f680f38912c9eff61eeba4',1,'_ebpf_section_info']]],
-  ['syn_1167',['syn',['../structtcphdr.html#a37abb1d4677e10fe527cfd75b038a083',1,'tcphdr']]]
+  ['raw_5fdata_5fsize_1152',['raw_data_size',['../struct__ebpf__section__info.html#a9b292eb1277172551f5338286fb4b86c',1,'_ebpf_section_info']]],
+  ['referenced_5fmap_5fcount_1153',['referenced_map_count',['../struct__program__entry.html#a487de1acdc59c9b8a897f9ca2a685c8f',1,'_program_entry']]],
+  ['referenced_5fmap_5findices_1154',['referenced_map_indices',['../struct__program__entry.html#a72acd840e5ae706a54dd0b48c81c8e93',1,'_program_entry']]],
+  ['remote_5fip4_1155',['remote_ip4',['../struct__bpf__sock__ops.html#a53b593c9b3ece562594f8ecafa40b07d',1,'_bpf_sock_ops']]],
+  ['remote_5fip6_1156',['remote_ip6',['../struct__bpf__sock__ops.html#aea3ed886e9e84305815f5c6a00f97dc8',1,'_bpf_sock_ops']]],
+  ['remote_5fport_1157',['remote_port',['../struct__bpf__sock__ops.html#aa87c0aace02858fa0e7b4e94fb88180d',1,'_bpf_sock_ops']]],
+  ['reserved_1158',['Reserved',['../struct___i_p_v4___h_e_a_d_e_r.html#a35b4094f12494615424086c3b48d435a',1,'_IPV4_HEADER']]],
+  ['reserved_1159',['reserved',['../structtcphdr.html#a0653c46421a701d412b490085e91c436',1,'tcphdr']]],
+  ['return_5ftype_1160',['return_type',['../struct__ebpf__helper__function__prototype.html#a0ea99651ae0c2156811e30b551d92e43',1,'_ebpf_helper_function_prototype']]],
+  ['revision_1161',['revision',['../struct__bpf2c__version.html#a8ae84369bccb3346eb2aa3ce84e60758',1,'_bpf2c_version']]],
+  ['rst_1162',['rst',['../structtcphdr.html#a92116bda446997f27e88f7acc98ca733',1,'tcphdr']]]
 ];
