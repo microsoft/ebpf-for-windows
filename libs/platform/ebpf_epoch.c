@@ -443,7 +443,7 @@ _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(siz
 }
 
 void
-ebpf_epoch_free(_Frees_ptr_opt_ void* memory)
+ebpf_epoch_free(_In_opt_ void* memory)
 {
     ebpf_epoch_allocation_header_t* header = (ebpf_epoch_allocation_header_t*)memory;
     ebpf_lock_state_t lock_state;
