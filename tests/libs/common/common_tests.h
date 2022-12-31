@@ -18,7 +18,7 @@ ebpf_test_pinned_map_enum();
 #define RING_BUFFER_TEST_EVENT_COUNT 10
 
 void
-verify_utility_helper_results(_In_ const bpf_object* object);
+verify_utility_helper_results(_In_ const bpf_object* object, bool helper_override);
 
 typedef struct _ring_buffer_test_event_context
 {

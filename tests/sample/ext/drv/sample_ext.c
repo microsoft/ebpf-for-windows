@@ -23,10 +23,14 @@
 
 #define SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
+#define SAMPLE_PID_TGID_VALUE 9999
+
 // f788ef4a-207d-4dc3-85cf-0f2ea107213c
 DEFINE_GUID(EBPF_PROGRAM_TYPE_SAMPLE, 0xf788ef4a, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
 
 // Sample Extension helper function addresses table.
+static uint64_t
+_sample_get_pid_tgid();
 static int64_t
 _sample_ebpf_extension_helper_function1(_In_ const sample_program_context_t* context);
 static int64_t
@@ -43,8 +47,15 @@ static const void* _sample_ebpf_extension_helpers[] = {
 static ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
     EBPF_COUNT_OF(_sample_ebpf_extension_helpers), (uint64_t*)_sample_ebpf_extension_helpers};
 
+static const void* _sample_global_helpers[] = {(void*)&_sample_get_pid_tgid};
+
+static ebpf_helper_function_addresses_t _sample_global_helper_function_address_table = {
+    EBPF_COUNT_OF(_sample_global_helpers), (uint64_t*)_sample_global_helpers};
+
 static ebpf_program_data_t _sample_ebpf_extension_program_data = {
-    &_sample_ebpf_extension_program_info, &_sample_ebpf_extension_helper_function_address_table};
+    &_sample_ebpf_extension_program_info,
+    &_sample_ebpf_extension_helper_function_address_table,
+    &_sample_global_helper_function_address_table};
 
 static ebpf_extension_data_t _sample_ebpf_extension_program_info_provider_data = {
     SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION,
@@ -568,6 +579,13 @@ sample_ebpf_extension_profile_program(
 
 Exit:
     return return_value;
+}
+
+// Global Helper Function Definitions.
+static uint64_t
+_sample_get_pid_tgid()
+{
+    return SAMPLE_PID_TGID_VALUE;
 }
 
 // Helper Function Definitions.
