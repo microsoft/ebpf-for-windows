@@ -189,10 +189,14 @@ _ebpf_core_circular_map_peek_or_pop(_Inout_ ebpf_core_circular_map_t* map, bool 
         }
     }
     if (pop) {
+        // The return_value is not freed until the current epoch is retired.
         ebpf_epoch_free(return_value);
     }
 Done:
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory 'return_value'.
     return return_value;
+#pragma warning(pop)
 }
 
 static ebpf_result_t

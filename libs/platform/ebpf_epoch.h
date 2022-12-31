@@ -56,7 +56,7 @@ extern "C"
      * @param[in] memory Allocation to be freed once epoch ends.
      */
     void
-    ebpf_epoch_free(_In_opt_ void* memory);
+    ebpf_epoch_free(_Frees_ptr_opt_ void* memory);
 
     /**
      * @Brief Release any memory that is associated with expired epochs.
