@@ -447,7 +447,7 @@ Exit:
 //
 
 static void
-_net_ebpf_ext_l2_receive_inject_complete(_In_ void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
+_net_ebpf_ext_l2_receive_inject_complete(_In_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
 {
     UNREFERENCED_PARAMETER(context);
     UNREFERENCED_PARAMETER(dispatch_level);
@@ -472,7 +472,7 @@ _net_ebpf_ext_receive_inject_cloned_nbl(
         interface_index,
         ndis_port,
         (NET_BUFFER_LIST*)cloned_nbl,
-        _net_ebpf_ext_l2_receive_inject_complete,
+        (FWPS_INJECT_COMPLETE)_net_ebpf_ext_l2_receive_inject_complete,
         NULL);
 
     if (!NT_SUCCESS(status)) {
@@ -488,7 +488,7 @@ Exit:
 }
 
 static void
-_net_ebpf_ext_l2_inject_send_complete(_In_ void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
+_net_ebpf_ext_l2_inject_send_complete(_In_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
 {
     if ((BOOLEAN)(uintptr_t)context == FALSE)
         // Free clone allocated using _net_ebpf_ext_allocate_cloned_nbl.
@@ -532,7 +532,7 @@ _net_ebpf_ext_handle_xdp_tx(
         interface_index,
         ndis_port,
         nbl,
-        _net_ebpf_ext_l2_inject_send_complete,
+        (FWPS_INJECT_COMPLETE)_net_ebpf_ext_l2_inject_send_complete,
         (void*)(uintptr_t)cloned_packet);
 
     if (status != STATUS_SUCCESS) {

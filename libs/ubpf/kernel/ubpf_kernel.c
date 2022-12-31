@@ -39,7 +39,7 @@ fprintf(void* stream, const char* format, ...)
     return -1;
 }
 
-inline char* __cdecl place_holder_strerror(_In_ int error) { return NULL; }
+inline char* __cdecl place_holder_strerror(int error) { return NULL; }
 
 inline int
 place_holder_errno()

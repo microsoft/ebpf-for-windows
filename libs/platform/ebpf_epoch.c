@@ -127,7 +127,7 @@ typedef struct _ebpf_epoch_work_item
 {
     ebpf_epoch_allocation_header_t header;
     void* callback_context;
-    void (*callback)(void* context);
+    const void (*callback)(_Inout_ void* context);
 } ebpf_epoch_work_item_t;
 
 typedef enum _ebpf_epoch_get_thread_entry_option
@@ -143,7 +143,7 @@ typedef enum _ebpf_epoch_get_thread_entry_option
  * @param[in] released_epoch The epoch to release.
  */
 static void
-_ebpf_epoch_release_free_list(_In_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t released_epoch);
+_ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t released_epoch);
 
 /**
  * @brief Determine the newest inactive epoch and return it.
@@ -161,7 +161,7 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* released_epoch);
  * @param[in] context Unused.
  */
 static void
-_ebpf_flush_worker(_In_ void* context);
+_ebpf_flush_worker(_In_ const void* context);
 
 /**
  * @brief Flush any stale entries from the per-CPU free list.
@@ -170,7 +170,7 @@ _ebpf_flush_worker(_In_ void* context);
  * @param[in] parameter_1 Unused.
  */
 static void
-_ebpf_epoch_stale_worker(_In_ void* work_item_context, _In_ void* parameter_1);
+_ebpf_epoch_stale_worker(_In_ const void* work_item_context, _In_ const void* parameter_1);
 
 /**
  * @brief Find or create a thread entry for the current thread.
@@ -429,8 +429,7 @@ ebpf_epoch_flush()
     }
 }
 
-void*
-ebpf_epoch_allocate(size_t size)
+_Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(size_t size)
 {
     ebpf_assert(size);
     ebpf_epoch_allocation_header_t* header;
@@ -476,7 +475,7 @@ ebpf_epoch_free(_Frees_ptr_opt_ void* memory)
 }
 
 ebpf_epoch_work_item_t*
-ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ void (*callback)(void* context))
+ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ const void (*callback)(_Inout_ void* context))
 {
     ebpf_epoch_work_item_t* work_item = ebpf_allocate(sizeof(ebpf_epoch_work_item_t));
     if (!work_item) {
@@ -491,7 +490,7 @@ ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ void (*callback)
 }
 
 void
-ebpf_epoch_schedule_work_item(_In_ ebpf_epoch_work_item_t* work_item)
+ebpf_epoch_schedule_work_item(_Inout_ ebpf_epoch_work_item_t* work_item)
 {
     ebpf_lock_state_t lock_state;
     uint32_t current_cpu;
@@ -544,7 +543,7 @@ ebpf_epoch_is_free_list_empty(uint32_t cpu_id)
 }
 
 static void
-_ebpf_epoch_release_free_list(_In_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t released_epoch)
+_ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t released_epoch)
 {
     ebpf_lock_state_t lock_state;
     ebpf_list_entry_t* entry;
@@ -688,7 +687,7 @@ Exit:
 }
 
 static void
-_ebpf_flush_worker(_In_ void* context)
+_ebpf_flush_worker(_In_ const void* context)
 {
     UNREFERENCED_PARAMETER(context);
 
@@ -737,7 +736,7 @@ static _Requires_lock_held_(cpu_entry->lock) void _ebpf_epoch_arm_timer_if_neede
 }
 
 static void
-_ebpf_epoch_stale_worker(_In_ void* work_item_context, _In_ void* parameter_1)
+_ebpf_epoch_stale_worker(_In_ const void* work_item_context, _In_ const void* parameter_1)
 {
     UNREFERENCED_PARAMETER(work_item_context);
     UNREFERENCED_PARAMETER(parameter_1);

@@ -161,6 +161,7 @@ _load_program_data_information(
         }
 
         auto program_type_name_string = ebpf_down_cast_from_wstring(std::wstring(program_type_name));
+
         program_information = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
         if (program_information == nullptr) {
             result = EBPF_NO_MEMORY;
@@ -218,9 +219,10 @@ _load_program_data_information(
                 goto Exit;
             }
 
-            program_information->helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate(
-                helper_count * sizeof(ebpf_helper_function_prototype_t));
-            if (program_information->helper_prototype == nullptr) {
+            program_information->program_type_specific_helper_prototype =
+                (ebpf_helper_function_prototype_t*)ebpf_allocate(
+                    helper_count * sizeof(ebpf_helper_function_prototype_t));
+            if (program_information->program_type_specific_helper_prototype == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
@@ -244,13 +246,14 @@ _load_program_data_information(
                     goto Exit;
                 }
 
-                result = _load_helper_prototype(helper_key, helper_name, &program_information->helper_prototype[index]);
+                result = _load_helper_prototype(
+                    helper_key, helper_name, &program_information->program_type_specific_helper_prototype[index]);
                 if (result != EBPF_SUCCESS) {
                     goto Exit;
                 }
             }
 
-            program_information->count_of_helpers = helper_count;
+            program_information->count_of_program_type_specific_helpers = helper_count;
         }
 
         *program_info = program_information;
@@ -263,13 +266,14 @@ Exit:
     ebpf_free(helper_name);
     if (result != EBPF_SUCCESS) {
         ebpf_free(descriptor);
-        ebpf_free(program_type_name);
-        ebpf_free(program_type);
         ebpf_program_info_free(program_information);
     }
     if (program_info_key) {
         close_registry_key(program_info_key);
     }
+    ebpf_free(program_type_name);
+    ebpf_free(program_type);
+
     if (helper_key) {
         close_registry_key(helper_key);
     }
@@ -675,5 +679,6 @@ Exit:
             ebpf_free(helper_prototype);
         }
     }
+    ebpf_free(helper_name);
     return result;
 }

@@ -191,7 +191,8 @@ RPC_STATUS
 clean_up_rpc_binding() { return RPC_S_OK; }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t* logs_size)
+ebpf_rpc_load_program(
+    _In_ const ebpf_program_load_info* info, _Outptr_result_maybenull_z_ const char** logs, _Inout_ uint32_t* logs_size)
 {
     // Set the handle of program being verified in thread-local storage.
     set_program_under_verification(reinterpret_cast<ebpf_handle_t>(info->program_handle));

@@ -631,7 +631,9 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(
         ebpf_update_trampoline_table(
             table, EBPF_COUNT_OF(test_function_ids), test_function_ids, &helper_function_addresses) == EBPF_SUCCESS);
-    REQUIRE(ebpf_get_trampoline_function(table, 0, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_get_trampoline_function(
+            table, EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
 
     // Size of the actual function is unknown, but we know the allocation is on page granularity.
     REQUIRE(
@@ -654,6 +656,7 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(addresses[0] != 0);
     REQUIRE(addresses[1] == 0);
     REQUIRE(addresses[2] != 0);
+    ebpf_free_trampoline_table(table);
 }
 
 TEST_CASE("name size", "[execution_context]")
@@ -728,7 +731,7 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
 
     REQUIRE(
         ebpf_async_set_completion_callback(
-            &completion, [](void* context, size_t output_buffer_length, ebpf_result_t result) {
+            &completion, [](_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result) {
                 UNREFERENCED_PARAMETER(output_buffer_length);
                 auto completion = reinterpret_cast<_completion*>(context);
                 auto async_query_result = &completion->async_query_result;

@@ -229,7 +229,7 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_enumerate_entries(
-    _In_ ebpf_pinning_table_t* pinning_table,
+    _Inout_ ebpf_pinning_table_t* pinning_table,
     ebpf_object_type_t object_type,
     _Out_ uint16_t* entry_count,
     _Outptr_result_buffer_maybenull_(*entry_count) ebpf_pinning_entry_t** pinning_entries)
@@ -326,7 +326,7 @@ Exit:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_get_next_path(
-    _In_ ebpf_pinning_table_t* pinning_table,
+    _Inout_ ebpf_pinning_table_t* pinning_table,
     ebpf_object_type_t object_type,
     _In_ const ebpf_utf8_string_t* start_path,
     _Inout_ ebpf_utf8_string_t* next_path)

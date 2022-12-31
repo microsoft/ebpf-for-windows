@@ -32,6 +32,8 @@ extern "C"
         ebpf_utf8_string_t section_name;
         ebpf_utf8_string_t file_name;
         ebpf_code_type_t code_type;
+        const uint8_t* program_info_hash;
+        size_t program_info_hash_length;
     } ebpf_program_parameters_t;
 
     typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);
@@ -68,7 +70,7 @@ extern "C"
      * @brief Initialize a program instance from the provided program
      *  parameters.
      *
-     * @param[in,out] program Program instance to initialize.
+     * @param[in, out] program Program instance to initialize.
      * @param[in] program_parameters Program parameters to be used to initialize
      *  the program instance.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -171,7 +173,7 @@ extern "C"
      * @param[out] result Output from the program.
      */
     void
-    ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result);
+    ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _Out_ uint32_t* result);
 
     /**
      * @brief Store the helper function IDs that are used by the eBPF program in an array
@@ -211,8 +213,8 @@ extern "C"
     /**
      * @brief Attach a link object to an eBPF program.
      *
-     * @param[in] program Program to attach to the link object.
-     * @param[in] link The link object.
+     * @param[in, out] program Program to attach to the link object.
+     * @param[in, out] link The link object.
      */
     void
     ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
@@ -220,8 +222,8 @@ extern "C"
     /**
      * @brief Detach a link object from the eBPF program it is attached to.
      *
-     * @param[in] program Program to detach to the link object from.
-     * @param[in] link The link object.
+     * @param[in, out] program Program to detach to the link object from.
+     * @param[in, out] link The link object.
      */
     void
     ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
@@ -243,7 +245,7 @@ extern "C"
      * @param[in] program The program to get info about.
      * @param[in] input_buffer Buffer to read bpf_prog_info from.
      * @param[out] output_buffer Buffer to write bpf_prog_info into.
-     * @param[in,out] info_size On input, the size in bytes of the buffer.
+     * @param[in, out] info_size On input, the size in bytes of the buffer.
      * On output, the number of bytes actually written.
      *
      * @retval EBPF_SUCCESS The operation was successful.

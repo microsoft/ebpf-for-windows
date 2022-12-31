@@ -22,7 +22,7 @@ _get_protocol_from_string(std::string protocol)
 }
 
 void
-create_listener(_In_ receiver_socket_t* receiver_socket)
+create_listener(_Inout_ receiver_socket_t* receiver_socket)
 {
     _global_counter++;
     // Post a receive. Wait for client to connect.

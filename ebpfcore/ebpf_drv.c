@@ -220,7 +220,7 @@ _ebpf_driver_file_close(WDFFILEOBJECT wdf_file_object)
 }
 
 static void
-_ebpf_driver_io_device_control_complete(void* context, size_t output_buffer_length, ebpf_result_t result)
+_ebpf_driver_io_device_control_complete(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result)
 {
     NTSTATUS status;
     WDFREQUEST request = (WDFREQUEST)context;

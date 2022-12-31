@@ -140,8 +140,9 @@ utility_helpers_test(ebpf_execution_type_t execution_type)
 {
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "test_sample_ebpf.sys" : "test_sample_ebpf.o";
     program_load_attach_helper_t _helper(
-        "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_utility_helpers", execution_type, nullptr, 0, hook);
+        file_name, BPF_PROG_TYPE_SAMPLE, "test_utility_helpers", execution_type, nullptr, 0, hook);
     object = _helper.get_object();
 
     std::vector<char> dummy(1);
@@ -149,13 +150,14 @@ utility_helpers_test(ebpf_execution_type_t execution_type)
 
     extension.invoke(dummy, dummy);
 
-    verify_utility_helper_results(object);
+    verify_utility_helper_results(object, true);
 }
 
 #if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
 TEST_CASE("utility_helpers_test_interpret", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_INTERPRET); }
 #endif
 TEST_CASE("utility_helpers_test_jit", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("utility_helpers_test_native", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_NATIVE); }
 TEST_CASE("netsh_add_program_test_sample_ebpf", "[sample_ext_test]")
 {
     int result;

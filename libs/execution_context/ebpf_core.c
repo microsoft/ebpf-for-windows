@@ -54,13 +54,13 @@ _ebpf_core_trace_printk5(
     _In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5);
 static int
 _ebpf_core_ring_buffer_output(
-    _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
+    _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
 static uint64_t
-_ebpf_core_map_push_elem(_In_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags);
+_ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags);
 static uint64_t
-_ebpf_core_map_pop_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value);
+_ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value);
 static uint64_t
-_ebpf_core_map_peek_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value);
+_ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value);
 static uint64_t
 _ebpf_core_get_pid_tgid();
 
@@ -110,8 +110,8 @@ NTSTATUS
 ebpf_general_helper_function_provider_attach_client(
     HANDLE nmr_binding_handle,
     _Inout_ void* provider_context,
-    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Out_ void** provider_binding_context,
     _Out_ const void** provider_dispatch)
@@ -183,8 +183,8 @@ ebpf_core_initiate()
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
-    _ebpf_global_helper_program_info.count_of_helpers = ebpf_core_helper_functions_count;
-    _ebpf_global_helper_program_info.helper_prototype = ebpf_core_helper_function_prototype;
+    _ebpf_global_helper_program_info.count_of_program_type_specific_helpers = ebpf_core_helper_functions_count;
+    _ebpf_global_helper_program_info.program_type_specific_helper_prototype = ebpf_core_helper_function_prototype;
     return_value = ebpf_provider_load(
         &_ebpf_global_helper_function_provider_context,
         &ebpf_program_information_extension_interface_id,
@@ -193,8 +193,8 @@ ebpf_core_initiate()
         &_ebpf_global_helper_function_extension_data,
         NULL,
         NULL,
-        ebpf_general_helper_function_provider_attach_client,
-        ebpf_general_helper_function_provider_detach_client,
+        (PNPI_PROVIDER_ATTACH_CLIENT_FN)ebpf_general_helper_function_provider_attach_client,
+        (PNPI_PROVIDER_DETACH_CLIENT_FN)ebpf_general_helper_function_provider_detach_client,
         NULL);
 
     if (return_value != EBPF_SUCCESS) {
@@ -518,7 +518,7 @@ _ebpf_core_protocol_create_program(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
-    ebpf_program_parameters_t parameters;
+    ebpf_program_parameters_t parameters = {0};
     uint8_t* file_name = NULL;
     size_t file_name_length = 0;
     uint8_t* section_name = NULL;
@@ -1295,7 +1295,7 @@ _ebpf_core_protocol_serialize_map_info_reply(
     uint16_t map_count,
     _In_count_(map_count) const ebpf_map_info_internal_t* map_info,
     size_t output_buffer_length,
-    _In_ ebpf_operation_get_pinned_map_info_reply_t* map_info_reply)
+    _Out_ ebpf_operation_get_pinned_map_info_reply_t* map_info_reply)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     size_t serialization_buffer_size;
@@ -1325,7 +1325,7 @@ _ebpf_core_protocol_serialize_map_info_reply(
 static ebpf_result_t
 _ebpf_core_protocol_get_pinned_map_info(
     _In_ const ebpf_operation_get_pinned_map_info_request_t* request,
-    _In_ ebpf_operation_get_pinned_map_info_reply_t* reply,
+    _Inout_ ebpf_operation_get_pinned_map_info_reply_t* reply,
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
@@ -1578,7 +1578,7 @@ _ebpf_core_protocol_ring_buffer_map_async_query(
     _In_ const ebpf_operation_ring_buffer_map_async_query_request_t* request,
     _Inout_ ebpf_operation_ring_buffer_map_async_query_reply_t* reply,
     uint16_t reply_length,
-    _In_ void* async_context)
+    _Inout_ void* async_context)
 {
     UNREFERENCED_PARAMETER(reply_length);
 
@@ -1840,7 +1840,7 @@ Exit:
 
 static int
 _ebpf_core_ring_buffer_output(
-    _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags)
+    _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags)
 {
     // This function implements bpf_ringbuf_output helper function, which returns negative error in case of failure.
     UNREFERENCED_PARAMETER(flags);
@@ -1848,19 +1848,19 @@ _ebpf_core_ring_buffer_output(
 }
 
 static uint64_t
-_ebpf_core_map_push_elem(_In_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
+_ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
 {
     return -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
 }
 
 static uint64_t
-_ebpf_core_map_pop_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value)
+_ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
     return -ebpf_map_pop_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 }
 
 static uint64_t
-_ebpf_core_map_peek_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value)
+_ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
     return -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 }
@@ -1894,7 +1894,7 @@ typedef struct _ebpf_protocol_handler
             _In_ const ebpf_operation_header_t* request,
             _Out_writes_bytes_(output_buffer_length) ebpf_operation_header_t* reply,
             uint16_t output_buffer_length,
-            _In_ void* async_context);
+            _Inout_ void* async_context);
     } dispatch;
     size_t minimum_request_size;
     size_t minimum_reply_size;
@@ -2072,8 +2072,8 @@ ebpf_core_invoke_protocol_handler(
     uint16_t input_buffer_length,
     _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
     uint16_t output_buffer_length,
-    _In_opt_ void* async_context,
-    _In_opt_ void (*on_complete)(void*, size_t, ebpf_result_t))
+    _Inout_opt_ void* async_context,
+    _In_opt_ void (*on_complete)(_Inout_ void*, size_t, ebpf_result_t))
 {
     ebpf_result_t retval;
     bool epoch_entered = false;
@@ -2208,7 +2208,7 @@ Done:
 }
 
 bool
-ebpf_core_cancel_protocol_handler(_In_ void* async_context)
+ebpf_core_cancel_protocol_handler(_Inout_ void* async_context)
 {
     return ebpf_async_cancel(async_context);
 }

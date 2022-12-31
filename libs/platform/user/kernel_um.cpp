@@ -184,7 +184,7 @@ ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_byte
 void
 ExFreePool(void* p)
 {
-    free(p);
+    ebpf_free(p);
 }
 
 void
@@ -249,7 +249,7 @@ IoAllocateWorkItem(_In_ DEVICE_OBJECT* device_object)
     work_item->device = device_object;
     work_item->work_item = CreateThreadpoolWork(io_work_item_wrapper, work_item, nullptr);
     if (work_item->work_item == nullptr) {
-        free(work_item);
+        ebpf_free(work_item);
         work_item = nullptr;
     }
     return work_item;
@@ -273,14 +273,14 @@ IoFreeWorkItem(_In_ __drv_freesMem(Mem) PIO_WORKITEM io_workitem)
 {
     if (io_workitem) {
         CloseThreadpoolWork(io_workitem->work_item);
-        free(io_workitem);
+        ebpf_free(io_workitem);
     }
 }
 
 void
 IoFreeMdl(MDL* mdl)
 {
-    free(mdl);
+    ebpf_free(mdl);
 }
 
 void

@@ -18,6 +18,7 @@
 #pragma region
 // Mock Netsh.exe APIs.
 
+// This function has incorrect SAL annotations, but it's declared in public headers so we can't fix it.
 DWORD WINAPI
 PreprocessCommand(
     _In_opt_ HANDLE hModule,

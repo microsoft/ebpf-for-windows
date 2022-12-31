@@ -20,7 +20,7 @@ typedef struct _net_ebpf_extension_program_info_provider_parameters
  * @brief Register the program information NPI provider.
  *
  * @param[in] provider_characteristics Pointer to the NPI provider characteristics struct.
- * @param[in,out] provider_context Pointer to the provider context being registered.
+ * @param[in, out] provider_context Pointer to the provider context being registered.
  *
  * @retval STATUS_SUCCESS Operation succeeded.
  * @retval STATUS_NO_MEMORY Not enough memory to allocate resources.

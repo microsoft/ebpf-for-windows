@@ -13,6 +13,9 @@
 
 static const uint32_t _ebpf_native_marker = 'entv';
 
+// Set this value if there is a need to block older version of the native driver.
+static bpf2c_version_t _ebpf_minimum_version = {0, 0, 0};
+
 #ifndef GUID_NULL
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
@@ -89,6 +92,32 @@ ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
 void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
 
+static int
+_ebpf_compare_versions(bpf2c_version_t* lhs, bpf2c_version_t* rhs)
+{
+    if (lhs->major < rhs->major) {
+        return -1;
+    }
+    if (lhs->major > rhs->major) {
+        return 1;
+    }
+    ebpf_assert(lhs->major == rhs->major);
+    if (lhs->minor < rhs->major) {
+        return -1;
+    }
+    if (lhs->minor > rhs->major) {
+        return 1;
+    }
+    ebpf_assert(lhs->minor == rhs->minor);
+    if (lhs->revision < rhs->revision) {
+        return -1;
+    }
+    if (lhs->revision > rhs->revision) {
+        return 1;
+    }
+    return 0;
+}
+
 static void
 _ebpf_native_unload_work_item(_In_opt_ const void* service)
 {
@@ -149,7 +178,7 @@ _ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program
 }
 
 static void
-_ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
+_ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
 {
     _ebpf_native_clean_up_maps(module->maps, module->map_count, false);
     _ebpf_native_clean_up_programs(module->programs, module->program_count);
@@ -168,7 +197,7 @@ _ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
     ebpf_free(module);
 }
 
-_Requires_lock_held_(module->lock) static ebpf_result_t _ebpf_native_unload(_In_ ebpf_native_module_t* module)
+_Requires_lock_held_(module->lock) static ebpf_result_t _ebpf_native_unload(_Inout_ ebpf_native_module_t* module)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -211,7 +240,7 @@ ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 }
 
 void
-ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
+ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* module)
 {
     int32_t new_ref_count;
     ebpf_lock_state_t module_lock_state = 0;
@@ -286,9 +315,9 @@ ebpf_native_terminate()
 static NTSTATUS
 _ebpf_native_provider_attach_client_callback(
     HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
-    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* provider_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Out_ void** provider_binding_context,
     _Out_ const void** provider_dispatch)
@@ -319,6 +348,13 @@ _ebpf_native_provider_attach_client_callback(
     }
     table = (metadata_table_t*)client_registration_instance->NpiSpecificCharacteristics;
     if (!table->programs || !table->maps) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    bpf2c_version_t client_version = {0, 0, 0};
+    table->version(&client_version);
+    if (_ebpf_compare_versions(&client_version, &_ebpf_minimum_version) < 0) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -371,7 +407,7 @@ Done:
 }
 
 static NTSTATUS
-_ebpf_native_provider_detach_client_callback(_In_ void* provider_binding_context)
+_ebpf_native_provider_detach_client_callback(_In_ const void* provider_binding_context)
 {
     ebpf_native_module_t* context = (ebpf_native_module_t*)provider_binding_context;
 
@@ -440,8 +476,8 @@ ebpf_native_initiate()
         NULL,
         NULL,
         NULL,
-        _ebpf_native_provider_attach_client_callback,
-        _ebpf_native_provider_detach_client_callback,
+        (NPI_PROVIDER_ATTACH_CLIENT_FN*)_ebpf_native_provider_attach_client_callback,
+        (NPI_PROVIDER_DETACH_CLIENT_FN*)_ebpf_native_provider_detach_client_callback,
         NULL);
 
     if (return_value != EBPF_SUCCESS) {
@@ -851,7 +887,8 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_native_resolve_helpers_for_program(_In_ ebpf_native_module_t* module, _In_ ebpf_native_program_t* program)
+_ebpf_native_resolve_helpers_for_program(
+    _In_ const ebpf_native_module_t* module, _In_ const ebpf_native_program_t* program)
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(module);
@@ -905,7 +942,8 @@ Done:
 }
 
 static void
-_ebpf_native_initialize_helpers_for_program(_In_ ebpf_native_module_t* module, _In_ ebpf_native_program_t* program)
+_ebpf_native_initialize_helpers_for_program(
+    _In_ const ebpf_native_module_t* module, _Inout_ ebpf_native_program_t* program)
 {
     UNREFERENCED_PARAMETER(module);
     size_t helper_count = program->entry->helper_count;
@@ -920,7 +958,7 @@ _ebpf_native_initialize_helpers_for_program(_In_ ebpf_native_module_t* module, _
 }
 
 static ebpf_result_t
-_ebpf_native_load_programs(_In_ ebpf_native_module_t* module)
+_ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_native_program_t* native_programs = NULL;
@@ -985,6 +1023,9 @@ _ebpf_native_load_programs(_In_ ebpf_native_module_t* module)
 
         parameters.file_name.value = NULL;
         parameters.file_name.length = 0;
+
+        parameters.program_info_hash = program->program_info_hash;
+        parameters.program_info_hash_length = program->program_info_hash_length;
 
         result = ebpf_program_create_and_initialize(&parameters, &native_program->handle);
         if (result != EBPF_SUCCESS) {
