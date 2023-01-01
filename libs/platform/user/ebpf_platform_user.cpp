@@ -229,8 +229,14 @@ class _ebpf_emulated_dpc
     bool terminate;
 };
 
+/**
+ * @brief Get an environment variable as a string.
+ *
+ * @param[in] name Environment variable name.
+ * @return String value of environment variable or an empty string if not set.
+ */
 static std::string
-_get_environment_variable(const std::string& name)
+_get_environment_variable_as_string(const std::string& name)
 {
     std::string value;
     size_t required_size = 0;
@@ -243,6 +249,58 @@ _get_environment_variable(const std::string& name)
     return value;
 }
 
+/**
+ * @brief Get an environment variable as a boolean.
+ *
+ * @param[in] name Environment variable name.
+ * @return true Environment variable is set to "true" or "1".
+ * @return false Environment variable is set to "false", "0", or if it's not set.
+ */
+static bool
+_get_environment_variable_as_bool(const std::string& name)
+{
+    std::string value = _get_environment_variable_as_string(name);
+    if (value.empty()) {
+        return false;
+    }
+
+    // convert value to lower case
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+    if (value == "true") {
+        return true;
+    }
+    if (value == "false") {
+        return false;
+    }
+    if (value == "1") {
+        return true;
+    }
+    if (value == "0") {
+        return false;
+    }
+    throw std::runtime_error("Invalid value for environment variable " + name);
+}
+
+/**
+ * @brief Get an environment variable as a size_t.
+ *
+ * @param[in] name Environment variable name.
+ * @return Value of environment variable or 0 if it's not set.
+ */
+static size_t
+_get_environment_variable_as_size_t(const std::string& name)
+{
+    std::string value = _get_environment_variable_as_string(name);
+    if (value.empty()) {
+        return 0;
+    }
+    try {
+        return std::stoull(value);
+    } catch (const std::exception&) {
+        throw std::runtime_error("Invalid value for environment variable " + name);
+    }
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
@@ -250,19 +308,19 @@ ebpf_platform_initiate()
     try {
         _ebpf_platform_maximum_group_count = GetMaximumProcessorGroupCount();
         _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
-        auto low_memory_stack_depth = _get_environment_variable(EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
-        auto leak_detector = _get_environment_variable(EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME);
-        if (!low_memory_stack_depth.empty() || !leak_detector.empty()) {
+        auto low_memory_stack_depth =
+            _get_environment_variable_as_size_t(EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
+        auto leak_detector = _get_environment_variable_as_bool(EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME);
+        if (low_memory_stack_depth || leak_detector) {
             _ebpf_symbol_decoder_initialize();
         }
-        if (!low_memory_stack_depth.empty() && !_ebpf_low_memory_test_ptr) {
-            _ebpf_low_memory_test_ptr =
-                std::make_unique<ebpf_low_memory_test_t>(std::strtoul(low_memory_stack_depth.c_str(), nullptr, 10));
+        if (low_memory_stack_depth && !_ebpf_low_memory_test_ptr) {
+            _ebpf_low_memory_test_ptr = std::make_unique<ebpf_low_memory_test_t>(low_memory_stack_depth);
             // Set flag to remove some asserts that fire from incorrect client behavior.
             ebpf_fuzzing_enabled = true;
         }
 
-        if (!leak_detector.empty()) {
+        if (leak_detector) {
             _ebpf_leak_detector_ptr = std::make_unique<ebpf_leak_detector_t>();
         }
 
@@ -276,7 +334,7 @@ ebpf_platform_initiate()
             _ebpf_platform_group_to_index_map[i] = base_index;
             base_index += GetMaximumProcessorCount((uint16_t)i);
         }
-    } catch (...) {
+    } catch (const std::bad_alloc&) {
         return EBPF_NO_MEMORY;
     }
 
