@@ -83,6 +83,9 @@ _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_redir
 _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_connect_context_list;
 static uint32_t _net_ebpf_ext_connect_context_count = 0;
 
+static SECURITY_DESCRIPTOR* _net_ebpf_ext_security_descriptor_admin = NULL;
+static ACL* _net_ebpf_ext_dacl_admin = NULL;
+
 //
 // sock_addr helper functions.
 //
@@ -100,16 +103,100 @@ _ebpf_sock_addr_get_user_logon_id(_In_ const bpf_sock_addr_t* ctx)
     return *(uint64_t*)(&(sock_addr_ctx->access_information->AuthenticationId));
 }
 
-/*
+static NTSTATUS
+_perform_access_check(
+    _In_ SECURITY_DESCRIPTOR* security_descriptor,
+    _In_ TOKEN_ACCESS_INFORMATION* access_information,
+    _Out_ bool* access_allowed)
+{
+    // GENERIC_MAPPING mapping = { 1, 1, 1 };
+    ACCESS_MASK granted_access;
+    NTSTATUS status;
+
+    // bool result = SeAccessCheckFromState(
+    //     security_descriptor,
+    //     access_information,
+    //     NULL,
+    //     GENERIC_READ,
+    //     0,
+    //     NULL,
+    //     &mapping,
+    //     UserMode,
+    //     &granted_access,
+    //     &status);
+
+    // NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
+    //     NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+    //     NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+    //     "SeAccessCheckFromState 1",
+    //     granted_access,
+    //     status,
+    //     result);
+
+    // result = SeAccessCheckFromState(
+    //     security_descriptor,
+    //     access_information,
+    //     NULL,
+    //     GENERIC_WRITE,
+    //     0,
+    //     NULL,
+    //     &mapping,
+    //     UserMode,
+    //     &granted_access,
+    //     &status);
+
+    // NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
+    //     NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+    //     NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+    //     "SeAccessCheckFromState 2",
+    //     granted_access,
+    //     status,
+    //     result);
+
+    *access_allowed = SeAccessCheckFromState(
+        security_descriptor,
+        access_information,
+        NULL,
+        FILE_WRITE_ACCESS,
+        0,
+        NULL,
+        IoGetFileObjectGenericMapping(),
+        UserMode,
+        &granted_access,
+        &status);
+
+    NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
+        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        "SeAccessCheckFromState 3",
+        granted_access,
+        status,
+        *access_allowed);
+
+    return status;
+}
+
 static uint32_t
 _ebpf_sock_addr_is_user_admin(_In_ const bpf_sock_addr_t* ctx, _Out_ uint32_t* is_admin)
 {
+    NTSTATUS status;
+    bool access_allowed;
+    uint32_t return_value;
+
+    *is_admin = 0;
+    return_value = 1;
+
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    status = _perform_access_check(
+        _net_ebpf_ext_security_descriptor_admin, sock_addr_ctx->access_information, &access_allowed);
 
+    if (NT_SUCCESS(status)) {
+        *is_admin = 1;
+        return_value = 0;
+    }
 
-    return 0;
+    return return_value;
 }
-*/
 
 //
 // WFP filter related types & globals for SOCK_ADDR hook.
@@ -197,9 +284,10 @@ typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
 //
 // SOCK_ADDR Program Information NPI Provider.
 //
-
 static const void* _ebpf_sock_addr_helper_functions[] = {
-    (void*)_ebpf_sock_addr_get_user_process_id, (void*)_ebpf_sock_addr_get_user_logon_id};
+    (void*)_ebpf_sock_addr_get_user_process_id,
+    (void*)_ebpf_sock_addr_get_user_logon_id,
+    (void*)_ebpf_sock_addr_is_user_admin};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_helper_function_address_table = {
     EBPF_COUNT_OF(_ebpf_sock_addr_helper_functions), (uint64_t*)_ebpf_sock_addr_helper_functions};
@@ -355,6 +443,82 @@ _net_ebpf_sock_addr_update_store_entries()
     status = ebpf_store_update_program_information(&_ebpf_sock_addr_program_info, 1);
 
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
+}
+
+static NTSTATUS
+_net_ebpf_sock_addr_create_security_descriptor()
+{
+    PACL dacl = NULL;
+    uint32_t acl_length = 0;
+    PGENERIC_MAPPING mapping = NULL;
+    ACCESS_MASK access_mask = GENERIC_ALL;
+    SECURITY_DESCRIPTOR* admin_security_descriptor = NULL;
+
+    mapping = IoGetFileObjectGenericMapping();
+    RtlMapGenericMask(&access_mask, mapping);
+
+    admin_security_descriptor = (SECURITY_DESCRIPTOR*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(SECURITY_DESCRIPTOR), NET_EBPF_EXTENSION_POOL_TAG);
+    if (admin_security_descriptor == NULL) {
+        return STATUS_NO_MEMORY;
+    }
+
+    NTSTATUS status = RtlCreateSecurityDescriptor(admin_security_descriptor, SECURITY_DESCRIPTOR_REVISION);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    acl_length += sizeof(ACL);
+    acl_length += RtlLengthSid(SeExports->SeAliasAdminsSid) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart);
+    acl_length += RtlLengthSid(SeExports->SeLocalSystemSid) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart);
+
+    dacl = (PACL)ExAllocatePoolUninitialized(NonPagedPoolNx, acl_length, NET_EBPF_EXTENSION_POOL_TAG);
+    if (dacl == NULL) {
+        status = STATUS_NO_MEMORY;
+        goto Exit;
+    }
+
+    RtlCreateAcl(dacl, acl_length, ACL_REVISION);
+
+    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, access_mask, SeExports->SeAliasAdminsSid);
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, access_mask, SeExports->SeLocalSystemSid);
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
+    status = RtlSetDaclSecurityDescriptor(admin_security_descriptor, TRUE, dacl, FALSE);
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
+    _net_ebpf_ext_security_descriptor_admin = admin_security_descriptor;
+    admin_security_descriptor = NULL;
+    _net_ebpf_ext_dacl_admin = dacl;
+    dacl = NULL;
+
+Exit:
+    if (dacl != NULL) {
+        ExFreePool(dacl);
+    }
+    if (admin_security_descriptor != NULL) {
+        ExFreePool(admin_security_descriptor);
+    }
+
+    return status;
+}
+
+static void
+_net_ebpf_sock_addr_clean_up_security_descriptor()
+{
+    if (_net_ebpf_ext_dacl_admin != NULL) {
+        ExFreePool(_net_ebpf_ext_dacl_admin);
+    }
+    if (_net_ebpf_ext_security_descriptor_admin != NULL) {
+        ExFreePool(_net_ebpf_ext_security_descriptor_admin);
+    }
 }
 
 static void
@@ -600,7 +764,14 @@ net_ebpf_ext_sock_addr_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     status = _net_ebpf_sock_addr_update_store_entries();
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    }
+
+    status = _net_ebpf_sock_addr_create_security_descriptor();
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_RETURN_NTSTATUS(status);
     }
@@ -609,8 +780,6 @@ net_ebpf_ext_sock_addr_register_providers()
 
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_info_provider_data};
-
-    NET_EBPF_EXT_LOG_ENTRY();
 
     _ebpf_sock_addr_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     // Set the program type as the provider module id.
@@ -650,6 +819,9 @@ net_ebpf_ext_sock_addr_register_providers()
         goto Exit;
 
 Exit:
+    if (!NT_SUCCESS(status)) {
+        _net_ebpf_sock_addr_clean_up_security_descriptor();
+    }
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
