@@ -41,7 +41,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <ControlFlowGuard>Guard</ControlFlowGuard>
-      <AdditionalOptions>/ZH:SHA_256 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/ZH:SHA_256 %(AdditionalOptions) $(CXXFLAGS)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22621.0\km</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
