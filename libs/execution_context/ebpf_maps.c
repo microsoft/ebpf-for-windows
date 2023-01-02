@@ -188,8 +188,15 @@ _ebpf_core_circular_map_peek_or_pop(_Inout_ ebpf_core_circular_map_t* map, bool 
             map->end = new_end;
         }
     }
+    if (pop) {
+        // The return_value is not freed until the current epoch is retired.
+        ebpf_epoch_free(return_value);
+    }
 Done:
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory 'return_value'.
     return return_value;
+#pragma warning(pop)
 }
 
 static ebpf_result_t
@@ -2517,7 +2524,6 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
     }
 
     memcpy(value, return_value, map->ebpf_map_definition.value_size);
-    ebpf_epoch_free(return_value);
     return EBPF_SUCCESS;
 }
 
