@@ -141,8 +141,9 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object)
 
     fd_t map_fd = bpf_map__fd(audit_map);
 
+    uint32_t key = 0;
     sock_addr_audit_entry_t entry = {0};
-    int result = bpf_map_lookup_elem(map_fd, 0, &entry);
+    int result = bpf_map_lookup_elem(map_fd, &key, &entry);
     REQUIRE(result == 0);
 
     uint64_t process_id = (uint64_t)GetCurrentProcessId();
