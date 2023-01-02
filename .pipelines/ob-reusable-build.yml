@@ -113,8 +113,8 @@ jobs:
         displayName: 'Create ubpf project'
         workingDirectory: $(Build.SourcesDirectory)
 
-      - bash: |
-          "$(MSBUILD_PATH)\msbuild.exe" //m //p:Configuration="$(BUILD_CONFIGURATION)" //p:Platform="$(BUILD_PLATFORM)" "$(SOLUTION_FILE_PATH)" "$(BUILD_OPTIONS)"
+      - script: |
+          msbuild /m /p:Configuration=$(BUILD_CONFIGURATION) /p:Platform=$(BUILD_PLATFORM) $(SOLUTION_FILE_PATH) $(BUILD_OPTIONS)
         displayName: 'Build'
         workingDirectory: $(Build.SourcesDirectory)
 
