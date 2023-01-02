@@ -264,7 +264,7 @@ _get_environment_variable_as_bool(const std::string& name)
         return false;
     }
 
-    // convert value to lower case
+    // Convert value to lower case.
     std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return (char)std::tolower(c); });
     if (value == "false") {
         return false;
