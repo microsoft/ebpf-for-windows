@@ -253,7 +253,7 @@ _get_environment_variable_as_string(const std::string& name)
  * @brief Get an environment variable as a boolean.
  *
  * @param[in] name Environment variable name.
- * @return true Environment variable is set to "true" or "1".
+ * @return true Environment variable is set to "true" or "1", or if it's set to any other value.
  * @return false Environment variable is set to "false", "0", or if it's not set.
  */
 static bool
@@ -278,14 +278,14 @@ _get_environment_variable_as_bool(const std::string& name)
     if (value == "0") {
         return false;
     }
-    throw std::runtime_error("Invalid value for environment variable " + name);
+    return true;
 }
 
 /**
  * @brief Get an environment variable as a size_t.
  *
  * @param[in] name Environment variable name.
- * @return Value of environment variable or 0 if it's not set.
+ * @return Value of environment variable or 0 if it's not set or not a valid number.
  */
 static size_t
 _get_environment_variable_as_size_t(const std::string& name)
@@ -297,7 +297,7 @@ _get_environment_variable_as_size_t(const std::string& name)
     try {
         return std::stoull(value);
     } catch (const std::exception&) {
-        throw std::runtime_error("Invalid value for environment variable " + name);
+        return 0;
     }
 }
 
