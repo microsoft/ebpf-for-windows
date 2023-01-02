@@ -253,8 +253,8 @@ _get_environment_variable_as_string(const std::string& name)
  * @brief Get an environment variable as a boolean.
  *
  * @param[in] name Environment variable name.
- * @return true Environment variable is set to "true" or "1", or if it's set to any other value.
  * @return false Environment variable is set to "false", "0", or if it's not set.
+ * @return true Environment variable is set to any other value.
  */
 static bool
 _get_environment_variable_as_bool(const std::string& name)
@@ -266,14 +266,8 @@ _get_environment_variable_as_bool(const std::string& name)
 
     // convert value to lower case
     std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return (char)std::tolower(c); });
-    if (value == "true") {
-        return true;
-    }
     if (value == "false") {
         return false;
-    }
-    if (value == "1") {
-        return true;
     }
     if (value == "0") {
         return false;
