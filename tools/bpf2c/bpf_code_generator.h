@@ -351,25 +351,6 @@ class bpf_code_generator
     void
     encode_instructions(const unsafe_string& section_name);
 
-    /**
-     * @brief Format a string and insert up to 4 strings in it.
-     *
-     * @param[in] format Format string.
-     * @param[in] insert_1 First string to insert.
-     * @param[in] insert_2 Second string to insert or empty.
-     * @param[in] insert_3 Third string to insert or empty.
-     * @param[in] insert_4 Fourth string to insert or empty.
-     * @return The formatted string.
-     */
-    std::string
-    format_string(
-        const std::string& format,
-        const std::string insert_1,
-        const std::string insert_2 = "",
-        const std::string insert_3 = "",
-        const std::string insert_4 = "",
-        const std::string insert_5 = "");
-
 #if defined(_MSC_VER)
     /**
      * @brief Format a GUID as a string.
