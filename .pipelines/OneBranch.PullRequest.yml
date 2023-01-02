@@ -81,8 +81,8 @@ jobs:
     parameters:
       name: libfuzzer
       build_artifact: Build-x64-fuzzer
-      cxx_flags: '/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /ZH:SHA_256'
-      ld_flags: 'clang_rt.fuzzer_MD-x86_64.lib libsancov.lib'
+      cxx_flags: '/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div'
+      ld_flags: '"clang_rt.fuzzer_MD-x86_64.lib" "libsancov.lib"'
       build_options: /p:Fuzzer='True' /t:tests\libfuzzer\execution_context_fuzzer /t:tests\libfuzzer\bpf2c_fuzzer /t:tests\libfuzzer\verifier_fuzzer /t:tests\libfuzzer\core_helper_fuzzer
 
 # unit_tests
