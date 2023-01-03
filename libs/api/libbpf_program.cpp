@@ -233,6 +233,11 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
 
     if (result != EBPF_SUCCESS)
         return libbpf_result_err(result);
+
+    ebpf_assert(link != nullptr);
+    bpf_link__disconnect(link);
+    bpf_link__destroy(link);
+
     return 0;
 }
 
