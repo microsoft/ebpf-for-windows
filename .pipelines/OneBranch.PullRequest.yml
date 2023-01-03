@@ -45,7 +45,7 @@ variables:
   OUTPUTROOT: $(REPOROOT)\out
   NUGET_XMLDOC_MODE: none
 
-  WindowsContainerImage: 'cdpxwin1809.azurecr.io/global/vse2019:latest' # Docker image which is used to build the project https://aka.ms/obpipelines/containers
+  WindowsContainerImage: 'cdpxwin1809.azurecr.io/global/vse2022:latest' # Docker image which is used to build the project https://aka.ms/obpipelines/containers
 
 resources:
   repositories: 
@@ -81,9 +81,9 @@ jobs:
     parameters:
       name: libfuzzer
       build_artifact: Build-x64-fuzzer
-      cxx_flags: '/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /ZH:SHA_256'
+      cxx_flags: '/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div'
       ld_flags: '"clang_rt.fuzzer_MD-x86_64.lib" "libsancov.lib"'
-      build_options: /p:Fuzzer='True' /t:tests\libfuzzer\execution_context_fuzzer /t:tests\libfuzzer\bpf2c_fuzzer /t:tests\libfuzzer\verifier_fuzzer /t:tests\libfuzzer\core_helper_fuzzer
+      build_options: /p:Fuzzer=True /t:tests\libfuzzer\execution_context_fuzzer /t:tests\libfuzzer\bpf2c_fuzzer /t:tests\libfuzzer\verifier_fuzzer /t:tests\libfuzzer\core_helper_fuzzer
 
 # unit_tests
 # Always run this job.
@@ -94,7 +94,7 @@ jobs:
       test_command: '.\unit_tests.exe -d yes'
       dependency: regular
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: true
       gather_dumps: true
       capture_etw: true
@@ -108,7 +108,7 @@ jobs:
       test_command: '.\bpf2c_tests.exe -d yes'
       dependency: regular
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       vs_dev: true
       code_coverage: true
       gather_dumps: true
@@ -124,7 +124,7 @@ jobs:
       test_command: '.\bpf_conformance_runner.exe --test_file_directory $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\bpf_conformance\tests --plugin_path bpf2c_plugin.exe --cpu_version v2 --debug true --plugin_options "--include $(Build.SourcesDirectory)\$(PROJECT_NAME)\include"'
       dependency: regular
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       vs_dev: true
       code_coverage: true
       gather_dumps: true
@@ -139,7 +139,7 @@ jobs:
       test_command: '.\unit_tests.exe'
       dependency: regular
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: true
       gather_dumps: true
       low_memory: true
@@ -153,7 +153,8 @@ jobs:
     parameters:
       name: analyze
       build_artifact: Build-x64-Analyze
-      build_options: /p:Analysis='True'
+      # Analysis on external projects is conditional, as on small CI/CD VMs the compiler can run OOM
+      build_options: /p:Analysis=True /p:AnalysisOnExternal=False
 
 # Build with C++ address sanitizer.
 # Only run on schedule and pull request.
@@ -162,7 +163,7 @@ jobs:
     parameters:
       name: sanitize
       build_artifact: Build-x64-Sanitize
-      build_options: /p:Sanitizer='True'
+      build_options: /p:AddressSanitizer=True
 
 # fuzzing
 # Only run on schedule and pull request.
@@ -173,7 +174,7 @@ jobs:
       test_command: '.\fuzz.exe -d yes'
       dependency: sanitize
       build_artifact: Build-x64-Sanitize
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -186,7 +187,7 @@ jobs:
       test_command: '.\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\'
       dependency: libfuzzer
       build_artifact: Build-x64-fuzzer
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -199,7 +200,7 @@ jobs:
       test_command: '.\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\'
       dependency: libfuzzer
       build_artifact: Build-x64-fuzzer
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -212,7 +213,7 @@ jobs:
       test_command: '.\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\'
       dependency: libfuzzer
       build_artifact: Build-x64-fuzzer
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -225,7 +226,7 @@ jobs:
       test_command: '.\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\'
       dependency: libfuzzer
       build_artifact: Build-x64-fuzzer
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -238,7 +239,7 @@ jobs:
       test_command: '.\ebpf_performance.exe'
       dependency: regular
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
@@ -251,6 +252,6 @@ jobs:
       test_command: '.\unit_tests.exe -d yes'
       dependency: sanitize
       build_artifact: Build-x64-Sanitize
-      environment: windows-2019
+      environment: windows-2022
       gather_dumps: true
       capture_etw: true
