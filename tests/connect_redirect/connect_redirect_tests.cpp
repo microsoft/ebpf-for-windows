@@ -345,15 +345,15 @@ connect_redirect_tests_common(_In_ const struct bpf_object* object, bool dual_st
     const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";
 
     // Loopback address.
-    printf("AUTH: Loopback | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
+    printf("CONNECT: Loopback | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     authorize_test_wrapper(object, dual_stack, addresses.loopback_address);
 
     // Remote address.
-    printf("AUTH: Remote | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
+    printf("CONNECT: Remote | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     authorize_test_wrapper(object, dual_stack, addresses.remote_address);
 
     // Local non-loopback address.
-    printf("AUTH: Local | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
+    printf("CONNECT: Local | %s | %s | %s\n", protocol_string, family_string, dual_stack_string);
     authorize_test_wrapper(object, dual_stack, addresses.local_address);
 
     // Second category is connection redirection tests.
