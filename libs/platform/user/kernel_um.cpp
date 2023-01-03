@@ -451,3 +451,6 @@ SeAccessCheckFromState(
 
     return true;
 }
+
+KIRQL
+KeGetCurrentIrql() { return PASSIVE_LEVEL; }

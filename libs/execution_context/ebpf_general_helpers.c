@@ -97,7 +97,7 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
     {BPF_FUNC_is_user_admin,
      "bpf_is_user_admin",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM}},
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}},
 };
 
 #ifdef __cplusplus

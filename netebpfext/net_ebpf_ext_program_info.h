@@ -48,7 +48,7 @@ static ebpf_helper_function_prototype_t _ebpf_sock_addr_global_helper_function_p
     {BPF_FUNC_is_user_admin,
      "bpf_is_user_admin",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 
 // CGROUP_SOCK_ADDR program information.
 static ebpf_context_descriptor_t _ebpf_sock_addr_context_descriptor = {

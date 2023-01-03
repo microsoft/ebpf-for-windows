@@ -29,21 +29,22 @@ struct bpf_map_def policy_map = {
 
 SEC("maps")
 struct bpf_map_def audit_map = {
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(uint32_t),
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(uint64_t),
     .value_size = sizeof(sock_addr_audit_entry_t),
-    .max_entries = 1};
+    .max_entries = 100};
 
 __inline void
 update_audit_map_entry(bpf_sock_addr_t* ctx)
 {
-    uint32_t key = 0;
+    uint64_t key = 0;
     sock_addr_audit_entry_t entry = {0};
     entry.process_id = bpf_get_user_process_id(ctx);
     entry.logon_id = bpf_get_user_logon_id(ctx);
-    // int result = bpf_is_user_admin(ctx, &entry.is_admin);
-    // entry.is_admin_valid = result == 0 ? 1 : 0;
+    int result = bpf_is_user_admin(ctx, &entry.is_admin, sizeof(uint32_t));
+    entry.is_admin_valid = result == 0 ? 1 : 0;
 
+    key = entry.process_id;
     bpf_map_update_elem(&audit_map, &key, &entry, 0);
 }
 

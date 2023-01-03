@@ -559,3 +559,6 @@ RtlSetDaclSecurityDescriptor(
     _In_ BOOLEAN DaclPresent,
     _In_opt_ PACL Dacl,
     _In_ BOOLEAN DaclDefaulted);
+
+KIRQL
+KeGetCurrentIrql();

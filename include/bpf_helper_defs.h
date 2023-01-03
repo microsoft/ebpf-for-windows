@@ -342,13 +342,16 @@ EBPF_HELPER(uint64_t, bpf_get_user_logon_id, (void* ctx));
  * @brief Get whether the current user is admin. In case of sock_addr attach types,
  * returns whether the user initiating the request is admin or not. In other
  * cases, returns whether the current thread user is admin or not.
+ * This helper function can only be called at PASSIVE_LEVEL. If called at IRQL higher
+ * than PASSIVE_LEVEL, the helper function will return error.
  *
  * @param[in] ctx Context passed to the eBPF program.
  * @param[out] is_admin Value whether user is admin or not.
+ * @param[in] size Size of uint32_t.
  *
  * @returns 0 if the operation was successful, 1 otherwise.
  */
-EBPF_HELPER(uint32_t, bpf_is_user_admin, (void* ctx, uint32_t* is_admin));
+EBPF_HELPER(uint32_t, bpf_is_user_admin, (void* ctx, uint32_t* is_admin, int size));
 #ifndef __doxygen
 #define bpf_is_user_admin ((bpf_is_user_admin_t)BPF_FUNC_is_user_admin)
 #endif

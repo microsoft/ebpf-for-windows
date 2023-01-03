@@ -177,16 +177,23 @@ _perform_access_check(
 }
 
 static uint32_t
-_ebpf_sock_addr_is_user_admin(_In_ const bpf_sock_addr_t* ctx, _Out_ uint32_t* is_admin)
+_ebpf_sock_addr_is_user_admin(_In_ const bpf_sock_addr_t* ctx, _Out_ uint32_t* is_admin, int size)
 {
     NTSTATUS status;
     bool access_allowed;
     uint32_t return_value;
+    net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
 
     *is_admin = 0;
     return_value = 1;
 
-    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    UNREFERENCED_PARAMETER(size);
+
+    if (KeGetCurrentIrql() != PASSIVE_LEVEL) {
+        goto Exit;
+    }
+
+    sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     status = _perform_access_check(
         _net_ebpf_ext_security_descriptor_admin, sock_addr_ctx->access_information, &access_allowed);
 
@@ -195,6 +202,7 @@ _ebpf_sock_addr_is_user_admin(_In_ const bpf_sock_addr_t* ctx, _Out_ uint32_t* i
         return_value = 0;
     }
 
+Exit:
     return return_value;
 }
 
