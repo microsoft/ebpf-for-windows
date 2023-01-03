@@ -16,6 +16,7 @@ Environment:
 
 #pragma once
 
+// netebpfext_platform.h needs to be included ahead of other headers to satisfy the Windows build system.
 #include "netebpfext_platform.h"
 #include "framework.h"
 

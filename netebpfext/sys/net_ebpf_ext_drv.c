@@ -14,9 +14,8 @@ Environment:
 
 --*/
 
+// net_ebpf_ext.h, followed by ntddk.h, need to be included first due to inter header dependencies on Windows.
 #include "net_ebpf_ext.h"
-
-// ntddk.h needs to be included first due to inter header dependencies on Windows.
 #include <ntddk.h>
 
 #pragma warning(push)
