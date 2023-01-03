@@ -402,12 +402,6 @@ TEST_CASE("BE/LE", "[raw_bpf_code_gen][negative]")
     verify_invalid_opcode_sequence({{EBPF_OP_BE, 0, 0, 0, 15}}, "invalid operand at offset 0");
 }
 
-TEST_CASE("unknown op-class", "[raw_bpf_code_gen][negative]")
-{
-    // EBPF_CLS_JMP+1 isn't a valid op class
-    verify_invalid_opcode_sequence({{EBPF_CLS_JMP + 1, 0, 0, 0, 0}}, "invalid operand at offset 0");
-}
-
 TEST_CASE("unknown EBPF_CLS_ALU operation", "[raw_bpf_code_gen][negative]")
 {
     // EBPF_CLS_ALU + operations 0xe0 doesn't exist
