@@ -84,8 +84,6 @@ jobs:
         displayName: 'Restore Nuget Packages'
 
       - bash: |
-          echo CXXFLAGS: $CXXFLAGS
-          echo LDFLAGS: $LDFLAGS
           cmake -G "Visual Studio 17 2022" -S external/ebpf-verifier -B external/ebpf-verifier/build
         env:
           CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
@@ -94,8 +92,6 @@ jobs:
         workingDirectory: $(Build.SourcesDirectory)
 
       - bash: |
-          echo CXXFLAGS: $CXXFLAGS
-          echo LDFLAGS: $LDFLAGS
           cmake -G "Visual Studio 17 2022" -S external/catch2 -B external/catch2/build -DBUILD_TESTING=OFF
         env:
           CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
@@ -104,8 +100,6 @@ jobs:
         workingDirectory: $(Build.SourcesDirectory)
 
       - bash: |
-          echo CXXFLAGS: $CXXFLAGS
-          echo LDFLAGS: $LDFLAGS
           cmake -G "Visual Studio 17 2022" -S external/ubpf -B external/ubpf/build
         env:
           CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
