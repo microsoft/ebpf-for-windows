@@ -205,3 +205,17 @@ contract.
 
 8) When the OS calls unload on the driver, the driver unregisters all of its contracts and waits for the
 notification that the eBPF execution context has detached before completing unloading.
+
+### Note about native code generation samples shipped with ebpf-for-windows.
+The ```ebpf-for-windows\test\bpf2c_tests\expected``` directory contains the native source files generated
+from the ebpf sample programs shipped with this project.  These samples (especially the generated ```.c``` sources in
+this directory) are used for test automation during CI/CD workflows.  If the ```.o``` -> ```.c``` code generation logic
+changes for any reason, the source files in this directory may need to be regenerated as well. Not doing so could
+result in failures in the CI/CD test passes.
+
+Furthermore, the generated source files also contain references to local file paths in the embedded comments, which can
+differ for each person regenerating them.
+
+These paths therefore need to be canonicalized to make them portable and this is done by running the following command
+from the ```ebpf-for-windows``` project root directory:
+``` .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\```
