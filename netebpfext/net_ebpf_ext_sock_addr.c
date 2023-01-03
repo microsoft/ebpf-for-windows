@@ -833,6 +833,7 @@ net_ebpf_ext_sock_addr_unregister_providers()
     net_ebpf_extension_program_info_provider_unregister(_ebpf_sock_addr_program_info_provider_context);
 
     _net_ebpf_ext_purge_lru_contexts(true);
+    _net_ebpf_sock_addr_clean_up_security_descriptor();
 }
 
 typedef enum _net_ebpf_extension_sock_addr_connection_direction
