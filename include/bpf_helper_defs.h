@@ -325,15 +325,17 @@ EBPF_HELPER(uint64_t, bpf_get_user_process_id, (void* ctx));
 #endif
 
 /**
- * @brief Get the user logon ID.
+ * @brief Get the 64-bit logon ID of the user mode process. In case of sock_addr
+ * attach types, get the logon ID of the user mode app making the request. In other
+ * cases, get the logon ID of the current thread.
  *
  * @param[in] ctx Context passed to the eBPF program.
+ * @param[out] logon_id On success, contains the logon ID value.
+ * @param[in] size Size of uint64_t.
  *
- * @returns A 64-bit integer logon ID of the user mode process. In case of sock_addr
- * attach types, returns the logon ID of the user mode app making the request. In other
- * cases, returns the logon ID of the current thread.
+ * @returns 0 if the operation was successful, 1 otherwise.
  */
-EBPF_HELPER(uint64_t, bpf_get_user_logon_id, (void* ctx));
+EBPF_HELPER(uint32_t, bpf_get_user_logon_id, (void* ctx, uint64_t* logon_id, int size));
 #ifndef __doxygen
 #define bpf_get_user_logon_id ((bpf_get_user_logon_id_t)BPF_FUNC_get_user_logon_id)
 #endif
@@ -342,8 +344,6 @@ EBPF_HELPER(uint64_t, bpf_get_user_logon_id, (void* ctx));
  * @brief Get whether the current user is admin. In case of sock_addr attach types,
  * returns whether the user initiating the request is admin or not. In other
  * cases, returns whether the current thread user is admin or not.
- * This helper function can only be called at PASSIVE_LEVEL. If called at IRQL higher
- * than PASSIVE_LEVEL, the helper function will return error.
  *
  * @param[in] ctx Context passed to the eBPF program.
  * @param[out] is_admin Value whether user is admin or not.

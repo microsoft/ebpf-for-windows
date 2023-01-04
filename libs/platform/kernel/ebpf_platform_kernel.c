@@ -760,3 +760,21 @@ ebpf_platform_thread_id()
 {
     return (uint32_t)(uintptr_t)PsGetCurrentThreadId();
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
+    ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
+{
+    SECURITY_SUBJECT_CONTEXT context = {0};
+    SeCaptureSubjectContext(&context);
+    LUID local_authentication_id;
+
+    PACCESS_TOKEN access_token = SeQuerySubjectContextToken(&context);
+    ebpf_assert(access_token != NULL);
+
+    NTSTATUS status = SeQueryAuthenticationIdToken(access_token, &local_authentication_id);
+    ebpf_assert(NT_SUCCESS(status));
+
+    *authentication_id = *(uint64_t*)&local_authentication_id;
+
+    return EBPF_SUCCESS;
+}

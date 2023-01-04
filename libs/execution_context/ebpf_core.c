@@ -65,9 +65,8 @@ static uint64_t
 _ebpf_core_get_pid_tgid();
 static uint64_t
 _ebpf_core_get_user_process_id(_In_ void* ctx);
-static uint64_t
-_ebpf_core_get_user_logon_id(_In_ const void* ctx);
-_Success_(return == 0) static uint32_t _ebpf_core_is_user_admin(_In_ void* ctx, _Out_ uint32_t* is_admin);
+_Success_(return == 0) static uint32_t _ebpf_core_get_user_logon_id(_In_ const void* ctx, _Out_ uint64_t* logon_id);
+_Success_(return == 0) static uint32_t _ebpf_core_is_user_admin(_In_ void* ctx, _Out_ uint32_t* is_admin, int size);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -1704,19 +1703,29 @@ _ebpf_core_get_user_process_id(_In_ const void* ctx)
     return (uint64_t)ebpf_platform_process_id();
 }
 
-static uint64_t
-_ebpf_core_get_user_logon_id(_In_ const void* ctx)
+_Success_(return == 0) static uint32_t _ebpf_core_get_user_logon_id(_In_ const void* ctx, _Out_ uint64_t* logon_id)
 {
-    // TODO: Implement this function.
     UNREFERENCED_PARAMETER(ctx);
+
+    if (!ebpf_is_preemptible()) {
+        return 1;
+    }
+
+    ebpf_result_t result = ebpf_platform_get_authentication_id(logon_id);
+    if (result != EBPF_SUCCESS) {
+        return 1;
+    }
+
     return 0;
 }
 
-_Success_(return == 0) static uint32_t _ebpf_core_is_user_admin(_In_ void* ctx, _Out_ uint32_t* is_admin)
+_Success_(return == 0) static uint32_t _ebpf_core_is_user_admin(_In_ void* ctx, _Out_ uint32_t* is_admin, int size)
 {
     // TODO: Implement this function.
     UNREFERENCED_PARAMETER(ctx);
     UNREFERENCED_PARAMETER(is_admin);
+    UNREFERENCED_PARAMETER(size);
+
     return 1;
 }
 

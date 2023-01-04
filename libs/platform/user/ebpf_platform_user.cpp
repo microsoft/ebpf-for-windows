@@ -1093,3 +1093,49 @@ ebpf_platform_thread_id()
 {
     return GetCurrentThreadId();
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
+    ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
+{
+    ebpf_result_t return_value = EBPF_SUCCESS;
+    uint32_t error;
+    TOKEN_GROUPS_AND_PRIVILEGES* privileges = nullptr;
+    uint32_t size = 0;
+    HANDLE process_handle;
+    HANDLE token_handle;
+
+    process_handle = OpenProcess(PROCESS_QUERY_INFORMATION, false, ebpf_platform_process_id());
+    if (process_handle == nullptr) {
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    bool result = OpenProcessToken(process_handle, TOKEN_QUERY, &token_handle);
+    if (result == false) {
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    result = GetTokenInformation(token_handle, TokenGroupsAndPrivileges, nullptr, 0, (PDWORD)&size);
+    ebpf_assert(result == false);
+
+    error = GetLastError();
+    if (error != ERROR_INSUFFICIENT_BUFFER) {
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    privileges = (TOKEN_GROUPS_AND_PRIVILEGES*)ebpf_allocate(size);
+    if (privileges == nullptr) {
+        return EBPF_NO_MEMORY;
+    }
+
+    result = GetTokenInformation(token_handle, TokenGroupsAndPrivileges, privileges, size, (PDWORD)&size);
+    if (result == false) {
+        return_value = win32_error_code_to_ebpf_result(GetLastError());
+        goto Exit;
+    }
+
+    *authentication_id = *(uint64_t*)&privileges->AuthenticationId;
+
+Exit:
+    ebpf_free(privileges);
+    return return_value;
+}

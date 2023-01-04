@@ -10,6 +10,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <mstcpip.h>
+#include <ntsecapi.h>
 
 #include "api_internal.h"
 #include "api_test.h"
@@ -36,9 +37,16 @@
 #define BIND_MONITOR_PROGRAM_COUNT 1
 
 #define DROP_PACKET_MAP_COUNT 2
-#define BIND_MONITOR_MAP_COUNT 2
+#define BIND_MONITOR_MAP_COUNT 3
 
 #define WAIT_TIME_IN_MS 5000
+
+typedef struct _audit_entry
+{
+    uint64_t logon_id;
+    uint32_t is_admin;
+    uint32_t is_admin_valid;
+} audit_entry_t;
 
 static service_install_helper
     _ebpf_core_driver_helper(EBPF_CORE_DRIVER_NAME, EBPF_CORE_DRIVER_BINARY_NAME, SERVICE_KERNEL_DRIVER);
@@ -713,3 +721,42 @@ TEST_CASE("nomap_load_test", "[native_tests]")
     auto object = _helper.get_object();
     REQUIRE(object != nullptr);
 }
+
+// Tests the following helper functions:
+// 1. bpf_get_user_process_id()
+// 2. bpf_get_user_logon_id()
+// 3. bpf_is_user_admin()
+void
+bpf_user_helpers_test(ebpf_execution_type_t execution_type)
+{
+    struct bpf_object* object = nullptr;
+    uint64_t process_id = (uint64_t)GetCurrentProcessId();
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "bindmonitor.sys" : "bindmonitor.o";
+    program_load_attach_helper_t _helper(
+        file_name, BPF_PROG_TYPE_BIND, "BindMonitor", execution_type, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    perform_socket_bind(0, true);
+
+    // Validate the contents of the audit map.
+    fd_t audit_map_fd = bpf_object__find_map_fd_by_name(object, "audit_map");
+    REQUIRE(audit_map_fd > 0);
+
+    audit_entry_t entry = {0};
+    int result = bpf_map_lookup_elem(audit_map_fd, &process_id, &entry);
+    REQUIRE(result == 0);
+
+    REQUIRE(entry.is_admin == 0);
+    REQUIRE(entry.is_admin_valid == 0);
+
+    REQUIRE(entry.logon_id != 0);
+    SECURITY_LOGON_SESSION_DATA* data = NULL;
+    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    LsaFreeReturnBuffer(data);
+}
+
+TEST_CASE("bpf_user_helpers_test_jit", "[api_test]") { bpf_user_helpers_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("bpf_user_helpers_test_native", "[api_test]") { bpf_user_helpers_test(EBPF_EXECUTION_NATIVE); }
