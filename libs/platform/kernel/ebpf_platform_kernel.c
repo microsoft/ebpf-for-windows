@@ -771,6 +771,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     PACCESS_TOKEN access_token = SeQuerySubjectContextToken(&context);
     ebpf_assert(access_token != NULL);
 
+    __analysis_assume(access_token != NULL);
     NTSTATUS status = SeQueryAuthenticationIdToken(access_token, &local_authentication_id);
     ebpf_assert(NT_SUCCESS(status));
 
