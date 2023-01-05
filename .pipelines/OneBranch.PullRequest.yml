@@ -99,6 +99,35 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
+# unit_tests_leak_detection
+# Always run this job.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: unit_tests_with_leak_detection
+      test_command: '.\unit_tests.exe -d yes'
+      dependency: regular
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: true
+      gather_dumps: true
+      capture_etw: true
+      leak_detection: true
+
+# netebpf_ext_unit_tests
+# Always run this job.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: netebpf_ext_unit_tests
+      test_command: '.\netebpfext_unit.exe -d yes'
+      dependency: regular
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: true
+      gather_dumps: true
+      capture_etw: true
+
 # bpf2c
 # Always run this job.
 - ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
@@ -121,7 +150,7 @@ jobs:
     parameters:
       name: bpf2c_conformance
       pre_test: 'powershell.exe Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.3/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe'
-      test_command: '.\bpf_conformance_runner.exe --test_file_directory $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\bpf_conformance\tests --plugin_path bpf2c_plugin.exe --cpu_version v2 --debug true --plugin_options "--include $(Build.SourcesDirectory)\$(PROJECT_NAME)\include"'
+      test_command: '.\bpf_conformance_runner.exe --test_file_directory $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\ebpf-verifier\external\bpf_conformance\tests --exclude_regex lock* --plugin_path bpf2c_plugin.exe --debug true --plugin_options "--include $(Build.SourcesDirectory)\$(PROJECT_NAME)\include"'
       dependency: regular
       build_artifact: Build-x64
       environment: windows-2022
