@@ -49,6 +49,95 @@ TEST_CASE("libbpf load program", "[libbpf][deprecated]")
     bpf_object__close(object);
 }
 
+std::vector<uint8_t>
+prepare_udp_packet(uint16_t udp_length, uint16_t ethernet_type);
+
+TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
+{
+    _test_helper_libbpf test_helper;
+    struct bpf_object* object;
+    int program_fd;
+#pragma warning(suppress : 4996) // deprecated
+    int result = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    auto packet = prepare_udp_packet(100, ETHERNET_TYPE_IPV4);
+
+    bpf_test_run_opts opts = {};
+    opts.repeat = 10;
+    opts.data_in = packet.data();
+    opts.data_size_in = static_cast<uint32_t>(packet.size());
+    opts.data_out = nullptr;
+    opts.data_size_out = 0;
+
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    REQUIRE(opts.duration > 0);
+
+    // Negative tests
+
+    // Bad fd
+    REQUIRE(bpf_prog_test_run_opts(nonexistent_fd, &opts) == -EINVAL);
+
+    // NULL data
+    opts.data_in = nullptr;
+    opts.data_size_in = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    // Zero length data
+    opts.data_in = packet.data();
+    opts.data_size_in = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    // Context out is too small
+    std::vector<uint8_t> context(1);
+    opts.data_in = packet.data();
+    opts.data_size_in = static_cast<uint32_t>(packet.size());
+    opts.ctx_in = context.data();
+    opts.ctx_size_in = static_cast<uint32_t>(context.size());
+    opts.ctx_out = context.data();
+    opts.ctx_size_out = static_cast<uint32_t>(context.size());
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
+
+    // Data in, null data out
+    opts.data_in = packet.data();
+    opts.data_size_in = static_cast<uint32_t>(packet.size());
+    opts.data_out = nullptr;
+    opts.data_size_out = 0;
+    opts.ctx_in = nullptr;
+    opts.ctx_size_in = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    // No context in, Context out
+    std::vector<uint8_t> context_out(1024);
+    opts.data_in = packet.data();
+    opts.data_size_in = static_cast<uint32_t>(packet.size());
+    opts.data_out = nullptr;
+    opts.data_size_out = 0;
+    opts.ctx_in = nullptr;
+    opts.ctx_size_in = 0;
+    opts.ctx_out = context_out.data();
+    opts.ctx_size_out = static_cast<uint32_t>(context_out.size());
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    REQUIRE(opts.ctx_size_out == 0);
+
+    // Data out and context out
+    context_out.resize(100);
+    xdp_md_t context_in = {};
+    opts.ctx_in = &context_in;
+    opts.ctx_size_in = sizeof(context_in);
+    opts.data_out = packet.data();
+    opts.data_size_out = static_cast<uint32_t>(packet.size());
+    opts.ctx_out = context_out.data();
+    opts.ctx_size_out = static_cast<uint32_t>(context_out.size());
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    REQUIRE(opts.ctx_size_out == sizeof(xdp_md_t));
+
+    bpf_object__close(object);
+}
+
 TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;

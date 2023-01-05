@@ -866,6 +866,66 @@ Done:
 }
 
 static ebpf_result_t
+_ebpf_core_protocol_program_test_run(
+    _In_ const ebpf_operation_program_test_run_request_t* request,
+    _Inout_updates_bytes_(reply_length) ebpf_operation_program_test_run_reply_t* reply,
+    uint16_t reply_length)
+{
+    EBPF_LOG_ENTRY();
+
+    ebpf_program_test_run_options_t options = {0};
+
+    ebpf_result_t retval;
+    ebpf_program_t* program = NULL;
+    size_t data_in_end;
+
+    // Validate that the request is large enough to contain the context_offset.
+    retval = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data), request->context_offset, &data_in_end);
+
+    if (retval != EBPF_SUCCESS)
+        goto Done;
+
+    if (data_in_end > request->header.length) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    retval =
+        ebpf_object_reference_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
+    if (retval != EBPF_SUCCESS)
+        goto Done;
+
+    options.data_size_in = request->context_offset;
+    options.data_size_out = (size_t)reply_length - EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data);
+    options.context_size_in = (size_t)(request->header.length) - data_in_end;
+    options.context_size_out = options.context_size_in;
+    options.repeat_count = request->repeat_count;
+    options.flags = request->flags;
+    options.cpu = request->cpu;
+    options.batch_size = request->batch_size;
+    options.data_in = options.data_size_in ? request->data : NULL;
+    options.context_in = options.context_size_in ? request->data + request->context_offset : NULL;
+    options.data_out = options.data_size_out ? reply->data : NULL;
+    options.context_out = options.context_size_out ? reply->data + options.data_size_out : NULL;
+
+    retval = ebpf_program_execute_test_run(program, &options);
+
+    if (retval == EBPF_SUCCESS) {
+        reply->header.length = (uint16_t)(
+            EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) + options.data_size_out +
+            options.context_size_out);
+        reply->return_value = options.return_value;
+        reply->context_offset = (uint16_t)options.data_size_out;
+        reply->duration = options.duration;
+    }
+
+Done:
+    ebpf_object_release_reference((ebpf_core_object_t*)program);
+    EBPF_RETURN_RESULT(retval);
+}
+
+static ebpf_result_t
 _ebpf_core_protocol_query_program_info(
     _In_ const struct _ebpf_operation_query_program_info_request* request,
     _Inout_ struct _ebpf_operation_query_program_info_reply* reply,
@@ -2011,6 +2071,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(ring_buffer_map_async_query, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(load_native_module, data, PROTOCOL_NATIVE_MODE),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(load_native_programs, data, PROTOCOL_NATIVE_MODE),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(program_test_run, data, data, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
