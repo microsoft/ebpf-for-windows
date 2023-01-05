@@ -498,7 +498,7 @@ test_maps(void* context)
     r6 = (int64_t)r6 >> (uint32_t)IMMEDIATE(32);
     // EBPF_OP_JSGT_IMM pc=45 dst=r6 src=r0 offset=2 imm=-1
 #line 95 "sample/map.c"
-    if ((int64_t)r6 > (int64_t)IMMEDIATE(-1))
+    if ((int64_t)r6 > IMMEDIATE(-1))
 #line 95 "sample/map.c"
         goto label_2;
 label_1:
@@ -687,7 +687,7 @@ label_2:
     r6 = (int64_t)r6 >> (uint32_t)IMMEDIATE(32);
     // EBPF_OP_JSGT_IMM pc=101 dst=r6 src=r0 offset=1 imm=-1
 #line 95 "sample/map.c"
-    if ((int64_t)r6 > (int64_t)IMMEDIATE(-1))
+    if ((int64_t)r6 > IMMEDIATE(-1))
 #line 95 "sample/map.c"
         goto label_4;
 label_3:
@@ -876,7 +876,7 @@ label_4:
     r6 = (int64_t)r6 >> (uint32_t)IMMEDIATE(32);
     // EBPF_OP_JSGT_IMM pc=157 dst=r6 src=r0 offset=1 imm=-1
 #line 95 "sample/map.c"
-    if ((int64_t)r6 > (int64_t)IMMEDIATE(-1))
+    if ((int64_t)r6 > IMMEDIATE(-1))
 #line 95 "sample/map.c"
         goto label_6;
 label_5:
@@ -1036,7 +1036,7 @@ label_6:
     r6 = (int64_t)r6 >> (uint32_t)IMMEDIATE(32);
     // EBPF_OP_JSGT_IMM pc=204 dst=r6 src=r0 offset=1 imm=-1
 #line 95 "sample/map.c"
-    if ((int64_t)r6 > (int64_t)IMMEDIATE(-1))
+    if ((int64_t)r6 > IMMEDIATE(-1))
 #line 95 "sample/map.c"
         goto label_8;
 label_7:
@@ -1193,7 +1193,7 @@ label_8:
     r6 = (int64_t)r6 >> (uint32_t)IMMEDIATE(32);
     // EBPF_OP_JSGT_IMM pc=250 dst=r6 src=r0 offset=1 imm=-1
 #line 95 "sample/map.c"
-    if ((int64_t)r6 > (int64_t)IMMEDIATE(-1))
+    if ((int64_t)r6 > IMMEDIATE(-1))
 #line 95 "sample/map.c"
         goto label_10;
 label_9:
@@ -1379,7 +1379,7 @@ label_10:
     r6 = (int64_t)r6 >> (uint32_t)IMMEDIATE(32);
     // EBPF_OP_JSGT_IMM pc=305 dst=r6 src=r0 offset=1 imm=-1
 #line 95 "sample/map.c"
-    if ((int64_t)r6 > (int64_t)IMMEDIATE(-1))
+    if ((int64_t)r6 > IMMEDIATE(-1))
 #line 95 "sample/map.c"
         goto label_12;
 label_11:
@@ -1512,7 +1512,7 @@ label_14:
     r1 = (int64_t)r1 >> (uint32_t)IMMEDIATE(32);
     // EBPF_OP_JSGT_IMM pc=345 dst=r1 src=r0 offset=-25 imm=-1
 #line 123 "sample/map.c"
-    if ((int64_t)r1 > (int64_t)IMMEDIATE(-1))
+    if ((int64_t)r1 > IMMEDIATE(-1))
 #line 123 "sample/map.c"
         goto label_13;
         // EBPF_OP_JA pc=346 dst=r0 src=r0 offset=-301 imm=0
@@ -1631,7 +1631,7 @@ label_16:
     r1 = (int64_t)r1 >> (uint32_t)IMMEDIATE(32);
     // EBPF_OP_JSGT_IMM pc=381 dst=r1 src=r0 offset=-35 imm=-1
 #line 123 "sample/map.c"
-    if ((int64_t)r1 > (int64_t)IMMEDIATE(-1))
+    if ((int64_t)r1 > IMMEDIATE(-1))
 #line 123 "sample/map.c"
         goto label_15;
         // EBPF_OP_JA pc=382 dst=r0 src=r0 offset=-337 imm=0
@@ -2880,7 +2880,7 @@ label_27:
     r1 = (int64_t)r1 >> (uint32_t)IMMEDIATE(32);
     // EBPF_OP_JSGT_IMM pc=749 dst=r1 src=r0 offset=-704 imm=-1
 #line 209 "sample/map.c"
-    if ((int64_t)r1 > (int64_t)IMMEDIATE(-1))
+    if ((int64_t)r1 > IMMEDIATE(-1))
 #line 209 "sample/map.c"
         goto label_1;
 label_28:

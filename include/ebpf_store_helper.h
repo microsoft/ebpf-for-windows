@@ -256,14 +256,14 @@ ebpf_store_update_program_information(
         }
 
         // Save helper count.
-        status =
-            write_registry_value_dword(program_key, EBPF_PROGRAM_DATA_HELPER_COUNT, program_info[i].count_of_helpers);
+        status = write_registry_value_dword(
+            program_key, EBPF_PROGRAM_DATA_HELPER_COUNT, program_info[i].count_of_program_type_specific_helpers);
         if (!IS_SUCCESS(status)) {
             close_registry_key(program_key);
             goto Exit;
         }
 
-        if (program_info[i].count_of_helpers != 0) {
+        if (program_info[i].count_of_program_type_specific_helpers != 0) {
             // Create (or open) helper registry path.
             status = create_registry_key(
                 program_key, EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH, REG_CREATE_FLAGS, &helper_info_key);
@@ -273,8 +273,9 @@ ebpf_store_update_program_information(
             }
 
             // Iterate over all the helper prototypes and save in registry.
-            for (uint32_t count = 0; count < program_info[i].count_of_helpers; count++) {
-                status = _update_helper_prototype(helper_info_key, &(program_info[i].helper_prototype[count]));
+            for (uint32_t count = 0; count < program_info[i].count_of_program_type_specific_helpers; count++) {
+                status = _update_helper_prototype(
+                    helper_info_key, &(program_info[i].program_type_specific_helper_prototype[count]));
                 if (!IS_SUCCESS(status)) {
                     close_registry_key(program_key);
                     close_registry_key(helper_info_key);

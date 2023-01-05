@@ -1516,6 +1516,8 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     REQUIRE(result == inner_value);
 
     Platform::_close(inner_map_fd);
+    result = bpf_link__destroy(link);
+    REQUIRE(result == 0);
     bpf_object__close(xdp_object);
 }
 
@@ -1573,6 +1575,8 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     REQUIRE(result == inner_value);
 
     Platform::_close(inner_map_fd);
+    result = bpf_link__destroy(link);
+    REQUIRE(result == 0);
     bpf_object__close(xdp_object);
 }
 
