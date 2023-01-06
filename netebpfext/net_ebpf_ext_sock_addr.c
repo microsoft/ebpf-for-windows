@@ -16,6 +16,8 @@
 #define EXPIRY_TIME 60000 // 60 seconds in ms.
 #define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
 
+static ebpf_get_program_context_t _net_ebpf_sock_addr_get_program_context = NULL;
+
 /**
  * Connection context info does not contain the source IP address because
  * the source IP address is not always available at connect_redirect layer.
@@ -185,6 +187,29 @@ static net_ebpf_extension_hook_provider_t*
 //
 // NMR Registration Helper Routines.
 //
+
+static ebpf_result_t
+_net_ebpf_extension_sock_addr_program_info_on_client_attach(
+    _In_ const net_ebpf_extension_program_info_client_t* attaching_client,
+    _In_ const net_ebpf_extension_program_info_provider_t* provider_context)
+{
+    UNREFERENCED_PARAMETER(provider_context);
+
+    _net_ebpf_sock_addr_get_program_context = net_ebpf_extension_get_program_context_function(attaching_client);
+    if (_net_ebpf_sock_addr_get_program_context == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    return EBPF_SUCCESS;
+}
+
+static void
+_net_ebpf_extension_sock_addr_program_info_on_client_detach(
+    _In_ const net_ebpf_extension_program_info_client_t* detaching_client)
+{
+    UNREFERENCED_PARAMETER(detaching_client);
+    _net_ebpf_sock_addr_get_program_context = NULL;
+}
 
 static ebpf_result_t
 _net_ebpf_extension_sock_addr_on_client_attach(
@@ -573,7 +598,10 @@ net_ebpf_ext_sock_addr_register_providers()
     // Set the program type as the provider module id.
     _ebpf_sock_addr_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     status = net_ebpf_extension_program_info_provider_register(
-        &program_info_provider_parameters, &_ebpf_sock_addr_program_info_provider_context);
+        &program_info_provider_parameters,
+        _net_ebpf_extension_sock_addr_program_info_on_client_attach,
+        _net_ebpf_extension_sock_addr_program_info_on_client_detach,
+        &_ebpf_sock_addr_program_info_provider_context);
     if (status != STATUS_SUCCESS)
         goto Exit;
 
