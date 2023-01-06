@@ -916,7 +916,6 @@ ebpf_program_load_code(
 
 typedef struct _ebpf_program_tail_call_state
 {
-    const ebpf_program_t* current_program;
     const ebpf_program_t* next_program;
     uint32_t count;
     void* context;
