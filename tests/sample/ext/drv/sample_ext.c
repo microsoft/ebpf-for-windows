@@ -596,8 +596,8 @@ static uint64_t
 _sample_get_pid_tgid()
 {
     sample_program_context_t* context = NULL;
-    uint32_t result = _sample_ebpf_ext_get_program_context((void**)&context);
-    ASSERT(result == 0 && context != NULL);
+    _sample_ebpf_ext_get_program_context((void**)&context);
+    ASSERT(context != NULL);
 
     return context->pid_tgid;
 }
