@@ -144,7 +144,7 @@ This structure is used to specify the address at which the various helper functi
 * `helper_function_address`: Array of addresses (64-bit unsigned integer) for the helper functions. The addresses must be arranged in the array in the *same order* as the array of helper function prototypes denoted by the `helper_prototype` field in `ebpf_program_info_t` struct.  For the correct execution of eBPF programs, the helper function addresses cannot change while a loaded eBPF program is executing.
 
 ### 2.2 Program Information NPI Client Attach and Detach Callbacks
-The eBPF Execution Context registers a Program Information NPI client module with the NMR for every eBPF program that gets loaded. The Execution Context will use the program type GUID of the program as the NPI ID of the client module. And as a result, upon eBPF program load, the associated Program Information NPI client module will attach with the corresponding Program Information NPI provider module in the extension. The Program Information NPI does not have any provider dispatch tables, but has a client dispatch table. Client's `NpiSpecificCharacteristics` does not have any data though. The provider must store the following in a per-client data structure from the passed in parameters:
+The eBPF Execution Context registers a Program Information NPI client module with the NMR for every eBPF program that gets loaded. The Execution Context will use the program type GUID of the program as the NPI ID of the client module. And as a result, upon eBPF program load, the associated Program Information NPI client module will attach with the corresponding Program Information NPI provider module in the extension. The Program Information NPI does not have any provider dispatch tables, but has a client dispatch table. The client's `NpiSpecificCharacteristics` does not have any data though. The provider must store the following in a per-client data structure from the passed in parameters:
 
 * `ClientDispatch`: Client dispatch table (see section 2.3 below).
 
@@ -152,13 +152,13 @@ An extension must not unload until there are no more attached Program Informatio
 
 ### 2.3 Program Information NPI Client Dispatch Table
 
-The Program INformation NPI client dispatch table contains exactly one function, which is of the following type:
+The Program Information NPI client dispatch table contains exactly one function, which is of the following type:
 
 ```
 /**
  *  @brief This is the only function in the eBPF Program Information NPI client dispatch table.
  */
-typedef ebpf_result_t (*ebpf_get_program_context_t)(_Out_ void** context);
+typedef ebpf_result_t (*ebpf_get_program_context_t)(_Outptr_ void** context);
 
 ```
 This function can be used by the extension to get the program context passed to the eBPF program while running in the context of the eBPF program invocation. For example, if the extension is implementing a helper function, the extension can call the above function in the context of the helper function to get the context passed to the eBPF program.

@@ -12,7 +12,7 @@ typedef struct _net_ebpf_extension_program_info_client net_ebpf_extension_progra
  * @brief Pointer to function to get the context for the current invocation of the eBPF program.
  * This is the only function in the client's dispatch table.
  */
-typedef ebpf_result_t (*ebpf_get_program_context_t)(_Out_ void** context);
+typedef ebpf_result_t (*ebpf_get_program_context_t)(_Outptr_ void** context);
 
 /**
  * @brief Data structure for program info NPI provider registration parameters.
@@ -35,8 +35,8 @@ net_ebpf_extension_program_info_provider_unregister(
 /**
  * @brief This callback function should be implemented by program info provider modules. This callback is invoked when
  * a program info NPI client is attempting to attach to the program info NPI provider.
- * @param attaching_client Pointer to context of the hook NPI client that is requesting to be attached.
- * @param provider_context Pointer to the hook NPI provider context to which the client is being attached.
+ * @param[in] attaching_client Pointer to context of the hook NPI client that is requesting to be attached.
+ * @param[in] provider_context Pointer to the hook NPI provider context to which the client is being attached.
  *
  * @retval EBPF_SUCCESS The operation succeeded.
  * @retval EBPF_ACCESS_DENIED Request to attach client is denied by the provider.
@@ -49,7 +49,7 @@ typedef ebpf_result_t (*net_ebpf_extension_program_info_on_client_attach)(
 /**
  * @brief This callback function should be implemented by program info provider modules. This callback is invoked when
  * a program info NPI client is attempting to detach from the program info NPI provider.
- * @param detaching_client Pointer to context of the hook NPI client that is requesting to be detached.
+ * @param[in] detaching_client Pointer to context of the hook NPI client that is requesting to be detached.
  *
  */
 typedef void (*net_ebpf_extension_program_info_on_client_detach)(

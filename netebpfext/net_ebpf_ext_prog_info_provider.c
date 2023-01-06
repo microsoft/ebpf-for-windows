@@ -14,7 +14,7 @@
 typedef struct _net_ebpf_extension_program_info_client
 {
     HANDLE nmr_binding_handle;                                    ///< NMR binding handle.
-    GUID client_module_id;                                        ///< NMR module Id.
+    GUID client_module_id;                                        ///< NMR module ID.
     ebpf_get_program_context_t get_program_context;               ///< Pointer to function to get the program context.
     net_ebpf_extension_program_info_provider_t* provider_context; ///< Pointer to the hook NPI provider context.
 } net_ebpf_extension_program_info_client_t;

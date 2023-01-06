@@ -26,7 +26,7 @@
 // f788ef4a-207d-4dc3-85cf-0f2ea107213c
 DEFINE_GUID(EBPF_PROGRAM_TYPE_SAMPLE, 0xf788ef4a, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
 
-typedef ebpf_result_t (*ebpf_get_program_context_t)(_Out_ void** context);
+typedef ebpf_result_t (*ebpf_get_program_context_t)(_Outptr_ void** context);
 static ebpf_get_program_context_t _sample_ebpf_ext_get_program_context = NULL;
 
 // Sample Extension helper function addresses table.
