@@ -24,12 +24,12 @@ typedef struct _net_ebpf_extension_program_info_client
  */
 typedef struct _net_ebpf_extension_program_info_provider
 {
-    NPI_PROVIDER_CHARACTERISTICS characteristics;                     ///< NPI Provider characteristics.
-    HANDLE nmr_provider_handle;                                       ///< NMR binding handle.
-    net_ebpf_extension_program_info_on_client_attach attach_callback; ///< Pointer to program info provider specific
-                                                              callback to be invoked when a client attaches.
-    net_ebpf_extension_program_info_on_client_detach detach_callback; ///< Pointer to program info provider specific
-                                                              callback to be invoked when a client detaches.
+    NPI_PROVIDER_CHARACTERISTICS characteristics; ///< NPI Provider characteristics.
+    HANDLE nmr_provider_handle;                   ///< NMR binding handle.
+    net_ebpf_extension_program_info_on_client_attach
+        attach_callback; ///< Pointer to program info provider specific callback to be invoked when a client attaches.
+    net_ebpf_extension_program_info_on_client_detach
+        detach_callback; ///< Pointer to program info provider specific callback to be invoked when a client detaches.
 } net_ebpf_extension_program_info_provider_t;
 
 /**
