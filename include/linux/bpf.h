@@ -64,6 +64,7 @@ enum bpf_cmd_id
     BPF_OBJ_GET_INFO_BY_FD,
     BPF_LINK_DETACH,
     BPF_PROG_BIND_MAP,
+    BPF_PROG_TEST_RUN,
 };
 
 /// Attributes used by BPF_OBJ_GET_INFO_BY_FD.
@@ -173,6 +174,23 @@ union bpf_attr
 
     // BPF_PROG_BIND_MAP
     bpf_prog_bind_map_attr_t prog_bind_map; ///< Attributes used by BPF_PROG_BIND_MAP.
+
+    // BPF_PROG_TEST_RUN
+    struct
+    {
+        uint32_t prog_fd;       ///< File descriptor of program to run.
+        uint32_t retval;        ///< On return, contains the return value of the program.
+        uint32_t data_size_in;  ///< Size in bytes of input data.
+        uint32_t data_size_out; ///< Size in bytes of output data.
+        uint64_t data_in;       ///< Pointer to input data.
+        uint64_t data_out;      ///< Pointer to output data.
+        uint32_t repeat;        ///< Number of times to repeat the program.
+        uint32_t duration;      ///< Duration in milliseconds to run the program.
+        uint32_t ctx_size_in;   ///< Size in bytes of input context.
+        uint32_t ctx_size_out;  ///< Size in bytes of output context.
+        uint64_t ctx_in;        ///< Pointer to input context.
+        uint64_t ctx_out;       ///< Pointer to output context.
+    } test;                     ///< Attributes used by BPF_PROG_TEST_RUN.
 };
 #ifdef _MSC_VER
 #pragma warning(pop)

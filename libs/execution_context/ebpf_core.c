@@ -897,9 +897,10 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
 
     options.data_size_in = request->context_offset;
-    options.data_size_out = (size_t)reply_length - EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data);
     options.context_size_in = (size_t)(request->header.length) - data_in_end;
     options.context_size_out = options.context_size_in;
+    options.data_size_out =
+        (size_t)reply_length - EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) - options.context_size_out;
     options.repeat_count = request->repeat_count;
     options.flags = request->flags;
     options.cpu = request->cpu;

@@ -317,6 +317,8 @@ _Success_(return == 0) static uint64_t _xdp_context_create(
 {
     uint64_t retval = 1;
     xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(malloc(sizeof(xdp_md_t)));
+    memset(xdp_context, 0, sizeof(xdp_md_t));
+
     *context = nullptr;
     if (xdp_context == nullptr) {
         goto Done;
