@@ -87,7 +87,7 @@ jobs:
         tar -xf ..\..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
 
     - name: Upload Build Output
-      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
         path: ${{github.workspace}}/build/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
