@@ -316,10 +316,9 @@ _Success_(return == 0) static uint64_t _xdp_context_create(
     _Outptr_ void** context)
 {
     uint64_t retval = 1;
-    xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(malloc(sizeof(xdp_md_t)));
-    memset(xdp_context, 0, sizeof(xdp_md_t));
-
     *context = nullptr;
+
+    xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(malloc(sizeof(xdp_md_t)));
     if (xdp_context == nullptr) {
         goto Done;
     }
@@ -341,6 +340,7 @@ _Success_(return == 0) static uint64_t _xdp_context_create(
     retval = 0;
 Done:
     free(xdp_context);
+    xdp_context = nullptr;
     return retval;
 }
 
