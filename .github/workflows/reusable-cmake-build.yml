@@ -68,7 +68,7 @@ jobs:
     # The subsequent tests will directly get these when they download the build artifacts. In case
     # a test fails, the .o files used for the test will be available in the uploaded build artifacts.
     - name: Download demo repository artifacts
-      uses: dawidd6/action-download-artifact@e6e25ac3a2b93187502a8be1ef9e9603afc34925
+      uses: dawidd6/action-download-artifact@bd10f381a96414ce2b13a11bfa89902ba7cea07f
       with:
         github_token: ${{secrets.GITHUB_TOKEN}}
         workflow: cicd.yml
@@ -87,7 +87,7 @@ jobs:
         tar -xf ..\..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
 
     - name: Upload Build Output
-      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
         path: ${{github.workspace}}/build/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
