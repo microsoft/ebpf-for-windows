@@ -219,6 +219,15 @@ Data Fields</h2></td></tr>
 <tr class="memitem:ac15776685e20dbe84e4ec708090c46e7"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a6e4c9f76e24c8b0124d4d96aa525923d">ctx_out</a></td></tr>
 <tr class="memdesc:ac15776685e20dbe84e4ec708090c46e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to output context.  <a href="structbpf__attr_1_1_0d36.html#ac15776685e20dbe84e4ec708090c46e7">More...</a><br /></td></tr>
 <tr class="separator:ac15776685e20dbe84e4ec708090c46e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ba24e1fdc3ee4f02ae4bcc16c802919"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#af3bd053a5f6a61c756f5f09db7d867f4">flags</a></td></tr>
+<tr class="memdesc:a3ba24e1fdc3ee4f02ae4bcc16c802919"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flags (currently 0).  <a href="structbpf__attr_1_1_0d36.html#a3ba24e1fdc3ee4f02ae4bcc16c802919">More...</a><br /></td></tr>
+<tr class="separator:a3ba24e1fdc3ee4f02ae4bcc16c802919"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a04c8d5b7e547794993d988e37b0c0ab7"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#ad8b46a0b3e6a79334eb1fddf6e912775">cpu</a></td></tr>
+<tr class="memdesc:a04c8d5b7e547794993d988e37b0c0ab7"><td class="mdescLeft">&#160;</td><td class="mdescRight">CPU to run the program on.  <a href="structbpf__attr_1_1_0d36.html#a04c8d5b7e547794993d988e37b0c0ab7">More...</a><br /></td></tr>
+<tr class="separator:a04c8d5b7e547794993d988e37b0c0ab7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afddd96cf83a9bcbba4913c33e2ab2753"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#afc9b1ff3f7aed3dde122b2e1d3a2417c">batch_size</a></td></tr>
+<tr class="memdesc:afddd96cf83a9bcbba4913c33e2ab2753"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of times to run the program in a batch.  <a href="structbpf__attr_1_1_0d36.html#afddd96cf83a9bcbba4913c33e2ab2753">More...</a><br /></td></tr>
+<tr class="separator:afddd96cf83a9bcbba4913c33e2ab2753"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a714c638eb54808fafa41a419122f899f"><td class="memItemLeft" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a714c638eb54808fafa41a419122f899f">test</a></td></tr>
 <tr class="memdesc:a714c638eb54808fafa41a419122f899f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_TEST_RUN.  <a href="unionbpf__attr.html#a714c638eb54808fafa41a419122f899f">More...</a><br /></td></tr>
 <tr class="separator:a714c638eb54808fafa41a419122f899f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -306,6 +315,22 @@ Data Fields</h2></td></tr>
 
 </div>
 </div>
+<a id="afc9b1ff3f7aed3dde122b2e1d3a2417c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afc9b1ff3f7aed3dde122b2e1d3a2417c">&#9670;&nbsp;</a></span>batch_size</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t bpf_attr::batch_size</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Number of times to run the program in a batch. </p>
+
+</div>
+</div>
 <a id="a3f2153fd2e65dc7af961da00860a4187"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3f2153fd2e65dc7af961da00860a4187">&#9670;&nbsp;</a></span>bpf_fd</h2>
 
@@ -319,6 +344,22 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 
 <p>File descriptor referring to the program or map. </p>
+
+</div>
+</div>
+<a id="ad8b46a0b3e6a79334eb1fddf6e912775"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad8b46a0b3e6a79334eb1fddf6e912775">&#9670;&nbsp;</a></span>cpu</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t bpf_attr::cpu</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>CPU to run the program on. </p>
 
 </div>
 </div>
@@ -467,13 +508,29 @@ Data Fields</h2></td></tr>
 </div>
 </div>
 <a id="ab7dc186a160bce87046af6eda93a214b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab7dc186a160bce87046af6eda93a214b">&#9670;&nbsp;</a></span>flags</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ab7dc186a160bce87046af6eda93a214b">&#9670;&nbsp;</a></span>flags <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">uint64_t bpf_attr::flags</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Flags (currently 0). </p>
+
+</div>
+</div>
+<a id="af3bd053a5f6a61c756f5f09db7d867f4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af3bd053a5f6a61c756f5f09db7d867f4">&#9670;&nbsp;</a></span>flags <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t bpf_attr::flags</td>
         </tr>
       </table>
 </div><div class="memdoc">
