@@ -1145,3 +1145,71 @@ ebpf_platform_thread_id()
 {
     return GetCurrentThreadId();
 }
+
+typedef struct _ebpf_signal
+{
+    HANDLE event;
+} ebpf_signal_t;
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_signal_create(_Outptr_ ebpf_signal_t** signal)
+{
+    *signal = (ebpf_signal_t*)ebpf_allocate(sizeof(ebpf_signal_t));
+    if (!*signal) {
+        return EBPF_NO_MEMORY;
+    }
+
+    (*signal)->event = CreateEvent(NULL, FALSE, FALSE, NULL);
+    if (!(*signal)->event) {
+        ebpf_free(*signal);
+        *signal = NULL;
+        return EBPF_NO_MEMORY;
+    }
+
+    return EBPF_SUCCESS;
+}
+
+void
+ebpf_signal_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_signal_t* signal)
+{
+    if (signal) {
+        CloseHandle(signal->event);
+    }
+    ebpf_free(signal);
+}
+
+void
+ebpf_signal_set(_In_ ebpf_signal_t* signal)
+{
+    SetEvent(signal->event);
+}
+
+void
+ebpf_signal_reset(_In_ ebpf_signal_t* signal)
+{
+    ResetEvent(signal->event);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms)
+{
+    DWORD wait_result = WaitForSingleObject(signal->event, timeout_ms);
+    if (wait_result == WAIT_OBJECT_0) {
+        return EBPF_SUCCESS;
+    } else if (wait_result == WAIT_TIMEOUT) {
+        return EBPF_TIMEOUT;
+    } else {
+        return EBPF_FAILED;
+    }
+}
+
+_IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql)
+{
+    UNREFERENCED_PARAMETER(new_irql);
+    return 0;
+}
+
+_IRQL_requires_max_(HIGH_LEVEL) void ebpf_lower_irql(_In_ _Notliteral_ _IRQL_restores_ uint8_t old_irql)
+{
+    UNREFERENCED_PARAMETER(old_irql);
+}
