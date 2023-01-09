@@ -111,6 +111,10 @@ Typedefs</h2></td></tr>
 <tr class="separator:af4c03ef813e8625b8c4c869eea6e7a43"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a92fcd0c5efe2b7e5ca59020423fcb8f9"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__helper__function__addresses.html">_ebpf_helper_function_addresses</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a92fcd0c5efe2b7e5ca59020423fcb8f9">ebpf_helper_function_addresses_t</a></td></tr>
 <tr class="separator:a92fcd0c5efe2b7e5ca59020423fcb8f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af5669576eacf2a7bd6ebd52dee5fa3a5"><td class="memItemLeft" align="right" valign="top">typedef uint64_t(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#af5669576eacf2a7bd6ebd52dee5fa3a5">ebpf_program_context_create_t</a>) (_In_reads_bytes_opt_(data_size_in) const uint8_t *data_in, size_t data_size_in, _In_reads_bytes_opt_(context_size_in) const uint8_t *context_in, size_t context_size_in, void **context)</td></tr>
+<tr class="separator:af5669576eacf2a7bd6ebd52dee5fa3a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6b4d8fad33cf700c5b2cd404b8b23252"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a6b4d8fad33cf700c5b2cd404b8b23252">ebpf_program_context_destroy_t</a>) (void *context, _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t *data_out, _Inout_ size_t *data_size_out, _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t *context_out, _Inout_ size_t *context_size_out)</td></tr>
+<tr class="separator:a6b4d8fad33cf700c5b2cd404b8b23252"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a28e774e1c41a3b613b24765200af83e5"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__program__data.html">_ebpf_program_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a28e774e1c41a3b613b24765200af83e5">ebpf_program_data_t</a></td></tr>
 <tr class="separator:a28e774e1c41a3b613b24765200af83e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd468780732b93cd71055799c732d4b0"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__program__section__info.html">_ebpf_program_section_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#acd468780732b93cd71055799c732d4b0">ebpf_program_section_info_t</a></td></tr>
@@ -168,6 +172,34 @@ Typedefs</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef struct <a class="el" href="struct__ebpf__helper__function__prototype.html">_ebpf_helper_function_prototype</a> <a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af5669576eacf2a7bd6ebd52dee5fa3a5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af5669576eacf2a7bd6ebd52dee5fa3a5">&#9670;&nbsp;</a></span>ebpf_program_context_create_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef uint64_t(* ebpf_program_context_create_t) (_In_reads_bytes_opt_(data_size_in) const uint8_t *data_in, size_t data_size_in, _In_reads_bytes_opt_(context_size_in) const uint8_t *context_in, size_t context_size_in, void **context)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a6b4d8fad33cf700c5b2cd404b8b23252"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6b4d8fad33cf700c5b2cd404b8b23252">&#9670;&nbsp;</a></span>ebpf_program_context_destroy_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* ebpf_program_context_destroy_t) (void *context, _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t *data_out, _Inout_ size_t *data_size_out, _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t *context_out, _Inout_ size_t *context_size_out)</td>
         </tr>
       </table>
 </div><div class="memdoc">

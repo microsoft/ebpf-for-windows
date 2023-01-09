@@ -93,6 +93,8 @@ Data Structures</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__test__run__options.html">_ebpf_test_run_options</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
@@ -111,6 +113,8 @@ Typedefs</h2></td></tr>
 <tr class="separator:a87ea605d393a9719bf6ca18530adb006"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af4c03ef813e8625b8c4c869eea6e7a43"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__program__info.html">_ebpf_program_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a></td></tr>
 <tr class="separator:af4c03ef813e8625b8c4c869eea6e7a43"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a19411f9f52f8091cc292b69f1eabe341"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__test__run__options.html">_ebpf_test_run_options</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341">ebpf_test_run_options_t</a></td></tr>
+<tr class="separator:a19411f9f52f8091cc292b69f1eabe341"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -191,6 +195,9 @@ Functions</h2></td></tr>
 <tr class="memitem:adecb65d04d66bfa22a4c2fcdcb53cc1a"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#adecb65d04d66bfa22a4c2fcdcb53cc1a">ebpf_get_program_info_from_verifier</a> (const <a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a> **program_info)</td></tr>
 <tr class="memdesc:adecb65d04d66bfa22a4c2fcdcb53cc1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the set of program information used by the verifier during the last verification.  <a href="ebpf__api_8h.html#adecb65d04d66bfa22a4c2fcdcb53cc1a">More...</a><br /></td></tr>
 <tr class="separator:adecb65d04d66bfa22a4c2fcdcb53cc1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a96cc5f4ca50052c6e2fa15cb1c040111"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a96cc5f4ca50052c6e2fa15cb1c040111">ebpf_program_test_run</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd, _Inout_ <a class="el" href="ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341">ebpf_test_run_options_t</a> *options)</td></tr>
+<tr class="memdesc:a96cc5f4ca50052c6e2fa15cb1c040111"><td class="mdescLeft">&#160;</td><td class="mdescRight">Run the program in the eBPF VM, measure the execution time, and return the result.  <a href="ebpf__api_8h.html#a96cc5f4ca50052c6e2fa15cb1c040111">More...</a><br /></td></tr>
+<tr class="separator:a96cc5f4ca50052c6e2fa15cb1c040111"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -263,6 +270,20 @@ Variables</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef struct <a class="el" href="struct__ebpf__stat.html">_ebpf_stat</a> <a class="el" href="ebpf__api_8h.html#a03e330e1ab6b5c901410d1ffbe0196a1">ebpf_stat_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a19411f9f52f8091cc292b69f1eabe341"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a19411f9f52f8091cc292b69f1eabe341">&#9670;&nbsp;</a></span>ebpf_test_run_options_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__test__run__options.html">_ebpf_test_run_options</a> <a class="el" href="ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341">ebpf_test_run_options_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -1426,6 +1447,50 @@ Variables</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a96cc5f4ca50052c6e2fa15cb1c040111"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a96cc5f4ca50052c6e2fa15cb1c040111">&#9670;&nbsp;</a></span>ebpf_program_test_run()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_program_test_run </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>&#160;</td>
+          <td class="paramname"><em>program_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Inout_ <a class="el" href="ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341">ebpf_test_run_options_t</a> *&#160;</td>
+          <td class="paramname"><em>options</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Run the program in the eBPF VM, measure the execution time, and return the result. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">program_fd</td><td>File descriptor of the program to run. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">options</td><td>Options to control the test run and results. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_OBJECT</td><td>Invalid object was passed. </td></tr>
   </table>
   </dd>
 </dl>
