@@ -417,6 +417,35 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info);
 
+    typedef struct _ebpf_test_run_options
+    {
+        _Readable_bytes_(data_size_in) const uint8_t* data_in; ///< Input data to the program.
+        _Writable_bytes_(data_size_out) uint8_t* data_out;     ///< Output data from the program.
+        size_t data_size_in;                                   ///< Size of input data.
+        size_t data_size_out; ///< Maximum length of data_out on input and actual length of data_out on output.
+        _Readable_bytes_(context_size_in) const uint8_t* context_in; ///< Input context to the program.
+        _Writable_bytes_(context_size_out) uint8_t* context_out;     ///< Output context from the program.
+        size_t context_size_in;                                      ///< Size of input context.
+        size_t context_size_out; ///< Maximum length of context_out on input and actual length of context_out on output.
+        uint64_t return_value;   ///< Return value from the program.
+        size_t repeat_count;     ///< Number of times to repeat the program.
+        uint64_t duration;       ///< Duration in nanoseconds of the program execution.
+        uint32_t flags;          ///< Flags to control the test run.
+        uint32_t cpu;            ///< CPU to run the program on.
+        size_t batch_size;       ///< Number of times to repeat the program in a batch.
+    } ebpf_test_run_options_t;
+
+    /**
+     * @brief Run the program in the eBPF VM, measure the execution time, and return the result.
+     *
+     * @param[in] program_fd File descriptor of the program to run.
+     * @param[in,out] options Options to control the test run and results.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT Invalid object was passed.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options);
+
 #ifdef __cplusplus
 }
 #endif
