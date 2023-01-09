@@ -138,6 +138,7 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
     // With bpf syscall
     bpf_attr attr = {};
     attr.test.prog_fd = program_fd;
+    attr.test.repeat = 1000;
     attr.test.data_in = reinterpret_cast<uint64_t>(packet.data());
     attr.test.data_out = reinterpret_cast<uint64_t>(packet.data());
     attr.test.data_size_in = static_cast<uint32_t>(packet.size());

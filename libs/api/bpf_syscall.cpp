@@ -94,6 +94,9 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
             .ctx_size_in = attr->test.ctx_size_in,
             .ctx_size_out = attr->test.ctx_size_out,
             .repeat = (int)(attr->test.repeat),
+            .flags = attr->test.flags,
+            .cpu = attr->test.cpu,
+            .batch_size = attr->test.batch_size,
         };
         int retval = bpf_prog_test_run_opts(attr->test.prog_fd, &test_run_opts);
         if (retval == 0) {

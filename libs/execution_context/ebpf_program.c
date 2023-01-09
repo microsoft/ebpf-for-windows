@@ -148,6 +148,14 @@ _ebpf_program_program_info_provider_changed(
         program->context_create = program_data->context_create;
         program->context_destroy = program_data->context_destroy;
         program->required_irql = program_data->required_irql;
+        if (program_data->required_irql > HIGH_LEVEL) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "An extension cannot have required_irql higher than HIGH_LEVEL",
+                program->parameters.program_type);
+            goto Exit;
+        }
 
         helper_function_addresses = program_data->program_type_specific_helper_function_addresses;
         global_helper_function_addresses = program_data->global_helper_function_addresses;
