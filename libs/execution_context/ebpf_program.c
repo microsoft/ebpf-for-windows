@@ -76,7 +76,20 @@ typedef struct _ebpf_program
     uint32_t link_count;
     ebpf_map_t** maps;
     uint32_t count_of_maps;
+
+    ebpf_program_context_create_t context_create;
+    ebpf_program_context_destroy_t context_destroy;
+    uint8_t required_irql;
 } ebpf_program_t;
+
+static ebpf_result_t
+_ebpf_program_get_context(_Outptr_ void** context);
+
+static struct
+{
+    size_t size;
+    _ebpf_extension_dispatch_function function[1];
+} _ebpf_program_dispatch_table = {1, {_ebpf_program_get_context}};
 
 static ebpf_result_t
 _ebpf_program_register_helpers(_In_ const ebpf_program_t* program);
@@ -138,6 +151,18 @@ _ebpf_program_program_info_provider_changed(
                 "An extension cannot have empty program_data",
                 program->parameters.program_type);
             // An extension cannot have empty program_data.
+            goto Exit;
+        }
+
+        program->context_create = program_data->context_create;
+        program->context_destroy = program_data->context_destroy;
+        program->required_irql = program_data->required_irql;
+        if (program_data->required_irql > HIGH_LEVEL) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "An extension cannot have required_irql higher than HIGH_LEVEL",
+                program->parameters.program_type);
             goto Exit;
         }
 
@@ -494,7 +519,7 @@ ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
         &module_id,
         program,
         NULL,
-        NULL,
+        (ebpf_extension_dispatch_table_t*)&_ebpf_program_dispatch_table,
         (void**)&program->info_extension_provider_binding_context,
         &program->info_extension_provider_data,
         NULL,
@@ -909,6 +934,7 @@ typedef struct _ebpf_program_tail_call_state
 {
     const ebpf_program_t* next_program;
     uint32_t count;
+    void* context;
 } ebpf_program_tail_call_state_t;
 
 _Must_inspect_result_ ebpf_result_t
@@ -945,6 +971,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
         return;
     }
 
+    state.context = context;
     if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
         *result = 0;
         return;
@@ -1475,4 +1502,129 @@ Exit:
     ebpf_program_free_program_info((ebpf_program_info_t*)program_info);
 
     EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_ebpf_program_get_context(_Outptr_ void** context)
+{
+    ebpf_result_t result;
+    ebpf_program_tail_call_state_t* state = NULL;
+    *context = NULL;
+    result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    *context = state->context;
+
+Exit:
+    return result;
+}
+
+typedef struct _ebpf_program_test_run_context
+{
+    ebpf_program_t* program;
+    void* context;
+    ebpf_program_test_run_options_t* options;
+    ebpf_signal_t* completion_event;
+} ebpf_program_test_run_context_t;
+
+static void
+_ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
+{
+    _Analysis_assume_(work_item_context != NULL);
+
+    ebpf_program_test_run_context_t* context = (ebpf_program_test_run_context_t*)work_item_context;
+    ebpf_program_test_run_options_t* options = context->options;
+    uint64_t end_time;
+    ebpf_result_t result;
+    uint32_t return_value = 0;
+    uint8_t old_irql;
+    uintptr_t old_thread_affinity;
+
+    result = ebpf_set_current_thread_affinity((uintptr_t)1 << options->cpu, &old_thread_affinity);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    old_irql = ebpf_raise_irql(context->program->required_irql);
+
+    uint64_t start_time = ebpf_query_time_since_boot(false);
+    for (size_t i = 0; i < options->repeat_count; i++) {
+        result = ebpf_epoch_enter();
+        if (result != EBPF_SUCCESS)
+            break;
+        ebpf_program_invoke(context->program, context->context, &return_value);
+        ebpf_epoch_exit();
+    }
+    end_time = ebpf_query_time_since_boot(false);
+
+    options->duration = end_time - start_time;
+    options->return_value = return_value;
+
+    ebpf_lower_irql(old_irql);
+    ebpf_restore_current_thread_affinity(old_thread_affinity);
+
+Done:
+    ebpf_signal_set(context->completion_event);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_execute_test_run(_In_ ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options)
+{
+    if (program->context_create == NULL || program->context_destroy == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_result_t return_value = EBPF_SUCCESS;
+    ebpf_signal_t* signal = NULL;
+    ebpf_program_test_run_context_t* test_run_context = NULL;
+    void* context = NULL;
+    ebpf_preemptible_work_item_t* work_item = NULL;
+
+    // Convert the input buffer to a program type specific context structure.
+    return_value = program->context_create(
+        options->data_in, options->data_size_in, options->context_in, options->context_size_in, &context);
+    if (return_value != 0) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    test_run_context = (ebpf_program_test_run_context_t*)ebpf_allocate(sizeof(ebpf_program_test_run_context_t));
+    if (test_run_context == NULL) {
+        return_value = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    return_value = ebpf_signal_create(&signal);
+    if (return_value != EBPF_SUCCESS) {
+        return_value = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    test_run_context->program = program;
+    test_run_context->context = context;
+    test_run_context->options = options;
+    test_run_context->completion_event = signal;
+
+    // Queue the work item so that it can be executed on the target CPU and at the target dispatch level.
+    // The work item will signal the completion event when it is done.
+    return_value = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_program_test_run_work_item, test_run_context);
+    if (return_value != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    // ebpf_queue_preemptible_work_item() will free both the work item and the context when it is done.
+    ebpf_queue_preemptible_work_item(work_item);
+    test_run_context = NULL;
+
+    (void)ebpf_signal_wait(signal, MAXUINT32);
+
+Exit:
+    program->context_destroy(
+        context, options->data_out, &options->data_size_out, options->context_out, &options->context_size_out);
+    ebpf_free(test_run_context);
+    ebpf_signal_destroy(signal);
+
+    return return_value;
 }

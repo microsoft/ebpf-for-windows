@@ -13,8 +13,10 @@
  */
 typedef struct _net_ebpf_extension_program_info_client
 {
-    HANDLE nmr_binding_handle; ///< NMR binding handle.
-    GUID client_module_id;     ///< NMR module Id.
+    HANDLE nmr_binding_handle;                                    ///< NMR binding handle.
+    GUID client_module_id;                                        ///< NMR module ID.
+    ebpf_get_program_context_t get_program_context;               ///< Pointer to function to get the program context.
+    net_ebpf_extension_program_info_provider_t* provider_context; ///< Pointer to the hook NPI provider context.
 } net_ebpf_extension_program_info_client_t;
 
 /**
@@ -24,6 +26,10 @@ typedef struct _net_ebpf_extension_program_info_provider
 {
     NPI_PROVIDER_CHARACTERISTICS characteristics; ///< NPI Provider characteristics.
     HANDLE nmr_provider_handle;                   ///< NMR binding handle.
+    net_ebpf_extension_program_info_on_client_attach
+        attach_callback; ///< Pointer to program info provider specific callback to be invoked when a client attaches.
+    net_ebpf_extension_program_info_on_client_detach
+        detach_callback; ///< Pointer to program info provider specific callback to be invoked when a client detaches.
 } net_ebpf_extension_program_info_provider_t;
 
 /**
@@ -52,15 +58,17 @@ _net_ebpf_extension_program_info_provider_attach_client(
     _Outptr_result_maybenull_ const void** provider_dispatch)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    ebpf_result_t result;
+    net_ebpf_extension_program_info_provider_t* local_provider_context =
+        (net_ebpf_extension_program_info_provider_t*)provider_context;
     net_ebpf_extension_program_info_client_t* program_info_client = NULL;
+    ebpf_extension_dispatch_table_t* client_dispatch_table;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    UNREFERENCED_PARAMETER(provider_context);
-    UNREFERENCED_PARAMETER(client_dispatch);
     UNREFERENCED_PARAMETER(client_binding_context);
 
-    if ((provider_binding_context == NULL) || (provider_dispatch == NULL)) {
+    if ((provider_binding_context == NULL) || (provider_dispatch == NULL) || (local_provider_context == NULL)) {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -68,6 +76,11 @@ _net_ebpf_extension_program_info_provider_attach_client(
     *provider_binding_context = NULL;
     *provider_dispatch = NULL;
 
+    client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
+    if (client_dispatch_table == NULL) {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
     program_info_client = (net_ebpf_extension_program_info_client_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_program_info_client_t), NET_EBPF_EXTENSION_POOL_TAG);
     if (program_info_client == NULL) {
@@ -76,8 +89,17 @@ _net_ebpf_extension_program_info_provider_attach_client(
     }
     memset(program_info_client, 0, sizeof(net_ebpf_extension_program_info_client_t));
 
+    program_info_client->get_program_context = (ebpf_get_program_context_t)client_dispatch_table->function[0];
     program_info_client->nmr_binding_handle = nmr_binding_handle;
     program_info_client->client_module_id = client_registration_instance->ModuleId->Guid;
+    program_info_client->provider_context = local_provider_context;
+
+    if (local_provider_context->attach_callback) {
+        result = local_provider_context->attach_callback(program_info_client, local_provider_context);
+        if (result != EBPF_SUCCESS) {
+            status = STATUS_ACCESS_DENIED;
+        }
+    }
 
 Exit:
     if (NT_SUCCESS(status)) {
@@ -100,11 +122,19 @@ Exit:
 static NTSTATUS
 _net_ebpf_extension_program_info_provider_detach_client(_In_ const void* provider_binding_context)
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    net_ebpf_extension_program_info_client_t* local_client_context =
+        (net_ebpf_extension_program_info_client_t*)provider_binding_context;
 
-    UNREFERENCED_PARAMETER(provider_binding_context);
+    if (local_client_context == NULL) {
+        return STATUS_INVALID_PARAMETER;
+    }
 
-    return status;
+    net_ebpf_extension_program_info_provider_t* local_provider_context = local_client_context->provider_context;
+    if (local_provider_context->detach_callback) {
+        local_provider_context->detach_callback(local_client_context);
+    }
+
+    return STATUS_SUCCESS;
 }
 
 static void
@@ -128,6 +158,8 @@ net_ebpf_extension_program_info_provider_unregister(
 NTSTATUS
 net_ebpf_extension_program_info_provider_register(
     _In_ const net_ebpf_extension_program_info_provider_parameters_t* parameters,
+    _In_opt_ net_ebpf_extension_program_info_on_client_attach attach_callback,
+    _In_opt_ net_ebpf_extension_program_info_on_client_detach detach_callback,
     _Outptr_ net_ebpf_extension_program_info_provider_t** provider_context)
 {
     net_ebpf_extension_program_info_provider_t* local_provider_context = NULL;
@@ -156,6 +188,9 @@ net_ebpf_extension_program_info_provider_register(
     characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics = parameters->provider_data;
     characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
 
+    local_provider_context->attach_callback = attach_callback;
+    local_provider_context->detach_callback = detach_callback;
+
     status = NmrRegisterProvider(characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status))
         goto Exit;
@@ -168,4 +203,11 @@ Exit:
         net_ebpf_extension_program_info_provider_unregister(local_provider_context);
 
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
+}
+
+const ebpf_get_program_context_t
+net_ebpf_extension_get_program_context_function(
+    _In_ const net_ebpf_extension_program_info_client_t* program_info_client)
+{
+    return program_info_client->get_program_context;
 }
