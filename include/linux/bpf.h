@@ -65,6 +65,7 @@ enum bpf_cmd_id
     BPF_LINK_DETACH,
     BPF_PROG_BIND_MAP,
     BPF_PROG_TEST_RUN,
+    BPF_PROG_RUN = BPF_PROG_TEST_RUN,
 };
 
 /// Attributes used by BPF_OBJ_GET_INFO_BY_FD.
@@ -190,6 +191,9 @@ union bpf_attr
         uint32_t ctx_size_out;  ///< Size in bytes of output context.
         uint64_t ctx_in;        ///< Pointer to input context.
         uint64_t ctx_out;       ///< Pointer to output context.
+        uint32_t flags;         ///< Flags (currently 0).
+        uint32_t cpu;           ///< CPU to run the program on.
+        uint32_t batch_size;    ///< Number of times to run the program in a batch.
     } test;                     ///< Attributes used by BPF_PROG_TEST_RUN.
 };
 #ifdef _MSC_VER
