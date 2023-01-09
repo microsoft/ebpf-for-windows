@@ -3728,3 +3728,93 @@ ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t*
 
     EBPF_RETURN_BOOL(cancel_result);
 }
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
+{
+    EBPF_LOG_ENTRY();
+
+    ebpf_result_t result;
+
+    size_t input_buffer_size = EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data);
+    size_t output_buffer_size = EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data);
+
+    if ((options->context_size_in + options->data_size_in) >
+        MAXUINT16 - EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if ((options->context_size_out + options->data_size_out) >
+        MAXUINT16 - EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    result = ebpf_safe_size_t_add(input_buffer_size, options->data_size_in, &input_buffer_size);
+    if (result != EBPF_SUCCESS)
+        EBPF_RETURN_RESULT(result);
+
+    result = ebpf_safe_size_t_add(output_buffer_size, options->data_size_out, &output_buffer_size);
+    if (result != EBPF_SUCCESS)
+        EBPF_RETURN_RESULT(result);
+
+    result = ebpf_safe_size_t_add(input_buffer_size, options->context_size_in, &input_buffer_size);
+    if (result != EBPF_SUCCESS)
+        EBPF_RETURN_RESULT(result);
+
+    result = ebpf_safe_size_t_add(output_buffer_size, options->context_size_out, &output_buffer_size);
+    if (result != EBPF_SUCCESS)
+        EBPF_RETURN_RESULT(result);
+
+    ebpf_protocol_buffer_t request_buffer(input_buffer_size);
+    ebpf_protocol_buffer_t reply_buffer(output_buffer_size);
+
+    ebpf_operation_program_test_run_request_t* request =
+        reinterpret_cast<ebpf_operation_program_test_run_request_t*>(request_buffer.data());
+    ebpf_operation_program_test_run_reply_t* reply =
+        reinterpret_cast<ebpf_operation_program_test_run_reply_t*>(reply_buffer.data());
+
+    request->header.id = EBPF_OPERATION_PROGRAM_TEST_RUN;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->program_handle = _get_handle_from_file_descriptor(program_fd);
+    request->repeat_count = options->repeat_count;
+    request->flags = options->flags;
+    request->cpu = options->cpu;
+    request->batch_size = options->batch_size;
+    request->context_offset = static_cast<uint16_t>(options->data_size_in);
+
+    std::copy(options->data_in, options->data_in + options->data_size_in, request->data);
+    std::copy(
+        options->context_in, options->context_in + options->context_size_in, request->data + options->data_size_in);
+
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+
+    if (result == EBPF_SUCCESS) {
+        if (options->data_out) {
+            if (reply->context_offset > options->data_size_out) {
+                return EBPF_INSUFFICIENT_BUFFER;
+            } else {
+                std::copy(reply->data, reply->data + reply->context_offset, options->data_out);
+                options->data_size_out = reply->context_offset;
+            }
+        }
+        if (options->context_out) {
+            size_t context_size_out = reply->header.length -
+                                      EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) -
+                                      reply->context_offset;
+            if (context_size_out > options->context_size_out) {
+                options->context_size_out = context_size_out;
+                return EBPF_INSUFFICIENT_BUFFER;
+            } else {
+                options->context_size_out = context_size_out;
+                std::copy(
+                    reply->data + reply->context_offset,
+                    reply->data + reply->context_offset + options->context_size_out,
+                    options->context_out);
+            }
+        }
+        options->duration = reply->duration;
+        options->return_value = reply->return_value;
+    }
+
+    EBPF_RETURN_RESULT(result);
+}
