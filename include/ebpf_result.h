@@ -109,6 +109,9 @@ extern "C"
 
         /// Invalid pointer.
         EBPF_INVALID_POINTER,
+
+        /// Operation timed out.
+        EBPF_TIMEOUT,
     } ebpf_result_t;
 
 #define EBPF_RESULT_COUNT (EBPF_INVALID_POINTER + 1)

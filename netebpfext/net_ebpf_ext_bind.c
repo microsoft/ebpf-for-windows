@@ -165,7 +165,7 @@ net_ebpf_ext_bind_register_providers()
     // Set the program type as the provider module id.
     _ebpf_bind_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_BIND;
     status = net_ebpf_extension_program_info_provider_register(
-        &program_info_provider_parameters, &_ebpf_bind_program_info_provider_context);
+        &program_info_provider_parameters, NULL, NULL, &_ebpf_bind_program_info_provider_context);
     if (status != STATUS_SUCCESS)
         goto Exit;
 
