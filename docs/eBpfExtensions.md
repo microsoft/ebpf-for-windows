@@ -55,7 +55,11 @@ When registering itself to the NMR, the Program Information NPI Provider should 
 #### `ebpf_program_data_t` Struct
 The various fields of this structure should be set as follows:
 * `program_info`: Pointer to `ebpf_program_info_t`.
-* `helper_function_addresses`: Pointer to `ebpf_helper_function_addresses_t`.
+* `program_type_specific_helper_function_addresses`: Pointer to `ebpf_helper_function_addresses_t`. This structure provides the helper functions that are exclusive to this program type.
+* `global_helper_function_addresses`:  Pointer to `ebpf_helper_function_addresses_t`. This structure provides helper functions that override the global helper functions provided by the eBPF runtime.
+* `context_create`: Pointer to `ebpf_program_context_create_t` function that creates a program type specific context structure from provided data and context buffers.
+* `context_destroy`: Pointer to `ebpf_program_context_destroy_t` function that destroys a program type specific context structure and populates the returned data and context buffers.
+* `required_irql`: IRQL that the eBPF program runs at.
 
 #### `ebpf_program_info_t` Struct
 The various fields of this structure should be set as follows:
@@ -142,6 +146,14 @@ typedef enum _ebpf_return_type {
 This structure is used to specify the address at which the various helper functions implemented by the extension reside. If an eBPF program is JIT compiled, then the generated machine code will have `call` instructions to these addresses. For interpreted mode, the eBPF Execution Engine will invoke the functions at these addresses. The fields of this struct should be set as follows:
 * `helper_function_count`: Number of helper functions implemented by the extension for the given program type.
 * `helper_function_address`: Array of addresses (64-bit unsigned integer) for the helper functions. The addresses must be arranged in the array in the *same order* as the array of helper function prototypes denoted by the `helper_prototype` field in `ebpf_program_info_t` struct.  For the correct execution of eBPF programs, the helper function addresses cannot change while a loaded eBPF program is executing.
+
+There are two sets of helper function addresses that the extension can return. The first are helper functions that are only callable during execution of an eBPF program that matches this program type. The second are helper function implementations that override the global helper function implementations provided by the eBPF runtime.
+
+### `ebpf_program_context_create_t` Function
+This optional function is used to build a program type specific context structure that is used when an application calls `bpf_prog_test_run_opts`. The application optionally passes in flat buffers representing the data and the context structure to be passed to the eBPF program. The extension then constructs a context structure to be passed to the eBPF program. Note: If `ebpf_program_context_create_t` is present, then `ebpf_program_context_destroy_t` and `required_irql` must be set.
+
+### `ebpf_program_context_destroy_t` Function
+This optional function is used to populate the flat buffers representing the data and context structures that are returned to the application when the `bpf_prog_test_run_opts` call completes. In addition, the function frees any resources allocated in the `ebpf_program_context_create_t` call.
 
 ### 2.2 Program Information NPI Client Attach and Detach Callbacks
 The eBPF Execution Context registers a Program Information NPI client module with the NMR for every eBPF program that
