@@ -154,7 +154,6 @@ _ebpf_program_program_info_provider_changed(
                 EBPF_TRACELOG_KEYWORD_PROGRAM,
                 "An extension cannot have required_irql higher than HIGH_LEVEL",
                 program->parameters.program_type);
-            // An extension cannot have required_irql higher than HIGH_LEVEL.
             goto Exit;
         }
 
