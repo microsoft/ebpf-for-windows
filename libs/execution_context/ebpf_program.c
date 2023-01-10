@@ -80,7 +80,20 @@ typedef struct _ebpf_program
     ebpf_program_context_create_t context_create;
     ebpf_program_context_destroy_t context_destroy;
     uint8_t required_irql;
+    // Used to track if the program information provider is attached.
+    // Initialized when the provider is attached.
+    // Rundown when the provider is detached.
+    ebpf_rundown_protection_t rundown_protection;
 } ebpf_program_t;
+
+static ebpf_result_t
+_ebpf_program_get_context(_Outptr_ void** context);
+
+static struct
+{
+    size_t size;
+    _ebpf_extension_dispatch_function function[1];
+} _ebpf_program_dispatch_table = {1, {_ebpf_program_get_context}};
 
 static ebpf_result_t
 _ebpf_program_register_helpers(_In_ const ebpf_program_t* program);
@@ -128,7 +141,13 @@ _ebpf_program_program_info_provider_changed(
     ebpf_helper_function_addresses_t* total_helper_function_addresses = NULL;
 
     if (provider_data == NULL) {
+        ebpf_rundown_protection_wait(&program->rundown_protection);
+        program->context_create = NULL;
+        program->context_destroy = NULL;
+
         // Extension is detaching. Program will get invalidated.
+        program->info_extension_provider_binding_context = NULL;
+        program->info_extension_provider_data = NULL;
         goto Exit;
     } else {
         ebpf_helper_function_addresses_t* helper_function_addresses = NULL;
@@ -145,9 +164,6 @@ _ebpf_program_program_info_provider_changed(
             goto Exit;
         }
 
-        program->context_create = program_data->context_create;
-        program->context_destroy = program_data->context_destroy;
-        program->required_irql = program_data->required_irql;
         if (program_data->required_irql > HIGH_LEVEL) {
             EBPF_LOG_MESSAGE_GUID(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -309,6 +325,10 @@ _ebpf_program_program_info_provider_changed(
             }
 #endif
         }
+        program->context_create = program_data->context_create;
+        program->context_destroy = program_data->context_destroy;
+        program->required_irql = program_data->required_irql;
+        ebpf_rundown_protection_initialize(&program->rundown_protection);
     }
 
     program->info_extension_provider_binding_context = provider_binding_context;
@@ -334,6 +354,7 @@ Exit:
         ebpf_free(total_helper_function_addresses);
     }
     program->invalidated = (program->info_extension_provider_data == NULL);
+
     EBPF_RETURN_VOID();
 }
 
@@ -510,7 +531,7 @@ ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
         &module_id,
         program,
         NULL,
-        NULL,
+        (ebpf_extension_dispatch_table_t*)&_ebpf_program_dispatch_table,
         (void**)&program->info_extension_provider_binding_context,
         &program->info_extension_provider_data,
         NULL,
@@ -558,6 +579,10 @@ ebpf_program_create(_Outptr_ ebpf_program_t** program)
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
+
+    ebpf_rundown_protection_initialize(&local_program->rundown_protection);
+    // Start with the rundown protection in the rundown state.
+    ebpf_rundown_protection_wait(&local_program->rundown_protection);
 
     *program = local_program;
     local_program = NULL;
@@ -925,6 +950,7 @@ typedef struct _ebpf_program_tail_call_state
 {
     const ebpf_program_t* next_program;
     uint32_t count;
+    void* context;
 } ebpf_program_tail_call_state_t;
 
 _Must_inspect_result_ ebpf_result_t
@@ -961,6 +987,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
         return;
     }
 
+    state.context = context;
     if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
         *result = 0;
         return;
@@ -1493,6 +1520,23 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
+static ebpf_result_t
+_ebpf_program_get_context(_Outptr_ void** context)
+{
+    ebpf_result_t result;
+    ebpf_program_tail_call_state_t* state = NULL;
+    *context = NULL;
+    result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    *context = state->context;
+
+Exit:
+    return result;
+}
+
 typedef struct _ebpf_program_test_run_context
 {
     ebpf_program_t* program;
@@ -1519,6 +1563,9 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
         goto Done;
     }
 
+    // Issue: https://github.com/microsoft/ebpf-for-windows/issues/1844
+    // Running at elevated IRQL for long periods of time can cause the system to hang.
+    // This should periodically lower the IRQL to allow other work to be done.
     old_irql = ebpf_raise_irql(context->program->required_irql);
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
@@ -1531,7 +1578,8 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     }
     end_time = ebpf_query_time_since_boot(false);
 
-    options->duration = end_time - start_time;
+    options->duration = (end_time - start_time) * EBPF_NS_PER_FILETIME;
+    options->duration /= options->repeat_count;
     options->return_value = return_value;
 
     ebpf_lower_irql(old_irql);
@@ -1544,6 +1592,12 @@ Done:
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_execute_test_run(_In_ ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options)
 {
+    // Prevent the provider from detaching while the program is running.
+    if (!ebpf_rundown_protection_acquire(&program->rundown_protection)) {
+        // Provider is not attached.
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     if (program->context_create == NULL || program->context_destroy == NULL) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -1598,5 +1652,6 @@ Exit:
     ebpf_free(test_run_context);
     ebpf_signal_destroy(signal);
 
+    ebpf_rundown_protection_release(&program->rundown_protection);
     return return_value;
 }

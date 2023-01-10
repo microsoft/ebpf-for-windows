@@ -55,7 +55,7 @@ jobs:
       LD_FLAGS: ${{inputs.ld_flags}}
 
     steps:
-    - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       with:
         submodules: 'recursive'
 
@@ -118,21 +118,9 @@ jobs:
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
 
-    # Download and extract demo repo artifacts. These then get uploaded along with the build artifacts.
-    # The subequent tests will directly get these when they download the build artifacts. In case
-    # a test fails, the .o files used for the test will be available in the uploaded build artifacts.
-    - name: Download demo repository artifacts
-      uses: dawidd6/action-download-artifact@bd10f381a96414ce2b13a11bfa89902ba7cea07f
-      with:
-        github_token: ${{secrets.GITHUB_TOKEN}}
-        workflow: cicd.yml
-        workflow_conclusion: success
-        name: x64-${{ matrix.configurations }}-cilium-xdp
-        path: ${{github.workspace}}
-        repo: microsoft/ebpf-for-windows-demo
-        check_artifacts:  false
-        search_artifacts: false
-        skip_unpack: true
+    - name: Download demo repository
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
     - name: Extract artifacts to build path
       working-directory: ${{env.GITHUB_WORKSPACE}}
