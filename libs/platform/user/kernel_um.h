@@ -562,3 +562,9 @@ RtlSetDaclSecurityDescriptor(
 
 KIRQL
 KeGetCurrentIrql();
+
+HANDLE
+PsGetCurrentProcessId();
+
+HANDLE
+PsGetCurrentThreadId();

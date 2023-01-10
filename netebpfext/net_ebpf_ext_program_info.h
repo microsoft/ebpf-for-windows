@@ -40,16 +40,13 @@ static ebpf_program_section_info_t _ebpf_bind_section_info[] = {
 
 // CGROUP_SOCK_ADDR global helper function prototypes.
 static ebpf_helper_function_prototype_t _ebpf_sock_addr_global_helper_function_prototype[] = {
-    {BPF_FUNC_get_user_process_id,
-     "bpf_get_user_process_id",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
-    {BPF_FUNC_get_user_logon_id,
-     "bpf_get_user_logon_id",
+    {BPF_FUNC_get_current_pid_tgid, "bpf_get_current_pid_tgid", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {BPF_FUNC_get_current_logon_id,
+     "bpf_get_current_logon_id",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}},
-    {BPF_FUNC_is_user_admin,
-     "bpf_is_user_admin",
+    {BPF_FUNC_is_current_admin,
+     "bpf_is_current_admin",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 

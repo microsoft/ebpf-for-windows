@@ -63,10 +63,8 @@ static uint64_t
 _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value);
 static uint64_t
 _ebpf_core_get_pid_tgid();
-static uint64_t
-_ebpf_core_get_user_process_id(_In_ void* ctx);
-_Success_(return == 0) static uint32_t _ebpf_core_get_user_logon_id(_In_ const void* ctx, _Out_ uint64_t* logon_id);
-_Success_(return == 0) static uint32_t _ebpf_core_is_user_admin(_In_ void* ctx, _Out_ uint32_t* is_admin, int size);
+_Success_(return == 0) static uint32_t _ebpf_core_get_current_logon_id(_In_ const void* ctx, _Out_ uint64_t* logon_id);
+_Success_(return == 0) static uint32_t _ebpf_core_is_current_admin(_In_ void* ctx, _Out_ uint32_t* is_admin, int size);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -97,9 +95,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_map_pop_elem,
     (void*)&_ebpf_core_map_peek_elem,
     (void*)&_ebpf_core_get_pid_tgid,
-    (void*)&_ebpf_core_get_user_process_id,
-    (void*)&_ebpf_core_get_user_logon_id,
-    (void*)&_ebpf_core_is_user_admin,
+    (void*)&_ebpf_core_get_current_logon_id,
+    (void*)&_ebpf_core_is_current_admin,
 };
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
@@ -1757,14 +1754,7 @@ _ebpf_core_get_pid_tgid()
     return ((uint64_t)ebpf_platform_process_id() << 32) | ebpf_platform_thread_id();
 }
 
-static uint64_t
-_ebpf_core_get_user_process_id(_In_ const void* ctx)
-{
-    UNREFERENCED_PARAMETER(ctx);
-    return (uint64_t)ebpf_platform_process_id();
-}
-
-_Success_(return == 0) static uint32_t _ebpf_core_get_user_logon_id(_In_ const void* ctx, _Out_ uint64_t* logon_id)
+_Success_(return == 0) static uint32_t _ebpf_core_get_current_logon_id(_In_ const void* ctx, _Out_ uint64_t* logon_id)
 {
     UNREFERENCED_PARAMETER(ctx);
 
@@ -1780,7 +1770,7 @@ _Success_(return == 0) static uint32_t _ebpf_core_get_user_logon_id(_In_ const v
     return 0;
 }
 
-_Success_(return == 0) static uint32_t _ebpf_core_is_user_admin(_In_ void* ctx, _Out_ uint32_t* is_admin, int size)
+_Success_(return == 0) static uint32_t _ebpf_core_is_current_admin(_In_ void* ctx, _Out_ uint32_t* is_admin, int size)
 {
     // TODO: Implement this function.
     UNREFERENCED_PARAMETER(ctx);

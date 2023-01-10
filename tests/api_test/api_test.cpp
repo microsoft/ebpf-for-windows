@@ -723,9 +723,9 @@ TEST_CASE("nomap_load_test", "[native_tests]")
 }
 
 // Tests the following helper functions:
-// 1. bpf_get_user_process_id()
-// 2. bpf_get_user_logon_id()
-// 3. bpf_is_user_admin()
+// 1. bpf_get_current_pid_tgid()
+// 2. bpf_get_current_logon_id()
+// 3. bpf_is_current_admin()
 void
 bpf_user_helpers_test(ebpf_execution_type_t execution_type)
 {

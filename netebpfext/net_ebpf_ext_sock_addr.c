@@ -91,15 +91,35 @@ static ACL* _net_ebpf_ext_dacl_admin = NULL;
 //
 // sock_addr helper functions.
 //
-static uint64_t
-_ebpf_sock_addr_get_user_process_id(_In_ const bpf_sock_addr_t* ctx)
+static uint32_t
+_get_process_id()
 {
-    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
-    return sock_addr_ctx->process_id;
+    return (uint32_t)(uintptr_t)PsGetCurrentProcessId();
+}
+
+static uint32_t
+_get_thread_id()
+{
+    return (uint32_t)(uintptr_t)PsGetCurrentThreadId();
 }
 
 static uint64_t
-_ebpf_sock_addr_get_user_logon_id(_In_ const bpf_sock_addr_t* ctx)
+_ebpf_sock_addr_get_current_pid_tgid()
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
+    ASSERT(_net_ebpf_sock_addr_get_program_context != NULL);
+    _net_ebpf_sock_addr_get_program_context((void**)&sock_addr_ctx);
+    ASSERT(sock_addr_ctx != NULL);
+
+    if (sock_addr_ctx == NULL) {
+        return (((uint64_t)_get_process_id() << 32) | _get_thread_id());
+    }
+
+    return (sock_addr_ctx->process_id << 32 | _get_thread_id());
+}
+
+static uint64_t
+_ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx)
 {
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     return *(uint64_t*)(&(sock_addr_ctx->access_information->AuthenticationId));
@@ -179,7 +199,7 @@ _perform_access_check(
 }
 
 static uint32_t
-_ebpf_sock_addr_is_user_admin(_In_ const bpf_sock_addr_t* ctx, _Out_ uint32_t* is_admin, int size)
+_ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx, _Out_ uint32_t* is_admin, int size)
 {
     NTSTATUS status;
     bool access_allowed;
@@ -295,9 +315,9 @@ typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
 // SOCK_ADDR Program Information NPI Provider.
 //
 static const void* _ebpf_sock_addr_helper_functions[] = {
-    (void*)_ebpf_sock_addr_get_user_process_id,
-    (void*)_ebpf_sock_addr_get_user_logon_id,
-    (void*)_ebpf_sock_addr_is_user_admin};
+    (void*)_ebpf_sock_addr_get_current_pid_tgid,
+    (void*)_ebpf_sock_addr_get_current_logon_id,
+    (void*)_ebpf_sock_addr_is_current_admin};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_helper_function_address_table = {
     EBPF_COUNT_OF(_ebpf_sock_addr_helper_functions), (uint64_t*)_ebpf_sock_addr_helper_functions};

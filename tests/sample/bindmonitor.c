@@ -50,11 +50,11 @@ struct bpf_map_def limits_map = {
 inline void
 update_audit_entry(bind_md_t* ctx)
 {
-    uint64_t process_id = bpf_get_user_process_id(ctx);
+    uint64_t process_id = bpf_get_current_pid_tgid();
     audit_entry_t audit_entry = {0};
 
-    uint32_t result = bpf_get_user_logon_id(ctx, &audit_entry.logon_id, sizeof(uint64_t));
-    result = bpf_is_user_admin(ctx, &audit_entry.is_admin, sizeof(uint32_t));
+    uint32_t result = bpf_get_current_logon_id(ctx, &audit_entry.logon_id, sizeof(uint64_t));
+    result = bpf_is_current_admin(ctx, &audit_entry.is_admin, sizeof(uint32_t));
     audit_entry.is_admin_valid = result == 0 ? 1 : 0;
 
     bpf_map_update_elem(&audit_map, &process_id, &audit_entry, 0);

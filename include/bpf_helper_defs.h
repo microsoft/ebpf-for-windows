@@ -311,21 +311,7 @@ EBPF_HELPER(uint64_t, bpf_get_current_pid_tgid, ());
 #endif
 
 /**
- * @brief Get the user process ID.
- *
- * @param[in] ctx Context passed to the eBPF program.
- *
- * @returns A 64-bit integer containing the process ID of the user mode process. In case of
- * sock_addr attach types, returns the process ID of the user mode app making the request.
- * In other cases, returns the process ID of the current thread.
- */
-EBPF_HELPER(uint64_t, bpf_get_user_process_id, (void* ctx));
-#ifndef __doxygen
-#define bpf_get_user_process_id ((bpf_get_user_process_id_t)BPF_FUNC_get_user_process_id)
-#endif
-
-/**
- * @brief Get the 64-bit logon ID of the user mode process. In case of sock_addr
+ * @brief Get the 64-bit logon ID of the current process. In case of sock_addr
  * attach types, get the logon ID of the user mode app making the request. In other
  * cases, get the logon ID of the current thread.
  *
@@ -335,9 +321,9 @@ EBPF_HELPER(uint64_t, bpf_get_user_process_id, (void* ctx));
  *
  * @returns 0 if the operation was successful, 1 otherwise.
  */
-EBPF_HELPER(uint32_t, bpf_get_user_logon_id, (void* ctx, uint64_t* logon_id, int size));
+EBPF_HELPER(uint32_t, bpf_get_current_logon_id, (void* ctx, uint64_t* logon_id, int size));
 #ifndef __doxygen
-#define bpf_get_user_logon_id ((bpf_get_user_logon_id_t)BPF_FUNC_get_user_logon_id)
+#define bpf_get_current_logon_id ((bpf_get_current_logon_id_t)BPF_FUNC_get_current_logon_id)
 #endif
 
 /**
@@ -351,7 +337,7 @@ EBPF_HELPER(uint32_t, bpf_get_user_logon_id, (void* ctx, uint64_t* logon_id, int
  *
  * @returns 0 if the operation was successful, 1 otherwise.
  */
-EBPF_HELPER(uint32_t, bpf_is_user_admin, (void* ctx, uint32_t* is_admin, int size));
+EBPF_HELPER(uint32_t, bpf_is_current_admin, (void* ctx, uint32_t* is_admin, int size));
 #ifndef __doxygen
-#define bpf_is_user_admin ((bpf_is_user_admin_t)BPF_FUNC_is_user_admin)
+#define bpf_is_current_admin ((bpf_is_current_admin_t)BPF_FUNC_is_current_admin)
 #endif
