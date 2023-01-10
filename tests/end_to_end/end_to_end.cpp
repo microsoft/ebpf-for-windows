@@ -64,6 +64,12 @@ CATCH_REGISTER_LISTENER(_passed_test_log)
 
 extern thread_local bool ebpf_non_preemptible;
 
+static uint64_t
+_get_pid_tgid()
+{
+    return ((uint64_t)GetCurrentProcessId() << 32 | GetCurrentThreadId());
+}
+
 std::vector<uint8_t>
 prepare_ip_packet(uint16_t ethernet_type)
 {
@@ -613,7 +619,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     bpf_object* object = nullptr;
     bpf_link* link = nullptr;
     fd_t program_fd;
-    uint64_t process_id = (uint64_t)GetCurrentProcessId();
+    uint64_t process_id = _get_pid_tgid();
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
