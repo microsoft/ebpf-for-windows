@@ -57,6 +57,12 @@ static service_install_helper
 static service_install_helper
     _ebpf_service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
 
+static uint64_t
+_get_pid_tgid()
+{
+    return ((uint64_t)GetCurrentProcessId() << 32 | GetCurrentThreadId());
+}
+
 static int
 _program_load_helper(
     const char* file_name,
@@ -730,7 +736,7 @@ void
 bpf_user_helpers_test(ebpf_execution_type_t execution_type)
 {
     struct bpf_object* object = nullptr;
-    uint64_t process_id = (uint64_t)GetCurrentProcessId();
+    uint64_t process_thread_id = _get_pid_tgid();
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "bindmonitor.sys" : "bindmonitor.o";
     program_load_attach_helper_t _helper(
@@ -744,7 +750,7 @@ bpf_user_helpers_test(ebpf_execution_type_t execution_type)
     REQUIRE(audit_map_fd > 0);
 
     audit_entry_t entry = {0};
-    int result = bpf_map_lookup_elem(audit_map_fd, &process_id, &entry);
+    int result = bpf_map_lookup_elem(audit_map_fd, &process_thread_id, &entry);
     REQUIRE(result == 0);
 
     REQUIRE(entry.is_admin == 0);

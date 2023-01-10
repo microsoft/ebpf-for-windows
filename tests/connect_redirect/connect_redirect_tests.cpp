@@ -133,6 +133,12 @@ _initialize_test_globals()
     _globals_initialized = true;
 }
 
+static uint64_t
+_get_pid_tgid()
+{
+    return ((uint64_t)GetCurrentProcessId() << 32 | GetCurrentThreadId());
+}
+
 static void
 _validate_audit_map_entry(_In_ const struct bpf_object* object)
 {
@@ -141,7 +147,7 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object)
 
     fd_t map_fd = bpf_map__fd(audit_map);
 
-    uint64_t process_id = (uint64_t)GetCurrentProcessId();
+    uint64_t process_id = _get_pid_tgid();
     sock_addr_audit_entry_t entry = {0};
     int result = bpf_map_lookup_elem(map_fd, &process_id, &entry);
     REQUIRE(result == 0);
