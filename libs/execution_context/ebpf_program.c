@@ -54,9 +54,7 @@ typedef struct _ebpf_program
 
     ebpf_extension_client_t* info_extension_client;
     const void* info_extension_provider_binding_context;
-
     const ebpf_extension_data_t* info_extension_provider_data;
-
     bpf_prog_type_t bpf_prog_type;
 
     // Program type specific helper function count.
@@ -136,16 +134,15 @@ _ebpf_program_program_info_provider_changed(
     size_t total_helper_count = 0;
     ebpf_helper_function_addresses_t* total_helper_function_addresses = NULL;
 
-    // Detach
     if (provider_data == NULL) {
+        // Detach
         // Extension is detaching. Program will get invalidated.
         program->info_extension_provider_binding_context = NULL;
         program->info_extension_provider_data = NULL;
         return_value = EBPF_SUCCESS;
         goto Exit;
-    } else
-    // Attach
-    {
+    } else {
+        // Attach
         program->info_extension_provider_binding_context = provider_binding_context;
         program->info_extension_provider_data = provider_data;
 
@@ -1045,7 +1042,13 @@ _ebpf_program_get_helper_function_address(
     bool provider_data_locked = false;
 
     if (!program->info_extension_client || !ebpf_extension_lock_provider_data(program->info_extension_client)) {
-        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "The extension is not loaded for program type",
+            program->parameters.program_type);
+        return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
+        goto Done;
     }
     provider_data_locked = true;
 
@@ -1179,6 +1182,11 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     *program_info = NULL;
 
     if (!program->info_extension_client || !ebpf_extension_lock_provider_data(program->info_extension_client)) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "The extension is not loaded for program type",
+            program->parameters.program_type);
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Exit;
     }
@@ -1567,7 +1575,7 @@ Exit:
 
 typedef struct _ebpf_program_test_run_context
 {
-    ebpf_program_t* program;
+    const ebpf_program_t* program;
     void* context;
     ebpf_program_test_run_options_t* options;
     ebpf_signal_t* completion_event;
@@ -1619,8 +1627,10 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_execute_test_run(_In_ ebpf_program_t* program, _In_ const ebpf_program_test_run_options_t* options)
+ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _In_ ebpf_program_test_run_options_t* options)
 {
+    EBPF_LOG_ENTRY();
+
     ebpf_result_t return_value = EBPF_SUCCESS;
     ebpf_signal_t* signal = NULL;
     ebpf_program_test_run_context_t* test_run_context = NULL;
@@ -1631,7 +1641,11 @@ ebpf_program_execute_test_run(_In_ ebpf_program_t* program, _In_ const ebpf_prog
 
     // Prevent the provider from detaching while the program is running.
     if (!program->info_extension_client || !ebpf_extension_lock_provider_data(program->info_extension_client)) {
-        // Provider is not attached.
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "The extension is not loaded for program type",
+            program->parameters.program_type);
         return_value = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -1694,5 +1708,5 @@ Exit:
     if (provider_data_locked) {
         ebpf_extension_unlock_provider_data(program->info_extension_client);
     }
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
