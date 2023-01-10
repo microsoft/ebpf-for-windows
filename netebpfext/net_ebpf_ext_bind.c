@@ -38,10 +38,31 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_bind_wfp_fi
 
 #define NET_EBPF_BIND_FILTER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_bind_wfp_filter_parameters)
 
+static ebpf_result_t
+_ebpf_bind_context_create(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context);
+
+static void
+_ebpf_bind_context_destroy(
+    _In_opt_ void* context,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out);
+
 //
 // Bind Program Information NPI Provider.
 //
-static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
+static ebpf_program_data_t _ebpf_bind_program_data = {
+    .program_info = &_ebpf_bind_program_info,
+    .context_create = _ebpf_bind_context_create,
+    .context_destroy = _ebpf_bind_context_destroy,
+    .required_irql = PASSIVE_LEVEL,
+};
 
 static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
@@ -350,4 +371,92 @@ Exit:
     if (attached_client)
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     return;
+}
+
+static ebpf_result_t
+_ebpf_bind_context_create(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context)
+{
+    NET_EBPF_EXT_LOG_ENTRY();
+    ebpf_result_t result;
+    bind_md_t* bind_context = NULL;
+
+    *context = NULL;
+
+    if (context_in == NULL || context_size_in < sizeof(bind_md_t)) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Context is required");
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    bind_context =
+        (bind_md_t*)ExAllocatePoolUninitialized(NonPagedPool, sizeof(bind_md_t), NET_EBPF_EXTENSION_POOL_TAG);
+
+    if (!bind_context) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    // Copy the context from the caller.
+    memcpy(bind_context, context_in, sizeof(bind_md_t));
+
+    // Replace the app_id_start and app_id_end with pointers to data_in.
+    bind_context->app_id_start = (uint8_t*)data_in;
+    bind_context->app_id_end = (uint8_t*)data_in + data_size_in;
+
+    *context = bind_context;
+    bind_context = NULL;
+    result = EBPF_SUCCESS;
+Exit:
+    if (bind_context) {
+        ExFreePool(bind_context);
+        bind_context = NULL;
+    }
+    NET_EBPF_EXT_RETURN_RESULT(result);
+}
+
+static void
+_ebpf_bind_context_destroy(
+    _In_opt_ void* context,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out)
+{
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    bind_md_t* bind_context = (bind_md_t*)context;
+    bind_md_t* bind_context_out = (bind_md_t*)context_out;
+
+    if (!bind_context) {
+        return;
+    }
+
+    if (context_out != NULL && *context_size_out >= sizeof(bind_md_t)) {
+        // Copy the context to the caller.
+        memcpy(bind_context_out, bind_context, sizeof(bind_md_t));
+
+        // Zero out the app_id_start and app_id_end.
+        bind_context_out->app_id_start = 0;
+        bind_context_out->app_id_end = 0;
+        *context_size_out = sizeof(bind_md_t);
+    } else {
+        *context_size_out = 0;
+    }
+
+    // Copy the app_id to the data_out.
+    if (data_out != NULL && *data_size_out >= (size_t)(bind_context->app_id_end - bind_context->app_id_start)) {
+        memcpy(data_out, bind_context->app_id_start, bind_context->app_id_end - bind_context->app_id_start);
+        *data_size_out = bind_context->app_id_end - bind_context->app_id_start;
+    } else {
+        *data_size_out = 0;
+    }
+
+    ExFreePool(bind_context);
+    NET_EBPF_EXT_LOG_FUNCTION_SUCCESS();
 }

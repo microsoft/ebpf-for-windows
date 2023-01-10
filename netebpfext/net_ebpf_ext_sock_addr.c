@@ -160,11 +160,30 @@ typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
     bool v4_attach_type;
 } net_ebpf_extension_sock_addr_wfp_filter_context_t;
 
+static ebpf_result_t
+_ebpf_sock_addr_context_create(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context);
+
+static void
+_ebpf_sock_addr_context_destroy(
+    _In_opt_ void* context,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out);
+
 //
 // SOCK_ADDR Program Information NPI Provider.
 //
 
-static ebpf_program_data_t _ebpf_sock_addr_program_data = {&_ebpf_sock_addr_program_info, NULL};
+static ebpf_program_data_t _ebpf_sock_addr_program_data = {
+    .program_info = &_ebpf_sock_addr_program_info,
+    .context_create = &_ebpf_sock_addr_context_create,
+    .context_destroy = &_ebpf_sock_addr_context_destroy};
 
 static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_addr_program_data), &_ebpf_sock_addr_program_data};
@@ -1343,4 +1362,86 @@ Exit:
     }
     if (attached_client)
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
+}
+
+static ebpf_result_t
+_ebpf_sock_addr_context_create(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context)
+{
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    ebpf_result_t result;
+    bpf_sock_addr_t* sock_addr_ctx = NULL;
+
+    *context = NULL;
+
+    // This does not use the data_in parameters.
+    if (data_size_in != 0 || data_in != NULL) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Data is not supported");
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    // This requires context_in parameters.
+    if (context_size_in < sizeof(bpf_sock_addr_t) || context_in == NULL) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Context is required");
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    sock_addr_ctx = (bpf_sock_addr_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(bpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
+    if (sock_addr_ctx == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    memcpy(sock_addr_ctx, context_in, sizeof(bpf_sock_addr_t));
+
+    result = EBPF_SUCCESS;
+    *context = sock_addr_ctx;
+
+    sock_addr_ctx = NULL;
+
+Done:
+    if (sock_addr_ctx) {
+        ExFreePool(sock_addr_ctx);
+    }
+    NET_EBPF_EXT_RETURN_RESULT(result);
+}
+
+static void
+_ebpf_sock_addr_context_destroy(
+    _In_opt_ void* context,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out)
+{
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    UNREFERENCED_PARAMETER(data_out);
+    *data_size_out = 0;
+
+    if (!context) {
+        return;
+    }
+
+    if (context_out != NULL && *context_size_out >= sizeof(bpf_sock_addr_t)) {
+        memcpy(context_out, context, sizeof(bpf_sock_addr_t));
+        *context_size_out = sizeof(bpf_sock_addr_t);
+    } else {
+        *context_size_out = 0;
+    }
+
+    if (context) {
+        ExFreePool(context);
+    }
+    NET_EBPF_EXT_LOG_FUNCTION_SUCCESS();
 }

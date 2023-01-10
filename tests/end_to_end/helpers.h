@@ -308,14 +308,15 @@ typedef class _test_xdp_helper
 } test_xdp_helper_t;
 
 // These are test xdp context creation functions.
-_Success_(return == 0) static uint64_t _xdp_context_create(
+static ebpf_result_t
+_xdp_context_create(
     _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
     _In_ size_t data_size_in,
     _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
     _In_ size_t context_size_in,
     _Outptr_ void** context)
 {
-    uint64_t retval = 1;
+    ebpf_result_t retval = EBPF_FAILED;
     *context = nullptr;
 
     xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(malloc(sizeof(xdp_md_t)));
@@ -337,7 +338,7 @@ _Success_(return == 0) static uint64_t _xdp_context_create(
 
     *context = xdp_context;
     xdp_context = nullptr;
-    retval = 0;
+    retval = EBPF_SUCCESS;
 Done:
     free(xdp_context);
     xdp_context = nullptr;

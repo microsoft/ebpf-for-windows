@@ -40,6 +40,8 @@ extern "C"
 #define EBPF_HASH_TABLE_NO_LIMIT 0
 #define EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT 64
 
+#define EBPF_NS_PER_FILETIME 100
+
 // Macro locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
 #define ebpf_assert_success(x)                                     \
     _Pragma("warning(push)") _Pragma("warning(disable : 4189)") do \
@@ -1237,6 +1239,46 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms);
+
+    typedef struct _ebpf_rundown_protection
+    {
+        void* reserved;
+    } ebpf_rundown_protection_t;
+
+    /**
+     * @brief Initialize a rundown protection object.
+     *
+     * @param[out] rundown_protection The object to initialize.
+     */
+    void
+    ebpf_rundown_protection_initialize(_Out_ ebpf_rundown_protection_t* rundown_protection);
+
+    /**
+     * @brief Wait for all in-flight references to complete.
+     *
+     * @param[in,out] rundown_protection The object to wait on.
+     */
+    void
+    ebpf_rundown_protection_wait(_Inout_ ebpf_rundown_protection_t* rundown_protection);
+
+    /**
+     * @brief Acquire a reference on the rundown protection object.
+     *
+     * @param[in,out] rundown_protection The object to acquire a reference on.
+     *
+     * @retval true The reference was acquired.
+     * @retval false The object is in the process of being deleted.
+     */
+    bool
+    ebpf_rundown_protection_acquire(_Inout_ ebpf_rundown_protection_t* rundown_protection);
+
+    /**
+     * @brief Release a reference on the rundown protection object.
+     *
+     * @param[in,out] rundown_protection The object to release a reference on.
+     */
+    void
+    ebpf_rundown_protection_release(_Inout_ ebpf_rundown_protection_t* rundown_protection);
 
 /**
  * @brief Append a value to a cryptographic hash object.
