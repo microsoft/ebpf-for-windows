@@ -118,11 +118,14 @@ _ebpf_sock_addr_get_current_pid_tgid()
     return (sock_addr_ctx->process_id << 32 | _get_thread_id());
 }
 
-static uint64_t
-_ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx)
+static uint32_t
+_ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx, _Out_ uint64_t* logon_id, int size)
 {
+    UNREFERENCED_PARAMETER(size);
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
-    return *(uint64_t*)(&(sock_addr_ctx->access_information->AuthenticationId));
+    *logon_id = *(uint64_t*)(&(sock_addr_ctx->access_information->AuthenticationId));
+
+    return 0;
 }
 
 static NTSTATUS
