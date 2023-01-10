@@ -85,9 +85,9 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 static helper_function_entry_t connect_redirect4_helpers[] = {
     {NULL, 1, "helper_id_1"},
     {NULL, 14, "helper_id_14"},
+    {NULL, 19, "helper_id_19"},
     {NULL, 20, "helper_id_20"},
     {NULL, 21, "helper_id_21"},
-    {NULL, 22, "helper_id_22"},
     {NULL, 2, "helper_id_2"},
 };
 
@@ -312,7 +312,7 @@ label_2:
     // EBPF_OP_MOV64_REG pc=55 dst=r1 src=r6 offset=0 imm=0
 #line 42 "sample/cgroup_sock_addr2.c"
     r1 = r6;
-    // EBPF_OP_CALL pc=56 dst=r0 src=r0 offset=0 imm=20
+    // EBPF_OP_CALL pc=56 dst=r0 src=r0 offset=0 imm=19
 #line 42 "sample/cgroup_sock_addr2.c"
     r0 = connect_redirect4_helpers[2].address
 #line 42 "sample/cgroup_sock_addr2.c"
@@ -339,7 +339,7 @@ label_2:
     // EBPF_OP_MOV64_IMM pc=62 dst=r3 src=r0 offset=0 imm=8
 #line 43 "sample/cgroup_sock_addr2.c"
     r3 = IMMEDIATE(8);
-    // EBPF_OP_CALL pc=63 dst=r0 src=r0 offset=0 imm=21
+    // EBPF_OP_CALL pc=63 dst=r0 src=r0 offset=0 imm=20
 #line 43 "sample/cgroup_sock_addr2.c"
     r0 = connect_redirect4_helpers[3].address
 #line 43 "sample/cgroup_sock_addr2.c"
@@ -360,7 +360,7 @@ label_2:
     // EBPF_OP_MOV64_IMM pc=67 dst=r3 src=r0 offset=0 imm=4
 #line 44 "sample/cgroup_sock_addr2.c"
     r3 = IMMEDIATE(4);
-    // EBPF_OP_CALL pc=68 dst=r0 src=r0 offset=0 imm=22
+    // EBPF_OP_CALL pc=68 dst=r0 src=r0 offset=0 imm=21
 #line 44 "sample/cgroup_sock_addr2.c"
     r0 = connect_redirect4_helpers[4].address
 #line 44 "sample/cgroup_sock_addr2.c"
@@ -435,9 +435,9 @@ label_4:
 static helper_function_entry_t connect_redirect6_helpers[] = {
     {NULL, 1, "helper_id_1"},
     {NULL, 12, "helper_id_12"},
+    {NULL, 19, "helper_id_19"},
     {NULL, 20, "helper_id_20"},
     {NULL, 21, "helper_id_21"},
-    {NULL, 22, "helper_id_22"},
     {NULL, 2, "helper_id_2"},
 };
 
@@ -695,7 +695,7 @@ label_2:
     // EBPF_OP_MOV64_REG pc=65 dst=r1 src=r6 offset=0 imm=0
 #line 42 "sample/cgroup_sock_addr2.c"
     r1 = r6;
-    // EBPF_OP_CALL pc=66 dst=r0 src=r0 offset=0 imm=20
+    // EBPF_OP_CALL pc=66 dst=r0 src=r0 offset=0 imm=19
 #line 42 "sample/cgroup_sock_addr2.c"
     r0 = connect_redirect6_helpers[2].address
 #line 42 "sample/cgroup_sock_addr2.c"
@@ -722,7 +722,7 @@ label_2:
     // EBPF_OP_MOV64_IMM pc=72 dst=r3 src=r0 offset=0 imm=8
 #line 43 "sample/cgroup_sock_addr2.c"
     r3 = IMMEDIATE(8);
-    // EBPF_OP_CALL pc=73 dst=r0 src=r0 offset=0 imm=21
+    // EBPF_OP_CALL pc=73 dst=r0 src=r0 offset=0 imm=20
 #line 43 "sample/cgroup_sock_addr2.c"
     r0 = connect_redirect6_helpers[3].address
 #line 43 "sample/cgroup_sock_addr2.c"
@@ -743,7 +743,7 @@ label_2:
     // EBPF_OP_MOV64_IMM pc=77 dst=r3 src=r0 offset=0 imm=4
 #line 44 "sample/cgroup_sock_addr2.c"
     r3 = IMMEDIATE(4);
-    // EBPF_OP_CALL pc=78 dst=r0 src=r0 offset=0 imm=22
+    // EBPF_OP_CALL pc=78 dst=r0 src=r0 offset=0 imm=21
 #line 44 "sample/cgroup_sock_addr2.c"
     r0 = connect_redirect6_helpers[4].address
 #line 44 "sample/cgroup_sock_addr2.c"

@@ -61,9 +61,9 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t BindMonitor_helpers[] = {
+    {NULL, 19, "helper_id_19"},
     {NULL, 20, "helper_id_20"},
     {NULL, 21, "helper_id_21"},
-    {NULL, 22, "helper_id_22"},
     {NULL, 2, "helper_id_2"},
     {NULL, 1, "helper_id_1"},
     {NULL, 3, "helper_id_3"},
@@ -125,7 +125,7 @@ BindMonitor(void* context)
     // EBPF_OP_STXW pc=2 dst=r10 src=r8 offset=-84 imm=0
 #line 104 "sample/bindmonitor.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-84)) = (uint32_t)r8;
-    // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=20
+    // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=19
 #line 53 "sample/bindmonitor.c"
     r0 = BindMonitor_helpers[0].address
 #line 53 "sample/bindmonitor.c"
@@ -158,7 +158,7 @@ BindMonitor(void* context)
     // EBPF_OP_MOV64_IMM pc=11 dst=r3 src=r0 offset=0 imm=8
 #line 56 "sample/bindmonitor.c"
     r3 = IMMEDIATE(8);
-    // EBPF_OP_CALL pc=12 dst=r0 src=r0 offset=0 imm=21
+    // EBPF_OP_CALL pc=12 dst=r0 src=r0 offset=0 imm=20
 #line 56 "sample/bindmonitor.c"
     r0 = BindMonitor_helpers[1].address
 #line 56 "sample/bindmonitor.c"
@@ -179,7 +179,7 @@ BindMonitor(void* context)
     // EBPF_OP_MOV64_IMM pc=16 dst=r3 src=r0 offset=0 imm=4
 #line 57 "sample/bindmonitor.c"
     r3 = IMMEDIATE(4);
-    // EBPF_OP_CALL pc=17 dst=r0 src=r0 offset=0 imm=22
+    // EBPF_OP_CALL pc=17 dst=r0 src=r0 offset=0 imm=21
 #line 57 "sample/bindmonitor.c"
     r0 = BindMonitor_helpers[2].address
 #line 57 "sample/bindmonitor.c"
