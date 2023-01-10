@@ -186,6 +186,8 @@ TEST_CASE("xdp_context", "[netebpfext]")
     xdp_context->data_meta++;
     xdp_context->ingress_ifindex--;
 
+    output_data_size = output_data.size();
+
     xdp_program_data->context_destroy(
         xdp_context, output_data.data(), &output_data_size, (uint8_t*)&output_context, &output_context_size);
 
@@ -249,6 +251,7 @@ TEST_CASE("bind_context", "[netebpfext]")
     bind_context->protocol = IPPROTO_UDP;
 
     output_context_size = sizeof(bind_md_t);
+    output_data_size = output_data.size();
 
     bind_program_data->context_destroy(
         bind_context, output_data.data(), &output_data_size, (uint8_t*)&output_context, &output_context_size);
