@@ -453,6 +453,8 @@ _ebpf_bind_context_destroy(
     if (data_out != NULL && *data_size_out >= (size_t)(bind_context->app_id_end - bind_context->app_id_start)) {
         memcpy(data_out, bind_context->app_id_start, bind_context->app_id_end - bind_context->app_id_start);
         *data_size_out = bind_context->app_id_end - bind_context->app_id_start;
+    } else {
+        *data_size_out = 0;
     }
 
     ExFreePool(bind_context);

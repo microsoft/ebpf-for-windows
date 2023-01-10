@@ -832,6 +832,8 @@ _ebpf_xdp_context_delete(
         }
         memcpy(data_out, xdp_context->base.data, data_size);
         *data_size_out = data_size;
+    } else {
+        *data_size_out = 0;
     }
 
     // Copy some fields from the context to the output buffer.
