@@ -43,9 +43,6 @@
     <ClCompile Include="ebpf_platform_user.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_program_types.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ebpf_serialize.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -97,16 +94,9 @@
     <ClCompile Include="ebpf_leak_detector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Midl Include="..\ebpf_program_types.idl">
+    <ClCompile Include="..\ebpf_rundown_ref.c">
       <Filter>Source Files</Filter>
-    </Midl>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\ebpf_program_types.acf">
-      <Filter>Source Files</Filter>
-    </None>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ebpf_epoch.h">
@@ -152,6 +142,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ebpf_symbol_decoder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ebpf_rundown.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

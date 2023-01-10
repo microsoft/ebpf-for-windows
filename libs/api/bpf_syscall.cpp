@@ -82,6 +82,31 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
             attr->insn_cnt,
             &opts);
     }
+    case BPF_PROG_TEST_RUN: {
+        bpf_test_run_opts test_run_opts = {
+            .sz = sizeof(bpf_test_run_opts),
+            .data_in = (void*)attr->test.data_in,
+            .data_out = (void*)attr->test.data_out,
+            .data_size_in = attr->test.data_size_in,
+            .data_size_out = attr->test.data_size_out,
+            .ctx_in = (void*)attr->test.ctx_in,
+            .ctx_out = (void*)attr->test.ctx_out,
+            .ctx_size_in = attr->test.ctx_size_in,
+            .ctx_size_out = attr->test.ctx_size_out,
+            .repeat = (int)(attr->test.repeat),
+            .flags = attr->test.flags,
+            .cpu = attr->test.cpu,
+            .batch_size = attr->test.batch_size,
+        };
+        int retval = bpf_prog_test_run_opts(attr->test.prog_fd, &test_run_opts);
+        if (retval == 0) {
+            attr->test.data_size_out = test_run_opts.data_size_out;
+            attr->test.ctx_size_out = test_run_opts.ctx_size_out;
+            attr->test.retval = test_run_opts.retval;
+            attr->test.duration = test_run_opts.duration;
+        }
+        return retval;
+    }
     default:
         errno = EINVAL;
         return -1;
