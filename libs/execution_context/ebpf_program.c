@@ -21,23 +21,6 @@ static size_t _ebpf_program_state_index = MAXUINT64;
 #define EBPF_MAX_HASH_SIZE 128
 #define EBPF_HASH_ALGORITHM L"SHA256"
 
-// The maximum number of iterations to run when executing a BPF_PROG_RUN before yielding to the scheduler. This is to
-// prevent starving other threads on the CPU, but also allows the measurement of the time spent in the BPF program
-// to be reasonably accurate.
-// Assumptions:
-// 1) 2Ghz processor, with worst case of 2 cycles per instruction (taking into account cache misses).
-// 2) Approximately 4 CPU instructions per BPF instruction.
-// 3) Maximum program size of 4K instructions.
-//
-// Therefore:
-// 1) Upper bound on program run time is then around 32K cycles or 16us.
-// 2) Lower bound is around 200ns (cost of the epoch_enter/exit).
-// 3) Program time is then in the range [0.2us,16us] and 64 iterations is then [12.8us, 1000us].
-// 4) Bound on the accuracy of the measurement is then [0.01%-1.5%] depending on the program size, with larger programs
-//    being more accurate.
-// 5) The maximum duration is then 1000us, which is the same as the maximum duration of the scheduler quantum.
-#define EBPF_TEST_RUN_BATCH_SIZE 64
-
 typedef struct _ebpf_program
 {
     ebpf_core_object_t object;
@@ -1623,15 +1606,18 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
     for (size_t i = 0; i < options->repeat_count; i++) {
-        // Yield the CPU every EBPF_TEST_RUN_BATCH_SIZE iterations.
-        // Investigate tuning this value based on program instruction count.
-        if ((context->required_irql > PASSIVE_LEVEL) &&
-            (i % EBPF_TEST_RUN_BATCH_SIZE == (EBPF_TEST_RUN_BATCH_SIZE - 1))) {
+        result = ebpf_epoch_enter();
+        if (result != EBPF_SUCCESS)
+            break;
+        ebpf_program_invoke(context->program, context->context, &return_value);
+        ebpf_epoch_exit();
+        if (ebpf_should_yield_processor()) {
             // Compute the elapsed time since the last yield.
             end_time = ebpf_query_time_since_boot(false);
 
             // Add the elapsed time to the cumulative time.
             cumulative_time += end_time - start_time;
+
             // Yield the CPU.
             ebpf_lower_irql(old_irql);
 
@@ -1641,12 +1627,6 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
             // Reset the start time.
             start_time = ebpf_query_time_since_boot(false);
         }
-
-        result = ebpf_epoch_enter();
-        if (result != EBPF_SUCCESS)
-            break;
-        ebpf_program_invoke(context->program, context->context, &return_value);
-        ebpf_epoch_exit();
     }
     end_time = ebpf_query_time_since_boot(false);
 
