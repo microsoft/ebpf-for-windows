@@ -446,7 +446,7 @@ ebpf_extension_reference_provider_data(_Inout_ ebpf_extension_client_t* client_c
 }
 
 void
-ebpf_extension_unreference_provider_data(_Inout_ ebpf_extension_client_t* client_context)
+ebpf_extension_dereference_provider_data(_Inout_ ebpf_extension_client_t* client_context)
 {
     ExReleaseRundownProtection(&client_context->nmr_rundown_ref);
 }

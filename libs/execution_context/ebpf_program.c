@@ -1027,7 +1027,7 @@ Done:
         ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0));
     }
     if (provider_data_referenced) {
-        ebpf_extension_unreference_provider_data(program->info_extension_client);
+        ebpf_extension_dereference_provider_data(program->info_extension_client);
     }
 }
 
@@ -1101,7 +1101,7 @@ _ebpf_program_get_helper_function_address(
 
 Done:
     if (provider_data_referenced) {
-        ebpf_extension_unreference_provider_data(program->info_extension_client);
+        ebpf_extension_dereference_provider_data(program->info_extension_client);
     }
     EBPF_RETURN_RESULT(return_value);
 }
@@ -1255,7 +1255,7 @@ Exit:
     }
 
     if (provider_data_referenced) {
-        ebpf_extension_unreference_provider_data(program->info_extension_client);
+        ebpf_extension_dereference_provider_data(program->info_extension_client);
     }
 
     EBPF_RETURN_RESULT(result);
@@ -1706,7 +1706,7 @@ Exit:
     ebpf_signal_destroy(signal);
 
     if (provider_data_referenced) {
-        ebpf_extension_unreference_provider_data(program->info_extension_client);
+        ebpf_extension_dereference_provider_data(program->info_extension_client);
     }
     EBPF_RETURN_RESULT(return_value);
 }
