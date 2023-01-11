@@ -72,16 +72,10 @@ netebpf_fuzzer_attach_extension(
     _Inout_ void* client_context,
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
+    UNREFERENCED_PARAMETER(provider_registration_instance);
     const void* provider_dispatch_table;
     ebpf_extension_dispatch_table_t client_dispatch_table = {.size = 1};
     client_dispatch_table.function[0] = (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_program;
-#if 0
-    auto provider_characteristics =
-        (const ebpf_extension_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
-    auto provider_data = (const ebpf_attach_provider_data_t*)provider_characteristics->data;
-#else
-    UNREFERENCED_PARAMETER(provider_registration_instance);
-#endif
     auto test_client_context = (test_client_context_t*)client_context;
 
     return NmrClientAttachProvider(
