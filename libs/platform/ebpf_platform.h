@@ -833,7 +833,7 @@ extern "C"
     int64_t
     ebpf_interlocked_xor_int64(_Inout_ volatile int64_t* destination, int64_t mask);
 
-    typedef void (*ebpf_extension_change_callback_t)(
+    typedef ebpf_result_t (*ebpf_extension_change_callback_t)(
         _In_ const void* client_binding_context,
         _In_ const void* provider_binding_context,
         _In_opt_ const ebpf_extension_data_t* provider_data);
@@ -899,6 +899,22 @@ extern "C"
      */
     void
     ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context);
+
+    /**
+     * @brief Prevent extension provider from unloading.
+     *
+     * @param[in,out] client_context Client context to reference.
+     */
+    _Must_inspect_result_ bool
+    ebpf_extension_reference_provider_data(_Inout_ ebpf_extension_client_t* client_context);
+
+    /**
+     * @brief Allow extension provider to unload.
+     *
+     * @param[in,out] client_context Client context to dereference.
+     */
+    void
+    ebpf_extension_dereference_provider_data(_Inout_ ebpf_extension_client_t* client_context);
 
     /**
      * @brief Register as an extension provider.
@@ -1239,46 +1255,6 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms);
-
-    typedef struct _ebpf_rundown_protection
-    {
-        void* reserved;
-    } ebpf_rundown_protection_t;
-
-    /**
-     * @brief Initialize a rundown protection object.
-     *
-     * @param[out] rundown_protection The object to initialize.
-     */
-    void
-    ebpf_rundown_protection_initialize(_Out_ ebpf_rundown_protection_t* rundown_protection);
-
-    /**
-     * @brief Wait for all in-flight references to complete.
-     *
-     * @param[in,out] rundown_protection The object to wait on.
-     */
-    void
-    ebpf_rundown_protection_wait(_Inout_ ebpf_rundown_protection_t* rundown_protection);
-
-    /**
-     * @brief Acquire a reference on the rundown protection object.
-     *
-     * @param[in,out] rundown_protection The object to acquire a reference on.
-     *
-     * @retval true The reference was acquired.
-     * @retval false The object is in the process of being deleted.
-     */
-    bool
-    ebpf_rundown_protection_acquire(_Inout_ ebpf_rundown_protection_t* rundown_protection);
-
-    /**
-     * @brief Release a reference on the rundown protection object.
-     *
-     * @param[in,out] rundown_protection The object to release a reference on.
-     */
-    void
-    ebpf_rundown_protection_release(_Inout_ ebpf_rundown_protection_t* rundown_protection);
 
 /**
  * @brief Append a value to a cryptographic hash object.
