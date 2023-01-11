@@ -33,8 +33,6 @@ netebpfext_unit_invoke_program(
     auto client_context = (test_client_context_t*)client_binding_context;
     netebpfext_fuzzer_metadata_t* metadata = &client_context->metadata;
     size_t context_size = client_context->ctx_descriptor->size;
-    uint8_t* ctx_data_end = *(uint8_t**)((char*)context + client_context->ctx_descriptor->end);
-    uint8_t* ctx_data = *(uint8_t**)((char*)context + client_context->ctx_descriptor->data);
 
     // Sanity check ctx_length against prog type specific max (hard coded).
     if ((size_t)metadata->ctx_offset + metadata->ctx_length > context_size) {
@@ -42,15 +40,20 @@ netebpfext_unit_invoke_program(
         return EBPF_SUCCESS;
     }
 
-    // Sanity check data_length against ctx values.
-    if ((size_t)metadata->data_offset + metadata->data_length > (size_t)(ctx_data_end - ctx_data)) {
-        *result = (uint32_t)-1;
-        return EBPF_SUCCESS;
-    }
-
     // Copy over some portion of the data if requested.
-    for (int i = metadata->data_offset; i < metadata->data_offset + metadata->data_length; i++) {
-        ctx_data[i] = 0xde;
+    if (metadata->data_length > 0) {
+        uint8_t* ctx_data_end = *(uint8_t**)((char*)context + client_context->ctx_descriptor->end);
+        uint8_t* ctx_data = *(uint8_t**)((char*)context + client_context->ctx_descriptor->data);
+
+        // Sanity check data_length against ctx descriptor.
+        if ((size_t)metadata->data_offset + metadata->data_length > (size_t)(ctx_data_end - ctx_data)) {
+            *result = (uint32_t)-1;
+            return EBPF_SUCCESS;
+        }
+
+        for (int i = metadata->data_offset; i < metadata->data_offset + metadata->data_length; i++) {
+            ctx_data[i] = 0xde;
+        }
     }
 
     // Copy over some portion of the ctx if requested.
@@ -133,6 +136,10 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         }
     }
     if (client_context.ctx_descriptor == nullptr) {
+        return 0;
+    }
+    if (client_context.ctx_descriptor->data < 0 && metadata->data_length > 0) {
+        // This program type does not use a data buffer.
         return 0;
     }
 
