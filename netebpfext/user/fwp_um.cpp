@@ -253,19 +253,57 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsAllocateNetBufferAndNetBufferLi
     _In_ size_t data_length,
     _Outptr_ NET_BUFFER_LIST** net_buffer_list)
 {
+    NTSTATUS status;
+    NET_BUFFER_LIST* new_net_buffer_list = NULL;
+
     UNREFERENCED_PARAMETER(pool_handle);
     UNREFERENCED_PARAMETER(context_size);
     UNREFERENCED_PARAMETER(context_backfill);
-    UNREFERENCED_PARAMETER(mdl_chain);
     UNREFERENCED_PARAMETER(data_offset);
-    UNREFERENCED_PARAMETER(data_length);
-    UNREFERENCED_PARAMETER(net_buffer_list);
-    return STATUS_NOT_IMPLEMENTED;
+
+    new_net_buffer_list =
+        (NET_BUFFER_LIST*)(ExAllocatePoolUninitialized(NonPagedPool, sizeof(NET_BUFFER_LIST), '1PWF'));
+    if (!new_net_buffer_list) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Done;
+    }
+
+    RtlZeroMemory(new_net_buffer_list, sizeof(NET_BUFFER_LIST));
+
+    new_net_buffer_list->FirstNetBuffer =
+        (NET_BUFFER*)(ExAllocatePoolUninitialized(NonPagedPool, sizeof(NET_BUFFER), '2PWF'));
+    if (!new_net_buffer_list->FirstNetBuffer) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Done;
+    }
+
+    RtlZeroMemory(new_net_buffer_list->FirstNetBuffer, sizeof(NET_BUFFER));
+
+    new_net_buffer_list->FirstNetBuffer->MdlChain = mdl_chain;
+    new_net_buffer_list->FirstNetBuffer->DataLength = (unsigned long)data_length;
+
+    *net_buffer_list = new_net_buffer_list;
+    new_net_buffer_list = NULL;
+    status = STATUS_SUCCESS;
+
+Done:
+    if (new_net_buffer_list) {
+        FwpsFreeNetBufferList0(new_net_buffer_list);
+    }
+    return status;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL) void FwpsFreeNetBufferList0(_In_ NET_BUFFER_LIST* net_buffer_list)
 {
-    UNREFERENCED_PARAMETER(net_buffer_list);
+    if (!net_buffer_list) {
+        return;
+    }
+
+    if (net_buffer_list->FirstNetBuffer) {
+        ExFreePool(net_buffer_list->FirstNetBuffer);
+    }
+
+    ExFreePool(net_buffer_list);
 }
 
 _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) _Must_inspect_result_ NTSTATUS

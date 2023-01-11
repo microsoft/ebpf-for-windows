@@ -43,9 +43,6 @@
     <ClCompile Include="ebpf_platform_user.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_program_types.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ebpf_serialize.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -99,16 +96,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Midl Include="..\ebpf_program_types.idl">
-      <Filter>Source Files</Filter>
-    </Midl>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\ebpf_program_types.acf">
-      <Filter>Source Files</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\ebpf_epoch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -152,6 +139,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ebpf_symbol_decoder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ebpf_rundown.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

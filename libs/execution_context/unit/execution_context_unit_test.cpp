@@ -596,10 +596,10 @@ TEST_CASE("program", "[execution_context]")
 
     const ebpf_utf8_string_t program_name{(uint8_t*)("foo"), 3};
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
-    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_BIND);
+    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_XDP);
 
     const ebpf_program_parameters_t program_parameters{
-        EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, program_name, section_name};
+        EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP, program_name, section_name};
     ebpf_program_info_t* program_info;
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
@@ -644,6 +644,20 @@ TEST_CASE("program", "[execution_context]")
     bind_md_t ctx{0};
     ebpf_program_invoke(program.get(), &ctx, &result);
     REQUIRE(result == TEST_FUNCTION_RETURN);
+
+    std::vector<uint8_t> input_buffer(10);
+    std::vector<uint8_t> output_buffer(10);
+    ebpf_program_test_run_options_t options = {0};
+    options.data_in = input_buffer.data();
+    options.data_size_in = input_buffer.size();
+    options.data_out = output_buffer.data();
+    options.data_size_out = output_buffer.size();
+    options.repeat_count = 10;
+
+    REQUIRE(ebpf_program_execute_test_run(program.get(), &options) == EBPF_SUCCESS);
+
+    REQUIRE(options.return_value == TEST_FUNCTION_RETURN);
+    REQUIRE(options.duration > 0);
 
     uint64_t addresses[TOTAL_HELPER_COUNT] = {};
     uint32_t helper_function_ids[] = {1, 0, 2};

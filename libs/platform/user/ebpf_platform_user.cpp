@@ -229,8 +229,14 @@ class _ebpf_emulated_dpc
     bool terminate;
 };
 
+/**
+ * @brief Get an environment variable as a string.
+ *
+ * @param[in] name Environment variable name.
+ * @return String value of environment variable or an empty string if not set.
+ */
 static std::string
-_get_environment_variable(const std::string& name)
+_get_environment_variable_as_string(const std::string& name)
 {
     std::string value;
     size_t required_size = 0;
@@ -243,6 +249,52 @@ _get_environment_variable(const std::string& name)
     return value;
 }
 
+/**
+ * @brief Get an environment variable as a boolean.
+ *
+ * @param[in] name Environment variable name.
+ * @return false Environment variable is set to "false", "0", or if it's not set.
+ * @return true Environment variable is set to any other value.
+ */
+static bool
+_get_environment_variable_as_bool(const std::string& name)
+{
+    std::string value = _get_environment_variable_as_string(name);
+    if (value.empty()) {
+        return false;
+    }
+
+    // Convert value to lower case.
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+    if (value == "false") {
+        return false;
+    }
+    if (value == "0") {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Get an environment variable as a size_t.
+ *
+ * @param[in] name Environment variable name.
+ * @return Value of environment variable or 0 if it's not set or not a valid number.
+ */
+static size_t
+_get_environment_variable_as_size_t(const std::string& name)
+{
+    std::string value = _get_environment_variable_as_string(name);
+    if (value.empty()) {
+        return 0;
+    }
+    try {
+        return std::stoull(value);
+    } catch (const std::exception&) {
+        return 0;
+    }
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
@@ -250,19 +302,19 @@ ebpf_platform_initiate()
     try {
         _ebpf_platform_maximum_group_count = GetMaximumProcessorGroupCount();
         _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
-        auto low_memory_stack_depth = _get_environment_variable(EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
-        auto leak_detector = _get_environment_variable(EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME);
-        if (!low_memory_stack_depth.empty() || !leak_detector.empty()) {
+        auto low_memory_stack_depth =
+            _get_environment_variable_as_size_t(EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
+        auto leak_detector = _get_environment_variable_as_bool(EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME);
+        if (low_memory_stack_depth || leak_detector) {
             _ebpf_symbol_decoder_initialize();
         }
-        if (!low_memory_stack_depth.empty() && !_ebpf_low_memory_test_ptr) {
-            _ebpf_low_memory_test_ptr =
-                std::make_unique<ebpf_low_memory_test_t>(std::strtoul(low_memory_stack_depth.c_str(), nullptr, 10));
+        if (low_memory_stack_depth && !_ebpf_low_memory_test_ptr) {
+            _ebpf_low_memory_test_ptr = std::make_unique<ebpf_low_memory_test_t>(low_memory_stack_depth);
             // Set flag to remove some asserts that fire from incorrect client behavior.
             ebpf_fuzzing_enabled = true;
         }
 
-        if (!leak_detector.empty()) {
+        if (leak_detector) {
             _ebpf_leak_detector_ptr = std::make_unique<ebpf_leak_detector_t>();
         }
 
@@ -276,7 +328,7 @@ ebpf_platform_initiate()
             _ebpf_platform_group_to_index_map[i] = base_index;
             base_index += GetMaximumProcessorCount((uint16_t)i);
         }
-    } catch (...) {
+    } catch (const std::bad_alloc&) {
         return EBPF_NO_MEMORY;
     }
 
@@ -1092,4 +1144,72 @@ uint32_t
 ebpf_platform_thread_id()
 {
     return GetCurrentThreadId();
+}
+
+typedef struct _ebpf_signal
+{
+    HANDLE event;
+} ebpf_signal_t;
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_signal_create(_Outptr_ ebpf_signal_t** signal)
+{
+    *signal = (ebpf_signal_t*)ebpf_allocate(sizeof(ebpf_signal_t));
+    if (!*signal) {
+        return EBPF_NO_MEMORY;
+    }
+
+    (*signal)->event = CreateEvent(NULL, FALSE, FALSE, NULL);
+    if (!(*signal)->event) {
+        ebpf_free(*signal);
+        *signal = NULL;
+        return EBPF_NO_MEMORY;
+    }
+
+    return EBPF_SUCCESS;
+}
+
+void
+ebpf_signal_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_signal_t* signal)
+{
+    if (signal) {
+        CloseHandle(signal->event);
+    }
+    ebpf_free(signal);
+}
+
+void
+ebpf_signal_set(_In_ ebpf_signal_t* signal)
+{
+    SetEvent(signal->event);
+}
+
+void
+ebpf_signal_reset(_In_ ebpf_signal_t* signal)
+{
+    ResetEvent(signal->event);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms)
+{
+    DWORD wait_result = WaitForSingleObject(signal->event, timeout_ms);
+    if (wait_result == WAIT_OBJECT_0) {
+        return EBPF_SUCCESS;
+    } else if (wait_result == WAIT_TIMEOUT) {
+        return EBPF_TIMEOUT;
+    } else {
+        return EBPF_FAILED;
+    }
+}
+
+_IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql)
+{
+    UNREFERENCED_PARAMETER(new_irql);
+    return 0;
+}
+
+_IRQL_requires_max_(HIGH_LEVEL) void ebpf_lower_irql(_In_ _Notliteral_ _IRQL_restores_ uint8_t old_irql)
+{
+    UNREFERENCED_PARAMETER(old_irql);
 }

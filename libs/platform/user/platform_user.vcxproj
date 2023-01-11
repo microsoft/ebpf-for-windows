@@ -26,7 +26,6 @@
     <ClCompile Include="..\ebpf_interlocked.c" />
     <ClCompile Include="..\ebpf_object.c" />
     <ClCompile Include="..\ebpf_pinning_table.c" />
-    <ClCompile Include="..\ebpf_program_types.c" />
     <ClCompile Include="..\ebpf_ring_buffer.c" />
     <ClCompile Include="..\ebpf_serialize.c" />
     <ClCompile Include="..\ebpf_state.c" />
@@ -50,31 +49,11 @@
     <ClInclude Include="..\ebpf_state.h" />
     <ClInclude Include="ebpf_leak_detector.h" />
     <ClInclude Include="ebpf_low_memory_test.h" />
+    <ClInclude Include="ebpf_rundown.h" />
     <ClInclude Include="ebpf_symbol_decoder.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="kernel_um.h" />
     <ClInclude Include="nmr_impl.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\ebpf_program_types.acf" />
-  </ItemGroup>
-  <ItemGroup>
-    <Midl Include="..\ebpf_program_types.idl">
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\include;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\include;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <GenerateClientFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Stub</GenerateClientFiles>
-      <GenerateClientFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Stub</GenerateClientFiles>
-      <GenerateServerFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">None</GenerateServerFiles>
-      <GenerateServerFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">None</GenerateServerFiles>
-      <GenerateTypeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateTypeLibrary>
-      <GenerateTypeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenerateTypeLibrary>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/acf ..\ebpf_program_types.acf /protocol dce %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/acf ..\ebpf_program_types.acf /protocol dce %(AdditionalOptions)</AdditionalOptions>
-      <TypeLibraryName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </TypeLibraryName>
-      <TypeLibraryName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </TypeLibraryName>
-    </Midl>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

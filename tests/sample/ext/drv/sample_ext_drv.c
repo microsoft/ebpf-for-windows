@@ -18,6 +18,8 @@
 #define SAMPLE_EBPF_EXT_DEVICE_NAME L"\\Device\\" SAMPLE_EBPF_EXT_NAME_W
 #define SAMPLE_EBPF_EXT_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\" SAMPLE_EBPF_EXT_DEVICE_BASE_NAME
 
+#define SAMPLE_PID_TGID_VALUE 9999
+
 // Driver global variables
 static DEVICE_OBJECT* _sample_ebpf_ext_driver_device_object;
 static BOOLEAN _sample_ebpf_ext_driver_unloading_flag = FALSE;
@@ -285,6 +287,7 @@ _sample_ebpf_ext_driver_io_device_control(
                 // Invoke the eBPF program. Pass the output buffer as program context data.
                 program_context.data_start = output_buffer;
                 program_context.data_end = (uint8_t*)output_buffer + output_buffer_length;
+                program_context.pid_tgid = SAMPLE_PID_TGID_VALUE;
                 result = sample_ebpf_extension_invoke_program(&program_context, &program_result);
             }
         } else {

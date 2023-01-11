@@ -20,6 +20,3 @@
 [submodule "external/pe-parse"]
 	path = external/pe-parse
 	url = https://github.com/trailofbits/pe-parse.git
-[submodule "external/bpf_conformance"]
-	path = external/bpf_conformance
-	url = https://github.com/Alan-Jowett/bpf_conformance.git

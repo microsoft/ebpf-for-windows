@@ -149,6 +149,10 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
 
     work_item = hook_client->detach_work_item;
 
+    // The NMR model is async, but the only Windows run-down protection API available is a blocking API, so the
+    // following call will block until all using threads are complete. This should be fixed in the future.
+    // Issue: https://github.com/microsoft/ebpf-for-windows/issues/1854
+
     // Wait for any in progress callbacks to complete.
     _ebpf_ext_attach_wait_for_rundown(&hook_client->rundown);
 
