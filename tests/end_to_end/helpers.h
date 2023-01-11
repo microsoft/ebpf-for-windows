@@ -97,8 +97,7 @@ typedef class _single_instance_hook : public _hook_helper
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
 
-        REQUIRE(
-            ebpf_provider_load(
+        if (ebpf_provider_load(
                 &provider,
                 &ebpf_hook_extension_interface_id,
                 &attach_type,
@@ -108,7 +107,9 @@ typedef class _single_instance_hook : public _hook_helper
                 this,
                 (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
                 (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
-                nullptr) == EBPF_SUCCESS);
+                nullptr) != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_provider_load failed");
+        }
     }
     ~_single_instance_hook()
     {
@@ -135,7 +136,9 @@ typedef class _single_instance_hook : public _hook_helper
     detach()
     {
         if (link_object != nullptr) {
-            REQUIRE(ebpf_link_detach(link_object) == EBPF_SUCCESS);
+            if (ebpf_link_detach(link_object) == EBPF_SUCCESS) {
+                throw std::runtime_error("ebpf_link_detach failed");
+            }
             ebpf_link_close(link_object);
             link_object = nullptr;
         }
@@ -156,7 +159,9 @@ typedef class _single_instance_hook : public _hook_helper
     void
     detach_link(bpf_link* link)
     {
-        REQUIRE(ebpf_link_detach(link) == EBPF_SUCCESS);
+        if (ebpf_link_detach(link) != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_link_detach failed");
+        }
     }
 
     void
@@ -445,8 +450,7 @@ typedef class _program_info_provider
         ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
         program_data->program_info->program_type_descriptor.program_type = program_type;
 
-        REQUIRE(
-            ebpf_provider_load(
+        if (ebpf_provider_load(
                 &provider,
                 &ebpf_program_information_extension_interface_id,
                 &program_type,
@@ -456,7 +460,9 @@ typedef class _program_info_provider
                 this,
                 (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
                 (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
-                nullptr) == EBPF_SUCCESS);
+                nullptr) != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_provider_load failed");
+        }
     }
     ~_program_info_provider() { ebpf_provider_unload(provider); }
 
