@@ -37,13 +37,13 @@ netebpfext_unit_invoke_program(
     uint8_t* ctx_data = *(uint8_t**)((char*)context + client_context->ctx_descriptor->data);
 
     // Sanity check ctx_length against prog type specific max (hard coded).
-    if (metadata->ctx_offset + metadata->ctx_length > context_size) {
+    if ((size_t)metadata->ctx_offset + metadata->ctx_length > context_size) {
         *result = (uint32_t)-1;
         return EBPF_SUCCESS;
     }
 
     // Sanity check data_length against ctx values.
-    if (metadata->data_offset + metadata->data_length > ctx_data_end - ctx_data) {
+    if ((size_t)metadata->data_offset + metadata->data_length > (size_t)(ctx_data_end - ctx_data)) {
         *result = (uint32_t)-1;
         return EBPF_SUCCESS;
     }
