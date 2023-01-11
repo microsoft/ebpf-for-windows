@@ -94,9 +94,6 @@
     <ClCompile Include="ebpf_leak_detector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_rundown_ref.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ebpf_epoch.h">
