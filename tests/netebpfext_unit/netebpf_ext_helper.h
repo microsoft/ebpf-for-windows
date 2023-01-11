@@ -79,7 +79,12 @@ typedef class _netebpf_ext_helper
     static void
     _program_info_client_cleanup_binding_context(_In_ _Post_invalid_ void* client_binding_context);
 
-    NPI_MODULEID module_id = {};
+    // {6BE20B78-9D94-4E77-9FBF-859FB1690B82}
+    NPI_MODULEID module_id = {
+        (USHORT)sizeof(NPI_MODULEID),
+        NPI_MODULEID_TYPE::MIT_GUID,
+        {0x6be20b78, 0x9d94, 0x4e77, {0x9f, 0xbf, 0x85, 0x9f, 0xb1, 0x69, 0xb, 0x82}}};
+
     NPI_CLIENT_CHARACTERISTICS client{
         1,
         sizeof(NPI_PROVIDER_CHARACTERISTICS),
