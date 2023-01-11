@@ -11,7 +11,7 @@
 .*\.vsdx$
 
 # Directories with files that don't support embedding license info
-.*\corpus
+.*corpus
 
 # Generated files
 tools/netsh/resource.h
