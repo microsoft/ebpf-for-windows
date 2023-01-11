@@ -3,7 +3,7 @@
 
 #include "nmr_impl.h"
 
-static nmr_t _nmr;
+nmr_t _nmr::singleton;
 
 NTSTATUS
 NmrRegisterProvider(
@@ -12,7 +12,7 @@ NmrRegisterProvider(
     _Out_ HANDLE* nmr_provider_handle)
 {
     try {
-        *nmr_provider_handle = _nmr.register_provider(*provider_characteristics, provider_context);
+        *nmr_provider_handle = nmr_t::get().register_provider(*provider_characteristics, provider_context);
         return STATUS_SUCCESS;
     } catch (std::bad_alloc) {
         return STATUS_NO_MEMORY;
@@ -23,7 +23,7 @@ NTSTATUS
 NmrDeregisterProvider(_In_ HANDLE nmr_provider_handle)
 {
     try {
-        if (_nmr.deregister_provider(nmr_provider_handle)) {
+        if (_nmr::get().deregister_provider(nmr_provider_handle)) {
             return STATUS_PENDING;
         } else {
             return STATUS_SUCCESS;
@@ -37,7 +37,7 @@ void
 NmrProviderDetachClientComplete(_In_ HANDLE nmr_binding_handle)
 {
     try {
-        _nmr.binding_detach_client_complete(nmr_binding_handle);
+        _nmr::get().binding_detach_client_complete(nmr_binding_handle);
     } catch (std::bad_alloc) {
         return;
     }
@@ -47,7 +47,7 @@ NTSTATUS
 NmrWaitForProviderDeregisterComplete(_In_ HANDLE nmr_provider_handle)
 {
     try {
-        _nmr.wait_for_deregister_provider(nmr_provider_handle);
+        _nmr::get().wait_for_deregister_provider(nmr_provider_handle);
         return STATUS_SUCCESS;
     } catch (std::bad_alloc) {
         return STATUS_NO_MEMORY;
@@ -61,7 +61,7 @@ NmrRegisterClient(
     _Out_ HANDLE* nmr_client_handle)
 {
     try {
-        *nmr_client_handle = _nmr.register_client(*client_characteristics, client_context);
+        *nmr_client_handle = _nmr::get().register_client(*client_characteristics, client_context);
         return STATUS_SUCCESS;
     } catch (std::bad_alloc) {
         return STATUS_NO_MEMORY;
@@ -72,7 +72,7 @@ NTSTATUS
 NmrDeregisterClient(_In_ HANDLE nmr_client_handle)
 {
     try {
-        if (_nmr.deregister_client(nmr_client_handle)) {
+        if (_nmr::get().deregister_client(nmr_client_handle)) {
             return STATUS_PENDING;
         } else {
             return STATUS_SUCCESS;
@@ -86,7 +86,7 @@ void
 NmrClientDetachProviderComplete(_In_ HANDLE nmr_binding_handle)
 {
     try {
-        _nmr.binding_detach_provider_complete(nmr_binding_handle);
+        _nmr::get().binding_detach_provider_complete(nmr_binding_handle);
     } catch (std::bad_alloc) {
         return;
     }
@@ -96,7 +96,7 @@ NTSTATUS
 NmrWaitForClientDeregisterComplete(_In_ HANDLE nmr_client_handle)
 {
     try {
-        _nmr.wait_for_deregister_client(nmr_client_handle);
+        _nmr::get().wait_for_deregister_client(nmr_client_handle);
         return STATUS_SUCCESS;
     } catch (std::bad_alloc) {
         return STATUS_NO_MEMORY;
@@ -112,7 +112,7 @@ NmrClientAttachProvider(
     _Out_ const void** provider_dispatch)
 {
     try {
-        return _nmr.client_attach_provider(
+        return _nmr::get().client_attach_provider(
             nmr_binding_handle,
             client_binding_context,
             client_dispatch,
