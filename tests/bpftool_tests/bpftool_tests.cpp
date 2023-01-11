@@ -4,6 +4,8 @@
 #define CATCH_CONFIG_MAIN
 
 #include <cstdarg>
+#include <filesystem>
+#include <fstream>
 #include <stdio.h>
 #include <string>
 #include "capture_helper.hpp"
@@ -175,4 +177,56 @@ TEST_CASE("prog show id 1", "[prog][show]")
     std::string output = run_command("bpftool prog show id 1", &result);
     REQUIRE(output == "Error: get by id (1): No such file or directory\n");
     REQUIRE(result == -1);
+}
+
+TEST_CASE("prog prog run", "[prog][load]")
+{
+    int result;
+    std::string output;
+
+    output = run_command("bpftool prog load droppacket.o droppacket", &result);
+    REQUIRE(output == "");
+    REQUIRE(result == 0);
+
+    output = run_command("bpftool prog show", &result);
+    REQUIRE(result == 0);
+    std::string id = std::to_string(atoi(output.c_str()));
+    size_t offset = output.find(" map_ids ");
+    REQUIRE(offset > 0);
+    std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
+    offset = output.find(",");
+    std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
+    REQUIRE(output == id + ": xdp  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
+
+    // Create temporary files for input and output.
+    std::filesystem::path input_file = std::filesystem::temp_directory_path() / "data_in.txt";
+    std::filesystem::path output_file = std::filesystem::temp_directory_path() / "data_out.txt";
+
+    // Write input data to file.
+    std::ofstream output_stream(input_file, std::ios::out | std::ios::binary);
+
+    // Write 1000 bytes of data.
+    for (int i = 0; i < 1000; i++) {
+        output_stream << "a";
+    }
+    output_stream.close();
+
+    // Try attaching to an interface by friendly name.
+    output = run_command(
+        ("bpftool prog run id " + id + " data_in \"" + input_file.string() + "\" data_out \"" + output_file.string() +
+         "\" repeat 1000000")
+            .c_str(),
+        &result);
+    REQUIRE(result == 0);
+
+    // Check if output contains: "Return value: 1, duration (average): 222ns"
+    REQUIRE(output.find("Return value: 1, duration (average): ") != std::string::npos);
+
+    output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
+    REQUIRE(output == "\nUnpinned " + id + " from droppacket\n");
+    REQUIRE(result == 0);
+
+    output = run_command("bpftool prog show", &result);
+    REQUIRE(output == "");
+    REQUIRE(result == 0);
 }
