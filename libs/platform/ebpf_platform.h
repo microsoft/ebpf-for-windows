@@ -1259,8 +1259,8 @@ extern "C"
     /**
      * @brief Should the current thread yield the processor?
      *
-     * @return true Thread should yield the processor.
-     * @return false Thread should not yield the processor.
+     * @retval true Thread should yield the processor.
+     * @retval false Thread should not yield the processor.
      */
     bool
     ebpf_should_yield_processor();
