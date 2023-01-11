@@ -439,14 +439,14 @@ ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context
     EBPF_RETURN_VOID();
 }
 
-bool
-ebpf_extension_lock_provider_data(_Inout_ ebpf_extension_client_t* client_context)
+_Must_inspect_result_ bool
+ebpf_extension_reference_provider_data(_Inout_ ebpf_extension_client_t* client_context)
 {
     return ExAcquireRundownProtection(&client_context->nmr_rundown_ref) != FALSE;
 }
 
 void
-ebpf_extension_unlock_provider_data(_Inout_ ebpf_extension_client_t* client_context)
+ebpf_extension_unreference_provider_data(_Inout_ ebpf_extension_client_t* client_context)
 {
     ExReleaseRundownProtection(&client_context->nmr_rundown_ref);
 }

@@ -971,15 +971,15 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
     ebpf_program_tail_call_state_t state = {0};
     const ebpf_program_t* current_program = program;
 
-    bool provider_data_locked = false;
+    bool provider_data_referenced = false;
     bool program_state_stored = false;
 
-    if (!program->info_extension_client || !ebpf_extension_lock_provider_data(program->info_extension_client)) {
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
         *result = 0;
         return;
     }
 
-    provider_data_locked = true;
+    provider_data_referenced = true;
 
     state.context = context;
     if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
@@ -1026,8 +1026,8 @@ Done:
     if (program_state_stored) {
         ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0));
     }
-    if (provider_data_locked) {
-        ebpf_extension_unlock_provider_data(program->info_extension_client);
+    if (provider_data_referenced) {
+        ebpf_extension_unreference_provider_data(program->info_extension_client);
     }
 }
 
@@ -1039,9 +1039,9 @@ _ebpf_program_get_helper_function_address(
     void* function_address;
     EBPF_LOG_ENTRY();
 
-    bool provider_data_locked = false;
+    bool provider_data_referenced = false;
 
-    if (!program->info_extension_client || !ebpf_extension_lock_provider_data(program->info_extension_client)) {
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
@@ -1050,7 +1050,7 @@ _ebpf_program_get_helper_function_address(
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
-    provider_data_locked = true;
+    provider_data_referenced = true;
 
     if (helper_function_id > EBPF_MAX_GENERAL_HELPER_FUNCTION) {
         if (!program->trampoline_table) {
@@ -1100,8 +1100,8 @@ _ebpf_program_get_helper_function_address(
     return_value = EBPF_SUCCESS;
 
 Done:
-    if (provider_data_locked) {
-        ebpf_extension_unlock_provider_data(program->info_extension_client);
+    if (provider_data_referenced) {
+        ebpf_extension_unreference_provider_data(program->info_extension_client);
     }
     EBPF_RETURN_RESULT(return_value);
 }
@@ -1176,12 +1176,12 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     ebpf_program_info_t* local_program_info = NULL;
     uint32_t total_count_of_helpers = 0;
     uint32_t helper_index = 0;
-    bool provider_data_locked = false;
+    bool provider_data_referenced = false;
 
     ebpf_assert(program_info);
     *program_info = NULL;
 
-    if (!program->info_extension_client || !ebpf_extension_lock_provider_data(program->info_extension_client)) {
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
@@ -1190,7 +1190,7 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Exit;
     }
-    provider_data_locked = true;
+    provider_data_referenced = true;
 
     if (!program->info_extension_provider_data) {
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -1254,8 +1254,8 @@ Exit:
         ebpf_program_free_program_info(local_program_info);
     }
 
-    if (provider_data_locked) {
-        ebpf_extension_unlock_provider_data(program->info_extension_client);
+    if (provider_data_referenced) {
+        ebpf_extension_unreference_provider_data(program->info_extension_client);
     }
 
     EBPF_RETURN_RESULT(result);
@@ -1627,7 +1627,7 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _In_ ebpf_program_test_run_options_t* options)
+ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options)
 {
     EBPF_LOG_ENTRY();
 
@@ -1637,10 +1637,10 @@ ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _In_ ebpf_prog
     void* context = NULL;
     ebpf_preemptible_work_item_t* work_item = NULL;
     ebpf_program_data_t* program_data = NULL;
-    bool provider_data_locked = false;
+    bool provider_data_referenced = false;
 
     // Prevent the provider from detaching while the program is running.
-    if (!program->info_extension_client || !ebpf_extension_lock_provider_data(program->info_extension_client)) {
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
@@ -1649,7 +1649,7 @@ ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _In_ ebpf_prog
         return_value = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
-    provider_data_locked = true;
+    provider_data_referenced = true;
 
     program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
 
@@ -1705,8 +1705,8 @@ Exit:
     ebpf_free(test_run_context);
     ebpf_signal_destroy(signal);
 
-    if (provider_data_locked) {
-        ebpf_extension_unlock_provider_data(program->info_extension_client);
+    if (provider_data_referenced) {
+        ebpf_extension_unreference_provider_data(program->info_extension_client);
     }
     EBPF_RETURN_RESULT(return_value);
 }

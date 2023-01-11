@@ -903,18 +903,18 @@ extern "C"
     /**
      * @brief Prevent extension provider from unloading.
      *
-     * @param[in] client_context Binding to lock.
+     * @param[in,out] client_context Binding to lock.
      */
     _Must_inspect_result_ bool
-    ebpf_extension_lock_provider_data(_Inout_ ebpf_extension_client_t* client_context);
+    ebpf_extension_reference_provider_data(_Inout_ ebpf_extension_client_t* client_context);
 
     /**
      * @brief Allow extension provider to unload.
      *
-     * @param[in] client_context Binding to unlock.
+     * @param[in,out] client_context Binding to unlock.
      */
     void
-    ebpf_extension_unlock_provider_data(_Inout_ ebpf_extension_client_t* client_context);
+    ebpf_extension_unreference_provider_data(_Inout_ ebpf_extension_client_t* client_context);
 
     /**
      * @brief Register as an extension provider.
