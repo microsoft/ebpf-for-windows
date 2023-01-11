@@ -37,7 +37,6 @@ set(platform_user_sources
   ebpf_extension.c
   ebpf_hash_table.c
   ebpf_interlocked.c
-  ebpf_rundown_ref.c
   ebpf_serialize.c
   ebpf_trampoline.c
 )
