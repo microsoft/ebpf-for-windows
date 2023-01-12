@@ -686,7 +686,8 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
                         "Deleting unused thread entry",
                         (uint64_t)thread_id);
                     // ebpf_hash_table_delete will free the thread_entry memory.
-                    ebpf_hash_table_delete(_ebpf_epoch_cpu_table[cpu_id].thread_table, (uint8_t*)&thread_id);
+                    // Ignore the return value since the key is guaranteed to be present.
+                    (void)ebpf_hash_table_delete(_ebpf_epoch_cpu_table[cpu_id].thread_table, (uint8_t*)&thread_id);
 
                     // ebpf_hash_table_next_key_and_value will return the next entry even if the current entry is
                     // deleted.
