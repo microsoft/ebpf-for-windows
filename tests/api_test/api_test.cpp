@@ -19,6 +19,7 @@
 #include "common_tests.h"
 #include "ebpf_structs.h"
 #include <io.h>
+#include "misc_helper.h"
 #include "program_helper.h"
 #include "service_helper.h"
 #include "socket_helper.h"
@@ -56,12 +57,6 @@ static service_install_helper
 
 static service_install_helper
     _ebpf_service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
-
-static uint64_t
-_get_pid_tgid()
-{
-    return ((uint64_t)GetCurrentProcessId() << 32 | GetCurrentThreadId());
-}
 
 static int
 _program_load_helper(
@@ -736,7 +731,7 @@ void
 bpf_user_helpers_test(ebpf_execution_type_t execution_type)
 {
     struct bpf_object* object = nullptr;
-    uint64_t process_thread_id = _get_pid_tgid();
+    uint64_t process_thread_id = get_current_pid_tgid();
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "bindmonitor.sys" : "bindmonitor.o";
     program_load_attach_helper_t _helper(
