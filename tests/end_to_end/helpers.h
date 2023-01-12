@@ -434,7 +434,8 @@ static ebpf_extension_data_t _test_ebpf_sample_extension_program_info_provider_d
 typedef class _program_info_provider
 {
   public:
-    _program_info_provider(ebpf_program_type_t program_type) : program_type(program_type)
+    _program_info_provider(ebpf_program_type_t program_type)
+        : program_type(program_type), provider(nullptr), provider_data(nullptr)
     {
         if (program_type == EBPF_PROGRAM_TYPE_XDP) {
             provider_data = &_ebpf_xdp_program_info_provider_data;
@@ -446,6 +447,8 @@ typedef class _program_info_provider
             provider_data = &_ebpf_sock_ops_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_SAMPLE) {
             provider_data = &_test_ebpf_sample_extension_program_info_provider_data;
+        } else {
+            throw std::invalid_argument("Unsupported program type");
         }
         ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
         program_data->program_info->program_type_descriptor.program_type = program_type;
