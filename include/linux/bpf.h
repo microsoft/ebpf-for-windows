@@ -55,11 +55,14 @@ enum bpf_cmd_id
     BPF_PROG_LOAD,
     BPF_OBJ_PIN,
     BPF_OBJ_GET,
+    BPF_PROG_ATTACH,
+    BPF_PROG_DETACH,
     BPF_PROG_GET_NEXT_ID,
     BPF_MAP_GET_NEXT_ID,
     BPF_LINK_GET_NEXT_ID,
     BPF_PROG_GET_FD_BY_ID,
     BPF_MAP_GET_FD_BY_ID,
+    BPF_MAP_LOOKUP_AND_DELETE_ELEM,
     BPF_LINK_GET_FD_BY_ID,
     BPF_OBJ_GET_INFO_BY_FD,
     BPF_LINK_DETACH,
@@ -84,6 +87,15 @@ typedef struct
 {
     uint32_t link_fd; ///< File descriptor of link to detach.
 } bpf_link_detach_attr_t;
+
+/// Attributes used by BPF_PROG_ATTACH/DETACH .
+typedef struct
+{
+    uint32_t prog_fd;       ///< File descriptor of program to attach to.
+    uint32_t target_fd; ///< eBPF target to attach/detach to/from.
+    enum bpf_attach_type prog_type; ///< Type of program to attach/detach to/from.
+    uint32_t flags; ///< Flags affecting the attach operation.
+} bpf_prog_attr_t;
 
 /// Attributes used by BPF_PROG_BIND_MAP.
 typedef struct
@@ -170,6 +182,9 @@ union bpf_attr
 
     // BPF_LINK_DETACH
     bpf_link_detach_attr_t link_detach; ///< Attributes used by BPF_LINK_DETACH.
+
+    // BPF_PROG_ATTACH
+    bpf_prog_attr_t bpf_prog; ///< Attributes used by BPF_PROG_ATTACH and BPF_PROG_DETACH.
 
     // BPF_PROG_BIND_MAP
     bpf_prog_bind_map_attr_t prog_bind_map; ///< Attributes used by BPF_PROG_BIND_MAP.

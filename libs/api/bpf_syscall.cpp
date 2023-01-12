@@ -43,6 +43,9 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
     case BPF_MAP_LOOKUP_ELEM:
         CHECK_SIZE(value);
         return bpf_map_lookup_elem(attr->map_fd, (const void*)attr->key, (void*)attr->value);
+    case BPF_MAP_LOOKUP_AND_DELETE_ELEM:
+        CHECK_SIZE(value);
+        return bpf_map_lookup_and_delete_elem(attr->map_fd, (const void*)attr->key, (void*)attr->value);
     case BPF_MAP_UPDATE_ELEM:
         CHECK_SIZE(flags);
         return bpf_map_update_elem(attr->map_fd, (const void*)attr->key, (const void*)attr->value, attr->flags);
@@ -53,6 +56,15 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
             return -1;
         }
         return bpf_obj_get((const char*)attr->pathname);
+    case BPF_PROG_ATTACH: {
+        CHECK_SIZE(bpf_prog.flags);
+        return bpf_prog_attach(
+            attr->bpf_prog.prog_fd, attr->bpf_prog.target_fd, attr->bpf_prog.prog_type, attr->bpf_prog.flags);
+    }
+    case BPF_PROG_DETACH: {
+        CHECK_SIZE(bpf_prog.prog_type);
+        return bpf_prog_detach(attr->bpf_prog.target_fd, attr->bpf_prog.prog_type);
+    }
     case BPF_OBJ_GET_INFO_BY_FD:
         CHECK_SIZE(info.info_len);
         return bpf_obj_get_info_by_fd(attr->info.bpf_fd, (void*)attr->info.info, &attr->info.info_len);

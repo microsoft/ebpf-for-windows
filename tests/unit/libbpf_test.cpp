@@ -2318,7 +2318,7 @@ TEST_CASE("bpf_object__load with .o", "[libbpf]")
 
 // Test bpf() with the following command ids:
 // BPF_PROG_LOAD, BPF_OBJ_GET_INFO_BY_FD, BPF_PROG_GET_NEXT_ID,
-// BPF_MAP_CREATE, BPF_MAP_GET_NEXT_ID, BPF_PROG_BIND_MAP,
+// BPF_MAP_CREATE, BPF_MAP_GET_NEXT_ID, BPF_PROG_ATTACH, BPF_PROG_DETACH, BPF_PROG_BIND_MAP,
 // BPF_PROG_GET_FD_BY_ID, BPF_MAP_GET_FD_BY_ID, and BPF_MAP_GET_FD_BY_ID.
 TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 {
@@ -2393,6 +2393,21 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     REQUIRE(map_fd2 > 0);
     Platform::_close(map_fd2);
 
+    //Verify we attach the program.
+    memset(&attr, 0, sizeof(attr));
+    attr.bpf_prog.prog_fd= program_fd;
+    attr.bpf_prog.target_fd = program_fd;
+    attr.bpf_prog.flags = 0;
+    attr.bpf_prog.prog_type = BPF_XDP;
+    REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == 0);
+
+    // Verify we detach the program.
+    memset(&attr, 0, sizeof(attr));
+    attr.bpf_prog.target_fd = program_fd;
+    attr.bpf_prog.prog_type = BPF_XDP;
+    REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == 0);
+
+
     // Bind it to the program.
     memset(&attr, 0, sizeof(attr));
     attr.prog_bind_map.prog_fd = program_fd;
@@ -2407,7 +2422,7 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 
 // Test bpf() with the following command ids:
 // BPF_MAP_CREATE, BPF_MAP_UPDATE_ELEM, BPF_MAP_LOOKUP_ELEM,
-// BPF_MAP_GET_NEXT_KEY, and BPF_MAP_DELETE_ELEM.
+// BPF_MAP_GET_NEXT_KEY, BPF_MAP_LOOKUP_AND_DELETE_ELEM, and BPF_MAP_DELETE_ELEM.
 TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -2463,6 +2478,12 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     attr.map_fd = map_fd;
     attr.key = (uintptr_t)&key;
     REQUIRE(bpf(BPF_MAP_DELETE_ELEM, &attr, sizeof(attr)) == 0);
+
+    // Lookup and delete the entry.
+    memset(&attr, 0, sizeof(attr));
+    attr.map_fd = map_fd;
+    attr.key = (uintptr_t)&key;
+    REQUIRE(bpf(BPF_MAP_LOOKUP_AND_DELETE_ELEM, &attr, sizeof(attr)) == 0);
 
     // Verify that no entries exist.
     memset(&attr, 0, sizeof(attr));
