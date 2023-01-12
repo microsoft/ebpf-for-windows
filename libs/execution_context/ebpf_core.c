@@ -1775,7 +1775,7 @@ _Success_(return == 0) static uint32_t
 
 _Success_(return == 0) static uint32_t _ebpf_core_is_current_admin(_In_ void* ctx, _Out_ uint32_t* is_admin, int size)
 {
-    // TODO: Implement this function.
+    // TODO: Issue# 1871 - Implement this function.
     UNREFERENCED_PARAMETER(ctx);
     UNREFERENCED_PARAMETER(is_admin);
     UNREFERENCED_PARAMETER(size);
