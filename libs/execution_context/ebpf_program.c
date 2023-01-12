@@ -1590,6 +1590,8 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     ebpf_program_test_run_context_t* context = (ebpf_program_test_run_context_t*)work_item_context;
     ebpf_program_test_run_options_t* options = context->options;
     uint64_t end_time;
+    // Elapsed time is computed while the program is executing, excluding time spent when yielding the CPU.
+    uint64_t cumulative_time = 0;
     ebpf_result_t result;
     uint32_t return_value = 0;
     uint8_t old_irql;
@@ -1600,9 +1602,6 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
         goto Done;
     }
 
-    // Issue: https://github.com/microsoft/ebpf-for-windows/issues/1844
-    // Running at elevated IRQL for long periods of time can cause the system to hang.
-    // This should periodically lower the IRQL to allow other work to be done.
     old_irql = ebpf_raise_irql(context->required_irql);
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
@@ -1612,10 +1611,28 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
             break;
         ebpf_program_invoke(context->program, context->context, &return_value);
         ebpf_epoch_exit();
+        if (ebpf_should_yield_processor()) {
+            // Compute the elapsed time since the last yield.
+            end_time = ebpf_query_time_since_boot(false);
+
+            // Add the elapsed time to the cumulative time.
+            cumulative_time += end_time - start_time;
+
+            // Yield the CPU.
+            ebpf_lower_irql(old_irql);
+
+            // Reacquire the CPU.
+            old_irql = ebpf_raise_irql(context->required_irql);
+
+            // Reset the start time.
+            start_time = ebpf_query_time_since_boot(false);
+        }
     }
     end_time = ebpf_query_time_since_boot(false);
 
-    options->duration = (end_time - start_time) * EBPF_NS_PER_FILETIME;
+    cumulative_time += end_time - start_time;
+
+    options->duration = cumulative_time * EBPF_NS_PER_FILETIME;
     options->duration /= options->repeat_count;
     options->return_value = return_value;
 
