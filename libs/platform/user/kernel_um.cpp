@@ -204,7 +204,7 @@ FatalListEntryError(_In_ void* p1, _In_ void* p2, _In_ void* p3)
     UNREFERENCED_PARAMETER(p1);
     UNREFERENCED_PARAMETER(p2);
     UNREFERENCED_PARAMETER(p3);
-    throw std::runtime_error("FatalListEntryError");
+    ebpf_assert("FatalListEntryError");
 }
 
 MDL*

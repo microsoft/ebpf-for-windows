@@ -20,6 +20,7 @@ typedef struct _ebpf_extension_client
     struct _ebpf_extension_client_binding_context* client_binding_context;
     const ebpf_extension_data_t* client_data;
     const ebpf_extension_dispatch_table_t* client_dispatch_table;
+    EX_RUNDOWN_REF nmr_rundown_ref;
     HANDLE nmr_client_handle;
     ebpf_extension_change_callback_t extension_change_callback;
 } ebpf_extension_client_t;
@@ -75,6 +76,8 @@ _ebpf_extension_client_attach_provider(
     NTSTATUS status;
     ebpf_extension_client_t* local_client_context = (ebpf_extension_client_t*)client_context;
     ebpf_extension_client_binding_context_t* local_client_binding_context = NULL;
+
+    ExInitializeRundownProtection(&local_client_context->nmr_rundown_ref);
 
     // Check that the provider module Id matches the client's expected provider module Id.
     ebpf_assert(provider_registration_instance->ModuleId != NULL);
@@ -150,6 +153,11 @@ _ebpf_extension_client_detach_provider(void* client_binding_context)
     local_client_binding_context->provider_dispatch_table = NULL;
     local_client_binding_context->provider_data = NULL;
 
+    // The NMR model is async, but the only Windows run-down protection API available is a blocking API, so the
+    // following call will block until all using threads are complete. This should be fixed in the future.
+    // Issue: https://github.com/microsoft/ebpf-for-windows/issues/1854
+    ExWaitForRundownProtectionRelease(&local_client_context->nmr_rundown_ref);
+
     _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
 
     EBPF_RETURN_NTSTATUS(STATUS_SUCCESS);
@@ -205,6 +213,11 @@ ebpf_extension_load(
         goto Done;
     }
 
+    // Initialize the client context's rundown reference.
+    ExInitializeRundownProtection(&local_client_context->nmr_rundown_ref);
+    // Mark the client context's rundown reference as rundown.
+    ExWaitForRundownProtectionRelease(&local_client_context->nmr_rundown_ref);
+
     local_client_context->client_data = client_data;
     local_client_context->npi_id = *interface_id;
     local_client_context->extension_client_context = (void*)extension_client_context;
@@ -234,6 +247,9 @@ ebpf_extension_load(
 
     client_registration_instance->NpiSpecificCharacteristics = local_client_context->client_data;
 
+    // Set client_context prior to calling NmrRegisterClient() so that the client context is available to the
+    // client attach provider callback.
+    *client_context = local_client_context;
     status = NmrRegisterClient(client_characteristics, local_client_context, &local_client_context->nmr_client_handle);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrRegisterClient, status);
@@ -283,6 +299,11 @@ Done:
         ebpf_free(local_client_context->client_binding_context);
     ebpf_free(local_client_context);
     local_client_context = NULL;
+
+    if (return_value != EBPF_SUCCESS) {
+        *client_context = NULL;
+    }
+
     EBPF_RETURN_RESULT(return_value);
 }
 
@@ -416,4 +437,16 @@ ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context
 
     ebpf_free(provider_context);
     EBPF_RETURN_VOID();
+}
+
+_Must_inspect_result_ bool
+ebpf_extension_reference_provider_data(_Inout_ ebpf_extension_client_t* client_context)
+{
+    return ExAcquireRundownProtection(&client_context->nmr_rundown_ref) != FALSE;
+}
+
+void
+ebpf_extension_dereference_provider_data(_Inout_ ebpf_extension_client_t* client_context)
+{
+    ExReleaseRundownProtection(&client_context->nmr_rundown_ref);
 }

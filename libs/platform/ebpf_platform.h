@@ -40,6 +40,8 @@ extern "C"
 #define EBPF_HASH_TABLE_NO_LIMIT 0
 #define EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT 64
 
+#define EBPF_NS_PER_FILETIME 100
+
 // Macro locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
 #define ebpf_assert_success(x)                                     \
     _Pragma("warning(push)") _Pragma("warning(disable : 4189)") do \
@@ -831,7 +833,7 @@ extern "C"
     int64_t
     ebpf_interlocked_xor_int64(_Inout_ volatile int64_t* destination, int64_t mask);
 
-    typedef void (*ebpf_extension_change_callback_t)(
+    typedef ebpf_result_t (*ebpf_extension_change_callback_t)(
         _In_ const void* client_binding_context,
         _In_ const void* provider_binding_context,
         _In_opt_ const ebpf_extension_data_t* provider_data);
@@ -897,6 +899,22 @@ extern "C"
      */
     void
     ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context);
+
+    /**
+     * @brief Prevent extension provider from unloading.
+     *
+     * @param[in,out] client_context Client context to reference.
+     */
+    _Must_inspect_result_ bool
+    ebpf_extension_reference_provider_data(_Inout_ ebpf_extension_client_t* client_context);
+
+    /**
+     * @brief Allow extension provider to unload.
+     *
+     * @param[in,out] client_context Client context to dereference.
+     */
+    void
+    ebpf_extension_dereference_provider_data(_Inout_ ebpf_extension_client_t* client_context);
 
     /**
      * @brief Register as an extension provider.
@@ -1237,6 +1255,15 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms);
+
+    /**
+     * @brief Should the current thread yield the processor?
+     *
+     * @retval true Thread should yield the processor.
+     * @retval false Thread should not yield the processor.
+     */
+    bool
+    ebpf_should_yield_processor();
 
 /**
  * @brief Append a value to a cryptographic hash object.

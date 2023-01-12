@@ -301,7 +301,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this program.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_execute_test_run(_In_ ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options);
+    ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options);
 
 #ifdef __cplusplus
 }

@@ -67,12 +67,34 @@ typedef struct _net_ebpf_extension_xdp_wfp_filter_context
 static int
 _net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta);
 
+static ebpf_result_t
+_ebpf_xdp_context_create(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context);
+
+static void
+_ebpf_xdp_context_delete(
+    _In_opt_ void* context,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out);
+
 static const void* _ebpf_xdp_helper_functions[] = {(void*)&_net_ebpf_xdp_adjust_head};
 
 static ebpf_helper_function_addresses_t _ebpf_xdp_helper_function_address_table = {
     EBPF_COUNT_OF(_ebpf_xdp_helper_functions), (uint64_t*)_ebpf_xdp_helper_functions};
 
-static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, &_ebpf_xdp_helper_function_address_table};
+static ebpf_program_data_t _ebpf_xdp_program_data = {
+    .program_info = &_ebpf_xdp_program_info,
+    .program_type_specific_helper_function_addresses = &_ebpf_xdp_helper_function_address_table,
+    .context_create = _ebpf_xdp_context_create,
+    .context_destroy = _ebpf_xdp_context_delete,
+    .required_irql = DISPATCH_LEVEL,
+};
 
 static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
@@ -281,7 +303,7 @@ typedef struct _net_ebpf_xdp_md
 //
 
 static void
-_net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl);
+_net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl, BOOLEAN free_data);
 
 static NTSTATUS
 _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32_t unused_header_length)
@@ -356,7 +378,7 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32
 
     // Set the new NBL as the cloned NBL in XDP context, after disposing any previous clones.
     if (net_xdp_ctx->cloned_nbl != NULL)
-        _net_ebpf_ext_free_nbl(net_xdp_ctx->cloned_nbl);
+        _net_ebpf_ext_free_nbl(net_xdp_ctx->cloned_nbl, TRUE);
     net_xdp_ctx->cloned_nbl = new_nbl;
 
 Exit:
@@ -372,13 +394,16 @@ Exit:
 }
 
 static void
-_net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl)
+_net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl, BOOLEAN free_data)
 {
     NET_BUFFER* net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
     MDL* mdl_chain = NET_BUFFER_FIRST_MDL(net_buffer);
-    uint8_t* buffer = (uint8_t*)MmGetSystemAddressForMdlSafe(mdl_chain, NormalPagePriority);
-    if (buffer != NULL)
-        ExFreePool(buffer);
+    if (free_data) {
+        uint8_t* buffer = (uint8_t*)MmGetSystemAddressForMdlSafe(mdl_chain, NormalPagePriority);
+        if (buffer != NULL) {
+            ExFreePool(buffer);
+        }
+    }
     IoFreeMdl(mdl_chain);
     FwpsFreeNetBufferList0(nbl);
 }
@@ -452,7 +477,7 @@ _net_ebpf_ext_l2_receive_inject_complete(_In_ const void* context, _Inout_ NET_B
     UNREFERENCED_PARAMETER(context);
     UNREFERENCED_PARAMETER(dispatch_level);
     // Free clone allocated using _net_ebpf_ext_allocate_cloned_nbl.
-    _net_ebpf_ext_free_nbl(nbl);
+    _net_ebpf_ext_free_nbl(nbl, TRUE);
 }
 
 static NTSTATUS
@@ -492,7 +517,7 @@ _net_ebpf_ext_l2_inject_send_complete(_In_ const void* context, _Inout_ NET_BUFF
 {
     if ((BOOLEAN)(uintptr_t)context == FALSE)
         // Free clone allocated using _net_ebpf_ext_allocate_cloned_nbl.
-        _net_ebpf_ext_free_nbl(nbl);
+        _net_ebpf_ext_free_nbl(nbl, TRUE);
     else
         // Free clone allocated using FwpsAllocateCloneNetBufferList.
         FwpsFreeCloneNetBufferList(nbl, dispatch_level);
@@ -674,7 +699,7 @@ net_ebpf_ext_layer_2_classify(
             classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
             // Free cloned NBL, if any.
             if (net_xdp_ctx.cloned_nbl != NULL)
-                _net_ebpf_ext_free_nbl(net_xdp_ctx.cloned_nbl);
+                _net_ebpf_ext_free_nbl(net_xdp_ctx.cloned_nbl, TRUE);
             break;
         }
     }
@@ -685,4 +710,155 @@ Done:
 
     if (!NT_SUCCESS(status))
         NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
+}
+
+/**
+ * @brief Build a xdp_md_t context for the eBPF program. This includes copying the packet data and
+ * metadata into a contiguous buffer and building an MDL chain for the same.
+ *
+ * @param[in] data_in The packet data.
+ * @param[in] data_size_in The size of the packet data.
+ * @param[in] context_in The context.
+ * @param[in] context_size_in The size of the context.
+ * @param[out] context The context to be passed to the eBPF program.
+ * @retval STATUS_SUCCESS The operation was successful.
+ * @retval STATUS_INVALID_PARAMETER One or more parameters are incorrect.
+ * @retval STATUS_NO_MEMORY Failed to allocate resources for this operation.
+ */
+static ebpf_result_t
+_ebpf_xdp_context_create(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context)
+{
+    ebpf_result_t result;
+    net_ebpf_xdp_md_t* new_context = NULL;
+    MDL* mdl_chain = NULL;
+    NET_BUFFER_LIST* new_nbl = NULL;
+
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    *context = NULL;
+
+    // Data is mandatory.
+    // Context is optional.
+    if (data_in == NULL || data_size_in == 0) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Data is required");
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    new_context = (net_ebpf_xdp_md_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_xdp_md_t), NET_EBPF_EXTENSION_POOL_TAG);
+    if (new_context == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    memset(new_context, 0, sizeof(net_ebpf_xdp_md_t));
+
+    // Create a MDL with the packet buffer.
+    mdl_chain = IoAllocateMdl((void*)data_in, (ULONG)data_size_in, FALSE, FALSE, NULL);
+    if (mdl_chain == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+    MmBuildMdlForNonPagedPool(mdl_chain);
+
+    // Now allocate the cloned NBL using this MDL chain.
+    if (!NT_SUCCESS(FwpsAllocateNetBufferAndNetBufferList(
+            _net_ebpf_ext_nbl_pool_handle, 0, 0, mdl_chain, 0, data_size_in, &new_nbl))) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+    mdl_chain = NULL;
+
+    new_context->original_nbl = new_nbl;
+    new_nbl = NULL;
+
+    new_context->base.data = (void*)data_in;
+    new_context->base.data_end = (void*)(data_in + data_size_in);
+
+    if (context_in != NULL && context_size_in >= sizeof(xdp_md_t)) {
+        xdp_md_t* xdp_context = (xdp_md_t*)context_in;
+        new_context->base.data_meta = xdp_context->data_meta;
+        new_context->base.ingress_ifindex = xdp_context->ingress_ifindex;
+    }
+
+    *context = new_context;
+    new_context = NULL;
+
+    result = EBPF_SUCCESS;
+
+Done:
+    if (new_context) {
+        ExFreePool(new_context);
+    }
+
+    if (mdl_chain) {
+        IoFreeMdl(mdl_chain);
+    }
+
+    if (new_nbl) {
+        FwpsFreeNetBufferList0(new_nbl);
+    }
+    NET_EBPF_EXT_RETURN_RESULT(result);
+}
+
+static void
+_ebpf_xdp_context_delete(
+    _In_opt_ void* context,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out)
+{
+    NET_EBPF_EXT_LOG_ENTRY();
+    if (!context) {
+        return;
+    }
+
+    net_ebpf_xdp_md_t* xdp_context = (net_ebpf_xdp_md_t*)context;
+
+    // Copy the packet data to the output buffer.
+    if (data_out != NULL && data_size_out != NULL) {
+        size_t data_size = *data_size_out;
+        size_t xdp_data_size = (char*)(xdp_context->base.data_end) - (char*)(xdp_context->base.data);
+        if (data_size > xdp_data_size) {
+            data_size = xdp_data_size;
+        }
+        memcpy(data_out, xdp_context->base.data, data_size);
+        *data_size_out = data_size;
+    } else {
+        *data_size_out = 0;
+    }
+
+    // Copy some fields from the context to the output buffer.
+    if (context_out != NULL && context_size_out != NULL) {
+        size_t context_size = *context_size_out;
+        if (context_size > sizeof(xdp_md_t)) {
+            context_size = sizeof(xdp_md_t);
+        }
+
+        xdp_md_t* xdp_context_out = (xdp_md_t*)context_out;
+        xdp_context_out->data_meta = xdp_context->base.data_meta;
+        xdp_context_out->ingress_ifindex = xdp_context->base.ingress_ifindex;
+        *context_size_out = context_size;
+    } else {
+        *context_size_out = 0;
+    }
+
+    if (xdp_context->original_nbl != NULL) {
+        _net_ebpf_ext_free_nbl(xdp_context->original_nbl, FALSE);
+    }
+
+    if (xdp_context->cloned_nbl != NULL) {
+        _net_ebpf_ext_free_nbl(xdp_context->cloned_nbl, TRUE);
+    }
+
+    ExFreePool(xdp_context);
+    NET_EBPF_EXT_LOG_FUNCTION_SUCCESS();
 }

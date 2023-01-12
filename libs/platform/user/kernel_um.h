@@ -6,6 +6,11 @@
 #include <synchapi.h>
 #include <winnt.h>
 
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
+
 // Defines
 #define EX_DEFAULT_PUSH_LOCK_FLAGS 0
 #define ExAcquirePushLockExclusive(Lock) ExAcquirePushLockExclusiveEx(Lock, EX_DEFAULT_PUSH_LOCK_FLAGS)
@@ -34,8 +39,9 @@
 #define PASSIVE_LEVEL 0
 #define DISPATCH_LEVEL 2
 
-// Typedefs
-typedef struct _SE_EXPORTS
+    // Typedefs
+    
+    typedef struct _SE_EXPORTS
 {
 
     //
@@ -209,317 +215,319 @@ typedef enum _MODE
     MaximumMode
 } MODE;
 
-typedef struct _DEVICE_OBJECT DEVICE_OBJECT;
+    typedef struct _DEVICE_OBJECT DEVICE_OBJECT;
 
-typedef struct _DRIVER_OBJECT DRIVER_OBJECT;
+    typedef struct _DRIVER_OBJECT DRIVER_OBJECT;
 
-typedef struct _EX_PUSH_LOCK
-{
-    SRWLOCK lock;
-} EX_PUSH_LOCK;
-typedef struct _EX_SPIN_LOCK
-{
-    SRWLOCK lock;
-} EX_SPIN_LOCK;
-typedef struct _EX_RUNDOWN_REF
-{
-    struct _mock_rundown_ref* inner;
-} EX_RUNDOWN_REF;
-typedef struct _IO_WORKITEM IO_WORKITEM, *PIO_WORKITEM;
-typedef void
-IO_WORKITEM_ROUTINE(_In_ DEVICE_OBJECT* device_object, _In_opt_ void* context);
-
-//
-// Pool Allocation routines (in pool.c)
-//
-typedef _Enum_is_bitflag_ enum _POOL_TYPE {
-    NonPagedPool,
-    NonPagedPoolExecute = NonPagedPool,
-    PagedPool,
-    NonPagedPoolMustSucceed = NonPagedPool + 2,
-    DontUseThisType,
-    NonPagedPoolCacheAligned = NonPagedPool + 4,
-    PagedPoolCacheAligned,
-    NonPagedPoolCacheAlignedMustS = NonPagedPool + 6,
-    MaxPoolType,
+    typedef struct _EX_PUSH_LOCK
+    {
+        SRWLOCK lock;
+    } EX_PUSH_LOCK;
+    typedef struct _EX_SPIN_LOCK
+    {
+        SRWLOCK lock;
+    } EX_SPIN_LOCK;
+    typedef struct _EX_RUNDOWN_REF
+    {
+        struct _mock_rundown_ref* inner;
+    } EX_RUNDOWN_REF;
+    typedef struct _IO_WORKITEM IO_WORKITEM, *PIO_WORKITEM;
+    typedef void
+    IO_WORKITEM_ROUTINE(_In_ DEVICE_OBJECT* device_object, _In_opt_ void* context);
 
     //
-    // Define base types for NonPaged (versus Paged) pool, for use in cracking
-    // the underlying pool type.
+    // Pool Allocation routines (in pool.c)
     //
+    typedef _Enum_is_bitflag_ enum _POOL_TYPE {
+        NonPagedPool,
+        NonPagedPoolExecute = NonPagedPool,
+        PagedPool,
+        NonPagedPoolMustSucceed = NonPagedPool + 2,
+        DontUseThisType,
+        NonPagedPoolCacheAligned = NonPagedPool + 4,
+        PagedPoolCacheAligned,
+        NonPagedPoolCacheAlignedMustS = NonPagedPool + 6,
+        MaxPoolType,
 
-    NonPagedPoolBase = 0,
-    NonPagedPoolBaseMustSucceed = NonPagedPoolBase + 2,
-    NonPagedPoolBaseCacheAligned = NonPagedPoolBase + 4,
-    NonPagedPoolBaseCacheAlignedMustS = NonPagedPoolBase + 6,
+        //
+        // Define base types for NonPaged (versus Paged) pool, for use in cracking
+        // the underlying pool type.
+        //
 
-    //
-    // Note these per session types are carefully chosen so that the appropriate
-    // masking still applies as well as MaxPoolType above.
-    //
+        NonPagedPoolBase = 0,
+        NonPagedPoolBaseMustSucceed = NonPagedPoolBase + 2,
+        NonPagedPoolBaseCacheAligned = NonPagedPoolBase + 4,
+        NonPagedPoolBaseCacheAlignedMustS = NonPagedPoolBase + 6,
 
-    NonPagedPoolSession = 32,
-    PagedPoolSession = NonPagedPoolSession + 1,
-    NonPagedPoolMustSucceedSession = PagedPoolSession + 1,
-    DontUseThisTypeSession = NonPagedPoolMustSucceedSession + 1,
-    NonPagedPoolCacheAlignedSession = DontUseThisTypeSession + 1,
-    PagedPoolCacheAlignedSession = NonPagedPoolCacheAlignedSession + 1,
-    NonPagedPoolCacheAlignedMustSSession = PagedPoolCacheAlignedSession + 1,
+        //
+        // Note these per session types are carefully chosen so that the appropriate
+        // masking still applies as well as MaxPoolType above.
+        //
 
-    NonPagedPoolNx = 512,
-    NonPagedPoolNxCacheAligned = NonPagedPoolNx + 4,
-    NonPagedPoolSessionNx = NonPagedPoolNx + 32,
+        NonPagedPoolSession = 32,
+        PagedPoolSession = NonPagedPoolSession + 1,
+        NonPagedPoolMustSucceedSession = PagedPoolSession + 1,
+        DontUseThisTypeSession = NonPagedPoolMustSucceedSession + 1,
+        NonPagedPoolCacheAlignedSession = DontUseThisTypeSession + 1,
+        PagedPoolCacheAlignedSession = NonPagedPoolCacheAlignedSession + 1,
+        NonPagedPoolCacheAlignedMustSSession = PagedPoolCacheAlignedSession + 1,
 
-} _Enum_is_bitflag_ POOL_TYPE;
+        NonPagedPoolNx = 512,
+        NonPagedPoolNxCacheAligned = NonPagedPoolNx + 4,
+        NonPagedPoolSessionNx = NonPagedPoolNx + 32,
 
-typedef _Enum_is_bitflag_ enum _WORK_QUEUE_TYPE {
-    CriticalWorkQueue,
-    DelayedWorkQueue,
-    HyperCriticalWorkQueue,
-    NormalWorkQueue,
-    BackgroundWorkQueue,
-    RealTimeWorkQueue,
-    SuperCriticalWorkQueue,
-    MaximumWorkQueue,
-    CustomPriorityWorkQueue = 32
-} WORK_QUEUE_TYPE;
+    } _Enum_is_bitflag_ POOL_TYPE;
 
-typedef uint8_t KIRQL;
+    typedef _Enum_is_bitflag_ enum _WORK_QUEUE_TYPE {
+        CriticalWorkQueue,
+        DelayedWorkQueue,
+        HyperCriticalWorkQueue,
+        NormalWorkQueue,
+        BackgroundWorkQueue,
+        RealTimeWorkQueue,
+        SuperCriticalWorkQueue,
+        MaximumWorkQueue,
+        CustomPriorityWorkQueue = 32
+    } WORK_QUEUE_TYPE;
 
-typedef KIRQL* PKIRQL;
+    typedef uint8_t KIRQL;
 
-typedef struct _MDL
-{
-    struct _MDL* next;
-    size_t size;
-    uint64_t flags;
-    void* start_va;
-    unsigned long byte_offset;
-    unsigned long byte_count;
-} MDL, *PMDL;
+    typedef KIRQL* PKIRQL;
 
-typedef struct _IRP IRP;
+    typedef struct _MDL
+    {
+        struct _MDL* next;
+        size_t size;
+        uint64_t flags;
+        void* start_va;
+        unsigned long byte_offset;
+        unsigned long byte_count;
+    } MDL, *PMDL;
 
-typedef enum _MM_PAGE_PRIORITY
-{
-    LowPagePriority,
-    NormalPagePriority = 16,
-    HighPagePriority = 32
-} MM_PAGE_PRIORITY;
+    typedef struct _IRP IRP;
+
+    typedef enum _MM_PAGE_PRIORITY
+    {
+        LowPagePriority,
+        NormalPagePriority = 16,
+        HighPagePriority = 32
+    } MM_PAGE_PRIORITY;
+
+    // Functions
+
+    unsigned long __cdecl DbgPrintEx(
+        _In_ unsigned long component_id, _In_ unsigned long level, _In_z_ _Printf_format_string_ PCSTR format, ...);
+
+    void
+    ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref);
+
+    void
+    ExWaitForRundownProtectionRelease(_Inout_ EX_RUNDOWN_REF* rundown_ref);
+
+    BOOLEAN
+    ExAcquireRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref);
+
+    void
+    ExReleaseRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref);
+
+    _Acquires_exclusive_lock_(push_lock->lock) void ExAcquirePushLockExclusiveEx(
+        _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
+        _In_ unsigned long flags);
+
+    _Acquires_shared_lock_(push_lock->lock) void ExAcquirePushLockSharedEx(
+        _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
+        _In_ unsigned long flags);
+
+    _Releases_exclusive_lock_(push_lock->lock) void ExReleasePushLockExclusiveEx(
+        _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
+        _In_ unsigned long flags);
+
+    _Releases_shared_lock_(push_lock->lock) void ExReleasePushLockSharedEx(
+        _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
+        _In_ unsigned long flags);
+
+    _Acquires_exclusive_lock_(spin_lock->lock) KIRQL
+        ExAcquireSpinLockExclusiveEx(_Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
+                                         EX_SPIN_LOCK* spin_lock);
+
+    _Acquires_exclusive_lock_(spin_lock->lock) void ExAcquireSpinLockExclusiveAtDpcLevelEx(
+        _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock);
 
 extern PSE_EXPORTS SeExports;
 
-// Functions
+    _Acquires_shared_lock_(spin_lock->lock) KIRQL
+        ExAcquireSpinLockSharedEx(_Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
+                                      EX_SPIN_LOCK* spin_lock);
 
-unsigned long __cdecl DbgPrintEx(
-    _In_ unsigned long component_id, _In_ unsigned long level, _In_z_ _Printf_format_string_ PCSTR format, ...);
+    _Releases_exclusive_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveEx(
+        _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock, KIRQL old_irql);
 
-void
-ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref);
+    _Releases_shared_lock_(spin_lock->lock) void ExReleaseSpinLockSharedEx(
+        _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock, KIRQL old_irql);
 
-void
-ExWaitForRundownProtectionRelease(_Inout_ EX_RUNDOWN_REF* rundown_ref);
+    _Releases_exclusive_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveFromDpcLevelEx(
+        _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock);
 
-BOOLEAN
-ExAcquireRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref);
+    void*
+    ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_bytes, _In_ unsigned long tag);
 
-void
-ExReleaseRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref);
+    ULONGLONG
+    QueryInterruptTimeEx();
 
-_Acquires_exclusive_lock_(push_lock->lock) void ExAcquirePushLockExclusiveEx(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
-    _In_ unsigned long flags);
+    void
+    ExFreePool(void* p);
 
-_Acquires_shared_lock_(push_lock->lock) void ExAcquirePushLockSharedEx(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_PUSH_LOCK* push_lock,
-    _In_ unsigned long flags);
+    void
+    ExInitializePushLock(_Out_ EX_PUSH_LOCK* push_lock);
 
-_Releases_exclusive_lock_(push_lock->lock) void ExReleasePushLockExclusiveEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ unsigned long flags);
+    void
+    FatalListEntryError(_In_ void* p1, _In_ void* p2, _In_ void* p3);
 
-_Releases_shared_lock_(push_lock->lock) void ExReleasePushLockSharedEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_PUSH_LOCK* push_lock, _In_ unsigned long flags);
+    MDL*
+    IoAllocateMdl(
+        _In_opt_ __drv_aliasesMem void* virtual_address,
+        _In_ unsigned long length,
+        _In_ BOOLEAN secondary_buffer,
+        _In_ BOOLEAN charge_quota,
+        _Inout_opt_ IRP* irp);
 
-_Acquires_exclusive_lock_(spin_lock->lock) KIRQL
-    ExAcquireSpinLockExclusiveEx(_Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
-                                     EX_SPIN_LOCK* spin_lock);
+    PIO_WORKITEM
+    IoAllocateWorkItem(_In_ DEVICE_OBJECT* device_object);
 
-_Acquires_exclusive_lock_(spin_lock->lock) void ExAcquireSpinLockExclusiveAtDpcLevelEx(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock);
+    void
+    IoQueueWorkItem(
+        _Inout_ __drv_aliasesMem IO_WORKITEM* io_work_item,
+        _In_ IO_WORKITEM_ROUTINE* worker_routine,
+        _In_ WORK_QUEUE_TYPE queue_type,
+        _In_opt_ __drv_aliasesMem void* context);
 
-_Acquires_shared_lock_(spin_lock->lock) KIRQL
-    ExAcquireSpinLockSharedEx(_Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
-                                  EX_SPIN_LOCK* spin_lock);
+    void
+    IoFreeWorkItem(_In_ __drv_freesMem(Mem) PIO_WORKITEM io_work_item);
 
-_Releases_exclusive_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock, KIRQL old_irql);
+    void
+    IoFreeMdl(MDL* mdl);
 
-_Releases_shared_lock_(spin_lock->lock) void ExReleaseSpinLockSharedEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock, KIRQL old_irql);
+    void
+    KeEnterCriticalRegion(void);
 
-_Releases_exclusive_lock_(spin_lock->lock) void ExReleaseSpinLockExclusiveFromDpcLevelEx(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock);
+    void
+    KeLeaveCriticalRegion(void);
 
-void*
-ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_bytes, _In_ unsigned long tag);
+    void
+    KeInitializeSpinLock(_Out_ PKSPIN_LOCK spin_lock);
 
-ULONGLONG
-QueryInterruptTimeEx();
+    _Requires_lock_not_held_(*spin_lock) _Acquires_lock_(*spin_lock) _IRQL_requires_max_(DISPATCH_LEVEL) KIRQL
+        KeAcquireSpinLockRaiseToDpc(_Inout_ PKSPIN_LOCK spin_lock);
 
-void
-ExFreePool(void* p);
+    _Requires_lock_held_(*spin_lock) _Releases_lock_(*spin_lock) _IRQL_requires_(DISPATCH_LEVEL) void KeReleaseSpinLock(
+        _Inout_ PKSPIN_LOCK spin_lock, _In_ _IRQL_restores_ KIRQL new_irql);
 
-void
-ExInitializePushLock(_Out_ EX_PUSH_LOCK* push_lock);
+    void
+    MmBuildMdlForNonPagedPool(_Inout_ MDL* memory_descriptor_list);
 
-void
-FatalListEntryError(_In_ void* p1, _In_ void* p2, _In_ void* p3);
+    unsigned long
+    MmGetMdlByteCount(_In_ MDL* mdl);
 
-MDL*
-IoAllocateMdl(
-    _In_opt_ __drv_aliasesMem void* virtual_address,
-    _In_ unsigned long length,
-    _In_ BOOLEAN secondary_buffer,
-    _In_ BOOLEAN charge_quota,
-    _Inout_opt_ IRP* irp);
+    void*
+    MmGetSystemAddressForMdlSafe(
+        _Inout_ MDL* mdl,
+        _In_ unsigned long page_priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
+    );
 
-PIO_WORKITEM
-IoAllocateWorkItem(_In_ DEVICE_OBJECT* device_object);
+    NTSTATUS
+    RtlULongAdd(
+        _In_ unsigned long augend,
+        _In_ unsigned long addend,
+        _Out_ _Deref_out_range_(==, augend + addend) unsigned long* result);
 
-void
-IoQueueWorkItem(
-    _Inout_ __drv_aliasesMem IO_WORKITEM* io_work_item,
-    _In_ IO_WORKITEM_ROUTINE* worker_routine,
-    _In_ WORK_QUEUE_TYPE queue_type,
-    _In_opt_ __drv_aliasesMem void* context);
-
-void
-IoFreeWorkItem(_In_ __drv_freesMem(Mem) PIO_WORKITEM io_work_item);
-
-void
-IoFreeMdl(MDL* mdl);
-
-void
-KeEnterCriticalRegion(void);
-
-void
-KeLeaveCriticalRegion(void);
-
-void
-KeInitializeSpinLock(_Out_ PKSPIN_LOCK spin_lock);
-
-_Requires_lock_not_held_(*spin_lock) _Acquires_lock_(*spin_lock) _IRQL_requires_max_(DISPATCH_LEVEL) KIRQL
-    KeAcquireSpinLockRaiseToDpc(_Inout_ PKSPIN_LOCK spin_lock);
-
-_Requires_lock_held_(*spin_lock) _Releases_lock_(*spin_lock) _IRQL_requires_(DISPATCH_LEVEL) void KeReleaseSpinLock(
-    _Inout_ PKSPIN_LOCK spin_lock, _In_ _IRQL_restores_ KIRQL new_irql);
-
-void
-MmBuildMdlForNonPagedPool(_Inout_ MDL* memory_descriptor_list);
-
-unsigned long
-MmGetMdlByteCount(_In_ MDL* mdl);
-
-void*
-MmGetSystemAddressForMdlSafe(
-    _Inout_ MDL* mdl,
-    _In_ unsigned long page_priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
-);
-
-NTSTATUS
-RtlULongAdd(
-    _In_ unsigned long augend,
-    _In_ unsigned long addend,
-    _Out_ _Deref_out_range_(==, augend + addend) unsigned long* result);
-
-// Inline functions
-_Must_inspect_result_ BOOLEAN CFORCEINLINE
-IsListEmpty(_In_ const LIST_ENTRY* list_head)
-{
-    return (BOOLEAN)(list_head->Flink == list_head);
-}
-
-FORCEINLINE
-void
-InsertTailList(_Inout_ LIST_ENTRY* list_head, _Out_ __drv_aliasesMem LIST_ENTRY* entry)
-{
-    LIST_ENTRY* PrevEntry;
-    PrevEntry = list_head->Blink;
-    if (PrevEntry->Flink != list_head) {
-        FatalListEntryError((void*)PrevEntry, (void*)list_head, (void*)PrevEntry->Flink);
+    // Inline functions
+    _Must_inspect_result_ BOOLEAN CFORCEINLINE
+    IsListEmpty(_In_ const LIST_ENTRY* list_head)
+    {
+        return (BOOLEAN)(list_head->Flink == list_head);
     }
 
-    entry->Flink = list_head;
-    entry->Blink = PrevEntry;
-    PrevEntry->Flink = entry;
-    list_head->Blink = entry;
-    return;
-}
+    FORCEINLINE
+    void
+    InsertTailList(_Inout_ LIST_ENTRY* list_head, _Out_ __drv_aliasesMem LIST_ENTRY* entry)
+    {
+        LIST_ENTRY* PrevEntry;
+        PrevEntry = list_head->Blink;
+        if (PrevEntry->Flink != list_head) {
+            FatalListEntryError((void*)PrevEntry, (void*)list_head, (void*)PrevEntry->Flink);
+        }
 
-FORCEINLINE
-void
-InsertHeadList(_Inout_ LIST_ENTRY* list_head, _Out_ __drv_aliasesMem LIST_ENTRY* entry)
-{
-    LIST_ENTRY* NextEntry;
-    NextEntry = list_head->Flink;
-    if (NextEntry->Blink != list_head) {
-        FatalListEntryError((void*)NextEntry, (void*)list_head, (void*)NextEntry->Blink);
+        entry->Flink = list_head;
+        entry->Blink = PrevEntry;
+        PrevEntry->Flink = entry;
+        list_head->Blink = entry;
+        return;
     }
 
-    entry->Flink = NextEntry;
-    entry->Blink = list_head;
-    NextEntry->Blink = entry;
-    list_head->Flink = entry;
-    return;
-}
+    FORCEINLINE
+    void
+    InsertHeadList(_Inout_ LIST_ENTRY* list_head, _Out_ __drv_aliasesMem LIST_ENTRY* entry)
+    {
+        LIST_ENTRY* NextEntry;
+        NextEntry = list_head->Flink;
+        if (NextEntry->Blink != list_head) {
+            FatalListEntryError((void*)NextEntry, (void*)list_head, (void*)NextEntry->Blink);
+        }
 
-FORCEINLINE
-BOOLEAN
-RemoveEntryList(_In_ LIST_ENTRY* entry)
-{
-    LIST_ENTRY* PrevEntry;
-    LIST_ENTRY* NextEntry;
-
-    NextEntry = entry->Flink;
-    PrevEntry = entry->Blink;
-    if ((NextEntry->Blink != entry) || (PrevEntry->Flink != entry)) {
-        FatalListEntryError((void*)PrevEntry, (void*)entry, (void*)NextEntry);
+        entry->Flink = NextEntry;
+        entry->Blink = list_head;
+        NextEntry->Blink = entry;
+        list_head->Flink = entry;
+        return;
     }
 
-    PrevEntry->Flink = NextEntry;
-    NextEntry->Blink = PrevEntry;
-    return (BOOLEAN)(PrevEntry == NextEntry);
-}
+    FORCEINLINE
+    BOOLEAN
+    RemoveEntryList(_In_ LIST_ENTRY* entry)
+    {
+        LIST_ENTRY* PrevEntry;
+        LIST_ENTRY* NextEntry;
 
-FORCEINLINE
-void
-InitializeListHead(_Out_ LIST_ENTRY* list_head)
-{
-    list_head->Flink = list_head->Blink = list_head;
-    return;
-}
+        NextEntry = entry->Flink;
+        PrevEntry = entry->Blink;
+        if ((NextEntry->Blink != entry) || (PrevEntry->Flink != entry)) {
+            FatalListEntryError((void*)PrevEntry, (void*)entry, (void*)NextEntry);
+        }
 
-FORCEINLINE
-LIST_ENTRY*
-RemoveHeadList(_Inout_ LIST_ENTRY* list_head)
-{
-    LIST_ENTRY* entry;
-    LIST_ENTRY* NextEntry;
-
-    entry = list_head->Flink;
-
-    NextEntry = entry->Flink;
-    if ((entry->Blink != list_head) || (NextEntry->Blink != entry)) {
-        FatalListEntryError((void*)list_head, (void*)entry, (void*)NextEntry);
+        PrevEntry->Flink = NextEntry;
+        NextEntry->Blink = PrevEntry;
+        return (BOOLEAN)(PrevEntry == NextEntry);
     }
 
-    list_head->Flink = NextEntry;
-    NextEntry->Blink = list_head;
+    FORCEINLINE
+    void
+    InitializeListHead(_Out_ LIST_ENTRY* list_head)
+    {
+        list_head->Flink = list_head->Blink = list_head;
+        return;
+    }
 
-    return entry;
-}
+    FORCEINLINE
+    LIST_ENTRY*
+    RemoveHeadList(_Inout_ LIST_ENTRY* list_head)
+    {
+        LIST_ENTRY* entry;
+        LIST_ENTRY* NextEntry;
 
-PGENERIC_MAPPING
+        entry = list_head->Flink;
+
+        NextEntry = entry->Flink;
+        if ((entry->Blink != list_head) || (NextEntry->Blink != entry)) {
+            FatalListEntryError((void*)list_head, (void*)entry, (void*)NextEntry);
+        }
+
+        list_head->Flink = NextEntry;
+        NextEntry->Blink = list_head;
+
+        return entry;
+    }
+    
+    PGENERIC_MAPPING
 IoGetFileObjectGenericMapping();
 
 NTSTATUS
@@ -568,3 +576,8 @@ PsGetCurrentProcessId();
 
 HANDLE
 PsGetCurrentThreadId();
+
+#if defined(__cplusplus)
+}
+#endif
+

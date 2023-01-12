@@ -843,3 +843,14 @@ _IRQL_requires_max_(HIGH_LEVEL) void ebpf_lower_irql(_In_ _Notliteral_ _IRQL_res
 {
     KeLowerIrql(old_irql);
 }
+
+bool
+ebpf_should_yield_processor()
+{
+    // Don't yield if we are at passive level as the scheduler can preempt us.
+    if (KeGetCurrentIrql() == PASSIVE_LEVEL)
+        return false;
+
+    // KeShouldYieldProcessor returns TRUE if the current thread should yield the processor.
+    return KeShouldYieldProcessor() != FALSE;
+}
