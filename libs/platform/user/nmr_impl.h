@@ -115,6 +115,12 @@ typedef class _nmr
         _Outptr_ const void** provider_binding_context,
         _Outptr_ const void** provider_dispatch);
 
+    static _nmr&
+    get()
+    {
+        return singleton;
+    }
+
   private:
     struct client_registration
     {
@@ -262,4 +268,5 @@ typedef class _nmr
                      // on the other hand are not protected by this lock but instead use
                      // interlocked operations.
 
+    static _nmr singleton;
 } nmr_t;

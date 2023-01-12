@@ -297,7 +297,7 @@ bpf_prog_get_next_id(__u32 start_id, __u32* next_id);
  * @param[in] license License string (unused).
  * @param[in] insns Array of eBPF instructions.
  * @param[in] insn_cnt Count of instructions in the array.
- * @param[in] opts Additional options.
+ * @param[in] opts Additional options, or NULL to use default options.
  *
  * @returns A new file descriptor that refers to the program.
  * The caller should call _close() on the fd to close this when done.
