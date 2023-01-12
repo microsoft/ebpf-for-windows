@@ -2398,13 +2398,13 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     attr.bpf_prog.prog_fd= program_fd;
     attr.bpf_prog.target_fd = program_fd;
     attr.bpf_prog.flags = 0;
-    attr.bpf_prog.prog_type = BPF_XDP;
+    attr.bpf_prog.prog_type = BPF_CGROUP_INET4_CONNECT;
     REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == 0);
 
     // Verify we detach the program.
     memset(&attr, 0, sizeof(attr));
     attr.bpf_prog.target_fd = program_fd;
-    attr.bpf_prog.prog_type = BPF_XDP;
+    attr.bpf_prog.prog_type = BPF_CGROUP_INET4_CONNECT;
     REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == 0);
 
 
