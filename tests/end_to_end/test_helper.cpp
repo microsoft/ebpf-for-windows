@@ -338,7 +338,7 @@ GlueDeviceIoControl(
     unsigned long input_buffer_size,
     _Out_writes_bytes_to_(output_buffer_size, *bytes_returned) void* output_buffer,
     unsigned long output_buffer_size,
-    _Out_ PDWORD bytes_returned,
+    _Out_ unsigned long* bytes_returned,
     _Inout_ OVERLAPPED* overlapped)
 {
     UNREFERENCED_PARAMETER(device_handle);
