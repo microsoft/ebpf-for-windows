@@ -41,7 +41,7 @@ _perf_bpf_ktime_get_boot_ns()
 {
     uint64_t time;
     REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
-    time = ebpf_query_time_since_boot(true) * 100;
+    time = ebpf_query_time_since_boot(true) * EBPF_NS_PER_FILETIME;
     ebpf_epoch_exit();
 }
 
@@ -50,7 +50,7 @@ _perf_bpf_ktime_get_ns()
 {
     uint64_t time;
     REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
-    time = ebpf_query_time_since_boot(false) * 100;
+    time = ebpf_query_time_since_boot(false) * EBPF_NS_PER_FILETIME;
     ebpf_epoch_exit();
 }
 

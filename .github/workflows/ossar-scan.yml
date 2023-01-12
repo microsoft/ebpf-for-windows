@@ -36,14 +36,14 @@ jobs:
 
     steps:
     # Checking out the branch is needed to correctly log security alerts.
-    - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       with:
         # Only check out main repo, not submodules.
         ref: ${{ github.event.workflow_run.head_branch }}
 
     - name: Download build artifact
       if: success()
-      uses: actions/download-artifact@9782bd6a9848b53b110e712e20e42d89988822b7
+      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       id: download_artifact
       with:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}

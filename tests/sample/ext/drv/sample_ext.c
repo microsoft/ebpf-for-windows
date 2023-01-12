@@ -23,10 +23,11 @@
 
 #define SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
-#define SAMPLE_PID_TGID_VALUE 9999
-
 // f788ef4a-207d-4dc3-85cf-0f2ea107213c
 DEFINE_GUID(EBPF_PROGRAM_TYPE_SAMPLE, 0xf788ef4a, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
+
+typedef ebpf_result_t (*ebpf_get_program_context_t)(_Outptr_ void** context);
+static ebpf_get_program_context_t _sample_ebpf_ext_get_program_context = NULL;
 
 // Sample Extension helper function addresses table.
 static uint64_t
@@ -259,9 +260,9 @@ _sample_ebpf_extension_program_info_provider_attach_client(
 {
     NTSTATUS status = STATUS_SUCCESS;
     sample_ebpf_extension_program_info_client_t* program_info_client = NULL;
+    ebpf_extension_dispatch_table_t* client_dispatch_table;
 
     UNREFERENCED_PARAMETER(provider_context);
-    UNREFERENCED_PARAMETER(client_dispatch);
     UNREFERENCED_PARAMETER(client_binding_context);
 
     if ((provider_binding_context == NULL) || (provider_dispatch == NULL)) {
@@ -271,6 +272,12 @@ _sample_ebpf_extension_program_info_provider_attach_client(
 
     *provider_binding_context = NULL;
     *provider_dispatch = NULL;
+
+    client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
+    if (client_dispatch_table == NULL) {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
 
     program_info_client = (sample_ebpf_extension_program_info_client_t*)ebpf_allocate(
         sizeof(sample_ebpf_extension_program_info_client_t));
@@ -282,6 +289,8 @@ _sample_ebpf_extension_program_info_provider_attach_client(
 
     program_info_client->nmr_binding_handle = nmr_binding_handle;
     program_info_client->client_module_id = client_registration_instance->ModuleId->Guid;
+
+    _sample_ebpf_ext_get_program_context = (ebpf_get_program_context_t)client_dispatch_table->function[0];
 
 Exit:
     if (NT_SUCCESS(status)) {
@@ -298,6 +307,7 @@ _sample_ebpf_extension_program_info_provider_detach_client(_In_ const void* prov
     NTSTATUS status = STATUS_SUCCESS;
 
     UNREFERENCED_PARAMETER(provider_binding_context);
+    _sample_ebpf_ext_get_program_context = NULL;
 
     return status;
 }
@@ -585,7 +595,11 @@ Exit:
 static uint64_t
 _sample_get_pid_tgid()
 {
-    return SAMPLE_PID_TGID_VALUE;
+    sample_program_context_t* context = NULL;
+    _sample_ebpf_ext_get_program_context((void**)&context);
+    ASSERT(context != NULL);
+
+    return context->pid_tgid;
 }
 
 // Helper Function Definitions.

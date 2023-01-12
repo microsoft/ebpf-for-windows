@@ -274,6 +274,35 @@ extern "C"
     ebpf_program_create_and_initialize(
         _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle);
 
+    typedef struct _ebpf_program_test_run_options
+    {
+        _Readable_bytes_(data_size_in) const uint8_t* data_in; ///< Input data to the program.
+        _Writable_bytes_(data_size_out) uint8_t* data_out;     ///< Output data from the program.
+        size_t data_size_in;                                   ///< Size of input data.
+        size_t data_size_out; ///< Maximum length of data_out on input and actual length of data_out on output.
+        _Readable_bytes_(context_size_in) const uint8_t* context_in; ///< Input context to the program.
+        _Writable_bytes_(context_size_out) uint8_t* context_out;     ///< Output context from the program.
+        size_t context_size_in;                                      ///< Size of input context.
+        size_t context_size_out; ///< Maximum length of context_out on input and actual length of context_out on output.
+        uint64_t return_value;   ///< Return value from the program.
+        size_t repeat_count;     ///< Number of times to repeat the program.
+        uint64_t duration;       ///< Duration in nanoseconds of the program execution.
+        uint32_t flags;          ///< Flags to control the test run.
+        uint32_t cpu;            ///< CPU to run the program on.
+        size_t batch_size;       ///< Number of times to repeat the program in a batch.
+    } ebpf_program_test_run_options_t;
+
+    /**
+     * @brief Run the program with the given input and output buffers and measure the duration.
+     *
+     * @param[in] program Program to run.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Invalid argument.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this program.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options);
+
 #ifdef __cplusplus
 }
 #endif

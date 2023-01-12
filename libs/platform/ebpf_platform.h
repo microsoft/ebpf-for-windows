@@ -40,6 +40,8 @@ extern "C"
 #define EBPF_HASH_TABLE_NO_LIMIT 0
 #define EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT 64
 
+#define EBPF_NS_PER_FILETIME 100
+
 // Macro locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
 #define ebpf_assert_success(x)                                     \
     _Pragma("warning(push)") _Pragma("warning(disable : 4189)") do \
@@ -368,6 +370,21 @@ extern "C"
      */
     _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
         _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state);
+
+    /**
+     * @brief Raise the IRQL to new_irql.
+     *
+     * @param[in] new_irql The new IRQL.
+     * @return The previous IRQL.
+     */
+    _IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql);
+
+    /**
+     * @brief Lower the IRQL to old_irql.
+     *
+     * @param[in] old_irql The old IRQL.
+     */
+    _IRQL_requires_max_(HIGH_LEVEL) void ebpf_lower_irql(_In_ _Notliteral_ _IRQL_restores_ uint8_t old_irql);
 
     /**
      * @brief Query the platform for the total number of CPUs.
@@ -816,7 +833,7 @@ extern "C"
     int64_t
     ebpf_interlocked_xor_int64(_Inout_ volatile int64_t* destination, int64_t mask);
 
-    typedef void (*ebpf_extension_change_callback_t)(
+    typedef ebpf_result_t (*ebpf_extension_change_callback_t)(
         _In_ const void* client_binding_context,
         _In_ const void* provider_binding_context,
         _In_opt_ const ebpf_extension_data_t* provider_data);
@@ -882,6 +899,22 @@ extern "C"
      */
     void
     ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context);
+
+    /**
+     * @brief Prevent extension provider from unloading.
+     *
+     * @param[in,out] client_context Client context to reference.
+     */
+    _Must_inspect_result_ bool
+    ebpf_extension_reference_provider_data(_Inout_ ebpf_extension_client_t* client_context);
+
+    /**
+     * @brief Allow extension provider to unload.
+     *
+     * @param[in,out] client_context Client context to dereference.
+     */
+    void
+    ebpf_extension_dereference_provider_data(_Inout_ ebpf_extension_client_t* client_context);
 
     /**
      * @brief Register as an extension provider.
@@ -1174,6 +1207,54 @@ extern "C"
         _Out_writes_to_(input_length, *output_length) uint8_t* buffer,
         size_t input_length,
         _Out_ size_t* output_length);
+
+    typedef struct _ebpf_signal ebpf_signal_t;
+
+    /**
+     * @brief Create a signal object.
+     *
+     * @param[out] signal The signal object.
+     * @return EBPF_SUCCESS The signal object was created.
+     * @return EBPF_NO_MEMORY Unable to allocate memory for the signal object.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_signal_create(_Outptr_ ebpf_signal_t** signal);
+
+    /**
+     * @brief Destroy a signal object.
+     *
+     * @param[in] signal The signal object to destroy.
+     */
+    void
+    ebpf_signal_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_signal_t* signal);
+
+    /**
+     * @brief Set the signal object.
+     *
+     * @param[in] signal The signal object to set.
+     */
+    void
+    ebpf_signal_set(_In_ ebpf_signal_t* signal);
+
+    /**
+     * @brief Reset the signal object.
+     *
+     * @param[in] signal The signal object to reset.
+     */
+    void
+    ebpf_signal_reset(_In_ ebpf_signal_t* signal);
+
+    /**
+     * @brief Wait for the signal object to be set.
+     *
+     * @param[in] signal The signal object to wait on.
+     * @param[in] timeout_ms Timeout in milliseconds.
+     * @return EBPF_SUCCESS The signal object was set.
+     * @return EBPF_OPERATION_ABORTED The wait was aborted.
+     * @return EBPF_TIMEOUT The wait timed out.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms);
 
 /**
  * @brief Append a value to a cryptographic hash object.
