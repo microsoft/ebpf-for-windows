@@ -6,4 +6,4 @@ rem Usage: create_core_helper_corpus.bat <solution_path> <output_directory>
 
 set SOLUTIONPATH=%1
 set OUTPUTPATH=%2
-powershell Expand-Archive -Path "%SOLUTIONPATH%\tests\libfuzzer\execution_context\corpus.zip" -DestinationPath "%OUTPUTPATH%" -Force
+xcopy /d /i /y "%SOLUTIONPATH%\tests\libfuzzer\execution_context\corpus" "%OUTPUTPATH%"
