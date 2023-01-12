@@ -32,6 +32,17 @@ static std::string _remote_ip_v4;
 static std::string _remote_ip_v6;
 static uint16_t _destination_port = 4444;
 static uint16_t _proxy_port = 4443;
+static std::string _user_name;
+static std::string _password;
+static std::string _execution_mode_string;
+// static std::string _working_directory;
+
+typedef enum _execution_mode
+{
+    Admin,
+    Standard,
+    // Elevated
+} execution_mode_t;
 
 typedef struct _test_addresses
 {
@@ -43,6 +54,8 @@ typedef struct _test_addresses
 
 typedef struct _test_globals
 {
+    execution_mode_t mode;
+    HANDLE user_token;
     ADDRESS_FAMILY family;
     IPPROTO protocol;
     uint16_t destination_port;
@@ -52,6 +65,98 @@ typedef struct _test_globals
 
 static test_globals_t _globals;
 static volatile bool _globals_initialized = false;
+
+static void
+_impersonate_user()
+{
+    printf("Impersonating user ... %s\n", _user_name.c_str());
+    bool result = ImpersonateLoggedOnUser(_globals.user_token);
+    REQUIRE(result == true);
+}
+
+static void
+_revert_to_self()
+{
+    printf("Reverting to self ... \n");
+    RevertToSelf();
+}
+
+// typedef class _impersonation_helper
+// {
+// public:
+//     static uint32_t impersonation_count;
+
+//     _impersonation_helper(execution_mode_t mode, bool mandatory)
+//     {
+//         if (mode == Admin) {
+//             // Already running as Admin, nothing to be done.
+//             impersonated = false;
+//         } else if (mandatory || mode == Elevated) {
+//             if (impersonation_count == 0) {
+//                 _impersonate_user();
+//                 impersonation_count = 1;
+//             } else {
+//                 impersonation_count++;
+//             }
+//         }
+//     }
+
+//     ~_impersonation_helper()
+//     {
+//         if (impersonated) {
+//             impersonation_count--;
+//             if (impersonation_count == 0) {
+//                 _revert_to_self();
+//             }
+//         }
+//     }
+
+// private:
+//     bool impersonated = false;
+// } impersonation_helper_t;
+
+typedef class _impersonation_helper
+{
+  public:
+    static uint32_t impersonation_count;
+
+    _impersonation_helper(execution_mode_t mode)
+    {
+        if (mode == Standard) {
+            _impersonate_user();
+            impersonated = true;
+        }
+    }
+
+    ~_impersonation_helper()
+    {
+        if (impersonated) {
+            _revert_to_self();
+        }
+    }
+
+  private:
+    bool impersonated = false;
+} impersonation_helper_t;
+
+uint32_t impersonation_helper_t::impersonation_count = 0;
+
+static HANDLE
+_logon_user(std::string& user_name, std::string& password)
+{
+    HANDLE token = 0;
+    if (_globals.mode != Admin) {
+        bool result = LogonUserA(
+            user_name.c_str(), nullptr, password.c_str(), LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &token);
+        if (result == false) {
+            int error = GetLastError();
+            printf("error = %d\n", error);
+        }
+        REQUIRE(result == true);
+    }
+
+    return token;
+}
 
 inline static IPPROTO
 _get_protocol_from_string(std::string protocol)
@@ -63,6 +168,24 @@ _get_protocol_from_string(std::string protocol)
     }
 
     REQUIRE(false);
+}
+
+static execution_mode_t
+_get_execution_mode(std::string& execution_mode_string)
+{
+    if (execution_mode_string == "" || execution_mode_string == "Admin") {
+        return execution_mode_t::Admin;
+    }
+
+    if (execution_mode_string == "Standard") {
+        return execution_mode_t::Standard;
+    }
+
+    // if (execution_mode_string == "Elevated") {
+    //     return execution_mode_t::Elevated;
+    // }
+
+    return execution_mode_t::Admin;
 }
 
 static void
@@ -128,6 +251,8 @@ _initialize_test_globals()
     REQUIRE((v6_addresses == 0 || v6_addresses == 3));
     IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[socket_family_t::IPv6].loopback_address);
 
+    _globals.mode = _get_execution_mode(_execution_mode_string);
+    _globals.user_token = _logon_user(_user_name, _password);
     _globals.destination_port = _destination_port;
     _globals.proxy_port = _proxy_port;
     _globals_initialized = true;
@@ -142,6 +267,8 @@ _get_pid_tgid()
 static void
 _validate_audit_map_entry(_In_ const struct bpf_object* object)
 {
+    // impersonation_helper_t helper(_globals.mode, true);
+
     bpf_map* audit_map = bpf_object__find_map_by_name(object, "audit_map");
     REQUIRE(audit_map != nullptr);
 
@@ -159,7 +286,11 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object)
     REQUIRE(result == ERROR_SUCCESS);
 
     if (_globals.protocol == IPPROTO_TCP) {
-        REQUIRE(entry.is_admin == 1);
+        if (_globals.mode == Admin) {
+            REQUIRE(entry.is_admin == 1);
+        } else {
+            REQUIRE(entry.is_admin == 0);
+        }
         REQUIRE(entry.is_admin_valid == 1);
     }
 
@@ -169,8 +300,13 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object)
 static void
 _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 {
+    // std::string full_file_path = _working_directory + "cgroup_sock_addr2.o";
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
+    printf("errno = %d\n", errno);
     REQUIRE(object != nullptr);
+
+    // impersonation_helper_t helper(_globals.mode, true);
+
     REQUIRE(bpf_object__load(object) == 0);
 
     bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object, "connect_redirect4");
@@ -201,6 +337,8 @@ _update_policy_map(
     bool dual_stack,
     bool add)
 {
+    // impersonation_helper_t helper(_globals.mode, true);
+
     bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
     REQUIRE(policy_map != nullptr);
 
@@ -245,24 +383,29 @@ connect_redirect_test(
     bool dual_stack)
 {
     bool add_policy = true;
+    uint32_t bytes_received = 0;
+    char* received_message = nullptr;
+
     // Update policy in the map to redirect the connection to the proxy.
     _update_policy_map(
         object, destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
 
-    // Try to send and receive message to "destination". It should succeed.
-    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
-    sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
+    {
+        impersonation_helper_t helper(_globals.mode);
 
-    sender_socket->post_async_receive();
-    sender_socket->complete_async_receive(2000, false);
+        // Try to send and receive message to "destination". It should succeed.
+        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
+        sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
 
-    uint32_t bytes_received = 0;
-    char* received_message = nullptr;
-    sender_socket->get_received_message(bytes_received, received_message);
+        sender_socket->post_async_receive();
+        sender_socket->complete_async_receive(2000, false);
 
-    std::string expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
-    REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
-    REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
+        sender_socket->get_received_message(bytes_received, received_message);
+
+        std::string expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
+        REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
+        REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
+    }
 
     _validate_audit_map_entry(object);
 
@@ -282,12 +425,15 @@ authorize_test(
     // Default behavior of the eBPF program is to block the connection.
 
     // Send should fail as the connection is blocked.
-    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
-    sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
+    {
+        impersonation_helper_t helper(_globals.mode);
+        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
+        sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
 
-    // Receive should timeout as connection is blocked.
-    sender_socket->post_async_receive(true);
-    sender_socket->complete_async_receive(1000, true);
+        // Receive should timeout as connection is blocked.
+        sender_socket->post_async_receive(true);
+        sender_socket->complete_async_receive(1000, true);
+    }
 
     _validate_audit_map_entry(object);
 
@@ -405,6 +551,8 @@ test_common(ADDRESS_FAMILY family, IPPROTO protocol)
     struct bpf_object* object = nullptr;
     _load_and_attach_ebpf_programs(&object);
 
+    // impersonation_helper_t helper(_globals.mode, false);
+
     _globals.family = family;
     _globals.protocol = protocol;
     socket_family_t socket_family = (family == AF_INET) ? socket_family_t::IPv4 : socket_family_t::IPv6;
@@ -439,7 +587,11 @@ main(int argc, char* argv[])
                Opt(_remote_ip_v4, "v4 Remote IP")["-r"]["--remote-ip-v4"]("IPv4 Remote IP") |
                Opt(_remote_ip_v6, "v6 Remote IP")["-r"]["--remote-ip-v6"]("IPv6 Remote IP") |
                Opt(_destination_port, "Destination Port")["-t"]["--destination-port"]("Destination Port") |
-               Opt(_proxy_port, "Proxy Port")["-pt"]["--proxy-port"]("Proxy Port");
+               Opt(_proxy_port, "Proxy Port")["-pt"]["--proxy-port"]("Proxy Port") |
+               Opt(_user_name, "User Name")["-u"]["--user-name"]("User Name") |
+               Opt(_password, "Password")["-w"]["--password"]("Password") |
+               Opt(_execution_mode_string, "Execution Mode")["-x"]["--execution-mode"]("Execution Mode");
+    // Opt(_working_directory, "Working Directory")["-y"]["--working-directory"]("Working Directory");
 
     session.cli(cli);
 

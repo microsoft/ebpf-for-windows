@@ -3,6 +3,8 @@
 
 param ([Parameter(Mandatory=$True)] [string] $Admin,
        [Parameter(Mandatory=$True)] [SecureString] $AdminPassword,
+       [Parameter(Mandatory=$True)] [string] $User,
+       [Parameter(Mandatory=$True)] [SecureString] $UserPassword,
        [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
@@ -347,7 +349,8 @@ function Invoke-XDPTestsOnVM
 function Invoke-ConnectRedirectTestsOnVM
 {
     param([parameter(Mandatory=$true)] $MultiVMTestConfig,
-          [parameter(Mandatory=$true)] $ConnectRedirectTestConfig)
+          [parameter(Mandatory=$true)] $ConnectRedirectTestConfig,
+          [parameter(Mandatory=$false)][ValidateSet("Admin", "Standard", "Elevated")] $ExecutionType = "Admin")
 
     $VM1 = $MultiVMTestConfig[0]
     $VM1Interface = $VM1.Interfaces[0]
@@ -387,6 +390,14 @@ function Invoke-ConnectRedirectTestsOnVM
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
+    if ($ExecutionType -ne "Admin")
+    {
+        $TestCredential = New-Credential -Username $User -AdminPassword $UserPassword
+    }
+    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($UserPassword)
+    $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+
     Invoke-Command -VMName $VM1.Name -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)][string] $VM,
               [parameter(Mandatory=$true)][string] $LocalIPv4Address,
@@ -397,6 +408,9 @@ function Invoke-ConnectRedirectTestsOnVM
               [parameter(Mandatory=$true)][string] $VirtualIPv6Address,
               [parameter(Mandatory=$true)][int] $DestinationPort,
               [parameter(Mandatory=$true)][int] $ProxyPort,
+              [parameter(Mandatory=$true)][string] $AdminUserName,
+              [parameter(Mandatory=$true)][string] $AdminPassword,
+              [parameter(Mandatory=$true)][string] $ExecutionType,
               [parameter(Mandatory=$true)][string] $WorkingDirectory,
               [Parameter(Mandatory=$true)][string] $LogFileName)
 
@@ -404,9 +418,21 @@ function Invoke-ConnectRedirectTestsOnVM
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Write-Log "Invoking connect redirect tests on $VM"
-        Invoke-ConnectRedirectTest -LocalIPv4Address $LocalIPv4Address -LocalIPv6Address $LocalIPv6Address -RemoteIPv4Address $RemoteIPv4Address -RemoteIPv6Address $RemoteIPv6Address -VirtualIPv4Address $VirtualIPv4Address -VirtualIPv6Address $VirtualIPv6Address -DestinationPort $DestinationPort -ProxyPort $ProxyPort -WorkingDirectory $WorkingDirectory
-    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, "eBPF", $LogFileName) -ErrorAction Stop
+        Write-Log "Invoking connect redirect tests [Mode=$ExecutionType] on $VM"
+        Invoke-ConnectRedirectTest `
+            -LocalIPv4Address $LocalIPv4Address `
+            -LocalIPv6Address $LocalIPv6Address `
+            -RemoteIPv4Address $RemoteIPv4Address `
+            -RemoteIPv6Address $RemoteIPv6Address `
+            -VirtualIPv4Address $VirtualIPv4Address `
+            -VirtualIPv6Address $VirtualIPv6Address `
+            -DestinationPort $DestinationPort `
+            -ProxyPort $ProxyPort `
+            -AdminUserName $AdminUserName `
+            -AdminPassword $AdminPassword `
+            -ExecutionType $ExecutionType `
+            -WorkingDirectory $WorkingDirectory
+    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $Admin, $UnsecurePassword, $ExecutionType, "eBPF", $LogFileName) -ErrorAction Stop
 
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
     Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName
