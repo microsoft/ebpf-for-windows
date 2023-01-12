@@ -1256,6 +1256,15 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms);
 
+    /**
+     * @brief Should the current thread yield the processor?
+     *
+     * @retval true Thread should yield the processor.
+     * @retval false Thread should not yield the processor.
+     */
+    bool
+    ebpf_should_yield_processor();
+
 /**
  * @brief Append a value to a cryptographic hash object.
  * @param[in] hash The hash object to update.
