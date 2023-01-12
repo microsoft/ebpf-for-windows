@@ -149,33 +149,33 @@ static duplicate_handles_table_t _duplicate_handles;
 
 HANDLE
 GlueCreateFileW(
-    PCWSTR lpFileName,
-    DWORD dwDesiredAccess,
-    DWORD dwShareMode,
-    PSECURITY_ATTRIBUTES lpSecurityAttributes,
-    DWORD dwCreationDisposition,
-    DWORD dwFlagsAndAttributes,
-    HANDLE hTemplateFile)
+    _In_z_ const wchar_t* file_name,
+    unsigned long desired_access,
+    unsigned long share_mode,
+    _In_opt_ SECURITY_ATTRIBUTES* security_attributes,
+    unsigned long creation_disposition,
+    unsigned long flags_and_attributes,
+    HANDLE template_file)
 {
-    UNREFERENCED_PARAMETER(lpFileName);
-    UNREFERENCED_PARAMETER(dwDesiredAccess);
-    UNREFERENCED_PARAMETER(dwShareMode);
-    UNREFERENCED_PARAMETER(lpSecurityAttributes);
-    UNREFERENCED_PARAMETER(dwCreationDisposition);
-    UNREFERENCED_PARAMETER(dwFlagsAndAttributes);
-    UNREFERENCED_PARAMETER(hTemplateFile);
+    UNREFERENCED_PARAMETER(file_name);
+    UNREFERENCED_PARAMETER(desired_access);
+    UNREFERENCED_PARAMETER(share_mode);
+    UNREFERENCED_PARAMETER(security_attributes);
+    UNREFERENCED_PARAMETER(creation_disposition);
+    UNREFERENCED_PARAMETER(flags_and_attributes);
+    UNREFERENCED_PARAMETER(template_file);
 
     return (HANDLE)CREATE_FILE_HANDLE;
 }
 
 BOOL
-GlueCloseHandle(HANDLE hObject)
+GlueCloseHandle(HANDLE object_handle)
 {
-    if (hObject == (HANDLE)CREATE_FILE_HANDLE) {
+    if (object_handle == (HANDLE)CREATE_FILE_HANDLE) {
         return TRUE;
     }
 
-    ebpf_handle_t handle = reinterpret_cast<ebpf_handle_t>(hObject);
+    ebpf_handle_t handle = reinterpret_cast<ebpf_handle_t>(object_handle);
     bool found = _duplicate_handles.dereference_if_found(handle);
     if (!found) {
         // No duplicates. Close the handle.
@@ -187,26 +187,26 @@ GlueCloseHandle(HANDLE hObject)
 
 BOOL
 GlueDuplicateHandle(
-    HANDLE hSourceProcessHandle,
-    HANDLE hSourceHandle,
-    HANDLE hTargetProcessHandle,
-    LPHANDLE lpTargetHandle,
-    DWORD dwDesiredAccess,
-    BOOL bInheritHandle,
-    DWORD dwOptions)
+    HANDLE source_process_handle,
+    HANDLE source_handle,
+    HANDLE target_process_handle,
+    _Out_ HANDLE* target_handle,
+    unsigned long desired_access,
+    BOOL inherit_handle,
+    unsigned long options)
 {
-    UNREFERENCED_PARAMETER(hSourceProcessHandle);
-    UNREFERENCED_PARAMETER(hTargetProcessHandle);
-    UNREFERENCED_PARAMETER(dwDesiredAccess);
-    UNREFERENCED_PARAMETER(bInheritHandle);
-    UNREFERENCED_PARAMETER(dwOptions);
+    UNREFERENCED_PARAMETER(source_process_handle);
+    UNREFERENCED_PARAMETER(target_process_handle);
+    UNREFERENCED_PARAMETER(desired_access);
+    UNREFERENCED_PARAMETER(inherit_handle);
+    UNREFERENCED_PARAMETER(options);
     // Return the same value for duplicated handle.
-    *lpTargetHandle = hSourceHandle;
-    return !!_duplicate_handles.reference_or_add(reinterpret_cast<ebpf_handle_t>(hSourceHandle));
+    *target_handle = source_handle;
+    return !!_duplicate_handles.reference_or_add(reinterpret_cast<ebpf_handle_t>(source_handle));
 }
 
 static void
-_complete_overlapped(void* context, size_t output_buffer_length, ebpf_result_t result)
+_complete_overlapped(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result)
 {
     UNREFERENCED_PARAMETER(output_buffer_length);
     auto overlapped = reinterpret_cast<OVERLAPPED*>(context);
@@ -215,12 +215,12 @@ _complete_overlapped(void* context, size_t output_buffer_length, ebpf_result_t r
 }
 
 BOOL
-GlueCancelIoEx(_In_ HANDLE hFile, _In_opt_ LPOVERLAPPED lpOverlapped)
+GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
 {
-    UNREFERENCED_PARAMETER(hFile);
+    UNREFERENCED_PARAMETER(file_handle);
     BOOL return_value = FALSE;
-    if (lpOverlapped != nullptr)
-        return_value = ebpf_core_cancel_protocol_handler(lpOverlapped);
+    if (overlapped != nullptr)
+        return_value = ebpf_core_cancel_protocol_handler(overlapped);
     return return_value;
 }
 
@@ -330,30 +330,30 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
 
 BOOL
 GlueDeviceIoControl(
-    HANDLE hDevice,
-    DWORD dwIoControlCode,
-    PVOID lpInBuffer,
-    DWORD nInBufferSize,
-    LPVOID lpOutBuffer,
-    DWORD nOutBufferSize,
-    PDWORD lpBytesReturned,
-    OVERLAPPED* lpOverlapped)
+    HANDLE device_handle,
+    unsigned long io_control_code,
+    _In_reads_bytes_(input_buffer_size) void* input_buffer,
+    unsigned long input_buffer_size,
+    _Out_writes_bytes_to_(output_buffer_size, *bytes_returned) void* output_buffer,
+    unsigned long output_buffer_size,
+    _Out_ PDWORD bytes_returned,
+    _Inout_ OVERLAPPED* overlapped)
 {
-    UNREFERENCED_PARAMETER(hDevice);
-    UNREFERENCED_PARAMETER(dwIoControlCode);
+    UNREFERENCED_PARAMETER(device_handle);
+    UNREFERENCED_PARAMETER(io_control_code);
 
     ebpf_result_t result;
-    const ebpf_operation_header_t* user_request = reinterpret_cast<decltype(user_request)>(lpInBuffer);
+    const ebpf_operation_header_t* user_request = reinterpret_cast<decltype(user_request)>(input_buffer);
     ebpf_operation_header_t* user_reply = nullptr;
-    *lpBytesReturned = 0;
+    *bytes_returned = 0;
     auto request_id = user_request->id;
     size_t minimum_request_size = 0;
     size_t minimum_reply_size = 0;
     bool async = false;
-    DWORD sharedBufferSize = (nInBufferSize > nOutBufferSize) ? nInBufferSize : nOutBufferSize;
+    unsigned long sharedBufferSize = (input_buffer_size > output_buffer_size) ? input_buffer_size : output_buffer_size;
     std::vector<uint8_t> sharedBuffer;
-    const void* input_buffer = nullptr;
-    void* output_buffer = nullptr;
+    const void* local_input_buffer = nullptr;
+    void* local_output_buffer = nullptr;
 
     result = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size, &async);
     if (result != EBPF_SUCCESS)
@@ -365,12 +365,12 @@ GlueDeviceIoControl(
     }
 
     if (minimum_reply_size > 0) {
-        user_reply = reinterpret_cast<decltype(user_reply)>(lpOutBuffer);
+        user_reply = reinterpret_cast<decltype(user_reply)>(output_buffer);
         if (!user_reply) {
             result = EBPF_INVALID_ARGUMENT;
             goto Fail;
         }
-        if (nOutBufferSize < minimum_reply_size) {
+        if (output_buffer_size < minimum_reply_size) {
             result = EBPF_INVALID_ARGUMENT;
             goto Fail;
         }
@@ -384,32 +384,32 @@ GlueDeviceIoControl(
         // the same memory.  So to catch bugs that only show up in that
         // case, we force the same here.
         sharedBuffer.resize(sharedBufferSize);
-        memcpy(sharedBuffer.data(), user_request, nInBufferSize);
-        input_buffer = sharedBuffer.data();
-        output_buffer = (minimum_reply_size > 0) ? sharedBuffer.data() : nullptr;
+        memcpy(sharedBuffer.data(), user_request, input_buffer_size);
+        local_input_buffer = sharedBuffer.data();
+        local_output_buffer = (minimum_reply_size > 0) ? sharedBuffer.data() : nullptr;
     } else {
-        input_buffer = user_request;
-        output_buffer = user_reply;
+        local_input_buffer = user_request;
+        local_output_buffer = user_reply;
     }
 
     result = ebpf_core_invoke_protocol_handler(
         request_id,
-        input_buffer,
-        static_cast<uint16_t>(nInBufferSize),
-        output_buffer,
-        static_cast<uint16_t>(nOutBufferSize),
-        lpOverlapped,
+        local_input_buffer,
+        static_cast<uint16_t>(input_buffer_size),
+        local_output_buffer,
+        static_cast<uint16_t>(output_buffer_size),
+        overlapped,
         _complete_overlapped);
 
     if (!async && minimum_reply_size > 0) {
-        memcpy(user_reply, sharedBuffer.data(), nOutBufferSize);
+        memcpy(user_reply, sharedBuffer.data(), output_buffer_size);
     }
 
     if (result != EBPF_SUCCESS)
         goto Fail;
 
     if (user_reply) {
-        *lpBytesReturned = user_reply->length;
+        *bytes_returned = user_reply->length;
     }
     return TRUE;
 
