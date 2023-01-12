@@ -55,11 +55,12 @@ typedef struct _ebpf_program
     ebpf_extension_client_t* info_extension_client;
     const void* info_extension_provider_binding_context;
     const ebpf_extension_data_t* info_extension_provider_data;
+    bpf_prog_type_t bpf_prog_type;
+
     // Program type specific helper function count.
     uint32_t program_type_specific_helper_function_count;
     // Global helper function count implemented by the extension.
     uint32_t global_helper_function_count;
-    bool invalidated;
 
     ebpf_trampoline_table_t* trampoline_table;
 
@@ -76,7 +77,17 @@ typedef struct _ebpf_program
     uint32_t link_count;
     ebpf_map_t** maps;
     uint32_t count_of_maps;
+
 } ebpf_program_t;
+
+static ebpf_result_t
+_ebpf_program_get_context(_Outptr_ void** context);
+
+static struct
+{
+    size_t size;
+    _ebpf_extension_dispatch_function function[1];
+} _ebpf_program_dispatch_table = {1, {_ebpf_program_get_context}};
 
 static ebpf_result_t
 _ebpf_program_register_helpers(_In_ const ebpf_program_t* program);
@@ -110,7 +121,7 @@ _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
 static ebpf_result_t
 _ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program);
 
-static void
+static ebpf_result_t
 _ebpf_program_program_info_provider_changed(
     _In_ const void* client_binding_context,
     _In_ const void* provider_binding_context,
@@ -124,9 +135,17 @@ _ebpf_program_program_info_provider_changed(
     ebpf_helper_function_addresses_t* total_helper_function_addresses = NULL;
 
     if (provider_data == NULL) {
+        // Detach
         // Extension is detaching. Program will get invalidated.
+        program->info_extension_provider_binding_context = NULL;
+        program->info_extension_provider_data = NULL;
+        return_value = EBPF_SUCCESS;
         goto Exit;
     } else {
+        // Attach
+        program->info_extension_provider_binding_context = provider_binding_context;
+        program->info_extension_provider_data = provider_data;
+
         ebpf_helper_function_addresses_t* helper_function_addresses = NULL;
         ebpf_helper_function_addresses_t* global_helper_function_addresses = NULL;
 
@@ -138,6 +157,17 @@ _ebpf_program_program_info_provider_changed(
                 "An extension cannot have empty program_data",
                 program->parameters.program_type);
             // An extension cannot have empty program_data.
+            return_value = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
+        if (program_data->required_irql > HIGH_LEVEL) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "An extension cannot have required_irql higher than HIGH_LEVEL",
+                program->parameters.program_type);
+            return_value = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
 
@@ -154,6 +184,7 @@ _ebpf_program_program_info_provider_changed(
                 "A program info provider cannot modify helper function count upon reload",
                 program->parameters.program_type);
             // A program info provider cannot modify helper function count upon reload.
+            return_value = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
         if ((program->global_helper_function_count > 0) &&
@@ -165,6 +196,7 @@ _ebpf_program_program_info_provider_changed(
                 "A program info provider cannot modify global helper function count upon reload",
                 program->parameters.program_type);
             // A program info provider cannot modify helper function count upon reload.
+            return_value = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
 
@@ -293,22 +325,21 @@ _ebpf_program_program_info_provider_changed(
             }
 #endif
         }
-    }
 
-    program->info_extension_provider_binding_context = provider_binding_context;
-    program->info_extension_provider_data = provider_data;
-
-    if (program->parameters.program_info_hash != NULL) {
-        return_value = _ebpf_program_verify_program_info_hash(program);
-        if (return_value != EBPF_SUCCESS) {
-            EBPF_LOG_MESSAGE_GUID(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_PROGRAM,
-                "The program info used to verify the program doesn't match the program info provided by the "
-                "extension",
-                program->parameters.program_type);
-            goto Exit;
+        if (program->parameters.program_info_hash != NULL) {
+            return_value = _ebpf_program_verify_program_info_hash(program);
+            if (return_value != EBPF_SUCCESS) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
+                    "The program info used to verify the program doesn't match the program info provided by the "
+                    "extension",
+                    program->parameters.program_type);
+                goto Exit;
+            }
         }
+        program->bpf_prog_type = program_data->program_info->program_type_descriptor.bpf_prog_type;
+        return_value = EBPF_SUCCESS;
     }
 
 Exit:
@@ -317,8 +348,13 @@ Exit:
         ebpf_free(total_helper_function_addresses->helper_function_address);
         ebpf_free(total_helper_function_addresses);
     }
-    program->invalidated = (program->info_extension_provider_data == NULL);
-    EBPF_RETURN_VOID();
+
+    if (return_value != EBPF_SUCCESS) {
+        program->info_extension_provider_data = NULL;
+        program->info_extension_provider_binding_context = NULL;
+    }
+
+    EBPF_RETURN_RESULT(return_value);
 }
 
 /**
@@ -356,13 +392,7 @@ _ebpf_program_get_program_type(_In_ const ebpf_core_object_t* object)
 static const bpf_prog_type_t
 _ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
 {
-    bpf_prog_type_t prog_type = BPF_PROG_TYPE_UNSPEC;
-    if (program->info_extension_provider_binding_context != NULL) {
-        ebpf_program_data_t* program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
-        prog_type = program_data->program_info->program_type_descriptor.bpf_prog_type;
-    }
-
-    return prog_type;
+    return program->bpf_prog_type;
 }
 
 /**
@@ -434,8 +464,6 @@ ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
         goto Done;
     }
 
-    program->invalidated = false;
-
     return_value = ebpf_extension_load(
         &program->general_helper_extension_client,
         &ebpf_program_information_extension_interface_id, // Load program information extension.
@@ -494,7 +522,7 @@ ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
         &module_id,
         program,
         NULL,
-        NULL,
+        (ebpf_extension_dispatch_table_t*)&_ebpf_program_dispatch_table,
         (void**)&program->info_extension_provider_binding_context,
         &program->info_extension_provider_data,
         NULL,
@@ -542,6 +570,8 @@ ebpf_program_create(_Outptr_ ebpf_program_t** program)
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
+
+    local_program->bpf_prog_type = BPF_PROG_TYPE_UNSPEC;
 
     *program = local_program;
     local_program = NULL;
@@ -909,6 +939,7 @@ typedef struct _ebpf_program_tail_call_state
 {
     const ebpf_program_t* next_program;
     uint32_t count;
+    void* context;
 } ebpf_program_tail_call_state_t;
 
 _Must_inspect_result_ ebpf_result_t
@@ -940,15 +971,23 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
     ebpf_program_tail_call_state_t state = {0};
     const ebpf_program_t* current_program = program;
 
-    if (!program || program->invalidated) {
+    bool provider_data_referenced = false;
+    bool program_state_stored = false;
+
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
         *result = 0;
         return;
     }
 
+    provider_data_referenced = true;
+
+    state.context = context;
     if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
         *result = 0;
-        return;
+        goto Done;
     }
+
+    program_state_stored = true;
 
     for (state.count = 0; state.count < MAX_TAIL_CALL_CNT; state.count++) {
         if (current_program->parameters.code_type == EBPF_CODE_JIT ||
@@ -983,7 +1022,13 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
         }
     }
 
-    ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0));
+Done:
+    if (program_state_stored) {
+        ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0));
+    }
+    if (provider_data_referenced) {
+        ebpf_extension_dereference_provider_data(program->info_extension_client);
+    }
 }
 
 static ebpf_result_t
@@ -994,13 +1039,28 @@ _ebpf_program_get_helper_function_address(
     void* function_address;
     EBPF_LOG_ENTRY();
 
+    bool provider_data_referenced = false;
+
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "The extension is not loaded for program type",
+            program->parameters.program_type);
+        return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
+        goto Done;
+    }
+    provider_data_referenced = true;
+
     if (helper_function_id > EBPF_MAX_GENERAL_HELPER_FUNCTION) {
         if (!program->trampoline_table) {
-            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+            return_value = EBPF_INVALID_ARGUMENT;
+            goto Done;
         }
         return_value = ebpf_get_trampoline_function(program->trampoline_table, helper_function_id, &function_address);
-        if (return_value != EBPF_SUCCESS)
-            EBPF_RETURN_RESULT(return_value);
+        if (return_value != EBPF_SUCCESS) {
+            goto Done;
+        }
 
         *address = (uint64_t)function_address;
     } else {
@@ -1012,7 +1072,8 @@ _ebpf_program_get_helper_function_address(
             if (return_value == EBPF_SUCCESS) {
                 // Found an entry.
                 *address = (uint64_t)function_address;
-                EBPF_RETURN_RESULT(EBPF_SUCCESS);
+                return_value = EBPF_SUCCESS;
+                goto Done;
             }
         }
         ebpf_assert(program->general_helper_provider_data != NULL);
@@ -1030,12 +1091,19 @@ _ebpf_program_get_helper_function_address(
         _Analysis_assume_(general_helper_function_addresses != NULL);
 
         if (helper_function_id > general_helper_function_addresses->helper_function_count) {
-            return EBPF_INVALID_ARGUMENT;
+            return_value = EBPF_INVALID_ARGUMENT;
+            goto Done;
         }
         *address = general_helper_function_addresses->helper_function_address[helper_function_id];
     }
 
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+    return_value = EBPF_SUCCESS;
+
+Done:
+    if (provider_data_referenced) {
+        ebpf_extension_dereference_provider_data(program->info_extension_client);
+    }
+    EBPF_RETURN_RESULT(return_value);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -1108,14 +1176,21 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     ebpf_program_info_t* local_program_info = NULL;
     uint32_t total_count_of_helpers = 0;
     uint32_t helper_index = 0;
+    bool provider_data_referenced = false;
 
     ebpf_assert(program_info);
     *program_info = NULL;
 
-    if (program->invalidated) {
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "The extension is not loaded for program type",
+            program->parameters.program_type);
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Exit;
     }
+    provider_data_referenced = true;
 
     if (!program->info_extension_provider_data) {
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -1177,6 +1252,10 @@ Exit:
         local_program_info = NULL;
     } else {
         ebpf_program_free_program_info(local_program_info);
+    }
+
+    if (provider_data_referenced) {
+        ebpf_extension_dereference_provider_data(program->info_extension_client);
     }
 
     EBPF_RETURN_RESULT(result);
@@ -1475,4 +1554,159 @@ Exit:
     ebpf_program_free_program_info((ebpf_program_info_t*)program_info);
 
     EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_ebpf_program_get_context(_Outptr_ void** context)
+{
+    ebpf_result_t result;
+    ebpf_program_tail_call_state_t* state = NULL;
+    *context = NULL;
+    result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    *context = state->context;
+
+Exit:
+    return result;
+}
+
+typedef struct _ebpf_program_test_run_context
+{
+    const ebpf_program_t* program;
+    void* context;
+    ebpf_program_test_run_options_t* options;
+    ebpf_signal_t* completion_event;
+    uint8_t required_irql;
+} ebpf_program_test_run_context_t;
+
+static void
+_ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
+{
+    _Analysis_assume_(work_item_context != NULL);
+
+    ebpf_program_test_run_context_t* context = (ebpf_program_test_run_context_t*)work_item_context;
+    ebpf_program_test_run_options_t* options = context->options;
+    uint64_t end_time;
+    ebpf_result_t result;
+    uint32_t return_value = 0;
+    uint8_t old_irql;
+    uintptr_t old_thread_affinity;
+
+    result = ebpf_set_current_thread_affinity((uintptr_t)1 << options->cpu, &old_thread_affinity);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    // Issue: https://github.com/microsoft/ebpf-for-windows/issues/1844
+    // Running at elevated IRQL for long periods of time can cause the system to hang.
+    // This should periodically lower the IRQL to allow other work to be done.
+    old_irql = ebpf_raise_irql(context->required_irql);
+
+    uint64_t start_time = ebpf_query_time_since_boot(false);
+    for (size_t i = 0; i < options->repeat_count; i++) {
+        result = ebpf_epoch_enter();
+        if (result != EBPF_SUCCESS)
+            break;
+        ebpf_program_invoke(context->program, context->context, &return_value);
+        ebpf_epoch_exit();
+    }
+    end_time = ebpf_query_time_since_boot(false);
+
+    options->duration = (end_time - start_time) * EBPF_NS_PER_FILETIME;
+    options->duration /= options->repeat_count;
+    options->return_value = return_value;
+
+    ebpf_lower_irql(old_irql);
+    ebpf_restore_current_thread_affinity(old_thread_affinity);
+
+Done:
+    ebpf_signal_set(context->completion_event);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options)
+{
+    EBPF_LOG_ENTRY();
+
+    ebpf_result_t return_value = EBPF_SUCCESS;
+    ebpf_signal_t* signal = NULL;
+    ebpf_program_test_run_context_t* test_run_context = NULL;
+    void* context = NULL;
+    ebpf_preemptible_work_item_t* work_item = NULL;
+    ebpf_program_data_t* program_data = NULL;
+    bool provider_data_referenced = false;
+
+    // Prevent the provider from detaching while the program is running.
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "The extension is not loaded for program type",
+            program->parameters.program_type);
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+    provider_data_referenced = true;
+
+    program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
+
+    if (program_data->context_create == NULL || program_data->context_destroy == NULL) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    // Convert the input buffer to a program type specific context structure.
+    return_value = program_data->context_create(
+        options->data_in, options->data_size_in, options->context_in, options->context_size_in, &context);
+    if (return_value != 0) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    test_run_context = (ebpf_program_test_run_context_t*)ebpf_allocate(sizeof(ebpf_program_test_run_context_t));
+    if (test_run_context == NULL) {
+        return_value = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    return_value = ebpf_signal_create(&signal);
+    if (return_value != EBPF_SUCCESS) {
+        return_value = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    test_run_context->program = program;
+    test_run_context->required_irql = program_data->required_irql;
+    test_run_context->context = context;
+    test_run_context->options = options;
+    test_run_context->completion_event = signal;
+
+    // Queue the work item so that it can be executed on the target CPU and at the target dispatch level.
+    // The work item will signal the completion event when it is done.
+    return_value = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_program_test_run_work_item, test_run_context);
+    if (return_value != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    // ebpf_queue_preemptible_work_item() will free both the work item and the context when it is done.
+    ebpf_queue_preemptible_work_item(work_item);
+    test_run_context = NULL;
+
+    (void)ebpf_signal_wait(signal, MAXUINT32);
+
+Exit:
+    if (program_data && program_data->context_destroy != NULL && context != NULL) {
+        program_data->context_destroy(
+            context, options->data_out, &options->data_size_out, options->context_out, &options->context_size_out);
+    }
+    ebpf_free(test_run_context);
+    ebpf_signal_destroy(signal);
+
+    if (provider_data_referenced) {
+        ebpf_extension_dereference_provider_data(program->info_extension_client);
+    }
+    EBPF_RETURN_RESULT(return_value);
 }

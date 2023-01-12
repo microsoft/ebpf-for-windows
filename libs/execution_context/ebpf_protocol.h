@@ -41,6 +41,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
     EBPF_OPERATION_LOAD_NATIVE_MODULE,
     EBPF_OPERATION_LOAD_NATIVE_PROGRAMS,
+    EBPF_OPERATION_PROGRAM_TEST_RUN,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -429,3 +430,24 @@ typedef struct _ebpf_operation_load_native_programs_reply
     // Map handles followed by program handles.
     uint8_t data[1];
 } ebpf_operation_load_native_programs_reply_t;
+
+typedef struct _ebpf_operation_program_test_run_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t program_handle;
+    size_t repeat_count;
+    uint32_t flags;
+    uint32_t cpu;
+    size_t batch_size;
+    uint16_t context_offset;
+    uint8_t data[1];
+
+} ebpf_operation_program_test_run_request_t;
+typedef struct _ebpf_operation_program_test_run_reply
+{
+    struct _ebpf_operation_header header;
+    uint64_t duration;
+    uint64_t return_value;
+    uint64_t context_offset;
+    uint8_t data[1];
+} ebpf_operation_program_test_run_reply_t;

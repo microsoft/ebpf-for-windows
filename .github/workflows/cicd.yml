@@ -59,7 +59,7 @@ jobs:
       build_artifact: Build-x64-fuzzer
       cxx_flags: /fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /ZH:SHA_256
       ld_flags: '"clang_rt.fuzzer_MD-x86_64.lib" "libsancov.lib"'
-      build_options: /p:Fuzzer='True' /t:tests\libfuzzer\execution_context_fuzzer /t:tests\libfuzzer\bpf2c_fuzzer /t:tests\libfuzzer\verifier_fuzzer /t:tests\libfuzzer\core_helper_fuzzer
+      build_options: /p:Fuzzer='True' /t:tests\libfuzzer\execution_context_fuzzer /t:tests\libfuzzer\bpf2c_fuzzer /t:tests\libfuzzer\verifier_fuzzer /t:tests\libfuzzer\core_helper_fuzzer /t:tests\libfuzzer\netebpfext_fuzzer
 
   # Run the unit tests in GitHub.
   unit_tests:
@@ -249,6 +249,19 @@ jobs:
     with:
       name: core_helper_fuzzer
       test_command: .\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+
+  netebpfext_fuzzer:
+    needs: libfuzzer
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: netebpfext_fuzzer
+      test_command: .\netebpfext_fuzzer netebpfext_corpus -max_len=12 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2022
       code_coverage: false
