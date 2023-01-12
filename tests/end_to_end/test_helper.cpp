@@ -179,7 +179,9 @@ GlueCloseHandle(HANDLE object_handle)
     bool found = _duplicate_handles.dereference_if_found(handle);
     if (!found) {
         // No duplicates. Close the handle.
-        REQUIRE((ebpf_api_close_handle(handle) == EBPF_SUCCESS || ebpf_fuzzing_enabled));
+        if (!(ebpf_api_close_handle(handle) == EBPF_SUCCESS || ebpf_fuzzing_enabled)) {
+            throw std::runtime_error("ebpf_api_close_handle failed");
+        }
     }
 
     return TRUE;
