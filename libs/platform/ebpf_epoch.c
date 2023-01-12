@@ -645,8 +645,8 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
             lowest_epoch = min(lowest_epoch, _ebpf_epoch_cpu_table[cpu_id].epoch_state.epoch);
         }
 
-        // Compute the cutoff time for inactive threads.
-        uint64_t inactive_thread_expiry_time =
+        // If a thread was last used before this cutoff, then it is stale and should be removed.
+        uint64_t stale_thread_cutoff =
             now - (EBPF_EPOCH_THREAD_TABLE_TIMEOUT_IN_NANO_SECONDS / EBPF_NANO_SECONDS_PER_FILETIME_TICK);
 
         // Loop over all the threads in this CPU entry.
@@ -678,8 +678,9 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
                 }
                 lowest_epoch = min(lowest_epoch, thread_entry->epoch_state.epoch);
             } else {
-                // If the thread entry is not active, then check if it's time to delete it.
-                if (thread_entry->last_used_time < inactive_thread_expiry_time) {
+                // Check if the thread entry has been used in the time interval [stale_thread_cutoff, now].
+                // If not, then delete the entry.
+                if (thread_entry->last_used_time < stale_thread_cutoff) {
                     EBPF_LOG_MESSAGE_UINT64(
                         EBPF_TRACELOG_LEVEL_VERBOSE,
                         EBPF_TRACELOG_KEYWORD_EPOCH,
