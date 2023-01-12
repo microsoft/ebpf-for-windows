@@ -93,10 +93,10 @@ typedef struct
 /// Attributes used by BPF_PROG_ATTACH/DETACH .
 typedef struct
 {
-    uint32_t prog_fd;       ///< File descriptor of program to attach to.
-    uint32_t target_fd; ///< eBPF target to attach/detach to/from.
+    uint32_t prog_fd;               ///< File descriptor of program to attach to.
+    uint32_t target_fd;             ///< eBPF target to attach/detach to/from.
     enum bpf_attach_type prog_type; ///< Type of program to attach/detach to/from.
-    uint32_t flags; ///< Flags affecting the attach operation.
+    uint32_t flags;                 ///< Flags affecting the attach operation.
 } bpf_prog_attr_t;
 
 /// Attributes used by BPF_PROG_BIND_MAP.

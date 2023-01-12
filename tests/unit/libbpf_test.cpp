@@ -22,16 +22,31 @@
 #pragma warning(disable : 26812)
 
 #define CONCAT(s1, s2) s1 s2
-#define DECLARE_ALL_TEST_CASES(_name, _group, _function)                              \
-                                                                                      \
-    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); }       \
-    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); } \
-    TEST_CASE(CONCAT(_name, "-interpret"), _group) { _function(EBPF_EXECUTION_INTERPRET); }
+#define DECLARE_ALL_TEST_CASES(_name, _group, _function) \
+                                                         \
+    TEST_CASE(CONCAT(_name, "-jit"), _group)             \
+    {                                                    \
+        _function(EBPF_EXECUTION_JIT);                   \
+    }                                                    \
+    TEST_CASE(CONCAT(_name, "-native"), _group)          \
+    {                                                    \
+        _function(EBPF_EXECUTION_NATIVE);                \
+    }                                                    \
+    TEST_CASE(CONCAT(_name, "-interpret"), _group)       \
+    {                                                    \
+        _function(EBPF_EXECUTION_INTERPRET);             \
+    }
 
-#define DECLARE_JIT_TEST_CASES(_name, _group, _function)                        \
-                                                                                \
-    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); } \
-    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
+#define DECLARE_JIT_TEST_CASES(_name, _group, _function) \
+                                                         \
+    TEST_CASE(CONCAT(_name, "-jit"), _group)             \
+    {                                                    \
+        _function(EBPF_EXECUTION_JIT);                   \
+    }                                                    \
+    TEST_CASE(CONCAT(_name, "-native"), _group)          \
+    {                                                    \
+        _function(EBPF_EXECUTION_NATIVE);                \
+    }
 
 const int nonexistent_fd = 12345678;
 
@@ -357,8 +372,11 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 }
 
 // Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
-#define BPF_LD_MAP_FD(reg, fd) \
-    {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, { 0 }
+#define BPF_LD_MAP_FD(reg, fd)             \
+    {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, \
+    {                                      \
+        0                                  \
+    }
 #define BPF_ALU64_IMM(op, reg, imm)                                     \
     {                                                                   \
         INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm) \
@@ -2423,7 +2441,7 @@ TEST_CASE("bpf_object__load with .o", "[libbpf]")
 
 // Test bpf() with the following command ids:
 // BPF_PROG_LOAD, BPF_OBJ_GET_INFO_BY_FD, BPF_PROG_GET_NEXT_ID,
-// BPF_MAP_CREATE, BPF_MAP_GET_NEXT_ID, BPF_PROG_ATTACH, BPF_PROG_DETACH, BPF_PROG_BIND_MAP,
+// BPF_MAP_CREATE, BPF_MAP_GET_NEXT_ID, BPF_PROG_BIND_MAP,
 // BPF_PROG_GET_FD_BY_ID, BPF_MAP_GET_FD_BY_ID, and BPF_MAP_GET_FD_BY_ID.
 TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 {
@@ -2498,21 +2516,6 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     REQUIRE(map_fd2 > 0);
     Platform::_close(map_fd2);
 
-    //Verify we attach the program.
-    memset(&attr, 0, sizeof(attr));
-    attr.bpf_prog.prog_fd= program_fd;
-    attr.bpf_prog.target_fd = program_fd;
-    attr.bpf_prog.flags = 0;
-    attr.bpf_prog.prog_type = BPF_CGROUP_INET4_CONNECT;
-    REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == 0);
-
-    // Verify we detach the program.
-    memset(&attr, 0, sizeof(attr));
-    attr.bpf_prog.target_fd = program_fd;
-    attr.bpf_prog.prog_type = BPF_CGROUP_INET4_CONNECT;
-    REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == 0);
-
-
     // Bind it to the program.
     memset(&attr, 0, sizeof(attr));
     attr.prog_bind_map.prog_fd = program_fd;
@@ -2523,6 +2526,55 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     // Release our own references on the map and program.
     Platform::_close(map_fd);
     Platform::_close(program_fd);
+}
+
+// Test bpf() with the following command ids:
+//  BPF_PROG_ATTACH, BPF_PROG_DETACH
+TEST_CASE("BPF_PROG_ATTACH" , "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    // Load and verify the eBPF program.
+    union bpf_attr attr = {};
+
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");
+    REQUIRE(program != nullptr);
+
+    REQUIRE(bpf_object__load(object) == 0);
+
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    //// Verify we can't attach the program to an attach type that doesn't work with this API.
+    memset(&attr, 0, sizeof(attr));
+    attr.bpf_prog.prog_fd = program_fd;
+    attr.bpf_prog.target_fd = program_fd;
+    attr.bpf_prog.flags = 0;
+    attr.bpf_prog.prog_type = BPF_XDP;
+    REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == -ENOTSUP);
+
+    // Verify we attach the program.
+    memset(&attr, 0, sizeof(attr));
+    attr.bpf_prog.prog_fd = program_fd;
+    attr.bpf_prog.target_fd = program_fd;
+    attr.bpf_prog.flags = 0;
+    attr.bpf_prog.prog_type = BPF_CGROUP_INET4_CONNECT;
+    REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == 0);
+
+
+    // Verify we detach the program.
+    memset(&attr, 0, sizeof(attr));
+    attr.bpf_prog.target_fd = program_fd;
+    attr.bpf_prog.prog_type = BPF_CGROUP_INET4_CONNECT;
+    REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == 0);
+
+   // Verify we can't detach= the program from a type that doesn't work with this API.
+    memset(&attr, 0, sizeof(attr));
+    attr.bpf_prog.target_fd = program_fd;
+    attr.bpf_prog.prog_type = BPF_XDP;
+    REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == -ENOTSUP);
 }
 
 // Test bpf() with the following command ids:
@@ -2577,7 +2629,7 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     attr.next_key = (uintptr_t)&next_key;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) < 0);
     REQUIRE(errno == ENOENT);
-
+  
     // Delete the entry.
     memset(&attr, 0, sizeof(attr));
     attr.map_fd = map_fd;
@@ -2586,8 +2638,13 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
 
     // Lookup and delete the entry.
     memset(&attr, 0, sizeof(attr));
+    value = 0;
+    key = 42;
     attr.map_fd = map_fd;
     attr.key = (uintptr_t)&key;
+    attr.value = (uintptr_t)&value;
+    //Add the element back to the entry after the previous test entry deletion.
+    bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
     REQUIRE(bpf(BPF_MAP_LOOKUP_AND_DELETE_ELEM, &attr, sizeof(attr)) == 0);
 
     // Verify that no entries exist.
