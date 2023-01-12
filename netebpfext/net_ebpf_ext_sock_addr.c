@@ -343,10 +343,10 @@ static ebpf_helper_function_addresses_t _ebpf_sock_addr_helper_function_address_
 
 static ebpf_program_data_t _ebpf_sock_addr_program_data = {
     .program_info = &_ebpf_sock_addr_program_info,
-    .context_create = &_ebpf_sock_addr_context_create,
-    .context_destroy = &_ebpf_sock_addr_context_destroy,
     .program_type_specific_helper_function_addresses = NULL,
-    .global_helper_function_addresses = &_ebpf_sock_addr_helper_function_address_table};
+    .global_helper_function_addresses = &_ebpf_sock_addr_helper_function_address_table,
+    .context_create = &_ebpf_sock_addr_context_create,
+    .context_destroy = &_ebpf_sock_addr_context_destroy};
 
 static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_addr_program_data), &_ebpf_sock_addr_program_data};
