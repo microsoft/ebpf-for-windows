@@ -40,180 +40,182 @@ extern "C"
 #define DISPATCH_LEVEL 2
 
     // Typedefs
-    
+
     typedef struct _SE_EXPORTS
-{
+    {
 
-    //
-    // Privilege values
-    //
+        //
+        // Privilege values
+        //
 
-    LUID SeCreateTokenPrivilege;
-    LUID SeAssignPrimaryTokenPrivilege;
-    LUID SeLockMemoryPrivilege;
-    LUID SeIncreaseQuotaPrivilege;
-    LUID SeUnsolicitedInputPrivilege;
-    LUID SeTcbPrivilege;
-    LUID SeSecurityPrivilege;
-    LUID SeTakeOwnershipPrivilege;
-    LUID SeLoadDriverPrivilege;
-    LUID SeCreatePagefilePrivilege;
-    LUID SeIncreaseBasePriorityPrivilege;
-    LUID SeSystemProfilePrivilege;
-    LUID SeSystemtimePrivilege;
-    LUID SeProfileSingleProcessPrivilege;
-    LUID SeCreatePermanentPrivilege;
-    LUID SeBackupPrivilege;
-    LUID SeRestorePrivilege;
-    LUID SeShutdownPrivilege;
-    LUID SeDebugPrivilege;
-    LUID SeAuditPrivilege;
-    LUID SeSystemEnvironmentPrivilege;
-    LUID SeChangeNotifyPrivilege;
-    LUID SeRemoteShutdownPrivilege;
+        LUID SeCreateTokenPrivilege;
+        LUID SeAssignPrimaryTokenPrivilege;
+        LUID SeLockMemoryPrivilege;
+        LUID SeIncreaseQuotaPrivilege;
+        LUID SeUnsolicitedInputPrivilege;
+        LUID SeTcbPrivilege;
+        LUID SeSecurityPrivilege;
+        LUID SeTakeOwnershipPrivilege;
+        LUID SeLoadDriverPrivilege;
+        LUID SeCreatePagefilePrivilege;
+        LUID SeIncreaseBasePriorityPrivilege;
+        LUID SeSystemProfilePrivilege;
+        LUID SeSystemtimePrivilege;
+        LUID SeProfileSingleProcessPrivilege;
+        LUID SeCreatePermanentPrivilege;
+        LUID SeBackupPrivilege;
+        LUID SeRestorePrivilege;
+        LUID SeShutdownPrivilege;
+        LUID SeDebugPrivilege;
+        LUID SeAuditPrivilege;
+        LUID SeSystemEnvironmentPrivilege;
+        LUID SeChangeNotifyPrivilege;
+        LUID SeRemoteShutdownPrivilege;
 
-    //
-    // Universally defined Sids
-    //
+        //
+        // Universally defined Sids
+        //
 
-    PSID SeNullSid;
-    PSID SeWorldSid;
-    PSID SeLocalSid;
-    PSID SeCreatorOwnerSid;
-    PSID SeCreatorGroupSid;
+        PSID SeNullSid;
+        PSID SeWorldSid;
+        PSID SeLocalSid;
+        PSID SeCreatorOwnerSid;
+        PSID SeCreatorGroupSid;
 
-    //
-    // Nt defined Sids
-    //
+        //
+        // Nt defined Sids
+        //
 
-    PSID SeNtAuthoritySid;
-    PSID SeDialupSid;
-    PSID SeNetworkSid;
-    PSID SeBatchSid;
-    PSID SeInteractiveSid;
-    PSID SeLocalSystemSid;
-    PSID SeAliasAdminsSid;
-    PSID SeAliasUsersSid;
-    PSID SeAliasGuestsSid;
-    PSID SeAliasPowerUsersSid;
-    PSID SeAliasAccountOpsSid;
-    PSID SeAliasSystemOpsSid;
-    PSID SeAliasPrintOpsSid;
-    PSID SeAliasBackupOpsSid;
+        PSID SeNtAuthoritySid;
+        PSID SeDialupSid;
+        PSID SeNetworkSid;
+        PSID SeBatchSid;
+        PSID SeInteractiveSid;
+        PSID SeLocalSystemSid;
+        PSID SeAliasAdminsSid;
+        PSID SeAliasUsersSid;
+        PSID SeAliasGuestsSid;
+        PSID SeAliasPowerUsersSid;
+        PSID SeAliasAccountOpsSid;
+        PSID SeAliasSystemOpsSid;
+        PSID SeAliasPrintOpsSid;
+        PSID SeAliasBackupOpsSid;
 
-    //
-    // New Sids defined for NT5
-    //
+        //
+        // New Sids defined for NT5
+        //
 
-    PSID SeAuthenticatedUsersSid;
+        PSID SeAuthenticatedUsersSid;
 
-    PSID SeRestrictedSid;
-    PSID SeAnonymousLogonSid;
+        PSID SeRestrictedSid;
+        PSID SeAnonymousLogonSid;
 
-    //
-    // New Privileges defined for NT5
-    //
+        //
+        // New Privileges defined for NT5
+        //
 
-    LUID SeUndockPrivilege;
-    LUID SeSyncAgentPrivilege;
-    LUID SeEnableDelegationPrivilege;
+        LUID SeUndockPrivilege;
+        LUID SeSyncAgentPrivilege;
+        LUID SeEnableDelegationPrivilege;
 
-    //
-    // New Sids defined for post-Windows 2000
+        //
+        // New Sids defined for post-Windows 2000
 
-    PSID SeLocalServiceSid;
-    PSID SeNetworkServiceSid;
+        PSID SeLocalServiceSid;
+        PSID SeNetworkServiceSid;
 
-    //
-    // New Privileges defined for post-Windows 2000
-    //
+        //
+        // New Privileges defined for post-Windows 2000
+        //
 
-    LUID SeManageVolumePrivilege;
-    LUID SeImpersonatePrivilege;
-    LUID SeCreateGlobalPrivilege;
+        LUID SeManageVolumePrivilege;
+        LUID SeImpersonatePrivilege;
+        LUID SeCreateGlobalPrivilege;
 
-    //
-    // New Privileges defined for post Windows Server 2003
-    //
+        //
+        // New Privileges defined for post Windows Server 2003
+        //
 
-    LUID SeTrustedCredManAccessPrivilege;
-    LUID SeRelabelPrivilege;
-    LUID SeIncreaseWorkingSetPrivilege;
+        LUID SeTrustedCredManAccessPrivilege;
+        LUID SeRelabelPrivilege;
+        LUID SeIncreaseWorkingSetPrivilege;
 
-    LUID SeTimeZonePrivilege;
-    LUID SeCreateSymbolicLinkPrivilege;
+        LUID SeTimeZonePrivilege;
+        LUID SeCreateSymbolicLinkPrivilege;
 
-    //
-    // New Sids defined for post Windows Server 2003
-    //
+        //
+        // New Sids defined for post Windows Server 2003
+        //
 
-    PSID SeIUserSid;
+        PSID SeIUserSid;
 
-    //
-    // Mandatory Sids, ordered lowest to highest.
-    //
+        //
+        // Mandatory Sids, ordered lowest to highest.
+        //
 
-    PSID SeUntrustedMandatorySid;
-    PSID SeLowMandatorySid;
-    PSID SeMediumMandatorySid;
-    PSID SeHighMandatorySid;
-    PSID SeSystemMandatorySid;
+        PSID SeUntrustedMandatorySid;
+        PSID SeLowMandatorySid;
+        PSID SeMediumMandatorySid;
+        PSID SeHighMandatorySid;
+        PSID SeSystemMandatorySid;
 
-    PSID SeOwnerRightsSid;
+        PSID SeOwnerRightsSid;
 
-    //
-    // Package/Capability Sids.
-    //
+        //
+        // Package/Capability Sids.
+        //
 
-    PSID SeAllAppPackagesSid;
-    PSID SeUserModeDriversSid;
+        PSID SeAllAppPackagesSid;
+        PSID SeUserModeDriversSid;
 
-    //
-    // Process Trust Sids.
-    //
+        //
+        // Process Trust Sids.
+        //
 
-    PSID SeProcTrustWinTcbSid;
+        PSID SeProcTrustWinTcbSid;
 
-    //
-    // Trusted Installer SID.
-    //
+        //
+        // Trusted Installer SID.
+        //
 
-    PSID SeTrustedInstallerSid;
+        PSID SeTrustedInstallerSid;
 
-    //
-    // New Privileges defined for Windows 10
-    //
+        //
+        // New Privileges defined for Windows 10
+        //
 
-    LUID SeDelegateSessionUserImpersonatePrivilege;
+        LUID SeDelegateSessionUserImpersonatePrivilege;
 
-    //
-    // App Silo SID
-    //
+        //
+        // App Silo SID
+        //
 
-    PSID SeAppSiloSid;
+        PSID SeAppSiloSid;
 
-    //
-    // App Silo Volume Root Minimal Capability SID
-    //
+        //
+        // App Silo Volume Root Minimal Capability SID
+        //
 
-    PSID SeAppSiloVolumeRootMinimalCapabilitySid;
+        PSID SeAppSiloVolumeRootMinimalCapabilitySid;
 
-    //
-    // App Silo Users Minimal Capability SID
-    //
+        //
+        // App Silo Users Minimal Capability SID
+        //
 
-    PSID SeAppSiloProfilesRootMinimalCapabilitySid;
+        PSID SeAppSiloProfilesRootMinimalCapabilitySid;
 
-} SE_EXPORTS, *PSE_EXPORTS;
+    } SE_EXPORTS, *PSE_EXPORTS;
 
-typedef CCHAR KPROCESSOR_MODE;
+    extern PSE_EXPORTS SeExports;
 
-typedef enum _MODE
-{
-    KernelMode,
-    UserMode,
-    MaximumMode
-} MODE;
+    typedef CCHAR KPROCESSOR_MODE;
+
+    typedef enum _MODE
+    {
+        KernelMode,
+        UserMode,
+        MaximumMode
+    } MODE;
 
     typedef struct _DEVICE_OBJECT DEVICE_OBJECT;
 
@@ -352,8 +354,6 @@ typedef enum _MODE
 
     _Acquires_exclusive_lock_(spin_lock->lock) void ExAcquireSpinLockExclusiveAtDpcLevelEx(
         _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) EX_SPIN_LOCK* spin_lock);
-
-extern PSE_EXPORTS SeExports;
 
     _Acquires_shared_lock_(spin_lock->lock) KIRQL
         ExAcquireSpinLockSharedEx(_Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
@@ -526,58 +526,57 @@ extern PSE_EXPORTS SeExports;
 
         return entry;
     }
-    
+
     PGENERIC_MAPPING
-IoGetFileObjectGenericMapping();
+    IoGetFileObjectGenericMapping();
 
-NTSTATUS
-RtlCreateAcl(_Out_ PACL Acl, ULONG AclLength, ULONG AclRevision);
+    NTSTATUS
+    RtlCreateAcl(_Out_ PACL Acl, ULONG AclLength, ULONG AclRevision);
 
-VOID
-RtlMapGenericMask(_Inout_ PACCESS_MASK AccessMask, _In_ const GENERIC_MAPPING* GenericMapping);
+    VOID
+    RtlMapGenericMask(_Inout_ PACCESS_MASK AccessMask, _In_ const GENERIC_MAPPING* GenericMapping);
 
-ULONG
-RtlLengthSid(_In_ PSID Sid);
+    ULONG
+    RtlLengthSid(_In_ PSID Sid);
 
-NTSTATUS
-NTAPI
-RtlAddAccessAllowedAce(_Inout_ PACL Acl, _In_ ULONG AceRevision, _In_ ACCESS_MASK AccessMask, _In_ PSID Sid);
+    NTSTATUS
+    NTAPI
+    RtlAddAccessAllowedAce(_Inout_ PACL Acl, _In_ ULONG AceRevision, _In_ ACCESS_MASK AccessMask, _In_ PSID Sid);
 
-BOOLEAN
-SeAccessCheckFromState(
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
-    _In_ PTOKEN_ACCESS_INFORMATION PrimaryTokenInformation,
-    _In_opt_ PTOKEN_ACCESS_INFORMATION ClientTokenInformation,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ ACCESS_MASK PreviouslyGrantedAccess,
-    _Outptr_opt_result_maybenull_ PPRIVILEGE_SET* Privileges,
-    _In_ PGENERIC_MAPPING GenericMapping,
-    _In_ KPROCESSOR_MODE AccessMode,
-    _Out_ PACCESS_MASK GrantedAccess,
-    _Out_ NTSTATUS* AccessStatus);
+    BOOLEAN
+    SeAccessCheckFromState(
+        _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+        _In_ PTOKEN_ACCESS_INFORMATION PrimaryTokenInformation,
+        _In_opt_ PTOKEN_ACCESS_INFORMATION ClientTokenInformation,
+        _In_ ACCESS_MASK DesiredAccess,
+        _In_ ACCESS_MASK PreviouslyGrantedAccess,
+        _Outptr_opt_result_maybenull_ PPRIVILEGE_SET* Privileges,
+        _In_ PGENERIC_MAPPING GenericMapping,
+        _In_ KPROCESSOR_MODE AccessMode,
+        _Out_ PACCESS_MASK GrantedAccess,
+        _Out_ NTSTATUS* AccessStatus);
 
-NTSTATUS
-NTAPI
-RtlCreateSecurityDescriptor(_Out_ PSECURITY_DESCRIPTOR SecurityDescriptor, _In_ ULONG Revision);
+    NTSTATUS
+    NTAPI
+    RtlCreateSecurityDescriptor(_Out_ PSECURITY_DESCRIPTOR SecurityDescriptor, _In_ ULONG Revision);
 
-NTSTATUS
-NTAPI
-RtlSetDaclSecurityDescriptor(
-    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
-    _In_ BOOLEAN DaclPresent,
-    _In_opt_ PACL Dacl,
-    _In_ BOOLEAN DaclDefaulted);
+    NTSTATUS
+    NTAPI
+    RtlSetDaclSecurityDescriptor(
+        _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+        _In_ BOOLEAN DaclPresent,
+        _In_opt_ PACL Dacl,
+        _In_ BOOLEAN DaclDefaulted);
 
-KIRQL
-KeGetCurrentIrql();
+    KIRQL
+    KeGetCurrentIrql();
 
-HANDLE
-PsGetCurrentProcessId();
+    HANDLE
+    PsGetCurrentProcessId();
 
-HANDLE
-PsGetCurrentThreadId();
+    HANDLE
+    PsGetCurrentThreadId();
 
 #if defined(__cplusplus)
 }
 #endif
-
