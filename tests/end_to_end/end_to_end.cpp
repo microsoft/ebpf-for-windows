@@ -1675,8 +1675,9 @@ TEST_CASE("printk", "[end_to_end]")
     int hook_result = 0;
     errno_t error = capture.begin_capture();
     if (error == NO_ERROR) {
-        REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+        ebpf_result_t hook_fire_result = hook.fire(&ctx, &hook_result);
         output = capture.get_stdout_contents();
+        REQUIRE(hook_fire_result == EBPF_SUCCESS);
     }
     std::string expected_output = "Hello, world\n"
                                   "Hello, world\n"
