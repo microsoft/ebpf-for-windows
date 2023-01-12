@@ -134,49 +134,8 @@ _perform_access_check(
     _In_ TOKEN_ACCESS_INFORMATION* access_information,
     _Out_ bool* access_allowed)
 {
-    // GENERIC_MAPPING mapping = { 1, 1, 1 };
     ACCESS_MASK granted_access;
     NTSTATUS status;
-
-    // bool result = SeAccessCheckFromState(
-    //     security_descriptor,
-    //     access_information,
-    //     NULL,
-    //     GENERIC_READ,
-    //     0,
-    //     NULL,
-    //     &mapping,
-    //     UserMode,
-    //     &granted_access,
-    //     &status);
-
-    // NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-    //     NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-    //     NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-    //     "SeAccessCheckFromState 1",
-    //     granted_access,
-    //     status,
-    //     result);
-
-    // result = SeAccessCheckFromState(
-    //     security_descriptor,
-    //     access_information,
-    //     NULL,
-    //     GENERIC_WRITE,
-    //     0,
-    //     NULL,
-    //     &mapping,
-    //     UserMode,
-    //     &granted_access,
-    //     &status);
-
-    // NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-    //     NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-    //     NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-    //     "SeAccessCheckFromState 2",
-    //     granted_access,
-    //     status,
-    //     result);
 
     *access_allowed = SeAccessCheckFromState(
         security_descriptor,
@@ -189,14 +148,6 @@ _perform_access_check(
         UserMode,
         &granted_access,
         &status);
-
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "SeAccessCheckFromState 3",
-        granted_access,
-        status,
-        *access_allowed);
 
     return status;
 }
