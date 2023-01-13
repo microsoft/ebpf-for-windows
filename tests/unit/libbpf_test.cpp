@@ -2618,7 +2618,7 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     attr.key = (uintptr_t)&key;
     REQUIRE(bpf(BPF_MAP_DELETE_ELEM, &attr, sizeof(attr)) == 0);
 
-    // Lookup and delete the entry.
+    // Look up and delete the entry.
     memset(&attr, 0, sizeof(attr));
     value = 0;
     key = 42;
