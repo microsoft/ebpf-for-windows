@@ -40,7 +40,7 @@ TEST_CASE("query program info", "[netebpfext]")
 
 typedef struct _test_client_context
 {
-    bpf_attach_type_t desired_attach_type;
+    netebpfext_helper_base_client_context_t base;
     void* provider_binding_context;
     xdp_action_t xdp_action;
 } test_client_context_t;
@@ -57,73 +57,17 @@ netebpfext_unit_invoke_program(
     return EBPF_SUCCESS;
 }
 
-// Netebpfext is ready for us to attach to it as if we were ebpfcore.
-NTSTATUS
-netebpf_unit_attach_extension(
-    _In_ HANDLE nmr_binding_handle,
-    _Inout_ void* client_context,
-    _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
-{
-    const void* provider_dispatch_table;
-    ebpf_extension_dispatch_table_t client_dispatch_table = {.size = 1};
-    client_dispatch_table.function[0] = (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_program;
-    auto provider_characteristics =
-        (const ebpf_extension_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
-    auto provider_data = (const ebpf_attach_provider_data_t*)provider_characteristics->data;
-    auto test_client_context = (test_client_context_t*)client_context;
-    if (provider_data->bpf_attach_type != test_client_context->desired_attach_type) {
-        return STATUS_ACCESS_DENIED;
-    }
-
-    return NmrClientAttachProvider(
-        nmr_binding_handle,
-        test_client_context, // Client binding context.
-        &client_dispatch_table,
-        &test_client_context->provider_binding_context,
-        &provider_dispatch_table);
-}
-
-// Detach from netebpfext.
-NTSTATUS
-netebpf_unit_detach_extension(_Inout_ void* client_binding_context)
-{
-    auto test_client_context = (test_client_context_t*)client_binding_context;
-    UNREFERENCED_PARAMETER(test_client_context);
-
-    // Return STATUS_SUCCESS if all callbacks we implement are done, or return
-    // STATUS_PENDING if we will call NmrProviderDetachClientComplete() when done.
-    return STATUS_SUCCESS;
-}
-
-void
-netebpfext_unit_cleanup_binding_context(_In_ const void* client_binding_context)
-{
-    auto test_client_context = (test_client_context_t*)client_binding_context;
-    UNREFERENCED_PARAMETER(test_client_context);
-}
-
 TEST_CASE("classify_packet", "[netebpfext]")
 {
-    netebpf_ext_helper_t helper;
-
-    // Register with NMR as if we were ebpfcore.sys.
-    NPI_CLIENT_CHARACTERISTICS client_characteristics = {};
-    client_characteristics.ClientRegistrationInstance.NpiId = &EBPF_HOOK_EXTENSION_IID;
-    NPI_MODULEID module_id = {};
-    client_characteristics.ClientRegistrationInstance.ModuleId = &module_id;
     NET_IFINDEX if_index = 0;
     ebpf_extension_data_t npi_specific_characteristics = {.size = sizeof(if_index), .data = &if_index};
-    client_characteristics.ClientRegistrationInstance.NpiSpecificCharacteristics = &npi_specific_characteristics;
-    client_characteristics.ClientAttachProvider = netebpf_unit_attach_extension;
-    client_characteristics.ClientDetachProvider = netebpf_unit_detach_extension;
-    client_characteristics.ClientCleanupBindingContext =
-        (NPI_CLIENT_CLEANUP_BINDING_CONTEXT_FN*)netebpfext_unit_cleanup_binding_context;
-    test_client_context_t client_context = {.desired_attach_type = BPF_XDP};
-    HANDLE nmr_client_handle;
-    REQUIRE(NmrRegisterClient(&client_characteristics, &client_context, &nmr_client_handle) == STATUS_SUCCESS);
+    test_client_context_t client_context = {};
+    client_context.base.desired_attach_type = BPF_XDP;
 
-    // Verify we successfully attached to netebpfext.
-    REQUIRE(client_context.provider_binding_context != nullptr);
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
 
     // Classify an inbound packet that should pass.
     client_context.xdp_action = XDP_PASS;
@@ -134,8 +78,6 @@ TEST_CASE("classify_packet", "[netebpfext]")
     client_context.xdp_action = XDP_DROP;
     result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_BLOCK);
-
-    NmrDeregisterClient(nmr_client_handle);
 }
 
 TEST_CASE("xdp_context", "[netebpfext]")
@@ -195,6 +137,8 @@ TEST_CASE("xdp_context", "[netebpfext]")
     REQUIRE(output_context.data_meta == 12346);
     REQUIRE(output_context.ingress_ifindex == 67889);
 }
+
+TEST_CASE("bind_invoke", "[netebpfext]") {}
 
 TEST_CASE("bind_context", "[netebpfext]")
 {
@@ -270,6 +214,8 @@ TEST_CASE("bind_context", "[netebpfext]")
     REQUIRE(output_context.protocol == IPPROTO_UDP);
 }
 
+TEST_CASE("sock_addr_invoke", "[netebpfext]") {}
+
 TEST_CASE("sock_addr_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
@@ -337,6 +283,8 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
     REQUIRE(output_context.compartment_id == 0x12345679);
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
 }
+
+TEST_CASE("sock_ops_invoke", "[netebpfext]") {}
 
 TEST_CASE("sock_ops_context", "[netebpfext]")
 {
