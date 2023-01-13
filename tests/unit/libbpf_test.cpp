@@ -22,31 +22,16 @@
 #pragma warning(disable : 26812)
 
 #define CONCAT(s1, s2) s1 s2
-#define DECLARE_ALL_TEST_CASES(_name, _group, _function) \
-                                                         \
-    TEST_CASE(CONCAT(_name, "-jit"), _group)             \
-    {                                                    \
-        _function(EBPF_EXECUTION_JIT);                   \
-    }                                                    \
-    TEST_CASE(CONCAT(_name, "-native"), _group)          \
-    {                                                    \
-        _function(EBPF_EXECUTION_NATIVE);                \
-    }                                                    \
-    TEST_CASE(CONCAT(_name, "-interpret"), _group)       \
-    {                                                    \
-        _function(EBPF_EXECUTION_INTERPRET);             \
-    }
+#define DECLARE_ALL_TEST_CASES(_name, _group, _function)                              \
+                                                                                      \
+    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); }       \
+    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); } \
+    TEST_CASE(CONCAT(_name, "-interpret"), _group) { _function(EBPF_EXECUTION_INTERPRET); }
 
-#define DECLARE_JIT_TEST_CASES(_name, _group, _function) \
-                                                         \
-    TEST_CASE(CONCAT(_name, "-jit"), _group)             \
-    {                                                    \
-        _function(EBPF_EXECUTION_JIT);                   \
-    }                                                    \
-    TEST_CASE(CONCAT(_name, "-native"), _group)          \
-    {                                                    \
-        _function(EBPF_EXECUTION_NATIVE);                \
-    }
+#define DECLARE_JIT_TEST_CASES(_name, _group, _function)                        \
+                                                                                \
+    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); } \
+    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
 
 const int nonexistent_fd = 12345678;
 
@@ -372,11 +357,8 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 }
 
 // Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
-#define BPF_LD_MAP_FD(reg, fd)             \
-    {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, \
-    {                                      \
-        0                                  \
-    }
+#define BPF_LD_MAP_FD(reg, fd) \
+    {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, { 0 }
 #define BPF_ALU64_IMM(op, reg, imm)                                     \
     {                                                                   \
         INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm) \
