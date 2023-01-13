@@ -2537,7 +2537,7 @@ TEST_CASE("BPF_PROG_ATTACH" , "[libbpf]")
     attr.bpf_prog.prog_type = BPF_XDP;
     REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == -ENOTSUP);
 
-    // Verify we attach the program.
+    // Verify we can attach the program.
     memset(&attr, 0, sizeof(attr));
     attr.bpf_prog.prog_fd = program_fd;
     attr.bpf_prog.target_fd = program_fd;
