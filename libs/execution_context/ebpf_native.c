@@ -183,6 +183,7 @@ _ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program
             ebpf_assert_success(ebpf_handle_close(programs[i].handle));
         }
         ebpf_free(programs[i].addresses_changed_callback_context);
+        programs[i].addresses_changed_callback_context = NULL;
     }
 
     ebpf_free(programs);
