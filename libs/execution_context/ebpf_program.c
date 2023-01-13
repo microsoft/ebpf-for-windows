@@ -841,9 +841,6 @@ _ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* 
                 goto Exit;
             }
 
-            // TODO: Issue #1791: Check against a global allow / block list to see if these global
-            // helper functions can be overridden.
-
 #pragma warning(push)
 #pragma warning( \
     disable : 6386) // Buffer overrun while writing to 'total_helper_function_addresses->helper_function_address'

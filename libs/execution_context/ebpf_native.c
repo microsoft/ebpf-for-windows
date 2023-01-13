@@ -126,7 +126,7 @@ typedef struct _ebpf_native_helper_address_changed_context
 } ebpf_native_helper_address_changed_context_t;
 
 static ebpf_result_t
-_ebpf_native_helper_address_changed(ebpf_program_t* program, void* context);
+_ebpf_native_helper_address_changed(_Inout_ ebpf_program_t* program, _Inout_opt_ void* context);
 
 static void
 _ebpf_native_unload_work_item(_In_opt_ const void* service)
@@ -954,7 +954,7 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_native_update_helper_addresses(void* context)
+_ebpf_native_update_helper_addresses(_Inout_ void* context)
 {
     ebpf_native_helper_address_changed_context_t* helper_changed_context =
         (ebpf_native_helper_address_changed_context_t*)context;
@@ -1454,7 +1454,7 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_native_helper_address_changed(ebpf_program_t* program, void* context)
+_ebpf_native_helper_address_changed(_Inout_ ebpf_program_t* program, _Inout_opt_ void* context)
 {
     ebpf_result_t return_value;
     ebpf_native_helper_address_changed_context_t* helper_address_changed_context =
@@ -1487,9 +1487,7 @@ _ebpf_native_helper_address_changed(ebpf_program_t* program, void* context)
 
     return_value = EBPF_SUCCESS;
 Done:
-    if (helper_function_addresses != NULL) {
-        ebpf_free(helper_function_addresses);
-    }
+    ebpf_free(helper_function_addresses);
 
     return return_value;
 }
