@@ -539,8 +539,7 @@ typedef struct _process_entry
 typedef struct _audit_entry
 {
     uint64_t logon_id;
-    uint32_t is_admin;
-    uint32_t is_admin_valid;
+    int32_t is_admin;
 } audit_entry_t;
 
 uint32_t
@@ -559,8 +558,7 @@ _validate_bind_audit_entry(fd_t map_fd, uint64_t pid)
     int result = bpf_map_lookup_elem(map_fd, &pid, &entry);
     REQUIRE(result == 0);
 
-    REQUIRE(entry.is_admin == 0);
-    REQUIRE(entry.is_admin_valid == 0);
+    REQUIRE(entry.is_admin == -1);
 
     REQUIRE(entry.logon_id != 0);
     SECURITY_LOGON_SESSION_DATA* data = NULL;

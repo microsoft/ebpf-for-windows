@@ -118,14 +118,14 @@ _ebpf_sock_addr_get_current_pid_tgid()
     return (sock_addr_ctx->process_id << 32 | _get_thread_id());
 }
 
-static uint32_t
-_ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx, _Out_ uint64_t* logon_id, int size)
+static uint64_t
+_ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx)
 {
-    UNREFERENCED_PARAMETER(size);
+    uint64_t logon_id = 0;
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
-    *logon_id = *(uint64_t*)(&(sock_addr_ctx->access_information->AuthenticationId));
+    logon_id = *(uint64_t*)(&(sock_addr_ctx->access_information->AuthenticationId));
 
-    return 0;
+    return logon_id;
 }
 
 static NTSTATUS
@@ -152,20 +152,16 @@ _perform_access_check(
     return status;
 }
 
-static uint32_t
-_ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx, _Out_ uint32_t* is_admin, int size)
+static int32_t
+_ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
 {
     NTSTATUS status;
     bool access_allowed;
-    uint32_t return_value;
     net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
-
-    *is_admin = 0;
-    return_value = 1;
-
-    UNREFERENCED_PARAMETER(size);
+    int32_t is_admin;
 
     if (KeGetCurrentIrql() != PASSIVE_LEVEL) {
+        is_admin = -1;
         goto Exit;
     }
 
@@ -173,13 +169,14 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx, _Out_ uint32_t
     status = _perform_access_check(
         _net_ebpf_ext_security_descriptor_admin, sock_addr_ctx->access_information, &access_allowed);
 
-    if (NT_SUCCESS(status)) {
-        *is_admin = 1;
-        return_value = 0;
+    if (access_allowed) {
+        is_admin = 1;
+    } else {
+        is_admin = 0;
     }
 
 Exit:
-    return return_value;
+    return is_admin;
 }
 
 //

@@ -316,12 +316,10 @@ EBPF_HELPER(uint64_t, bpf_get_current_pid_tgid, ());
  * cases, get the logon ID of the current thread.
  *
  * @param[in] ctx Context passed to the eBPF program.
- * @param[out] logon_id On success, contains the logon ID value.
- * @param[in] size Size of uint64_t.
  *
- * @returns 0 if the operation was successful, 1 otherwise.
+ * @returns The logon ID, or 0 in case of error.
  */
-EBPF_HELPER(uint32_t, bpf_get_current_logon_id, (void* ctx, uint64_t* logon_id, int size));
+EBPF_HELPER(uint64_t, bpf_get_current_logon_id, (void* ctx));
 #ifndef __doxygen
 #define bpf_get_current_logon_id ((bpf_get_current_logon_id_t)BPF_FUNC_get_current_logon_id)
 #endif
@@ -332,12 +330,13 @@ EBPF_HELPER(uint32_t, bpf_get_current_logon_id, (void* ctx, uint64_t* logon_id, 
  * cases, returns whether the current thread user is admin or not.
  *
  * @param[in] ctx Context passed to the eBPF program.
- * @param[out] is_admin Value whether user is admin or not.
- * @param[in] size Size of uint32_t.
  *
- * @returns 0 if the operation was successful, 1 otherwise.
+ * @returns The following values:
+ *          1: is admin.
+ *          0: is not admin.
+ *          <0: error.
  */
-EBPF_HELPER(uint32_t, bpf_is_current_admin, (void* ctx, uint32_t* is_admin, int size));
+EBPF_HELPER(int32_t, bpf_is_current_admin, (void* ctx));
 #ifndef __doxygen
 #define bpf_is_current_admin ((bpf_is_current_admin_t)BPF_FUNC_is_current_admin)
 #endif

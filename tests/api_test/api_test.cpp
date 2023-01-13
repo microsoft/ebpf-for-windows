@@ -45,8 +45,7 @@
 typedef struct _audit_entry
 {
     uint64_t logon_id;
-    uint32_t is_admin;
-    uint32_t is_admin_valid;
+    int32_t is_admin;
 } audit_entry_t;
 
 static service_install_helper
@@ -748,8 +747,7 @@ bpf_user_helpers_test(ebpf_execution_type_t execution_type)
     int result = bpf_map_lookup_elem(audit_map_fd, &process_thread_id, &entry);
     REQUIRE(result == 0);
 
-    REQUIRE(entry.is_admin == 0);
-    REQUIRE(entry.is_admin_valid == 0);
+    REQUIRE(entry.is_admin == -1);
 
     REQUIRE(entry.logon_id != 0);
     SECURITY_LOGON_SESSION_DATA* data = NULL;

@@ -155,7 +155,6 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object)
 
     if (_globals.protocol == IPPROTO_TCP) {
         REQUIRE(entry.is_admin == 1);
-        REQUIRE(entry.is_admin_valid == 1);
     }
 
     LsaFreeReturnBuffer(data);
