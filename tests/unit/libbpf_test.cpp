@@ -2552,7 +2552,7 @@ TEST_CASE("BPF_PROG_ATTACH" , "[libbpf]")
     attr.bpf_prog.prog_type = BPF_CGROUP_INET4_CONNECT;
     REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == 0);
 
-   // Verify we can't detach= the program from a type that doesn't work with this API.
+   // Verify we can't detach the program using a type that doesn't work with this API.
     memset(&attr, 0, sizeof(attr));
     attr.bpf_prog.target_fd = program_fd;
     attr.bpf_prog.prog_type = BPF_XDP;
