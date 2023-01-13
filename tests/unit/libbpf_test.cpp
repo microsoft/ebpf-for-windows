@@ -2626,7 +2626,8 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     attr.map_fd = map_fd;
     attr.key = (uintptr_t)&key;
     attr.value = (uintptr_t)&value;
-    //Add the element back to the entry after the previous test entry deletion.
+
+    // Add the element back to the entry after the previous test entry deletion.
     bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
     REQUIRE(bpf(BPF_MAP_LOOKUP_AND_DELETE_ELEM, &attr, sizeof(attr)) == 0);
 
