@@ -1,0 +1,507 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Copyright (c) Microsoft Corporation
+SPDX-License-Identifier: MIT
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:ui="http://schemas.microsoft.com/wix/UIExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+	<Product Id="{E12C85CA-B7E9-4BA8-A94F-619BA0A38B54}" Name="eBPF for Windows" Language="1033" Version="0.6.0" Manufacturer="Microsoft" UpgradeCode="{B6BCACB1-C872-4159-ABCB-43A50668056C}">
+		<Package Description="eBPF for Windows" InstallerVersion="301" Compressed="yes" InstallScope="perMachine" Manufacturer="Microsoft" Platform="x64" />
+		<MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed." Schedule="afterInstallFinalize" />
+		<MediaTemplate EmbedCab="yes" />
+
+		<!-- Define global properties -->
+		<PropertyRef Id="WIX_ACCOUNT_LOCALSERVICE" />
+		<Property Id="ARPCONTACT" Value="opencode@microsoft.com" />
+		<Property Id="INSTALLFOLDER" Secure="yes">
+			<RegistrySearch Id="FindInstallLocation" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\[WIX_UPGRADE_DETECTED]" Name="InstallLocation" Type="raw" Win64="yes" />
+		</Property>
+		<Property Id="WIX_DOWNGRADE_DETECTED" Secure="yes" />
+		<Property Id="WIX_UPGRADE_DETECTED" Secure="yes" />
+
+		<!-- Define the Product features and installation steps -->
+		<Feature Id="ProductFeature" Title="eBPF for Windows Installer" ConfigurableDirectory="INSTALLFOLDER" Display="expand" Level="1" Absent="disallow">
+			<Feature Id="eBPF_Runtime_Components" Level="1" Title="Runtime Components" Absent="disallow">
+				<ComponentGroupRef Id="eBPF_Runtime_Components" />
+				<ComponentGroupRef Id="eBPF_Service" />
+				<ComponentGroupRef Id="eBPFCore_Driver" />
+				<ComponentGroupRef Id="NetEbpfExt_Driver" />
+			</Feature>
+			<Feature Id="eBPF_Development" Level="2" Title="Development components">
+				<ComponentGroupRef Id="eBPF_Development_inlude" />
+				<ComponentGroupRef Id="eBPF_Development_inlude_asm" />
+				<ComponentGroupRef Id="eBPF_Development_inlude_bpf" />
+				<ComponentGroupRef Id="eBPF_Development_inlude_kernel" />
+				<ComponentGroupRef Id="eBPF_Development_inlude_linux" />
+				<ComponentGroupRef Id="eBPF_Development_inlude_net" />
+				<ComponentGroupRef Id="eBPF_Development_inlude_uapi" />
+				<ComponentGroupRef Id="eBPF_Development_inlude_uapi_linux" />
+				<ComponentGroupRef Id="eBPF_Development_inlude_user" />
+				<ComponentGroupRef Id="eBPF_Development_libs" />
+			</Feature>
+			<Feature Id="eBPF_Testing" Level="2" Title="Testing components">
+				<ComponentGroupRef Id="eBPF_Testing_Components" />
+			</Feature>
+		</Feature>
+
+		<InstallExecuteSequence>
+			<Custom Action="eBPFCore_Driver_stop_rollback" Before="eBPFCore_Driver_install">NOT Installed</Custom>
+			<Custom Action="eBPFCore_Driver_uninstall_rollback" Before="eBPFCore_Driver_install">NOT Installed</Custom>
+
+			<Custom Action="NetEbpfExt_Driver_stop_rollback" Before="NetEbpfExt_Driver_install">NOT Installed</Custom>
+			<Custom Action="NetEbpfExt_Driver_uninstall_rollback" Before="NetEbpfExt_Driver_install">NOT Installed</Custom>
+
+			<Custom Action="Clear_eBPF_store" After="InstallFiles">NOT Installed</Custom>
+			<Custom Action="Setup_eBPF_store" After="Clear_eBPF_store">NOT Installed</Custom>
+
+			<Custom Action="eBPFCore_Driver_install" After="Clear_eBPF_store">NOT Installed</Custom>
+			<Custom Action="eBPFCore_Driver_start" After="eBPFCore_Driver_install">NOT Installed</Custom>
+
+			<Custom Action="NetEbpfExt_Driver_install" Before="Clear_eBPF_store">NOT Installed</Custom>
+			<Custom Action="NetEbpfExt_Driver_start" After="NetEbpfExt_Driver_install">NOT Installed</Custom>
+
+			<Custom Action="eBPFCore_Driver_stop" After="eBPFCore_Driver_start">REMOVE</Custom>
+			<Custom Action="eBPFCore_Driver_uninstall" After="eBPFCore_Driver_stop">REMOVE</Custom>
+
+			<Custom Action="NetEbpfExt_Driver_stop" After="InstallFiles">REMOVE</Custom>
+			<Custom Action="NetEbpfExt_Driver_uninstall" After="NetEbpfExt_Driver_stop">REMOVE</Custom>
+		</InstallExecuteSequence>
+
+		<!-- Define the UI style & behavior -->
+		<UIRef Id="WixUI_FeatureTree" />
+		<WixVariable Id="WixUILicenseRtf" Value="$(var.SolutionDir)LICENSE.rtf" />
+		<WixVariable Id="WixUIBannerBmp" Value="res\eBPFBanner_493x58.bmp"/>
+		<WixVariable Id="WixUIDialogBmp" Value="res\eBPFDialog_493x312.bmp"/>
+		<CustomAction Id="SetWixInstallLocation" Property="ARPINSTALLLOCATION" Value="[INSTALLFOLDER]" />
+		<InstallUISequence>
+			<Custom Action="SetWixInstallLocation" After="CostFinalize" />
+		</InstallUISequence>
+		<UI />
+	</Product>
+
+	<!-- Define installation directories -->
+	<Fragment>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFiles64Folder">
+				<Directory Id="INSTALLFOLDER" Name="eBPFforWindows">
+					<Directory Id="dir_drivers" Name="drivers"/>
+					<Directory Id="dir_include" Name="include">
+						<Directory Id="dir_include_asm" Name="asm" />
+						<Directory Id="dir_include_bpf" Name="bpf" />
+						<Directory Id="dir_include_kernel" Name="kernel" />
+						<Directory Id="dir_include_linux" Name="linux" />
+						<Directory Id="dir_include_net" Name="net" />
+						<Directory Id="dir_include_uapi" Name="uapi">
+							<Directory Id="dir_include_uapi_linux" Name="linux" />
+						</Directory>
+						<Directory Id="dir_include_user" Name="user" />
+					</Directory>
+					<Directory Id="dir_lib" Name="lib"/>
+					<Directory Id="dir_scripts" Name="scripts"/>
+					<Directory Id="dir_testing" Name="testing"/>
+				</Directory>
+			</Directory>
+		</Directory>
+	</Fragment>
+
+	<!-- Define the product's <Runtime> components -->
+	<Fragment>
+		<ComponentGroup Id="eBPF_Runtime_Components" Directory="INSTALLFOLDER">
+			<Component Id="LICENSE" Guid="{AF22EAE5-7D8D-4F22-BB64-6B6A079A2947}">
+				<File Id="LICENSE.txt" Name="LICENSE.txt" DiskId="1" Source="$(var.SolutionDir)LICENSE.txt" />
+			</Component>
+			<Component Id="BPF2C.EXE" DiskId="1" Guid="{BD23322B-91C3-4848-96E0-04E3745411E1}">
+				<File Id="BPF2C.EXE" Name="bpf2c.exe" Source="$(var.bpf2c.TargetDir)bpf2c.exe" />
+			</Component>
+			<Component Id="BPF2C.PDB" DiskId="1" Guid="{6DEC471C-F27D-431C-A0E0-6F46CA472BAC}">
+				<File Id="BPF2C.PDB" Name="bpf2c.pdb" Source="$(var.bpf2c.TargetDir)bpf2c.pdb" />
+			</Component>
+			<Component Id="EBPF_ALL.GUID" DiskId="1" Guid="{F3C808AC-A63B-4A29-B110-00B5A903F3C9}">
+				<File Id="EBPF_ALL.GUID" Name="ebpf-all.guid" Source="$(var.SolutionDir)\scripts\ebpf-all.guid" />
+			</Component>
+			<Component Id="EBPFAPI.DLL" DiskId="1" Guid="{C44E4B08-901E-4B71-8FD1-F0B3D11D063F}">
+				<File Id="EBPFAPI.DLL" Name="EbpfApi.dll" Source="$(var.EbpfApi.TargetDir)EbpfApi.dll" />
+			</Component>
+			<Component Id="EBPFAPI.PDB" DiskId="1" Guid="{6912E957-E682-41CB-9C53-1D0B886528F7}">
+				<File Id="EBPFAPI.PDB" Name="EbpfApi.pdb" Source="$(var.EbpfApi.TargetDir)EbpfApi.pdb" />
+			</Component>
+			<Component Id="EBPFSVC.PDB" DiskId="1" Guid="{D1935DF0-2FC7-42F5-81E5-19AF88D6244B}">
+				<File Id="EBPFSVC.PDB" Name="EbpfSvc.pdb" Source="$(var.ebpfsvc.TargetDir)ebpfsvc.pdb" />
+			</Component>
+			<Component Id="EBPF_PRINTK.GUID" DiskId="1" Guid="{77EB156D-046E-4BD6-8F57-CCA1DB031B0B}">
+				<File Id="EBPF_PRINTK.GUID" Name="ebpf-printk.guid" Source="$(var.SolutionDir)\scripts\ebpf-printk.guid" />
+			</Component>
+			<Component Id="EBPFFORWINDOWS.WPRP" DiskId="1" Guid="{4E4838D3-0C49-4FA2-B8EE-E484CC0E7FA9}">
+				<File Id="EBPFFORWINDOWS.WPRP" Name="ebpfforwindows.wprp" Source="$(var.SolutionDir)\scripts\ebpfforwindows.wprp" />
+			</Component>
+			<Component Id="EBPFNETSH.DLL" DiskId="1" Guid="{95928460-8560-448F-83C3-E9040BECCF5D}">
+				<File Id="EBPFNETSH.DLL" Name="ebpfnetsh.dll" Source="$(var.ebpfnetsh.TargetDir)ebpfnetsh.dll" />
+			</Component>
+			<Component Id="EBPFNETSH.PDB" DiskId="1" Guid="{D0FB50BF-8822-4197-B3CF-0476C357DBDD}">
+				<File Id="EBPFNETSH.PDB" Name="ebpfnetsh.pdb" Source="$(var.ebpfnetsh.TargetDir)ebpfnetsh.pdb" />
+			</Component>
+			<Component Id="EXPORT_PROGRAM_INFO.EXE" DiskId="1" Guid="{7AF9A30B-D7BF-4FD2-88C0-C2947ED55DCD}">
+				<File Id="EXPORT_PROGRAM_INFO.EXE" Name="export_program_info.exe" Source="$(var.export_program_info.TargetDir)export_program_info.exe" />
+			</Component>
+			<Component Id="EXPORT_PROGRAM_INFO.PDB" DiskId="1" Guid="{88356FE4-6247-4876-BA14-42EDA88CC5C7}">
+				<File Id="EXPORT_PROGRAM_INFO.PDB" Name="export_program_info.pdb" Source="$(var.export_program_info.TargetDir)export_program_info.pdb" />
+			</Component>
+		</ComponentGroup>
+
+		<!--Setup eBPF store-->
+		<SetProperty Id="Clear_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Before="Clear_eBPF_store" Sequence="execute"/>
+		<CustomAction Id="Clear_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<SetProperty Id="Setup_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]' Before="Setup_eBPF_store" Sequence="execute"/>
+		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+
+		<!--Install eBPF Service -->
+		<ComponentGroup Id="eBPF_Service" Directory="INSTALLFOLDER">
+			<Component Id="eBPF_Service" Guid="{25F4F9A3-78EB-4598-9982-98FB65377A51}">
+				<File Source="$(var.ebpfsvc.TargetPath)" KeyPath="yes" />
+				<ServiceInstall Id="eBPFSvcInstaller" Name="eBPFSvc" DisplayName="eBPF Service" Description="eBPF Service"
+								Start="auto"
+								Type="ownProcess"
+								ErrorControl="normal"
+								Account="[WIX_ACCOUNT_LOCALSERVICE]"
+								Vital="yes"
+								Interactive="no" />
+				<ServiceControl Id="eBPFSvc_Start" Name="eBPFSvc"
+								Start="install"
+								Wait="no" />
+				<ServiceControl Id="eBPFSvc_Stop" Name="eBPFSvc"
+								Remove="uninstall"
+								Stop="both"
+								Wait="yes" />
+			</Component>
+		</ComponentGroup>
+
+		<!--Install eBPFCore Driver-->
+		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
+		<ComponentGroup Id="eBPFCore_Driver" Directory="dir_drivers">
+			<Component Id="eBPFCore.inf" Guid="{3D31A9C8-8BB0-48A2-94BD-CBA734438E0C}">
+				<File Id="eBPFCore.inf" Name="eBPFCore.inf" Source="$(var.EbpfCore.TargetDir)eBPFCore.inf" KeyPath="yes"/>
+			</Component>
+			<Component Id="eBPFCore.sys" Guid="{5A6F4BA2-7FCB-48F7-BC6A-52C204E4A91A}">
+				<File Id="eBPFCore.sys" Name="eBPFCore.sys" Source="$(var.EbpfCore.TargetPath)" KeyPath="yes" />
+			</Component>
+			<Component Id="eBPFCore.pdb" Guid="{DDE1BBD0-F440-4D54-97D0-D10DB511BACB}">
+				<File Id="eBPFCore.pdb" Name="eBPFCore.pdb" Source="$(var.EbpfCore.TargetDir)eBPFCore.pdb" KeyPath="yes" />
+			</Component>
+		</ComponentGroup>
+		<SetProperty Id="eBPFCore_Driver_install" Value='"sc.exe" create eBPFCore.sys type=kernel start=demand binpath="[#eBPFCore.sys]"' Before="eBPFCore_Driver_install" Sequence="execute"/>
+		<CustomAction Id="eBPFCore_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="eBPFCore_Driver_start" Value='"net.exe" start eBPFCore.sys' />
+		<CustomAction Id="eBPFCore_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="eBPFCore_Driver_stop" Value='"net.exe" stop eBPFCore.sys' />
+		<CustomAction Id="eBPFCore_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<Property Id="eBPFCore_Driver_uninstall" Value='"sc.exe" delete eBPFCore.sys' />
+		<CustomAction Id="eBPFCore_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<Property Id="eBPFCore_Driver_stop_rollback" Value='"net.exe" stop eBPFCore.sys' />
+		<CustomAction Id="eBPFCore_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
+		<Property Id="eBPFCore_Driver_uninstall_rollback" Value='"sc.exe" delete eBPFCore.sys' />
+		<CustomAction Id="eBPFCore_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
+
+		<!--Install NetEbpfExt Driver-->
+		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
+		<ComponentGroup Id="NetEbpfExt_Driver" Directory="dir_drivers">
+			<Component Id="NetEbpfExt.inf" Guid="{F1E813EE-665E-488C-84AA-0F47011C12F0}">
+				<File Id="NetEbpfExt.inf" Name="NetEbpfExt.inf" Source="$(var.netebpfext.TargetDir)NetEbpfExt.inf" KeyPath="yes" />
+			</Component>
+			<Component Id="NetEbpfExt.sys" Guid="{3ADAA711-7F62-472A-A60D-589D543ED507}">
+				<File Id="NetEbpfExt.sys" Name="NetEbpfExt.sys" Source="$(var.netebpfext.TargetPath)" KeyPath="yes" />
+			</Component>
+			<Component Id="NetEbpfExt.pdb" Guid="{3B35751C-693A-47C0-A258-97741D8B72CC}">
+				<File Id="NetEbpfExt.pdb" Name="NetEbpfExt.pdb" Source="$(var.netebpfext.TargetDir)NetEbpfExt.pdb" KeyPath="yes" />
+			</Component>
+		</ComponentGroup>
+		<SetProperty Id="NetEbpfExt_Driver_install" Value='"sc.exe" create NetEbpfExt.sys type=kernel start=demand binpath="[#NetEbpfExt.sys]"' Before="NetEbpfExt_Driver_install" Sequence="execute"/>
+		<CustomAction Id="NetEbpfExt_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="NetEbpfExt_Driver_start" Value='"net.exe" start NetEbpfExt.sys' />
+		<CustomAction Id="NetEbpfExt_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="NetEbpfExt_Driver_stop" Value='"net.exe" stop NetEbpfExt.sys' />
+		<CustomAction Id="NetEbpfExt_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<Property Id="NetEbpfExt_Driver_uninstall" Value='"sc.exe" delete NetEbpfExt.sys' />
+		<CustomAction Id="NetEbpfExt_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<Property Id="NetEbpfExt_Driver_stop_rollback" Value='"net.exe" stop NetEbpfExt.sys' />
+		<CustomAction Id="NetEbpfExt_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
+		<Property Id="NetEbpfExt_Driver_uninstall_rollback" Value='"sc.exe" delete NetEbpfExt.sys' />
+		<CustomAction Id="NetEbpfExt_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
+	</Fragment>
+
+	<!-- Define the product's <Development> components -->
+	<Fragment>
+		<ComponentGroup Id="eBPF_Development_inlude" Directory="dir_include">
+			<Component Id="BPF_ENDIAN.H" DiskId="1" Guid="59B40FBC-2842-449B-9101-CFBCCF785335">
+				<File Id="BPF_ENDIAN.H" Name="bpf_endian.h" Source="..\include\bpf_endian.h" />
+			</Component>
+			<Component Id="BPF_HELPER_DEFS.H" DiskId="1" Guid="EA36437E-777C-4FFE-ADF5-D806BBDB46FE">
+				<File Id="BPF_HELPER_DEFS.H" Name="bpf_helper_defs.h" Source="..\include\bpf_helper_defs.h" />
+			</Component>
+			<Component Id="BPF_HELPERS.H" DiskId="1" Guid="BD51CAA7-5D26-48C3-8822-EFB91AC0367E">
+				<File Id="BPF_HELPERS.H" Name="bpf_helpers.h" Source="..\include\bpf_helpers.h" />
+			</Component>
+			<Component Id="BPF_HELPERS_PLATFORM.H" DiskId="1" Guid="FD2EE81E-0EE7-4936-AA96-AAF7772164D3">
+				<File Id="BPF_HELPERS_PLATFORM.H" Name="bpf_helpers_platform.h" Source="..\include\bpf_helpers_platform.h" />
+			</Component>
+			<Component Id="BPF2C.H" DiskId="1" Guid="7C3950B4-29B2-4F39-BEEC-9FE18E08FE88">
+				<File Id="BPF2C.H" Name="bpf2c.h" Source="..\include\bpf2c.h" />
+			</Component>
+			<Component Id="EBPF_API.H" DiskId="1" Guid="0AAC29C6-1612-446F-BE6D-FFF42E032744">
+				<File Id="EBPF_API.H" Name="ebpf_api.h" Source="..\include\ebpf_api.h" />
+			</Component>
+			<Component Id="EBPF_CORE_STRUCTS.H" DiskId="1" Guid="C3814D22-4D03-420A-8AB3-BCF1E875C072">
+				<File Id="EBPF_CORE_STRUCTS.H" Name="ebpf_core_structs.h" Source="..\include\ebpf_core_structs.h" />
+			</Component>
+			<Component Id="EBPF_EXECUTION_TYPE.H" DiskId="1" Guid="451BE64A-5CD6-49BF-AF90-9CEFF55332A2">
+				<File Id="EBPF_EXECUTION_TYPE.H" Name="ebpf_execution_type.h" Source="..\include\ebpf_execution_type.h" />
+			</Component>
+			<Component Id="EBPF_EXTENSION_UUIDS.H" DiskId="1" Guid="02269617-BA66-4C22-A98D-CB699E785A35">
+				<File Id="EBPF_EXTENSION_UUIDS.H" Name="ebpf_extension_uuids.h" Source="..\include\ebpf_extension_uuids.h" />
+			</Component>
+			<Component Id="EBPF_NETHOOKS.H" DiskId="1" Guid="7BF41E29-AFCE-4B11-9DF7-BB2BED9B453F">
+				<File Id="EBPF_NETHOOKS.H" Name="ebpf_nethooks.h" Source="..\include\ebpf_nethooks.h" />
+			</Component>
+			<Component Id="EBPF_PROGRAM_ATTACH_TYPE_GUIDS.H" DiskId="1" Guid="ACDF9FAD-6C7B-49D0-9136-9FF0008BC5F0">
+				<File Id="EBPF_PROGRAM_ATTACH_TYPE_GUIDS.H" Name="ebpf_program_attach_type_guids.h" Source="..\include\ebpf_program_attach_type_guids.h" />
+			</Component>
+			<Component Id="EBPF_PROGRAM_TYPES.H" DiskId="1" Guid="15592AFC-A3CD-4A26-9F89-6656EB386354">
+				<File Id="EBPF_PROGRAM_TYPES.H" Name="ebpf_program_types.h" Source="..\include\ebpf_program_types.h" />
+			</Component>
+			<Component Id="EBPF_RESULT.H" DiskId="1" Guid="38D84F8F-1921-40F0-8A0D-13F02513CC93">
+				<File Id="EBPF_RESULT.H" Name="ebpf_result.h" Source="..\include\ebpf_result.h" />
+			</Component>
+			<Component Id="EBPF_STORE_HELPER.H" DiskId="1" Guid="14BE7BA2-DCD1-4AE1-A115-396E52CDF073">
+				<File Id="EBPF_STORE_HELPER.H" Name="ebpf_store_helper.h" Source="..\include\ebpf_store_helper.h" />
+			</Component>
+			<Component Id="EBPF_STRUCTS.H" DiskId="1" Guid="2D7F0268-8926-41C5-B592-5A3CEE10540D">
+				<File Id="EBPF_STRUCTS.H" Name="ebpf_structs.h" Source="..\include\ebpf_structs.h" />
+			</Component>
+			<Component Id="EBPF_UTILITIES.H" DiskId="1" Guid="24A4B689-2B6B-4431-BFB0-732388E41404">
+				<File Id="EBPF_UTILITIES.H" Name="ebpf_utilities.h" Source="..\include\ebpf_utilities.h" />
+			</Component>
+			<Component Id="EBPF_WINDOWS.H" DiskId="1" Guid="DFBF9B95-F1DF-4C08-A0D6-60556F3FA9EB">
+				<File Id="EBPF_WINDOWS.H" Name="ebpf_windows.h" Source="..\include\ebpf_windows.h" />
+			</Component>
+			<Component Id="ELFIO_WRAPPER.HPP" DiskId="1" Guid="FB1B409E-F5F7-40C8-AE05-C99E65CF7347">
+				<File Id="ELFIO_WRAPPER.HPP" Name="elfio_wrapper.hpp" Source="..\include\elfio_wrapper.hpp" />
+			</Component>
+			<Component Id="GIT_COMMIT_ID.H" DiskId="1" Guid="0AB71C9D-68E6-4892-A45D-306BA921CC07">
+				<File Id="GIT_COMMIT_ID.H" Name="git_commit_id.h" Source="..\include\git_commit_id.h" />
+			</Component>
+		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_inlude_asm" Directory="dir_include_asm">
+			<Component Id="ERRNO.H" DiskId="1" Guid="DF63C9C1-FA9C-44E3-94EB-F77B7072E4BE">
+				<File Id="ERRNO.H" Name="errno.h" Source="..\include\asm\errno.h" />
+			</Component>
+			<Component Id="POSIX_TYPES.H" DiskId="1" Guid="F28F43DC-B53F-4DF9-8E19-F2D7E736E446">
+				<File Id="POSIX_TYPES.H" Name="posix_types.h" Source="..\include\asm\posix_types.h" />
+			</Component>
+			<Component Id="TYPES.H" DiskId="1" Guid="030CB7C2-BD80-4677-A183-890315E75EAC">
+				<File Id="TYPES.H" Name="types.h" Source="..\include\asm\types.h" />
+			</Component>
+		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_inlude_bpf" Directory="dir_include_bpf">
+			<Component Id="BPF.H_1" DiskId="1" Guid="A41E9DEB-709E-4DA3-9A24-F5B8C21AF30E">
+				<File Id="BPF.H_1" Name="bpf.h" Source="..\include\bpf\bpf.h" />
+			</Component>
+			<Component Id="BPF_LEGACY.H" DiskId="1" Guid="B3E387BA-03DB-4FE9-A808-B334D48F2CAA">
+				<File Id="BPF_LEGACY.H" Name="bpf_legacy.h" Source="..\include\bpf\bpf_legacy.h" />
+			</Component>
+			<Component Id="HASHMAP.H" DiskId="1" Guid="47680BD2-8931-4098-AFDF-57A5E4688BB5">
+				<File Id="HASHMAP.H" Name="hashmap.h" Source="..\include\bpf\hashmap.h" />
+			</Component>
+			<Component Id="LIBBPF.H" DiskId="1" Guid="2A878010-A1D6-4888-8694-FA4148259282">
+				<File Id="LIBBPF.H" Name="libbpf.h" Source="..\include\bpf\libbpf.h" />
+			</Component>
+			<Component Id="LIBBPF_LEGACY.H" DiskId="1" Guid="62760909-DD06-4711-AFE3-E4FD5A2FE940">
+				<File Id="LIBBPF_LEGACY.H" Name="libbpf_legacy.h" Source="..\include\bpf\libbpf_legacy.h" />
+			</Component>
+		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_inlude_kernel" Directory="dir_include_kernel">
+			<Component Id="EBPF_REGISTRY_HELPER.H" DiskId="1" Guid="26717067-176B-4B94-8716-57A675E5F918">
+				<File Id="EBPF_REGISTRY_HELPER.H" Name="ebpf_registry_helper.h" Source="..\include\kernel\ebpf_registry_helper.h" />
+			</Component>
+		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_inlude_linux" Directory="dir_include_linux">
+			<Component Id="BPF.H_2" DiskId="1" Guid="ED4F7D03-0334-4FB3-A3AC-1DAD36FF1228">
+				<File Id="BPF.H_2" Name="bpf.h" Source="..\include\linux\bpf.h" />
+			</Component>
+			<Component Id="STDDEF.H" DiskId="1" Guid="41D2F835-B4A7-450F-B064-1280C5D55505">
+				<File Id="STDDEF.H" Name="stddef.h" Source="..\include\linux\stddef.h" />
+			</Component>
+		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_inlude_net" Directory="dir_include_net">
+			<Component Id="IF_ETHER.H_1" DiskId="1" Guid="A1524B6C-6AE6-498F-AAB5-2527C2A4BC0A">
+				<File Id="IF_ETHER.H_1" Name="if_ether.h" Source="..\include\net\if_ether.h" />
+			</Component>
+			<Component Id="IP.H_1" DiskId="1" Guid="AC6F71A8-778B-4BEE-B409-DF0166A36482">
+				<File Id="IP.H_1" Name="ip.h" Source="..\include\net\ip.h" />
+			</Component>
+			<Component Id="TCP.H_1" DiskId="1" Guid="F8A57AE9-B14A-4FBF-8CC5-E164A5E63EB4">
+				<File Id="TCP.H_1" Name="tcp.h" Source="..\include\net\tcp.h" />
+			</Component>
+			<Component Id="UDP.H" DiskId="1" Guid="442722D8-B3F8-4820-933C-84406859579B">
+				<File Id="UDP.H" Name="udp.h" Source="..\include\net\udp.h" />
+			</Component>
+		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_inlude_uapi" Directory="dir_include_uapi" />
+		<ComponentGroup Id="eBPF_Development_inlude_uapi_linux" Directory="dir_include_uapi_linux">
+			<Component Id="BPF.H" DiskId="1" Guid="CEF66B1A-8225-4B84-8239-C5238DA41BF2">
+				<File Id="BPF.H" Name="bpf.h" Source="..\include\uapi\linux\bpf.h" />
+			</Component>
+			<Component Id="IF_ETHER.H" DiskId="1" Guid="48230CCC-44D2-4875-91EF-12631D00A741">
+				<File Id="IF_ETHER.H" Name="if_ether.h" Source="..\include\uapi\linux\if_ether.h" />
+			</Component>
+			<Component Id="IN.H" DiskId="1" Guid="D7FFD894-2020-42C0-B6D3-10183CEC5452">
+				<File Id="IN.H" Name="in.h" Source="..\include\uapi\linux\in.h" />
+			</Component>
+			<Component Id="IP.H" DiskId="1" Guid="4A7B59AE-4F8C-4BFE-AD76-F42F04C494E4">
+				<File Id="IP.H" Name="ip.h" Source="..\include\uapi\linux\ip.h" />
+			</Component>
+			<Component Id="TCP.H" DiskId="1" Guid="A66521EB-BA4F-4741-969D-B727585BBE3C">
+				<File Id="TCP.H" Name="tcp.h" Source="..\include\uapi\linux\tcp.h" />
+			</Component>
+		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_inlude_user" Directory="dir_include_user">
+			<Component Id="EBPF_REGISTRY_HELPER.H_1" DiskId="1" Guid="D1BF1F4F-BD3D-484E-89D9-77A94522FC97">
+				<File Id="EBPF_REGISTRY_HELPER.H_1" Name="ebpf_registry_helper.h" Source="..\include\user\ebpf_registry_helper.h" />
+			</Component>
+		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_libs" Directory="dir_lib">
+			<Component Id="eBPFApi_lib" Guid="{A164197B-3C57-4ECA-B138-CBF558DA4401}">
+				<File Id="EbpfApi.lib" Name="EbpfApi.lib" DiskId="1" Source="$(var.api.TargetDir)EbpfApi.lib" />
+			</Component>
+			<Component Id="eBPFApi_lib_pdb" Guid="{197589BB-4A27-4313-9A70-BB455A58C987}">
+				<File Id="eBPFApi_lib.pdb" Name="EbpfApi.pdb" DiskId="1" Source="$(var.api.TargetDir)EbpfApi.pdb" />
+			</Component>
+		</ComponentGroup>
+	</Fragment>
+
+	<!-- Define the product's <Testing> components -->
+	<Fragment>
+		<ComponentGroup Id="eBPF_Testing_Components" Directory="dir_testing">
+			<Component Id="API_TEST.EXE" DiskId="1" Guid="70AA4D35-45C4-466A-AE08-64A38E4C50F2">
+				<File Id="API_TEST.EXE" Name="api_test.exe" Source="$(var.api_test.TargetDir)api_test.exe" />
+			</Component>
+			<Component Id="API_TEST.PDB" DiskId="1" Guid="0884D5FB-CD5F-4780-892C-F9B37DF95989">
+				<File Id="API_TEST.PDB" Name="api_test.pdb" Source="$(var.api_test.TargetDir)api_test.pdb" />
+			</Component>
+			<Component Id="BINDMONITOR.O" DiskId="1" Guid="88D66354-E6DF-4BE4-B1D4-3F716A7F81AB">
+				<File Id="BINDMONITOR.O" Name="bindmonitor.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor.o" />
+			</Component>
+			<Component Id="BINDMONITOR_RINGBUF.O" DiskId="1" Guid="BFF28F26-F7A5-44B0-9289-AD9F4A19E33E">
+				<File Id="BINDMONITOR_RINGBUF.O" Name="bindmonitor_ringbuf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_ringbuf.o" />
+			</Component>
+			<Component Id="BINDMONITOR_TAILCALL.O" DiskId="1" Guid="6A37AE43-179A-46BD-97D5-3D02B6807765">
+				<File Id="BINDMONITOR_TAILCALL.O" Name="bindmonitor_tailcall.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_tailcall.o" />
+			</Component>
+			<Component Id="BPF.O" DiskId="1" Guid="EACD2AE9-0C63-4C0D-BC1D-FA698DB58A13">
+				<File Id="BPF.O" Name="bpf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bpf.o" />
+			</Component>
+			<Component Id="BPF_CALL.O" DiskId="1" Guid="438B5ECE-4410-477D-A60C-A5A68579791D">
+				<File Id="BPF_CALL.O" Name="bpf_call.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bpf_call.o" />
+			</Component>
+			<Component Id="BPFTOOL.EXE" DiskId="1" Guid="E168EB1A-35F6-47E3-B977-B16DF7DFBDB0">
+				<File Id="BPFTOOL.EXE" Name="bpftool.exe" Source="$(var.bpftool.TargetDir)bpftool.exe" />
+			</Component>
+			<Component Id="BPFTOOL.PDB" DiskId="1" Guid="D2A6D747-A52C-43B9-A684-FF05A0DCE166">
+				<File Id="BPFTOOL.PDB" Name="bpftool.pdb" Source="$(var.bpftool.TargetDir)bpftool.pdb" />
+			</Component>
+			<Component Id="CGROUP_SOCK_ADDR.O" DiskId="1" Guid="6AF0B01D-554F-4918-8D00-AA4104DD5BE0">
+				<File Id="CGROUP_SOCK_ADDR.O" Name="cgroup_sock_addr.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr.o" />
+			</Component>
+			<Component Id="DECAP_PERMIT_PACKET.O" DiskId="1" Guid="EAD33B50-0E47-464B-A919-1A24B64C686A">
+				<File Id="DECAP_PERMIT_PACKET.O" Name="decap_permit_packet.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\decap_permit_packet.o" />
+			</Component>
+			<Component Id="DIVIDE_BY_ZERO.O" DiskId="1" Guid="DBCE744E-08BC-4241-816E-47D13E7F15DC">
+				<File Id="DIVIDE_BY_ZERO.O" Name="divide_by_zero.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\divide_by_zero.o" />
+			</Component>
+			<Component Id="DROPPACKET.O" DiskId="1" Guid="32E91251-1D4F-48BA-978E-85F30E7903C5">
+				<File Id="DROPPACKET.O" Name="droppacket.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket.o" />
+			</Component>
+			<Component Id="DROPPACKET_UM.DLL" DiskId="1" Guid="F4D422DB-ED15-48E2-8F99-B5BBA4B38EE1">
+				<File Id="DROPPACKET_UM.DLL" Name="droppacket_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_um.dll" />
+			</Component>
+			<Component Id="DROPPACKET_UM.PDB" DiskId="1" Guid="5579C444-7640-4C41-A214-33AC21D04C26">
+				<File Id="DROPPACKET_UM.PDB" Name="droppacket_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_um.pdb" />
+			</Component>
+			<Component Id="DROPPACKET_UNSAFE.O" DiskId="1" Guid="40156401-DDEA-4435-B559-E7071D251395">
+				<File Id="DROPPACKET_UNSAFE.O" Name="droppacket_unsafe.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_unsafe.o" />
+			</Component>
+			<Component Id="EBPFAPI.DLL_1" DiskId="1" Guid="11E5B9BE-7A8D-4ED9-AAC4-1474C0EB8C2E">
+				<File Id="EBPFAPI.DLL_1" Name="EbpfApi.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\EbpfApi.dll" />
+			</Component>
+			<Component Id="EBPFAPI.PDB_1" DiskId="1" Guid="EE7D42FC-C61B-45C1-88F8-4EC4577B9521">
+				<File Id="EBPFAPI.PDB_1" Name="EbpfApi.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\EbpfApi.pdb" />
+			</Component>
+			<Component Id="EBPFNETSH.DLL_1" DiskId="1" Guid="FF27C968-973A-40D0-A900-DFD796AD5D66">
+				<File Id="EBPFNETSH.DLL_1" Name="ebpfnetsh.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\ebpfnetsh.dll" />
+			</Component>
+			<Component Id="EBPFNETSH.PDB_1" DiskId="1" Guid="E8A18768-3BFF-419F-85DB-AD5CF2419C6B">
+				<File Id="EBPFNETSH.PDB_1" Name="ebpfnetsh.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\ebpfnetsh.pdb" />
+			</Component>
+			<Component Id="ENCAP_REFLECT_PACKET.O" DiskId="1" Guid="767274A3-97F5-4F35-BB27-1A7166708AD8">
+				<File Id="ENCAP_REFLECT_PACKET.O" Name="encap_reflect_packet.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\encap_reflect_packet.o" />
+			</Component>
+			<Component Id="MAP.O" DiskId="1" Guid="C0461A4A-1195-4965-9710-8EED78A271F6">
+				<File Id="MAP.O" Name="map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map.o" />
+			</Component>
+			<Component Id="MAP_IN_MAP.O" DiskId="1" Guid="D5BF9636-2A17-4E6C-8EFF-824794F48A01">
+				<File Id="MAP_IN_MAP.O" Name="map_in_map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map.o" />
+			</Component>
+			<Component Id="MAP_IN_MAP_V2.O" DiskId="1" Guid="D198FFAB-E146-4ED3-96B3-9FBED450C7D7">
+				<File Id="MAP_IN_MAP_V2.O" Name="map_in_map_v2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_v2.o" />
+			</Component>
+			<Component Id="MAP_REUSE.O" DiskId="1" Guid="3C17B815-A950-4103-A9D3-DB8EB5F41B47">
+				<File Id="MAP_REUSE.O" Name="map_reuse.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_reuse.o" />
+			</Component>
+			<Component Id="MAP_REUSE_2.O" DiskId="1" Guid="E32CF0E5-00E0-44D7-BE16-DD9FE35064D8">
+				<File Id="MAP_REUSE_2.O" Name="map_reuse_2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_reuse_2.o" />
+			</Component>
+			<Component Id="PIDTGID.O" DiskId="1" Guid="85723409-15B9-499B-94F1-2AE72A5C8D85">
+				<File Id="PIDTGID.O" Name="pidtgid.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\pidtgid.o" />
+			</Component>
+			<Component Id="PRINTK.O" DiskId="1" Guid="6E02C38D-1024-495C-93C7-F998D7052CE5">
+				<File Id="PRINTK.O" Name="printk.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk.o" />
+			</Component>
+			<Component Id="PRINTK_UNSAFE.O" DiskId="1" Guid="10CBDD8C-BE25-43FD-86BB-A3A7A3129CE0">
+				<File Id="PRINTK_UNSAFE.O" Name="printk_unsafe.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk_unsafe.o" />
+			</Component>
+			<Component Id="REFLECT_PACKET.O" DiskId="1" Guid="4AA8E3D7-1453-468B-98EE-3340BE55BA9C">
+				<File Id="REFLECT_PACKET.O" Name="reflect_packet.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\reflect_packet.o" />
+			</Component>
+			<Component Id="RUN_TESTS.BAT" DiskId="1" Guid="C263C5FF-4A39-4078-9406-545F7D41DA13">
+				<File Id="RUN_TESTS.BAT" Name="run_tests.bat" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\run_tests.bat" />
+			</Component>
+			<Component Id="SAMPLE_EBPF_EXT.PDB" DiskId="1" Guid="B77B362A-BC02-46E8-B2BB-05D0981B1CC9">
+				<File Id="SAMPLE_EBPF_EXT.PDB" Name="sample_ebpf_ext.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\sample_ebpf_ext.pdb" />
+			</Component>
+			<Component Id="SAMPLE_EBPF_EXT.SYS" DiskId="1" Guid="027287AF-9945-4CD9-B863-8E39712612F7">
+				<File Id="SAMPLE_EBPF_EXT.SYS" Name="sample_ebpf_ext.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\sample_ebpf_ext.sys" />
+			</Component>
+			<Component Id="SAMPLE_EXT_APP.EXE" DiskId="1" Guid="901A57AF-4B88-4F14-B84D-61FEA2979C40">
+				<File Id="SAMPLE_EXT_APP.EXE" Name="sample_ext_app.exe" Source="$(var.sample_ext_app.TargetDir)sample_ext_app.exe" />
+			</Component>
+			<Component Id="SAMPLE_EXT_APP.PDB" DiskId="1" Guid="9DE5D44E-0C55-4959-AF57-F5735E92089A">
+				<File Id="SAMPLE_EXT_APP.PDB" Name="sample_ext_app.pdb" Source="$(var.sample_ext_app.TargetDir)sample_ext_app.pdb" />
+			</Component>
+			<Component Id="TAIL_CALL_MAP.O" DiskId="1" Guid="A3F68C4D-00BF-4FB7-8B49-2BFC69AF7ABB">
+				<File Id="TAIL_CALL_MAP.O" Name="tail_call_map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_map.o" />
+			</Component>
+			<Component Id="TAIL_CALL_MULTIPLE.O" DiskId="1" Guid="2779762A-9B87-490B-83CF-30A0C0C28CF3">
+				<File Id="TAIL_CALL_MULTIPLE.O" Name="tail_call_multiple.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_multiple.o" />
+			</Component>
+			<Component Id="TEST_SAMPLE_EBPF.O" DiskId="1" Guid="5E7F82E9-9631-44C6-A597-18DD96C87C44">
+				<File Id="TEST_SAMPLE_EBPF.O" Name="test_sample_ebpf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\test_sample_ebpf.o" />
+			</Component>
+			<Component Id="TEST_UTILITY_HELPERS.O" DiskId="1" Guid="B895F798-8A2D-4757-BDD2-F7A68860C92A">
+				<File Id="TEST_UTILITY_HELPERS.O" Name="test_utility_helpers.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\test_utility_helpers.o" />
+			</Component>
+			<Component Id="UNIT_TESTS.EXE" DiskId="1" Guid="CCF26677-3DDF-424F-80E8-184F65E323BA">
+				<File Id="UNIT_TESTS.EXE" Name="unit_tests.exe" Source="$(var.unit_tests.TargetDir)unit_tests.exe" />
+			</Component>
+			<Component Id="UNIT_TESTS.PDB" DiskId="1" Guid="3CF32625-22F9-4ABD-A0BF-44FA7EA2BCDE">
+				<File Id="UNIT_TESTS.PDB" Name="unit_tests.pdb" Source="$(var.unit_tests.TargetDir)unit_tests.pdb" />
+			</Component>
+		</ComponentGroup>
+	</Fragment>
+</Wix>

@@ -37,6 +37,8 @@ The following must be installed in order to build this project:
  Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
 1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.31 or higher**), which can be installed to a location
  such as "C:\Program Files (x86)\NuGet\".
+1. [WiX Toolset v3.11.2](https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe), along with the correlated [WiX v3 - Visual Studio 2022 Extension](https://marketplace.visualstudio.com/items?itemName=WixToolset.WixToolsetVisualStudio2022Extension).
+
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages
  above have been installed.
