@@ -47,6 +47,11 @@
 // Time before logging that a thread entry is stale
 #define EBPF_EPOCH_STALE_THREAD_TIME_IN_NANO_SECONDS 10000000000 // 10 seconds
 
+// The maximum time a thread remains in the thread table while inactive.
+#define EBPF_EPOCH_THREAD_TABLE_TIMEOUT_IN_NANO_SECONDS 1000000000 // 1 second
+
+#define EBPF_NANO_SECONDS_PER_FILETIME_TICK 100
+
 typedef struct _ebpf_epoch_state
 {
     int64_t epoch;           // The highest epoch seen by this epoch state.
@@ -640,6 +645,10 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
             lowest_epoch = min(lowest_epoch, _ebpf_epoch_cpu_table[cpu_id].epoch_state.epoch);
         }
 
+        // If a thread was last used before this cutoff, then it is stale and should be removed.
+        uint64_t stale_thread_cutoff =
+            now - (EBPF_EPOCH_THREAD_TABLE_TIMEOUT_IN_NANO_SECONDS / EBPF_NANO_SECONDS_PER_FILETIME_TICK);
+
         // Loop over all the threads in this CPU entry.
         do {
             // Get the next per-thread entry from this CPU.
@@ -668,6 +677,22 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
                     thread_entry->last_used_time = now;
                 }
                 lowest_epoch = min(lowest_epoch, thread_entry->epoch_state.epoch);
+            } else {
+                // Check if the thread entry has been used in the time interval [stale_thread_cutoff, now].
+                // If not, then delete the entry.
+                if (thread_entry->last_used_time < stale_thread_cutoff) {
+                    EBPF_LOG_MESSAGE_UINT64(
+                        EBPF_TRACELOG_LEVEL_VERBOSE,
+                        EBPF_TRACELOG_KEYWORD_EPOCH,
+                        "Deleting unused thread entry",
+                        (uint64_t)thread_id);
+                    // ebpf_hash_table_delete will free the thread_entry memory.
+                    // Ignore the return value since the key is guaranteed to be present.
+                    (void)ebpf_hash_table_delete(_ebpf_epoch_cpu_table[cpu_id].thread_table, (uint8_t*)&thread_id);
+
+                    // ebpf_hash_table_next_key_and_value will return the next entry even if the current entry is
+                    // deleted.
+                }
             }
         } while (return_value == EBPF_SUCCESS);
 
