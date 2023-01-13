@@ -2546,7 +2546,7 @@ TEST_CASE("BPF_PROG_ATTACH" , "[libbpf]")
     REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == 0);
 
 
-    // Verify we detach the program.
+    // Verify we can detach the program.
     memset(&attr, 0, sizeof(attr));
     attr.bpf_prog.target_fd = program_fd;
     attr.bpf_prog.prog_type = BPF_CGROUP_INET4_CONNECT;
