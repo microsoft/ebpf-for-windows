@@ -2630,6 +2630,10 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
     REQUIRE(bpf(BPF_MAP_LOOKUP_AND_DELETE_ELEM, &attr, sizeof(attr)) == 0);
 
+    // Test the API again and verify looking up and deleting fails. 
+    REQUIRE(bpf(BPF_MAP_LOOKUP_AND_DELETE_ELEM, &attr, sizeof(attr)) < 0);
+    REQUIRE(errno == ENOENT);
+
     // Verify that no entries exist.
     memset(&attr, 0, sizeof(attr));
     attr.map_fd = map_fd;
