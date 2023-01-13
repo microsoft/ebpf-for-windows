@@ -2529,7 +2529,7 @@ TEST_CASE("BPF_PROG_ATTACH" , "[libbpf]")
     int program_fd = bpf_program__fd(program);
     REQUIRE(program_fd > 0);
 
-    //// Verify we can't attach the program to an attach type that doesn't work with this API.
+    // Verify we can't attach the program using an attach type that doesn't work with this API.
     memset(&attr, 0, sizeof(attr));
     attr.bpf_prog.prog_fd = program_fd;
     attr.bpf_prog.target_fd = program_fd;
