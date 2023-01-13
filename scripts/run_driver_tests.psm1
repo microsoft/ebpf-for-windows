@@ -170,8 +170,8 @@ function Invoke-ConnectRedirectTest
           [parameter(Mandatory=$true)][string] $VirtualIPv6Address,
           [parameter(Mandatory=$true)][int] $DestinationPort,
           [parameter(Mandatory=$true)][int] $ProxyPort,
-          [parameter(Mandatory=$true)][string] $AdminUserName,
-          [parameter(Mandatory=$true)][string] $AdminPassword,
+          [parameter(Mandatory=$true)][string] $UserName,
+          [parameter(Mandatory=$true)][string] $UserPassword,
           [parameter(Mandatory=$true)][string] $ExecutionType,
           [parameter(Mandatory=$true)][string] $WorkingDirectory)
 
@@ -189,8 +189,8 @@ function Invoke-ConnectRedirectTest
         --remote-ip-v6 $RemoteIPv6Address `
         --destination-port $DestinationPort `
         --proxy-port $ProxyPort `
-        --user-name $AdminUserName `
-        --password $AdminPassword `
+        --user-name $UserName `
+        --password $UserPassword `
         --execution-mode $ExecutionType
     Out-String -InputObject $Output | Write-Log
     $ParsedOutput = $Output.Split(" ")

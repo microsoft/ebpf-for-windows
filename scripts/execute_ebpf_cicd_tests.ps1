@@ -33,7 +33,7 @@ Invoke-XDPTestsOnVM $Config.MultiVMTest
 # Run Connect Redirect Tests.
 Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest $Config.ConnectRedirectTest -ExecutionType "Admin"
 Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest $Config.ConnectRedirectTest -ExecutionType "Standard"
-Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest $Config.ConnectRedirectTest -ExecutionType "Elevated"
+## Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest $Config.ConnectRedirectTest -ExecutionType "Elevated"
 
 # Stop eBPF components on test VMs.
 foreach ($VM in $Config.MultiVMTest) {

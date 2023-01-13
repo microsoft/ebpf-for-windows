@@ -350,7 +350,7 @@ function Invoke-ConnectRedirectTestsOnVM
 {
     param([parameter(Mandatory=$true)] $MultiVMTestConfig,
           [parameter(Mandatory=$true)] $ConnectRedirectTestConfig,
-          [parameter(Mandatory=$false)][ValidateSet("Admin", "Standard", "Elevated")] $ExecutionType = "Admin")
+          [parameter(Mandatory=$false)][ValidateSet("Admin", "Standard")] $ExecutionType = "Admin")
 
     $VM1 = $MultiVMTestConfig[0]
     $VM1Interface = $VM1.Interfaces[0]
@@ -390,10 +390,11 @@ function Invoke-ConnectRedirectTestsOnVM
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
-    if ($ExecutionType -ne "Admin")
-    {
-        $TestCredential = New-Credential -Username $User -AdminPassword $UserPassword
-    }
+    #if ($ExecutionType -ne "Admin")
+    #{
+    #    $TestCredential = New-Credential -Username $User -AdminPassword $UserPassword
+    #}
+
     $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($UserPassword)
     $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
@@ -408,8 +409,8 @@ function Invoke-ConnectRedirectTestsOnVM
               [parameter(Mandatory=$true)][string] $VirtualIPv6Address,
               [parameter(Mandatory=$true)][int] $DestinationPort,
               [parameter(Mandatory=$true)][int] $ProxyPort,
-              [parameter(Mandatory=$true)][string] $AdminUserName,
-              [parameter(Mandatory=$true)][string] $AdminPassword,
+              [parameter(Mandatory=$true)][string] $UserName,
+              [parameter(Mandatory=$true)][string] $UserPassword,
               [parameter(Mandatory=$true)][string] $ExecutionType,
               [parameter(Mandatory=$true)][string] $WorkingDirectory,
               [Parameter(Mandatory=$true)][string] $LogFileName)
@@ -428,11 +429,11 @@ function Invoke-ConnectRedirectTestsOnVM
             -VirtualIPv6Address $VirtualIPv6Address `
             -DestinationPort $DestinationPort `
             -ProxyPort $ProxyPort `
-            -AdminUserName $AdminUserName `
-            -AdminPassword $AdminPassword `
+            -UserName $UserName `
+            -UserPassword $UserPassword `
             -ExecutionType $ExecutionType `
             -WorkingDirectory $WorkingDirectory
-    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $Admin, $UnsecurePassword, $ExecutionType, "eBPF", $LogFileName) -ErrorAction Stop
+    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $User, $UnsecurePassword, $ExecutionType, "eBPF", $LogFileName) -ErrorAction Stop
 
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
     Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName

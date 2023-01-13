@@ -451,6 +451,8 @@ authorize_test(
 void
 get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket)
 {
+    impersonation_helper_t helper(_globals.mode);
+
     client_socket_t* old_socket = *sender_socket;
     client_socket_t* new_socket = nullptr;
     socket_family_t family = dual_stack

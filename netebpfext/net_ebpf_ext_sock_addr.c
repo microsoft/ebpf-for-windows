@@ -222,10 +222,10 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx, _Out_ uint32_t
     status = _perform_access_check(
         _net_ebpf_ext_security_descriptor_admin, sock_addr_ctx->access_information, &access_allowed);
 
-    if (NT_SUCCESS(status)) {
+    if (access_allowed) {
         *is_admin = 1;
-        return_value = 0;
     }
+    return_value = 0;
 
 Exit:
     return return_value;
