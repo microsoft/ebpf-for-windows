@@ -57,13 +57,13 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
         }
         return bpf_obj_get((const char*)attr->pathname);
     case BPF_PROG_ATTACH: {
-        CHECK_SIZE(bpf_prog.flags);
+        CHECK_SIZE(attach_flags);
         return bpf_prog_attach(
-            attr->bpf_prog.prog_fd, attr->bpf_prog.target_fd, attr->bpf_prog.prog_type, attr->bpf_prog.flags);
+            attr->attach_bpf_fd, attr->target_fd, attr->attach_type, attr->attach_flags);
     }
     case BPF_PROG_DETACH: {
-        CHECK_SIZE(bpf_prog.prog_type);
-        return bpf_prog_detach(attr->bpf_prog.target_fd, attr->bpf_prog.prog_type);
+        CHECK_SIZE(attach_type);
+        return bpf_prog_detach(attr->target_fd, attr->attach_type);
     }
     case BPF_OBJ_GET_INFO_BY_FD:
         CHECK_SIZE(info.info_len);

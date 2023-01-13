@@ -90,15 +90,6 @@ typedef struct
     uint32_t link_fd; ///< File descriptor of link to detach.
 } bpf_link_detach_attr_t;
 
-/// Attributes used by BPF_PROG_ATTACH/DETACH .
-typedef struct
-{
-    uint32_t prog_fd;               ///< File descriptor of program to attach to.
-    uint32_t target_fd;             ///< eBPF target to attach/detach to/from.
-    enum bpf_attach_type prog_type; ///< Type of program to attach/detach to/from.
-    uint32_t flags;                 ///< Flags affecting the attach operation.
-} bpf_prog_attr_t;
-
 /// Attributes used by BPF_PROG_BIND_MAP.
 typedef struct
 {
@@ -152,7 +143,17 @@ union bpf_attr
         uint32_t log_size;     ///< Size in bytes of the log buffer.
         uint32_t kern_version; ///< Kernel version (currently ignored on Windows).
     };                         ///< Attributes used by BPF_PROG_LOAD.
-
+    
+    //BPF_PROG_ATTACH
+    //BPF_PROG_DETACH
+    struct
+    {
+        uint32_t target_fd;               ///< eBPF target to attach/detach to/from.
+        uint32_t attach_bpf_fd;           ///< File descriptor of program to attach to.
+        enum bpf_attach_type attach_type; ///< Type of program to attach/detach to/from.
+        uint32_t attach_flags;            ///< Flags affecting the attach operation.
+    };                                    ///< Attributes used by BPF_PROG_ATTACH/DETACH. 
+    
     // BPF_OBJ_PIN
     // BPF_OBJ_GET
     struct
@@ -184,9 +185,6 @@ union bpf_attr
 
     // BPF_LINK_DETACH
     bpf_link_detach_attr_t link_detach; ///< Attributes used by BPF_LINK_DETACH.
-
-    // BPF_PROG_ATTACH
-    bpf_prog_attr_t bpf_prog; ///< Attributes used by BPF_PROG_ATTACH and BPF_PROG_DETACH.
 
     // BPF_PROG_BIND_MAP
     bpf_prog_bind_map_attr_t prog_bind_map; ///< Attributes used by BPF_PROG_BIND_MAP.
