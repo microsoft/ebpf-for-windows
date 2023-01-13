@@ -303,6 +303,24 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options);
 
+    typedef ebpf_result_t (*ebpf_helper_function_addresses_changed_callback_t)(
+        _Inout_ ebpf_program_t* program, _In_opt_ void* context);
+
+    /**
+     * @brief Register to be notified when the helper function addresses change.
+     *
+     * @param[in,out] program Program to register for helper function address changes.
+     * @param[in] callback Function to call when helper function addresses change.
+     * @param[in] context Context to pass to the callback.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Invalid argument.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_register_for_helper_changes(
+        _Inout_ ebpf_program_t* program,
+        _In_ ebpf_helper_function_addresses_changed_callback_t callback,
+        _In_opt_ void* context);
+
 #ifdef __cplusplus
 }
 #endif

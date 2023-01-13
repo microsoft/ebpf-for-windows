@@ -53,17 +53,19 @@ typedef struct _ebpf_extension_provider_binding_context
     ebpf_handle_t nmr_binding_handle;
 } ebpf_extension_provider_binding_context;
 
-static void
+static ebpf_result_t
 _ebpf_extension_client_notify_change(
     ebpf_extension_client_t* client_context, ebpf_extension_client_binding_context_t* client_binding_context)
 {
+    ebpf_result_t result = EBPF_SUCCESS;
     EBPF_LOG_ENTRY();
-    if (client_context->extension_change_callback)
-        client_context->extension_change_callback(
+    if (client_context->extension_change_callback) {
+        result = client_context->extension_change_callback(
             client_context->extension_client_context,
             client_binding_context->provider_binding_context,
             client_binding_context->provider_data);
-    EBPF_RETURN_VOID();
+    }
+    EBPF_RETURN_RESULT(result);
 }
 
 NTSTATUS
@@ -132,10 +134,15 @@ _ebpf_extension_client_attach_provider(
 
     local_client_binding_context->provider_is_attached = NT_SUCCESS(status);
 
-    if (NT_SUCCESS(status))
-        _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
-    else
+    if (NT_SUCCESS(status)) {
+        ebpf_result_t result = _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
+        if (result != EBPF_SUCCESS) {
+            status = STATUS_UNSUCCESSFUL;
+            goto Done;
+        }
+    } else {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrClientAttachProvider, status);
+    }
 
 Done:
     EBPF_RETURN_NTSTATUS(status);
