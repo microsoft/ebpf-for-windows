@@ -111,16 +111,13 @@ typedef class _fwp_engine
     test_cgroup_sock_addr(uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incomingValue);
 
     FWP_ACTION_TYPE
-    test_sock_ops(uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incomingValue);
-
-    FWP_ACTION_TYPE
     test_callout(uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incoming_value);
 
     _Ret_maybenull_ const FWPM_FILTER*
-    get_fwpm_filter_with_context()
+    get_fwpm_filter_with_context(_In_ const GUID& layer_guid)
     {
         for (auto& [first, filter] : fwpm_filters) {
-            if (filter.rawContext != 0) {
+            if (memcmp(&filter.layerKey, &layer_guid, sizeof(GUID)) == 0 && filter.rawContext != 0) {
                 return &filter;
             }
         }
