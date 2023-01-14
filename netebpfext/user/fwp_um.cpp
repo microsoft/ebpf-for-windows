@@ -112,16 +112,101 @@ _fwp_engine::test_bind_ipv4()
     return result.actionType;
 }
 
-void
+FWP_ACTION_TYPE
 _fwp_engine::test_cgroup_sock_addr()
 {
-    // TODO(issue #1869): implement sock_addr callout.
+    std::unique_lock l(lock);
+    const GUID* callout_key = get_callout_key_from_layer_guid(&FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4); // XXX
+    if (callout_key == nullptr) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    const FWPS_CALLOUT3* callout = get_callout_from_key(callout_key);
+    if (callout == nullptr) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    FWPS_CLASSIFY_OUT0 result = {};
+    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_MAX] = {};
+    const uint32_t test_local_ipv4_address = 0x01020304;
+    const uint16_t test_local_port = 1234;
+    const uint32_t test_remote_ipv4_address = 0x05060708;
+    const uint16_t test_remote_port = 5678;
+    const uint8_t test_protocol = IPPROTO_TCP;
+    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS].value.uint32 = test_local_ipv4_address;
+    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_PORT].value.uint16 = test_local_port;
+    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_ADDRESS].value.uint32 = test_remote_ipv4_address;
+    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_PORT].value.uint16 = test_remote_port;
+    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_PROTOCOL].value.uint8 = test_protocol;
+    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_COMPARTMENT_ID].value.uint32 = 0;
+    uint64_t test_interface_luid = 1;
+    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_INTERFACE].value.uint64 = &test_interface_luid;
+    FWP_BYTE_BLOB app_id = {};
+    app_id.data = (uint8_t*)"\\";
+    app_id.size = 2;
+    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_APP_ID].value.byteBlob = &app_id;
+
+    const uint16_t layer_id = FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4;
+    FWPS_INCOMING_VALUES incoming_fixed_values = {.layerId = layer_id, .incomingValue = incomingValue};
+    FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
+    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context();
+    if (!fwpm_filter) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    FWPS_FILTER fwps_filter = {.context = fwpm_filter->rawContext};
+
+    callout->classifyFn(
+        &incoming_fixed_values,
+        &incoming_metadata_values,
+        nullptr, // layer_data
+        nullptr, // classify_context,
+        &fwps_filter,
+        0, // flow_context,
+        &result);
+
+    return result.actionType;
 }
 
-void
+FWP_ACTION_TYPE
 _fwp_engine::test_sock_ops()
 {
-    // TODO(issue #1869): implement sock_ops callout.
+    std::unique_lock l(lock);
+    const GUID* callout_key = get_callout_key_from_layer_guid(&FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4); // XXX
+    if (callout_key == nullptr) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    const FWPS_CALLOUT3* callout = get_callout_from_key(callout_key);
+    if (callout == nullptr) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    FWPS_CLASSIFY_OUT0 result = {};
+    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_MAX] = {};
+    const uint16_t test_port = 1234;
+    const uint8_t test_protocol = IPPROTO_TCP;
+    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16 = test_port;
+    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS].value.uint32 = INADDR_ANY;
+    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8 = test_protocol;
+    FWP_BYTE_BLOB app_id = {};
+    app_id.data = (uint8_t*)"\\";
+    app_id.size = 2;
+    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob = &app_id;
+
+    FWPS_INCOMING_VALUES incoming_fixed_values = {.incomingValue = incomingValue};
+    FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
+    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context();
+    if (!fwpm_filter) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    FWPS_FILTER fwps_filter = {.context = fwpm_filter->rawContext};
+
+    callout->classifyFn(
+        &incoming_fixed_values,
+        &incoming_metadata_values,
+        nullptr, // layer_data
+        nullptr, // classify_context,
+        &fwps_filter,
+        0, // flow_context,
+        &result);
+
+    return result.actionType;
 }
 
 typedef struct _fwp_injection_handle

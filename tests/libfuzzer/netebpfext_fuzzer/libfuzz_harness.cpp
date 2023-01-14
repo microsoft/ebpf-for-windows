@@ -110,10 +110,10 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         (void)helper.test_bind_ipv4();
         break;
     case BPF_PROG_TYPE_CGROUP_SOCK_ADDR:
-        helper.test_cgroup_sock_addr();
+        (void)helper.test_cgroup_sock_addr();
         break;
     case BPF_PROG_TYPE_SOCK_OPS:
-        helper.test_sock_ops();
+        (void)helper.test_sock_ops();
         break;
     }
 

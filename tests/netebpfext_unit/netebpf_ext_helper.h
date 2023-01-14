@@ -52,17 +52,11 @@ typedef class _netebpf_ext_helper
     FWP_ACTION_TYPE
     test_bind_ipv4() { return _fwp_engine::get()->test_bind_ipv4(); }
 
-    void
-    test_cgroup_sock_addr()
-    {
-        return _fwp_engine::get()->test_cgroup_sock_addr();
-    }
+    FWP_ACTION_TYPE
+    test_cgroup_sock_addr() { return _fwp_engine::get()->test_cgroup_sock_addr(); }
 
-    void
-    test_sock_ops()
-    {
-        return _fwp_engine::get()->test_sock_ops();
-    }
+    FWP_ACTION_TYPE
+    test_sock_ops() { return _fwp_engine::get()->test_sock_ops(); }
 
   private:
     bool trace_initiated = false;

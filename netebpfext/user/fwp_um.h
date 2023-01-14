@@ -80,10 +80,10 @@ typedef class _fwp_engine
     FWP_ACTION_TYPE
     test_bind_ipv4();
 
-    void
+    FWP_ACTION_TYPE
     test_cgroup_sock_addr();
 
-    void
+    FWP_ACTION_TYPE
     test_sock_ops();
 
     static _fwp_engine*

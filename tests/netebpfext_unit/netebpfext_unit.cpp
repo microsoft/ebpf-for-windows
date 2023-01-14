@@ -38,6 +38,8 @@ TEST_CASE("query program info", "[netebpfext]")
     REQUIRE(expected_program_names == program_names);
 }
 
+#pragma region xdp
+
 typedef struct _test_xdp_client_context
 {
     netebpfext_helper_base_client_context_t base;
@@ -138,6 +140,9 @@ TEST_CASE("xdp_context", "[netebpfext]")
     REQUIRE(output_context.ingress_ifindex == 67889);
 }
 
+#pragma endregion xdp
+#pragma region bind
+
 typedef struct test_bind_client_context_t
 {
     netebpfext_helper_base_client_context_t base;
@@ -156,8 +161,7 @@ netebpfext_unit_invoke_bind_program(
 
 TEST_CASE("bind_invoke", "[netebpfext]")
 {
-    NET_IFINDEX if_index = 0;
-    ebpf_extension_data_t npi_specific_characteristics = {.size = sizeof(if_index), .data = &if_index};
+    ebpf_extension_data_t npi_specific_characteristics = {};
     test_bind_client_context_t client_context = {};
 
     netebpf_ext_helper_t helper(
@@ -255,9 +259,42 @@ TEST_CASE("bind_context", "[netebpfext]")
     REQUIRE(output_context.protocol == IPPROTO_UDP);
 }
 
+#pragma endregion bind
+#pragma region cgroup_sock_addr
+
+typedef struct test_sock_addr_client_context_t
+{
+    netebpfext_helper_base_client_context_t base;
+    int sock_addr_action;
+} test_sock_addr_client_context_t;
+
+_Must_inspect_result_ ebpf_result_t
+netebpfext_unit_invoke_sock_addr_program(
+    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
+{
+    auto client_context = (test_sock_addr_client_context_t*)client_binding_context;
+    UNREFERENCED_PARAMETER(context);
+    *result = client_context->sock_addr_action;
+    return EBPF_SUCCESS;
+}
+
 TEST_CASE("sock_addr_invoke", "[netebpfext]")
 {
-    // TODO
+    ebpf_extension_data_t npi_specific_characteristics = {};
+    test_sock_addr_client_context_t client_context = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
+
+    client_context.sock_addr_action = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    FWP_ACTION_TYPE result = helper.test_cgroup_sock_addr();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    client_context.sock_addr_action = BPF_SOCK_ADDR_VERDICT_REJECT;
+    result = helper.test_cgroup_sock_addr();
+    REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
 TEST_CASE("sock_addr_context", "[netebpfext]")
@@ -327,10 +364,38 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
     REQUIRE(output_context.compartment_id == 0x12345679);
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
 }
+#pragma endregion cgroup_sock_addr
+#pragma region sock_ops
+
+typedef struct test_sock_ops_client_context_t
+{
+    netebpfext_helper_base_client_context_t base;
+    uint32_t /*XXX*/ sock_ops_action;
+} test_sock_ops_client_context_t;
+
+_Must_inspect_result_ ebpf_result_t
+netebpfext_unit_invoke_sock_ops_program(
+    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
+{
+    auto client_context = (test_sock_ops_client_context_t*)client_binding_context;
+    UNREFERENCED_PARAMETER(context);
+    *result = client_context->sock_ops_action;
+    return EBPF_SUCCESS;
+}
 
 TEST_CASE("sock_ops_invoke", "[netebpfext]")
 {
-    // TODO
+    ebpf_extension_data_t npi_specific_characteristics = {};
+    test_sock_ops_client_context_t client_context = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
+
+    client_context.sock_ops_action = BIND_PERMIT; // XXX
+    FWP_ACTION_TYPE result = helper.test_sock_ops();
+    REQUIRE(result == FWP_ACTION_PERMIT);
 }
 
 TEST_CASE("sock_ops_context", "[netebpfext]")
@@ -403,3 +468,4 @@ TEST_CASE("sock_ops_context", "[netebpfext]")
     REQUIRE(output_context.compartment_id == 0x12345679);
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
 }
+#pragma endregion sock_ops
