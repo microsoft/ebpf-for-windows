@@ -65,7 +65,10 @@ typedef class _netebpf_ext_helper
     test_cgroup_inet6_connect() { return _fwp_engine::get()->test_cgroup_inet6_connect(); }
 
     FWP_ACTION_TYPE
-    test_sock_ops() { return _fwp_engine::get()->test_sock_ops(); }
+    test_sock_ops_v4() { return _fwp_engine::get()->test_sock_ops_v4(); }
+
+    FWP_ACTION_TYPE
+    test_sock_ops_v6() { return _fwp_engine::get()->test_sock_ops_v6(); }
 
   private:
     bool trace_initiated = false;

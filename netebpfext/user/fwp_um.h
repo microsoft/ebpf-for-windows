@@ -93,7 +93,10 @@ typedef class _fwp_engine
     test_cgroup_inet6_connect();
 
     FWP_ACTION_TYPE
-    test_sock_ops();
+    test_sock_ops_v4();
+
+    FWP_ACTION_TYPE
+    test_sock_ops_v6();
 
     static _fwp_engine*
     get()
@@ -106,6 +109,9 @@ typedef class _fwp_engine
   private:
     FWP_ACTION_TYPE
     test_cgroup_sock_addr(uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incomingValue);
+
+    FWP_ACTION_TYPE
+    test_sock_ops(uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incomingValue);
 
     _Ret_maybenull_ const FWPM_FILTER*
     get_fwpm_filter_with_context()

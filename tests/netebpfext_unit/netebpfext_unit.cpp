@@ -404,7 +404,7 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
 typedef struct test_sock_ops_client_context_t
 {
     netebpfext_helper_base_client_context_t base;
-    uint32_t /*XXX*/ sock_ops_action;
+    uint32_t sock_ops_action;
 } test_sock_ops_client_context_t;
 
 _Must_inspect_result_ ebpf_result_t
@@ -427,9 +427,23 @@ TEST_CASE("sock_ops_invoke", "[netebpfext]")
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
         (netebpfext_helper_base_client_context_t*)&client_context);
 
-    client_context.sock_ops_action = BIND_PERMIT; // XXX
-    FWP_ACTION_TYPE result = helper.test_sock_ops();
+    // Do some operations that return success.
+    client_context.sock_ops_action = 0;
+
+    FWP_ACTION_TYPE result = helper.test_sock_ops_v4();
     REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_sock_ops_v6();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Do some operations that return failure.
+    client_context.sock_ops_action = -1;
+
+    result = helper.test_sock_ops_v4();
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_sock_ops_v6();
+    REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
 TEST_CASE("sock_ops_context", "[netebpfext]")

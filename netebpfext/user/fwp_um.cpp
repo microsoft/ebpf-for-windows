@@ -21,8 +21,8 @@ _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_in
         return FWP_ACTION_CALLOUT_UNKNOWN;
     }
     FWPS_CLASSIFY_OUT0 result = {};
-    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_MAX] = {};
-    FWPS_INCOMING_VALUES incoming_fixed_values = {.incomingValue = incomingValue};
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_MAX] = {};
+    FWPS_INCOMING_VALUES incoming_fixed_values = {.incomingValue = incoming_value};
     incoming_fixed_values.incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32 = if_index;
     FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
     const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context();
@@ -69,6 +69,17 @@ _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_in
     return result.actionType;
 }
 
+const uint32_t _test_local_ipv4_address = 0x01020304;
+const uint16_t _test_local_port = 1234;
+const uint32_t _test_remote_ipv4_address = 0x05060708;
+const uint16_t _test_remote_port = 5678;
+const uint8_t _test_protocol = IPPROTO_TCP;
+const uint32_t _test_compartment_id = 1;
+static FWP_BYTE_ARRAY16 _test_local_ipv6_address = {1, 2, 3, 4};
+static FWP_BYTE_ARRAY16 _test_remote_ipv6_address = {5, 6, 7, 8};
+static FWP_BYTE_BLOB _test_app_id = {.size = 2, .data = (uint8_t*)"\\"};
+static uint64_t _test_interface_luid = 1;
+
 FWP_ACTION_TYPE
 _fwp_engine::test_bind_ipv4()
 {
@@ -82,18 +93,13 @@ _fwp_engine::test_bind_ipv4()
         return FWP_ACTION_CALLOUT_UNKNOWN;
     }
     FWPS_CLASSIFY_OUT0 result = {};
-    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_MAX] = {};
-    const uint16_t test_port = 1234;
-    const uint8_t test_protocol = IPPROTO_TCP;
-    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16 = test_port;
-    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS].value.uint32 = INADDR_ANY;
-    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8 = test_protocol;
-    FWP_BYTE_BLOB app_id = {};
-    app_id.data = (uint8_t*)"\\";
-    app_id.size = 2;
-    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob = &app_id;
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16 = _test_local_port;
+    incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS].value.uint32 = _test_local_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
 
-    FWPS_INCOMING_VALUES incoming_fixed_values = {.incomingValue = incomingValue};
+    FWPS_INCOMING_VALUES incoming_fixed_values = {.incomingValue = incoming_value};
     FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
     const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context();
     if (!fwpm_filter) {
@@ -115,9 +121,9 @@ _fwp_engine::test_bind_ipv4()
 
 FWP_ACTION_TYPE
 _fwp_engine::test_cgroup_sock_addr(
-    uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incomingValue)
+    uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incoming_value)
 {
-    FWPS_INCOMING_VALUES incoming_fixed_values = {.layerId = layer_id, .incomingValue = incomingValue};
+    FWPS_INCOMING_VALUES incoming_fixed_values = {.layerId = layer_id, .incomingValue = incoming_value};
     FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
     const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context();
     if (!fwpm_filter) {
@@ -160,26 +166,18 @@ _fwp_engine::test_cgroup_inet4_recv_accept()
 {
     std::unique_lock l(lock);
 
-    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_MAX] = {};
-    const uint32_t test_local_ipv4_address = 0x01020304;
-    const uint16_t test_local_port = 1234;
-    const uint32_t test_remote_ipv4_address = 0x05060708;
-    const uint16_t test_remote_port = 5678;
-    const uint8_t test_protocol = IPPROTO_TCP;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS].value.uint32 = test_local_ipv4_address;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_PORT].value.uint16 = test_local_port;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_ADDRESS].value.uint32 = test_remote_ipv4_address;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_PORT].value.uint16 = test_remote_port;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_PROTOCOL].value.uint8 = test_protocol;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_COMPARTMENT_ID].value.uint32 = 0;
-    uint64_t test_interface_luid = 1;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_INTERFACE].value.uint64 = &test_interface_luid;
-    FWP_BYTE_BLOB app_id = {};
-    app_id.data = (uint8_t*)"\\";
-    app_id.size = 2;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_APP_ID].value.byteBlob = &app_id;
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS].value.uint32 = _test_local_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_PORT].value.uint16 = _test_local_port;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_ADDRESS].value.uint32 = _test_remote_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_PORT].value.uint16 = _test_remote_port;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
 
-    return test_cgroup_sock_addr(FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4, incomingValue);
+    return test_cgroup_sock_addr(
+        FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4, incoming_value);
 }
 
 FWP_ACTION_TYPE
@@ -187,26 +185,18 @@ _fwp_engine::test_cgroup_inet6_recv_accept()
 {
     std::unique_lock l(lock);
 
-    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_MAX] = {};
-    FWP_BYTE_ARRAY16 test_local_ipv6_address = {1, 2, 3, 4};
-    const uint16_t test_local_port = 1234;
-    FWP_BYTE_ARRAY16 test_remote_ipv6_address = {5, 6, 7, 8};
-    const uint16_t test_remote_port = 5678;
-    const uint8_t test_protocol = IPPROTO_TCP;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_ADDRESS].value.byteArray16 = &test_local_ipv6_address;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_PORT].value.uint16 = test_local_port;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_REMOTE_ADDRESS].value.byteArray16 = &test_remote_ipv6_address;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_REMOTE_PORT].value.uint16 = test_remote_port;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_PROTOCOL].value.uint8 = test_protocol;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_COMPARTMENT_ID].value.uint32 = 0;
-    uint64_t test_interface_luid = 1;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_INTERFACE].value.uint64 = &test_interface_luid;
-    FWP_BYTE_BLOB app_id = {};
-    app_id.data = (uint8_t*)"\\";
-    app_id.size = 2;
-    incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_APP_ID].value.byteBlob = &app_id;
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_ADDRESS].value.byteArray16 = &_test_local_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_PORT].value.uint16 = _test_local_port;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_REMOTE_ADDRESS].value.byteArray16 = &_test_remote_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_REMOTE_PORT].value.uint16 = _test_remote_port;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_APP_ID].value.byteBlob = &_test_app_id;
 
-    return test_cgroup_sock_addr(FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V6, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6, incomingValue);
+    return test_cgroup_sock_addr(
+        FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V6, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6, incoming_value);
 }
 
 FWP_ACTION_TYPE
@@ -214,24 +204,17 @@ _fwp_engine::test_cgroup_inet4_connect()
 {
     std::unique_lock l(lock);
 
-    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_MAX] = {};
-    const uint32_t test_remote_ipv4_address = 0x01020304;
-    const uint16_t test_remote_port = 1234;
-    const uint32_t test_local_ipv4_address = 0x05060708;
-    const uint16_t test_local_port = 5678;
-    const uint8_t test_protocol = IPPROTO_TCP;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_ADDRESS].value.uint32 = test_local_ipv4_address;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_PORT].value.uint16 = test_local_port;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_ADDRESS].value.uint32 = test_remote_ipv4_address;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_PORT].value.uint16 = test_remote_port;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_PROTOCOL].value.uint8 = test_protocol;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_COMPARTMENT_ID].value.uint32 = 0;
-    FWP_BYTE_BLOB app_id = {};
-    app_id.data = (uint8_t*)"\\";
-    app_id.size = 2;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_APP_ID].value.byteBlob = &app_id;
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_ADDRESS].value.uint32 = _test_local_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_PORT].value.uint16 = _test_local_port;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_ADDRESS].value.uint32 = _test_remote_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_PORT].value.uint16 = _test_remote_port;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
 
-    return test_cgroup_sock_addr(FWPS_LAYER_ALE_CONNECT_REDIRECT_V4, FWPM_LAYER_ALE_CONNECT_REDIRECT_V4, incomingValue);
+    return test_cgroup_sock_addr(
+        FWPS_LAYER_ALE_CONNECT_REDIRECT_V4, FWPM_LAYER_ALE_CONNECT_REDIRECT_V4, incoming_value);
 }
 
 FWP_ACTION_TYPE
@@ -239,31 +222,31 @@ _fwp_engine::test_cgroup_inet6_connect()
 {
     std::unique_lock l(lock);
 
-    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_MAX] = {};
-    FWP_BYTE_ARRAY16 test_remote_ipv6_address = {1, 2, 3, 4};
-    const uint16_t test_remote_port = 1234;
-    FWP_BYTE_ARRAY16 test_local_ipv6_address = {5, 6, 7, 8};
-    const uint16_t test_local_port = 5678;
-    const uint8_t test_protocol = IPPROTO_TCP;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS].value.byteArray16 = &test_local_ipv6_address;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_PORT].value.uint16 = test_local_port;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_ADDRESS].value.byteArray16 = &test_remote_ipv6_address;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_PORT].value.uint16 = test_remote_port;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_PROTOCOL].value.uint8 = test_protocol;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_COMPARTMENT_ID].value.uint32 = 0;
-    FWP_BYTE_BLOB app_id = {};
-    app_id.data = (uint8_t*)"\\";
-    app_id.size = 2;
-    incomingValue[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_APP_ID].value.byteBlob = &app_id;
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS].value.byteArray16 = &_test_local_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_PORT].value.uint16 = _test_local_port;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_ADDRESS].value.byteArray16 = &_test_remote_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_PORT].value.uint16 = _test_remote_port;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_APP_ID].value.byteBlob = &_test_app_id;
 
-    return test_cgroup_sock_addr(FWPS_LAYER_ALE_CONNECT_REDIRECT_V6, FWPM_LAYER_ALE_CONNECT_REDIRECT_V6, incomingValue);
+    return test_cgroup_sock_addr(
+        FWPS_LAYER_ALE_CONNECT_REDIRECT_V6, FWPM_LAYER_ALE_CONNECT_REDIRECT_V6, incoming_value);
 }
 
 FWP_ACTION_TYPE
-_fwp_engine::test_sock_ops()
+_fwp_engine::test_sock_ops(uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incoming_value)
 {
-    std::unique_lock l(lock);
-    const GUID* callout_key = get_callout_key_from_layer_guid(&FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4); // XXX
+    FWPS_INCOMING_VALUES incoming_fixed_values = {.layerId = layer_id, .incomingValue = incoming_value};
+    FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
+    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context();
+    if (!fwpm_filter) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    FWPS_FILTER fwps_filter = {.context = fwpm_filter->rawContext};
+
+    const GUID* callout_key = get_callout_key_from_layer_guid(&layer_guid);
     if (callout_key == nullptr) {
         return FWP_ACTION_CALLOUT_UNKNOWN;
     }
@@ -272,24 +255,6 @@ _fwp_engine::test_sock_ops()
         return FWP_ACTION_CALLOUT_UNKNOWN;
     }
     FWPS_CLASSIFY_OUT0 result = {};
-    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_MAX] = {};
-    const uint16_t test_port = 1234;
-    const uint8_t test_protocol = IPPROTO_TCP;
-    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16 = test_port;
-    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS].value.uint32 = INADDR_ANY;
-    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8 = test_protocol;
-    FWP_BYTE_BLOB app_id = {};
-    app_id.data = (uint8_t*)"\\";
-    app_id.size = 2;
-    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob = &app_id;
-
-    FWPS_INCOMING_VALUES incoming_fixed_values = {.incomingValue = incomingValue};
-    FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
-    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context();
-    if (!fwpm_filter) {
-        return FWP_ACTION_CALLOUT_UNKNOWN;
-    }
-    FWPS_FILTER fwps_filter = {.context = fwpm_filter->rawContext};
 
     callout->classifyFn(
         &incoming_fixed_values,
@@ -301,6 +266,43 @@ _fwp_engine::test_sock_ops()
         &result);
 
     return result.actionType;
+}
+
+FWP_ACTION_TYPE
+_fwp_engine::test_sock_ops_v4()
+{
+    std::unique_lock l(lock);
+
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_LOCAL_ADDRESS].value.uint32 = _test_local_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_LOCAL_PORT].value.uint16 = _test_local_port;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_REMOTE_ADDRESS].value.uint32 = _test_remote_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_REMOTE_PORT].value.uint16 = _test_remote_port;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
+
+    return test_sock_ops(FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4, incoming_value);
+}
+
+FWP_ACTION_TYPE
+_fwp_engine::test_sock_ops_v6()
+{
+    std::unique_lock l(lock);
+
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_ADDRESS].value.byteArray16 = &_test_local_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_PORT].value.uint16 = _test_local_port;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_REMOTE_ADDRESS].value.byteArray16 = &_test_remote_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_REMOTE_PORT].value.uint16 = _test_remote_port;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_ALE_APP_ID].value.byteBlob = &_test_app_id;
+
+    // TODO: can this work with test_sock_addr()?
+    return test_sock_ops(FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6, incoming_value);
 }
 
 typedef struct _fwp_injection_handle
@@ -476,7 +478,9 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsFlowAssociateContext0(
     UNREFERENCED_PARAMETER(layer_id);
     UNREFERENCED_PARAMETER(callout_id);
     UNREFERENCED_PARAMETER(flowContext);
-    return STATUS_NOT_IMPLEMENTED;
+
+    // TODO: what should we do here?
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsAllocateNetBufferAndNetBufferList0(
