@@ -81,7 +81,16 @@ typedef class _fwp_engine
     test_bind_ipv4();
 
     FWP_ACTION_TYPE
-    test_cgroup_sock_addr();
+    test_cgroup_inet4_recv_accept();
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_recv_accept();
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_connect();
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_connect();
 
     FWP_ACTION_TYPE
     test_sock_ops();
@@ -95,6 +104,9 @@ typedef class _fwp_engine
     }
 
   private:
+    FWP_ACTION_TYPE
+    test_cgroup_sock_addr(uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incomingValue);
+
     _Ret_maybenull_ const FWPM_FILTER*
     get_fwpm_filter_with_context()
     {

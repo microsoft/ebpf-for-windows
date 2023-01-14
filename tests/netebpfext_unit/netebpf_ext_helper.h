@@ -53,7 +53,16 @@ typedef class _netebpf_ext_helper
     test_bind_ipv4() { return _fwp_engine::get()->test_bind_ipv4(); }
 
     FWP_ACTION_TYPE
-    test_cgroup_sock_addr() { return _fwp_engine::get()->test_cgroup_sock_addr(); }
+    test_cgroup_inet4_recv_accept() { return _fwp_engine::get()->test_cgroup_inet4_recv_accept(); }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_recv_accept() { return _fwp_engine::get()->test_cgroup_inet6_recv_accept(); }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_connect() { return _fwp_engine::get()->test_cgroup_inet4_connect(); }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_connect() { return _fwp_engine::get()->test_cgroup_inet6_connect(); }
 
     FWP_ACTION_TYPE
     test_sock_ops() { return _fwp_engine::get()->test_sock_ops(); }

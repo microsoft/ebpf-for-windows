@@ -273,7 +273,19 @@ netebpfext_unit_invoke_sock_addr_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
 {
     auto client_context = (test_sock_addr_client_context_t*)client_binding_context;
-    UNREFERENCED_PARAMETER(context);
+    auto sock_addr_context = (bpf_sock_addr_t*)context;
+
+    // Verify context fields match what the netebpfext helper set.
+    // Note that the helper sets the first four bytes of the address to the
+    // same value regardless of whether it is IPv4 or IPv6, so we just look
+    // at the first four bytes as if it were an IPv4 address.
+    REQUIRE((sock_addr_context->family == AF_INET || sock_addr_context->family == AF_INET6));
+    REQUIRE(sock_addr_context->user_ip4 == htonl(0x01020304));
+    REQUIRE(sock_addr_context->msg_src_ip4 == htonl(0x05060708));
+    REQUIRE(sock_addr_context->protocol == IPPROTO_TCP);
+    REQUIRE(sock_addr_context->user_port == htons(1234));
+    REQUIRE(sock_addr_context->msg_src_port == htons(5678));
+
     *result = client_context->sock_addr_action;
     return EBPF_SUCCESS;
 }
@@ -288,13 +300,35 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)&client_context);
 
+    // Classify operations that should be allowed.
     client_context.sock_addr_action = BPF_SOCK_ADDR_VERDICT_PROCEED;
-    FWP_ACTION_TYPE result = helper.test_cgroup_sock_addr();
+
+    FWP_ACTION_TYPE result = helper.test_cgroup_inet4_recv_accept();
     REQUIRE(result == FWP_ACTION_PERMIT);
 
+    result = helper.test_cgroup_inet6_recv_accept();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet4_connect();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_connect();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Classify operations that should be blocked.
     client_context.sock_addr_action = BPF_SOCK_ADDR_VERDICT_REJECT;
-    result = helper.test_cgroup_sock_addr();
+
+    result = helper.test_cgroup_inet4_recv_accept();
     REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_recv_accept();
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet4_connect();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_connect();
+    REQUIRE(result == FWP_ACTION_PERMIT);
 }
 
 TEST_CASE("sock_addr_context", "[netebpfext]")
