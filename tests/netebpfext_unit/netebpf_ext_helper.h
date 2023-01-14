@@ -49,11 +49,8 @@ typedef class _netebpf_ext_helper
         return _fwp_engine::get()->classify_test_packet(layer_guid, if_index);
     }
 
-    void
-    test_bind()
-    {
-        return _fwp_engine::get()->test_bind();
-    }
+    FWP_ACTION_TYPE
+    test_bind_ipv4() { return _fwp_engine::get()->test_bind_ipv4(); }
 
     void
     test_cgroup_sock_addr()

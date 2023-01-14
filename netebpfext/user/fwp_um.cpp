@@ -68,10 +68,48 @@ _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_in
     return result.actionType;
 }
 
-void
-_fwp_engine::test_bind()
+FWP_ACTION_TYPE
+_fwp_engine::test_bind_ipv4()
 {
-    // TODO(issue #1869): implement bind callout.
+    std::unique_lock l(lock);
+    const GUID* callout_key = get_callout_key_from_layer_guid(&FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4);
+    if (callout_key == nullptr) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    const FWPS_CALLOUT3* callout = get_callout_from_key(callout_key);
+    if (callout == nullptr) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    FWPS_CLASSIFY_OUT0 result = {};
+    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_MAX] = {};
+    const uint16_t test_port = 1234;
+    const uint8_t test_protocol = IPPROTO_TCP;
+    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16 = test_port;
+    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS].value.uint32 = INADDR_ANY;
+    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8 = test_protocol;
+    FWP_BYTE_BLOB app_id = {};
+    app_id.data = (uint8_t*)"\\";
+    app_id.size = 2;
+    incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob = &app_id;
+
+    FWPS_INCOMING_VALUES incoming_fixed_values = {.incomingValue = incomingValue};
+    FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
+    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context();
+    if (!fwpm_filter) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    FWPS_FILTER fwps_filter = {.context = fwpm_filter->rawContext};
+
+    callout->classifyFn(
+        &incoming_fixed_values,
+        &incoming_metadata_values,
+        nullptr, // layer_data
+        nullptr, // classify_context,
+        &fwps_filter,
+        0, // flow_context,
+        &result);
+
+    return result.actionType;
 }
 
 void

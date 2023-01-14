@@ -38,20 +38,20 @@ TEST_CASE("query program info", "[netebpfext]")
     REQUIRE(expected_program_names == program_names);
 }
 
-typedef struct _test_client_context
+typedef struct _test_xdp_client_context
 {
     netebpfext_helper_base_client_context_t base;
     void* provider_binding_context;
     xdp_action_t xdp_action;
-} test_client_context_t;
+} test_xdp_client_context_t;
 
 // This callback occurs when netebpfext gets a packet and submits it to our dummy
 // eBPF program to handle.
 _Must_inspect_result_ ebpf_result_t
-netebpfext_unit_invoke_program(
+netebpfext_unit_invoke_xdp_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
 {
-    auto client_context = (test_client_context_t*)client_binding_context;
+    auto client_context = (test_xdp_client_context_t*)client_binding_context;
     UNREFERENCED_PARAMETER(context);
     *result = client_context->xdp_action;
     return EBPF_SUCCESS;
@@ -61,12 +61,12 @@ TEST_CASE("classify_packet", "[netebpfext]")
 {
     NET_IFINDEX if_index = 0;
     ebpf_extension_data_t npi_specific_characteristics = {.size = sizeof(if_index), .data = &if_index};
-    test_client_context_t client_context = {};
+    test_xdp_client_context_t client_context = {};
     client_context.base.desired_attach_type = BPF_XDP;
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
-        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_program,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_xdp_program,
         (netebpfext_helper_base_client_context_t*)&client_context);
 
     // Classify an inbound packet that should pass.
@@ -138,7 +138,48 @@ TEST_CASE("xdp_context", "[netebpfext]")
     REQUIRE(output_context.ingress_ifindex == 67889);
 }
 
-TEST_CASE("bind_invoke", "[netebpfext]") {}
+typedef struct test_bind_client_context_t
+{
+    netebpfext_helper_base_client_context_t base;
+    bind_action_t bind_action;
+} test_bind_client_context_t;
+
+_Must_inspect_result_ ebpf_result_t
+netebpfext_unit_invoke_bind_program(
+    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
+{
+    auto client_context = (test_bind_client_context_t*)client_binding_context;
+    UNREFERENCED_PARAMETER(context);
+    *result = client_context->bind_action;
+    return EBPF_SUCCESS;
+}
+
+TEST_CASE("bind_invoke", "[netebpfext]")
+{
+    NET_IFINDEX if_index = 0;
+    ebpf_extension_data_t npi_specific_characteristics = {.size = sizeof(if_index), .data = &if_index};
+    test_bind_client_context_t client_context = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_bind_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
+
+    // Classify a bind that should be allowed.
+    client_context.bind_action = BIND_PERMIT;
+    FWP_ACTION_TYPE result = helper.test_bind_ipv4(); // TODO(issue #526): support IPv6.
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Classify a bind that should be redirected.
+    client_context.bind_action = BIND_REDIRECT;
+    result = helper.test_bind_ipv4();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Classify a bind that should be blocked.
+    client_context.bind_action = BIND_DENY;
+    result = helper.test_bind_ipv4();
+    REQUIRE(result == FWP_ACTION_BLOCK);
+}
 
 TEST_CASE("bind_context", "[netebpfext]")
 {
@@ -214,7 +255,10 @@ TEST_CASE("bind_context", "[netebpfext]")
     REQUIRE(output_context.protocol == IPPROTO_UDP);
 }
 
-TEST_CASE("sock_addr_invoke", "[netebpfext]") {}
+TEST_CASE("sock_addr_invoke", "[netebpfext]")
+{
+    // TODO
+}
 
 TEST_CASE("sock_addr_context", "[netebpfext]")
 {
@@ -284,7 +328,10 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
 }
 
-TEST_CASE("sock_ops_invoke", "[netebpfext]") {}
+TEST_CASE("sock_ops_invoke", "[netebpfext]")
+{
+    // TODO
+}
 
 TEST_CASE("sock_ops_context", "[netebpfext]")
 {
