@@ -44,11 +44,8 @@ static ebpf_helper_function_prototype_t _ebpf_sock_addr_global_helper_function_p
     {BPF_FUNC_get_current_logon_id,
      "bpf_get_current_logon_id",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}},
-    {BPF_FUNC_is_current_admin,
-     "bpf_is_current_admin",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
+    {BPF_FUNC_is_current_admin, "bpf_is_current_admin", EBPF_RETURN_TYPE_INTEGER, {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}}};
 
 // CGROUP_SOCK_ADDR program information.
 static ebpf_context_descriptor_t _ebpf_sock_addr_context_descriptor = {

@@ -16,6 +16,7 @@
 #include "common_tests.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_structs.h"
+#include "misc_helper.h"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 
@@ -258,12 +259,6 @@ _initialize_test_globals()
     _globals_initialized = true;
 }
 
-static uint64_t
-_get_pid_tgid()
-{
-    return ((uint64_t)GetCurrentProcessId() << 32 | GetCurrentThreadId());
-}
-
 static void
 _validate_audit_map_entry(_In_ const struct bpf_object* object)
 {
@@ -274,7 +269,7 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object)
 
     fd_t map_fd = bpf_map__fd(audit_map);
 
-    uint64_t process_id = _get_pid_tgid();
+    uint64_t process_id = get_current_pid_tgid();
     sock_addr_audit_entry_t entry = {0};
     int result = bpf_map_lookup_elem(map_fd, &process_id, &entry);
     REQUIRE(result == 0);
@@ -291,7 +286,6 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object)
         } else {
             REQUIRE(entry.is_admin == 0);
         }
-        REQUIRE(entry.is_admin_valid == 1);
     }
 
     LsaFreeReturnBuffer(data);

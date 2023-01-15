@@ -8,6 +8,7 @@
 #include <guiddef.h>
 #include <stdint.h>
 #include "ebpf_base.h"
+#include "ebpf_result.h"
 
 #define EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH 256
 #define EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH 256
@@ -44,18 +45,18 @@ typedef struct _ebpf_helper_function_addresses
     uint64_t* helper_function_address;
 } ebpf_helper_function_addresses_t;
 
-typedef uint64_t (*ebpf_program_context_create_t)(
+typedef ebpf_result_t (*ebpf_program_context_create_t)(
     _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
-    _In_ size_t data_size_in,
+    size_t data_size_in,
     _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
-    _In_ size_t context_size_in,
+    size_t context_size_in,
     _Outptr_ void** context);
 
 typedef void (*ebpf_program_context_destroy_t)(
     _In_ void* context,
-    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Out_writes_bytes_to_opt_(*data_size_out, *data_size_out) uint8_t* data_out,
     _Inout_ size_t* data_size_out,
-    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Out_writes_bytes_to_opt_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out);
 
 typedef struct _ebpf_program_data

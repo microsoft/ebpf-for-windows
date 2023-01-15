@@ -97,8 +97,7 @@ typedef class _single_instance_hook : public _hook_helper
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
 
-        REQUIRE(
-            ebpf_provider_load(
+        if (ebpf_provider_load(
                 &provider,
                 &ebpf_hook_extension_interface_id,
                 &attach_type,
@@ -108,7 +107,9 @@ typedef class _single_instance_hook : public _hook_helper
                 this,
                 (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
                 (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
-                nullptr) == EBPF_SUCCESS);
+                nullptr) != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_provider_load failed");
+        }
     }
     ~_single_instance_hook()
     {
@@ -135,7 +136,9 @@ typedef class _single_instance_hook : public _hook_helper
     detach()
     {
         if (link_object != nullptr) {
-            REQUIRE(ebpf_link_detach(link_object) == EBPF_SUCCESS);
+            if (ebpf_link_detach(link_object) == EBPF_SUCCESS) {
+                throw std::runtime_error("ebpf_link_detach failed");
+            }
             ebpf_link_close(link_object);
             link_object = nullptr;
         }
@@ -156,7 +159,9 @@ typedef class _single_instance_hook : public _hook_helper
     void
     detach_link(bpf_link* link)
     {
-        REQUIRE(ebpf_link_detach(link) == EBPF_SUCCESS);
+        if (ebpf_link_detach(link) != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_link_detach failed");
+        }
     }
 
     void
@@ -308,14 +313,15 @@ typedef class _test_xdp_helper
 } test_xdp_helper_t;
 
 // These are test xdp context creation functions.
-_Success_(return == 0) static uint64_t _xdp_context_create(
+static ebpf_result_t
+_xdp_context_create(
     _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
     _In_ size_t data_size_in,
     _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
     _In_ size_t context_size_in,
     _Outptr_ void** context)
 {
-    uint64_t retval = 1;
+    ebpf_result_t retval = EBPF_FAILED;
     *context = nullptr;
 
     xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(malloc(sizeof(xdp_md_t)));
@@ -337,7 +343,7 @@ _Success_(return == 0) static uint64_t _xdp_context_create(
 
     *context = xdp_context;
     xdp_context = nullptr;
-    retval = 0;
+    retval = EBPF_SUCCESS;
 Done:
     free(xdp_context);
     xdp_context = nullptr;
@@ -428,7 +434,8 @@ static ebpf_extension_data_t _test_ebpf_sample_extension_program_info_provider_d
 typedef class _program_info_provider
 {
   public:
-    _program_info_provider(ebpf_program_type_t program_type) : program_type(program_type)
+    _program_info_provider(ebpf_program_type_t program_type)
+        : program_type(program_type), provider(nullptr), provider_data(nullptr)
     {
         if (program_type == EBPF_PROGRAM_TYPE_XDP) {
             provider_data = &_ebpf_xdp_program_info_provider_data;
@@ -440,12 +447,13 @@ typedef class _program_info_provider
             provider_data = &_ebpf_sock_ops_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_SAMPLE) {
             provider_data = &_test_ebpf_sample_extension_program_info_provider_data;
+        } else {
+            throw std::invalid_argument("Unsupported program type");
         }
         ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
         program_data->program_info->program_type_descriptor.program_type = program_type;
 
-        REQUIRE(
-            ebpf_provider_load(
+        if (ebpf_provider_load(
                 &provider,
                 &ebpf_program_information_extension_interface_id,
                 &program_type,
@@ -455,7 +463,9 @@ typedef class _program_info_provider
                 this,
                 (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
                 (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
-                nullptr) == EBPF_SUCCESS);
+                nullptr) != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_provider_load failed");
+        }
     }
     ~_program_info_provider() { ebpf_provider_unload(provider); }
 

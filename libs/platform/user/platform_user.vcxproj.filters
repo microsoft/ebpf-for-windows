@@ -141,5 +141,8 @@
     <ClInclude Include="ebpf_symbol_decoder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ebpf_rundown.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

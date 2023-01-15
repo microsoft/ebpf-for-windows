@@ -1259,3 +1259,9 @@ _IRQL_requires_max_(HIGH_LEVEL) void ebpf_lower_irql(_In_ _Notliteral_ _IRQL_res
 {
     UNREFERENCED_PARAMETER(old_irql);
 }
+
+bool
+ebpf_should_yield_processor()
+{
+    return false;
+}
