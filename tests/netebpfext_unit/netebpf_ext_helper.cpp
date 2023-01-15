@@ -42,9 +42,9 @@ _netebpf_ext_helper::_netebpf_ext_helper(
 
     REQUIRE(NmrRegisterClient(&program_info_client, this, &nmr_program_info_client_handle) == STATUS_SUCCESS);
 
+    this->hook_invoke_function = dispatch_function;
     if (dispatch_function != nullptr) {
         hook_client.ClientRegistrationInstance.NpiSpecificCharacteristics = npi_specific_characteristics;
-        this->hook_invoke_function = dispatch_function;
         client_context->helper = this;
         REQUIRE(NmrRegisterClient(&hook_client, client_context, &nmr_hook_client_handle) == STATUS_SUCCESS);
     }

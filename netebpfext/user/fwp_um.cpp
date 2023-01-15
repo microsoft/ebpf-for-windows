@@ -70,14 +70,14 @@ _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_in
     return result.actionType;
 }
 
-const uint32_t _test_destination_ipv4_address = 0x01020304;
+constexpr uint32_t _test_destination_ipv4_address = 0x01020304;
 static FWP_BYTE_ARRAY16 _test_destination_ipv6_address = {1, 2, 3, 4};
-const uint16_t _test_destination_port = 1234;
-const uint32_t _test_source_ipv4_address = 0x05060708;
+constexpr uint16_t _test_destination_port = 1234;
+constexpr uint32_t _test_source_ipv4_address = 0x05060708;
 static FWP_BYTE_ARRAY16 _test_source_ipv6_address = {5, 6, 7, 8};
-const uint16_t _test_source_port = 5678;
-const uint8_t _test_protocol = IPPROTO_TCP;
-const uint32_t _test_compartment_id = 1;
+constexpr uint16_t _test_source_port = 5678;
+constexpr uint8_t _test_protocol = IPPROTO_TCP;
+constexpr uint32_t _test_compartment_id = 1;
 static FWP_BYTE_BLOB _test_app_id = {.size = 2, .data = (uint8_t*)"\\"};
 static uint64_t _test_interface_luid = 1;
 
