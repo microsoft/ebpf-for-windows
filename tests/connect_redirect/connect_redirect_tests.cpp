@@ -534,7 +534,6 @@ main(int argc, char* argv[])
                Opt(_user_name, "User Name")["-u"]["--user-name"]("User Name") |
                Opt(_password, "Password")["-w"]["--password"]("Password") |
                Opt(_execution_mode_string, "Execution Mode")["-x"]["--execution-mode"]("Execution Mode");
-    // Opt(_working_directory, "Working Directory")["-y"]["--working-directory"]("Working Directory");
 
     session.cli(cli);
 
