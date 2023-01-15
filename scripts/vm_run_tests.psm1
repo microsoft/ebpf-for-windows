@@ -158,6 +158,39 @@ function Stop-ProcessOnVM
     } -ArgumentList ($VM, $ProgramName) -ErrorAction Stop
 }
 
+function Add-StandardUserOnVM
+{
+    param ([parameter(Mandatory=$true)] [string] $VM,
+           [parameter(Mandatory=$true)] [string] $UserName,
+           [parameter(Mandatory=$true)] [string] $Password)
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    # Create standard user.
+    Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
+        param([parameter(Mandatory=$true)] [string] $UserName,
+              [parameter(Mandatory=$true)] [string] $Password)
+
+        $SecurePassword = ConvertTo-SecureString -String $Password -AsPlainText -Force
+        New-LocalUser -Name $UserName -Password $SecurePassword
+    } -ArgumentList ($UserName, $Password) -ErrorAction Stop
+}
+
+function Remove-StandardUserOnVM
+{
+    param ([parameter(Mandatory=$true)] [string] $VM,
+           [parameter(Mandatory=$true)] [string] $UserName)
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    # Create standard user.
+    Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
+        param([parameter(Mandatory=$true)] [string] $UserName)
+
+        Remove-LocalUser -Name $UserName
+    } -ArgumentList ($UserName, $Password) -ErrorAction Stop
+}
+
 function Invoke-XDPTestOnVM
 {
     param ([parameter(Mandatory=$true)] [string] $VM,
@@ -388,16 +421,17 @@ function Invoke-ConnectRedirectTestsOnVM
         }
     }
 
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-
-    #if ($ExecutionType -ne "Admin")
-    #{
-    #    $TestCredential = New-Credential -Username $User -AdminPassword $UserPassword
-    #}
-
     $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($UserPassword)
     $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+
+    # Add a standard user on the VM.
+    foreach ($vm in $VMArray)
+    {
+        Add-StandardUserOnVM -VM $vm -UserName $User -Password $UnsecurePassword
+    }
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
     Invoke-Command -VMName $VM1.Name -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)][string] $VM,
@@ -437,6 +471,12 @@ function Invoke-ConnectRedirectTestsOnVM
 
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
     Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName
+
+    # Add a standard user on the VM.
+    foreach ($vm in $VMArray)
+    {
+        Remove-StandardUserOnVM -VM $vm -UserName $User
+    }
 }
 
 function Stop-eBPFComponentsOnVM
