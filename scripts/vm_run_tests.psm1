@@ -3,8 +3,8 @@
 
 param ([Parameter(Mandatory=$True)] [string] $Admin,
        [Parameter(Mandatory=$True)] [SecureString] $AdminPassword,
-       [Parameter(Mandatory=$True)] [string] $User,
-       [Parameter(Mandatory=$True)] [SecureString] $UserPassword,
+       [Parameter(Mandatory=$True)] [string] $StandardUser,
+       [Parameter(Mandatory=$True)] [SecureString] $StandardUserPassword,
        [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
@@ -421,14 +421,14 @@ function Invoke-ConnectRedirectTestsOnVM
         }
     }
 
-    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($UserPassword)
+    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($StandardUserPassword)
     $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
 
     # Add a standard user on the VM.
     foreach ($vm in $VMArray)
     {
-        Add-StandardUserOnVM -VM $vm -UserName $User -Password $UnsecurePassword
+        Add-StandardUserOnVM -VM $vm -UserName $StandardUser -Password $UnsecurePassword
     }
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -443,8 +443,8 @@ function Invoke-ConnectRedirectTestsOnVM
               [parameter(Mandatory=$true)][string] $VirtualIPv6Address,
               [parameter(Mandatory=$true)][int] $DestinationPort,
               [parameter(Mandatory=$true)][int] $ProxyPort,
-              [parameter(Mandatory=$true)][string] $UserName,
-              [parameter(Mandatory=$true)][string] $UserPassword,
+              [parameter(Mandatory=$true)][string] $StandardUserName,
+              [parameter(Mandatory=$true)][string] $StandardUserPassword,
               [parameter(Mandatory=$true)][string] $ExecutionType,
               [parameter(Mandatory=$true)][string] $WorkingDirectory,
               [Parameter(Mandatory=$true)][string] $LogFileName)
@@ -463,11 +463,11 @@ function Invoke-ConnectRedirectTestsOnVM
             -VirtualIPv6Address $VirtualIPv6Address `
             -DestinationPort $DestinationPort `
             -ProxyPort $ProxyPort `
-            -UserName $UserName `
-            -UserPassword $UserPassword `
+            -StandardUserName $StandardUserName `
+            -StandardUserPassword $StandardUserPassword `
             -ExecutionType $ExecutionType `
             -WorkingDirectory $WorkingDirectory
-    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $User, $UnsecurePassword, $ExecutionType, "eBPF", $LogFileName) -ErrorAction Stop
+    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $StandardUser, $UnsecurePassword, $ExecutionType, "eBPF", $LogFileName) -ErrorAction Stop
 
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
     Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName
@@ -475,7 +475,7 @@ function Invoke-ConnectRedirectTestsOnVM
     # Add a standard user on the VM.
     foreach ($vm in $VMArray)
     {
-        Remove-StandardUserOnVM -VM $vm -UserName $User
+        Remove-StandardUserOnVM -VM $vm -UserName $StandardUser
     }
 }
 

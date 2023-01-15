@@ -36,13 +36,11 @@ static uint16_t _proxy_port = 4443;
 static std::string _user_name;
 static std::string _password;
 static std::string _execution_mode_string;
-// static std::string _working_directory;
 
 typedef enum _execution_mode
 {
     Admin,
-    Standard,
-    // Elevated
+    Standard
 } execution_mode_t;
 
 typedef struct _test_addresses
@@ -70,7 +68,7 @@ static volatile bool _globals_initialized = false;
 static void
 _impersonate_user()
 {
-    printf("Impersonating user ... %s\n", _user_name.c_str());
+    printf("Impersonating user [%s].\n", _user_name.c_str());
     bool result = ImpersonateLoggedOnUser(_globals.user_token);
     REQUIRE(result == true);
 }
@@ -78,49 +76,13 @@ _impersonate_user()
 static void
 _revert_to_self()
 {
-    printf("Reverting to self ... \n");
+    printf("Reverting to self.\n");
     RevertToSelf();
 }
-
-// typedef class _impersonation_helper
-// {
-// public:
-//     static uint32_t impersonation_count;
-
-//     _impersonation_helper(execution_mode_t mode, bool mandatory)
-//     {
-//         if (mode == Admin) {
-//             // Already running as Admin, nothing to be done.
-//             impersonated = false;
-//         } else if (mandatory || mode == Elevated) {
-//             if (impersonation_count == 0) {
-//                 _impersonate_user();
-//                 impersonation_count = 1;
-//             } else {
-//                 impersonation_count++;
-//             }
-//         }
-//     }
-
-//     ~_impersonation_helper()
-//     {
-//         if (impersonated) {
-//             impersonation_count--;
-//             if (impersonation_count == 0) {
-//                 _revert_to_self();
-//             }
-//         }
-//     }
-
-// private:
-//     bool impersonated = false;
-// } impersonation_helper_t;
 
 typedef class _impersonation_helper
 {
   public:
-    static uint32_t impersonation_count;
-
     _impersonation_helper(execution_mode_t mode)
     {
         if (mode == Standard) {
@@ -139,8 +101,6 @@ typedef class _impersonation_helper
   private:
     bool impersonated = false;
 } impersonation_helper_t;
-
-uint32_t impersonation_helper_t::impersonation_count = 0;
 
 static HANDLE
 _logon_user(std::string& user_name, std::string& password)
@@ -181,10 +141,6 @@ _get_execution_mode(std::string& execution_mode_string)
     if (execution_mode_string == "Standard") {
         return execution_mode_t::Standard;
     }
-
-    // if (execution_mode_string == "Elevated") {
-    //     return execution_mode_t::Elevated;
-    // }
 
     return execution_mode_t::Admin;
 }
@@ -262,8 +218,6 @@ _initialize_test_globals()
 static void
 _validate_audit_map_entry(_In_ const struct bpf_object* object)
 {
-    // impersonation_helper_t helper(_globals.mode, true);
-
     bpf_map* audit_map = bpf_object__find_map_by_name(object, "audit_map");
     REQUIRE(audit_map != nullptr);
 
@@ -294,12 +248,9 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object)
 static void
 _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 {
-    // std::string full_file_path = _working_directory + "cgroup_sock_addr2.o";
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
     printf("errno = %d\n", errno);
     REQUIRE(object != nullptr);
-
-    // impersonation_helper_t helper(_globals.mode, true);
 
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -331,8 +282,6 @@ _update_policy_map(
     bool dual_stack,
     bool add)
 {
-    // impersonation_helper_t helper(_globals.mode, true);
-
     bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
     REQUIRE(policy_map != nullptr);
 
@@ -546,8 +495,6 @@ test_common(ADDRESS_FAMILY family, IPPROTO protocol)
 
     struct bpf_object* object = nullptr;
     _load_and_attach_ebpf_programs(&object);
-
-    // impersonation_helper_t helper(_globals.mode, false);
 
     _globals.family = family;
     _globals.protocol = protocol;
