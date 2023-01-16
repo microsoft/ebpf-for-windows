@@ -331,10 +331,9 @@ EBPF_HELPER(uint64_t, bpf_get_current_logon_id, (void* ctx));
  *
  * @param[in] ctx Context passed to the eBPF program.
  *
- * @returns The following values:
- *          1: is admin.
- *          0: is not admin.
- *          <0: error.
+ * @retval 1 Is admin.
+ * @retval 0 Is not admin.
+ * @retval <0 An error occurred.
  */
 EBPF_HELPER(int32_t, bpf_is_current_admin, (void* ctx));
 #ifndef __doxygen

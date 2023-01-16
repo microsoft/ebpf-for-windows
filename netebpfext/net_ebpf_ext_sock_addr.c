@@ -472,7 +472,7 @@ _net_ebpf_sock_addr_update_store_entries()
 static NTSTATUS
 _net_ebpf_sock_addr_create_security_descriptor()
 {
-    PACL dacl = NULL;
+    ACL* dacl = NULL;
     uint32_t acl_length = 0;
     PGENERIC_MAPPING mapping = NULL;
     ACCESS_MASK access_mask = GENERIC_ALL;
