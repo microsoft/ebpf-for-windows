@@ -19,7 +19,7 @@ Do the following from within the VM:
       instead of the MSI.
     * **Testing** (optional): this feature adds tests for the eBPF runtime for use by eBPF runtime developers.
 
-An **unattended install/uninstall** is also supported, through the following commands (examples show a full Dev&Test installation/unistallation, using "`C:\Program Files\eBPFforWindows`" as a custo installation folder):
+An **unattended install/uninstall** is also supported, through the following commands (examples show a full Dev&Test installation/uninstallation, using "`C:\Program Files\eBPFforWindows`" as a custom installation folder):
 
 * Installation:
 
