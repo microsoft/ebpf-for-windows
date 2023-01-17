@@ -77,6 +77,15 @@ typedef class _fwp_engine
     FWP_ACTION_TYPE
     classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index);
 
+    void
+    test_bind();
+
+    void
+    test_cgroup_sock_addr();
+
+    void
+    test_sock_ops();
+
     static _fwp_engine*
     get()
     {
