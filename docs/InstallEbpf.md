@@ -26,7 +26,7 @@ An **unattended install/uninstall** is also supported, through the following com
     ```bash
     C:\Windows\system32\msiexec.exe /i ebpf-for-windows_installer.msi INSTALLFOLDER="C:\Program Files\eBPFforWindows" ADDLOCAL=eBPF_Development,eBPF_Testing /qn
     ```
-    >**Note**: like in the in the graphical *Installation Wizard*, you can also customize the installation by choosing what **optional** features (i.e., `eBPF_Development` and/or `eBPF_Testing`) should be installed and assigning the comma-separated values to the `ADDLOCAL` parameter. The above commands, besides the mandatory `Runtime_Components`, also install the *Development* and *Testing* components.
+    >**Note**: like in the graphical *Installation Wizard*, you can also customize the installation by choosing what **optional** features (i.e., `eBPF_Development` and/or `eBPF_Testing`) should be installed and assigning the comma-separated values to the `ADDLOCAL` parameter. The above commands, besides the mandatory `Runtime_Components`, also install the *Development* and *Testing* components.
 
 * Uninstallation:
 
