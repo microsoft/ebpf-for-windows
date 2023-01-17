@@ -39,6 +39,24 @@ typedef class _netebpf_ext_helper
         return _fwp_engine::get()->classify_test_packet(layer_guid, if_index);
     }
 
+    void
+    test_bind()
+    {
+        return _fwp_engine::get()->test_bind();
+    }
+
+    void
+    test_cgroup_sock_addr()
+    {
+        return _fwp_engine::get()->test_cgroup_sock_addr();
+    }
+
+    void
+    test_sock_ops()
+    {
+        return _fwp_engine::get()->test_sock_ops();
+    }
+
   private:
     bool trace_initiated = false;
     bool ndis_handle_initialized = false;

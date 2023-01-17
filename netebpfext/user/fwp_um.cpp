@@ -68,6 +68,24 @@ _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_in
     return result.actionType;
 }
 
+void
+_fwp_engine::test_bind()
+{
+    // TODO(issue #1869): implement bind callout.
+}
+
+void
+_fwp_engine::test_cgroup_sock_addr()
+{
+    // TODO(issue #1869): implement sock_addr callout.
+}
+
+void
+_fwp_engine::test_sock_ops()
+{
+    // TODO(issue #1869): implement sock_ops callout.
+}
+
 typedef struct _fwp_injection_handle
 {
     ADDRESS_FAMILY address_family;
