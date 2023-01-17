@@ -20,11 +20,15 @@ SPDX-License-Identifier: MIT
 
 		<!-- Define the Product features and installation steps -->
 		<Feature Id="ProductFeature" Title="eBPF for Windows Installer" ConfigurableDirectory="INSTALLFOLDER" Display="expand" Level="1" Absent="disallow">
-			<Feature Id="eBPF_Runtime_Components" Level="1" Title="Runtime Components" Absent="disallow">
+			<Feature Id="eBPF_Runtime_Components" Level="1" Title="Runtime Components" Absent="disallow" Display="expand">
 				<ComponentGroupRef Id="eBPF_Runtime_Components" />
-				<ComponentGroupRef Id="eBPF_Service" />
 				<ComponentGroupRef Id="eBPFCore_Driver" />
 				<ComponentGroupRef Id="NetEbpfExt_Driver" />
+				<?if $(var.Configuration) = Debug ?>
+					<Feature Id="eBPF_Runtime_Components_JIT" Level="1" Title="JIT" Absent="allow">
+						<ComponentGroupRef Id="eBPF_Service" />
+					</Feature>
+				<?endif?>
 			</Feature>
 			<Feature Id="eBPF_Development" Level="2" Title="Development components">
 				<ComponentGroupRef Id="eBPF_Development_include" />
@@ -83,6 +87,9 @@ SPDX-License-Identifier: MIT
 		<Directory Id="TARGETDIR" Name="SourceDir">
 			<Directory Id="ProgramFiles64Folder">
 				<Directory Id="INSTALLFOLDER" Name="eBPFforWindows">
+					<?if $(var.Configuration) = Debug ?>
+						<Directory Id="dir_JIT" Name="JIT" />
+					<?endif?>
 					<Directory Id="dir_drivers" Name="drivers"/>
 					<Directory Id="dir_include" Name="include">
 						<Directory Id="dir_include_asm" Name="asm" />
@@ -124,9 +131,6 @@ SPDX-License-Identifier: MIT
 			<Component Id="EBPFAPI.PDB" DiskId="1" Guid="{6912E957-E682-41CB-9C53-1D0B886528F7}">
 				<File Id="EBPFAPI.PDB" Name="EbpfApi.pdb" Source="$(var.EbpfApi.TargetDir)EbpfApi.pdb" />
 			</Component>
-			<Component Id="EBPFSVC.PDB" DiskId="1" Guid="{D1935DF0-2FC7-42F5-81E5-19AF88D6244B}">
-				<File Id="EBPFSVC.PDB" Name="EbpfSvc.pdb" Source="$(var.ebpfsvc.TargetDir)ebpfsvc.pdb" />
-			</Component>
 			<Component Id="EBPF_PRINTK.GUID" DiskId="1" Guid="{77EB156D-046E-4BD6-8F57-CCA1DB031B0B}">
 				<File Id="EBPF_PRINTK.GUID" Name="ebpf-printk.guid" Source="$(var.SolutionDir)\scripts\ebpf-printk.guid" />
 			</Component>
@@ -154,25 +158,30 @@ SPDX-License-Identifier: MIT
 		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 
 		<!--Install eBPF Service -->
-		<ComponentGroup Id="eBPF_Service" Directory="INSTALLFOLDER">
-			<Component Id="eBPF_Service" Guid="{25F4F9A3-78EB-4598-9982-98FB65377A51}">
-				<File Source="$(var.ebpfsvc.TargetPath)" KeyPath="yes" />
-				<ServiceInstall Id="eBPFSvcInstaller" Name="eBPFSvc" DisplayName="eBPF Service" Description="eBPF Service"
-								Start="auto"
-								Type="ownProcess"
-								ErrorControl="normal"
-								Account="[WIX_ACCOUNT_LOCALSERVICE]"
-								Vital="yes"
-								Interactive="no" />
-				<ServiceControl Id="eBPFSvc_Start" Name="eBPFSvc"
-								Start="install"
-								Wait="no" />
-				<ServiceControl Id="eBPFSvc_Stop" Name="eBPFSvc"
-								Remove="uninstall"
-								Stop="both"
-								Wait="yes" />
-			</Component>
-		</ComponentGroup>
+		<?if $(var.Configuration) = Debug ?>
+			<ComponentGroup Id="eBPF_Service" Directory="dir_JIT">
+				<Component Id="EBPFSVC.PDB" DiskId="1" Guid="{D1935DF0-2FC7-42F5-81E5-19AF88D6244B}">
+					<File Id="EBPFSVC.PDB" Name="EbpfSvc.pdb" Source="$(var.ebpfsvc.TargetDir)ebpfsvc.pdb" />
+				</Component>
+				<Component Id="eBPF_Service" Guid="{25F4F9A3-78EB-4598-9982-98FB65377A51}">
+					<File Source="$(var.ebpfsvc.TargetPath)" KeyPath="yes" />
+					<ServiceInstall Id="eBPFSvcInstaller" Name="eBPFSvc" DisplayName="eBPF Service" Description="eBPF Service"
+									Start="auto"
+									Type="ownProcess"
+									ErrorControl="normal"
+									Account="[WIX_ACCOUNT_LOCALSERVICE]"
+									Vital="yes"
+									Interactive="no" />
+					<ServiceControl Id="eBPFSvc_Start" Name="eBPFSvc"
+									Start="install"
+									Wait="no" />
+					<ServiceControl Id="eBPFSvc_Stop" Name="eBPFSvc"
+									Remove="uninstall"
+									Stop="both"
+									Wait="yes" />
+				</Component>
+			</ComponentGroup>
+		<?endif?>
 
 		<!--Install eBPFCore Driver-->
 		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->

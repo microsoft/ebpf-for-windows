@@ -14,6 +14,7 @@ Do the following from within the VM:
 
     * **Runtime Components** (mandatory): this feature adds the eBPF runtime and core components, which are also required by the other components. If you select only this
       feature, only [native code generation](NativeCodeGeneration.md) is enabled.
+        * **JIT** (optional): this sub-feature adds support for JIT-compiled eBPF programs and (in a Debug build only) interpreted eBPF programs.
     * **Development** (optional): this feature adds headers and libraries used for development. If you only want to use eBPF for development
       rather than running programs, you can [use the NuGet package](GettingStarted.md#using-ebpf-in-development)
       instead of the MSI.
