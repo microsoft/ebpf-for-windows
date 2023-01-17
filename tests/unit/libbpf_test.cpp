@@ -2511,8 +2511,57 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 }
 
 // Test bpf() with the following command ids:
+//  BPF_PROG_ATTACH, BPF_PROG_DETACH
+TEST_CASE("BPF_PROG_ATTACH" , "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    // Load and verify the eBPF program.
+    union bpf_attr attr = {};
+
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");
+    REQUIRE(program != nullptr);
+
+    REQUIRE(bpf_object__load(object) == 0);
+
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    // Verify we can't attach the program using an attach type that doesn't work with this API.
+    memset(&attr, 0, sizeof(attr));
+    attr.attach_bpf_fd = program_fd;
+    attr.target_fd = program_fd;
+    attr.attach_flags = 0;
+    attr.attach_type = BPF_XDP;
+    REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == -ENOTSUP);
+
+    // Verify we can attach the program.
+    memset(&attr, 0, sizeof(attr));
+    attr.attach_bpf_fd = program_fd;
+    // TODO (issue #1028): Currently the target_fd is treated as a compartment id.
+    attr.target_fd = program_fd;
+    attr.attach_flags = 0;
+    attr.attach_type = BPF_CGROUP_INET4_CONNECT;
+    REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == 0);
+
+    // Verify we can detach the program.
+    memset(&attr, 0, sizeof(attr));
+    attr.target_fd = program_fd;
+    attr.attach_type = BPF_CGROUP_INET4_CONNECT;
+    REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == 0);
+
+   // Verify we can't detach the program using a type that doesn't work with this API.
+    memset(&attr, 0, sizeof(attr));
+    attr.target_fd = program_fd;
+    attr.attach_type = BPF_XDP;
+    REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == -ENOTSUP);
+}
+
+// Test bpf() with the following command ids:
 // BPF_MAP_CREATE, BPF_MAP_UPDATE_ELEM, BPF_MAP_LOOKUP_ELEM,
-// BPF_MAP_GET_NEXT_KEY, and BPF_MAP_DELETE_ELEM.
+// BPF_MAP_GET_NEXT_KEY, BPF_MAP_LOOKUP_AND_DELETE_ELEM, and BPF_MAP_DELETE_ELEM.
 TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -2562,12 +2611,28 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     attr.next_key = (uintptr_t)&next_key;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) < 0);
     REQUIRE(errno == ENOENT);
-
+  
     // Delete the entry.
     memset(&attr, 0, sizeof(attr));
     attr.map_fd = map_fd;
     attr.key = (uintptr_t)&key;
     REQUIRE(bpf(BPF_MAP_DELETE_ELEM, &attr, sizeof(attr)) == 0);
+
+    // Look up and delete the entry.
+    memset(&attr, 0, sizeof(attr));
+    value = 0;
+    key = 42;
+    attr.map_fd = map_fd;
+    attr.key = (uintptr_t)&key;
+    attr.value = (uintptr_t)&value;
+
+    // Add the element back to the entry after the previous test entry deletion.
+    bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
+    REQUIRE(bpf(BPF_MAP_LOOKUP_AND_DELETE_ELEM, &attr, sizeof(attr)) == 0);
+
+    // Test the API again and verify looking up and deleting fails. 
+    REQUIRE(bpf(BPF_MAP_LOOKUP_AND_DELETE_ELEM, &attr, sizeof(attr)) < 0);
+    REQUIRE(errno == ENOENT);
 
     // Verify that no entries exist.
     memset(&attr, 0, sizeof(attr));

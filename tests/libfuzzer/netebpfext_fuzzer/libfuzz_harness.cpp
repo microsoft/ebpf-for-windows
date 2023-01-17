@@ -159,25 +159,25 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         return 0;
     }
 
-    FWP_ACTION_TYPE result;
-
     // Verify we successfully attached to netebpfext.
     if (client_context.provider_binding_context == nullptr) {
         goto Done;
     }
 
-    // Classify an inbound packet that should pass.
     client_context.metadata = *metadata;
-    result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
-    if (result != FWP_ACTION_PERMIT && result != FWP_ACTION_BLOCK) {
-        goto Done;
-    }
-
-    // Classify an inbound packet that should be dropped.
-    client_context.metadata = *metadata;
-    result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
-    if (result != FWP_ACTION_PERMIT && result != FWP_ACTION_BLOCK) {
-        goto Done;
+    switch (prog_type) {
+    case BPF_PROG_TYPE_XDP:
+        (void)helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
+        break;
+    case BPF_PROG_TYPE_BIND:
+        helper.test_bind();
+        break;
+    case BPF_PROG_TYPE_CGROUP_SOCK_ADDR:
+        helper.test_cgroup_sock_addr();
+        break;
+    case BPF_PROG_TYPE_SOCK_OPS:
+        helper.test_sock_ops();
+        break;
     }
 
 Done:
