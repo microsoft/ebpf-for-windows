@@ -171,7 +171,6 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     state = ebpf_lock_lock(&link->attach_lock);
     if (link->program != NULL) {
         program = link->program;
-        link->program = NULL;
     }
     ebpf_lock_unlock(&link->attach_lock, state);
 
@@ -180,6 +179,13 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     }
 
     ebpf_extension_unload(link->extension_client_context);
+
+    state = ebpf_lock_lock(&link->attach_lock);
+    if (link->program != NULL) {
+        link->program = NULL;
+    }
+    ebpf_lock_unlock(&link->attach_lock, state);
+
     link->extension_client_context = NULL;
     ebpf_free(link->client_data.data);
     link->client_data.data = NULL;
