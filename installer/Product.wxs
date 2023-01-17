@@ -27,15 +27,15 @@ SPDX-License-Identifier: MIT
 				<ComponentGroupRef Id="NetEbpfExt_Driver" />
 			</Feature>
 			<Feature Id="eBPF_Development" Level="2" Title="Development components">
-				<ComponentGroupRef Id="eBPF_Development_inlude" />
-				<ComponentGroupRef Id="eBPF_Development_inlude_asm" />
-				<ComponentGroupRef Id="eBPF_Development_inlude_bpf" />
-				<ComponentGroupRef Id="eBPF_Development_inlude_kernel" />
-				<ComponentGroupRef Id="eBPF_Development_inlude_linux" />
-				<ComponentGroupRef Id="eBPF_Development_inlude_net" />
-				<ComponentGroupRef Id="eBPF_Development_inlude_uapi" />
-				<ComponentGroupRef Id="eBPF_Development_inlude_uapi_linux" />
-				<ComponentGroupRef Id="eBPF_Development_inlude_user" />
+				<ComponentGroupRef Id="eBPF_Development_include" />
+				<ComponentGroupRef Id="eBPF_Development_include_asm" />
+				<ComponentGroupRef Id="eBPF_Development_include_bpf" />
+				<ComponentGroupRef Id="eBPF_Development_include_kernel" />
+				<ComponentGroupRef Id="eBPF_Development_include_linux" />
+				<ComponentGroupRef Id="eBPF_Development_include_net" />
+				<ComponentGroupRef Id="eBPF_Development_include_uapi" />
+				<ComponentGroupRef Id="eBPF_Development_include_uapi_linux" />
+				<ComponentGroupRef Id="eBPF_Development_include_user" />
 				<ComponentGroupRef Id="eBPF_Development_libs" />
 			</Feature>
 			<Feature Id="eBPF_Testing" Level="2" Title="Testing components">
@@ -229,7 +229,7 @@ SPDX-License-Identifier: MIT
 
 	<!-- Define the product's <Development> components -->
 	<Fragment>
-		<ComponentGroup Id="eBPF_Development_inlude" Directory="dir_include">
+		<ComponentGroup Id="eBPF_Development_include" Directory="dir_include">
 			<Component Id="BPF_ENDIAN.H" DiskId="1" Guid="59B40FBC-2842-449B-9101-CFBCCF785335">
 				<File Id="BPF_ENDIAN.H" Name="bpf_endian.h" Source="..\include\bpf_endian.h" />
 			</Component>
@@ -288,7 +288,7 @@ SPDX-License-Identifier: MIT
 				<File Id="GIT_COMMIT_ID.H" Name="git_commit_id.h" Source="..\include\git_commit_id.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_inlude_asm" Directory="dir_include_asm">
+		<ComponentGroup Id="eBPF_Development_include_asm" Directory="dir_include_asm">
 			<Component Id="ERRNO.H" DiskId="1" Guid="DF63C9C1-FA9C-44E3-94EB-F77B7072E4BE">
 				<File Id="ERRNO.H" Name="errno.h" Source="..\include\asm\errno.h" />
 			</Component>
@@ -299,7 +299,7 @@ SPDX-License-Identifier: MIT
 				<File Id="TYPES.H" Name="types.h" Source="..\include\asm\types.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_inlude_bpf" Directory="dir_include_bpf">
+		<ComponentGroup Id="eBPF_Development_include_bpf" Directory="dir_include_bpf">
 			<Component Id="BPF.H_1" DiskId="1" Guid="A41E9DEB-709E-4DA3-9A24-F5B8C21AF30E">
 				<File Id="BPF.H_1" Name="bpf.h" Source="..\include\bpf\bpf.h" />
 			</Component>
@@ -316,12 +316,12 @@ SPDX-License-Identifier: MIT
 				<File Id="LIBBPF_LEGACY.H" Name="libbpf_legacy.h" Source="..\include\bpf\libbpf_legacy.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_inlude_kernel" Directory="dir_include_kernel">
+		<ComponentGroup Id="eBPF_Development_include_kernel" Directory="dir_include_kernel">
 			<Component Id="EBPF_REGISTRY_HELPER.H" DiskId="1" Guid="26717067-176B-4B94-8716-57A675E5F918">
 				<File Id="EBPF_REGISTRY_HELPER.H" Name="ebpf_registry_helper.h" Source="..\include\kernel\ebpf_registry_helper.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_inlude_linux" Directory="dir_include_linux">
+		<ComponentGroup Id="eBPF_Development_include_linux" Directory="dir_include_linux">
 			<Component Id="BPF.H_2" DiskId="1" Guid="ED4F7D03-0334-4FB3-A3AC-1DAD36FF1228">
 				<File Id="BPF.H_2" Name="bpf.h" Source="..\include\linux\bpf.h" />
 			</Component>
@@ -329,7 +329,7 @@ SPDX-License-Identifier: MIT
 				<File Id="STDDEF.H" Name="stddef.h" Source="..\include\linux\stddef.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_inlude_net" Directory="dir_include_net">
+		<ComponentGroup Id="eBPF_Development_include_net" Directory="dir_include_net">
 			<Component Id="IF_ETHER.H_1" DiskId="1" Guid="A1524B6C-6AE6-498F-AAB5-2527C2A4BC0A">
 				<File Id="IF_ETHER.H_1" Name="if_ether.h" Source="..\include\net\if_ether.h" />
 			</Component>
@@ -343,8 +343,8 @@ SPDX-License-Identifier: MIT
 				<File Id="UDP.H" Name="udp.h" Source="..\include\net\udp.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_inlude_uapi" Directory="dir_include_uapi" />
-		<ComponentGroup Id="eBPF_Development_inlude_uapi_linux" Directory="dir_include_uapi_linux">
+		<ComponentGroup Id="eBPF_Development_include_uapi" Directory="dir_include_uapi" />
+		<ComponentGroup Id="eBPF_Development_include_uapi_linux" Directory="dir_include_uapi_linux">
 			<Component Id="BPF.H" DiskId="1" Guid="CEF66B1A-8225-4B84-8239-C5238DA41BF2">
 				<File Id="BPF.H" Name="bpf.h" Source="..\include\uapi\linux\bpf.h" />
 			</Component>
@@ -361,7 +361,7 @@ SPDX-License-Identifier: MIT
 				<File Id="TCP.H" Name="tcp.h" Source="..\include\uapi\linux\tcp.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_inlude_user" Directory="dir_include_user">
+		<ComponentGroup Id="eBPF_Development_include_user" Directory="dir_include_user">
 			<Component Id="EBPF_REGISTRY_HELPER.H_1" DiskId="1" Guid="D1BF1F4F-BD3D-484E-89D9-77A94522FC97">
 				<File Id="EBPF_REGISTRY_HELPER.H_1" Name="ebpf_registry_helper.h" Source="..\include\user\ebpf_registry_helper.h" />
 			</Component>
