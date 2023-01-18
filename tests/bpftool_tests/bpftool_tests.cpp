@@ -76,7 +76,7 @@ TEST_CASE("prog load map_in_map.o", "[prog][load]")
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
-    output = run_command("bpftool prog load map_in_map.o map_in_map", &result);
+    output = run_command("bpftool --legacy prog load map_in_map.o map_in_map", &result);
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
@@ -121,7 +121,7 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     int result;
     std::string output;
 
-    output = run_command("bpftool prog load droppacket.o droppacket", &result);
+    output = run_command("bpftool --legacy prog load droppacket.o droppacket", &result);
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
@@ -171,6 +171,26 @@ TEST_CASE("map create", "[map]")
     REQUIRE(ebpf_object_unpin("FileName") == EBPF_SUCCESS);
 }
 
+TEST_CASE("map show pinned", "[map]")
+{
+    int status;
+    std::string output =
+        run_command("bpftool map create \\\\test_map type hash key 4 value 4 entries 10 name testing", &status);
+    REQUIRE(output == "");
+    REQUIRE(status == 0);
+
+    output = run_command("bpftool map show name testing", &status);
+    REQUIRE(status == 0);
+    std::string id = std::to_string(atoi(output.c_str()));
+    REQUIRE(output == id + ": hash  name testing  flags 0x0\n\tkey 4B  value 4B  max_entries 10\n");
+
+    output = run_command("bpftool map show pinned \\\\test_map", &status);
+    REQUIRE(status == 0);
+    REQUIRE(output == id + ": hash  name testing  flags 0x0\n\tkey 4B  value 4B  max_entries 10\n");
+
+    REQUIRE(ebpf_object_unpin("\\\\test_map") == EBPF_SUCCESS);
+}
+
 TEST_CASE("prog show id 1", "[prog][show]")
 {
     int result;
@@ -184,7 +204,7 @@ TEST_CASE("prog prog run", "[prog][load]")
     int result;
     std::string output;
 
-    output = run_command("bpftool prog load droppacket.o droppacket", &result);
+    output = run_command("bpftool --legacy prog load droppacket.o droppacket", &result);
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
