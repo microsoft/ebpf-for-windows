@@ -177,7 +177,7 @@ function Invoke-ConnectRedirectTest
 
     pushd $WorkingDirectory
 
-    $Parameters = "--virtual-ip-v4 $VirtualIPv4Address --virtual-ip-v6 $VirtualIPv6Address --local-ip-v4 $LocalIPv4Address --local-ip-v6 $LocalIPv6Address --remote-ip-v4 $RemoteIPv4Address --remote-ip-v6 $RemoteIPv6Address --destination-port $DestinationPort --proxy-port $ProxyPort --user-name $AdminUserName --execution-mode $ExecutionType"
+    $Parameters = "--virtual-ip-v4 $VirtualIPv4Address --virtual-ip-v6 $VirtualIPv6Address --local-ip-v4 $LocalIPv4Address --local-ip-v6 $LocalIPv6Address --remote-ip-v4 $RemoteIPv4Address --remote-ip-v6 $RemoteIPv6Address --destination-port $DestinationPort --proxy-port $ProxyPort --execution-mode $ExecutionType"
     Write-Log "Executing connect redirect tests with parameters: $Parameters"
     $LASTEXITCODE = 0
     $Output = .\connect_redirect_tests.exe `

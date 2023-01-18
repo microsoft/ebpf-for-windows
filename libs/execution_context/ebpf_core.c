@@ -66,7 +66,7 @@ _ebpf_core_get_pid_tgid();
 static uint64_t
 _ebpf_core_get_current_logon_id(_In_ const void* ctx);
 static int32_t
-_ebpf_core_is_current_admin(_In_ void* ctx);
+_ebpf_core_is_current_admin(_In_ const void* ctx);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -1776,7 +1776,7 @@ _ebpf_core_get_current_logon_id(_In_ const void* ctx)
 }
 
 static int32_t
-_ebpf_core_is_current_admin(_In_ void* ctx)
+_ebpf_core_is_current_admin(_In_ const void* ctx)
 {
     // TODO: Issue# 1871 - Implement this function.
     UNREFERENCED_PARAMETER(ctx);

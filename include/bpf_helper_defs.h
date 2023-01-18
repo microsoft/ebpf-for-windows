@@ -319,7 +319,7 @@ EBPF_HELPER(uint64_t, bpf_get_current_pid_tgid, ());
  *
  * @returns The logon ID, or 0 in case of error.
  */
-EBPF_HELPER(uint64_t, bpf_get_current_logon_id, (void* ctx));
+EBPF_HELPER(uint64_t, bpf_get_current_logon_id, (const void* ctx));
 #ifndef __doxygen
 #define bpf_get_current_logon_id ((bpf_get_current_logon_id_t)BPF_FUNC_get_current_logon_id)
 #endif
@@ -335,7 +335,7 @@ EBPF_HELPER(uint64_t, bpf_get_current_logon_id, (void* ctx));
  * @retval 0 Is not admin.
  * @retval <0 An error occurred.
  */
-EBPF_HELPER(int32_t, bpf_is_current_admin, (void* ctx));
+EBPF_HELPER(int32_t, bpf_is_current_admin, (const void* ctx));
 #ifndef __doxygen
 #define bpf_is_current_admin ((bpf_is_current_admin_t)BPF_FUNC_is_current_admin)
 #endif

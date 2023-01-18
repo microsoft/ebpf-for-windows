@@ -474,7 +474,7 @@ _net_ebpf_sock_addr_create_security_descriptor()
 {
     ACL* dacl = NULL;
     uint32_t acl_length = 0;
-    PGENERIC_MAPPING mapping = NULL;
+    GENERIC_MAPPING* mapping = NULL;
     ACCESS_MASK access_mask = GENERIC_ALL;
     SECURITY_DESCRIPTOR* admin_security_descriptor = NULL;
 
@@ -496,7 +496,7 @@ _net_ebpf_sock_addr_create_security_descriptor()
     acl_length += RtlLengthSid(SeExports->SeAliasAdminsSid) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart);
     acl_length += RtlLengthSid(SeExports->SeLocalSystemSid) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart);
 
-    dacl = (PACL)ExAllocatePoolUninitialized(NonPagedPoolNx, acl_length, NET_EBPF_EXTENSION_POOL_TAG);
+    dacl = (ACL*)ExAllocatePoolUninitialized(NonPagedPoolNx, acl_length, NET_EBPF_EXTENSION_POOL_TAG);
     if (dacl == NULL) {
         status = STATUS_NO_MEMORY;
         goto Exit;

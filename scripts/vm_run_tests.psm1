@@ -425,11 +425,8 @@ function Invoke-ConnectRedirectTestsOnVM
     $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
 
-    # Add a standard user on the VM.
-    foreach ($vm in $VMArray)
-    {
-        Add-StandardUserOnVM -VM $vm -UserName $StandardUser -Password $UnsecurePassword
-    }
+    # Add a standard user on VM1.
+    Add-StandardUserOnVM -VM $VM1.Name -UserName $StandardUser -Password $UnsecurePassword
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
@@ -472,11 +469,8 @@ function Invoke-ConnectRedirectTestsOnVM
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
     Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName
 
-    # Add a standard user on the VM.
-    foreach ($vm in $VMArray)
-    {
-        Remove-StandardUserOnVM -VM $vm -UserName $StandardUser
-    }
+    # Remove standard user on VM1.
+    Remove-StandardUserOnVM -VM $VM1.Name -UserName $StandardUser
 }
 
 function Stop-eBPFComponentsOnVM
