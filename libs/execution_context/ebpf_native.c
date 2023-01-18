@@ -1451,6 +1451,7 @@ _ebpf_native_helper_address_changed(_Inout_ ebpf_program_t* program, _Inout_opt_
         (ebpf_native_helper_address_changed_context_t*)context;
 
     uint64_t* helper_function_addresses = NULL;
+    _Analysis_assume_(context != NULL);
     size_t helper_count = helper_address_changed_context->native_program->entry->helper_count;
 
     if (helper_count == 0) {

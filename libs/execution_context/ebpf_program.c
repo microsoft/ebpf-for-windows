@@ -1109,7 +1109,14 @@ _ebpf_program_get_helper_function_address(
     provider_data_referenced = true;
 
     use_trampoline = program->parameters.code_type == EBPF_CODE_JIT;
-    ebpf_assert(program->trampoline_table != NULL || !use_trampoline);
+    if (use_trampoline && !program->trampoline_table) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "The trampoline table is not initialized for JIT program");
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     // First check the trampoline table for the helper function.
     if (use_trampoline) {
