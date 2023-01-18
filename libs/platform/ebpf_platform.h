@@ -68,16 +68,16 @@ extern "C"
 
     typedef enum _ebpf_pool_tag
     {
-        EBPF_POOL_TAG_DEFAULT = 'fpbe',
-        EBPF_POOL_TAG_PROGRAM = 'grpe',
-        EBPF_POOL_TAG_CORE = 'roce',
-        EBPF_POOL_TAG_MAP = 'pame',
-        EBPF_POOL_TAG_LINK = 'knle',
-        EBPF_POOL_TAG_EPOCH = 'cpee',
-        EBPF_POOL_TAG_STATE = 'atse',
         EBPF_POOL_TAG_ASYNC = 'nsae',
+        EBPF_POOL_TAG_CORE = 'roce',
+        EBPF_POOL_TAG_DEFAULT = 'fpbe',
+        EBPF_POOL_TAG_EPOCH = 'cpee',
+        EBPF_POOL_TAG_LINK = 'knle',
+        EBPF_POOL_TAG_MAP = 'pame',
         EBPF_POOL_TAG_NATIVE = 'vtne',
+        EBPF_POOL_TAG_PROGRAM = 'grpe',
         EBPF_POOL_TAG_RING_BUFFER = 'fbre',
+        EBPF_POOL_TAG_STATE = 'atse',
     } ebpf_pool_tag_t;
 
     typedef enum _ebpf_code_integrity_state
