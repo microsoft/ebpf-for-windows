@@ -39,7 +39,7 @@ typedef struct _ebpf_native_program
 {
     program_entry_t* entry;
     ebpf_handle_t handle;
-    void* addresses_changed_callback_context;
+    struct _ebpf_native_helper_address_changed_context* addresses_changed_callback_context;
 } ebpf_native_program_t;
 
 typedef enum _ebpf_native_module_state
@@ -951,16 +951,6 @@ Done:
     ebpf_free(helper_ids);
     ebpf_free(helper_addresses);
     EBPF_RETURN_RESULT(result);
-}
-
-static ebpf_result_t
-_ebpf_native_update_helper_addresses(_Inout_ void* context)
-{
-    ebpf_native_helper_address_changed_context_t* helper_changed_context =
-        (ebpf_native_helper_address_changed_context_t*)context;
-
-    return _ebpf_native_resolve_helpers_for_program(
-        helper_changed_context->module, helper_changed_context->native_program);
 }
 
 static void

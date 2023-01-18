@@ -137,6 +137,9 @@ _ebpf_extension_client_attach_provider(
     if (NT_SUCCESS(status)) {
         ebpf_result_t result = _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
         if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_BASE, "Client notify change failed with error");
+
             status = STATUS_UNSUCCESSFUL;
             goto Done;
         }

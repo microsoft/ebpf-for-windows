@@ -221,6 +221,8 @@ _ebpf_program_program_info_provider_changed(
 
         return_value = _ebpf_program_update_helpers(program);
         if (return_value != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "Failed to update helpers for program");
             goto Exit;
         }
 
@@ -651,6 +653,8 @@ _ebpf_program_load_machine_code(
         program->helper_function_addresses_changed_context = program;
         return_value = _ebpf_program_update_helpers(program);
         if (return_value != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "Failed to update helpers for program");
             goto Done;
         }
 
@@ -918,8 +922,11 @@ _ebpf_program_load_byte_code(
     program->helper_function_addresses_changed_context = NULL;
 
     return_value = _ebpf_program_update_helpers(program);
-    if (return_value != EBPF_SUCCESS)
+    if (return_value != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "Failed to update helpers for program");
         goto Done;
+    }
 
     if (ubpf_load(
             program->code_or_vm.vm,
@@ -1112,41 +1119,44 @@ _ebpf_program_get_helper_function_address(
         }
     }
 
-    // Check the general helper function table of the program type.
-    if (!found) {
-        for (size_t index = 0; index < program_data->program_info->count_of_global_helpers; index++) {
-            if (program_data->program_info->global_helper_prototype[index].helper_id == helper_function_id) {
-                function_address =
-                    (void*)program_data->global_helper_function_addresses->helper_function_address[index];
-                found = true;
-                break;
+    if (helper_function_id < EBPF_MAX_GENERAL_HELPER_FUNCTION) {
+        // Check the general helper function table of the program type.
+        if (!found) {
+            for (size_t index = 0; index < program_data->program_info->count_of_global_helpers; index++) {
+                if (program_data->program_info->global_helper_prototype[index].helper_id == helper_function_id) {
+                    function_address =
+                        (void*)program_data->global_helper_function_addresses->helper_function_address[index];
+                    found = true;
+                    break;
+                }
             }
         }
-    }
 
-    // Check the program type specific helper function table of the program type.
-    if (!found) {
-        for (size_t index = 0; index < program_data->program_info->count_of_program_type_specific_helpers; index++) {
-            if (program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
-                helper_function_id) {
-                function_address =
-                    (void*)
-                        program_data->program_type_specific_helper_function_addresses->helper_function_address[index];
-                found = true;
-                break;
+        // Check the general helper function table of the general program type.
+        if (!found) {
+            for (size_t index = 0; index < general_program_data->program_info->count_of_program_type_specific_helpers;
+                 index++) {
+                if (general_program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
+                    helper_function_id) {
+                    function_address = (void*)general_program_data->program_type_specific_helper_function_addresses
+                                           ->helper_function_address[index];
+                    found = true;
+                    break;
+                }
             }
         }
-    }
-
-    if (!found) {
-        for (size_t index = 0; index < general_program_data->program_info->count_of_program_type_specific_helpers;
-             index++) {
-            if (general_program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
-                helper_function_id) {
-                function_address = (void*)general_program_data->program_type_specific_helper_function_addresses
-                                       ->helper_function_address[index];
-                found = true;
-                break;
+    } else {
+        // Check the program type specific helper function table of the program type.
+        if (!found) {
+            for (size_t index = 0; index < program_data->program_info->count_of_program_type_specific_helpers;
+                 index++) {
+                if (program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
+                    helper_function_id) {
+                    function_address = (void*)program_data->program_type_specific_helper_function_addresses
+                                           ->helper_function_address[index];
+                    found = true;
+                    break;
+                }
             }
         }
     }
