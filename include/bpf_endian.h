@@ -4,6 +4,10 @@
 
 #include <stdint.h>
 
+// copied from linux kernel v6.1 tools/lib/bpf/bpf_endian.h
+// https://github.com/torvalds/linux/blob/v6.1/tools/lib/bpf/bpf_endian.h
+// SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
+
 /*
  * Isolate byte #n and put it into byte #m, for __u##b type.
  * E.g., moving byte #6 (nnnnnnnn) into byte #1 (mmmmmmmm) for __u64:
