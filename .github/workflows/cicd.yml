@@ -208,7 +208,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
-      test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
+      test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=300 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2022
       code_coverage: false
@@ -235,7 +235,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
-      test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
+      test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=300 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2022
       code_coverage: false
