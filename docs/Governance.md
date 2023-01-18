@@ -17,6 +17,8 @@ Besides reviewing for technical correctmess, reviewers are expected to:
   Windows and Linux.
 * Be familiar with, and call out code that does not conform to, the eBPF for Windows
   [coding conventions](DevelopmentGuide.md).
+* Check that errors are appropriately logged where first detected (not at each
+  level of stack unwind).
 
 When multiple pull requests are approved, maintainers should prioritize merging PRs as follows:
 
