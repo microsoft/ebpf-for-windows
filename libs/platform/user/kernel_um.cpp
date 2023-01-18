@@ -61,8 +61,8 @@ typedef class _rundown_ref_table
      * @brief Acquire a rundown ref for the given context.
      *
      * @param[in] context The address of a EX_RUNDOWN_REF structure.
-     * @return true Rundown has not started.
-     * @return false Rundown has started.
+     * @retval true Rundown has not started.
+     * @retval false Rundown has started.
      */
     bool
     acquire_rundown_ref(_In_ const void* context)
@@ -195,7 +195,11 @@ unsigned long __cdecl DbgPrintEx(
 void
 ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref)
 {
+#pragma warning(push)
+#pragma warning(suppress : 6001) // Uninitialized memory. The rundown_ref is used as a key in a map and is not
+                                 // dereferenced.
     rundown_ref_table_t::instance().initialize_rundown_ref(rundown_ref);
+#pragma warning(pop)
 }
 
 void
