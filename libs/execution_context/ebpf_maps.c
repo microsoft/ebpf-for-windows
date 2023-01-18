@@ -205,7 +205,7 @@ _ebpf_core_circular_map_push(_Inout_ ebpf_core_circular_map_t* map, _In_ const u
     ebpf_result_t return_value;
     uint8_t* new_data = NULL;
     uint8_t* old_data = NULL;
-    new_data = ebpf_epoch_allocate(map->core_map.ebpf_map_definition.value_size);
+    new_data = ebpf_epoch_allocate_with_tag(map->core_map.ebpf_map_definition.value_size, EBPF_POOL_TAG_MAP);
     if (new_data == NULL) {
         return_value = EBPF_NO_MEMORY;
         goto Done;
@@ -309,7 +309,7 @@ _create_array_map_with_map_struct_size(
         goto Done;
     }
 
-    local_map = ebpf_epoch_allocate(full_map_size);
+    local_map = ebpf_epoch_allocate_with_tag(full_map_size, EBPF_POOL_TAG_MAP);
     if (local_map == NULL) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -768,7 +768,7 @@ _create_hash_map_internal(
     ebpf_core_map_t* local_map = NULL;
     *map = NULL;
 
-    local_map = ebpf_epoch_allocate(map_struct_size);
+    local_map = ebpf_epoch_allocate_with_tag(map_struct_size, EBPF_POOL_TAG_MAP);
     if (local_map == NULL) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -1723,7 +1723,7 @@ _create_ring_buffer_map(
         goto Exit;
     }
 
-    ring_buffer_map = ebpf_epoch_allocate(sizeof(ebpf_core_ring_buffer_map_t));
+    ring_buffer_map = ebpf_epoch_allocate_with_tag(sizeof(ebpf_core_ring_buffer_map_t), EBPF_POOL_TAG_MAP);
     if (ring_buffer_map == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -1829,7 +1829,7 @@ ebpf_ring_buffer_map_async_query(
 
     // Allocate and initialize the async query context and queue it up.
     ebpf_core_ring_buffer_map_async_query_context_t* context =
-        ebpf_allocate(sizeof(ebpf_core_ring_buffer_map_async_query_context_t));
+        ebpf_allocate_with_tag(sizeof(ebpf_core_ring_buffer_map_async_query_context_t), EBPF_POOL_TAG_ASYNC);
     if (!context) {
         result = EBPF_NO_MEMORY;
         goto Exit;

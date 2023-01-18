@@ -371,7 +371,7 @@ _ebpf_core_protocol_resolve_helper(
     if (count_of_helpers == 0)
         goto Done;
 
-    request_helper_ids = (uint32_t*)ebpf_allocate(count_of_helpers * sizeof(uint32_t));
+    request_helper_ids = (uint32_t*)ebpf_allocate_with_tag(count_of_helpers * sizeof(uint32_t), EBPF_POOL_TAG_CORE);
     if (request_helper_ids == NULL) {
         return_value = EBPF_NO_MEMORY;
         goto Done;
@@ -651,14 +651,14 @@ _ebpf_core_protocol_load_native_programs(
     }
 
     if (count_of_map_handles) {
-        map_handles = ebpf_allocate(sizeof(ebpf_handle_t) * count_of_map_handles);
+        map_handles = ebpf_allocate_with_tag(sizeof(ebpf_handle_t) * count_of_map_handles, EBPF_POOL_TAG_CORE);
         if (map_handles == NULL) {
             result = EBPF_NO_MEMORY;
             goto Done;
         }
     }
 
-    program_handles = ebpf_allocate(sizeof(ebpf_handle_t) * count_of_program_handles);
+    program_handles = ebpf_allocate_with_tag(sizeof(ebpf_handle_t) * count_of_program_handles, EBPF_POOL_TAG_CORE);
     if (program_handles == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -1321,7 +1321,7 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_info_array(
     ebpf_assert(entry_count);
     ebpf_assert(pinning_entries);
 
-    local_map_info = (ebpf_map_info_internal_t*)ebpf_allocate(allocation_size);
+    local_map_info = (ebpf_map_info_internal_t*)ebpf_allocate_with_tag(allocation_size, EBPF_POOL_TAG_CORE);
     if (local_map_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -1765,7 +1765,7 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
     }
 
     // Make a copy of the original format string.
-    char* output = (char*)ebpf_allocate(fmt_size + 1);
+    char* output = (char*)ebpf_allocate_with_tag(fmt_size + 1, EBPF_POOL_TAG_CORE);
     if (output == NULL) {
         return -1;
     }
