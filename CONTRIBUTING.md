@@ -83,5 +83,5 @@ the bar for both quality and design/roadmap appropriateness will be merged into 
 
 For all new Pull Requests the following rules apply:
 - Existing tests should continue to pass.
-- Tests need to be provided for every bug/feature that is completed.
+- [Tests](docs/AutomatedTests.md) need to be provided for every bug/feature that is completed.
 - Documentation needs to be provided for every feature that is end-user visible.
