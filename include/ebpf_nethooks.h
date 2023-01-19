@@ -154,7 +154,7 @@ typedef struct bpf_sock_addr
 /**
  * @brief Handle socket operation. Currently supports ingress/egress connection initialization.
  *
- * Program type: \ref EBPF_PROGRAM_TYPE_BIND
+ * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
  *
  * Attach type(s):
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT
