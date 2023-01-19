@@ -77,14 +77,26 @@ typedef class _fwp_engine
     FWP_ACTION_TYPE
     classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index);
 
-    void
-    test_bind();
+    FWP_ACTION_TYPE
+    test_bind_ipv4();
 
-    void
-    test_cgroup_sock_addr();
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_recv_accept();
 
-    void
-    test_sock_ops();
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_recv_accept();
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_connect();
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_connect();
+
+    FWP_ACTION_TYPE
+    test_sock_ops_v4();
+
+    FWP_ACTION_TYPE
+    test_sock_ops_v6();
 
     static _fwp_engine*
     get()
@@ -95,11 +107,17 @@ typedef class _fwp_engine
     }
 
   private:
+    FWP_ACTION_TYPE
+    test_cgroup_sock_addr(uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incomingValue);
+
+    FWP_ACTION_TYPE
+    test_callout(uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incoming_value);
+
     _Ret_maybenull_ const FWPM_FILTER*
-    get_fwpm_filter_with_context()
+    get_fwpm_filter_with_context(_In_ const GUID& layer_guid)
     {
         for (auto& [first, filter] : fwpm_filters) {
-            if (filter.rawContext != 0) {
+            if (memcmp(&filter.layerKey, &layer_guid, sizeof(GUID)) == 0 && filter.rawContext != 0) {
                 return &filter;
             }
         }

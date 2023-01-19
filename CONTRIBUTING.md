@@ -78,10 +78,10 @@ submitting a feature or substantial code contribution, please discuss it with th
 ensure it follows the product roadmap. You might also read these two blogs posts on contributing
 code: [Open Source Contribution Etiquette](http://tirania.org/blog/archive/2010/Dec-31.html) by Miguel de Icaza and
 [Don't "Push" Your Pull Requests](https://www.igvita.com/2011/12/19/dont-push-your-pull-requests/) by Ilya Grigorik.
-All code submissions will be rigorously reviewed and tested by the maintainers, and only those that meet
+All code submissions will be rigorously [reviewed](docs/Governance.md) and tested by the maintainers, and only those that meet
 the bar for both quality and design/roadmap appropriateness will be merged into the source.
 
 For all new Pull Requests the following rules apply:
 - Existing tests should continue to pass.
-- Tests need to be provided for every bug/feature that is completed.
+- [Tests](docs/AutomatedTests.md) need to be provided for every bug/feature that is completed.
 - Documentation needs to be provided for every feature that is end-user visible.
