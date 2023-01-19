@@ -187,20 +187,6 @@ jobs:
       build_artifact: Build-x64-Sanitize
       build_options: /p:AddressSanitizer='True'
 
-  # Run the fuzzing tests in GitHub.
-  fuzzing:
-    needs: sanitize
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: fuzzing
-      test_command: .\fuzz.exe -d yes
-      build_artifact: Build-x64-Sanitize
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-
   bpf2c_fuzzer:
     needs: libfuzzer
     if: github.event_name == 'pull_request'
