@@ -30,7 +30,7 @@ are found that should have been caught by unit tests.
 Tests in this category currently include:
 * api_test.exe: This tests user mode APIs to interact with eBPF.
 * connect_redirect_tests.exe: This tests connection redirection functionality.
-* sample_ext_app.exe: This a sample extension driver.
+* sample_ext_app.exe: This tests the sample extension driver.
 * socket_tests.exe: This tests eBPF programs that attach to socket events.
 * xdp_tests.exe: This tests eBPF programs that attach to XDP.
 
