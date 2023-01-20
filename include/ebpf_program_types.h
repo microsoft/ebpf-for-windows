@@ -5,23 +5,16 @@
 
 #pragma once
 
-#ifdef __midl
-#define MIDL(x) x
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
-#else
-#define MIDL(x)
 #include <guiddef.h>
 #include <stdint.h>
-#endif
 #include "ebpf_base.h"
+#include "ebpf_result.h"
 
 #define EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH 256
 #define EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH 256
 
 typedef struct _ebpf_program_type_descriptor
 {
-    MIDL([string])
     const char* name;
     ebpf_context_descriptor_t* context_descriptor;
     GUID program_type;
@@ -32,7 +25,6 @@ typedef struct _ebpf_program_type_descriptor
 typedef struct _ebpf_helper_function_prototype
 {
     uint32_t helper_id;
-    MIDL([string])
     const char* name;
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
@@ -41,20 +33,43 @@ typedef struct _ebpf_helper_function_prototype
 typedef struct _ebpf_program_info
 {
     ebpf_program_type_descriptor_t program_type_descriptor;
-    uint32_t count_of_helpers;
-    MIDL([size_is(count_of_helpers)]) ebpf_helper_function_prototype_t* helper_prototype;
+    uint32_t count_of_program_type_specific_helpers;
+    ebpf_helper_function_prototype_t* program_type_specific_helper_prototype;
+    uint32_t count_of_global_helpers;
+    ebpf_helper_function_prototype_t* global_helper_prototype;
 } ebpf_program_info_t;
 
 typedef struct _ebpf_helper_function_addresses
 {
     uint32_t helper_function_count;
-    MIDL([size_is(helper_function_count)]) uint64_t* helper_function_address;
+    uint64_t* helper_function_address;
 } ebpf_helper_function_addresses_t;
+
+typedef ebpf_result_t (*ebpf_program_context_create_t)(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context);
+
+typedef void (*ebpf_program_context_destroy_t)(
+    _In_ void* context,
+    _Out_writes_bytes_to_opt_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_opt_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out);
 
 typedef struct _ebpf_program_data
 {
-    ebpf_program_info_t* program_info;
-    ebpf_helper_function_addresses_t* helper_function_addresses;
+    ebpf_program_info_t* program_info; ///< Pointer to program information.
+    ebpf_helper_function_addresses_t*
+        program_type_specific_helper_function_addresses; ///< Pointer to program type specific helper function
+                                                         ///< addresses.
+    ebpf_helper_function_addresses_t*
+        global_helper_function_addresses;           ///< Pointer to global helper function addresses being overriden.
+    ebpf_program_context_create_t context_create;   ///< Pointer to context create function.
+    ebpf_program_context_destroy_t context_destroy; ///< Pointer to context destroy function.
+    uint8_t required_irql;                          ///< IRQL at which the program is invoked.
 } ebpf_program_data_t;
 
 typedef struct _ebpf_program_section_info

@@ -13,6 +13,7 @@ typedef struct _ebpf_trampoline_entry
     void* indirect_address;
     uint16_t jmp_rax;
     void* address;
+    uint32_t helper_id;
 } ebpf_trampoline_entry_t;
 #pragma pack(pop)
 
@@ -20,6 +21,7 @@ typedef struct _ebpf_trampoline_table
 {
     ebpf_memory_descriptor_t* memory_descriptor;
     size_t entry_count;
+    bool updated;
 } ebpf_trampoline_table_t;
 
 _Must_inspect_result_ ebpf_result_t
@@ -77,7 +79,8 @@ ebpf_update_trampoline_table(
     ebpf_trampoline_entry_t* local_entries;
     ebpf_result_t return_value;
     size_t index;
-    uint32_t helper_index;
+    size_t helper_index;
+    uint32_t helper_id;
 
     if (function_count != trampoline_table->entry_count) {
         return_value = EBPF_INVALID_ARGUMENT;
@@ -97,18 +100,31 @@ ebpf_update_trampoline_table(
     }
 
     for (helper_index = 0; helper_index < helper_function_count; helper_index++) {
-        ebpf_assert(helper_function_ids[helper_index] > EBPF_MAX_GENERAL_HELPER_FUNCTION);
-        _Analysis_assume_(helper_function_ids[helper_index] > EBPF_MAX_GENERAL_HELPER_FUNCTION);
-        index = helper_function_ids[helper_index] - (EBPF_MAX_GENERAL_HELPER_FUNCTION + 1);
-        if (index > trampoline_table->entry_count) {
-            return_value = EBPF_INVALID_ARGUMENT;
-            goto Exit;
+        helper_id = helper_function_ids[helper_index];
+        if (trampoline_table->updated) {
+            // If the trampoline table has been updated earlier, ensure that the helper ids
+            // have not changed on this update.
+            for (index = 0; index < trampoline_table->entry_count; index++) {
+                if (local_entries[index].helper_id == helper_id) {
+                    break;
+                }
+            }
+            if (index == trampoline_table->entry_count) {
+                return_value = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+        } else {
+            // Trampoline table has not been updated yet. Use the next available slot.
+            index = helper_index;
         }
+
         local_entries[index].load_rax = 0xa148;
         local_entries[index].indirect_address = &local_entries[index].address;
         local_entries[index].jmp_rax = 0xe0ff;
         local_entries[index].address = (void*)helper_function_addresses->helper_function_address[helper_index];
+        local_entries[index].helper_id = helper_id;
     }
+    trampoline_table->updated = true;
 
 Exit:
     return_value = ebpf_protect_memory(trampoline_table->memory_descriptor, EBPF_PAGE_PROTECT_READ_EXECUTE);
@@ -121,21 +137,28 @@ Exit:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_get_trampoline_function(_In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function)
+ebpf_get_trampoline_function(
+    _In_ const ebpf_trampoline_table_t* trampoline_table, size_t helper_id, _Outptr_ void** function)
 {
     EBPF_LOG_ENTRY();
     ebpf_trampoline_entry_t* local_entries;
     ebpf_result_t return_value;
-
-    if (index >= trampoline_table->entry_count) {
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
+    size_t index;
 
     local_entries =
         (ebpf_trampoline_entry_t*)ebpf_memory_descriptor_get_base_address(trampoline_table->memory_descriptor);
     if (!local_entries) {
         return_value = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    for (index = 0; index < trampoline_table->entry_count; index++) {
+        if (local_entries[index].helper_id == helper_id) {
+            break;
+        }
+    }
+    if (index == trampoline_table->entry_count) {
+        return_value = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
@@ -148,7 +171,7 @@ Exit:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_trampoline_helper_address(
-    _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** helper_address)
+    _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Outptr_ void** helper_address)
 {
     EBPF_LOG_ENTRY();
     ebpf_trampoline_entry_t* local_entries;

@@ -11,19 +11,22 @@
 // Example:
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
+#include <cassert>
+#include <format>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include <windows.h>
 #undef max
 
 #include "btf_parser.h"
 #include "bpf_code_generator.h"
+#include "ebpf_version.h"
 
 #if !defined(_countof)
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 #endif
-#include <cassert>
-#include <iomanip>
 
 #define INDENT "    "
 #define LINE_BREAK_WIDTH 120
@@ -61,20 +64,20 @@ enum class AluOperations
 };
 
 static const std::string _predicate_format_string[] = {
-    "",                           // JA
-    "%s == %s",                   // JEQ
-    "%s > %s",                    // JGT
-    "%s >= %s",                   // JGE
-    "%s & %s",                    // JSET
-    "%s != %s",                   // JNE
-    "(int64_t)%s > (int64_t)%s",  // JSGT
-    "(int64_t)%s >= (int64_t)%s", // JSGE
-    "",                           // CALL
-    "",                           // EXIT
-    "%s < %s",                    // JLT
-    "%s <= %s",                   // JLE
-    "(int64_t)%s < (int64_t)%s",  // JSLT
-    "(int64_t)%s <= (int64_t)%s", // JSLE
+    "",             // JA
+    "{}{} == {}{}", // JEQ
+    "{}{} > {}{}",  // JGT
+    "{}{} >= {}{}", // JGE
+    "{}{} & {}{}",  // JSET
+    "{}{} != {}{}", // JNE
+    "{}{} > {}{}",  // JSGT
+    "{}{} >= {}{}", // JSGE
+    "",             // CALL
+    "",             // EXIT
+    "{}{} < {}{}",  // JLT
+    "{}{} <= {}{}", // JLE
+    "{}{} < {}{}",  // JSLT
+    "{}{} <= {}{}", // JSLE
 };
 
 #define ADD_OPCODE(X)                            \
@@ -113,6 +116,15 @@ static std::map<uint8_t, std::string> _opcode_name_strings = {
     ADD_OPCODE(EBPF_OP_JLE_IMM),    ADD_OPCODE(EBPF_OP_JLE_REG),   ADD_OPCODE(EBPF_OP_JSLT_IMM),
     ADD_OPCODE(EBPF_OP_JSLT_REG),   ADD_OPCODE(EBPF_OP_JSLE_IMM),  ADD_OPCODE(EBPF_OP_JSLE_REG),
 };
+
+#define IS_JMP_CLASS_OPCODE(_opcode) \
+    (((_opcode)&EBPF_CLS_MASK) == EBPF_CLS_JMP || ((_opcode)&EBPF_CLS_MASK) == EBPF_CLS_JMP32)
+
+#define IS_JMP32_CLASS_OPCODE(_opcode) (((_opcode)&EBPF_CLS_MASK) == EBPF_CLS_JMP32)
+
+#define IS_SIGNED_CMP_OPCODE(_opcode)                                                          \
+    (((_opcode) >> 4) == (EBPF_MODE_JSGT >> 4) || ((_opcode) >> 4) == (EBPF_MODE_JSGE >> 4) || \
+     ((_opcode) >> 4) == (EBPF_MODE_JSLT >> 4) || ((_opcode) >> 4) == (EBPF_MODE_JSLE >> 4))
 
 /**
  * @brief Global operator to permit concatenating a safe and unsafe string.
@@ -205,7 +217,7 @@ bpf_code_generator::program_sections()
 {
     std::vector<bpf_code_generator::unsafe_string> section_names;
     for (const auto& section : reader.sections) {
-        if (!is_section_valid(section)) {
+        if (!is_section_valid(section.get())) {
             continue;
         }
         bpf_code_generator::unsafe_string name = section->get_name();
@@ -436,7 +448,7 @@ bpf_code_generator::generate_labels()
     // Tag jump targets
     for (size_t i = 0; i < program_output.size(); i++) {
         auto& output = program_output[i];
-        if ((output.instruction.opcode & EBPF_CLS_MASK) != EBPF_CLS_JMP) {
+        if (!IS_JMP_CLASS_OPCODE(output.instruction.opcode)) {
             continue;
         }
         if (output.instruction.opcode == EBPF_OP_CALL) {
@@ -491,7 +503,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
 {
     std::vector<output_instruction_t>& program_output = current_section->output;
     auto program_name = !current_section->program_name.empty() ? current_section->program_name : section_name;
-    auto helper_array_prefix = program_name.c_identifier() + "_helpers[%s]";
+    auto helper_array_prefix = program_name.c_identifier() + "_helpers[{}]";
 
     // Encode instructions
     for (size_t i = 0; i < program_output.size(); i++) {
@@ -512,51 +524,51 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             std::string swap_function;
             switch (operation) {
             case AluOperations::Add:
-                output.lines.push_back(format_string("%s += %s;", destination, source));
+                output.lines.push_back(std::format("{} += {};", destination, source));
                 break;
             case AluOperations::Sub:
-                output.lines.push_back(format_string("%s -= %s;", destination, source));
+                output.lines.push_back(std::format("{} -= {};", destination, source));
                 break;
             case AluOperations::Mul:
-                output.lines.push_back(format_string("%s *= %s;", destination, source));
+                output.lines.push_back(std::format("{} *= {};", destination, source));
                 break;
             case AluOperations::Div:
                 if (is64bit)
                     output.lines.push_back(
-                        format_string("%s = %s ? (%s / %s) : 0;", destination, source, destination, source));
+                        std::format("{} = {} ? ({} / {}) : 0;", destination, source, destination, source));
                 else
-                    output.lines.push_back(format_string(
-                        "%s = (uint32_t)%s ? (uint32_t)%s / (uint32_t)%s : 0;",
+                    output.lines.push_back(std::format(
+                        "{} = (uint32_t){} ? (uint32_t){} / (uint32_t){} : 0;",
                         destination,
                         source,
                         destination,
                         source));
                 break;
             case AluOperations::Or:
-                output.lines.push_back(format_string("%s |= %s;", destination, source));
+                output.lines.push_back(std::format("{} |= {};", destination, source));
                 break;
             case AluOperations::And:
-                output.lines.push_back(format_string("%s &= %s;", destination, source));
+                output.lines.push_back(std::format("{} &= {};", destination, source));
                 break;
             case AluOperations::Lsh:
-                output.lines.push_back(format_string("%s <<= %s;", destination, source));
+                output.lines.push_back(std::format("{} <<= {};", destination, source));
                 break;
             case AluOperations::Rsh:
                 if (is64bit)
-                    output.lines.push_back(format_string("%s >>= %s;", destination, source));
+                    output.lines.push_back(std::format("{} >>= {};", destination, source));
                 else
-                    output.lines.push_back(format_string("%s = (uint32_t)%s >> %s;", destination, destination, source));
+                    output.lines.push_back(std::format("{} = (uint32_t){} >> {};", destination, destination, source));
                 break;
             case AluOperations::Neg:
-                output.lines.push_back(format_string("%s = -(int64_t)%s;", destination, destination));
+                output.lines.push_back(std::format("{} = -(int64_t){};", destination, destination));
                 break;
             case AluOperations::Mod:
                 if (is64bit)
-                    output.lines.push_back(format_string(
-                        "%s = %s ? (%s %% %s): %s ;", destination, source, destination, source, destination));
+                    output.lines.push_back(std::format(
+                        "{} = {} ? ({} % {}): {} ;", destination, source, destination, source, destination));
                 else
-                    output.lines.push_back(format_string(
-                        "%s = (uint32_t)%s ? ((uint32_t)%s %% (uint32_t)%s) : (uint32_t)%s;",
+                    output.lines.push_back(std::format(
+                        "{} = (uint32_t){} ? ((uint32_t){} % (uint32_t){}) : (uint32_t){};",
                         destination,
                         source,
                         destination,
@@ -564,17 +576,17 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                         destination));
                 break;
             case AluOperations::Xor:
-                output.lines.push_back(format_string("%s ^= %s;", destination, source));
+                output.lines.push_back(std::format("{} ^= {};", destination, source));
                 break;
             case AluOperations::Mov:
-                output.lines.push_back(format_string("%s = %s;", destination, source));
+                output.lines.push_back(std::format("{} = {};", destination, source));
                 break;
             case AluOperations::Ashr:
                 if (is64bit)
                     output.lines.push_back(
-                        format_string("%s = (int64_t)%s >> (uint32_t)%s;", destination, destination, source));
+                        std::format("{} = (int64_t){} >> (uint32_t){};", destination, destination, source));
                 else
-                    output.lines.push_back(format_string("%s = (int32_t)%s >> %s;", destination, destination, source));
+                    output.lines.push_back(std::format("{} = (int32_t){} >> {};", destination, destination, source));
                 break;
             case AluOperations::ByteOrder: {
                 std::string size_type = "";
@@ -616,13 +628,13 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                     }
                 }
                 output.lines.push_back(
-                    format_string("%s = %s((%s)%s);", destination, swap_function, size_type, destination));
+                    std::format("{} = {}(({}){});", destination, swap_function, size_type, destination));
             } break;
             default:
                 throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
             if (!is64bit)
-                output.lines.push_back(format_string("%s &= UINT32_MAX;", destination));
+                output.lines.push_back(std::format("{} &= UINT32_MAX;", destination));
 
         } break;
         case EBPF_CLS_LD: {
@@ -640,7 +652,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 imm |= static_cast<uint32_t>(output.instruction.imm);
                 std::string source;
                 source = "(uint64_t)" + std::to_string(imm);
-                output.lines.push_back(format_string("%s = %s;", destination, source));
+                output.lines.push_back(std::format("{} = {};", destination, source));
             } else {
                 std::string source;
                 auto map_definition = map_definitions.find(output.relocation);
@@ -648,8 +660,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                     throw bpf_code_generator_exception(
                         "Map " + output.relocation + " doesn't exist", output.instruction_offset);
                 }
-                source = format_string("_maps[%s].address", std::to_string(map_definition->second.index));
-                output.lines.push_back(format_string("%s = POINTER(%s);", destination, source));
+                source = std::format("_maps[{}].address", std::to_string(map_definition->second.index));
+                output.lines.push_back(std::format("{} = POINTER({});", destination, source));
                 current_section->referenced_map_indices.insert(map_definitions[output.relocation].index);
             }
         } break;
@@ -673,7 +685,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 break;
             }
             output.lines.push_back(
-                format_string("%s = *(%s*)(uintptr_t)(%s + %s);", destination, size_type, source, offset));
+                std::format("{} = *({}*)(uintptr_t)({} + {});", destination, size_type, source, offset));
         } break;
         case EBPF_CLS_ST:
         case EBPF_CLS_STX: {
@@ -702,19 +714,34 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             }
             source = "(" + size_type + ")" + source;
             output.lines.push_back(
-                format_string("*(%s*)(uintptr_t)(%s + %s) = %s;", size_type, destination, offset, source));
+                std::format("*({}*)(uintptr_t)({} + {}) = {};", size_type, destination, offset, source));
         } break;
-        case EBPF_CLS_JMP: {
+        case EBPF_CLS_JMP:
+        case EBPF_CLS_JMP32: {
             std::string destination = get_register_name(inst.dst);
+            std::string destination_cast;
+            if (IS_JMP32_CLASS_OPCODE(inst.opcode)) {
+                destination_cast = IS_SIGNED_CMP_OPCODE(inst.opcode) ? "(int32_t)" : "(uint32_t)";
+            } else {
+                destination_cast = IS_SIGNED_CMP_OPCODE(inst.opcode) ? "(int64_t)" : "";
+            }
+
             std::string source;
+            std::string source_cast;
             if (inst.opcode & EBPF_SRC_REG) {
                 source = get_register_name(inst.src);
+                if (IS_JMP32_CLASS_OPCODE(inst.opcode)) {
+                    source_cast = IS_SIGNED_CMP_OPCODE(inst.opcode) ? "(int32_t)" : "(uint32_t)";
+                } else {
+                    source_cast = IS_SIGNED_CMP_OPCODE(inst.opcode) ? "(int64_t)" : "";
+                }
             } else {
                 source = "IMMEDIATE(" + std::to_string(inst.imm) + ")";
             }
             if ((inst.opcode >> 4) >= _countof(_predicate_format_string)) {
                 throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
+
             auto& format = _predicate_format_string[inst.opcode >> 4];
             if (inst.opcode == EBPF_OP_JA) {
                 std::string target = program_output[i + inst.offset + 1].label;
@@ -722,24 +749,24 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             } else if (inst.opcode == EBPF_OP_CALL) {
                 std::string function_name;
                 if (output.relocation.empty()) {
-                    function_name = format_string(
+                    function_name = std::vformat(
                         helper_array_prefix,
-                        std::to_string(
+                        make_format_args(std::to_string(
                             current_section->helper_functions["helper_id_" + std::to_string(output.instruction.imm)]
-                                .index));
+                                .index)));
                 } else {
                     auto helper_function = current_section->helper_functions.find(output.relocation);
                     assert(helper_function != current_section->helper_functions.end());
-                    function_name = format_string(
+                    function_name = std::vformat(
                         helper_array_prefix,
-                        std::to_string(current_section->helper_functions[output.relocation].index));
+                        make_format_args(std::to_string(current_section->helper_functions[output.relocation].index)));
                 }
                 output.lines.push_back(get_register_name(0) + " = " + function_name + ".address");
                 output.lines.push_back(
                     INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " + get_register_name(3) +
                     ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
                 output.lines.push_back(
-                    format_string("if ((%s.tail_call) && (%s == 0))", function_name, get_register_name(0)));
+                    std::format("if (({}.tail_call) && ({} == 0))", function_name, get_register_name(0)));
                 output.lines.push_back(INDENT "return 0;");
             } else if (inst.opcode == EBPF_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
@@ -748,11 +775,14 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 if (target.empty()) {
                     throw bpf_code_generator_exception("invalid jump target", output.instruction_offset);
                 }
-                std::string predicate = format_string(format, destination, source);
-                output.lines.push_back(format_string("if (%s)", predicate));
-                output.lines.push_back(format_string(INDENT "goto %s;", target));
+
+                std::string predicate =
+                    vformat(format, make_format_args(destination_cast, destination, source_cast, source));
+                output.lines.push_back(vformat("if ({})", make_format_args(predicate)));
+                output.lines.push_back(vformat(INDENT "goto {};", make_format_args(target)));
             }
         } break;
+
         default:
             throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
         }
@@ -911,22 +941,21 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         std::string program_info_hash_name = program_name.c_identifier() + "_program_info_hash";
 
         auto guid_declaration =
-            format_string("static GUID %s = %s;", program_type_name, format_guid(&section.program_type, false));
+            std::format("static GUID {} = {};", program_type_name, format_guid(&section.program_type, false));
 
         if (guid_declaration.length() <= LINE_BREAK_WIDTH) {
             output_stream << guid_declaration << std::endl;
         } else {
-            output_stream << format_string(
-                                 "static GUID %s = %s;", program_type_name, format_guid(&section.program_type, true))
+            output_stream << format("static GUID {} = {};", program_type_name, format_guid(&section.program_type, true))
                           << std::endl;
         }
         guid_declaration =
-            format_string("static GUID %s = %s;", attach_type_name, format_guid(&section.expected_attach_type, false));
+            std::format("static GUID {} = {};", attach_type_name, format_guid(&section.expected_attach_type, false));
         if (guid_declaration.length() <= LINE_BREAK_WIDTH) {
             output_stream << guid_declaration << std::endl;
         } else {
-            output_stream << format_string(
-                                 "static GUID %s = %s;",
+            output_stream << std::format(
+                                 "static GUID {} = {};",
                                  attach_type_name,
                                  format_guid(&section.expected_attach_type, true))
                           << std::endl;
@@ -949,7 +978,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         if (section.referenced_map_indices.size() > 0) {
             // Emit the array for the maps used.
             std::string map_array_name = program_name.c_identifier() + "_maps";
-            output_stream << format_string("static uint16_t %s[] = {", map_array_name) << std::endl;
+            output_stream << std::format("static uint16_t {}[] = {{\n", map_array_name);
             for (const auto& map_index : section.referenced_map_indices) {
                 output_stream << INDENT << std::to_string(map_index) << "," << std::endl;
             }
@@ -961,15 +990,15 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         auto first_line_info = line_info.find(section.output.front().instruction_offset);
         std::string prolog_line_info;
         if (first_line_info != line_info.end() && !first_line_info->second.file_name.empty()) {
-            prolog_line_info = format_string(
-                "#line %s %s\n",
+            prolog_line_info = std::format(
+                "#line {} {}\n",
                 std::to_string(first_line_info->second.line_number),
                 first_line_info->second.file_name.quoted_filename());
         }
 
         // Emit entry point
         output_stream << "#pragma code_seg(push, " << section.pe_section_name.quoted() << ")" << std::endl;
-        output_stream << format_string("static uint64_t\n%s(void* context)", program_name.c_identifier()) << std::endl;
+        output_stream << std::format("static uint64_t\n{}(void* context)", program_name.c_identifier()) << std::endl;
         output_stream << prolog_line_info << "{" << std::endl;
 
         // Emit prologue
@@ -998,8 +1027,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto current_line = line_info.find(output.instruction_offset);
             if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
                 current_line->second.line_number != 0) {
-                prolog_line_info = format_string(
-                    "#line %s %s\n",
+                prolog_line_info = std::format(
+                    "#line {} {}\n",
                     std::to_string(current_line->second.line_number),
                     current_line->second.file_name.quoted_filename());
             }
@@ -1069,8 +1098,25 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
-    output_stream << format_string(
-        "metadata_table_t %s = {_get_programs, _get_maps, _get_hash};\n", c_name.c_identifier() + "_metadata_table");
+    std::istringstream version_stream(EBPF_VERSION);
+    std::string version_major;
+    std::string version_minor;
+    std::string version_revision;
+    std::getline(version_stream, version_major, '.');
+    std::getline(version_stream, version_minor, '.');
+    std::getline(version_stream, version_revision, '.');
+
+    output_stream << "static void" << std::endl
+                  << "_get_version(_Out_ bpf2c_version_t* version)" << std::endl
+                  << "{" << std::endl
+                  << INDENT "version->major = " << version_major << ";" << std::endl
+                  << INDENT "version->minor = " << version_minor << ";" << std::endl
+                  << INDENT "version->revision = " << version_revision << ";" << std::endl
+                  << "}" << std::endl
+                  << std::endl;
+
+    output_stream << "metadata_table_t " << (c_name.c_identifier() + "_metadata_table")
+                  << " = {_get_programs, _get_maps, _get_hash, _get_version};\n";
 }
 
 std::string
@@ -1103,57 +1149,6 @@ bpf_code_generator::format_guid(const GUID* guid, bool split)
         throw bpf_code_generator_exception("Error formatting GUID");
     }
 
-    output.resize(strlen(output.c_str()));
-    return output;
-}
-
-std::string
-bpf_code_generator::format_string(
-    const std::string& format,
-    const std::string insert_1,
-    const std::string insert_2,
-    const std::string insert_3,
-    const std::string insert_4,
-    const std::string insert_5)
-{
-    std::string output(200, '\0');
-    if (insert_2.empty()) {
-        auto count = snprintf(output.data(), output.size(), format.c_str(), insert_1.c_str());
-        if (count < 0)
-            throw bpf_code_generator_exception("Error formatting string");
-    } else if (insert_3.empty()) {
-        auto count = snprintf(output.data(), output.size(), format.c_str(), insert_1.c_str(), insert_2.c_str());
-        if (count < 0)
-            throw bpf_code_generator_exception("Error formatting string");
-    } else if (insert_4.empty()) {
-        auto count = snprintf(
-            output.data(), output.size(), format.c_str(), insert_1.c_str(), insert_2.c_str(), insert_3.c_str());
-        if (count < 0)
-            throw bpf_code_generator_exception("Error formatting string");
-    } else if (insert_5.empty()) {
-        auto count = snprintf(
-            output.data(),
-            output.size(),
-            format.c_str(),
-            insert_1.c_str(),
-            insert_2.c_str(),
-            insert_3.c_str(),
-            insert_4.c_str());
-        if (count < 0)
-            throw bpf_code_generator_exception("Error formatting string");
-    } else {
-        auto count = snprintf(
-            output.data(),
-            output.size(),
-            format.c_str(),
-            insert_1.c_str(),
-            insert_2.c_str(),
-            insert_3.c_str(),
-            insert_4.c_str(),
-            insert_5.c_str());
-        if (count < 0)
-            throw bpf_code_generator_exception("Error formatting string");
-    }
     output.resize(strlen(output.c_str()));
     return output;
 }

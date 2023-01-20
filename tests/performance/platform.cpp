@@ -16,13 +16,15 @@ _perf_epoch_enter_alloc_free_exit()
 {
     REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
     void* p = ebpf_epoch_allocate(10);
-    ebpf_epoch_free(p);
-    // Disable C6001
-    // We are intentionally modifying memory after free, but relying on epoch protection.
+    if (p != NULL) {
+        ebpf_epoch_free(p);
+        // Disable C6001
+        // We are intentionally modifying memory after free, but relying on epoch protection.
 #pragma warning(push)
 #pragma warning(disable : 6001)
-    memset(p, 0xAA, 10);
+        memset(p, 0xAA, 10);
 #pragma warning(pop)
+    }
     ebpf_epoch_exit();
 }
 
@@ -39,7 +41,7 @@ _perf_bpf_ktime_get_boot_ns()
 {
     uint64_t time;
     REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
-    time = ebpf_query_time_since_boot(true) * 100;
+    time = ebpf_query_time_since_boot(true) * EBPF_NS_PER_FILETIME;
     ebpf_epoch_exit();
 }
 
@@ -48,7 +50,7 @@ _perf_bpf_ktime_get_ns()
 {
     uint64_t time;
     REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
-    time = ebpf_query_time_since_boot(false) * 100;
+    time = ebpf_query_time_since_boot(false) * EBPF_NS_PER_FILETIME;
     ebpf_epoch_exit();
 }
 
@@ -77,16 +79,12 @@ typedef class _ebpf_hash_table_test_state
 
         REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
         keys.resize(static_cast<size_t>(cpu_count) * 4ull);
-        REQUIRE(
-            ebpf_hash_table_create(
-                &table,
-                ebpf_epoch_allocate,
-                ebpf_epoch_free,
-                sizeof(uint32_t),
-                sizeof(uint64_t),
-                keys.size(),
-                EBPF_HASH_TABLE_NO_LIMIT,
-                nullptr) == EBPF_SUCCESS);
+        const ebpf_hash_table_creation_options_t options = {
+            .key_size = sizeof(uint32_t),
+            .value_size = sizeof(uint64_t),
+            .bucket_count = keys.size(),
+        };
+        REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
         for (auto& key : keys) {
             uint64_t value = 12345678;
             key = ebpf_random_uint32();

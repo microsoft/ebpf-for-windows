@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // This file contains function implementations for serializing and de-serializing
-// various eBPF structures to/from ebpf_operation*_request/response structures.
+// various eBPF structures to/from ebpf_operation_*_request/reply_t structures.
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 
@@ -250,15 +250,24 @@ ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info
     if (program_info != NULL) {
         ebpf_free(program_info->program_type_descriptor.context_descriptor);
         ebpf_free((void*)program_info->program_type_descriptor.name);
-        if (program_info->helper_prototype != NULL) {
-            for (uint32_t i = 0; i < program_info->count_of_helpers; i++) {
-                ebpf_helper_function_prototype_t* helper_prototype = &program_info->helper_prototype[i];
+        if (program_info->program_type_specific_helper_prototype != NULL) {
+            for (uint32_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
+                ebpf_helper_function_prototype_t* helper_prototype =
+                    &program_info->program_type_specific_helper_prototype[i];
+                ebpf_free((void*)helper_prototype->name);
+                helper_prototype->name = NULL;
+            }
+        }
+        if (program_info->global_helper_prototype != NULL) {
+            for (uint32_t i = 0; i < program_info->count_of_global_helpers; i++) {
+                ebpf_helper_function_prototype_t* helper_prototype = &program_info->global_helper_prototype[i];
                 ebpf_free((void*)helper_prototype->name);
                 helper_prototype->name = NULL;
             }
         }
 
-        ebpf_free(program_info->helper_prototype);
+        ebpf_free(program_info->program_type_specific_helper_prototype);
+        ebpf_free(program_info->global_helper_prototype);
         ebpf_free(program_info);
     }
     EBPF_RETURN_VOID();
@@ -295,15 +304,17 @@ ebpf_serialize_program_info(
         goto Exit;
     }
 
-    helper_prototype_array = program_info->helper_prototype;
+    helper_prototype_array = program_info->program_type_specific_helper_prototype;
     if (helper_prototype_array != NULL) {
-        if (program_info->count_of_helpers == 0) {
+        if (program_info->count_of_program_type_specific_helpers == 0) {
             EBPF_LOG_MESSAGE(
-                EBPF_TRACELOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_BASE, "program_info->count_of_helpers 0");
+                EBPF_TRACELOG_LEVEL_WARNING,
+                EBPF_TRACELOG_KEYWORD_BASE,
+                "program_info->count_of_program_type_specific_helpers 0");
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
-        for (helper_prototype_index = 0; helper_prototype_index < program_info->count_of_helpers;
+        for (helper_prototype_index = 0; helper_prototype_index < program_info->count_of_program_type_specific_helpers;
              helper_prototype_index++) {
             if (helper_prototype_array[helper_prototype_index].name == NULL) {
                 EBPF_LOG_MESSAGE_UINT64(
@@ -353,7 +364,7 @@ ebpf_serialize_program_info(
         if (result != EBPF_SUCCESS)
             goto Exit;
 
-        for (helper_prototype_index = 0; helper_prototype_index < program_info->count_of_helpers;
+        for (helper_prototype_index = 0; helper_prototype_index < program_info->count_of_program_type_specific_helpers;
              helper_prototype_index++) {
             ebpf_helper_function_prototype_t* helper_prototype = &helper_prototype_array[helper_prototype_index];
 
@@ -416,12 +427,12 @@ ebpf_serialize_program_info(
         ebpf_serialized_helper_function_prototype_array_t* serialized_helper_prototype_array =
             (ebpf_serialized_helper_function_prototype_array_t*)current;
         serialized_helper_prototype_array->size = serialized_helper_prototype_array_length;
-        serialized_helper_prototype_array->helper_function_count = program_info->count_of_helpers;
+        serialized_helper_prototype_array->helper_function_count = program_info->count_of_program_type_specific_helpers;
 
         // Move the output buffer current pointer to the beginning of serialized helper function prototypes.
         current += EBPF_OFFSET_OF(ebpf_serialized_helper_function_prototype_array_t, prototypes);
 
-        for (helper_prototype_index = 0; helper_prototype_index < program_info->count_of_helpers;
+        for (helper_prototype_index = 0; helper_prototype_index < program_info->count_of_program_type_specific_helpers;
              helper_prototype_index++) {
             ebpf_helper_function_prototype_t* helper_prototype = &helper_prototype_array[helper_prototype_index];
             size_t helper_function_name_length =
@@ -563,7 +574,7 @@ ebpf_deserialize_program_info(
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
-    local_program_info->count_of_helpers = helper_function_count;
+    local_program_info->count_of_program_type_specific_helpers = helper_function_count;
 
     // Advance the input buffer current pointer to the beginning of array of helper function prototypes.
     current += EBPF_OFFSET_OF(ebpf_serialized_helper_function_prototype_array_t, prototypes);
@@ -584,7 +595,7 @@ ebpf_deserialize_program_info(
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
-    local_program_info->helper_prototype = local_helper_prototype_array;
+    local_program_info->program_type_specific_helper_prototype = local_helper_prototype_array;
 
     for (uint32_t helper_function_index = 0; helper_function_index < helper_function_count; helper_function_index++) {
         ebpf_serialized_helper_function_prototype_t* serialized_helper_prototype =

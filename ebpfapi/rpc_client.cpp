@@ -23,13 +23,17 @@ static bool _binding_initialized = false;
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_rpc_load_program(
-    _In_ ebpf_program_load_info* info,
+    _In_ const ebpf_program_load_info* info,
     _Outptr_result_maybenull_z_ const char** logs,
     _Inout_ uint32_t* logs_size) noexcept
 {
     ebpf_result_t result;
 
-    RpcTryExcept { result = ebpf_client_verify_and_load_program(info, logs_size, const_cast<char**>(logs)); }
+    RpcTryExcept
+    {
+        result = ebpf_client_verify_and_load_program(
+            const_cast<ebpf_program_load_info*>(info), logs_size, const_cast<char**>(logs));
+    }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         EBPF_LOG_MESSAGE_UINT64(
@@ -119,4 +123,17 @@ clean_up_rpc_binding()
         return RPC_S_OK;
     }
     return RpcBindingFree(&ebpf_service_interface_handle);
+}
+
+// The _In_ on size is necessary to avoid inconsistent annotation warnings.
+_Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(size) void* __RPC_USER
+    MIDL_user_allocate(_In_ size_t size)
+{
+    return ebpf_allocate(size);
+}
+
+void __RPC_USER
+MIDL_user_free(_Pre_maybenull_ _Post_invalid_ void* p)
+{
+    ebpf_free(p);
 }

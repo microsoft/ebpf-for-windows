@@ -59,7 +59,7 @@ _net_ebpf_ext_driver_uninitialize_objects()
 }
 
 static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
-    _IRQL_requires_max_(PASSIVE_LEVEL) void _net_ebpf_ext_driver_unload(_In_ WDFDRIVER driver_object)
+    _IRQL_requires_max_(PASSIVE_LEVEL) void _net_ebpf_ext_driver_unload(_In_ const WDFDRIVER driver_object)
 {
     UNREFERENCED_PARAMETER(driver_object);
     _net_ebpf_ext_driver_uninitialize_objects();
@@ -126,12 +126,12 @@ _net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _I
     if (!NT_SUCCESS(status))
         goto Exit;
 
+    // TODO: https://github.com/microsoft/ebpf-for-windows/issues/521
+    (void)net_ebpf_extension_initialize_wfp_components(_net_ebpf_ext_driver_device_object);
+
     status = net_ebpf_ext_register_providers();
     if (!NT_SUCCESS(status))
         goto Exit;
-
-    // TODO: https://github.com/microsoft/ebpf-for-windows/issues/521
-    (void)net_ebpf_extension_initialize_wfp_components(_net_ebpf_ext_driver_device_object);
 
     WdfControlFinishInitializing(_net_ebpf_ext_device);
 

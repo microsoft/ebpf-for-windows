@@ -115,6 +115,12 @@ typedef class _nmr
         _Outptr_ const void** provider_binding_context,
         _Outptr_ const void** provider_dispatch);
 
+    static _nmr&
+    get()
+    {
+        return singleton;
+    }
+
   private:
     struct client_registration
     {
@@ -161,7 +167,7 @@ typedef class _nmr
     /**
      * @brief Add a provider or client to the correct collection.
      *
-     * @param[in,out] collection Collection to add to.
+     * @param[in, out] collection Collection to add to.
      * @param[in] characteristics Characteristics of the provider or client.
      * @param[in] context Context handle to return to the caller.
      * @return Handle to the provider or client.
@@ -173,7 +179,7 @@ typedef class _nmr
     /**
      * @brief Begin the process of deregistering a provider or client.
      *
-     * @param[in,out] collection Collection to deregister from.
+     * @param[in, out] collection Collection to deregister from.
      * @param[in] handle Handle to the provider or client.
      */
     template <typename collection_t>
@@ -183,7 +189,7 @@ typedef class _nmr
     /**
      * @brief Finish removing a provider or client from the correct collection.
      *
-     * @param[in,out] collection Collection to remove from.
+     * @param[in, out] collection Collection to remove from.
      * @param[in] handle Handle to the provider or client.
      */
     template <typename collection_t>
@@ -194,9 +200,9 @@ typedef class _nmr
      * @brief Perform a bind using an entry from the initiator_collection
      * and all entries from the target_collection.
      *
-     * @param[in,out] initiator_collection Collection containing the initiator (can be either provider or client).
+     * @param[in, out] initiator_collection Collection containing the initiator (can be either provider or client).
      * @param[in] handle Handle to the initiator.
-     * @param[in,out] target_collection Collection containing all the targets (can be either provider or client).
+     * @param[in, out] target_collection Collection containing all the targets (can be either provider or client).
      */
     template <typename initiator_collection_t, typename target_collection_t>
     void
@@ -208,7 +214,7 @@ typedef class _nmr
     /**
      * @brief Unbind a provider or client from all other providers or clients.
      *
-     * @param[in,out] initiator_collection Collection containing the initiator (can be either provider or client).
+     * @param[in, out] initiator_collection Collection containing the initiator (can be either provider or client).
      * @param[in] handle Handle to the initiator (can be either provider or client).
      * @retval true One or more bindings returned pending.
      * @retval false All bindings where successfully removed.
@@ -222,8 +228,8 @@ typedef class _nmr
     /**
      * @brief Attempt to bind a client to a provider.
      *
-     * @param[in,out] client Client to attempt to bind.
-     * @param[in,out] provider Provider to attempt to bind to.
+     * @param[in, out] client Client to attempt to bind.
+     * @param[in, out] provider Provider to attempt to bind to.
      * @return Contains a function to perform the bind if successful.
      */
     std::optional<pending_action_t>
@@ -262,4 +268,5 @@ typedef class _nmr
                      // on the other hand are not protected by this lock but instead use
                      // interlocked operations.
 
+    static _nmr singleton;
 } nmr_t;

@@ -16,7 +16,9 @@
 #include <TraceLoggingProvider.h>
 #include <vector>
 
+#include "ebpf_leak_detector.h"
 #include "ebpf_low_memory_test.h"
+#include "ebpf_symbol_decoder.h"
 #include "ebpf_utilities.h"
 
 // Global variables used to override behavior for testing.
@@ -29,12 +31,14 @@ extern "C" bool ebpf_fuzzing_enabled = false;
 extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
 std::unique_ptr<ebpf_low_memory_test_t> _ebpf_low_memory_test_ptr;
+ebpf_leak_detector_ptr _ebpf_leak_detector_ptr;
 
 /**
  * @brief Environment variable to enable low memory testing.
  *
  */
 #define EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME "EBPF_LOW_MEMORY_SIMULATION"
+#define EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME "EBPF_MEMORY_LEAK_DETECTION"
 
 // Thread pool related globals.
 static TP_CALLBACK_ENVIRON _callback_environment;
@@ -114,7 +118,7 @@ typedef struct _ebpf_non_preemptible_work_item
     void* context;
     _ebpf_emulated_dpc* queue;
     void* parameter_1;
-    void (*work_item_routine)(_In_ void* work_item_context, _In_opt_ void* parameter_1);
+    void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1);
 } ebpf_non_preemptible_work_item_t;
 
 class _ebpf_emulated_dpc;
@@ -196,13 +200,13 @@ class _ebpf_emulated_dpc
     /**
      * @brief Insert a work item into its associated queue.
      *
-     * @param[in] work_item Work item to be enqueued.
+     * @param[in, out] work_item Work item to be enqueued.
      * @param[in] parameter_1 Parameter to pass to worker function.
      * @retval true Work item wasn't already queued.
      * @retval false Work item is already queued.
      */
     static bool
-    insert(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1)
+    insert(_Inout_ ebpf_non_preemptible_work_item_t* work_item, _Inout_opt_ void* parameter_1)
     {
         auto& dpc_queue = *(work_item->queue);
         std::unique_lock<std::mutex> l(dpc_queue.mutex);
@@ -225,8 +229,14 @@ class _ebpf_emulated_dpc
     bool terminate;
 };
 
+/**
+ * @brief Get an environment variable as a string.
+ *
+ * @param[in] name Environment variable name.
+ * @return String value of environment variable or an empty string if not set.
+ */
 static std::string
-_get_environment_variable(const std::string& name)
+_get_environment_variable_as_string(const std::string& name)
 {
     std::string value;
     size_t required_size = 0;
@@ -239,6 +249,52 @@ _get_environment_variable(const std::string& name)
     return value;
 }
 
+/**
+ * @brief Get an environment variable as a boolean.
+ *
+ * @param[in] name Environment variable name.
+ * @return false Environment variable is set to "false", "0", or if it's not set.
+ * @return true Environment variable is set to any other value.
+ */
+static bool
+_get_environment_variable_as_bool(const std::string& name)
+{
+    std::string value = _get_environment_variable_as_string(name);
+    if (value.empty()) {
+        return false;
+    }
+
+    // Convert value to lower case.
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+    if (value == "false") {
+        return false;
+    }
+    if (value == "0") {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Get an environment variable as a size_t.
+ *
+ * @param[in] name Environment variable name.
+ * @return Value of environment variable or 0 if it's not set or not a valid number.
+ */
+static size_t
+_get_environment_variable_as_size_t(const std::string& name)
+{
+    std::string value = _get_environment_variable_as_string(name);
+    if (value.empty()) {
+        return 0;
+    }
+    try {
+        return std::stoull(value);
+    } catch (const std::exception&) {
+        return 0;
+    }
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
@@ -246,12 +302,20 @@ ebpf_platform_initiate()
     try {
         _ebpf_platform_maximum_group_count = GetMaximumProcessorGroupCount();
         _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
-        auto low_memory_stack_depth = _get_environment_variable(EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
-        if (!low_memory_stack_depth.empty() && !_ebpf_low_memory_test_ptr) {
-            _ebpf_low_memory_test_ptr =
-                std::make_unique<ebpf_low_memory_test_t>(std::strtoul(low_memory_stack_depth.c_str(), nullptr, 10));
+        auto low_memory_stack_depth =
+            _get_environment_variable_as_size_t(EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
+        auto leak_detector = _get_environment_variable_as_bool(EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME);
+        if (low_memory_stack_depth || leak_detector) {
+            _ebpf_symbol_decoder_initialize();
+        }
+        if (low_memory_stack_depth && !_ebpf_low_memory_test_ptr) {
+            _ebpf_low_memory_test_ptr = std::make_unique<ebpf_low_memory_test_t>(low_memory_stack_depth);
             // Set flag to remove some asserts that fire from incorrect client behavior.
             ebpf_fuzzing_enabled = true;
+        }
+
+        if (leak_detector) {
+            _ebpf_leak_detector_ptr = std::make_unique<ebpf_leak_detector_t>();
         }
 
         for (size_t i = 0; i < ebpf_get_cpu_count(); i++) {
@@ -264,7 +328,7 @@ ebpf_platform_initiate()
             _ebpf_platform_group_to_index_map[i] = base_index;
             base_index += GetMaximumProcessorCount((uint16_t)i);
         }
-    } catch (...) {
+    } catch (const std::bad_alloc&) {
         return EBPF_NO_MEMORY;
     }
 
@@ -276,6 +340,10 @@ ebpf_platform_terminate()
 {
     _clean_up_thread_pool();
     _ebpf_emulated_dpcs.resize(0);
+    if (_ebpf_leak_detector_ptr) {
+        _ebpf_leak_detector_ptr->dump_leaks();
+        _ebpf_leak_detector_ptr.reset();
+    }
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -298,8 +366,7 @@ ebpf_low_memory_test_in_progress()
     return _ebpf_low_memory_test_ptr != nullptr;
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
-    _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
 {
     ebpf_assert(size);
     if (size > ebpf_fuzzing_memory_limit) {
@@ -315,11 +382,15 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     if (memory != nullptr)
         memset(memory, 0, size);
 
+    if (memory && _ebpf_leak_detector_ptr) {
+        _ebpf_leak_detector_ptr->register_allocation(reinterpret_cast<uintptr_t>(memory), size);
+    }
+
     return memory;
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
-    _Post_writable_byte_size_(new_size) void* ebpf_reallocate(_In_ void* memory, size_t old_size, size_t new_size)
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
+    _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
 {
     UNREFERENCED_PARAMETER(old_size);
     if (new_size > ebpf_fuzzing_memory_limit) {
@@ -333,17 +404,26 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     void* p = realloc(memory, new_size);
     if (p && (new_size > old_size))
         memset(((char*)p) + old_size, 0, new_size - old_size);
+
+    if (_ebpf_leak_detector_ptr) {
+        _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
+        _ebpf_leak_detector_ptr->register_allocation(reinterpret_cast<uintptr_t>(p), new_size);
+    }
+
     return p;
 }
 
 void
 ebpf_free(_Frees_ptr_opt_ void* memory)
 {
+    if (_ebpf_leak_detector_ptr) {
+        _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
+    }
     free(memory);
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
-    _Post_writable_byte_size_(size) void* ebpf_allocate_cache_aligned(size_t size)
+__drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
 {
     if (size > ebpf_fuzzing_memory_limit) {
         return nullptr;
@@ -394,7 +474,7 @@ ebpf_map_memory(size_t length)
 
     if (!descriptor->base) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualAlloc);
-        free(descriptor);
+        ebpf_free(descriptor);
         descriptor = nullptr;
     }
     return descriptor;
@@ -407,7 +487,7 @@ ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
         if (!VirtualFree(memory_descriptor->base, 0, MEM_RELEASE)) {
             EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
         }
-        free(memory_descriptor);
+        ebpf_free(memory_descriptor);
     }
 }
 
@@ -563,13 +643,13 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
 }
 
 void*
-ebpf_ring_descriptor_get_base_address(_In_ ebpf_ring_descriptor_t* ring_descriptor)
+ebpf_ring_descriptor_get_base_address(_In_ const ebpf_ring_descriptor_t* ring_descriptor)
 {
     return ring_descriptor->primary_view;
 }
 
 _Ret_maybenull_ void*
-ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring)
+ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
 {
     EBPF_LOG_ENTRY();
     EBPF_RETURN_POINTER(void*, ebpf_ring_descriptor_get_base_address(ring));
@@ -637,20 +717,20 @@ ebpf_lock_create(_Out_ ebpf_lock_t* lock)
 }
 
 void
-ebpf_lock_destroy(_In_ ebpf_lock_t* lock)
+ebpf_lock_destroy(_In_ _Post_invalid_ ebpf_lock_t* lock)
 {
     UNREFERENCED_PARAMETER(lock);
 }
 
 _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock)
+    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
 {
     AcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
     return 0;
 }
 
 _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
-    _In_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
+    _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
     UNREFERENCED_PARAMETER(state);
     ReleaseSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
@@ -734,10 +814,10 @@ ebpf_get_current_thread_id()
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
-    _Out_ ebpf_non_preemptible_work_item_t** work_item,
+    _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
-    _In_ void (*work_item_routine)(void* work_item_context, void* parameter_1),
-    _In_opt_ void* work_item_context)
+    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1),
+    _Inout_opt_ void* work_item_context)
 {
     auto local_work_item =
         reinterpret_cast<ebpf_non_preemptible_work_item_t*>(ebpf_allocate(sizeof(ebpf_non_preemptible_work_item_t)));
@@ -760,7 +840,7 @@ ebpf_free_non_preemptible_work_item(_Frees_ptr_opt_ ebpf_non_preemptible_work_it
 }
 
 bool
-ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1)
+ebpf_queue_non_preemptible_work_item(_Inout_ ebpf_non_preemptible_work_item_t* work_item, _Inout_opt_ void* parameter_1)
 {
     return _ebpf_emulated_dpc::insert(work_item, parameter_1);
 }
@@ -768,12 +848,12 @@ ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work
 typedef struct _ebpf_preemptible_work_item
 {
     PTP_WORK work;
-    void (*work_item_routine)(_In_opt_ const void* work_item_context);
+    void (*work_item_routine)(_Inout_opt_ void* work_item_context);
     void* work_item_context;
 } ebpf_preemptible_work_item_t;
 
 static void
-_ebpf_preemptible_routine(_Inout_ PTP_CALLBACK_INSTANCE instance, _In_opt_ PVOID parameter, _Inout_ PTP_WORK work)
+_ebpf_preemptible_routine(_Inout_ PTP_CALLBACK_INSTANCE instance, _In_opt_ void* parameter, _Inout_ PTP_WORK work)
 {
     UNREFERENCED_PARAMETER(instance);
     UNREFERENCED_PARAMETER(work);
@@ -801,7 +881,7 @@ ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* wo
 }
 
 void
-ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item)
+ebpf_queue_preemptible_work_item(_Inout_ ebpf_preemptible_work_item_t* work_item)
 {
     SubmitThreadpoolWork(work_item->work);
 }
@@ -809,8 +889,8 @@ ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item)
 _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_preemptible_work_item(
     _Outptr_ ebpf_preemptible_work_item_t** work_item,
-    _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
-    _In_opt_ void* work_item_context)
+    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
+    _Inout_opt_ void* work_item_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     *work_item = (ebpf_preemptible_work_item_t*)ebpf_allocate(sizeof(ebpf_preemptible_work_item_t));
@@ -837,7 +917,7 @@ Done:
 typedef struct _ebpf_timer_work_item
 {
     TP_TIMER* threadpool_timer;
-    void (*work_item_routine)(void* work_item_context);
+    void (*work_item_routine)(_Inout_opt_ void* work_item_context);
     void* work_item_context;
 } ebpf_timer_work_item_t;
 
@@ -853,9 +933,9 @@ _ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* c
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_timer_work_item(
-    _Out_ ebpf_timer_work_item_t** work_item,
-    _In_ void (*work_item_routine)(void* work_item_context),
-    _In_opt_ void* work_item_context)
+    _Outptr_ ebpf_timer_work_item_t** work_item,
+    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
+    _Inout_opt_ void* work_item_context)
 {
     *work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t));
 
@@ -885,7 +965,7 @@ Error:
 #define MICROSECONDS_PER_MILLISECOND 1000
 
 void
-ebpf_schedule_timer_work_item(_In_ ebpf_timer_work_item_t* timer, uint32_t elapsed_microseconds)
+ebpf_schedule_timer_work_item(_Inout_ ebpf_timer_work_item_t* timer, uint32_t elapsed_microseconds)
 {
     int64_t due_time;
     due_time = -static_cast<int64_t>(elapsed_microseconds) * MICROSECONDS_PER_TICK;
@@ -936,9 +1016,9 @@ ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_access_check(
-    _In_ ebpf_security_descriptor_t* security_descriptor,
+    _In_ const ebpf_security_descriptor_t* security_descriptor,
     ebpf_security_access_mask_t request_access,
-    _In_ ebpf_security_generic_mapping_t* generic_mapping)
+    _In_ const ebpf_security_generic_mapping_t* generic_mapping)
 {
     ebpf_result_t result;
     HANDLE token = INVALID_HANDLE_VALUE;
@@ -959,10 +1039,10 @@ ebpf_access_check(
     }
 
     if (!AccessCheck(
-            security_descriptor,
+            const_cast<_SECURITY_DESCRIPTOR*>(security_descriptor),
             token,
             request_access,
-            generic_mapping,
+            const_cast<GENERIC_MAPPING*>(generic_mapping),
             &privilege_set,
             &privilege_set_size,
             &granted_access,
@@ -985,18 +1065,19 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_validate_security_descriptor(
-    _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
+    _In_ const ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
     ebpf_result_t result;
     SECURITY_DESCRIPTOR_CONTROL security_descriptor_control;
     DWORD version;
     DWORD length;
-    if (!IsValidSecurityDescriptor(security_descriptor)) {
+    if (!IsValidSecurityDescriptor(const_cast<_SECURITY_DESCRIPTOR*>(security_descriptor))) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    if (!GetSecurityDescriptorControl(security_descriptor, &security_descriptor_control, &version)) {
+    if (!GetSecurityDescriptorControl(
+            const_cast<_SECURITY_DESCRIPTOR*>(security_descriptor), &security_descriptor_control, &version)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -1006,7 +1087,7 @@ ebpf_validate_security_descriptor(
         goto Done;
     }
 
-    length = GetSecurityDescriptorLength(security_descriptor);
+    length = GetSecurityDescriptorLength(const_cast<_SECURITY_DESCRIPTOR*>(security_descriptor));
     if (length != security_descriptor_length) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -1063,4 +1144,78 @@ uint32_t
 ebpf_platform_thread_id()
 {
     return GetCurrentThreadId();
+}
+
+typedef struct _ebpf_signal
+{
+    HANDLE event;
+} ebpf_signal_t;
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_signal_create(_Outptr_ ebpf_signal_t** signal)
+{
+    *signal = (ebpf_signal_t*)ebpf_allocate(sizeof(ebpf_signal_t));
+    if (!*signal) {
+        return EBPF_NO_MEMORY;
+    }
+
+    (*signal)->event = CreateEvent(NULL, FALSE, FALSE, NULL);
+    if (!(*signal)->event) {
+        ebpf_free(*signal);
+        *signal = NULL;
+        return EBPF_NO_MEMORY;
+    }
+
+    return EBPF_SUCCESS;
+}
+
+void
+ebpf_signal_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_signal_t* signal)
+{
+    if (signal) {
+        CloseHandle(signal->event);
+    }
+    ebpf_free(signal);
+}
+
+void
+ebpf_signal_set(_In_ ebpf_signal_t* signal)
+{
+    SetEvent(signal->event);
+}
+
+void
+ebpf_signal_reset(_In_ ebpf_signal_t* signal)
+{
+    ResetEvent(signal->event);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms)
+{
+    DWORD wait_result = WaitForSingleObject(signal->event, timeout_ms);
+    if (wait_result == WAIT_OBJECT_0) {
+        return EBPF_SUCCESS;
+    } else if (wait_result == WAIT_TIMEOUT) {
+        return EBPF_TIMEOUT;
+    } else {
+        return EBPF_FAILED;
+    }
+}
+
+_IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql)
+{
+    UNREFERENCED_PARAMETER(new_irql);
+    return 0;
+}
+
+_IRQL_requires_max_(HIGH_LEVEL) void ebpf_lower_irql(_In_ _Notliteral_ _IRQL_restores_ uint8_t old_irql)
+{
+    UNREFERENCED_PARAMETER(old_irql);
+}
+
+bool
+ebpf_should_yield_processor()
+{
+    return false;
 }

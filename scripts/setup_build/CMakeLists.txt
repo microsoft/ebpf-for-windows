@@ -27,7 +27,7 @@ set (redist_bins ${output_dir}/concrt140.dll;
 
 set (output_redist_bins $<$<CONFIG:Debug>:${debug_redist_bins}>$<$<CONFIG:Release>:${redist_bins}>)
 
-set (input_redist_bins $<$<CONFIG:Debug>:$(VC_DebugCppRuntimeFilesPath_x64)/Microsoft.VC142.DebugCRT>$<$<CONFIG:Release>:$(VC_CppRuntimeFilesPath_x64)/Microsoft.VC142.CRT>)
+set (input_redist_bins $<$<CONFIG:Debug>:$(VC_DebugCppRuntimeFilesPath_x64)/Microsoft.VC143.DebugCRT>$<$<CONFIG:Release>:$(VC_CppRuntimeFilesPath_x64)/Microsoft.VC143.CRT>)
 
 set (ucrtbased_dll $<$<CONFIG:Debug>:${output_dir}/ucrtbased.dll>)
 

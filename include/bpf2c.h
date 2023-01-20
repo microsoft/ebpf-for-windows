@@ -82,11 +82,19 @@ extern "C"
         size_t program_info_hash_length;
     } program_entry_t;
 
+    typedef struct _bpf2c_version
+    {
+        uint32_t major;
+        uint32_t minor;
+        uint32_t revision;
+    } bpf2c_version_t;
+
     typedef struct _metadata_table
     {
         void (*programs)(_Outptr_result_buffer_maybenull_(*count) program_entry_t** programs, _Out_ size_t* count);
         void (*maps)(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count);
         void (*hash)(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size);
+        void (*version)(_Out_ bpf2c_version_t* version);
     } metadata_table_t;
 
     inline uint16_t

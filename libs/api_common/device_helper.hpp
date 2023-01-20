@@ -53,7 +53,7 @@ _Ret_notnull_ OVERLAPPED*
 get_async_ioctl_operation_overlapped(_In_ const async_ioctl_completion_t* ioctl_completion);
 
 bool
-cancel_async_ioctl(_In_opt_ OVERLAPPED* overlapped);
+cancel_async_ioctl(_Inout_opt_ OVERLAPPED* overlapped);
 
 _Must_inspect_result_ ebpf_result_t
 get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion);

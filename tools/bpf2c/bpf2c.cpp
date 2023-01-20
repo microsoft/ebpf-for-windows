@@ -170,23 +170,30 @@ get_program_info_type_hash(const std::string& algorithm)
         throw std::runtime_error(std::string("Failed to get program information"));
     }
 
+    // Note:
+    // Order and fields being hashed is important. The order and fields being hashed must match the order and fields
+    // being hashed in _ebpf_program_verify_program_info_hash. If new fields are added to the program info, then the
+    // hash must be updated to include the new fields, both here and in _ebpf_program_verify_program_info_hash.
     hash_t::byte_range_t byte_range;
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.name);
     hash_t::append_byte_range(byte_range, *program_info->program_type_descriptor.context_descriptor);
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.program_type);
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.bpf_prog_type);
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.is_privileged);
-    hash_t::append_byte_range(byte_range, program_info->count_of_helpers);
-    for (size_t index = 0; index < program_info->count_of_helpers; index++) {
-        helper_id_ordering[program_info->helper_prototype[index].helper_id] = index;
+    hash_t::append_byte_range(byte_range, program_info->count_of_program_type_specific_helpers);
+    for (size_t index = 0; index < program_info->count_of_program_type_specific_helpers; index++) {
+        helper_id_ordering[program_info->program_type_specific_helper_prototype[index].helper_id] = index;
     }
     // Hash helper ids in increasing helper_id order
     for (auto [helper_id, index] : helper_id_ordering) {
-        hash_t::append_byte_range(byte_range, program_info->helper_prototype[index].helper_id);
-        hash_t::append_byte_range(byte_range, program_info->helper_prototype[index].name);
-        hash_t::append_byte_range(byte_range, program_info->helper_prototype[index].return_type);
-        for (size_t argument = 0; argument < _countof(program_info->helper_prototype[index].arguments); argument++) {
-            hash_t::append_byte_range(byte_range, program_info->helper_prototype[index].arguments[argument]);
+        hash_t::append_byte_range(byte_range, program_info->program_type_specific_helper_prototype[index].helper_id);
+        hash_t::append_byte_range(byte_range, program_info->program_type_specific_helper_prototype[index].name);
+        hash_t::append_byte_range(byte_range, program_info->program_type_specific_helper_prototype[index].return_type);
+        for (size_t argument = 0;
+             argument < _countof(program_info->program_type_specific_helper_prototype[index].arguments);
+             argument++) {
+            hash_t::append_byte_range(
+                byte_range, program_info->program_type_specific_helper_prototype[index].arguments[argument]);
         }
     }
     hash_t hash(algorithm);

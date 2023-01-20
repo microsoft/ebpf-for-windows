@@ -85,7 +85,7 @@ extern "C"
      * @param[in] data Memory to free.
      */
     void
-    ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos);
+    ebpf_free_sections(_In_opt_ _Post_invalid_ ebpf_section_info_t* infos);
 
     /**
      * @brief Convert an eBPF program to human readable byte code.
@@ -237,19 +237,19 @@ extern "C"
      * @returns Execution type.
      */
     ebpf_execution_type_t
-    ebpf_object_get_execution_type(_In_ struct bpf_object* object);
+    ebpf_object_get_execution_type(_In_ const struct bpf_object* object);
 
     /**
      * @brief Set the execution type for an eBPF object file.
      *
-     * @param[in] object The eBPF object file.
+     * @param[in, out] object The eBPF object file.
      * @param[in] execution_type Execution type to set.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type);
+    ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type);
 
     /**
      * @brief Attach an eBPF program.
@@ -272,7 +272,7 @@ extern "C"
         _In_ const struct bpf_program* program,
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
-        _In_ size_t attach_params_size,
+        size_t attach_params_size,
         _Outptr_ struct bpf_link** link);
 
     /**
@@ -296,20 +296,20 @@ extern "C"
         fd_t program_fd,
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
-        _In_ size_t attach_parameters_size,
+        size_t attach_parameters_size,
         _Outptr_ struct bpf_link** link);
 
     /**
      * @brief Detach an eBPF program from an attach point represented by
      *  the bpf_link structure.
      *
-     * @param[in] link Pointer to bpf_link structure.
+     * @param[in, out] link Pointer to bpf_link structure.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_OBJECT Invalid object was passed.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_link_detach(_In_ struct bpf_link* link);
+    ebpf_link_detach(_Inout_ struct bpf_link* link);
 
     /**
      * @brief Detach an eBPF program.
@@ -416,6 +416,35 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info);
+
+    typedef struct _ebpf_test_run_options
+    {
+        _Readable_bytes_(data_size_in) const uint8_t* data_in; ///< Input data to the program.
+        _Writable_bytes_(data_size_out) uint8_t* data_out;     ///< Output data from the program.
+        size_t data_size_in;                                   ///< Size of input data.
+        size_t data_size_out; ///< Maximum length of data_out on input and actual length of data_out on output.
+        _Readable_bytes_(context_size_in) const uint8_t* context_in; ///< Input context to the program.
+        _Writable_bytes_(context_size_out) uint8_t* context_out;     ///< Output context from the program.
+        size_t context_size_in;                                      ///< Size of input context.
+        size_t context_size_out; ///< Maximum length of context_out on input and actual length of context_out on output.
+        uint64_t return_value;   ///< Return value from the program.
+        size_t repeat_count;     ///< Number of times to repeat the program.
+        uint64_t duration;       ///< Duration in nanoseconds of the program execution.
+        uint32_t flags;          ///< Flags to control the test run.
+        uint32_t cpu;            ///< CPU to run the program on.
+        size_t batch_size;       ///< Number of times to repeat the program in a batch.
+    } ebpf_test_run_options_t;
+
+    /**
+     * @brief Run the program in the eBPF VM, measure the execution time, and return the result.
+     *
+     * @param[in] program_fd File descriptor of the program to run.
+     * @param[in,out] options Options to control the test run and results.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT Invalid object was passed.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options);
 
 #ifdef __cplusplus
 }

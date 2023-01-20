@@ -40,9 +40,6 @@
     <ClCompile Include="ebpf_platform_kernel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_program_types.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ebpf_ring_buffer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -71,6 +68,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_extension.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ebpf_crypto_hash.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -132,15 +132,5 @@
     <ClInclude Include="..\ebpf_ring_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\ebpf_program_types.acf">
-      <Filter>Source Files</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Midl Include="..\ebpf_program_types.idl">
-      <Filter>Source Files</Filter>
-    </Midl>
   </ItemGroup>
 </Project>

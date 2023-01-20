@@ -49,6 +49,111 @@ TEST_CASE("libbpf load program", "[libbpf][deprecated]")
     bpf_object__close(object);
 }
 
+std::vector<uint8_t>
+prepare_udp_packet(uint16_t udp_length, uint16_t ethernet_type);
+
+TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
+{
+    _test_helper_libbpf test_helper;
+    struct bpf_object* object;
+    int program_fd;
+#pragma warning(suppress : 4996) // deprecated
+    int result = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    auto packet = prepare_udp_packet(100, ETHERNET_TYPE_IPV4);
+
+    bpf_test_run_opts opts = {};
+    opts.repeat = 10;
+    opts.data_in = packet.data();
+    opts.data_size_in = static_cast<uint32_t>(packet.size());
+    opts.data_out = nullptr;
+    opts.data_size_out = 0;
+
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    REQUIRE(opts.duration > 0);
+
+    // Negative tests
+
+    // Bad fd
+    REQUIRE(bpf_prog_test_run_opts(nonexistent_fd, &opts) == -EINVAL);
+
+    // NULL data
+    opts.data_in = nullptr;
+    opts.data_size_in = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    // Zero length data
+    opts.data_in = packet.data();
+    opts.data_size_in = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    // Context out is too small
+    std::vector<uint8_t> context(1);
+    opts.data_in = packet.data();
+    opts.data_size_in = static_cast<uint32_t>(packet.size());
+    opts.ctx_in = context.data();
+    opts.ctx_size_in = static_cast<uint32_t>(context.size());
+    opts.ctx_out = context.data();
+    opts.ctx_size_out = static_cast<uint32_t>(context.size());
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
+
+    // Data in, null data out
+    opts.data_in = packet.data();
+    opts.data_size_in = static_cast<uint32_t>(packet.size());
+    opts.data_out = nullptr;
+    opts.data_size_out = 0;
+    opts.ctx_in = nullptr;
+    opts.ctx_size_in = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    // No context in, Context out
+    std::vector<uint8_t> context_out(1024);
+    opts.data_in = packet.data();
+    opts.data_size_in = static_cast<uint32_t>(packet.size());
+    opts.data_out = nullptr;
+    opts.data_size_out = 0;
+    opts.ctx_in = nullptr;
+    opts.ctx_size_in = 0;
+    opts.ctx_out = context_out.data();
+    opts.ctx_size_out = static_cast<uint32_t>(context_out.size());
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    REQUIRE(opts.ctx_size_out == 0);
+
+    // Data out and context out
+    context_out.resize(100);
+    xdp_md_t context_in = {};
+    opts.ctx_in = &context_in;
+    opts.ctx_size_in = sizeof(context_in);
+    opts.data_out = packet.data();
+    opts.data_size_out = static_cast<uint32_t>(packet.size());
+    opts.ctx_out = context_out.data();
+    opts.ctx_size_out = static_cast<uint32_t>(context_out.size());
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    REQUIRE(opts.ctx_size_out == sizeof(xdp_md_t));
+
+    // With bpf syscall
+    bpf_attr attr = {};
+    attr.test.prog_fd = program_fd;
+    attr.test.repeat = 1000;
+    attr.test.data_in = reinterpret_cast<uint64_t>(packet.data());
+    attr.test.data_out = reinterpret_cast<uint64_t>(packet.data());
+    attr.test.data_size_in = static_cast<uint32_t>(packet.size());
+    attr.test.data_size_out = static_cast<uint32_t>(packet.size());
+    attr.test.ctx_in = reinterpret_cast<uint64_t>(&context_in);
+    attr.test.ctx_out = reinterpret_cast<uint64_t>(context_out.data());
+    attr.test.ctx_size_in = sizeof(context_in);
+    attr.test.ctx_size_out = static_cast<uint32_t>(context_out.size());
+    REQUIRE(bpf(BPF_PROG_TEST_RUN, &attr, sizeof(attr)) == 0);
+    REQUIRE(attr.test.ctx_size_out == sizeof(xdp_md_t));
+    REQUIRE(attr.test.duration > 0);
+
+    bpf_object__close(object);
+}
+
 TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
@@ -1516,6 +1621,8 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     REQUIRE(result == inner_value);
 
     Platform::_close(inner_map_fd);
+    result = bpf_link__destroy(link);
+    REQUIRE(result == 0);
     bpf_object__close(xdp_object);
 }
 
@@ -1573,6 +1680,8 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     REQUIRE(result == inner_value);
 
     Platform::_close(inner_map_fd);
+    result = bpf_link__destroy(link);
+    REQUIRE(result == 0);
     bpf_object__close(xdp_object);
 }
 
@@ -2402,8 +2511,57 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 }
 
 // Test bpf() with the following command ids:
+//  BPF_PROG_ATTACH, BPF_PROG_DETACH
+TEST_CASE("BPF_PROG_ATTACH" , "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    // Load and verify the eBPF program.
+    union bpf_attr attr = {};
+
+    struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");
+    REQUIRE(program != nullptr);
+
+    REQUIRE(bpf_object__load(object) == 0);
+
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    // Verify we can't attach the program using an attach type that doesn't work with this API.
+    memset(&attr, 0, sizeof(attr));
+    attr.attach_bpf_fd = program_fd;
+    attr.target_fd = program_fd;
+    attr.attach_flags = 0;
+    attr.attach_type = BPF_XDP;
+    REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == -ENOTSUP);
+
+    // Verify we can attach the program.
+    memset(&attr, 0, sizeof(attr));
+    attr.attach_bpf_fd = program_fd;
+    // TODO (issue #1028): Currently the target_fd is treated as a compartment id.
+    attr.target_fd = program_fd;
+    attr.attach_flags = 0;
+    attr.attach_type = BPF_CGROUP_INET4_CONNECT;
+    REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == 0);
+
+    // Verify we can detach the program.
+    memset(&attr, 0, sizeof(attr));
+    attr.target_fd = program_fd;
+    attr.attach_type = BPF_CGROUP_INET4_CONNECT;
+    REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == 0);
+
+   // Verify we can't detach the program using a type that doesn't work with this API.
+    memset(&attr, 0, sizeof(attr));
+    attr.target_fd = program_fd;
+    attr.attach_type = BPF_XDP;
+    REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == -ENOTSUP);
+}
+
+// Test bpf() with the following command ids:
 // BPF_MAP_CREATE, BPF_MAP_UPDATE_ELEM, BPF_MAP_LOOKUP_ELEM,
-// BPF_MAP_GET_NEXT_KEY, and BPF_MAP_DELETE_ELEM.
+// BPF_MAP_GET_NEXT_KEY, BPF_MAP_LOOKUP_AND_DELETE_ELEM, and BPF_MAP_DELETE_ELEM.
 TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -2453,12 +2611,28 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     attr.next_key = (uintptr_t)&next_key;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) < 0);
     REQUIRE(errno == ENOENT);
-
+  
     // Delete the entry.
     memset(&attr, 0, sizeof(attr));
     attr.map_fd = map_fd;
     attr.key = (uintptr_t)&key;
     REQUIRE(bpf(BPF_MAP_DELETE_ELEM, &attr, sizeof(attr)) == 0);
+
+    // Look up and delete the entry.
+    memset(&attr, 0, sizeof(attr));
+    value = 0;
+    key = 42;
+    attr.map_fd = map_fd;
+    attr.key = (uintptr_t)&key;
+    attr.value = (uintptr_t)&value;
+
+    // Add the element back to the entry after the previous test entry deletion.
+    bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
+    REQUIRE(bpf(BPF_MAP_LOOKUP_AND_DELETE_ELEM, &attr, sizeof(attr)) == 0);
+
+    // Test the API again and verify looking up and deleting fails. 
+    REQUIRE(bpf(BPF_MAP_LOOKUP_AND_DELETE_ELEM, &attr, sizeof(attr)) < 0);
+    REQUIRE(errno == ENOENT);
 
     // Verify that no entries exist.
     memset(&attr, 0, sizeof(attr));

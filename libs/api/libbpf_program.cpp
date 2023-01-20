@@ -233,6 +233,11 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
 
     if (result != EBPF_SUCCESS)
         return libbpf_result_err(result);
+
+    ebpf_assert(link != nullptr);
+    bpf_link__disconnect(link);
+    bpf_link__destroy(link);
+
     return 0;
 }
 
@@ -643,4 +648,36 @@ libbpf_bpf_prog_type_str(enum bpf_prog_type t)
     }
     const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(t);
     return (program_type == nullptr) ? nullptr : ebpf_get_program_type_name(program_type);
+}
+
+int
+bpf_prog_test_run_opts(int prog_fd, struct bpf_test_run_opts* opts)
+{
+    ebpf_test_run_options_t options = {
+        .data_in = (const uint8_t*)opts->data_in,
+        .data_out = (uint8_t*)opts->data_out,
+        .data_size_in = opts->data_size_in,
+        .data_size_out = opts->data_size_out,
+        .context_in = (const uint8_t*)opts->ctx_in,
+        .context_out = (uint8_t*)opts->ctx_out,
+        .context_size_in = opts->ctx_size_in,
+        .context_size_out = opts->ctx_size_out,
+        .repeat_count = (size_t)opts->repeat,
+        .flags = opts->flags,
+        .cpu = opts->cpu,
+        .batch_size = opts->batch_size,
+    };
+
+    ebpf_result_t result = ebpf_program_test_run(prog_fd, &options);
+
+    if (result != EBPF_SUCCESS) {
+        return libbpf_result_err(result);
+    }
+
+    opts->data_size_out = (uint32_t)options.data_size_out;
+    opts->ctx_size_out = (uint32_t)options.context_size_out;
+    opts->retval = (uint32_t)options.return_value;
+    opts->duration = (uint32_t)options.duration;
+
+    return 0;
 }
