@@ -2685,3 +2685,157 @@ TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
 
     bpf_object__close(jit_object);
 }
+
+// This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.
+TEST_CASE("close_unload_test", "[close_cleanup]")
+{
+    _test_helper_end_to_end test_helper;
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object* object = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+
+    const char* file_name = "bindmonitor_tailcall_um.dll";
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    // Set up tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+
+    // These are needed to prevent the memory leak detector from flagging a memory leak.
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    // The block of commented code after this comment is for documentation purposes only.
+    //
+    // A well-behaved user mode application _should_ call these calls to correctly free the allocated objects. In case
+    // of careless applications that do not do so (or even well behaved applications, when they crash or terminate for
+    // some reason before getting to this point), the 'premature application close' event handling _should_ take care
+    // of reclaiming and free'ing such objects.
+    //
+    // In a user-mode unit test case such as this one, the 'premature application close' event is simulated/handled in
+    // the context of the bpf_object__close() api, so a call to that api is mandatory for such tests.  All unit tests
+    // belonging to the '[close_cleanup]' unit-test class will show this behavior.
+    //
+    // For an identical test meant for execution on the native (kernel mode ebpf-for-windows driver), this event will
+    // be handled by the kernel mode driver on test application termination.  Such a test application _should_ _not_
+    // call bpf_object__close() api either.
+    //
+
+    /*
+       --- DO NOT REMOVE OR UN-COMMENT ---
+    //
+    // index = 0;
+    // REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    //
+    // index = 1;
+    // REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    */
+
+    bpf_object__close(object);
+}
+
+// This test tests the case where a program is inserted multiple times with different keys into the same map.
+TEST_CASE("multiple_map_insert", "[close_cleanup]")
+{
+    _test_helper_end_to_end test_helper;
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object* object = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+
+    const char* file_name = "bindmonitor_tailcall_um.dll";
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    // Set up tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    // Insert the same program for multiple keys in the same map.
+    index = 2;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    index = 4;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    index = 7;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+
+    // These are needed to prevent the memory leak detector from flagging a memory leak.
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    /*
+       --- DO NOT REMOVE OR UN-COMMENT ---
+    // Please refer to the detailed comment in the 'close_unload_test' test for explanation.
+    //
+    // index = 0;
+    // REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    //
+    // index = 1;
+    // REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    */
+
+    bpf_object__close(object);
+}

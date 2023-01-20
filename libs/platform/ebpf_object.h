@@ -36,6 +36,13 @@ extern "C"
         ebpf_base_release_reference_t release_reference;
     } ebpf_base_object_t;
 
+    typedef struct _ebpf_weak_reference
+    {
+        ebpf_lock_t lock;
+        volatile int64_t reference_count;
+        ebpf_core_object_t* object;
+    } ebpf_weak_reference_t;
+
     typedef struct _ebpf_core_object
     {
         ebpf_base_object_t base;
@@ -48,6 +55,7 @@ extern "C"
         ebpf_list_entry_t object_list_entry;
         // # of pinned paths, for diagnostic purposes.
         volatile int32_t pinned_path_count;
+        ebpf_weak_reference_t* self_weak_reference;
     } ebpf_core_object_t;
 
     /**
@@ -173,6 +181,48 @@ extern "C"
     ebpf_result_t
     ebpf_object_reference_by_handle(
         ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ struct _ebpf_core_object** object);
+
+    /**
+     * @brief Get a pointer to the associated weak reference for
+     *        the specified core object.
+     *
+     * @param[in] ebpf_core_object_t* Pointer to the core object to
+     *       return a weak reference for.
+     * @return ebpf_weak_reference_t* Pointer to a weak reference
+     *         associated with the specified core object.
+     */
+    _Must_inspect_result_ ebpf_weak_reference_t*
+    ebpf_object_weak_reference_get_reference(_In_ ebpf_core_object_t* object);
+
+    /**
+     * @brief Get the object referenced by a weak reference and
+     * increment the reference count if the object has not been
+     * freed.
+     *
+     * @param[in] weak_reference Pointer to weak reference.
+     * @return ebpf_core_object_t* Pointer to object referenced by
+     *         weak reference or NULL if object has been freed.
+     */
+    _Must_inspect_result_ _Ret_maybenull_ ebpf_core_object_t*
+    ebpf_object_weak_reference_get_object_reference(_In_ ebpf_weak_reference_t* weak_reference);
+
+    /**
+     * @brief Acquire a reference to a weak reference.
+     *
+     * @param[in] weak_reference Weak reference to acquire reference
+     *       to.
+     */
+    void
+    ebpf_object_weak_reference_acquire_reference(_In_ ebpf_weak_reference_t* weak_reference);
+
+    /**
+     * @brief Release a reference to a weak reference.
+     *
+     * @param[in] weak_reference Weak reference to release reference
+     *       to.
+     */
+    void
+    ebpf_object_weak_reference_release_reference(_In_ ebpf_weak_reference_t* weak_reference);
 
 #ifdef __cplusplus
 }

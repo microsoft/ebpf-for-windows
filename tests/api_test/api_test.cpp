@@ -411,44 +411,69 @@ void
 _test_nested_maps(bpf_map_type type)
 {
     // Create first inner map.
-    fd_t inner1 = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
-    REQUIRE(inner1 > 0);
+    fd_t inner_map_fd1 =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map1", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd1 > 0);
 
     // Create outer map.
-    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner1};
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd1};
     fd_t outer_map_fd = bpf_map_create(type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 10, &opts);
-
     REQUIRE(outer_map_fd > 0);
 
     // Create second inner map.
-    fd_t inner2 = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
-    REQUIRE(inner2 > 0);
+    fd_t inner_map_fd2 =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map2", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd2 > 0);
 
     // Insert both inner maps in outer map.
     uint32_t key = 1;
-    uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner1, 0);
+    uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd1, 0);
     REQUIRE(result == ERROR_SUCCESS);
 
     key = 2;
-    result = bpf_map_update_elem(outer_map_fd, &key, &inner1, 0);
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
     REQUIRE(result == ERROR_SUCCESS);
 
-    // Remove the inner maps from outer map.
+    // Add inner map (1) multiple times.
+    key = 3;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd1, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 4;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd1, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    // Add inner map (2) multiple times.
+    key = 5;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 6;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 7;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    // Remove some inner maps from outer map.
     key = 1;
     result = bpf_map_delete_elem(outer_map_fd, &key);
     REQUIRE(result == ERROR_SUCCESS);
+
     key = 2;
     result = bpf_map_delete_elem(outer_map_fd, &key);
     REQUIRE(result == ERROR_SUCCESS);
 
-    _close(inner1);
-    _close(inner2);
+    // Leave the other instances of 'map inserts' as-is, the post-app-termination clean-up should take care of these.
+
+    _close(inner_map_fd1);
+    _close(inner_map_fd2);
     _close(outer_map_fd);
 }
 
-TEST_CASE("array_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
-
-TEST_CASE("hash_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
+TEST_CASE("array_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
+TEST_CASE("hash_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
 TEST_CASE("tailcall_load_test", "[tailcall_load_test]")
 {
@@ -712,4 +737,96 @@ TEST_CASE("nomap_load_test", "[native_tests]")
         "printk.sys", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
     auto object = _helper.get_object();
     REQUIRE(object != nullptr);
+}
+
+// This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.
+TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "bindmonitor_tailcall.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    // Setup tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    // Now insert the same program for multiple keys in the same map.
+    index = 2;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    index = 4;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    index = 7;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    bindmonitor_test(object);
+
+    // The block of commented code after this comment is for documentation purposes only.
+    //
+    // A well-behaved user mode application _should_ call these calls to correctly free the allocated objects. In case
+    // of careless applications that do not do so (or even well behaved applications, when they crash or terminate for
+    // some reason before getting to this point), the 'premature application close' event handling _should_ take care
+    // of reclaiming and free'ing such objects. All unit tests belonging to the '[native_close_cleanup_tests]'
+    // unit-test class simulate this behavior by _not_ calling the clean-up api calls.
+    //
+    // For native tests (meant for execution on the kernel mode ebpf-for-windows driver), this event will be handled
+    // by the ebpf-core kernel mode driver on test application termination.
+    //
+    // The success/failure of the [native_close_cleanup_tests] tests can only be (indirectly) checked by attempting to
+    // stop the ebpf-core driver after executing this class of tests.  If the clean-up by the ebpf-core driver is not
+    // successful, it cannot be stopped/unloaded.  This step is performed automatically by the CI/CD test pass runs and
+    // will need to be perfomed as an explicit manual step after a manually initiated test-run.
+    //
+    // On a final note, each test in the [native_close_cleanup_tests] set _must_ load a .sys driver (if it needs one)
+    // that either has not been loaded yet, or was loaded but has since been unloaded (before start of the test). Given
+    // that we deliberately skip the clean-up API calls, the drivers stay loaded at the end of the individual test. An
+    // attempt to (re)load the same driver again (by the next test) will fail (as it should), but leads to spurious
+    // test failures (by way of an assert due to an error returned by bpf_object__load() in the
+    // program_load_attach_helper_t constructor).
+
+    /*
+        --- DO NOT REMOVE OR UN-COMMENT ---
+
+    auto cleanup = [prog_map_fd, &index]() {
+        index = 0;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+
+        index = 1;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+
+        index = 2;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+
+        index = 4;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+
+        index = 7;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    };
+
+    // Clean up tail calls.
+    cleanup();
+
+    // Free the program as well.
+    bpf_object__close(object);
+    */
 }

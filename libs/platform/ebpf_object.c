@@ -134,6 +134,48 @@ ebpf_object_tracking_terminate()
     }
 }
 
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_object_weak_reference_associate(_In_ ebpf_core_object_t* object, _Outptr_ ebpf_weak_reference_t** weak_reference)
+{
+    ebpf_result_t result;
+    ebpf_weak_reference_t* local_weak_reference;
+
+    local_weak_reference = ebpf_allocate(sizeof(ebpf_weak_reference_t));
+    if (local_weak_reference == NULL) {
+        result = EBPF_NO_MEMORY;
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Weak reference object allocation failed.", result);
+        goto Done;
+    }
+
+    ebpf_lock_create(&local_weak_reference->lock);
+    local_weak_reference->object = object;
+    (void)ebpf_interlocked_increment_int64(&local_weak_reference->reference_count);
+    result = EBPF_SUCCESS;
+
+Done:
+    *weak_reference = local_weak_reference;
+    return result;
+}
+
+static void
+_ebpf_object_weak_reference_disassociate(_In_ ebpf_weak_reference_t* weak_reference)
+{
+    if (!weak_reference) {
+        return;
+    }
+
+    // Mark the weak_ref as 'disassociating' by clearing the object pointer.  From this point on, it won't hand out
+    // a valid object pointer but will hang around until its own ref count goes to zero, is freed and thereby
+    // completing its disassociation from the object.
+    ebpf_interlocked_compare_exchange_pointer(&weak_reference->object, NULL, weak_reference->object);
+    int64_t new_ref_count = ebpf_interlocked_decrement_int64(&weak_reference->reference_count);
+    if (new_ref_count == 0) {
+        ebpf_lock_destroy(&weak_reference->lock);
+        ebpf_free(weak_reference);
+    }
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_initialize(
     ebpf_core_object_t* object,
@@ -152,7 +194,18 @@ ebpf_object_initialize(
     object->get_program_type = get_program_type_function;
     ebpf_list_initialize(&object->object_list_entry);
 
-    return _ebpf_object_tracking_list_insert(object);
+    ebpf_result_t result = _ebpf_object_weak_reference_associate(object, &object->self_weak_reference);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = _ebpf_object_tracking_list_insert(object);
+    if (result != EBPF_SUCCESS) {
+        _ebpf_object_weak_reference_disassociate(object->self_weak_reference);
+    }
+
+Done:
+    return result;
 }
 
 void
@@ -182,6 +235,7 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static void _ebpf_object_
 
         _ebpf_object_tracking_list_remove(object);
         object->base.marker = ~object->base.marker;
+        _ebpf_object_weak_reference_disassociate(object->self_weak_reference);
         object->free_function(object);
     }
 }
@@ -206,6 +260,7 @@ ebpf_object_release_reference(ebpf_core_object_t* object)
         _ebpf_object_tracking_list_remove(object);
         ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
         object->base.marker = ~object->base.marker;
+        _ebpf_object_weak_reference_disassociate(object->self_weak_reference);
         object->free_function(object);
     }
 }
@@ -367,4 +422,86 @@ ebpf_duplicate_string(_In_z_ const char* source)
     }
     memcpy(destination, source, length);
     return destination;
+}
+
+_Must_inspect_result_ ebpf_weak_reference_t*
+ebpf_object_weak_reference_get_reference(_In_ ebpf_core_object_t* object)
+{
+    ebpf_assert(object);
+    (void)ebpf_interlocked_increment_int64(&object->self_weak_reference->reference_count);
+
+    return object->self_weak_reference;
+}
+
+_Must_inspect_result_ _Ret_maybenull_ ebpf_core_object_t*
+ebpf_object_weak_reference_get_object_reference(_In_ ebpf_weak_reference_t* weak_reference)
+{
+    ebpf_core_object_t* object;
+
+    ebpf_assert(weak_reference);
+
+    // A weak reference's lifetime is independent from that of the (primary) object it is associated with, so this call
+    // cannot guarantee the return of a valid pointer for the associated primary object.  The logic below ensures that
+    // we return a valid pointer *iff* the primary object has since not been destroyed _and_ is not in the process of
+    // being destroyed.
+    //
+    // This is ensured by incrementing the object ref-count *iff* it is non-zero (and returning its pointer), else
+    // returning NULL.
+    for (;;) {
+
+        // If the primary object has been marked for destruction, it will (sooner or later) disassociate itself
+        // from its weak pointer (amongst other things, weak_reference->object is set to NULL), thus the loop will
+        // eventually converge.
+        object = ebpf_interlocked_compare_exchange_pointer(&weak_reference->object, NULL, NULL);
+        if (object == NULL) {
+            break;
+        }
+
+        // Object is is process of being destroyed. Can't give out a pointer to this object, so return NULL.
+        volatile int32_t old_ref_count = object->base.reference_count;
+        if (old_ref_count == 0) {
+            object = NULL;
+            break;
+        }
+
+        // At this point, the object pointer is non-null and old_ref_count is non-zero.  Also, by the time we get
+        // to the compare-exchange operation below, object->base.reference_count could be in one of 3 possible states,
+        // thus affecting the cmp-exch operation:
+        //
+        // 1. object->base.reference_count goes to 0:
+        //    The cmp-exch operation will fail, it's return value will != old_ref_count, so we continue in the loop
+        //    and break out when we see it to be zero (above).
+        //
+        // 2. object->base.reference_count gets incremented or decremented:
+        //    The cmp-exch operation will fail, its return value will != old_ref_count, so we continue in the loop
+        //    and do the cmp-exch again.
+        //
+        // 3. object->base.reference_count remains un-changed:
+        //    The cmp-exch operation will succeed (also increment the ref-count), its return value is == old_ref_count,
+        //    so we break out if the loop, and end up returning a valid pointer to the primary object.
+        if (ebpf_interlocked_compare_exchange_int32(&object->base.reference_count, old_ref_count + 1, old_ref_count) ==
+            old_ref_count) {
+            break;
+        }
+    }
+
+    return object;
+}
+
+void
+ebpf_object_weak_reference_acquire_reference(_In_ ebpf_weak_reference_t* weak_reference)
+{
+    ebpf_assert(weak_reference);
+    (void)ebpf_interlocked_increment_int64(&weak_reference->reference_count);
+}
+
+void
+ebpf_object_weak_reference_release_reference(_In_ ebpf_weak_reference_t* weak_reference)
+{
+    ebpf_assert(weak_reference);
+    int64_t new_ref_count = ebpf_interlocked_decrement_int64(&weak_reference->reference_count);
+    ebpf_assert(new_ref_count != -1);
+    if (new_ref_count == 0) {
+        ebpf_free(weak_reference);
+    }
 }

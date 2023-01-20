@@ -10,6 +10,9 @@
 #include "ebpf_program.h"
 #include "ebpf_ring_buffer.h"
 
+#define EBPF_MAP_HAS_SUPPLEMENTAL_VALUE(_t) \
+    ((_t) == BPF_MAP_TYPE_PROG_ARRAY || (_t) == BPF_MAP_TYPE_ARRAY_OF_MAPS || (_t) == BPF_MAP_TYPE_HASH_OF_MAPS)
+
 typedef struct _ebpf_core_map
 {
     ebpf_core_object_t object;
@@ -23,7 +26,7 @@ typedef struct _ebpf_core_object_map
 {
     ebpf_core_map_t core_map;
     ebpf_lock_t lock;
-    struct _ebpf_core_map* inner_map_template;
+    ebpf_map_definition_in_memory_t inner_template_map_definition;
     bool is_program_type_set;
     ebpf_program_type_t program_type;
 } ebpf_core_object_map_t;
@@ -254,6 +257,7 @@ typedef struct _ebpf_map_metadata_table
     ebpf_result_t (*create_map)(
         _In_ const ebpf_map_definition_in_memory_t* map_definition,
         ebpf_handle_t inner_map_handle,
+        size_t supplemental_value_size,
         _Outptr_ ebpf_core_map_t** map);
     void (*delete_map)(_In_ _Post_invalid_ ebpf_core_map_t* map);
     ebpf_result_t (*associate_program)(_Inout_ ebpf_map_t* map, _In_ const ebpf_program_t* program);
@@ -290,7 +294,10 @@ ebpf_map_get_effective_value_size(_In_ const ebpf_map_t* map)
 
 static ebpf_result_t
 _create_array_map_with_map_struct_size(
-    size_t map_struct_size, _In_ const ebpf_map_definition_in_memory_t* map_definition, _Outptr_ ebpf_core_map_t** map)
+    size_t map_struct_size,
+    _In_ const ebpf_map_definition_in_memory_t* map_definition,
+    size_t supplemental_value_size,
+    _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t retval;
     size_t map_data_size = 0;
@@ -298,7 +305,8 @@ _create_array_map_with_map_struct_size(
 
     *map = NULL;
 
-    retval = ebpf_safe_size_t_multiply(map_definition->max_entries, map_definition->value_size, &map_data_size);
+    size_t entry_size = EBPF_PAD_8(map_definition->value_size) + supplemental_value_size;
+    retval = ebpf_safe_size_t_multiply(map_definition->max_entries, entry_size, &map_data_size);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -329,12 +337,14 @@ static ebpf_result_t
 _create_array_map(
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
     ebpf_handle_t inner_map_handle,
+    size_t supplemental_value_size,
     _Outptr_ ebpf_core_map_t** map)
 {
     if (inner_map_handle != ebpf_handle_invalid) {
         return EBPF_INVALID_ARGUMENT;
     }
-    return _create_array_map_with_map_struct_size(sizeof(ebpf_core_map_t), map_definition, map);
+    return _create_array_map_with_map_struct_size(
+        sizeof(ebpf_core_map_t), map_definition, supplemental_value_size, map);
 }
 
 static void
@@ -343,21 +353,52 @@ _delete_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
     ebpf_epoch_free(map);
 }
 
+/**
+ * @brief Given a pointer to an array map and an index (key),
+ *        return a pointer to the value at that location.
+ *
+ * @param[in] map Pointer to the array map.
+ * @param[in] index Array index (key) to return value for.
+ * @return Pointer to the value.
+ */
+static uint8_t*
+_get_array_map_value(_In_ const ebpf_core_map_t* map, uint32_t index)
+{
+    bool has_supplemental_value = EBPF_MAP_HAS_SUPPLEMENTAL_VALUE(map->ebpf_map_definition.type);
+    size_t entry_size = EBPF_PAD_8(map->ebpf_map_definition.value_size) + (has_supplemental_value ? sizeof(void*) : 0);
+    return &map->data[index * entry_size];
+}
+
+/**
+ * @brief Given a pointer to a value, return a pointer to the supplemental value.
+ *
+ * @param[in] map Pointer to the map, used to determine the size of the value.
+ * @param[in] value Pointer to the value.
+ * @return Pointer to the supplemental value.
+ */
+static uint8_t*
+_get_supplemental_value(_In_ const ebpf_core_map_t* map, _In_ uint8_t* value)
+{
+    return value + EBPF_PAD_8(map->ebpf_map_definition.value_size);
+}
+
 static ebpf_result_t
 _find_array_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
     uint32_t key_value;
-    if (!map || !key || delete_on_success)
+    if (!map || !key || delete_on_success) {
         return EBPF_INVALID_ARGUMENT;
+    }
 
     key_value = *(uint32_t*)key;
 
-    if (key_value >= map->ebpf_map_definition.max_entries)
+    if (key_value >= map->ebpf_map_definition.max_entries) {
+        EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Key value too big", key_value);
         return EBPF_INVALID_ARGUMENT;
+    }
 
-    *data = &map->data[key_value * map->ebpf_map_definition.value_size];
-
+    *data = _get_array_map_value(map, key_value);
     return EBPF_SUCCESS;
 }
 
@@ -367,19 +408,22 @@ _update_array_map_entry(
 {
     uint32_t key_value;
 
-    if (!map || !key || (option == EBPF_NOEXIST))
+    if (!map || !key || (option == EBPF_NOEXIST)) {
         return EBPF_INVALID_ARGUMENT;
+    }
 
     key_value = *(uint32_t*)key;
 
-    if (key_value >= map->ebpf_map_definition.max_entries)
+    if (key_value >= map->ebpf_map_definition.max_entries) {
+        EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Key value too big", key_value);
         return EBPF_INVALID_ARGUMENT;
+    }
 
-    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
+    uint8_t* value = _get_array_map_value(map, key_value);
     if (data) {
-        memcpy(entry, data, map->ebpf_map_definition.value_size);
+        memcpy(value, data, map->ebpf_map_definition.value_size);
     } else {
-        memset(entry, 0, map->ebpf_map_definition.value_size);
+        memset(value, 0, map->ebpf_map_definition.value_size);
     }
     return EBPF_SUCCESS;
 }
@@ -387,18 +431,17 @@ _update_array_map_entry(
 static ebpf_result_t
 _delete_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
-    uint32_t key_value;
-    if (!map || !key)
+    if (!map || !key) {
         return EBPF_INVALID_ARGUMENT;
+    }
 
-    key_value = *(uint32_t*)key;
-
-    if (key_value >= map->ebpf_map_definition.max_entries)
+    uint32_t key_value = *(uint32_t*)key;
+    if (key_value >= map->ebpf_map_definition.max_entries) {
         return EBPF_INVALID_ARGUMENT;
+    }
 
-    uint8_t* entry = &map->data[key_value * map->ebpf_map_definition.value_size];
-
-    memset(entry, 0, map->ebpf_map_definition.value_size);
+    uint8_t* value = _get_array_map_value(map, key_value);
+    memset(value, 0, map->ebpf_map_definition.value_size);
     return EBPF_SUCCESS;
 }
 
@@ -406,20 +449,22 @@ static ebpf_result_t
 _next_array_map_key(_In_ const ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {
     uint32_t key_value;
-    if (!map || !next_key)
+    if (!map || !next_key) {
         return EBPF_INVALID_ARGUMENT;
+    }
 
     if (previous_key) {
         key_value = *(uint32_t*)previous_key;
         key_value++;
-    } else
+    } else {
         key_value = 0;
+    }
 
-    if (key_value >= map->ebpf_map_definition.max_entries)
+    if (key_value >= map->ebpf_map_definition.max_entries) {
         return EBPF_NO_MORE_KEYS;
+    }
 
     *(uint32_t*)next_key = key_value;
-
     return EBPF_SUCCESS;
 }
 
@@ -431,10 +476,12 @@ _associate_inner_map(_Inout_ ebpf_core_object_map_t* object_map, ebpf_handle_t i
     ebpf_core_object_t* inner_map_template_object = NULL;
 
     if (local_map_definition.type != BPF_MAP_TYPE_ARRAY_OF_MAPS &&
-        local_map_definition.type != BPF_MAP_TYPE_HASH_OF_MAPS)
+        local_map_definition.type != BPF_MAP_TYPE_HASH_OF_MAPS) {
         goto Exit;
+    }
 
     if (inner_map_handle == ebpf_handle_invalid) {
+
         // Must have a valid inner_map_handle.
         EBPF_LOG_MESSAGE(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Map in map must have a valid inner_map_handle");
@@ -444,31 +491,50 @@ _associate_inner_map(_Inout_ ebpf_core_object_map_t* object_map, ebpf_handle_t i
 
     // Convert value handle to an object pointer.
     result = ebpf_object_reference_by_handle(inner_map_handle, EBPF_OBJECT_MAP, &inner_map_template_object);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Get object ref by handle failed.", result);
         goto Exit;
+    }
 
-    object_map->inner_map_template = (ebpf_map_t*)inner_map_template_object;
-    object_map->core_map.ebpf_map_definition.inner_map_id = object_map->inner_map_template->object.id;
+    ebpf_core_map_t* template_core_map = (ebpf_core_map_t*)inner_map_template_object;
+    template_core_map = EBPF_FROM_FIELD(ebpf_core_map_t, object, inner_map_template_object);
+
+    object_map->inner_template_map_definition = template_core_map->ebpf_map_definition;
+    object_map->core_map.ebpf_map_definition.inner_map_id = template_core_map->object.id;
 
 Exit:
+    if (inner_map_template_object) {
+        ebpf_object_release_reference(inner_map_template_object);
+    }
+
     return result;
+}
+
+static void
+_clear_map_entry(_Inout_ ebpf_core_map_t* map, _In_ uint8_t* value)
+{
+    *(ebpf_id_t*)value = 0;
+
+    ebpf_weak_reference_t** value_weak_reference = (ebpf_weak_reference_t**)_get_supplemental_value(map, value);
+    __analysis_assume(value_weak_reference != NULL);
+
+    if (*value_weak_reference) {
+        ebpf_object_weak_reference_release_reference(*value_weak_reference);
+        *value_weak_reference = NULL;
+    }
 }
 
 static void
 _delete_object_array_map(_Inout_ _Post_invalid_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
 {
-    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
+    UNREFERENCED_PARAMETER(value_type);
 
     // Release all entry references.
     for (uint32_t i = 0; i < map->ebpf_map_definition.max_entries; i++) {
-        ebpf_id_t id = *(ebpf_id_t*)&map->data[i * map->ebpf_map_definition.value_size];
-        if (id) {
-            ebpf_assert_success(ebpf_object_dereference_by_id(id, value_type));
-        }
-    }
-
-    if (object_map->inner_map_template != NULL) {
-        ebpf_object_release_reference(&object_map->inner_map_template->object);
+        uint8_t* value = _get_array_map_value(map, i);
+        __analysis_assume(value != NULL);
+        _clear_map_entry(map, value);
     }
 
     _delete_array_map(map);
@@ -478,6 +544,7 @@ static ebpf_result_t
 _create_object_array_map(
     _Inout_ const ebpf_map_definition_in_memory_t* map_definition,
     ebpf_handle_t inner_map_handle,
+    size_t supplemental_value_size,
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_core_map_t* local_map = NULL;
@@ -492,14 +559,17 @@ _create_object_array_map(
         goto Exit;
     }
 
-    result = _create_array_map_with_map_struct_size(sizeof(ebpf_core_object_map_t), map_definition, &local_map);
-    if (result != EBPF_SUCCESS)
+    result = _create_array_map_with_map_struct_size(
+        sizeof(ebpf_core_object_map_t), map_definition, supplemental_value_size, &local_map);
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, local_map);
     result = _associate_inner_map(object_map, inner_map_handle);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
     *map = local_map;
     local_map = NULL;
 
@@ -559,14 +629,13 @@ _check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_core_ob
     }
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, outer_map);
-
-    ebpf_core_map_t* template = object_map->inner_map_template;
     const ebpf_map_t* value_map = (ebpf_map_t*)value_object;
 
-    bool allowed = (template != NULL) && (value_map->ebpf_map_definition.type == template->ebpf_map_definition.type) &&
-                   (value_map->ebpf_map_definition.key_size == template->ebpf_map_definition.key_size) &&
-                   (value_map->ebpf_map_definition.value_size == template->ebpf_map_definition.value_size) &&
-                   (value_map->ebpf_map_definition.max_entries == template->ebpf_map_definition.max_entries);
+    bool allowed =
+        (value_map->ebpf_map_definition.type == object_map->inner_template_map_definition.type) &&
+        (value_map->ebpf_map_definition.key_size == object_map->inner_template_map_definition.key_size) &&
+        (value_map->ebpf_map_definition.value_size == object_map->inner_template_map_definition.value_size) &&
+        (value_map->ebpf_map_definition.max_entries == object_map->inner_template_map_definition.max_entries);
 
     return allowed;
 }
@@ -618,15 +687,22 @@ _update_array_map_entry_with_handle(
     uintptr_t value_handle,
     ebpf_map_option_t option)
 {
-    if (!map || !key || (option == EBPF_NOEXIST))
-        return EBPF_INVALID_ARGUMENT;
+    ebpf_result_t result;
+
+    if (!map || !key || (option == EBPF_NOEXIST)) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Invalid parameter(s) rejected.", result);
+        return result;
+    }
 
     uint32_t index = *(uint32_t*)key;
-
-    if (index >= map->ebpf_map_definition.max_entries)
-        return EBPF_INVALID_ARGUMENT;
-
-    ebpf_result_t result = EBPF_SUCCESS;
+    if (index >= map->ebpf_map_definition.max_entries) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Key/index value too big hence rejected.", index);
+        return result;
+    }
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
     ebpf_core_object_t* value_object = NULL;
@@ -634,6 +710,12 @@ _update_array_map_entry_with_handle(
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
         result = ebpf_object_reference_by_handle(value_handle, value_type, &value_object);
         if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_UINT64_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_ERROR,
+                "Object reference by handle failed.",
+                result,
+                value_handle);
             return result;
         }
     }
@@ -643,28 +725,37 @@ _update_array_map_entry_with_handle(
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
         result = _validate_map_value_object(object_map, value_type, value_object);
         if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_NTSTATUS(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Object validation failed.", result);
             goto Done;
         }
     }
 
-    // Release the reference on the old ID stored here, if any.
-    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
-    ebpf_id_t old_id = *(ebpf_id_t*)entry;
-    if (old_id) {
-        ebpf_assert_success(ebpf_object_dereference_by_id(old_id, value_type));
-    }
+    uint8_t* value = _get_array_map_value(map, index);
+    __analysis_assume(value != NULL);
 
-    ebpf_id_t id = value_object ? value_object->id : 0;
+    // If this entry was in use, we need to release the reference on the old weak reference stored with this value.
+    _clear_map_entry(map, value);
 
-    // Store the object ID as the value.
-    memcpy(entry, &id, map->ebpf_map_definition.value_size);
+    // Get a weak ref for the incoming object (if valid) and store it alongside the id. Note that this could be an
+    // 'update to erase' operation, where we don't have a valid (incoming) object.  In this case, the value object and
+    // its weak-ref, both need to be 'updated' to zero for this key.
+    ebpf_id_t new_id = value_object ? value_object->id : 0;
+    ebpf_weak_reference_t* new_weak_reference =
+        value_object ? ebpf_object_weak_reference_get_reference(value_object) : NULL;
+    __analysis_assume(new_weak_reference != NULL);
+
+    // Update entry with new values for the object id and it's weak reference pointer.
+    memcpy(value, &new_id, sizeof(ebpf_id_t));
+    ebpf_weak_reference_t** value_weak_reference = (ebpf_weak_reference_t**)_get_supplemental_value(map, value);
+    *value_weak_reference = new_weak_reference;
+    result = EBPF_SUCCESS;
 
 Done:
-    if (result != EBPF_SUCCESS && value_object != NULL) {
+    if (value_object != NULL) {
         ebpf_object_release_reference((ebpf_core_object_t*)value_object);
     }
     ebpf_lock_unlock(&object_map->lock, lock_state);
-
     return result;
 }
 
@@ -689,16 +780,15 @@ _delete_array_map_entry_with_reference(
     if (value_type == EBPF_OBJECT_UNKNOWN)
         return EBPF_INVALID_ARGUMENT;
     ebpf_result_t result;
-    uint8_t* entry;
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
-    result = _find_array_map_entry(map, key, false, &entry);
+
+    uint8_t* value;
+    result = _find_array_map_entry(map, key, false, &value);
     if (result == EBPF_SUCCESS) {
-        ebpf_id_t id = *(ebpf_id_t*)entry;
-        if (id) {
-            ebpf_assert_success(ebpf_object_dereference_by_id(id, value_type));
-        }
-        _delete_array_map_entry(map, key);
+
+        __analysis_assume(value != NULL);
+        _clear_map_entry(map, value);
     }
     ebpf_lock_unlock(&object_map->lock, lock_state);
 
@@ -731,9 +821,8 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
 {
     uint32_t index = *(uint32_t*)key;
 
-    // We need to take a lock here to make sure we can
-    // safely reference the object when another thread
-    // might be trying to delete the entry we find.
+    // We need to take a lock here to make sure we can safely reference the object when another thread might be trying
+    // to delete the entry we find.
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
@@ -741,14 +830,16 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
     ebpf_core_object_t* object = NULL;
     uint8_t* value = NULL;
     if (_find_array_map_entry(map, (uint8_t*)&index, false, &value) == EBPF_SUCCESS) {
-        ebpf_id_t id = *(ebpf_id_t*)&map->data[index * map->ebpf_map_definition.value_size];
-        ebpf_object_type_t value_type =
-            (map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) ? EBPF_OBJECT_PROGRAM : EBPF_OBJECT_MAP;
-        if (id != 0) {
-            ebpf_assert_success(ebpf_object_reference_by_id(id, value_type, &object));
+        ebpf_id_t object_id = *(ebpf_id_t*)value;
+        if (object_id != 0) {
+
+            ebpf_weak_reference_t** value_weak_reference = (ebpf_weak_reference_t**)_get_supplemental_value(map, value);
+            __analysis_assume(value_weak_reference != NULL);
+            if (*value_weak_reference) {
+                object = ebpf_object_weak_reference_get_object_reference(*value_weak_reference);
+            }
         }
     }
-
     ebpf_lock_unlock(&object_map->lock, lock_state);
 
     return object;
@@ -764,13 +855,15 @@ _create_hash_map_internal(
     _In_opt_ ebpf_hash_table_notification_function notification_callback,
     _Outptr_ ebpf_core_map_t** map)
 {
-    ebpf_result_t retval;
+    ebpf_result_t result;
     ebpf_core_map_t* local_map = NULL;
     *map = NULL;
 
     local_map = ebpf_epoch_allocate(map_struct_size);
     if (local_map == NULL) {
-        retval = EBPF_NO_MEMORY;
+        result = EBPF_NO_MEMORY;
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Memory allocation failed.", result);
         goto Done;
     }
 
@@ -788,39 +881,40 @@ _create_hash_map_internal(
         .notification_callback = notification_callback,
     };
 
-    // Note:
-    // ebpf_hash_table_t doesn't require synchronization as long as allocations
-    // are performed using the epoch allocator.
-    retval = ebpf_hash_table_create((ebpf_hash_table_t**)&local_map->data, &options);
-
-    if (retval != EBPF_SUCCESS) {
+    // Note: ebpf_hash_table_t doesn't require synchronization as long as allocations are performed using the epoch
+    // allocator.
+    result = ebpf_hash_table_create((ebpf_hash_table_t**)&local_map->data, &options);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Hash table creation failed.", result);
         goto Done;
     }
 
     *map = local_map;
     local_map = NULL;
-    retval = EBPF_SUCCESS;
+    result = EBPF_SUCCESS;
 
 Done:
-    if (retval != EBPF_SUCCESS) {
+    if (result != EBPF_SUCCESS) {
         if (local_map && local_map->data) {
             ebpf_hash_table_destroy((ebpf_hash_table_t*)local_map->data);
         }
         ebpf_epoch_free(local_map);
         local_map = NULL;
     }
-    return retval;
+    return result;
 }
 
 static ebpf_result_t
 _create_hash_map(
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
     ebpf_handle_t inner_map_handle,
+    size_t supplemental_value_size,
     _Outptr_ ebpf_core_map_t** map)
 {
     if (inner_map_handle != ebpf_handle_invalid)
         return EBPF_INVALID_ARGUMENT;
-    return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, 0, NULL, NULL, map);
+    return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, supplemental_value_size, NULL, NULL, map);
 }
 
 static void
@@ -833,34 +927,79 @@ _delete_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 static void
 _delete_object_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
-    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-
     // Release all entry references.
     uint8_t* next_key;
     for (uint8_t* previous_key = NULL;; previous_key = next_key) {
-        uint8_t* value;
+        uint8_t* value = NULL;
         ebpf_result_t result =
             ebpf_hash_table_next_key_pointer_and_value((ebpf_hash_table_t*)map->data, previous_key, &next_key, &value);
         if (result != EBPF_SUCCESS) {
             break;
         }
-        ebpf_id_t id = *(ebpf_id_t*)value;
-        if (id) {
-            ebpf_assert_success(ebpf_object_dereference_by_id(id, EBPF_OBJECT_MAP));
-        }
-    }
 
-    if (object_map->inner_map_template != NULL) {
-        ebpf_object_release_reference(&object_map->inner_map_template->object);
+        __analysis_assume(value != NULL);
+        _clear_map_entry(map, value);
     }
-
     _delete_hash_map(map);
+}
+
+static void
+_object_hash_table_notification(
+    _In_ void* context, _In_ ebpf_hash_table_notification_type_t type, _In_ const uint8_t* key, _In_ uint8_t* value)
+{
+    UNREFERENCED_PARAMETER(key);
+
+    // Please refer to the comment in _update_hash_map_entry_with_handle() for this function's usage.
+
+    ebpf_core_object_map_t* map = (ebpf_core_object_map_t*)context;
+    ebpf_id_t object_id = *(ebpf_id_t*)value;
+
+    switch (type) {
+    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
+
+        ebpf_core_object_t* value_object = NULL;
+        ebpf_result_t result = ebpf_object_reference_by_id(object_id, EBPF_OBJECT_MAP, &value_object);
+        ebpf_assert(result == EBPF_SUCCESS);
+        if (result != EBPF_SUCCESS) {
+
+            // This can _never_ happen.  We get to this point iff we were already able to grab a ref
+            // (in _update_hash_map_entry_with_handle) so this object _MUST_ exist.  If not, this is a catastrophic
+            // internal error.  Log this as there's nothing we can do by means of recovery.
+            EBPF_LOG_MESSAGE_NTSTATUS(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Get ref by id failed", result);
+            return;
+        }
+
+        ebpf_object_weak_reference_acquire_reference(value_object->self_weak_reference);
+
+        // Stash the weak reference in the entry.
+        ebpf_weak_reference_t** value_weak_reference =
+            (ebpf_weak_reference_t**)_get_supplemental_value((ebpf_core_map_t*)map, value);
+        ebpf_assert(value_weak_reference);
+        __analysis_assume(value_weak_reference != NULL);
+
+        *value_weak_reference = value_object->self_weak_reference;
+        ebpf_object_release_reference((ebpf_core_object_t*)value_object);
+
+        break;
+
+    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
+
+        // Don't care.
+        break;
+
+    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
+
+        // Don't care.
+        break;
+    }
 }
 
 static ebpf_result_t
 _create_object_hash_map(
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
     ebpf_handle_t inner_map_handle,
+    size_t supplemental_value_size,
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_core_map_t* local_map = NULL;
@@ -873,16 +1012,49 @@ _create_object_hash_map(
         goto Exit;
     }
 
+    // The hash table 'entry' allocator allocates 'value_size + supplemental_size' to get the actual allocation size.
+    // For access performance reasons, we want the weak-ref pointer (the 'supplemental' value) to be 8-byte aligned
+    // as well, so we augment the supplemental_size such that the storage for the 'value' field (the ebpf_id_t value)
+    // is expanded to the next 8-byte boundary.  This automatically ensures that the subseqent weak-ref pointer storage
+    // is 8-byte aligned as well.
+    //
+    // The level of generalization below is not really necessary in this specific instance, given that: (a) the
+    // ebpf_id_t size is 4 bytes and (b) these maps will _always_ store ebpf_id_t values.  But in case we decide/need
+    // to expand the ebpf_id_t size, the following calculation should still hold.
+    size_t entry_size = EBPF_PAD_8(map_definition->value_size);
+
+    // Now align the supplemental value to 8 byte boundary.
+    // Pad value_size to next 8 byte boundary and subtract the value_size to get the padding.
+    result = ebpf_safe_size_t_add(
+        entry_size, EBPF_PAD_8(map_definition->value_size) - map_definition->value_size, &supplemental_value_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Safe size_t add failed.", result);
+        goto Exit;
+    }
+
     *map = NULL;
 
-    result = _create_hash_map_internal(sizeof(ebpf_core_object_map_t), map_definition, 0, NULL, NULL, &local_map);
-    if (result != EBPF_SUCCESS)
+    result = _create_hash_map_internal(
+        sizeof(ebpf_core_object_map_t),
+        map_definition,
+        supplemental_value_size,
+        NULL,
+        _object_hash_table_notification,
+        &local_map);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Create hash map (internal) failed.", result);
         goto Exit;
+    }
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, local_map);
     result = _associate_inner_map(object_map, inner_map_handle);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Associate inner map failed.", result);
         goto Exit;
+    }
 
     *map = local_map;
     local_map = NULL;
@@ -894,19 +1066,6 @@ Exit:
     }
 
     EBPF_RETURN_RESULT(result);
-}
-
-/**
- * @brief Given a pointer to a value, return a pointer to the supplemental value.
- *
- * @param[in] map Pointer to the map, used to determine the size of the value.
- * @param[in] value Pointer to the value.
- * @return Pointer to the supplemental value.
- */
-static uint8_t*
-_get_supplemental_value(_In_ const ebpf_core_map_t* map, _In_ uint8_t* value)
-{
-    return value + EBPF_PAD_8(map->ebpf_map_definition.value_size);
 }
 
 /**
@@ -1066,6 +1225,7 @@ static ebpf_result_t
 _create_lru_hash_map(
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
     ebpf_handle_t inner_map_handle,
+    size_t supplemental_value_size,
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t retval = EBPF_SUCCESS;
@@ -1086,9 +1246,11 @@ _create_lru_hash_map(
         goto Exit;
     }
 
+    // Note that we're reusing the 'supplemental_value_size' parameter as 'local' storage.  This function signature
+    // requires the presence of this parameter, but the actual calculation is specific to this implementation and is
+    // hence done here (the passed in argument value is zero anyway).
     // Align the supplemental value to 8 byte boundary.
     // Pad value_size to next 8 byte boundary and subtract the value_size to get the padding.
-    size_t supplemental_value_size;
     retval = ebpf_safe_size_t_add(
         lru_entry_size, EBPF_PAD_8(map_definition->value_size) - map_definition->value_size, &supplemental_value_size);
     if (retval != EBPF_SUCCESS) {
@@ -1211,9 +1373,8 @@ _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* k
 {
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
-    // We need to take a lock here to make sure we can
-    // safely reference the object when another thread
-    // might be trying to delete the entry we find.
+    // We need to take a lock here to make sure we can safely reference the object when another thread might be trying
+    // to delete the entry we find.
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
     ebpf_core_object_t* object = NULL;
@@ -1251,6 +1412,9 @@ _update_hash_map_entry(
         hash_table_operation = EBPF_HASH_TABLE_OPERATION_REPLACE;
         break;
     default:
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Invalid option rejected.", option);
+
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -1286,8 +1450,10 @@ _update_hash_map_entry_with_handle(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     size_t entry_count = 0;
-    if (!map || !key)
+    if (!map || !key) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Invalid map or key values");
         return EBPF_INVALID_ARGUMENT;
+    }
 
     ebpf_hash_table_operations_t hash_table_operation;
     switch (option) {
@@ -1301,6 +1467,8 @@ _update_hash_map_entry_with_handle(
         hash_table_operation = EBPF_HASH_TABLE_OPERATION_REPLACE;
         break;
     default:
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Invalid option rejected", option);
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -1308,6 +1476,8 @@ _update_hash_map_entry_with_handle(
     ebpf_core_object_t* value_object = NULL;
     result = ebpf_object_reference_by_handle(value_handle, value_type, &value_object);
     if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Get obj ref by handle failed", result);
         return result;
     }
 
@@ -1315,11 +1485,10 @@ _update_hash_map_entry_with_handle(
 
     entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
-    uint8_t* old_value = NULL;
-    ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &old_value);
-    ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
-
+    uint8_t* value = NULL;
+    ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value);
     if ((found_result != EBPF_SUCCESS) && (entry_count == map->ebpf_map_definition.max_entries)) {
+
         // The hash table is already full.
         result = EBPF_OUT_OF_SPACE;
         goto Done;
@@ -1327,26 +1496,53 @@ _update_hash_map_entry_with_handle(
 
     result = _validate_map_value_object(object_map, value_type, value_object);
     if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Object validation failed", result);
         goto Done;
+    }
+
+    // Let go of the old value, if any, and store the new object ID as the value.
+    if (value) {
+
+        // We're updating an existing key, so clear off the old value first.
+        _clear_map_entry(map, value);
+
+        // Update entry with new value for the object's weak reference pointer.  The id will be updated in the
+        // ebpf_hash_table_update() call below.
+        ebpf_weak_reference_t* new_weak_reference = ebpf_object_weak_reference_get_reference(value_object);
+        __analysis_assume(new_weak_reference != NULL);
+
+        ebpf_weak_reference_t** value_weak_reference = (ebpf_weak_reference_t**)_get_supplemental_value(map, value);
+        *value_weak_reference = new_weak_reference;
     }
 
     // Store the new object ID as the value.
+    // There's some stuff happening 'under the covers' here. If this is a brand new key, the 'value' pointer will
+    // be NULL, so we cannot stash the weak-ref pointer.  Furthermore, in such cases the actual allocation of the
+    // 'value' buffer happens deep inside the context of the ebpf_hash_table_update() call and thus we still do not
+    // have access to that buffer.
+    //
+    // Fortunately, whenever the general hash table update code allocates space for a new 'value', it calls a
+    // notification callback (if registered during hash-map creation) for this event (among others).  We'd already
+    // registered our own callback for this 'hash-map-of-maps' map during it's creation and therefore defer the
+    // stashing of the weak-ref pointer in the 'value' buffer to _that_ callback.
+    //
+    // Also, the notification callback is _always_ called synchronously, i.e., while within the context of the
+    // ebpf_hash_table_update() call, so there are no race conditions to contend with.
     result =
         ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value_object->id, hash_table_operation);
     if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Hash table update failed", result);
         goto Done;
     }
 
-    // Release the reference on the old ID stored here, if any.
-    if (old_id) {
-        ebpf_assert_success(ebpf_object_dereference_by_id(old_id, value_type));
-    }
-
 Done:
-    if ((result != EBPF_SUCCESS) && (value_object != NULL)) {
+    if (value_object != NULL) {
         ebpf_object_release_reference((ebpf_core_object_t*)value_object);
     }
     ebpf_lock_unlock(&object_map->lock, lock_state);
+
     return result;
 }
 
@@ -1361,8 +1557,9 @@ static ebpf_result_t
 _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     ebpf_result_t result;
-    if (!map || !key)
+    if (!map || !key) {
         return EBPF_INVALID_ARGUMENT;
+    }
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
@@ -1371,10 +1568,9 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
     uint8_t* value = NULL;
     result = _find_hash_map_entry(map, key, true, &value);
     if (result == EBPF_SUCCESS) {
-        ebpf_id_t id = *(ebpf_id_t*)value;
-        if (id) {
-            ebpf_assert_success(ebpf_object_dereference_by_id(id, EBPF_OBJECT_MAP));
-        }
+
+        __analysis_assume(value != NULL);
+        _clear_map_entry(map, value);
     }
 
     ebpf_lock_unlock(&object_map->lock, lock_state);
@@ -1472,11 +1668,14 @@ static ebpf_result_t
 _create_lpm_map(
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
     ebpf_handle_t inner_map_handle,
+    size_t supplemental_value_size,
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     size_t max_prefix_length = (map_definition->key_size - sizeof(uint32_t)) * 8 + 1;
     ebpf_core_lpm_map_t* lpm_map = NULL;
+
+    UNREFERENCED_PARAMETER(supplemental_value_size);
 
     EBPF_LOG_ENTRY();
 
@@ -1571,6 +1770,7 @@ static ebpf_result_t
 _create_queue_map(
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
     ebpf_handle_t inner_map_handle,
+    size_t supplemental_value_size,
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t result;
@@ -1578,7 +1778,7 @@ _create_queue_map(
         return EBPF_INVALID_ARGUMENT;
     size_t circular_map_size =
         EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
-    result = _create_array_map_with_map_struct_size(circular_map_size, map_definition, map);
+    result = _create_array_map_with_map_struct_size(circular_map_size, map_definition, supplemental_value_size, map);
     if (result == EBPF_SUCCESS) {
         ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, *map);
         circular_map->type = EBPF_CORE_QUEUE;
@@ -1590,6 +1790,7 @@ static ebpf_result_t
 _create_stack_map(
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
     ebpf_handle_t inner_map_handle,
+    size_t supplemental_value_size,
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t result;
@@ -1597,7 +1798,7 @@ _create_stack_map(
         return EBPF_INVALID_ARGUMENT;
     size_t circular_map_size =
         EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
-    result = _create_array_map_with_map_struct_size(circular_map_size, map_definition, map);
+    result = _create_array_map_with_map_struct_size(circular_map_size, map_definition, supplemental_value_size, map);
     if (result == EBPF_SUCCESS) {
         ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, *map);
         circular_map->type = EBPF_CORE_STACK;
@@ -1708,11 +1909,14 @@ static ebpf_result_t
 _create_ring_buffer_map(
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
     ebpf_handle_t inner_map_handle,
+    size_t supplemental_value_size,
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t result;
     ebpf_core_ring_buffer_map_t* ring_buffer_map = NULL;
     ebpf_ring_buffer_t* ring_buffer = NULL;
+
+    UNREFERENCED_PARAMETER(supplemental_value_size);
 
     EBPF_LOG_ENTRY();
 
@@ -2152,9 +2356,12 @@ ebpf_map_create(
         goto Exit;
     }
 
-    result = ebpf_map_metadata_tables[type].create_map(&local_map_definition, inner_map_handle, &local_map);
-    if (result != EBPF_SUCCESS)
+    size_t supplemental_value_size = EBPF_MAP_HAS_SUPPLEMENTAL_VALUE(ebpf_map_definition->type) ? sizeof(void*) : 0;
+    result = ebpf_map_metadata_tables[type].create_map(
+        &local_map_definition, inner_map_handle, supplemental_value_size, &local_map);
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
 
     local_map->original_value_size = ebpf_map_definition->value_size;
 
@@ -2469,8 +2676,9 @@ ebpf_map_get_info(
     info->map_flags = 0;
     if (info->type == BPF_MAP_TYPE_ARRAY_OF_MAPS || info->type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-        info->inner_map_id =
-            (object_map->inner_map_template) ? object_map->inner_map_template->object.id : EBPF_ID_NONE;
+        info->inner_map_id = object_map->core_map.ebpf_map_definition.inner_map_id
+                                 ? object_map->core_map.ebpf_map_definition.inner_map_id
+                                 : EBPF_ID_NONE;
     } else {
         info->inner_map_id = EBPF_ID_NONE;
     }

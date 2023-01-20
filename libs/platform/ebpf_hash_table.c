@@ -660,11 +660,12 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     size_t index;
     ebpf_hash_bucket_header_t* bucket;
 
-    if (!hash_table || !key) {
+    if (!hash_table || !key || !value) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
+    *value = NULL;
     hash = _ebpf_hash_table_compute_hash(hash_table, key);
     bucket = hash_table->buckets[hash % hash_table->bucket_count].header;
     if (!bucket) {
