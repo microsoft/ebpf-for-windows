@@ -54,13 +54,13 @@ _ebpf_core_trace_printk5(
     _In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5);
 static int
 _ebpf_core_ring_buffer_output(
-    _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
+    _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
 static uint64_t
-_ebpf_core_map_push_elem(_In_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags);
+_ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags);
 static uint64_t
-_ebpf_core_map_pop_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value);
+_ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value);
 static uint64_t
-_ebpf_core_map_peek_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value);
+_ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value);
 static uint64_t
 _ebpf_core_get_pid_tgid();
 
@@ -68,8 +68,8 @@ _ebpf_core_get_pid_tgid();
 
 static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}}, 0, NULL};
 
+// Order of elements in this table must match the order of the elements in ebpf_core_helper_function_prototype.
 static const void* _ebpf_general_helpers[] = {
-    NULL,
     // Map related helpers.
     (void*)&_ebpf_core_map_find_element,
     (void*)&_ebpf_core_map_update_element,
@@ -110,8 +110,8 @@ NTSTATUS
 ebpf_general_helper_function_provider_attach_client(
     HANDLE nmr_binding_handle,
     _Inout_ void* provider_context,
-    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Out_ void** provider_binding_context,
     _Out_ const void** provider_dispatch)
@@ -183,8 +183,8 @@ ebpf_core_initiate()
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
-    _ebpf_global_helper_program_info.count_of_helpers = ebpf_core_helper_functions_count;
-    _ebpf_global_helper_program_info.helper_prototype = ebpf_core_helper_function_prototype;
+    _ebpf_global_helper_program_info.count_of_program_type_specific_helpers = ebpf_core_helper_functions_count;
+    _ebpf_global_helper_program_info.program_type_specific_helper_prototype = ebpf_core_helper_function_prototype;
     return_value = ebpf_provider_load(
         &_ebpf_global_helper_function_provider_context,
         &ebpf_program_information_extension_interface_id,
@@ -193,8 +193,8 @@ ebpf_core_initiate()
         &_ebpf_global_helper_function_extension_data,
         NULL,
         NULL,
-        ebpf_general_helper_function_provider_attach_client,
-        ebpf_general_helper_function_provider_detach_client,
+        (PNPI_PROVIDER_ATTACH_CLIENT_FN)ebpf_general_helper_function_provider_attach_client,
+        (PNPI_PROVIDER_DETACH_CLIENT_FN)ebpf_general_helper_function_provider_detach_client,
         NULL);
 
     if (return_value != EBPF_SUCCESS) {
@@ -518,7 +518,7 @@ _ebpf_core_protocol_create_program(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
-    ebpf_program_parameters_t parameters;
+    ebpf_program_parameters_t parameters = {0};
     uint8_t* file_name = NULL;
     size_t file_name_length = 0;
     uint8_t* section_name = NULL;
@@ -862,6 +862,67 @@ _ebpf_core_protocol_map_get_next_key(
 Done:
     ebpf_object_release_reference((ebpf_core_object_t*)map);
 
+    EBPF_RETURN_RESULT(retval);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_program_test_run(
+    _In_ const ebpf_operation_program_test_run_request_t* request,
+    _Inout_updates_bytes_(reply_length) ebpf_operation_program_test_run_reply_t* reply,
+    uint16_t reply_length)
+{
+    EBPF_LOG_ENTRY();
+
+    ebpf_program_test_run_options_t options = {0};
+
+    ebpf_result_t retval;
+    ebpf_program_t* program = NULL;
+    size_t data_in_end;
+
+    // Validate that the request is large enough to contain the context_offset.
+    retval = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data), request->context_offset, &data_in_end);
+
+    if (retval != EBPF_SUCCESS)
+        goto Done;
+
+    if (data_in_end > request->header.length) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    retval =
+        ebpf_object_reference_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
+    if (retval != EBPF_SUCCESS)
+        goto Done;
+
+    options.data_size_in = request->context_offset;
+    options.context_size_in = (size_t)(request->header.length) - data_in_end;
+    options.context_size_out = options.context_size_in;
+    options.data_size_out =
+        (size_t)reply_length - EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) - options.context_size_out;
+    options.repeat_count = request->repeat_count;
+    options.flags = request->flags;
+    options.cpu = request->cpu;
+    options.batch_size = request->batch_size;
+    options.data_in = options.data_size_in ? request->data : NULL;
+    options.context_in = options.context_size_in ? request->data + request->context_offset : NULL;
+    options.data_out = options.data_size_out ? reply->data : NULL;
+    options.context_out = options.context_size_out ? reply->data + options.data_size_out : NULL;
+
+    retval = ebpf_program_execute_test_run(program, &options);
+
+    if (retval == EBPF_SUCCESS) {
+        reply->header.length = (uint16_t)(
+            EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) + options.data_size_out +
+            options.context_size_out);
+        reply->return_value = options.return_value;
+        reply->context_offset = (uint16_t)options.data_size_out;
+        reply->duration = options.duration;
+    }
+
+Done:
+    ebpf_object_release_reference((ebpf_core_object_t*)program);
     EBPF_RETURN_RESULT(retval);
 }
 
@@ -1295,7 +1356,7 @@ _ebpf_core_protocol_serialize_map_info_reply(
     uint16_t map_count,
     _In_count_(map_count) const ebpf_map_info_internal_t* map_info,
     size_t output_buffer_length,
-    _In_ ebpf_operation_get_pinned_map_info_reply_t* map_info_reply)
+    _Out_ ebpf_operation_get_pinned_map_info_reply_t* map_info_reply)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     size_t serialization_buffer_size;
@@ -1325,7 +1386,7 @@ _ebpf_core_protocol_serialize_map_info_reply(
 static ebpf_result_t
 _ebpf_core_protocol_get_pinned_map_info(
     _In_ const ebpf_operation_get_pinned_map_info_request_t* request,
-    _In_ ebpf_operation_get_pinned_map_info_reply_t* reply,
+    _Inout_ ebpf_operation_get_pinned_map_info_reply_t* reply,
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
@@ -1578,7 +1639,7 @@ _ebpf_core_protocol_ring_buffer_map_async_query(
     _In_ const ebpf_operation_ring_buffer_map_async_query_request_t* request,
     _Inout_ ebpf_operation_ring_buffer_map_async_query_reply_t* reply,
     uint16_t reply_length,
-    _In_ void* async_context)
+    _Inout_ void* async_context)
 {
     UNREFERENCED_PARAMETER(reply_length);
 
@@ -1672,7 +1733,7 @@ _ebpf_core_get_time_since_boot_ns()
 {
     // ebpf_query_time_since_boot returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_time_since_boot(true) * 100;
+    return ebpf_query_time_since_boot(true) * EBPF_NS_PER_FILETIME;
 }
 
 static uint64_t
@@ -1680,7 +1741,7 @@ _ebpf_core_get_time_ns()
 {
     // ebpf_query_time_since_boot returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_time_since_boot(false) * 100;
+    return ebpf_query_time_since_boot(false) * EBPF_NS_PER_FILETIME;
 }
 
 static uint64_t
@@ -1840,7 +1901,7 @@ Exit:
 
 static int
 _ebpf_core_ring_buffer_output(
-    _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags)
+    _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags)
 {
     // This function implements bpf_ringbuf_output helper function, which returns negative error in case of failure.
     UNREFERENCED_PARAMETER(flags);
@@ -1848,19 +1909,19 @@ _ebpf_core_ring_buffer_output(
 }
 
 static uint64_t
-_ebpf_core_map_push_elem(_In_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
+_ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
 {
     return -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
 }
 
 static uint64_t
-_ebpf_core_map_pop_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value)
+_ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
     return -ebpf_map_pop_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 }
 
 static uint64_t
-_ebpf_core_map_peek_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value)
+_ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
     return -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 }
@@ -1894,7 +1955,7 @@ typedef struct _ebpf_protocol_handler
             _In_ const ebpf_operation_header_t* request,
             _Out_writes_bytes_(output_buffer_length) ebpf_operation_header_t* reply,
             uint16_t output_buffer_length,
-            _In_ void* async_context);
+            _Inout_ void* async_context);
     } dispatch;
     size_t minimum_request_size;
     size_t minimum_reply_size;
@@ -2011,6 +2072,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(ring_buffer_map_async_query, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(load_native_module, data, PROTOCOL_NATIVE_MODE),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(load_native_programs, data, PROTOCOL_NATIVE_MODE),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(program_test_run, data, data, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
@@ -2072,8 +2134,8 @@ ebpf_core_invoke_protocol_handler(
     uint16_t input_buffer_length,
     _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
     uint16_t output_buffer_length,
-    _In_opt_ void* async_context,
-    _In_opt_ void (*on_complete)(void*, size_t, ebpf_result_t))
+    _Inout_opt_ void* async_context,
+    _In_opt_ void (*on_complete)(_Inout_ void*, size_t, ebpf_result_t))
 {
     ebpf_result_t retval;
     bool epoch_entered = false;
@@ -2208,7 +2270,7 @@ Done:
 }
 
 bool
-ebpf_core_cancel_protocol_handler(_In_ void* async_context)
+ebpf_core_cancel_protocol_handler(_Inout_ void* async_context)
 {
     return ebpf_async_cancel(async_context);
 }

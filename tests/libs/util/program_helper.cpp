@@ -10,7 +10,7 @@ _program_load_attach_helper::_program_load_attach_helper(
     _In_z_ const char* program_name,
     ebpf_execution_type_t execution_type,
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
-    _In_ size_t attach_parameters_size,
+    size_t attach_parameters_size,
     hook_helper_t& hook)
     : _file_name(file_name), _program_type(program_type), _program_name(program_name), _execution_type(execution_type),
       _link(nullptr), _object(nullptr)

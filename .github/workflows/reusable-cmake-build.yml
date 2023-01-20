@@ -24,17 +24,17 @@ jobs:
       matrix:
         configurations: [Debug, Release]
 
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     env:
       BUILD_ARTIFACT_NAME: ${{inputs.build_artifact}}
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
-      CMAKE_GENERATOR: Visual Studio 16 2019
-      PLATFORM_TOOLSET: v142
+      CMAKE_GENERATOR: Visual Studio 17 2022
+      PLATFORM_TOOLSET: v143
 
     steps:
-    - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       with:
         submodules: 'recursive'
 
@@ -45,7 +45,7 @@ jobs:
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache nuget packages
-      uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+      uses: actions/cache@4723a57e26efda3a62cbde1812113b730952852d
       env:
         cache-name: cache-nuget-modules
       with:
@@ -64,21 +64,9 @@ jobs:
       run: |
         cmake --build build --config ${{env.BUILD_CONFIGURATION }}
 
-    # Download and extract demo repo artifacts. These then get uploaded along with the build artifacts.
-    # The subequent tests will directly get these when they download the build artifacts. In case
-    # a test fails, the .o files used for the test will be available in the uploaded build artifacts.
-    - name: Download demo repository artifacts
-      uses: dawidd6/action-download-artifact@e6e25ac3a2b93187502a8be1ef9e9603afc34925
-      with:
-        github_token: ${{secrets.GITHUB_TOKEN}}
-        workflow: cicd.yml
-        workflow_conclusion: success
-        name: x64-${{ matrix.configurations }}-cilium-xdp
-        path: ${{github.workspace}}
-        repo: microsoft/ebpf-for-windows-demo
-        check_artifacts:  false
-        search_artifacts: false
-        skip_unpack: true
+    - name: Download demo repository
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
     - name: Extract artifacts to build path
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -87,7 +75,7 @@ jobs:
         tar -xf ..\..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
 
     - name: Upload Build Output
-      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
         path: ${{github.workspace}}/build/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}

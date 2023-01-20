@@ -353,7 +353,10 @@ ebpf_program_load(
         if (log_buffer) {
             size_t log_buffer_size;
             if (program != nullptr) {
-                *log_buffer = _strdup(bpf_program__log_buf(program, &log_buffer_size));
+                const char* log_buffer_str = bpf_program__log_buf(program, &log_buffer_size);
+                if (log_buffer_str != nullptr) {
+                    *log_buffer = ebpf_duplicate_string(log_buffer_str);
+                }
             }
         }
         bpf_object__close(new_object);
@@ -385,7 +388,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
     fd_t dropped_packet_map_fd = bpf_object__find_map_fd_by_name(object, "dropped_packet_map");
@@ -433,6 +436,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     // Reattach to all interfaces so we can test the ingress_ifindex field passed to the program.
     hook.detach_link(link);
+    hook.close_link(link);
     if_index = 0;
     REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
 
@@ -476,7 +480,7 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -518,7 +522,7 @@ bad_map_name_um(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == -EINVAL);
 
@@ -595,7 +599,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
     fd_t limit_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
@@ -611,9 +615,8 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     // Apply policy of maximum 2 binds per process
     set_bind_limit(limit_map_fd, 2);
 
-    std::function<ebpf_result_t(void*, int*)> invoke = [&hook](void* context, int* result) -> ebpf_result_t {
-        return hook.fire(context, result);
-    };
+    std::function<ebpf_result_t(void*, int*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
     // Bind first port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
@@ -676,7 +679,7 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
     fd_t limit_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
@@ -727,9 +730,8 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     // Apply policy of maximum 2 binds per process
     set_bind_limit(limit_map_fd, 2);
 
-    std::function<ebpf_result_t(void*, int*)> invoke = [&hook](void* context, int* result) -> ebpf_result_t {
-        return hook.fire(context, result);
-    };
+    std::function<ebpf_result_t(void*, int*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
     // Bind first port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
@@ -798,7 +800,7 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -818,9 +820,8 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
     }
 
     uint64_t fake_pid = 12345;
-    std::function<ebpf_result_t(void*, int*)> invoke = [&hook](void* context, int* result) -> ebpf_result_t {
-        return hook.fire(context, result);
-    };
+    std::function<ebpf_result_t(void*, int*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
 
     ring_buffer_api_test_helper(process_map_fd, fake_app_ids, [&](int i) {
         // Emulate bind operation.
@@ -855,7 +856,7 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 0);
 
-    verify_utility_helper_results(object);
+    verify_utility_helper_results(object, false);
 }
 
 void
@@ -878,7 +879,7 @@ map_test(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1020,7 +1021,7 @@ _cgroup_load_test(
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
 
     REQUIRE(result == 0);
@@ -1147,7 +1148,7 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1207,7 +1208,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1221,7 +1222,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1293,7 +1294,7 @@ TEST_CASE("implicit_detach", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1338,7 +1339,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1387,7 +1388,7 @@ TEST_CASE("explicit_detach", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1434,7 +1435,7 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1632,8 +1633,9 @@ TEST_CASE("printk", "[end_to_end]")
     int hook_result = 0;
     errno_t error = capture.begin_capture();
     if (error == NO_ERROR) {
-        REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+        ebpf_result_t hook_fire_result = hook.fire(&ctx, &hook_result);
         output = capture.get_stdout_contents();
+        REQUIRE(hook_fire_result == EBPF_SUCCESS);
     }
     std::string expected_output = "Hello, world\n"
                                   "Hello, world\n"
@@ -2288,7 +2290,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
         "droppacket_um.dll", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        free((void*)error_message);
+        ebpf_free((void*)error_message);
     }
     REQUIRE(error == 0);
 
@@ -2648,6 +2650,8 @@ TEST_CASE("get_bpf_attach_type", "[end_to_end]")
 
 TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
 {
+    _test_helper_end_to_end test_helper;
+
     // First open a .dll file
     bpf_object* native_object = bpf_object__open("droppacket_um.dll");
     REQUIRE(native_object != nullptr);

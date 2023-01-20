@@ -116,7 +116,7 @@ compile_c_file(const std::filesystem::path& file_path, const std::string& includ
         while (std::getline(log, line)) {
             error << line << std::endl;
         }
-        throw std::runtime_error("Failed to compiler: " + error.str());
+        throw std::runtime_error("Failed to compile: " + error.str());
     }
 }
 

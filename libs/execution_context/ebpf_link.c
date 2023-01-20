@@ -21,13 +21,14 @@ typedef struct _ebpf_link
     ebpf_extension_data_t client_data;
     ebpf_extension_client_t* extension_client_context;
     ebpf_lock_t attach_lock;
+    bool detaching;
 
     void* provider_binding_context;
 } ebpf_link_t;
 
 static ebpf_result_t
 _ebpf_link_instance_invoke(
-    _In_ const void* extension_client_binding_context, _In_ void* program_context, _Out_ uint32_t* result);
+    _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result);
 
 static struct
 {
@@ -36,7 +37,7 @@ static struct
 } _ebpf_link_dispatch_table = {1, {_ebpf_link_instance_invoke}};
 
 static void
-_ebpf_link_free(ebpf_core_object_t* object)
+_ebpf_link_free(_Frees_ptr_ ebpf_core_object_t* object)
 {
     ebpf_link_t* link = (ebpf_link_t*)object;
     ebpf_lock_destroy(&link->attach_lock);
@@ -44,7 +45,7 @@ _ebpf_link_free(ebpf_core_object_t* object)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_link_create(ebpf_link_t** link)
+ebpf_link_create(_Outptr_ ebpf_link_t** link)
 {
     EBPF_LOG_ENTRY();
     *link = ebpf_epoch_allocate(sizeof(ebpf_link_t));
@@ -65,7 +66,10 @@ ebpf_link_create(ebpf_link_t** link)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_link_initialize(
-    ebpf_link_t* link, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length)
+    _Inout_ ebpf_link_t* link,
+    ebpf_attach_type_t attach_type,
+    _In_reads_(context_data_length) const uint8_t* context_data,
+    size_t context_data_length)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
@@ -128,7 +132,7 @@ Exit:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
+ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value = EBPF_SUCCESS;
@@ -151,6 +155,7 @@ ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
     }
 
     link->program = program;
+    link->detaching = FALSE;
     ebpf_program_attach_link(program, link);
 
 Done:
@@ -166,9 +171,9 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     ebpf_program_t* program = NULL;
 
     state = ebpf_lock_lock(&link->attach_lock);
-    if (link->program != NULL) {
+    if (link->program != NULL && !link->detaching) {
         program = link->program;
-        link->program = NULL;
+        link->detaching = TRUE;
     }
     ebpf_lock_unlock(&link->attach_lock, state);
 
@@ -177,6 +182,11 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     }
 
     ebpf_extension_unload(link->extension_client_context);
+
+    state = ebpf_lock_lock(&link->attach_lock);
+    link->program = NULL;
+    ebpf_lock_unlock(&link->attach_lock, state);
+
     link->extension_client_context = NULL;
     ebpf_free(link->client_data.data);
     link->client_data.data = NULL;
@@ -186,7 +196,7 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
 
 static ebpf_result_t
 _ebpf_link_instance_invoke(
-    _In_ const void* extension_client_binding_context, _In_ void* program_context, _Out_ uint32_t* result)
+    _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result)
 {
     // No function entry exit traces as this is a high volume function.
     ebpf_result_t return_value;

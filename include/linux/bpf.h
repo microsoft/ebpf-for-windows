@@ -55,15 +55,20 @@ enum bpf_cmd_id
     BPF_PROG_LOAD,
     BPF_OBJ_PIN,
     BPF_OBJ_GET,
+    BPF_PROG_ATTACH,
+    BPF_PROG_DETACH,
     BPF_PROG_GET_NEXT_ID,
     BPF_MAP_GET_NEXT_ID,
     BPF_LINK_GET_NEXT_ID,
     BPF_PROG_GET_FD_BY_ID,
     BPF_MAP_GET_FD_BY_ID,
+    BPF_MAP_LOOKUP_AND_DELETE_ELEM,
     BPF_LINK_GET_FD_BY_ID,
     BPF_OBJ_GET_INFO_BY_FD,
     BPF_LINK_DETACH,
     BPF_PROG_BIND_MAP,
+    BPF_PROG_TEST_RUN,
+    BPF_PROG_RUN = BPF_PROG_TEST_RUN,
 };
 
 /// Attributes used by BPF_OBJ_GET_INFO_BY_FD.
@@ -138,7 +143,17 @@ union bpf_attr
         uint32_t log_size;     ///< Size in bytes of the log buffer.
         uint32_t kern_version; ///< Kernel version (currently ignored on Windows).
     };                         ///< Attributes used by BPF_PROG_LOAD.
-
+    
+    //BPF_PROG_ATTACH
+    //BPF_PROG_DETACH
+    struct
+    {
+        uint32_t target_fd;               ///< eBPF target to attach/detach to/from.
+        uint32_t attach_bpf_fd;           ///< File descriptor of program to attach to.
+        enum bpf_attach_type attach_type; ///< Type of program to attach/detach to/from.
+        uint32_t attach_flags;            ///< Flags affecting the attach operation.
+    };                                    ///< Attributes used by BPF_PROG_ATTACH/DETACH. 
+    
     // BPF_OBJ_PIN
     // BPF_OBJ_GET
     struct
@@ -173,6 +188,26 @@ union bpf_attr
 
     // BPF_PROG_BIND_MAP
     bpf_prog_bind_map_attr_t prog_bind_map; ///< Attributes used by BPF_PROG_BIND_MAP.
+
+    // BPF_PROG_TEST_RUN
+    struct
+    {
+        uint32_t prog_fd;       ///< File descriptor of program to run.
+        uint32_t retval;        ///< On return, contains the return value of the program.
+        uint32_t data_size_in;  ///< Size in bytes of input data.
+        uint32_t data_size_out; ///< Size in bytes of output data.
+        uint64_t data_in;       ///< Pointer to input data.
+        uint64_t data_out;      ///< Pointer to output data.
+        uint32_t repeat;        ///< Number of times to repeat the program.
+        uint32_t duration;      ///< Duration in milliseconds to run the program.
+        uint32_t ctx_size_in;   ///< Size in bytes of input context.
+        uint32_t ctx_size_out;  ///< Size in bytes of output context.
+        uint64_t ctx_in;        ///< Pointer to input context.
+        uint64_t ctx_out;       ///< Pointer to output context.
+        uint32_t flags;         ///< Flags (currently 0).
+        uint32_t cpu;           ///< CPU to run the program on.
+        uint32_t batch_size;    ///< Number of times to run the program in a batch.
+    } test;                     ///< Attributes used by BPF_PROG_TEST_RUN.
 };
 #ifdef _MSC_VER
 #pragma warning(pop)

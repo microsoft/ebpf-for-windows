@@ -26,7 +26,12 @@
 // f788ef4a-207d-4dc3-85cf-0f2ea107213c
 DEFINE_GUID(EBPF_PROGRAM_TYPE_SAMPLE, 0xf788ef4a, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
 
+typedef ebpf_result_t (*ebpf_get_program_context_t)(_Outptr_ void** context);
+static ebpf_get_program_context_t _sample_ebpf_ext_get_program_context = NULL;
+
 // Sample Extension helper function addresses table.
+static uint64_t
+_sample_get_pid_tgid();
 static int64_t
 _sample_ebpf_extension_helper_function1(_In_ const sample_program_context_t* context);
 static int64_t
@@ -43,8 +48,15 @@ static const void* _sample_ebpf_extension_helpers[] = {
 static ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
     EBPF_COUNT_OF(_sample_ebpf_extension_helpers), (uint64_t*)_sample_ebpf_extension_helpers};
 
+static const void* _sample_global_helpers[] = {(void*)&_sample_get_pid_tgid};
+
+static ebpf_helper_function_addresses_t _sample_global_helper_function_address_table = {
+    EBPF_COUNT_OF(_sample_global_helpers), (uint64_t*)_sample_global_helpers};
+
 static ebpf_program_data_t _sample_ebpf_extension_program_data = {
-    &_sample_ebpf_extension_program_info, &_sample_ebpf_extension_helper_function_address_table};
+    &_sample_ebpf_extension_program_info,
+    &_sample_ebpf_extension_helper_function_address_table,
+    &_sample_global_helper_function_address_table};
 
 static ebpf_extension_data_t _sample_ebpf_extension_program_info_provider_data = {
     SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION,
@@ -72,9 +84,9 @@ NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_program_info_provider_mod
 static NTSTATUS
 _sample_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
+    _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Outptr_ void** provider_binding_context,
     _Outptr_result_maybenull_ const void** provider_dispatch);
@@ -87,7 +99,7 @@ _sample_ebpf_extension_program_info_provider_attach_client(
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
 static NTSTATUS
-_sample_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context);
+_sample_ebpf_extension_program_info_provider_detach_client(_In_ const void* provider_binding_context);
 
 /**
  * @brief Callback invoked after the provider module and a client module have detached from one another.
@@ -157,9 +169,9 @@ NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_hook_provider_moduleid = 
 static NTSTATUS
 _sample_ebpf_extension_hook_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
+    _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Outptr_ void** provider_binding_context,
     _Outptr_result_maybenull_ const void** provider_dispatch);
@@ -172,7 +184,7 @@ _sample_ebpf_extension_hook_provider_attach_client(
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
 static NTSTATUS
-_sample_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context);
+_sample_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_binding_context);
 
 /**
  * @brief Callback invoked after the provider module and a client module have detached from one another.
@@ -239,18 +251,18 @@ static sample_ebpf_extension_hook_provider_t _sample_ebpf_extension_hook_provide
 static NTSTATUS
 _sample_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
+    _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Outptr_ void** provider_binding_context,
     _Outptr_result_maybenull_ const void** provider_dispatch)
 {
     NTSTATUS status = STATUS_SUCCESS;
     sample_ebpf_extension_program_info_client_t* program_info_client = NULL;
+    ebpf_extension_dispatch_table_t* client_dispatch_table;
 
     UNREFERENCED_PARAMETER(provider_context);
-    UNREFERENCED_PARAMETER(client_dispatch);
     UNREFERENCED_PARAMETER(client_binding_context);
 
     if ((provider_binding_context == NULL) || (provider_dispatch == NULL)) {
@@ -260,6 +272,12 @@ _sample_ebpf_extension_program_info_provider_attach_client(
 
     *provider_binding_context = NULL;
     *provider_dispatch = NULL;
+
+    client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
+    if (client_dispatch_table == NULL) {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
 
     program_info_client = (sample_ebpf_extension_program_info_client_t*)ebpf_allocate(
         sizeof(sample_ebpf_extension_program_info_client_t));
@@ -272,6 +290,8 @@ _sample_ebpf_extension_program_info_provider_attach_client(
     program_info_client->nmr_binding_handle = nmr_binding_handle;
     program_info_client->client_module_id = client_registration_instance->ModuleId->Guid;
 
+    _sample_ebpf_ext_get_program_context = (ebpf_get_program_context_t)client_dispatch_table->function[0];
+
 Exit:
     if (NT_SUCCESS(status)) {
         *provider_binding_context = program_info_client;
@@ -282,11 +302,12 @@ Exit:
 }
 
 static NTSTATUS
-_sample_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context)
+_sample_ebpf_extension_program_info_provider_detach_client(_In_ const void* provider_binding_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
     UNREFERENCED_PARAMETER(provider_binding_context);
+    _sample_ebpf_ext_get_program_context = NULL;
 
     return status;
 }
@@ -380,9 +401,9 @@ Exit:
 static NTSTATUS
 _sample_ebpf_extension_hook_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
-    _In_ void* provider_context,
+    _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Outptr_ void** provider_binding_context,
     _Outptr_result_maybenull_ const void** provider_dispatch)
@@ -439,7 +460,7 @@ Exit:
 }
 
 static NTSTATUS
-_sample_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context)
+_sample_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_binding_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -527,7 +548,7 @@ Exit:
 
 _Must_inspect_result_ ebpf_result_t
 sample_ebpf_extension_profile_program(
-    _In_ sample_ebpf_ext_profile_request_t* request,
+    _Inout_ sample_ebpf_ext_profile_request_t* request,
     size_t request_length,
     _Inout_ sample_ebpf_ext_profile_reply_t* reply)
 {
@@ -568,6 +589,17 @@ sample_ebpf_extension_profile_program(
 
 Exit:
     return return_value;
+}
+
+// Global Helper Function Definitions.
+static uint64_t
+_sample_get_pid_tgid()
+{
+    sample_program_context_t* context = NULL;
+    _sample_ebpf_ext_get_program_context((void**)&context);
+    ASSERT(context != NULL);
+
+    return context->pid_tgid;
 }
 
 // Helper Function Definitions.

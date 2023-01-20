@@ -48,10 +48,7 @@ Exit:
 
 static _Must_inspect_result_ ebpf_registry_result_t
 write_registry_value_binary(
-    ebpf_registry_key_t key,
-    _In_z_ const wchar_t* value_name,
-    _In_reads_(value_size) uint8_t* value,
-    _In_ size_t value_size)
+    ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_reads_(value_size) uint8_t* value, size_t value_size)
 {
     UNICODE_STRING unicode_value_name;
 

@@ -5,9 +5,17 @@
 -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
   <!-- Override the rules for projects that are not under control of this project -->
-  <PropertyGroup Condition="'$(Analysis)'=='True'">
+  <PropertyGroup Condition="'$(Analysis)'=='True' AND '$(AnalysisOnExternal)'=='True'">
     <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <CodeAnalysisRuleSet>$(SolutionDir)external\Analyze.external.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(AddressSanitizer)'=='True' OR '$(Fuzzer)'=='True'">
+    <EnableASAN>true</EnableASAN>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalLibraryDirectories>$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
 </Project>

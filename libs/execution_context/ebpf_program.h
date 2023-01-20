@@ -32,6 +32,8 @@ extern "C"
         ebpf_utf8_string_t section_name;
         ebpf_utf8_string_t file_name;
         ebpf_code_type_t code_type;
+        const uint8_t* program_info_hash;
+        size_t program_info_hash_length;
     } ebpf_program_parameters_t;
 
     typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);
@@ -68,7 +70,7 @@ extern "C"
      * @brief Initialize a program instance from the provided program
      *  parameters.
      *
-     * @param[in,out] program Program instance to initialize.
+     * @param[in, out] program Program instance to initialize.
      * @param[in] program_parameters Program parameters to be used to initialize
      *  the program instance.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -171,7 +173,7 @@ extern "C"
      * @param[out] result Output from the program.
      */
     void
-    ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result);
+    ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _Out_ uint32_t* result);
 
     /**
      * @brief Store the helper function IDs that are used by the eBPF program in an array
@@ -211,8 +213,8 @@ extern "C"
     /**
      * @brief Attach a link object to an eBPF program.
      *
-     * @param[in] program Program to attach to the link object.
-     * @param[in] link The link object.
+     * @param[in, out] program Program to attach to the link object.
+     * @param[in, out] link The link object.
      */
     void
     ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
@@ -220,8 +222,8 @@ extern "C"
     /**
      * @brief Detach a link object from the eBPF program it is attached to.
      *
-     * @param[in] program Program to detach to the link object from.
-     * @param[in] link The link object.
+     * @param[in, out] program Program to detach to the link object from.
+     * @param[in, out] link The link object.
      */
     void
     ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
@@ -243,7 +245,7 @@ extern "C"
      * @param[in] program The program to get info about.
      * @param[in] input_buffer Buffer to read bpf_prog_info from.
      * @param[out] output_buffer Buffer to write bpf_prog_info into.
-     * @param[in,out] info_size On input, the size in bytes of the buffer.
+     * @param[in, out] info_size On input, the size in bytes of the buffer.
      * On output, the number of bytes actually written.
      *
      * @retval EBPF_SUCCESS The operation was successful.
@@ -271,6 +273,53 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_create_and_initialize(
         _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle);
+
+    typedef struct _ebpf_program_test_run_options
+    {
+        _Readable_bytes_(data_size_in) const uint8_t* data_in; ///< Input data to the program.
+        _Writable_bytes_(data_size_out) uint8_t* data_out;     ///< Output data from the program.
+        size_t data_size_in;                                   ///< Size of input data.
+        size_t data_size_out; ///< Maximum length of data_out on input and actual length of data_out on output.
+        _Readable_bytes_(context_size_in) const uint8_t* context_in; ///< Input context to the program.
+        _Writable_bytes_(context_size_out) uint8_t* context_out;     ///< Output context from the program.
+        size_t context_size_in;                                      ///< Size of input context.
+        size_t context_size_out; ///< Maximum length of context_out on input and actual length of context_out on output.
+        uint64_t return_value;   ///< Return value from the program.
+        size_t repeat_count;     ///< Number of times to repeat the program.
+        uint64_t duration;       ///< Duration in nanoseconds of the program execution.
+        uint32_t flags;          ///< Flags to control the test run.
+        uint32_t cpu;            ///< CPU to run the program on.
+        size_t batch_size;       ///< Number of times to repeat the program in a batch.
+    } ebpf_program_test_run_options_t;
+
+    /**
+     * @brief Run the program with the given input and output buffers and measure the duration.
+     *
+     * @param[in] program Program to run.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Invalid argument.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this program.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options);
+
+    typedef ebpf_result_t (*ebpf_helper_function_addresses_changed_callback_t)(
+        _Inout_ ebpf_program_t* program, _In_opt_ void* context);
+
+    /**
+     * @brief Register to be notified when the helper function addresses change.
+     *
+     * @param[in,out] program Program to register for helper function address changes.
+     * @param[in] callback Function to call when helper function addresses change.
+     * @param[in] context Context to pass to the callback.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Invalid argument.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_register_for_helper_changes(
+        _Inout_ ebpf_program_t* program,
+        _In_ ebpf_helper_function_addresses_changed_callback_t callback,
+        _In_opt_ void* context);
 
 #ifdef __cplusplus
 }

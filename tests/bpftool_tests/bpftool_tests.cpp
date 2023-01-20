@@ -4,6 +4,8 @@
 #define CATCH_CONFIG_MAIN
 
 #include <cstdarg>
+#include <filesystem>
+#include <fstream>
 #include <stdio.h>
 #include <string>
 #include "capture_helper.hpp"
@@ -12,7 +14,7 @@
 
 // Run a given command and return the output and exit code.
 std::string
-run_command(_In_ PCSTR command_line, _Out_ int* result)
+run_command(_In_z_ const char* command_line, _Out_ int* result)
 {
     printf("Running command: %s\n\n", command_line);
 
@@ -74,7 +76,7 @@ TEST_CASE("prog load map_in_map.o", "[prog][load]")
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
-    output = run_command("bpftool prog load map_in_map.o map_in_map", &result);
+    output = run_command("bpftool --legacy prog load map_in_map.o map_in_map", &result);
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
@@ -119,7 +121,7 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     int result;
     std::string output;
 
-    output = run_command("bpftool prog load droppacket.o droppacket", &result);
+    output = run_command("bpftool --legacy prog load droppacket.o droppacket", &result);
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
@@ -169,10 +171,82 @@ TEST_CASE("map create", "[map]")
     REQUIRE(ebpf_object_unpin("FileName") == EBPF_SUCCESS);
 }
 
+TEST_CASE("map show pinned", "[map]")
+{
+    int status;
+    std::string output =
+        run_command("bpftool map create \\\\test_map type hash key 4 value 4 entries 10 name testing", &status);
+    REQUIRE(output == "");
+    REQUIRE(status == 0);
+
+    output = run_command("bpftool map show name testing", &status);
+    REQUIRE(status == 0);
+    std::string id = std::to_string(atoi(output.c_str()));
+    REQUIRE(output == id + ": hash  name testing  flags 0x0\n\tkey 4B  value 4B  max_entries 10\n");
+
+    output = run_command("bpftool map show pinned \\\\test_map", &status);
+    REQUIRE(status == 0);
+    REQUIRE(output == id + ": hash  name testing  flags 0x0\n\tkey 4B  value 4B  max_entries 10\n");
+
+    REQUIRE(ebpf_object_unpin("\\\\test_map") == EBPF_SUCCESS);
+}
+
 TEST_CASE("prog show id 1", "[prog][show]")
 {
     int result;
     std::string output = run_command("bpftool prog show id 1", &result);
     REQUIRE(output == "Error: get by id (1): No such file or directory\n");
     REQUIRE(result == -1);
+}
+
+TEST_CASE("prog prog run", "[prog][load]")
+{
+    int result;
+    std::string output;
+
+    output = run_command("bpftool --legacy prog load droppacket.o droppacket", &result);
+    REQUIRE(output == "");
+    REQUIRE(result == 0);
+
+    output = run_command("bpftool prog show", &result);
+    REQUIRE(result == 0);
+    std::string id = std::to_string(atoi(output.c_str()));
+    size_t offset = output.find(" map_ids ");
+    REQUIRE(offset > 0);
+    std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
+    offset = output.find(",");
+    std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
+    REQUIRE(output == id + ": xdp  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
+
+    // Create temporary files for input and output.
+    std::filesystem::path input_file = std::filesystem::temp_directory_path() / "data_in.txt";
+    std::filesystem::path output_file = std::filesystem::temp_directory_path() / "data_out.txt";
+
+    // Write input data to file.
+    std::ofstream output_stream(input_file, std::ios::out | std::ios::binary);
+
+    // Write 1000 bytes of data.
+    for (int i = 0; i < 1000; i++) {
+        output_stream << "a";
+    }
+    output_stream.close();
+
+    // Try attaching to an interface by friendly name.
+    output = run_command(
+        ("bpftool prog run id " + id + " data_in \"" + input_file.string() + "\" data_out \"" + output_file.string() +
+         "\" repeat 1000000")
+            .c_str(),
+        &result);
+    REQUIRE(result == 0);
+
+    // Check if output contains: "Return value: 1, duration (average): 222ns"
+    REQUIRE(output.find("Return value: 1, duration (average): ") != std::string::npos);
+
+    output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
+    REQUIRE(output == "\nUnpinned " + id + " from droppacket\n");
+    REQUIRE(result == 0);
+
+    output = run_command("bpftool prog show", &result);
+    REQUIRE(output == "");
+    REQUIRE(result == 0);
 }

@@ -276,6 +276,7 @@ net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp
     // context. This is best effort & no locks are held.
     filter_context->client_context = NULL;
     filter_context->filter_ids = NULL;
+    filter_context->filter_ids_count = 0;
     DEREFERENCE_FILTER_CONTEXT(filter_context);
 }
 
@@ -361,7 +362,7 @@ net_ebpf_extension_add_wfp_filters(
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
-    _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _Outptr_result_buffer_maybenull_(filter_count) uint64_t** filter_ids)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -388,6 +389,7 @@ net_ebpf_extension_add_wfp_filters(
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmTransactionBegin", status);
+        result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
     is_in_transaction = TRUE;
@@ -428,6 +430,7 @@ net_ebpf_extension_add_wfp_filters(
     status = FwpmTransactionCommit(_fwp_engine_handle);
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmTransactionCommit", status);
+        result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
     is_in_transaction = FALSE;

@@ -40,13 +40,19 @@ class _test_helper
         epoch_initiated = true;
         REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
         async_initiated = true;
+        REQUIRE(ebpf_state_initiate() == EBPF_SUCCESS);
+        state_initiated = true;
     }
     ~_test_helper()
     {
+        if (state_initiated)
+            ebpf_state_terminate();
         if (async_initiated)
             ebpf_async_terminate();
-        if (epoch_initiated)
+        if (epoch_initiated) {
+            ebpf_epoch_flush();
             ebpf_epoch_terminate();
+        }
         if (platform_initiated)
             ebpf_platform_terminate();
         ebpf_object_tracking_terminate();
@@ -56,6 +62,7 @@ class _test_helper
     bool platform_initiated = false;
     bool epoch_initiated = false;
     bool async_initiated = false;
+    bool state_initiated = false;
 };
 
 TEST_CASE("hash_table_test", "[platform]")
@@ -89,10 +96,15 @@ TEST_CASE("hash_table_test", "[platform]")
         v = static_cast<uint8_t>(ebpf_random_uint32());
     }
 
-    REQUIRE(
-        ebpf_hash_table_create(
-            &table, ebpf_allocate, ebpf_free, key_1.size(), data_1.size(), 1, EBPF_HASH_TABLE_NO_LIMIT, NULL) ==
-        EBPF_SUCCESS);
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = key_1.size(),
+        .value_size = data_1.size(),
+        .allocate = ebpf_allocate,
+        .free = ebpf_free,
+        .bucket_count = 1,
+    };
+
+    REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
 
     // Insert first
     // Empty bucket case
@@ -186,16 +198,12 @@ TEST_CASE("hash_table_stress_test", "[platform]")
     uint32_t key_count = 4;
     uint32_t load_factor = 4;
     int32_t cpu_id = 0;
-    REQUIRE(
-        ebpf_hash_table_create(
-            &table,
-            ebpf_epoch_allocate,
-            ebpf_epoch_free,
-            sizeof(uint32_t),
-            sizeof(uint64_t),
-            static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
-            EBPF_HASH_TABLE_NO_LIMIT,
-            NULL) == EBPF_SUCCESS);
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = sizeof(uint32_t),
+        .value_size = sizeof(uint64_t),
+        .bucket_count = static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
+    };
+    REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
     auto worker = [table, iterations, key_count, load_factor, &cpu_id]() {
         uint32_t next_key = 0;
         uint64_t value = 11;
@@ -418,8 +426,8 @@ static NTSTATUS
 test_provider_attach_client(
     HANDLE nmr_binding_handle,
     _Inout_ void* provider_context,
-    _In_ PNPI_REGISTRATION_INSTANCE client_registration_instance,
-    _In_ void* client_binding_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
     _Out_ void** provider_binding_context,
     _Out_ const void** provider_dispatch)
@@ -436,7 +444,7 @@ test_provider_attach_client(
 };
 
 static NTSTATUS
-test_provider_detach_client(_In_ void* provider_binding_context)
+test_provider_detach_client(_In_ const void* provider_binding_context)
 {
     UNREFERENCED_PARAMETER(provider_binding_context);
     return STATUS_SUCCESS;
@@ -476,8 +484,8 @@ TEST_CASE("extension_test", "[platform]")
             &provider_data,
             &test_provider_dispatch_table,
             &callback_context,
-            test_provider_attach_client,
-            test_provider_detach_client,
+            (NPI_PROVIDER_ATTACH_CLIENT_FN*)test_provider_attach_client,
+            (NPI_PROVIDER_DETACH_CLIENT_FN*)test_provider_detach_client,
             nullptr) == EBPF_SUCCESS);
 
     REQUIRE(
@@ -527,7 +535,9 @@ TEST_CASE("trampoline_test", "[platform]")
             EBPF_COUNT_OF(provider_helper_function_ids),
             provider_helper_function_ids,
             &helper_function_addresses1) == EBPF_SUCCESS);
-    REQUIRE(ebpf_get_trampoline_function(table, 0, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_get_trampoline_function(
+            table, EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
 
     // Verify that the trampoline function invokes the provider function
     REQUIRE(test_function() == EBPF_SUCCESS);
@@ -668,7 +678,7 @@ TEST_CASE("serialize_map_test", "[platform]")
     // Free de-serialized map info array.
     ebpf_map_info_array_free(map_count, map_info_array);
 
-    free(buffer);
+    ebpf_free(buffer);
 }
 
 TEST_CASE("serialize_program_info_test", "[platform]")
@@ -733,11 +743,13 @@ TEST_CASE("serialize_program_info_test", "[platform]")
             in_program_info.program_type_descriptor.name,
             out_program_info->program_type_descriptor.name,
             EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH) == 0);
-    REQUIRE(in_program_info.count_of_helpers == out_program_info->count_of_helpers);
-    REQUIRE(out_program_info->helper_prototype != nullptr);
-    for (uint32_t i = 0; i < in_program_info.count_of_helpers; i++) {
-        ebpf_helper_function_prototype_t* in_prototype = &in_program_info.helper_prototype[i];
-        ebpf_helper_function_prototype_t* out_prototype = &out_program_info->helper_prototype[i];
+    REQUIRE(
+        in_program_info.count_of_program_type_specific_helpers ==
+        out_program_info->count_of_program_type_specific_helpers);
+    REQUIRE(out_program_info->program_type_specific_helper_prototype != nullptr);
+    for (uint32_t i = 0; i < in_program_info.count_of_program_type_specific_helpers; i++) {
+        ebpf_helper_function_prototype_t* in_prototype = &in_program_info.program_type_specific_helper_prototype[i];
+        ebpf_helper_function_prototype_t* out_prototype = &out_program_info->program_type_specific_helper_prototype[i];
         REQUIRE(in_prototype->helper_id == out_prototype->helper_id);
         REQUIRE(in_prototype->return_type == out_prototype->return_type);
         for (int j = 0; j < _countof(in_prototype->arguments); j++)
@@ -749,11 +761,12 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     // Free de-serialized program info.
     ebpf_program_info_free(out_program_info);
 
-    free(buffer);
+    ebpf_free(buffer);
 }
 
 TEST_CASE("state_test", "[state]")
 {
+    _test_helper test_helper;
     size_t allocated_index_1 = 0;
     size_t allocated_index_2 = 0;
     struct
@@ -761,16 +774,12 @@ TEST_CASE("state_test", "[state]")
         uint32_t some_value;
     } foo;
     uintptr_t retrieved_value = 0;
-    REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
-    REQUIRE(ebpf_state_initiate() == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_1) == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_2) == EBPF_SUCCESS);
     REQUIRE(allocated_index_2 != allocated_index_1);
     REQUIRE(ebpf_state_store(allocated_index_1, reinterpret_cast<uintptr_t>(&foo)) == EBPF_SUCCESS);
     REQUIRE(ebpf_state_load(allocated_index_1, &retrieved_value) == EBPF_SUCCESS);
     REQUIRE(retrieved_value == reinterpret_cast<uintptr_t>(&foo));
-    ebpf_state_terminate();
-    ebpf_platform_terminate();
 }
 
 template <size_t bit_count, bool interlocked>

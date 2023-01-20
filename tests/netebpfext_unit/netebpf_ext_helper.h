@@ -21,10 +21,20 @@
 #include "net_ebpf_ext.h"
 #include "fwp_um.h"
 
+typedef struct _netebpfext_helper_base_client_context
+{
+    class _netebpf_ext_helper* helper;
+    void* provider_binding_context;
+    bpf_attach_type_t desired_attach_type; // BPF_ATTACH_TYPE_UNSPEC for any allowed.
+} netebpfext_helper_base_client_context_t;
+
 typedef class _netebpf_ext_helper
 {
   public:
-    _netebpf_ext_helper();
+    _netebpf_ext_helper(
+        _In_opt_ const void* npi_specific_characteristics = nullptr,
+        _In_opt_ _ebpf_extension_dispatch_function dispatch_function = nullptr,
+        _In_opt_ netebpfext_helper_base_client_context_t* client_context = nullptr);
     ~_netebpf_ext_helper();
 
     std::vector<GUID>
@@ -38,6 +48,27 @@ typedef class _netebpf_ext_helper
     {
         return _fwp_engine::get()->classify_test_packet(layer_guid, if_index);
     }
+
+    FWP_ACTION_TYPE
+    test_bind_ipv4() { return _fwp_engine::get()->test_bind_ipv4(); }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_recv_accept() { return _fwp_engine::get()->test_cgroup_inet4_recv_accept(); }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_recv_accept() { return _fwp_engine::get()->test_cgroup_inet6_recv_accept(); }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_connect() { return _fwp_engine::get()->test_cgroup_inet4_connect(); }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_connect() { return _fwp_engine::get()->test_cgroup_inet6_connect(); }
+
+    FWP_ACTION_TYPE
+    test_sock_ops_v4() { return _fwp_engine::get()->test_sock_ops_v4(); }
+
+    FWP_ACTION_TYPE
+    test_sock_ops_v6() { return _fwp_engine::get()->test_sock_ops_v6(); }
 
   private:
     bool trace_initiated = false;
@@ -70,17 +101,22 @@ typedef class _netebpf_ext_helper
     static NTSTATUS
     _program_info_client_attach_provider(
         _In_ HANDLE nmr_binding_handle,
-        _In_ PVOID client_context,
-        _In_ PNPI_REGISTRATION_INSTANCE provider_registration_instance);
+        _Inout_ void* client_context,
+        _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance);
 
     static NTSTATUS
-    _program_info_client_detach_provider(_In_ PVOID client_binding_context);
+    _program_info_client_detach_provider(_Inout_ void* client_binding_context);
 
     static void
-    _program_info_client_cleanup_binding_context(_In_ PVOID client_binding_context);
+    _program_info_client_cleanup_binding_context(_In_ _Post_invalid_ void* client_binding_context);
 
-    NPI_MODULEID module_id = {};
-    NPI_CLIENT_CHARACTERISTICS client{
+    // {6BE20B78-9D94-4E77-9FBF-859FB1690B82}
+    NPI_MODULEID module_id = {
+        (USHORT)sizeof(NPI_MODULEID),
+        NPI_MODULEID_TYPE::MIT_GUID,
+        {0x6be20b78, 0x9d94, 0x4e77, {0x9f, 0xbf, 0x85, 0x9f, 0xb1, 0x69, 0xb, 0x82}}};
+
+    NPI_CLIENT_CHARACTERISTICS program_info_client{
         1,
         sizeof(NPI_PROVIDER_CHARACTERISTICS),
         _program_info_client_attach_provider,
@@ -96,6 +132,37 @@ typedef class _netebpf_ext_helper
         },
     };
 
-    HANDLE nmr_client_handle;
+    static NTSTATUS
+    _hook_client_attach_provider(
+        _In_ HANDLE nmr_binding_handle,
+        _Inout_ void* client_context,
+        _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance);
+
+    static NTSTATUS
+    _hook_client_detach_provider(_Inout_ void* client_binding_context);
+
+    static void
+    _hook_client_cleanup_binding_context(_In_ void* client_binding_context);
+
+    NPI_CLIENT_CHARACTERISTICS hook_client{
+        1,
+        sizeof(NPI_PROVIDER_CHARACTERISTICS),
+        _hook_client_attach_provider,
+        _hook_client_detach_provider,
+        _hook_client_cleanup_binding_context,
+        {
+            0,
+            sizeof(NPI_REGISTRATION_INSTANCE),
+            &EBPF_HOOK_EXTENSION_IID,
+            &module_id,
+            0,
+            nullptr,
+        },
+    };
+
+    _ebpf_extension_dispatch_function hook_invoke_function;
+
+    HANDLE nmr_program_info_client_handle;
+    HANDLE nmr_hook_client_handle;
 
 } netebpf_ext_helper_t;

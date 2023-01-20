@@ -596,10 +596,10 @@ TEST_CASE("program", "[execution_context]")
 
     const ebpf_utf8_string_t program_name{(uint8_t*)("foo"), 3};
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
-    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_BIND);
+    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_XDP);
 
     const ebpf_program_parameters_t program_parameters{
-        EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, program_name, section_name};
+        EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP, program_name, section_name};
     ebpf_program_info_t* program_info;
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
@@ -631,7 +631,9 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(
         ebpf_update_trampoline_table(
             table, EBPF_COUNT_OF(test_function_ids), test_function_ids, &helper_function_addresses) == EBPF_SUCCESS);
-    REQUIRE(ebpf_get_trampoline_function(table, 0, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_get_trampoline_function(
+            table, EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
 
     // Size of the actual function is unknown, but we know the allocation is on page granularity.
     REQUIRE(
@@ -643,8 +645,22 @@ TEST_CASE("program", "[execution_context]")
     ebpf_program_invoke(program.get(), &ctx, &result);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
+    std::vector<uint8_t> input_buffer(10);
+    std::vector<uint8_t> output_buffer(10);
+    ebpf_program_test_run_options_t options = {0};
+    options.data_in = input_buffer.data();
+    options.data_size_in = input_buffer.size();
+    options.data_out = output_buffer.data();
+    options.data_size_out = output_buffer.size();
+    options.repeat_count = 10;
+
+    REQUIRE(ebpf_program_execute_test_run(program.get(), &options) == EBPF_SUCCESS);
+
+    REQUIRE(options.return_value == TEST_FUNCTION_RETURN);
+    REQUIRE(options.duration > 0);
+
     uint64_t addresses[TOTAL_HELPER_COUNT] = {};
-    uint32_t helper_function_ids[] = {1, 0, 2};
+    uint32_t helper_function_ids[] = {1, 3, 2};
     REQUIRE(
         ebpf_program_set_helper_function_ids(program.get(), EBPF_COUNT_OF(helper_function_ids), helper_function_ids) ==
         EBPF_SUCCESS);
@@ -652,8 +668,9 @@ TEST_CASE("program", "[execution_context]")
         ebpf_program_get_helper_function_addresses(program.get(), EBPF_COUNT_OF(helper_function_ids), addresses) ==
         EBPF_SUCCESS);
     REQUIRE(addresses[0] != 0);
-    REQUIRE(addresses[1] == 0);
+    REQUIRE(addresses[1] != 0);
     REQUIRE(addresses[2] != 0);
+    ebpf_free_trampoline_table(table);
 }
 
 TEST_CASE("name size", "[execution_context]")
@@ -728,7 +745,7 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
 
     REQUIRE(
         ebpf_async_set_completion_callback(
-            &completion, [](void* context, size_t output_buffer_length, ebpf_result_t result) {
+            &completion, [](_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result) {
                 UNREFERENCED_PARAMETER(output_buffer_length);
                 auto completion = reinterpret_cast<_completion*>(context);
                 auto async_query_result = &completion->async_query_result;

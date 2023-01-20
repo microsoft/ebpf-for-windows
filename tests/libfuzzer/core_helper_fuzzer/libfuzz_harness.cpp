@@ -280,7 +280,7 @@ void
 fuzz_program(
     fuzz_wrapper& fuzz_state,
     ebpf_handle_t program_handle,
-    _In_ ebpf_program_t* program,
+    _In_ const ebpf_program_t* program,
     _In_reads_(data_left_size) const uint8_t* data_left,
     size_t data_left_size)
 {
@@ -294,11 +294,11 @@ fuzz_program(
     // Get helper index.
     uint8_t helper_index;
     if (!consume_data(&data_left, &data_left_size, &helper_index, sizeof(helper_index)) ||
-        (helper_index >= program_info->count_of_helpers)) {
+        (helper_index >= program_info->count_of_program_type_specific_helpers)) {
         // No such helper id.
         return;
     }
-    ebpf_helper_function_prototype_t* prototype = &program_info->helper_prototype[helper_index];
+    ebpf_helper_function_prototype_t* prototype = &program_info->program_type_specific_helper_prototype[helper_index];
 
     // Get the helper function pointer.
     ebpf_helper_id_t helper_function_id = (ebpf_helper_id_t)prototype->helper_id;

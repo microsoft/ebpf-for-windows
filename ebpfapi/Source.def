@@ -69,6 +69,7 @@ EXPORTS
     bpf_prog_load
     bpf_prog_load_deprecated
     bpf_prog_get_next_id
+    bpf_prog_test_run_opts
     bpf_program__attach
     bpf_program__attach_xdp
     bpf_program__fd
