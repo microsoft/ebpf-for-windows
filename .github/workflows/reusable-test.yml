@@ -84,6 +84,11 @@ jobs:
       with:
         submodules: 'recursive'
         ref: ${{ github.event.workflow_run.head_branch }}
+    
+    # Install Windows SDK. 
+    - uses: fbactions/setup-winsdk@8231b3de335b4ec6b0949748e3c7213363badb6d
+      with:
+        winsdk-build-version: 22621
 
     # Perform shallow checkout for self-hosted runner.
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
