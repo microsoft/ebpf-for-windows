@@ -3,10 +3,14 @@
 Copyright (c) Microsoft Corporation
 SPDX-License-Identifier: MIT
 -->
+<?define ProductVersion="022C44B5-8969-4B75-8DB0-73F98B1BD7DC"?>
+<?define UpgradeCode="B6BCACB1-C872-4159-ABCB-43A50668056C"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:ui="http://schemas.microsoft.com/wix/UIExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
-	<Product Id="{E12C85CA-B7E9-4BA8-A94F-619BA0A38B54}" Name="eBPF for Windows" Language="1033" Version="0.6.0" Manufacturer="Microsoft" UpgradeCode="{B6BCACB1-C872-4159-ABCB-43A50668056C}">
+	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="0.6.0" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
 		<Package Description="eBPF for Windows" InstallerVersion="301" Compressed="yes" InstallScope="perMachine" Manufacturer="Microsoft" Platform="x64" />
-		<MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed." Schedule="afterInstallFinalize" />
+		<MajorUpgrade AllowSameVersionUpgrades="yes"
+					  Disallow="yes" DisallowUpgradeErrorMessage="An older version of [ProductName] is already installed. Please remove it first."
+					  AllowDowngrades="no" DowngradeErrorMessage="A newer version of [ProductName] is already installed. Please remove it first." Schedule="afterInstallFinalize" />
 		<MediaTemplate EmbedCab="yes" />
 
 		<!-- Define global properties -->
@@ -15,8 +19,6 @@ SPDX-License-Identifier: MIT
 		<Property Id="INSTALLFOLDER" Secure="yes">
 			<RegistrySearch Id="FindInstallLocation" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\[WIX_UPGRADE_DETECTED]" Name="InstallLocation" Type="raw" Win64="yes" />
 		</Property>
-		<Property Id="WIX_DOWNGRADE_DETECTED" Secure="yes" />
-		<Property Id="WIX_UPGRADE_DETECTED" Secure="yes" />
 
 		<!-- Define the Product features and installation steps -->
 		<Feature Id="ProductFeature" Title="eBPF for Windows Installer" ConfigurableDirectory="INSTALLFOLDER" Display="expand" Level="1" Absent="disallow">
@@ -25,9 +27,9 @@ SPDX-License-Identifier: MIT
 				<ComponentGroupRef Id="eBPFCore_Driver" />
 				<ComponentGroupRef Id="NetEbpfExt_Driver" />
 				<?if $(var.Configuration) = Debug ?>
-					<Feature Id="eBPF_Runtime_Components_JIT" Level="1" Title="JIT" Absent="allow">
-						<ComponentGroupRef Id="eBPF_Service" />
-					</Feature>
+				<Feature Id="eBPF_Runtime_Components_JIT" Level="1" Title="JIT" Absent="allow">
+					<ComponentGroupRef Id="eBPF_Service" />
+				</Feature>
 				<?endif?>
 			</Feature>
 			<Feature Id="eBPF_Development" Level="2" Title="Development components">
@@ -44,30 +46,51 @@ SPDX-License-Identifier: MIT
 			</Feature>
 			<Feature Id="eBPF_Testing" Level="2" Title="Testing components">
 				<ComponentGroupRef Id="eBPF_Testing_Components" />
+				<ComponentGroupRef Id="sample_ebpf_ext_Driver" />
 			</Feature>
 		</Feature>
 
 		<InstallExecuteSequence>
+			<!--Rollback sequence-->
+			<Custom Action="eBPF_netsh_helper_uninstall_rollback" Before="eBPF_netsh_helper_install">NOT Installed</Custom>
+
 			<Custom Action="eBPFCore_Driver_stop_rollback" Before="eBPFCore_Driver_install">NOT Installed</Custom>
 			<Custom Action="eBPFCore_Driver_uninstall_rollback" Before="eBPFCore_Driver_install">NOT Installed</Custom>
 
 			<Custom Action="NetEbpfExt_Driver_stop_rollback" Before="NetEbpfExt_Driver_install">NOT Installed</Custom>
 			<Custom Action="NetEbpfExt_Driver_uninstall_rollback" Before="NetEbpfExt_Driver_install">NOT Installed</Custom>
 
+			<Custom Action="sample_ebpf_ext_Driver_stop_rollback" Before="sample_ebpf_ext_Driver_install">NOT Installed</Custom>
+			<Custom Action="sample_ebpf_ext_Driver_uninstall_rollback" Before="sample_ebpf_ext_Driver_install">NOT Installed</Custom>
+
+			<!--Install sequence-->
 			<Custom Action="Clear_eBPF_store" After="InstallFiles">NOT Installed</Custom>
 			<Custom Action="Setup_eBPF_store" After="Clear_eBPF_store">NOT Installed</Custom>
 
-			<Custom Action="eBPFCore_Driver_install" After="Clear_eBPF_store">NOT Installed</Custom>
+			<Custom Action="eBPF_netsh_helper_install" After="Setup_eBPF_store">NOT Installed</Custom>
+
+			<Custom Action="eBPFCore_Driver_install" After="Setup_eBPF_store">NOT Installed</Custom>
 			<Custom Action="eBPFCore_Driver_start" After="eBPFCore_Driver_install">NOT Installed</Custom>
 
-			<Custom Action="NetEbpfExt_Driver_install" Before="Clear_eBPF_store">NOT Installed</Custom>
+			<Custom Action="NetEbpfExt_Driver_install" After="Setup_eBPF_store">NOT Installed</Custom>
 			<Custom Action="NetEbpfExt_Driver_start" After="NetEbpfExt_Driver_install">NOT Installed</Custom>
 
-			<Custom Action="eBPFCore_Driver_stop" After="eBPFCore_Driver_start">REMOVE</Custom>
-			<Custom Action="eBPFCore_Driver_uninstall" After="eBPFCore_Driver_stop">REMOVE</Custom>
+			<Custom Action="sample_ebpf_ext_Driver_install" After="Setup_eBPF_store">NOT Installed AND <![CDATA[&eBPF_Testing=3]]></Custom>
+			<Custom Action="sample_ebpf_ext_Driver_start" After="sample_ebpf_ext_Driver_install">NOT Installed AND <![CDATA[&eBPF_Testing=3]]></Custom>
 
-			<Custom Action="NetEbpfExt_Driver_stop" After="InstallFiles">REMOVE</Custom>
-			<Custom Action="NetEbpfExt_Driver_uninstall" After="NetEbpfExt_Driver_stop">REMOVE</Custom>
+			<!--Uninstall sequence-->
+			<Custom Action="eBPF_netsh_helper_uninstall" After="InstallInitialize">REMOVE="ALL"</Custom>
+
+			<Custom Action="eBPFCore_Driver_stop" After="InstallInitialize">REMOVE="ALL"</Custom>
+			<Custom Action="eBPFCore_Driver_uninstall" After="eBPFCore_Driver_stop">REMOVE="ALL"</Custom>
+
+			<Custom Action="NetEbpfExt_Driver_stop" After="InstallInitialize">REMOVE="ALL"</Custom>
+			<Custom Action="NetEbpfExt_Driver_uninstall" After="NetEbpfExt_Driver_stop">REMOVE="ALL"</Custom>
+
+			<Custom Action="sample_ebpf_ext_Driver_stop" After="InstallInitialize">REMOVE="ALL,eBPF_Testing"</Custom>
+			<Custom Action="sample_ebpf_ext_Driver_uninstall" After="sample_ebpf_ext_Driver_stop">REMOVE="ALL,eBPF_Testing"</Custom>
+
+			<Custom Action="Clear_eBPF_store_uninstall" After="NetEbpfExt_Driver_uninstall">REMOVE="ALL"</Custom>
 		</InstallExecuteSequence>
 
 		<!-- Define the UI style & behavior -->
@@ -88,7 +111,7 @@ SPDX-License-Identifier: MIT
 			<Directory Id="ProgramFiles64Folder">
 				<Directory Id="INSTALLFOLDER" Name="eBPFforWindows">
 					<?if $(var.Configuration) = Debug ?>
-						<Directory Id="dir_JIT" Name="JIT" />
+					<Directory Id="dir_JIT" Name="JIT" />
 					<?endif?>
 					<Directory Id="dir_drivers" Name="drivers"/>
 					<Directory Id="dir_include" Name="include">
@@ -113,6 +136,9 @@ SPDX-License-Identifier: MIT
 	<!-- Define the product's <Runtime> components -->
 	<Fragment>
 		<ComponentGroup Id="eBPF_Runtime_Components" Directory="INSTALLFOLDER">
+			<Component Id ="eBpfPATH" Guid="{C062B980-4B93-4FC7-A4F9-A751C2B419FD}">
+				<Environment Id="eBpfPATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="no" Part="last" Action="set" System="yes" />
+			</Component>
 			<Component Id="LICENSE" Guid="{AF22EAE5-7D8D-4F22-BB64-6B6A079A2947}">
 				<File Id="LICENSE.txt" Name="LICENSE.txt" DiskId="1" Source="$(var.SolutionDir)LICENSE.txt" />
 			</Component>
@@ -124,6 +150,12 @@ SPDX-License-Identifier: MIT
 			</Component>
 			<Component Id="EBPF_ALL.GUID" DiskId="1" Guid="{F3C808AC-A63B-4A29-B110-00B5A903F3C9}">
 				<File Id="EBPF_ALL.GUID" Name="ebpf-all.guid" Source="$(var.SolutionDir)\scripts\ebpf-all.guid" />
+			</Component>
+			<Component Id="BPFTOOL.EXE" DiskId="1" Guid="E168EB1A-35F6-47E3-B977-B16DF7DFBDB0">
+				<File Id="BPFTOOL.EXE" Name="bpftool.exe" Source="$(var.bpftool.TargetDir)bpftool.exe" />
+			</Component>
+			<Component Id="BPFTOOL.PDB" DiskId="1" Guid="D2A6D747-A52C-43B9-A684-FF05A0DCE166">
+				<File Id="BPFTOOL.PDB" Name="bpftool.pdb" Source="$(var.bpftool.TargetDir)bpftool.pdb" />
 			</Component>
 			<Component Id="EBPFAPI.DLL" DiskId="1" Guid="{C44E4B08-901E-4B71-8FD1-F0B3D11D063F}">
 				<File Id="EBPFAPI.DLL" Name="EbpfApi.dll" Source="$(var.EbpfApi.TargetDir)EbpfApi.dll" />
@@ -151,39 +183,47 @@ SPDX-License-Identifier: MIT
 			</Component>
 		</ComponentGroup>
 
-		<!--Setup eBPF store-->
+		<!--Clear/Setup eBPF store-->
 		<SetProperty Id="Clear_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Before="Clear_eBPF_store" Sequence="execute"/>
-		<CustomAction Id="Clear_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<SetProperty Id="Setup_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]' Before="Setup_eBPF_store" Sequence="execute"/>
+		<CustomAction Id="Clear_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Clear_eBPF_store_uninstall" Value='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Before="Clear_eBPF_store" Sequence="execute"/>
+		<CustomAction Id="Clear_eBPF_store_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<SetProperty Id="Setup_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]"' Before="Setup_eBPF_store" Sequence="execute"/>
 		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 
-		<!--Install eBPF Service -->
+		<!--Install/Uninstall netsh helper-->
+		<!--qtexec does not currently support a working directory (ref. https://github.com/wixtoolset/issues/issues/1265)-->
+		<CustomAction Id="eBPF_netsh_helper_install" ExeCommand='netsh add helper ebpfnetsh.dll' Directory="INSTALLFOLDER" Execute="deferred" Return="check" Impersonate="no"/>
+		<CustomAction Id="eBPF_netsh_helper_uninstall" ExeCommand='netsh delete helper ebpfnetsh.dll' Directory="INSTALLFOLDER" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<CustomAction Id="eBPF_netsh_helper_uninstall_rollback" ExeCommand='netsh delete helper ebpfnetsh.dll' Directory="INSTALLFOLDER" Execute="rollback" Return="ignore" Impersonate="no"/>
+
+		<!--Install/Uninstall eBPF Service -->
 		<?if $(var.Configuration) = Debug ?>
-			<ComponentGroup Id="eBPF_Service" Directory="dir_JIT">
-				<Component Id="EBPFSVC.PDB" DiskId="1" Guid="{D1935DF0-2FC7-42F5-81E5-19AF88D6244B}">
-					<File Id="EBPFSVC.PDB" Name="EbpfSvc.pdb" Source="$(var.ebpfsvc.TargetDir)ebpfsvc.pdb" />
-				</Component>
-				<Component Id="eBPF_Service" Guid="{25F4F9A3-78EB-4598-9982-98FB65377A51}">
-					<File Source="$(var.ebpfsvc.TargetPath)" KeyPath="yes" />
-					<ServiceInstall Id="eBPFSvcInstaller" Name="eBPFSvc" DisplayName="eBPF Service" Description="eBPF Service"
-									Start="auto"
-									Type="ownProcess"
-									ErrorControl="normal"
-									Account="[WIX_ACCOUNT_LOCALSERVICE]"
-									Vital="yes"
-									Interactive="no" />
-					<ServiceControl Id="eBPFSvc_Start" Name="eBPFSvc"
-									Start="install"
-									Wait="no" />
-					<ServiceControl Id="eBPFSvc_Stop" Name="eBPFSvc"
-									Remove="uninstall"
-									Stop="both"
-									Wait="yes" />
-				</Component>
-			</ComponentGroup>
+		<ComponentGroup Id="eBPF_Service" Directory="dir_JIT">
+			<Component Id="EBPFSVC.PDB" DiskId="1" Guid="{D1935DF0-2FC7-42F5-81E5-19AF88D6244B}">
+				<File Id="EBPFSVC.PDB" Name="EbpfSvc.pdb" Source="$(var.ebpfsvc.TargetDir)ebpfsvc.pdb" />
+			</Component>
+			<Component Id="eBPF_Service" Guid="{25F4F9A3-78EB-4598-9982-98FB65377A51}">
+				<File Source="$(var.ebpfsvc.TargetPath)" KeyPath="yes" />
+				<ServiceInstall Id="eBPFSvcInstaller" Name="eBPFSvc" DisplayName="eBPF Service" Description="eBPF Service"
+								Start="auto"
+								Type="ownProcess"
+								ErrorControl="normal"
+								Account="[WIX_ACCOUNT_LOCALSERVICE]"
+								Vital="yes"
+								Interactive="no" />
+				<ServiceControl Id="eBPFSvc_Start" Name="eBPFSvc"
+								Start="install"
+								Wait="no" />
+				<ServiceControl Id="eBPFSvc_Stop" Name="eBPFSvc"
+								Remove="uninstall"
+								Stop="both"
+								Wait="yes" />
+			</Component>
+		</ComponentGroup>
 		<?endif?>
 
-		<!--Install eBPFCore Driver-->
+		<!--Install/Uninstall eBPFCore Driver-->
 		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
 		<ComponentGroup Id="eBPFCore_Driver" Directory="dir_drivers">
 			<Component Id="eBPFCore.inf" Guid="{3D31A9C8-8BB0-48A2-94BD-CBA734438E0C}">
@@ -209,7 +249,7 @@ SPDX-License-Identifier: MIT
 		<Property Id="eBPFCore_Driver_uninstall_rollback" Value='"sc.exe" delete eBPFCore.sys' />
 		<CustomAction Id="eBPFCore_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 
-		<!--Install NetEbpfExt Driver-->
+		<!--Install/Uninstall NetEbpfExt Driver-->
 		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
 		<ComponentGroup Id="NetEbpfExt_Driver" Directory="dir_drivers">
 			<Component Id="NetEbpfExt.inf" Guid="{F1E813EE-665E-488C-84AA-0F47011C12F0}">
@@ -409,12 +449,6 @@ SPDX-License-Identifier: MIT
 			<Component Id="BPF_CALL.O" DiskId="1" Guid="438B5ECE-4410-477D-A60C-A5A68579791D">
 				<File Id="BPF_CALL.O" Name="bpf_call.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bpf_call.o" />
 			</Component>
-			<Component Id="BPFTOOL.EXE" DiskId="1" Guid="E168EB1A-35F6-47E3-B977-B16DF7DFBDB0">
-				<File Id="BPFTOOL.EXE" Name="bpftool.exe" Source="$(var.bpftool.TargetDir)bpftool.exe" />
-			</Component>
-			<Component Id="BPFTOOL.PDB" DiskId="1" Guid="D2A6D747-A52C-43B9-A684-FF05A0DCE166">
-				<File Id="BPFTOOL.PDB" Name="bpftool.pdb" Source="$(var.bpftool.TargetDir)bpftool.pdb" />
-			</Component>
 			<Component Id="CGROUP_SOCK_ADDR.O" DiskId="1" Guid="6AF0B01D-554F-4918-8D00-AA4104DD5BE0">
 				<File Id="CGROUP_SOCK_ADDR.O" Name="cgroup_sock_addr.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr.o" />
 			</Component>
@@ -481,12 +515,6 @@ SPDX-License-Identifier: MIT
 			<Component Id="RUN_TESTS.BAT" DiskId="1" Guid="C263C5FF-4A39-4078-9406-545F7D41DA13">
 				<File Id="RUN_TESTS.BAT" Name="run_tests.bat" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\run_tests.bat" />
 			</Component>
-			<Component Id="SAMPLE_EBPF_EXT.PDB" DiskId="1" Guid="B77B362A-BC02-46E8-B2BB-05D0981B1CC9">
-				<File Id="SAMPLE_EBPF_EXT.PDB" Name="sample_ebpf_ext.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\sample_ebpf_ext.pdb" />
-			</Component>
-			<Component Id="SAMPLE_EBPF_EXT.SYS" DiskId="1" Guid="027287AF-9945-4CD9-B863-8E39712612F7">
-				<File Id="SAMPLE_EBPF_EXT.SYS" Name="sample_ebpf_ext.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\sample_ebpf_ext.sys" />
-			</Component>
 			<Component Id="SAMPLE_EXT_APP.EXE" DiskId="1" Guid="901A57AF-4B88-4F14-B84D-61FEA2979C40">
 				<File Id="SAMPLE_EXT_APP.EXE" Name="sample_ext_app.exe" Source="$(var.sample_ext_app.TargetDir)sample_ext_app.exe" />
 			</Component>
@@ -512,5 +540,28 @@ SPDX-License-Identifier: MIT
 				<File Id="UNIT_TESTS.PDB" Name="unit_tests.pdb" Source="$(var.unit_tests.TargetDir)unit_tests.pdb" />
 			</Component>
 		</ComponentGroup>
+
+		<!--Install/Uninstall sample_ebpf_ext Driver-->
+		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
+		<ComponentGroup Id="sample_ebpf_ext_Driver" Directory="dir_testing">
+			<Component Id="SAMPLE_EBPF_EXT.PDB" DiskId="1" Guid="B77B362A-BC02-46E8-B2BB-05D0981B1CC9">
+				<File Id="SAMPLE_EBPF_EXT.PDB" Name="sample_ebpf_ext.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\sample_ebpf_ext.pdb" />
+			</Component>
+			<Component Id="SAMPLE_EBPF_EXT.SYS" DiskId="1" Guid="027287AF-9945-4CD9-B863-8E39712612F7">
+				<File Id="SAMPLE_EBPF_EXT.SYS" Name="sample_ebpf_ext.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\sample_ebpf_ext.sys" />
+			</Component>
+		</ComponentGroup>
+		<SetProperty Id="sample_ebpf_ext_Driver_install" Value='"sc.exe" create sample_ebpf_ext.sys type=kernel start=demand binpath="[#SAMPLE_EBPF_EXT.SYS]"' Before="sample_ebpf_ext_Driver_install" Sequence="execute"/>
+		<CustomAction Id="sample_ebpf_ext_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="sample_ebpf_ext_Driver_start" Value='"net.exe" start sample_ebpf_ext.sys' />
+		<CustomAction Id="sample_ebpf_ext_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="sample_ebpf_ext_Driver_stop" Value='"net.exe" stop sample_ebpf_ext.sys' />
+		<CustomAction Id="sample_ebpf_ext_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<Property Id="sample_ebpf_ext_Driver_uninstall" Value='"sc.exe" delete sample_ebpf_ext.sys' />
+		<CustomAction Id="sample_ebpf_ext_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<Property Id="sample_ebpf_ext_Driver_stop_rollback" Value='"net.exe" stop sample_ebpf_ext.sys' />
+		<CustomAction Id="sample_ebpf_ext_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
+		<Property Id="sample_ebpf_ext_Driver_uninstall_rollback" Value='"sc.exe" delete sample_ebpf_ext.sys' />
+		<CustomAction Id="sample_ebpf_ext_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 	</Fragment>
 </Wix>
