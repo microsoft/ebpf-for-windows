@@ -67,7 +67,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     steps:
       uses: actions/checkout@v2
-      uses: fbactions/setup-winsdk@v1
+      uses: fbactions/setup-winsdk@8231b3de335b4ec6b0949748e3c7213363badb6d
       with:
         winsdk-build-version: 22621
 
