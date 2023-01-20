@@ -203,8 +203,19 @@ jobs:
 
   bpf2c_fuzzer:
     needs: libfuzzer
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: bpf2c_fuzzer
+      test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=300 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+
+  bpf2c_fuzzer_scheduled:
+    needs: libfuzzer
+    if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -231,7 +242,20 @@ jobs:
   verifier_fuzzer:
     needs: libfuzzer
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: verifier_fuzzer
+      test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=300 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+
+  verifier_fuzzer_scheduled:
+    needs: libfuzzer
+    # Always run this job.
+    if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -240,6 +264,7 @@ jobs:
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
+
 
   core_helper_fuzzer:
     needs: libfuzzer
