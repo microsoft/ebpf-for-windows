@@ -65,7 +65,7 @@ jobs:
   SDK_install:
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
-      uses: fbactions/setup-winsdk@v1
+    - uses: fbactions/setup-winsdk@v1
       with:
         winsdk-build-version: 22621
 
