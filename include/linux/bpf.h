@@ -143,17 +143,17 @@ union bpf_attr
         uint32_t log_size;     ///< Size in bytes of the log buffer.
         uint32_t kern_version; ///< Kernel version (currently ignored on Windows).
     };                         ///< Attributes used by BPF_PROG_LOAD.
-    
-    //BPF_PROG_ATTACH
-    //BPF_PROG_DETACH
+
+    // BPF_PROG_ATTACH
+    // BPF_PROG_DETACH
     struct
     {
         uint32_t target_fd;               ///< eBPF target to attach/detach to/from.
         uint32_t attach_bpf_fd;           ///< File descriptor of program to attach to.
         enum bpf_attach_type attach_type; ///< Type of program to attach/detach to/from.
         uint32_t attach_flags;            ///< Flags affecting the attach operation.
-    };                                    ///< Attributes used by BPF_PROG_ATTACH/DETACH. 
-    
+    };                                    ///< Attributes used by BPF_PROG_ATTACH/DETACH.
+
     // BPF_OBJ_PIN
     // BPF_OBJ_GET
     struct
