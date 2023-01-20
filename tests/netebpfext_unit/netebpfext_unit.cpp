@@ -38,92 +38,38 @@ TEST_CASE("query program info", "[netebpfext]")
     REQUIRE(expected_program_names == program_names);
 }
 
-typedef struct _test_client_context
+#pragma region xdp
+
+typedef struct _test_xdp_client_context
 {
-    bpf_attach_type_t desired_attach_type;
+    netebpfext_helper_base_client_context_t base;
     void* provider_binding_context;
     xdp_action_t xdp_action;
-} test_client_context_t;
+} test_xdp_client_context_t;
 
 // This callback occurs when netebpfext gets a packet and submits it to our dummy
 // eBPF program to handle.
 _Must_inspect_result_ ebpf_result_t
-netebpfext_unit_invoke_program(
+netebpfext_unit_invoke_xdp_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
 {
-    auto client_context = (test_client_context_t*)client_binding_context;
+    auto client_context = (test_xdp_client_context_t*)client_binding_context;
     UNREFERENCED_PARAMETER(context);
     *result = client_context->xdp_action;
     return EBPF_SUCCESS;
 }
 
-// Netebpfext is ready for us to attach to it as if we were ebpfcore.
-NTSTATUS
-netebpf_unit_attach_extension(
-    _In_ HANDLE nmr_binding_handle,
-    _Inout_ void* client_context,
-    _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
-{
-    const void* provider_dispatch_table;
-    ebpf_extension_dispatch_table_t client_dispatch_table = {.size = 1};
-    client_dispatch_table.function[0] = (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_program;
-    auto provider_characteristics =
-        (const ebpf_extension_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
-    auto provider_data = (const ebpf_attach_provider_data_t*)provider_characteristics->data;
-    auto test_client_context = (test_client_context_t*)client_context;
-    if (provider_data->bpf_attach_type != test_client_context->desired_attach_type) {
-        return STATUS_ACCESS_DENIED;
-    }
-
-    return NmrClientAttachProvider(
-        nmr_binding_handle,
-        test_client_context, // Client binding context.
-        &client_dispatch_table,
-        &test_client_context->provider_binding_context,
-        &provider_dispatch_table);
-}
-
-// Detach from netebpfext.
-NTSTATUS
-netebpf_unit_detach_extension(_Inout_ void* client_binding_context)
-{
-    auto test_client_context = (test_client_context_t*)client_binding_context;
-    UNREFERENCED_PARAMETER(test_client_context);
-
-    // Return STATUS_SUCCESS if all callbacks we implement are done, or return
-    // STATUS_PENDING if we will call NmrProviderDetachClientComplete() when done.
-    return STATUS_SUCCESS;
-}
-
-void
-netebpfext_unit_cleanup_binding_context(_In_ const void* client_binding_context)
-{
-    auto test_client_context = (test_client_context_t*)client_binding_context;
-    UNREFERENCED_PARAMETER(test_client_context);
-}
-
 TEST_CASE("classify_packet", "[netebpfext]")
 {
-    netebpf_ext_helper_t helper;
-
-    // Register with NMR as if we were ebpfcore.sys.
-    NPI_CLIENT_CHARACTERISTICS client_characteristics = {};
-    client_characteristics.ClientRegistrationInstance.NpiId = &EBPF_HOOK_EXTENSION_IID;
-    NPI_MODULEID module_id = {};
-    client_characteristics.ClientRegistrationInstance.ModuleId = &module_id;
     NET_IFINDEX if_index = 0;
     ebpf_extension_data_t npi_specific_characteristics = {.size = sizeof(if_index), .data = &if_index};
-    client_characteristics.ClientRegistrationInstance.NpiSpecificCharacteristics = &npi_specific_characteristics;
-    client_characteristics.ClientAttachProvider = netebpf_unit_attach_extension;
-    client_characteristics.ClientDetachProvider = netebpf_unit_detach_extension;
-    client_characteristics.ClientCleanupBindingContext =
-        (NPI_CLIENT_CLEANUP_BINDING_CONTEXT_FN*)netebpfext_unit_cleanup_binding_context;
-    test_client_context_t client_context = {.desired_attach_type = BPF_XDP};
-    HANDLE nmr_client_handle;
-    REQUIRE(NmrRegisterClient(&client_characteristics, &client_context, &nmr_client_handle) == STATUS_SUCCESS);
+    test_xdp_client_context_t client_context = {};
+    client_context.base.desired_attach_type = BPF_XDP;
 
-    // Verify we successfully attached to netebpfext.
-    REQUIRE(client_context.provider_binding_context != nullptr);
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_xdp_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
 
     // Classify an inbound packet that should pass.
     client_context.xdp_action = XDP_PASS;
@@ -134,8 +80,6 @@ TEST_CASE("classify_packet", "[netebpfext]")
     client_context.xdp_action = XDP_DROP;
     result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_BLOCK);
-
-    NmrDeregisterClient(nmr_client_handle);
 }
 
 TEST_CASE("xdp_context", "[netebpfext]")
@@ -194,6 +138,51 @@ TEST_CASE("xdp_context", "[netebpfext]")
     REQUIRE(output_data_size == 90);
     REQUIRE(output_context.data_meta == 12346);
     REQUIRE(output_context.ingress_ifindex == 67889);
+}
+
+#pragma endregion xdp
+#pragma region bind
+
+typedef struct test_bind_client_context_t
+{
+    netebpfext_helper_base_client_context_t base;
+    bind_action_t bind_action;
+} test_bind_client_context_t;
+
+_Must_inspect_result_ ebpf_result_t
+netebpfext_unit_invoke_bind_program(
+    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
+{
+    auto client_context = (test_bind_client_context_t*)client_binding_context;
+    UNREFERENCED_PARAMETER(context);
+    *result = client_context->bind_action;
+    return EBPF_SUCCESS;
+}
+
+TEST_CASE("bind_invoke", "[netebpfext]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {};
+    test_bind_client_context_t client_context = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_bind_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
+
+    // Classify a bind that should be allowed.
+    client_context.bind_action = BIND_PERMIT;
+    FWP_ACTION_TYPE result = helper.test_bind_ipv4(); // TODO(issue #526): support IPv6.
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Classify a bind that should be redirected.
+    client_context.bind_action = BIND_REDIRECT;
+    result = helper.test_bind_ipv4();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Classify a bind that should be blocked.
+    client_context.bind_action = BIND_DENY;
+    result = helper.test_bind_ipv4();
+    REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
 TEST_CASE("bind_context", "[netebpfext]")
@@ -270,6 +259,78 @@ TEST_CASE("bind_context", "[netebpfext]")
     REQUIRE(output_context.protocol == IPPROTO_UDP);
 }
 
+#pragma endregion bind
+#pragma region cgroup_sock_addr
+
+typedef struct test_sock_addr_client_context_t
+{
+    netebpfext_helper_base_client_context_t base;
+    int sock_addr_action;
+} test_sock_addr_client_context_t;
+
+_Must_inspect_result_ ebpf_result_t
+netebpfext_unit_invoke_sock_addr_program(
+    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
+{
+    auto client_context = (test_sock_addr_client_context_t*)client_binding_context;
+    auto sock_addr_context = (bpf_sock_addr_t*)context;
+
+    // Verify context fields match what the netebpfext helper set.
+    // Note that the helper sets the first four bytes of the address to the
+    // same value regardless of whether it is IPv4 or IPv6, so we just look
+    // at the first four bytes as if it were an IPv4 address.
+    REQUIRE((sock_addr_context->family == AF_INET || sock_addr_context->family == AF_INET6));
+    REQUIRE(sock_addr_context->user_ip4 == htonl(0x01020304));
+    REQUIRE(sock_addr_context->msg_src_ip4 == htonl(0x05060708));
+    REQUIRE(sock_addr_context->protocol == IPPROTO_TCP);
+    REQUIRE(sock_addr_context->user_port == htons(1234));
+    REQUIRE(sock_addr_context->msg_src_port == htons(5678));
+
+    *result = client_context->sock_addr_action;
+    return EBPF_SUCCESS;
+}
+
+TEST_CASE("sock_addr_invoke", "[netebpfext]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {};
+    test_sock_addr_client_context_t client_context = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
+
+    // Classify operations that should be allowed.
+    client_context.sock_addr_action = BPF_SOCK_ADDR_VERDICT_PROCEED;
+
+    FWP_ACTION_TYPE result = helper.test_cgroup_inet4_recv_accept();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_recv_accept();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet4_connect();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_connect();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Classify operations that should be blocked.
+    client_context.sock_addr_action = BPF_SOCK_ADDR_VERDICT_REJECT;
+
+    result = helper.test_cgroup_inet4_recv_accept();
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_recv_accept();
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet4_connect();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_connect();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+}
+
 TEST_CASE("sock_addr_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
@@ -336,6 +397,53 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
     REQUIRE(output_context.protocol == IPPROTO_UDP);
     REQUIRE(output_context.compartment_id == 0x12345679);
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
+}
+#pragma endregion cgroup_sock_addr
+#pragma region sock_ops
+
+typedef struct test_sock_ops_client_context_t
+{
+    netebpfext_helper_base_client_context_t base;
+    uint32_t sock_ops_action;
+} test_sock_ops_client_context_t;
+
+_Must_inspect_result_ ebpf_result_t
+netebpfext_unit_invoke_sock_ops_program(
+    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
+{
+    auto client_context = (test_sock_ops_client_context_t*)client_binding_context;
+    UNREFERENCED_PARAMETER(context);
+    *result = client_context->sock_ops_action;
+    return EBPF_SUCCESS;
+}
+
+TEST_CASE("sock_ops_invoke", "[netebpfext]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {};
+    test_sock_ops_client_context_t client_context = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
+
+    // Do some operations that return success.
+    client_context.sock_ops_action = 0;
+
+    FWP_ACTION_TYPE result = helper.test_sock_ops_v4();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_sock_ops_v6();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Do some operations that return failure.
+    client_context.sock_ops_action = -1;
+
+    result = helper.test_sock_ops_v4();
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_sock_ops_v6();
+    REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
 TEST_CASE("sock_ops_context", "[netebpfext]")
@@ -408,3 +516,4 @@ TEST_CASE("sock_ops_context", "[netebpfext]")
     REQUIRE(output_context.compartment_id == 0x12345679);
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
 }
+#pragma endregion sock_ops

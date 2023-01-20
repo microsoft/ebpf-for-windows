@@ -682,7 +682,7 @@ _net_ebpf_extension_sock_addr_get_connection_direction_from_hook_id(net_ebpf_ext
                : EBPF_HOOK_SOCK_ADDR_INGRESS;
 }
 
-wfp_ale_layer_fields_t wfp_connection_fields[] = {
+const wfp_ale_layer_fields_t wfp_connection_fields[] = {
     // EBPF_HOOK_ALE_AUTH_CONNECT_V4
     {FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_PORT,
@@ -755,7 +755,7 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         net_ebpf_extension_get_hook_id_from_wfp_layer_id(incoming_fixed_values->layerId);
     net_ebpf_extension_sock_addr_connection_direction_t direction =
         _net_ebpf_extension_sock_addr_get_connection_direction_from_hook_id(hook_id);
-    wfp_ale_layer_fields_t* fields = &wfp_connection_fields[hook_id - EBPF_HOOK_ALE_AUTH_CONNECT_V4];
+    const wfp_ale_layer_fields_t* fields = &wfp_connection_fields[hook_id - EBPF_HOOK_ALE_AUTH_CONNECT_V4];
 
     uint16_t source_ip_address_field =
         (direction == EBPF_HOOK_SOCK_ADDR_EGRESS) ? fields->local_ip_address_field : fields->remote_ip_address_field;
