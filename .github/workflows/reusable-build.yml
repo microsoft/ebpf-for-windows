@@ -162,6 +162,12 @@ jobs:
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         retention-days: 5
 
+    - name: Upload the MSI package
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      with:
+        name: ebpf-for-windows installer
+        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows_installer.msi
+
     - name: Build nuget package
       if: matrix.configurations == 'Release' && inputs.build_nuget == true
       working-directory: ${{env.GITHUB_WORKSPACE}}
