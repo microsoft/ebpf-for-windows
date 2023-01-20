@@ -78,6 +78,8 @@ typedef struct _ebpf_program
     ebpf_map_t** maps;
     uint32_t count_of_maps;
 
+    ebpf_helper_function_addresses_changed_callback_t helper_function_addresses_changed_callback;
+    void* helper_function_addresses_changed_context;
 } ebpf_program_t;
 
 static ebpf_result_t
@@ -90,7 +92,13 @@ static struct
 } _ebpf_program_dispatch_table = {1, {_ebpf_program_get_context}};
 
 static ebpf_result_t
-_ebpf_program_register_helpers(_In_ const ebpf_program_t* program);
+_ebpf_program_update_helpers(_Inout_ ebpf_program_t* program);
+
+static ebpf_result_t
+_ebpf_program_update_interpret_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context);
+
+static ebpf_result_t
+_ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context);
 
 static ebpf_result_t
 _ebpf_program_get_helper_function_address(
@@ -130,9 +138,6 @@ _ebpf_program_program_info_provider_changed(
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
-    uint32_t* total_helper_function_ids = NULL;
-    size_t total_helper_count = 0;
-    ebpf_helper_function_addresses_t* total_helper_function_addresses = NULL;
 
     if (provider_data == NULL) {
         // Detach
@@ -187,6 +192,7 @@ _ebpf_program_program_info_provider_changed(
             return_value = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
+
         if ((program->global_helper_function_count > 0) &&
             (global_helper_function_addresses->helper_function_count != program->global_helper_function_count)) {
 
@@ -198,132 +204,6 @@ _ebpf_program_program_info_provider_changed(
             // A program info provider cannot modify helper function count upon reload.
             return_value = EBPF_INVALID_ARGUMENT;
             goto Exit;
-        }
-
-        if (helper_function_addresses != NULL || global_helper_function_addresses != NULL) {
-            ebpf_program_info_t* program_info = program_data->program_info;
-            ebpf_helper_function_prototype_t* helper_prototypes = NULL;
-            ebpf_assert(program_info != NULL);
-            _Analysis_assume_(program_info != NULL);
-            if ((helper_function_addresses != NULL && program_info->count_of_program_type_specific_helpers !=
-                                                          helper_function_addresses->helper_function_count) ||
-                (global_helper_function_addresses != NULL &&
-                 program_info->count_of_global_helpers != global_helper_function_addresses->helper_function_count)) {
-                EBPF_LOG_MESSAGE_GUID(
-                    EBPF_TRACELOG_LEVEL_ERROR,
-                    EBPF_TRACELOG_KEYWORD_PROGRAM,
-                    "A program info provider cannot modify helper function count upon reload",
-                    program->parameters.program_type);
-                return_value = EBPF_INVALID_ARGUMENT;
-                goto Exit;
-            }
-
-            program->program_type_specific_helper_function_count =
-                helper_function_addresses ? helper_function_addresses->helper_function_count : 0;
-            program->global_helper_function_count =
-                global_helper_function_addresses ? global_helper_function_addresses->helper_function_count : 0;
-            return_value = ebpf_safe_size_t_add(
-                program->program_type_specific_helper_function_count,
-                program->global_helper_function_count,
-                &total_helper_count);
-            if (return_value != EBPF_SUCCESS) {
-                goto Exit;
-            }
-
-            total_helper_function_addresses =
-                (ebpf_helper_function_addresses_t*)ebpf_allocate(sizeof(ebpf_helper_function_addresses_t));
-            if (total_helper_function_addresses == NULL) {
-                return_value = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-            total_helper_function_addresses->helper_function_count = (uint32_t)total_helper_count;
-            total_helper_function_addresses->helper_function_address =
-                (uint64_t*)ebpf_allocate(sizeof(uint64_t) * total_helper_count);
-            if (total_helper_function_addresses->helper_function_address == NULL) {
-                return_value = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-
-            if (!program->trampoline_table) {
-                // Program info provider is being loaded for the first time. Allocate trampoline table.
-                return_value = ebpf_allocate_trampoline_table(total_helper_count, &program->trampoline_table);
-                if (return_value != EBPF_SUCCESS)
-                    goto Exit;
-            }
-
-            __analysis_assume(total_helper_count > 0);
-            total_helper_function_ids = (uint32_t*)ebpf_allocate(sizeof(uint32_t) * total_helper_count);
-            if (total_helper_function_ids == NULL) {
-                return_value = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-
-            if (helper_function_addresses != NULL) {
-                helper_prototypes = program_info->program_type_specific_helper_prototype;
-                if (helper_prototypes == NULL) {
-                    EBPF_LOG_MESSAGE_GUID(
-                        EBPF_TRACELOG_LEVEL_ERROR,
-                        EBPF_TRACELOG_KEYWORD_PROGRAM,
-                        "program_info->program_type_specific_helper_prototype can not be NULL",
-                        program->parameters.program_type);
-                    return_value = EBPF_INVALID_ARGUMENT;
-                    goto Exit;
-                }
-
-#pragma warning(push)
-#pragma warning(disable : 6386) // Buffer overrun while writing to 'total_helper_function_ids'.
-                for (uint32_t index = 0; index < program->program_type_specific_helper_function_count; index++) {
-                    total_helper_function_ids[index] = helper_prototypes[index].helper_id;
-                    total_helper_function_addresses->helper_function_address[index] =
-                        helper_function_addresses->helper_function_address[index];
-                }
-            }
-#pragma warning(pop)
-
-            if (global_helper_function_addresses != NULL) {
-                helper_prototypes = program_info->global_helper_prototype;
-                if (helper_prototypes == NULL) {
-                    EBPF_LOG_MESSAGE_GUID(
-                        EBPF_TRACELOG_LEVEL_ERROR,
-                        EBPF_TRACELOG_KEYWORD_PROGRAM,
-                        "program_info->global_helper_prototype can not be NULL",
-                        program->parameters.program_type);
-                    return_value = EBPF_INVALID_ARGUMENT;
-                    goto Exit;
-                }
-
-                // TODO: Issue #1791: Check against a global allow / block list to see if these global
-                // helper functions can be overridden.
-
-#pragma warning(push)
-#pragma warning( \
-    disable : 6386) // Buffer overrun while writing to 'total_helper_function_addresses->helper_function_address'
-                for (uint32_t index = program->program_type_specific_helper_function_count; index < total_helper_count;
-                     index++) {
-                    uint32_t global_helper_index = index - program->program_type_specific_helper_function_count;
-                    total_helper_function_ids[index] = helper_prototypes[global_helper_index].helper_id;
-                    total_helper_function_addresses->helper_function_address[index] =
-                        global_helper_function_addresses->helper_function_address[global_helper_index];
-                }
-            }
-#pragma warning(pop)
-
-            return_value = ebpf_update_trampoline_table(
-                program->trampoline_table,
-                (uint32_t)total_helper_count,
-                total_helper_function_ids,
-                total_helper_function_addresses);
-            if (return_value != EBPF_SUCCESS)
-                goto Exit;
-
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
-            if (program->code_or_vm.vm != NULL) {
-                // Register with uBPF for interpreted mode.
-                return_value = _ebpf_program_register_helpers(program);
-                if (return_value != EBPF_SUCCESS)
-                    goto Exit;
-            }
-#endif
         }
 
         if (program->parameters.program_info_hash != NULL) {
@@ -338,16 +218,23 @@ _ebpf_program_program_info_provider_changed(
                 goto Exit;
             }
         }
+
+        return_value = _ebpf_program_update_helpers(program);
+        if (return_value != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "Failed to update helpers for program");
+            goto Exit;
+        }
+
+        program->program_type_specific_helper_function_count =
+            helper_function_addresses ? helper_function_addresses->helper_function_count : 0;
+        program->global_helper_function_count =
+            global_helper_function_addresses ? global_helper_function_addresses->helper_function_count : 0;
         program->bpf_prog_type = program_data->program_info->program_type_descriptor.bpf_prog_type;
         return_value = EBPF_SUCCESS;
     }
 
 Exit:
-    ebpf_free(total_helper_function_ids);
-    if (total_helper_function_addresses != NULL) {
-        ebpf_free(total_helper_function_addresses->helper_function_address);
-        ebpf_free(total_helper_function_addresses);
-    }
 
     if (return_value != EBPF_SUCCESS) {
         program->info_extension_provider_data = NULL;
@@ -762,6 +649,15 @@ _ebpf_program_load_machine_code(
     ebpf_assert(program->parameters.code_type == EBPF_CODE_JIT || program->parameters.code_type == EBPF_CODE_NATIVE);
 
     if (program->parameters.code_type == EBPF_CODE_JIT) {
+        program->helper_function_addresses_changed_callback = _ebpf_program_update_jit_helpers;
+        program->helper_function_addresses_changed_context = program;
+        return_value = _ebpf_program_update_helpers(program);
+        if (return_value != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "Failed to update helpers for program");
+            goto Done;
+        }
+
         local_code_memory_descriptor = ebpf_map_memory(machine_code_size);
         if (!local_code_memory_descriptor) {
             return_value = EBPF_NO_MEMORY;
@@ -785,6 +681,7 @@ _ebpf_program_load_machine_code(
             return_value = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
+
         program->code_or_vm.native.module = code_context;
         program->code_or_vm.native.code_pointer = machine_code;
         // Acquire reference on the native module. This reference
@@ -801,9 +698,21 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_program_register_helpers(_In_ const ebpf_program_t* program)
+_ebpf_program_update_helpers(_Inout_ ebpf_program_t* program)
+{
+    if (program->helper_function_addresses_changed_callback != NULL) {
+        return program->helper_function_addresses_changed_callback(
+            program, program->helper_function_addresses_changed_context);
+    } else {
+        return EBPF_SUCCESS;
+    }
+}
+
+static ebpf_result_t
+_ebpf_program_update_interpret_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context)
 {
     EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(context);
     ebpf_result_t result = EBPF_SUCCESS;
     size_t index = 0;
 
@@ -832,6 +741,142 @@ _ebpf_program_register_helpers(_In_ const ebpf_program_t* program)
 
 Exit:
     EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context)
+{
+    ebpf_result_t return_value;
+    UNREFERENCED_PARAMETER(context);
+    ebpf_program_data_t* program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
+    ebpf_helper_function_addresses_t* helper_function_addresses =
+        program_data->program_type_specific_helper_function_addresses;
+    ebpf_helper_function_addresses_t* global_helper_function_addresses = program_data->global_helper_function_addresses;
+    size_t total_helper_count = 0;
+    ebpf_helper_function_addresses_t* total_helper_function_addresses = NULL;
+    uint32_t* total_helper_function_ids = NULL;
+
+    if (helper_function_addresses != NULL || global_helper_function_addresses != NULL) {
+        ebpf_program_info_t* program_info = program_data->program_info;
+        ebpf_helper_function_prototype_t* helper_prototypes = NULL;
+        ebpf_assert(program_info != NULL);
+        _Analysis_assume_(program_info != NULL);
+        if ((helper_function_addresses != NULL && program_info->count_of_program_type_specific_helpers !=
+                                                      helper_function_addresses->helper_function_count) ||
+            (global_helper_function_addresses != NULL &&
+             program_info->count_of_global_helpers != global_helper_function_addresses->helper_function_count)) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "A program info provider cannot modify helper function count upon reload",
+                program->parameters.program_type);
+            return_value = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
+        // Merge the helper function addresses into a single array.
+        return_value = ebpf_safe_size_t_add(
+            program->program_type_specific_helper_function_count,
+            program->global_helper_function_count,
+            &total_helper_count);
+        if (return_value != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        total_helper_function_addresses =
+            (ebpf_helper_function_addresses_t*)ebpf_allocate(sizeof(ebpf_helper_function_addresses_t));
+        if (total_helper_function_addresses == NULL) {
+            return_value = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        total_helper_function_addresses->helper_function_count = (uint32_t)total_helper_count;
+        total_helper_function_addresses->helper_function_address =
+            (uint64_t*)ebpf_allocate(sizeof(uint64_t) * total_helper_count);
+        if (total_helper_function_addresses->helper_function_address == NULL) {
+            return_value = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        if (!program->trampoline_table) {
+            // Program info provider is being loaded for the first time. Allocate trampoline table.
+            return_value = ebpf_allocate_trampoline_table(total_helper_count, &program->trampoline_table);
+            if (return_value != EBPF_SUCCESS)
+                goto Exit;
+        }
+
+        __analysis_assume(total_helper_count > 0);
+        total_helper_function_ids = (uint32_t*)ebpf_allocate(sizeof(uint32_t) * total_helper_count);
+        if (total_helper_function_ids == NULL) {
+            return_value = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        if (helper_function_addresses != NULL) {
+            helper_prototypes = program_info->program_type_specific_helper_prototype;
+            if (helper_prototypes == NULL) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
+                    "program_info->program_type_specific_helper_prototype can not be NULL",
+                    program->parameters.program_type);
+                return_value = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+
+#pragma warning(push)
+#pragma warning(disable : 6386) // Buffer overrun while writing to 'total_helper_function_ids'.
+            for (uint32_t index = 0; index < program->program_type_specific_helper_function_count; index++) {
+                total_helper_function_ids[index] = helper_prototypes[index].helper_id;
+                total_helper_function_addresses->helper_function_address[index] =
+                    helper_function_addresses->helper_function_address[index];
+            }
+        }
+#pragma warning(pop)
+
+        if (global_helper_function_addresses != NULL) {
+            helper_prototypes = program_info->global_helper_prototype;
+            if (helper_prototypes == NULL) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
+                    "program_info->global_helper_prototype can not be NULL",
+                    program->parameters.program_type);
+                return_value = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+
+#pragma warning(push)
+#pragma warning( \
+    disable : 6386) // Buffer overrun while writing to 'total_helper_function_addresses->helper_function_address'
+            for (uint32_t index = program->program_type_specific_helper_function_count; index < total_helper_count;
+                 index++) {
+                uint32_t global_helper_index = index - program->program_type_specific_helper_function_count;
+                total_helper_function_ids[index] = helper_prototypes[global_helper_index].helper_id;
+                total_helper_function_addresses->helper_function_address[index] =
+                    global_helper_function_addresses->helper_function_address[global_helper_index];
+            }
+        }
+#pragma warning(pop)
+
+        return_value = ebpf_update_trampoline_table(
+            program->trampoline_table,
+            (uint32_t)total_helper_count,
+            total_helper_function_ids,
+            total_helper_function_addresses);
+        if (return_value != EBPF_SUCCESS)
+            goto Exit;
+    }
+
+    return_value = EBPF_SUCCESS;
+
+Exit:
+    ebpf_free(total_helper_function_ids);
+    if (total_helper_function_addresses != NULL) {
+        ebpf_free(total_helper_function_addresses->helper_function_address);
+        ebpf_free(total_helper_function_addresses);
+    }
+
+    return return_value;
 }
 
 #if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
@@ -873,9 +918,15 @@ _ebpf_program_load_byte_code(
 
     ubpf_set_error_print(program->code_or_vm.vm, ebpf_log_function);
 
-    return_value = _ebpf_program_register_helpers(program);
-    if (return_value != EBPF_SUCCESS)
+    program->helper_function_addresses_changed_callback = _ebpf_program_update_interpret_helpers;
+    program->helper_function_addresses_changed_context = NULL;
+
+    return_value = _ebpf_program_update_helpers(program);
+    if (return_value != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "Failed to update helpers for program");
         goto Done;
+    }
 
     if (ubpf_load(
             program->code_or_vm.vm,
@@ -1036,10 +1087,15 @@ _ebpf_program_get_helper_function_address(
     _In_ const ebpf_program_t* program, const uint32_t helper_function_id, uint64_t* address)
 {
     ebpf_result_t return_value;
-    void* function_address;
+    uint64_t* function_address = NULL;
+    ebpf_program_data_t* program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
+    ebpf_program_data_t* general_program_data = (ebpf_program_data_t*)program->general_helper_provider_data->data;
+
     EBPF_LOG_ENTRY();
 
     bool provider_data_referenced = false;
+    bool use_trampoline = false;
+    bool found = false;
 
     if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
         EBPF_LOG_MESSAGE_GUID(
@@ -1052,50 +1108,72 @@ _ebpf_program_get_helper_function_address(
     }
     provider_data_referenced = true;
 
-    if (helper_function_id > EBPF_MAX_GENERAL_HELPER_FUNCTION) {
-        if (!program->trampoline_table) {
-            return_value = EBPF_INVALID_ARGUMENT;
-            goto Done;
-        }
-        return_value = ebpf_get_trampoline_function(program->trampoline_table, helper_function_id, &function_address);
-        if (return_value != EBPF_SUCCESS) {
-            goto Done;
-        }
+    use_trampoline = program->parameters.code_type == EBPF_CODE_JIT;
+    if (use_trampoline && !program->trampoline_table) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "The trampoline table is not initialized for JIT program");
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
-        *address = (uint64_t)function_address;
-    } else {
-        // First check if the extension has provided a new implementation of
-        // the global helper function.
-        if (program->trampoline_table) {
-            return_value =
-                ebpf_get_trampoline_function(program->trampoline_table, helper_function_id, &function_address);
-            if (return_value == EBPF_SUCCESS) {
-                // Found an entry.
-                *address = (uint64_t)function_address;
-                return_value = EBPF_SUCCESS;
-                goto Done;
+    // First check the trampoline table for the helper function.
+    if (use_trampoline) {
+        return_value = ebpf_get_trampoline_function(program->trampoline_table, helper_function_id, &function_address);
+        if (return_value == EBPF_SUCCESS) {
+            found = true;
+        }
+    }
+
+    if (helper_function_id < EBPF_MAX_GENERAL_HELPER_FUNCTION) {
+        // Check the general helper function table of the program type.
+        if (!found) {
+            for (size_t index = 0; index < program_data->program_info->count_of_global_helpers; index++) {
+                if (program_data->program_info->global_helper_prototype[index].helper_id == helper_function_id) {
+                    function_address =
+                        (void*)program_data->global_helper_function_addresses->helper_function_address[index];
+                    found = true;
+                    break;
+                }
             }
         }
-        ebpf_assert(program->general_helper_provider_data != NULL);
-        _Analysis_assume_(program->general_helper_provider_data != NULL);
-        ebpf_program_data_t* general_helper_program_data =
-            (ebpf_program_data_t*)program->general_helper_provider_data->data;
 
-        ebpf_assert(general_helper_program_data != NULL);
-        _Analysis_assume_(general_helper_program_data != NULL);
-
-        ebpf_helper_function_addresses_t* general_helper_function_addresses =
-            general_helper_program_data->program_type_specific_helper_function_addresses;
-
-        ebpf_assert(general_helper_function_addresses != NULL);
-        _Analysis_assume_(general_helper_function_addresses != NULL);
-
-        if (helper_function_id > general_helper_function_addresses->helper_function_count) {
-            return_value = EBPF_INVALID_ARGUMENT;
-            goto Done;
+        // Check the general helper function table of the general program type.
+        if (!found) {
+            for (size_t index = 0; index < general_program_data->program_info->count_of_program_type_specific_helpers;
+                 index++) {
+                if (general_program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
+                    helper_function_id) {
+                    function_address = (void*)general_program_data->program_type_specific_helper_function_addresses
+                                           ->helper_function_address[index];
+                    found = true;
+                    break;
+                }
+            }
         }
-        *address = general_helper_function_addresses->helper_function_address[helper_function_id];
+    } else {
+        // Check the program type specific helper function table of the program type.
+        if (!found) {
+            for (size_t index = 0; index < program_data->program_info->count_of_program_type_specific_helpers;
+                 index++) {
+                if (program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
+                    helper_function_id) {
+                    function_address = (void*)program_data->program_type_specific_helper_function_addresses
+                                           ->helper_function_address[index];
+                    found = true;
+                    break;
+                }
+            }
+        }
     }
+
+    if (!found) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    *address = (uint64_t)function_address;
 
     return_value = EBPF_SUCCESS;
 
@@ -1726,4 +1804,19 @@ Exit:
         ebpf_extension_dereference_provider_data(program->info_extension_client);
     }
     EBPF_RETURN_RESULT(return_value);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_register_for_helper_changes(
+    _Inout_ ebpf_program_t* program,
+    _In_ ebpf_helper_function_addresses_changed_callback_t callback,
+    _In_opt_ void* context)
+{
+    if (program->helper_function_addresses_changed_callback != NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    program->helper_function_addresses_changed_callback = callback;
+    program->helper_function_addresses_changed_context = context;
+    return EBPF_SUCCESS;
 }
