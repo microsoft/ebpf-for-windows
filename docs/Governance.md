@@ -5,7 +5,7 @@ Reviewing Pull Requests
 -----------------------
 
 Pull requests need at least two approvals before being eligible for merging.
-Besides reviewing for technical correctmess, reviewers are expected to:
+Besides reviewing for technical correctness, reviewers are expected to:
 
 * For any PR that adds functionality, check that the PR includes sufficient tests
   for that functionality.  This is required in [CONTRIBUTING.md](../Contributing.md).
@@ -29,7 +29,7 @@ When multiple pull requests are approved, maintainers should prioritize merging 
 | 3   | Additional tests | tests enhancement | Gap that once filled might surface priority 1 bugs |
 | 4   | Documentation | documentation | Won't affect CI/CD but may address usability issues |
 | 5   | Dependencies | dependencies | Often a large amount of low hanging fruit. Keeping the overall PR count low gives a better impression to newcomers and observers. |
-| 7   | New features | enhancement | Addresses functionality requested in a github issue |
+| 7   | New features | enhancement | Adds new functionality requested in a github issue. Although this typically is lower priority than dependencies, such PRs from new contributors should instead be prioritized above dependencies. |
 | 8   | Performance optimizations | optimization | Doesn't do anything that isn't already working, but improvements do help users |
 | 9   | Code cleanup | cleanup | Good to do but generally doesn't significantly affect any of the above categories |
 
