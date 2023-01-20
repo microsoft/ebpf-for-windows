@@ -87,8 +87,8 @@ SPDX-License-Identifier: MIT
 			<Custom Action="NetEbpfExt_Driver_stop" After="InstallInitialize">REMOVE="ALL"</Custom>
 			<Custom Action="NetEbpfExt_Driver_uninstall" After="NetEbpfExt_Driver_stop">REMOVE="ALL"</Custom>
 
-			<Custom Action="sample_ebpf_ext_Driver_stop" After="InstallInitialize">REMOVE="ALL,eBPF_Testing"</Custom>
-			<Custom Action="sample_ebpf_ext_Driver_uninstall" After="sample_ebpf_ext_Driver_stop">REMOVE="ALL,eBPF_Testing"</Custom>
+			<Custom Action="sample_ebpf_ext_Driver_stop" After="InstallInitialize">REMOVE="ALL" OR REMOVE="eBPF_Testing"</Custom>
+			<Custom Action="sample_ebpf_ext_Driver_uninstall" After="sample_ebpf_ext_Driver_stop">REMOVE="ALL" OR REMOVE="eBPF_Testing"</Custom>
 
 			<Custom Action="Clear_eBPF_store_uninstall" After="NetEbpfExt_Driver_uninstall">REMOVE="ALL"</Custom>
 		</InstallExecuteSequence>
@@ -189,7 +189,7 @@ SPDX-License-Identifier: MIT
 		<SetProperty Id="Clear_eBPF_store_uninstall" Value='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Before="Clear_eBPF_store" Sequence="execute"/>
 		<CustomAction Id="Clear_eBPF_store_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 		<SetProperty Id="Setup_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]"' Before="Setup_eBPF_store" Sequence="execute"/>
-		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 
 		<!--Install/Uninstall netsh helper-->
 		<!--qtexec does not currently support a working directory (ref. https://github.com/wixtoolset/issues/issues/1265)-->
@@ -236,17 +236,17 @@ SPDX-License-Identifier: MIT
 				<File Id="eBPFCore.pdb" Name="eBPFCore.pdb" Source="$(var.EbpfCore.TargetDir)eBPFCore.pdb" KeyPath="yes" />
 			</Component>
 		</ComponentGroup>
-		<SetProperty Id="eBPFCore_Driver_install" Value='"sc.exe" create eBPFCore.sys type=kernel start=demand binpath="[#eBPFCore.sys]"' Before="eBPFCore_Driver_install" Sequence="execute"/>
+		<SetProperty Id="eBPFCore_Driver_install" Value='"sc.exe" create eBPFCore type=kernel start=demand binpath="[#eBPFCore.sys]"' Before="eBPFCore_Driver_install" Sequence="execute"/>
 		<CustomAction Id="eBPFCore_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<Property Id="eBPFCore_Driver_start" Value='"net.exe" start eBPFCore.sys' />
+		<Property Id="eBPFCore_Driver_start" Value='"net.exe" start eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<Property Id="eBPFCore_Driver_stop" Value='"net.exe" stop eBPFCore.sys' />
-		<CustomAction Id="eBPFCore_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<Property Id="eBPFCore_Driver_uninstall" Value='"sc.exe" delete eBPFCore.sys' />
-		<CustomAction Id="eBPFCore_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<Property Id="eBPFCore_Driver_stop_rollback" Value='"net.exe" stop eBPFCore.sys' />
+		<Property Id="eBPFCore_Driver_stop" Value='"net.exe" stop eBPFCore' />
+		<CustomAction Id="eBPFCore_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="eBPFCore_Driver_uninstall" Value='"sc.exe" delete eBPFCore' />
+		<CustomAction Id="eBPFCore_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="eBPFCore_Driver_stop_rollback" Value='"net.exe" stop eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
-		<Property Id="eBPFCore_Driver_uninstall_rollback" Value='"sc.exe" delete eBPFCore.sys' />
+		<Property Id="eBPFCore_Driver_uninstall_rollback" Value='"sc.exe" delete eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 
 		<!--Install/Uninstall NetEbpfExt Driver-->
@@ -262,17 +262,17 @@ SPDX-License-Identifier: MIT
 				<File Id="NetEbpfExt.pdb" Name="NetEbpfExt.pdb" Source="$(var.netebpfext.TargetDir)NetEbpfExt.pdb" KeyPath="yes" />
 			</Component>
 		</ComponentGroup>
-		<SetProperty Id="NetEbpfExt_Driver_install" Value='"sc.exe" create NetEbpfExt.sys type=kernel start=demand binpath="[#NetEbpfExt.sys]"' Before="NetEbpfExt_Driver_install" Sequence="execute"/>
+		<SetProperty Id="NetEbpfExt_Driver_install" Value='"sc.exe" create NetEbpfExt type=kernel start=demand binpath="[#NetEbpfExt.sys]"' Before="NetEbpfExt_Driver_install" Sequence="execute"/>
 		<CustomAction Id="NetEbpfExt_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<Property Id="NetEbpfExt_Driver_start" Value='"net.exe" start NetEbpfExt.sys' />
+		<Property Id="NetEbpfExt_Driver_start" Value='"net.exe" start NetEbpfExt' />
 		<CustomAction Id="NetEbpfExt_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<Property Id="NetEbpfExt_Driver_stop" Value='"net.exe" stop NetEbpfExt.sys' />
-		<CustomAction Id="NetEbpfExt_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<Property Id="NetEbpfExt_Driver_uninstall" Value='"sc.exe" delete NetEbpfExt.sys' />
-		<CustomAction Id="NetEbpfExt_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<Property Id="NetEbpfExt_Driver_stop_rollback" Value='"net.exe" stop NetEbpfExt.sys' />
+		<Property Id="NetEbpfExt_Driver_stop" Value='"net.exe" stop NetEbpfExt' />
+		<CustomAction Id="NetEbpfExt_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="NetEbpfExt_Driver_uninstall" Value='"sc.exe" delete NetEbpfExt' />
+		<CustomAction Id="NetEbpfExt_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="NetEbpfExt_Driver_stop_rollback" Value='"net.exe" stop NetEbpfExt' />
 		<CustomAction Id="NetEbpfExt_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
-		<Property Id="NetEbpfExt_Driver_uninstall_rollback" Value='"sc.exe" delete NetEbpfExt.sys' />
+		<Property Id="NetEbpfExt_Driver_uninstall_rollback" Value='"sc.exe" delete NetEbpfExt' />
 		<CustomAction Id="NetEbpfExt_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 	</Fragment>
 
@@ -551,17 +551,17 @@ SPDX-License-Identifier: MIT
 				<File Id="SAMPLE_EBPF_EXT.SYS" Name="sample_ebpf_ext.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\sample_ebpf_ext.sys" />
 			</Component>
 		</ComponentGroup>
-		<SetProperty Id="sample_ebpf_ext_Driver_install" Value='"sc.exe" create sample_ebpf_ext.sys type=kernel start=demand binpath="[#SAMPLE_EBPF_EXT.SYS]"' Before="sample_ebpf_ext_Driver_install" Sequence="execute"/>
+		<SetProperty Id="sample_ebpf_ext_Driver_install" Value='"sc.exe" create SampleEbpfExt type=kernel start=demand binpath="[#SAMPLE_EBPF_EXT.SYS]"' Before="sample_ebpf_ext_Driver_install" Sequence="execute"/>
 		<CustomAction Id="sample_ebpf_ext_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<Property Id="sample_ebpf_ext_Driver_start" Value='"net.exe" start sample_ebpf_ext.sys' />
+		<Property Id="sample_ebpf_ext_Driver_start" Value='"net.exe" start SampleEbpfExt' />
 		<CustomAction Id="sample_ebpf_ext_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<Property Id="sample_ebpf_ext_Driver_stop" Value='"net.exe" stop sample_ebpf_ext.sys' />
-		<CustomAction Id="sample_ebpf_ext_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<Property Id="sample_ebpf_ext_Driver_uninstall" Value='"sc.exe" delete sample_ebpf_ext.sys' />
-		<CustomAction Id="sample_ebpf_ext_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<Property Id="sample_ebpf_ext_Driver_stop_rollback" Value='"net.exe" stop sample_ebpf_ext.sys' />
+		<Property Id="sample_ebpf_ext_Driver_stop" Value='"net.exe" stop SampleEbpfExt' />
+		<CustomAction Id="sample_ebpf_ext_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="sample_ebpf_ext_Driver_uninstall" Value='"sc.exe" delete SampleEbpfExt' />
+		<CustomAction Id="sample_ebpf_ext_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<Property Id="sample_ebpf_ext_Driver_stop_rollback" Value='"net.exe" stop SampleEbpfExt' />
 		<CustomAction Id="sample_ebpf_ext_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
-		<Property Id="sample_ebpf_ext_Driver_uninstall_rollback" Value='"sc.exe" delete sample_ebpf_ext.sys' />
+		<Property Id="sample_ebpf_ext_Driver_uninstall_rollback" Value='"sc.exe" delete SampleEbpfExt' />
 		<CustomAction Id="sample_ebpf_ext_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 	</Fragment>
 </Wix>

@@ -100,6 +100,14 @@ SPDX-License-Identifier: MIT
       <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
       <RefTargetDir>INSTALLFOLDER</RefTargetDir>
     </ProjectReference>
+    <ProjectReference Include="..\tests\sample\ext\drv\sample_ext.vcxproj">
+      <Name>sample_ebpf_ext</Name>
+      <Project>{c8d46543-5ae5-4e66-b9ce-8b84588b1c9e}</Project>
+      <Private>True</Private>
+      <DoNotHarvest>True</DoNotHarvest>
+      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
+      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
+    </ProjectReference>
     <ProjectReference Include="..\tests\sample\sample.vcxproj">
       <Name>sample</Name>
       <Project>{b4ad72e3-754e-40ca-9cea-d3f2c9170e51}</Project>

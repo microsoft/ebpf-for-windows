@@ -35,6 +35,14 @@ An **unattended install/uninstall** is also supported, through the following com
     C:\Windows\system32\msiexec.exe /x ebpf-for-windows_installer.msi /qn
     ```
 
+**Troubleshooting logs** from the Windows Installer can be obtained be appending the `\lv <filename>` option to the install command line (for verbose logs), e.g.:
+
+```bash
+
+C:\Windows\system32\msiexec.exe /i ebpf-for-windows_installer.msi *<other options>* /lv c:\installer-logs.txt
+
+```
+
 ### Method 2 (Install files you built yourself)
 This method uses a machine that
 has already built the binaries for `x64/Debug` or `x64/Release`.
