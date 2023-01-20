@@ -181,7 +181,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
                   "                                    Size\n"
                   "             Section       Type  (bytes)\n"
                   "====================  =========  =======\n"
-                  "               .text        xdp     1800\n"
+                  "               .text        xdp     1768\n"
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
