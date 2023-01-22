@@ -14,6 +14,11 @@ $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction 
 
 $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
 
+$a = $StandardUserTestVMCredential.UserName
+Write-Log "ExecuteTest1: $a"
+$a = $StandardUserTestVMCredential.Password
+Write-Log "ExecuteTest2: $a"
+
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\vm_run_tests.psm1  -Force -ArgumentList ($AdminTestVMCredential.UserName, $AdminTestVMCredential.Password, $StandardUserTestVMCredential.UserName, $StandardUserTestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue

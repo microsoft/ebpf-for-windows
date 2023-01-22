@@ -80,6 +80,9 @@ constexpr uint8_t _test_protocol = IPPROTO_TCP;
 constexpr uint32_t _test_compartment_id = 1;
 static FWP_BYTE_BLOB _test_app_id = {.size = 2, .data = (uint8_t*)"\\"};
 static uint64_t _test_interface_luid = 1;
+static TOKEN_ACCESS_INFORMATION _test_token_access_information = {0};
+static FWP_BYTE_BLOB _test_user_id = {
+    .size = (sizeof(TOKEN_ACCESS_INFORMATION)), .data = (uint8_t*)&_test_token_access_information};
 
 // This is used to test the bind hook.
 FWP_ACTION_TYPE
@@ -163,6 +166,7 @@ _fwp_engine::test_cgroup_inet4_recv_accept()
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_USER_ID].value.byteBlob = &_test_user_id;
 
     return test_cgroup_sock_addr(
         FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4, incoming_value);
