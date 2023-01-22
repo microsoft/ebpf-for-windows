@@ -72,8 +72,8 @@ _ebpf_core_is_current_admin(_In_ const void* ctx);
 
 static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}}, 0, NULL};
 
+// Order of elements in this table must match the order of the elements in ebpf_core_helper_function_prototype.
 static const void* _ebpf_general_helpers[] = {
-    NULL,
     // Map related helpers.
     (void*)&_ebpf_core_map_find_element,
     (void*)&_ebpf_core_map_update_element,

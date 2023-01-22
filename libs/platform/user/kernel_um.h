@@ -179,7 +179,7 @@ extern "C"
     } EX_SPIN_LOCK;
     typedef struct _EX_RUNDOWN_REF
     {
-        struct _mock_rundown_ref* inner;
+        void* reserved;
     } EX_RUNDOWN_REF;
     typedef struct _IO_WORKITEM IO_WORKITEM, *PIO_WORKITEM;
     typedef void
