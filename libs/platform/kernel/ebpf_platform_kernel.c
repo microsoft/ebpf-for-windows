@@ -770,14 +770,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
 
     PACCESS_TOKEN access_token = SeQuerySubjectContextToken(&context);
     // SeQuerySubjectContextToken() is not expected to fail.
-    ebpf_assert(access_token != NULL);
     if (access_token == NULL) {
         return EBPF_FAILED;
     }
 
     NTSTATUS status = SeQueryAuthenticationIdToken(access_token, &local_authentication_id);
     // SeQueryAuthenticationIdToken() is not expected to fail.
-    ebpf_assert(NT_SUCCESS(status));
     if (!NT_SUCCESS(status)) {
         return EBPF_FAILED;
     }

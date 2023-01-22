@@ -1167,8 +1167,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     }
 
     result = GetTokenInformation(token_handle, TokenGroupsAndPrivileges, nullptr, 0, (PDWORD)&size);
-    ebpf_assert(result == false);
-
     error = GetLastError();
     if (error != ERROR_INSUFFICIENT_BUFFER) {
         return win32_error_code_to_ebpf_result(GetLastError());

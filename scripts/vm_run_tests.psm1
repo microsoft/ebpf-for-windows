@@ -183,7 +183,6 @@ function Remove-StandardUserOnVM
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
-    # Create standard user.
     Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
         param([parameter(Mandatory=$true)] [string] $UserName)
 
@@ -383,7 +382,7 @@ function Invoke-ConnectRedirectTestsOnVM
 {
     param([parameter(Mandatory=$true)] $MultiVMTestConfig,
           [parameter(Mandatory=$true)] $ConnectRedirectTestConfig,
-          [parameter(Mandatory=$false)][ValidateSet("Admin", "Standard")] $ExecutionType = "Admin")
+          [parameter(Mandatory=$false)][ValidateSet("Administrator", "StandardUser")] $UserType = "Administrator")
 
     $VM1 = $MultiVMTestConfig[0]
     $VM1Interface = $VM1.Interfaces[0]
@@ -442,7 +441,7 @@ function Invoke-ConnectRedirectTestsOnVM
               [parameter(Mandatory=$true)][int] $ProxyPort,
               [parameter(Mandatory=$true)][string] $StandardUserName,
               [parameter(Mandatory=$true)][string] $StandardUserPassword,
-              [parameter(Mandatory=$true)][string] $ExecutionType,
+              [parameter(Mandatory=$true)][string] $UserType,
               [parameter(Mandatory=$true)][string] $WorkingDirectory,
               [Parameter(Mandatory=$true)][string] $LogFileName)
 
@@ -450,7 +449,7 @@ function Invoke-ConnectRedirectTestsOnVM
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Write-Log "Invoking connect redirect tests [Mode=$ExecutionType] on $VM"
+        Write-Log "Invoking connect redirect tests [Mode=$UserType] on $VM"
         Invoke-ConnectRedirectTest `
             -LocalIPv4Address $LocalIPv4Address `
             -LocalIPv6Address $LocalIPv6Address `
@@ -462,9 +461,9 @@ function Invoke-ConnectRedirectTestsOnVM
             -ProxyPort $ProxyPort `
             -StandardUserName $StandardUserName `
             -StandardUserPassword $StandardUserPassword `
-            -ExecutionType $ExecutionType `
+            -UserType $UserType `
             -WorkingDirectory $WorkingDirectory
-    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $StandardUser, $UnsecurePassword, $ExecutionType, "eBPF", $LogFileName) -ErrorAction Stop
+    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $StandardUser, $UnsecurePassword, $UserType, "eBPF", $LogFileName) -ErrorAction Stop
 
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
     Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName

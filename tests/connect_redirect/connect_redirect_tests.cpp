@@ -35,13 +35,13 @@ static uint16_t _destination_port = 4444;
 static uint16_t _proxy_port = 4443;
 static std::string _user_name;
 static std::string _password;
-static std::string _execution_mode_string;
+static std::string _user_type_string;
 
-typedef enum _execution_mode
+typedef enum _user_type
 {
-    Admin,
-    Standard
-} execution_mode_t;
+    ADMINISTRATOR,
+    STANDARD_USER
+} user_type_t;
 
 typedef struct _test_addresses
 {
@@ -53,7 +53,7 @@ typedef struct _test_addresses
 
 typedef struct _test_globals
 {
-    execution_mode_t mode;
+    user_type_t user_type;
     HANDLE user_token;
     ADDRESS_FAMILY family;
     IPPROTO protocol;
@@ -83,9 +83,9 @@ _revert_to_self()
 typedef class _impersonation_helper
 {
   public:
-    _impersonation_helper(execution_mode_t mode)
+    _impersonation_helper(user_type_t type)
     {
-        if (mode == Standard) {
+        if (type == user_type_t::STANDARD_USER) {
             _impersonate_user();
             impersonated = true;
         }
@@ -103,10 +103,10 @@ typedef class _impersonation_helper
 } impersonation_helper_t;
 
 static HANDLE
-_logon_user(std::string& user_name, std::string& password)
+_log_on_user(std::string& user_name, std::string& password)
 {
     HANDLE token = 0;
-    if (_globals.mode != Admin) {
+    if (_globals.user_type != user_type_t::ADMINISTRATOR) {
         bool result = LogonUserA(
             user_name.c_str(), nullptr, password.c_str(), LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &token);
         if (result == false) {
@@ -131,18 +131,18 @@ _get_protocol_from_string(std::string protocol)
     REQUIRE(false);
 }
 
-static execution_mode_t
-_get_execution_mode(std::string& execution_mode_string)
+static user_type_t
+_get_user_type(std::string& user_type_string)
 {
-    if (execution_mode_string == "" || execution_mode_string == "Admin") {
-        return execution_mode_t::Admin;
+    if (user_type_string == "" || user_type_string == "Administrator") {
+        return user_type_t::ADMINISTRATOR;
     }
 
-    if (execution_mode_string == "Standard") {
-        return execution_mode_t::Standard;
+    if (user_type_string == "StandardUser") {
+        return user_type_t::STANDARD_USER;
     }
 
-    return execution_mode_t::Admin;
+    return user_type_t::ADMINISTRATOR;
 }
 
 static void
@@ -208,8 +208,8 @@ _initialize_test_globals()
     REQUIRE((v6_addresses == 0 || v6_addresses == 3));
     IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[socket_family_t::IPv6].loopback_address);
 
-    _globals.mode = _get_execution_mode(_execution_mode_string);
-    _globals.user_token = _logon_user(_user_name, _password);
+    _globals.user_type = _get_user_type(_user_type_string);
+    _globals.user_token = _log_on_user(_user_name, _password);
     _globals.destination_port = _destination_port;
     _globals.proxy_port = _proxy_port;
     _globals_initialized = true;
@@ -235,7 +235,7 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object)
     REQUIRE(result == ERROR_SUCCESS);
 
     if (_globals.protocol == IPPROTO_TCP) {
-        if (_globals.mode == Admin) {
+        if (_globals.user_type == user_type_t::ADMINISTRATOR) {
             REQUIRE(entry.is_admin == 1);
         } else {
             REQUIRE(entry.is_admin == 0);
@@ -249,7 +249,6 @@ static void
 _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 {
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
-    printf("errno = %d\n", errno);
     REQUIRE(object != nullptr);
 
     REQUIRE(bpf_object__load(object) == 0);
@@ -334,7 +333,7 @@ connect_redirect_test(
         object, destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
 
     {
-        impersonation_helper_t helper(_globals.mode);
+        impersonation_helper_t helper(_globals.user_type);
 
         // Try to send and receive message to "destination". It should succeed.
         sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
@@ -369,11 +368,11 @@ authorize_test(
 
     // Send should fail as the connection is blocked.
     {
-        impersonation_helper_t helper(_globals.mode);
+        impersonation_helper_t helper(_globals.user_type);
         sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
         sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
 
-        // Receive should timeout as connection is blocked.
+        // Receive should time out as connection is blocked.
         sender_socket->post_async_receive(true);
         sender_socket->complete_async_receive(1000, true);
     }
@@ -394,7 +393,7 @@ authorize_test(
 void
 get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket)
 {
-    impersonation_helper_t helper(_globals.mode);
+    impersonation_helper_t helper(_globals.user_type);
 
     client_socket_t* old_socket = *sender_socket;
     client_socket_t* new_socket = nullptr;
@@ -533,7 +532,7 @@ main(int argc, char* argv[])
                Opt(_proxy_port, "Proxy Port")["-pt"]["--proxy-port"]("Proxy Port") |
                Opt(_user_name, "User Name")["-u"]["--user-name"]("User Name") |
                Opt(_password, "Password")["-w"]["--password"]("Password") |
-               Opt(_execution_mode_string, "Execution Mode")["-x"]["--execution-mode"]("Execution Mode");
+               Opt(_user_type_string, "User Type")["-x"]["--user-type"]("User Type");
 
     session.cli(cli);
 
