@@ -10,6 +10,9 @@ param ([Parameter(Mandatory=$True)] [string] $Admin,
 
 Push-Location $WorkingDirectory
 
+Write-Host "DEBUG #1: $StandardUser"
+Write-Host "DEBUG #2: $StandardUserPassword"
+
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
 #
@@ -419,6 +422,8 @@ function Invoke-ConnectRedirectTestsOnVM
             Start-ProcessOnVM -VM $vm -ProgramName $ProgramName -Parameters $param
         }
     }
+
+    Write-Host "DEBUG #3: $StandardUserPassword"
 
     $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($StandardUserPassword)
     $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
