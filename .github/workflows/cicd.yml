@@ -43,6 +43,16 @@ jobs:
       generate_release_package: true
       build_nuget: true
 
+  # Work around for bug in VC++ STL debug iterators.
+  no_iterator_debugging:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build-no-iterator-debugging-x64
+      cxx_flags: /D_ITERATOR_DEBUG_LEVEL=0
+      build_options: /t:tests\unit_tests
+
   cmake:
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
@@ -324,12 +334,12 @@ jobs:
 
   # Run the low memory simulator in GitHub.
   low_memory:
-    needs: regular
+    needs: no_iterator_debugging
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: low_memory
       test_command: .\unit_tests.exe
-      build_artifact: Build-x64
+      build_artifact: Build-no-iterator-debugging-x64
       environment: windows-2022
       code_coverage: true
       gather_dumps: true
