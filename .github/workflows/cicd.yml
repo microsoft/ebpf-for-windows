@@ -50,7 +50,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-no-iterator-debugging-x64
-      cxx_flags: /D_ITERATOR_DEBUG_LEVEL=0
+      cxx_flags: /D_ITERATOR_DEBUG_LEVEL=0 /D_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING
       build_options: /t:tests\unit_tests
 
   cmake:
