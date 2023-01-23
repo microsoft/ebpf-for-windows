@@ -47,7 +47,7 @@ extern "C"
      * @param[in] index Index to modify.
      * @param[in] interlocked Perform the operation using interlocked.
      * @retval true if the bit was modified.
-     * @retval false if the bit was already set.
+     * @retval false if the bit was already reset.
      */
     bool
     ebpf_bitmap_reset_bit(_Inout_ ebpf_bitmap_t* bitmap, size_t index, bool interlocked);

@@ -9,7 +9,7 @@ typedef class _hash
     typedef std::vector<std::tuple<const uint8_t*, size_t>> byte_range_t;
     template <typename T>
     static void
-    append_byte_range(byte_range_t& byte_range, const T& value)
+    append_byte_range(_Inout_ byte_range_t& byte_range, _In_ const T& value)
     {
         if constexpr (std::is_same<T, const char*>::value) {
             byte_range.push_back({reinterpret_cast<const uint8_t*>(value), strlen(value)});
