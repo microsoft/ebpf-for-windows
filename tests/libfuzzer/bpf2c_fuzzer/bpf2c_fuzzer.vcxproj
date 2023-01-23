@@ -47,17 +47,14 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\ubpf\vm;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tools\bpf2c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>mincore.lib;;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -65,12 +62,11 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;NO_CATCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\ubpf\vm;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tools\bpf2c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>mincore.lib;;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
