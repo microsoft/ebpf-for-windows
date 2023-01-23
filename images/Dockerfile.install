@@ -7,9 +7,9 @@ FROM mcr.microsoft.com/windows/nanoserver@sha256:b4248836dea118c48481b821d9fbb40
 
 ENV PATH="C:\Program Files\PowerShell;C:\utils;C:\Windows\system32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0;"
 
-ARG RELEASE_ZIP=ebpf-for-windows-c-temp.zip
+ARG RELEASE_MSI=ebpf-for-windows.msi
 
-COPY ${RELEASE_ZIP} /ebpf-for-windows-c-temp.zip
+COPY ${RELEASE_MSI} /ebpf-for-windows.msi
 COPY install-ebpf-for-windows.ps1 /
 
 ENTRYPOINT ["powershell"]

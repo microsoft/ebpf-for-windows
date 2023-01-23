@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
-# Copy release archive to local directory as ebpf-for-windows-c-temp.zip before running this script.
+# Download and copy release archive to local directory as ./ebpf-for-windows.msi before running this script.
 
 repository=${repository:-"your repository"}
 tag=${tag:-"your tag"}
