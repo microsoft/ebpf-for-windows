@@ -188,6 +188,7 @@ _fwp_engine::test_cgroup_inet6_recv_accept()
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_APP_ID].value.byteBlob = &_test_app_id;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_USER_ID].value.byteBlob = &_test_user_id;
 
     return test_cgroup_sock_addr(
         FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V6, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6, incoming_value);
@@ -207,6 +208,7 @@ _fwp_engine::test_cgroup_inet4_connect()
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_PROTOCOL].value.uint8 = _test_protocol;
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_USER_ID].value.byteBlob = &_test_user_id;
 
     return test_cgroup_sock_addr(
         FWPS_LAYER_ALE_CONNECT_REDIRECT_V4, FWPM_LAYER_ALE_CONNECT_REDIRECT_V4, incoming_value);
@@ -227,6 +229,7 @@ _fwp_engine::test_cgroup_inet6_connect()
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_PROTOCOL].value.uint8 = _test_protocol;
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_APP_ID].value.byteBlob = &_test_app_id;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_USER_ID].value.byteBlob = &_test_user_id;
 
     return test_cgroup_sock_addr(
         FWPS_LAYER_ALE_CONNECT_REDIRECT_V6, FWPM_LAYER_ALE_CONNECT_REDIRECT_V6, incoming_value);

@@ -892,7 +892,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_PROTOCOL,
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_COMPARTMENT_ID,
-     FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_INTERFACE},
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_INTERFACE,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_ALE_USER_ID},
 
     // EBPF_HOOK_ALE_AUTH_CONNECT_V6
     {FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_ADDRESS,
@@ -902,31 +903,30 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_PROTOCOL,
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_COMPARTMENT_ID,
-     FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_INTERFACE},
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_INTERFACE,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_ALE_USER_ID},
 
     // EBPF_HOOK_ALE_CONNECT_REDIRECT_V4
-    {
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_ADDRESS,
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_PORT,
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_ADDRESS,
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_PORT,
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_PROTOCOL,
-        0, // No direction field in this layer.
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_COMPARTMENT_ID,
-        0 // No interface luid in this layer.
-    },
+    {FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_ADDRESS,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_PORT,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_ADDRESS,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_PORT,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_PROTOCOL,
+     0, // No direction field in this layer.
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_COMPARTMENT_ID,
+     0, // No interface luid in this layer.
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_USER_ID},
 
     // EBPF_HOOK_ALE_CONNECT_REDIRECT_V6
-    {
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS,
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_PORT,
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_ADDRESS,
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_PORT,
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_PROTOCOL,
-        0, // No direction field in this layer.
-        FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_COMPARTMENT_ID,
-        0 // No interface luid in this layer.
-    },
+    {FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_PORT,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_ADDRESS,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_PORT,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_PROTOCOL,
+     0, // No direction field in this layer.
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_COMPARTMENT_ID,
+     0, // No interface luid in this layer.
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_USER_ID},
 
     // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS,
@@ -936,7 +936,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_PROTOCOL,
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_COMPARTMENT_ID,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_INTERFACE},
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_INTERFACE,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_USER_ID},
 
     // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_ADDRESS,
@@ -946,7 +947,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_PROTOCOL,
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_COMPARTMENT_ID,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_INTERFACE}};
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_INTERFACE,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_USER_ID}};
 
 static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
@@ -999,9 +1001,10 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         sock_addr_ctx->base.interface_luid = *incoming_values[fields->interface_luid_field].value.uint64;
     }
 
+    // USER_ID is available for all sock_addr attach types.
     sock_addr_ctx->access_information =
-        (TOKEN_ACCESS_INFORMATION*)(incoming_values[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_USER_ID]
-                                        .value.byteBlob->data);
+        (TOKEN_ACCESS_INFORMATION*)(incoming_values[fields->user_id_field].value.byteBlob->data);
+
     if (incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
         sock_addr_ctx->process_id = incoming_metadata_values->processId;
     } else {
