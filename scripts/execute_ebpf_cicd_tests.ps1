@@ -11,13 +11,12 @@ param ([parameter(Mandatory=$false)][string] $AdminTarget = "TEST_VM",
 Push-Location $WorkingDirectory
 
 $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
-
 $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
 
-$a = $StandardUserTestVMCredential.UserName
-Write-Log "ExecuteTest1: $a"
-$a = $StandardUserTestVMCredential.Password
-Write-Log "ExecuteTest2: $a"
+## $a = $StandardUserTestVMCredential.UserName
+## Write-Log "ExecuteTest1: $a"
+## $a = $StandardUserTestVMCredential.Password
+## Write-Log "ExecuteTest2: $a"
 
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
