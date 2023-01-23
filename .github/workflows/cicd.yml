@@ -61,7 +61,6 @@ jobs:
       ld_flags: '"clang_rt.fuzzer_MD-x86_64.lib" "libsancov.lib"'
       build_options: /p:Fuzzer='True' /t:tests\libfuzzer\execution_context_fuzzer /t:tests\libfuzzer\bpf2c_fuzzer /t:tests\libfuzzer\verifier_fuzzer /t:tests\libfuzzer\core_helper_fuzzer /t:tests\libfuzzer\netebpfext_fuzzer
 
-
   # Run the unit tests in GitHub.
   unit_tests:
     # Always run this job.
