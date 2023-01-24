@@ -155,12 +155,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "libfuzzer", "libfuzzer", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "execution_context_fuzzer", "tests\libfuzzer\execution_context\execution_context_fuzzer.vcxproj", "{6116AE11-5296-4DE9-8A8E-5380B789907E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bpf2c_fuzzer", "tests\libfuzzer\bpf2c\bpf2c_fuzzer.vcxproj", "{A0A0D663-DCF7-4BB1-9DDB-7964C3C31603}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bpf2c_fuzzer", "tests\libfuzzer\bpf2c_fuzzer\bpf2c_fuzzer.vcxproj", "{A0A0D663-DCF7-4BB1-9DDB-7964C3C31603}"
 	ProjectSection(ProjectDependencies) = postProject
 		{B4AD72E3-754E-40CA-9CEA-D3F2C9170E51} = {B4AD72E3-754E-40CA-9CEA-D3F2C9170E51}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "verifier_fuzzer", "tests\libfuzzer\verifier\verifier_fuzzer.vcxproj", "{DCF12929-B975-4874-A80F-9EAF1CC5A5A0}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "verifier_fuzzer", "tests\libfuzzer\verifier_fuzzer\verifier_fuzzer.vcxproj", "{DCF12929-B975-4874-A80F-9EAF1CC5A5A0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core_helper_fuzzer", "tests\libfuzzer\core_helper_fuzzer\core_helper_fuzzer.vcxproj", "{88A3E85F-669F-4CEA-8207-2E1545528D62}"
 EndProject
