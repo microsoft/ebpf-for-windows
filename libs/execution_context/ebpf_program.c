@@ -127,7 +127,7 @@ _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
 }
 
 static ebpf_result_t
-_ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program);
+_ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program);
 
 static ebpf_result_t
 _ebpf_program_program_info_provider_changed(
@@ -206,17 +206,15 @@ _ebpf_program_program_info_provider_changed(
             goto Exit;
         }
 
-        if (program->parameters.program_info_hash != NULL) {
-            return_value = _ebpf_program_verify_program_info_hash(program);
-            if (return_value != EBPF_SUCCESS) {
-                EBPF_LOG_MESSAGE_GUID(
-                    EBPF_TRACELOG_LEVEL_ERROR,
-                    EBPF_TRACELOG_KEYWORD_PROGRAM,
-                    "The program info used to verify the program doesn't match the program info provided by the "
-                    "extension",
-                    program->parameters.program_type);
-                goto Exit;
-            }
+        return_value = _ebpf_program_initialize_or_verify_program_info_hash(program);
+        if (return_value != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "The program info used to verify the program doesn't match the program info provided by the "
+                "extension",
+                program->parameters.program_type);
+            goto Exit;
         }
 
         return_value = _ebpf_program_update_helpers(program);
@@ -490,6 +488,7 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
+
     if (program_parameters->program_name.length >= BPF_OBJ_NAME_LEN) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -1478,7 +1477,8 @@ _ebpf_helper_id_to_index_compare(const void* lhs, const void* rhs)
 
 /**
  * @brief Compute the hash of the program info and compare it with the hash stored in the program. If the hash does not
- * match then the program was verified against the wrong program info.
+ * match then the program was verified against the wrong program info. If the hash is not present then store the hash
+ * in the program to be used for future verification.
  *
  * @param[in] program Program to validate.
  * @param[in] program_info Program info to validate against.
@@ -1486,7 +1486,7 @@ _ebpf_helper_id_to_index_compare(const void* lhs, const void* rhs)
  * @return EBPF_INVALID_ARGUMENT the program info hash does not match.
  */
 static ebpf_result_t
-_ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
+_ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
@@ -1614,14 +1614,26 @@ _ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
         goto Exit;
     }
 
-    if (output_hash_length != program->parameters.program_info_hash_length) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
+    if (program->parameters.program_info_hash_length == 0) {
+        // This is the first time the program info hash is being computed.
+        uint8_t* new_hash = ebpf_allocate(output_hash_length);
+        if (new_hash == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        program->parameters.program_info_hash = new_hash;
+        program->parameters.program_info_hash_length = output_hash_length;
+        memcpy((uint8_t*)program->parameters.program_info_hash, hash, output_hash_length);
+    } else {
+        if (output_hash_length != program->parameters.program_info_hash_length) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
 
-    if (memcmp(hash, program->parameters.program_info_hash, output_hash_length) != 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
+        if (memcmp(hash, program->parameters.program_info_hash, output_hash_length) != 0) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
     }
 
     result = EBPF_SUCCESS;
