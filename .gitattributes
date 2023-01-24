@@ -13,3 +13,6 @@
 *.vcxproj           text eol=crlf
 *.vcxproj.filters   text eol=crlf
 *.o                 -text
+
+# Mark generated corpus files as binary.
+**/corpus/**        -text
