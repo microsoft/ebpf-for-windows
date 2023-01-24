@@ -117,8 +117,13 @@ jobs:
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       id: download_artifact
       with:
-        name: ${{inputs.build_artifact}} ${{matrix.configurations}}
+        name: ${{inputs.build_artifact}}-${{matrix.configurations}}
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+
+    - name: Extract build artifact
+      working-directory: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: |
+        tar -xf build-${{ matrix.configurations }}.zip
 
     - name: Create generated artifact folder
       run: |
