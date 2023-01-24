@@ -4,6 +4,9 @@
 add_library("test_util" STATIC
   capture_helper.cpp
 
+  hash.cpp
+  hash.h
+
   ioctl_helper.h
   ioctl_helper.cpp
 
