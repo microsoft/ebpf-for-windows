@@ -21,7 +21,7 @@ The following must be installed in order to build this project:
 
    during the installation, select the following feature from the *Visual Studio Installer*:
 
-   - `"Desktop development with C++"`
+   - `"Desktop development with C++"` (ensure that the "*C++ Address Sanitizer*" component is installed)
 
    including the following *Spectre* library, which must be selected from the "*Individual components*" tab in the Visual Studio Installer:
 
