@@ -39,6 +39,7 @@ typedef struct _ebpf_native_program
 {
     program_entry_t* entry;
     ebpf_handle_t handle;
+    struct _ebpf_native_helper_address_changed_context* addresses_changed_callback_context;
 } ebpf_native_program_t;
 
 typedef enum _ebpf_native_module_state
@@ -118,6 +119,15 @@ _ebpf_compare_versions(bpf2c_version_t* lhs, bpf2c_version_t* rhs)
     return 0;
 }
 
+typedef struct _ebpf_native_helper_address_changed_context
+{
+    ebpf_native_module_t* module;
+    ebpf_native_program_t* native_program;
+} ebpf_native_helper_address_changed_context_t;
+
+static ebpf_result_t
+_ebpf_native_helper_address_changed(_Inout_ ebpf_program_t* program, _Inout_opt_ void* context);
+
 static void
 _ebpf_native_unload_work_item(_In_opt_ const void* service)
 {
@@ -172,6 +182,8 @@ _ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program
         if (programs[i].handle != ebpf_handle_invalid) {
             ebpf_assert_success(ebpf_handle_close(programs[i].handle));
         }
+        ebpf_free(programs[i].addresses_changed_callback_context);
+        programs[i].addresses_changed_callback_context = NULL;
     }
 
     ebpf_free(programs);
@@ -1053,6 +1065,38 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
             break;
         }
 
+        ebpf_native_helper_address_changed_context_t* context = NULL;
+
+        context = (ebpf_native_helper_address_changed_context_t*)ebpf_allocate(
+            sizeof(ebpf_native_helper_address_changed_context_t));
+
+        if (context == NULL) {
+            result = EBPF_NO_MEMORY;
+            break;
+        }
+
+        context->module = module;
+        context->native_program = native_program;
+
+        ebpf_program_t* program_object = NULL;
+        result = ebpf_object_reference_by_handle(
+            native_program->handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program_object);
+        if (result != EBPF_SUCCESS) {
+            ebpf_free(context);
+            break;
+        }
+
+        result = ebpf_program_register_for_helper_changes(program_object, _ebpf_native_helper_address_changed, context);
+
+        ebpf_object_release_reference((ebpf_core_object_t*)program_object);
+
+        if (result != EBPF_SUCCESS) {
+            ebpf_free(context);
+            break;
+        }
+
+        native_program->addresses_changed_callback_context = context;
+
         // Resolve helper addresses.
         result = _ebpf_native_resolve_helpers_for_program(module, native_program);
         if (result != EBPF_SUCCESS) {
@@ -1400,4 +1444,44 @@ ebpf_native_get_count_of_maps(_In_ const GUID* module_id, _Out_ size_t* count_of
 Done:
     ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
     EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_ebpf_native_helper_address_changed(_Inout_ ebpf_program_t* program, _Inout_opt_ void* context)
+{
+    ebpf_result_t return_value;
+    ebpf_native_helper_address_changed_context_t* helper_address_changed_context =
+        (ebpf_native_helper_address_changed_context_t*)context;
+
+    uint64_t* helper_function_addresses = NULL;
+    _Analysis_assume_(context != NULL);
+    size_t helper_count = helper_address_changed_context->native_program->entry->helper_count;
+
+    if (helper_count == 0) {
+        return_value = EBPF_SUCCESS;
+        goto Done;
+    }
+
+    helper_function_addresses = ebpf_allocate(helper_count * sizeof(uint64_t));
+    if (helper_function_addresses == NULL) {
+        return_value = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    return_value = ebpf_program_get_helper_function_addresses(program, helper_count, helper_function_addresses);
+
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    for (size_t i = 0; i < helper_count; i++) {
+        *(uint64_t*)&(helper_address_changed_context->native_program->entry->helpers[i].address) =
+            helper_function_addresses[i];
+    }
+
+    return_value = EBPF_SUCCESS;
+Done:
+    ebpf_free(helper_function_addresses);
+
+    return return_value;
 }

@@ -94,6 +94,8 @@ TEST_CASE("show disassembly bpf_call.o", "[netsh][disassembly]")
 
 TEST_CASE("show disassembly bpf.o nosuchsection", "[netsh][disassembly]")
 {
+    _test_helper_netsh test_helper;
+
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf.o", L"nosuchsection", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
@@ -102,6 +104,8 @@ TEST_CASE("show disassembly bpf.o nosuchsection", "[netsh][disassembly]")
 
 TEST_CASE("show disassembly nosuchfile.o", "[netsh][disassembly]")
 {
+    _test_helper_netsh test_helper;
+
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"nosuchfile.o", nullptr, nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
@@ -110,6 +114,8 @@ TEST_CASE("show disassembly nosuchfile.o", "[netsh][disassembly]")
 
 TEST_CASE("show sections nosuchfile.o", "[netsh][sections]")
 {
+    _test_helper_netsh test_helper;
+
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"nosuchfile.o", nullptr, nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
@@ -118,6 +124,8 @@ TEST_CASE("show sections nosuchfile.o", "[netsh][sections]")
 
 TEST_CASE("show sections bpf.o", "[netsh][sections]")
 {
+    _test_helper_netsh test_helper;
+
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -136,6 +144,8 @@ TEST_CASE("show sections bpf.o", "[netsh][sections]")
 // Test specifying a section name.
 TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
 {
+    _test_helper_netsh test_helper;
+
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.o", L".text", nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -172,6 +182,7 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
 TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 {
     _test_helper_netsh test_helper;
+
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -181,7 +192,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
                   "                                    Size\n"
                   "             Section       Type  (bytes)\n"
                   "====================  =========  =======\n"
-                  "               .text        xdp     1800\n"
+                  "               .text        xdp     1768\n"
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
@@ -192,6 +203,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
 {
     _test_helper_netsh test_helper;
+
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -214,6 +226,7 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
 TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
 {
     _test_helper_netsh test_helper;
+
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
@@ -237,6 +250,7 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
 TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
 {
     _test_helper_netsh test_helper;
+
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
@@ -260,6 +274,8 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
 {
+    _test_helper_netsh test_helper;
+
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_verification, L"nosuchfile.o", nullptr, nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
@@ -269,6 +285,7 @@ TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
 TEST_CASE("show verification bpf.o", "[netsh][verification]")
 {
     _test_helper_netsh test_helper;
+
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"xdp", &result);
     REQUIRE(result == NO_ERROR);
@@ -376,6 +393,7 @@ TEST_CASE("pin first program", "[netsh][programs]")
     output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
     REQUIRE(output == "Unpinned 196609 from mypinpath\n");
     REQUIRE(result == NO_ERROR);
+
     verify_no_programs_exist();
 }
 
@@ -498,6 +516,7 @@ TEST_CASE("show programs", "[netsh][programs]")
     output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
     REQUIRE(output == "Unpinned 196609 from mypinname\n");
     REQUIRE(result == NO_ERROR);
+
     verify_no_programs_exist();
 }
 

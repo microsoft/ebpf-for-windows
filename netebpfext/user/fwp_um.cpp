@@ -3,10 +3,12 @@
 
 #include "netebpfext_platform.h"
 #include "fwp_um.h"
+#include "net_ebpf_ext_sock_addr.h"
 
 std::unique_ptr<_fwp_engine> _fwp_engine::_engine;
 
 // Attempt to classify a test packet at a given WFP layer on a given interface index.
+// This is used to test the xdp hook.
 FWP_ACTION_TYPE
 _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
 {
@@ -20,11 +22,11 @@ _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_in
         return FWP_ACTION_CALLOUT_UNKNOWN;
     }
     FWPS_CLASSIFY_OUT0 result = {};
-    FWPS_INCOMING_VALUE0 incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_MAX] = {};
-    FWPS_INCOMING_VALUES incoming_fixed_values = {.incomingValue = incomingValue};
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_MAX] = {};
+    FWPS_INCOMING_VALUES incoming_fixed_values = {.incomingValue = incoming_value};
     incoming_fixed_values.incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32 = if_index;
     FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
-    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context();
+    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context(*layer_guid);
     if (!fwpm_filter) {
         return FWP_ACTION_CALLOUT_UNKNOWN;
     }
@@ -68,22 +70,201 @@ _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_in
     return result.actionType;
 }
 
-void
-_fwp_engine::test_bind()
+constexpr uint32_t _test_destination_ipv4_address = 0x01020304;
+static FWP_BYTE_ARRAY16 _test_destination_ipv6_address = {1, 2, 3, 4};
+constexpr uint16_t _test_destination_port = 1234;
+constexpr uint32_t _test_source_ipv4_address = 0x05060708;
+static FWP_BYTE_ARRAY16 _test_source_ipv6_address = {5, 6, 7, 8};
+constexpr uint16_t _test_source_port = 5678;
+constexpr uint8_t _test_protocol = IPPROTO_TCP;
+constexpr uint32_t _test_compartment_id = 1;
+static FWP_BYTE_BLOB _test_app_id = {.size = 2, .data = (uint8_t*)"\\"};
+static uint64_t _test_interface_luid = 1;
+
+// This is used to test the bind hook.
+FWP_ACTION_TYPE
+_fwp_engine::test_bind_ipv4()
 {
-    // TODO(issue #1869): implement bind callout.
+    std::unique_lock l(lock);
+
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16 = _test_destination_port;
+    incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS].value.uint32 =
+        _test_destination_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
+
+    return test_callout(FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V4, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4, incoming_value);
 }
 
-void
-_fwp_engine::test_cgroup_sock_addr()
+FWP_ACTION_TYPE
+_fwp_engine::test_callout(uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incoming_value)
 {
-    // TODO(issue #1869): implement sock_addr callout.
+    FWPS_INCOMING_VALUES incoming_fixed_values = {.layerId = layer_id, .incomingValue = incoming_value};
+    FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
+    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context(layer_guid);
+    if (!fwpm_filter) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+    FWPS_FILTER fwps_filter = {.context = fwpm_filter->rawContext};
+
+    const GUID* callout_key = get_callout_key_from_layer_guid(&layer_guid);
+    if (callout_key == nullptr) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+
+    const FWPS_CALLOUT3* callout = get_callout_from_key(callout_key);
+    if (callout == nullptr) {
+        return FWP_ACTION_CALLOUT_UNKNOWN;
+    }
+
+    FWPS_CLASSIFY_OUT0 result = {};
+    result.rights = FWPS_RIGHT_ACTION_WRITE;
+    callout->classifyFn(
+        &incoming_fixed_values,
+        &incoming_metadata_values,
+        nullptr, // layer_data
+        nullptr, // classify_context,
+        &fwps_filter,
+        0, // flow_context,
+        &result);
+
+    return result.actionType;
 }
 
-void
-_fwp_engine::test_sock_ops()
+// This is used to test CGROUP_SOCK_ADDR hooks.
+FWP_ACTION_TYPE
+_fwp_engine::test_cgroup_sock_addr(
+    uint16_t layer_id, _In_ const GUID& layer_guid, _In_ FWPS_INCOMING_VALUE0* incoming_value)
 {
-    // TODO(issue #1869): implement sock_ops callout.
+    GUID filter_key = {};
+    FWPS_FILTER filter = {};
+    net_ebpf_ext_connect_redirect_filter_change_notify(FWPS_CALLOUT_NOTIFY_ADD_FILTER, &filter_key, &filter);
+
+    FWP_ACTION_TYPE action_type = test_callout(layer_id, layer_guid, incoming_value);
+
+    net_ebpf_ext_connect_redirect_filter_change_notify(FWPS_CALLOUT_NOTIFY_DELETE_FILTER, &filter_key, &filter);
+
+    return action_type;
+}
+
+// This is used to test the INET4_RECV_ADDEPT hook.
+FWP_ACTION_TYPE
+_fwp_engine::test_cgroup_inet4_recv_accept()
+{
+    std::unique_lock l(lock);
+
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS].value.uint32 = _test_destination_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_PORT].value.uint16 = _test_destination_port;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_ADDRESS].value.uint32 = _test_source_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_PORT].value.uint16 = _test_source_port;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
+
+    return test_cgroup_sock_addr(
+        FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4, incoming_value);
+}
+
+// This is used to test the INET6_RECV_ADDEPT hook.
+FWP_ACTION_TYPE
+_fwp_engine::test_cgroup_inet6_recv_accept()
+{
+    std::unique_lock l(lock);
+
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_ADDRESS].value.byteArray16 =
+        &_test_destination_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_PORT].value.uint16 = _test_destination_port;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_REMOTE_ADDRESS].value.byteArray16 = &_test_source_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_REMOTE_PORT].value.uint16 = _test_source_port;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
+    incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_APP_ID].value.byteBlob = &_test_app_id;
+
+    return test_cgroup_sock_addr(
+        FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V6, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6, incoming_value);
+}
+
+// This is used to test the INET4_CONNECT hook.
+FWP_ACTION_TYPE
+_fwp_engine::test_cgroup_inet4_connect()
+{
+    std::unique_lock l(lock);
+
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_ADDRESS].value.uint32 = _test_source_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_PORT].value.uint16 = _test_source_port;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_ADDRESS].value.uint32 = _test_destination_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_PORT].value.uint16 = _test_destination_port;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
+
+    return test_cgroup_sock_addr(
+        FWPS_LAYER_ALE_CONNECT_REDIRECT_V4, FWPM_LAYER_ALE_CONNECT_REDIRECT_V4, incoming_value);
+}
+
+// This is used to test the INET6_CONNECT hook.
+FWP_ACTION_TYPE
+_fwp_engine::test_cgroup_inet6_connect()
+{
+    std::unique_lock l(lock);
+
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS].value.byteArray16 = &_test_source_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_PORT].value.uint16 = _test_source_port;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_ADDRESS].value.byteArray16 =
+        &_test_destination_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_PORT].value.uint16 = _test_destination_port;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_APP_ID].value.byteBlob = &_test_app_id;
+
+    return test_cgroup_sock_addr(
+        FWPS_LAYER_ALE_CONNECT_REDIRECT_V6, FWPM_LAYER_ALE_CONNECT_REDIRECT_V6, incoming_value);
+}
+
+// This is used to test the SOCK_OPS hook for IPv4 traffic.
+FWP_ACTION_TYPE
+_fwp_engine::test_sock_ops_v4()
+{
+    std::unique_lock l(lock);
+
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_LOCAL_ADDRESS].value.uint32 = _test_destination_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_LOCAL_PORT].value.uint16 = _test_destination_port;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_REMOTE_ADDRESS].value.uint32 = _test_source_ipv4_address;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_REMOTE_PORT].value.uint16 = _test_source_port;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
+
+    return test_callout(FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4, incoming_value);
+}
+
+// This is used to test the SOCK_OPS hook for IPv6 traffic.
+FWP_ACTION_TYPE
+_fwp_engine::test_sock_ops_v6()
+{
+    std::unique_lock l(lock);
+
+    FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_MAX] = {};
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_ADDRESS].value.byteArray16 =
+        &_test_destination_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_PORT].value.uint16 = _test_destination_port;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_REMOTE_ADDRESS].value.byteArray16 = &_test_source_ipv6_address;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_REMOTE_PORT].value.uint16 = _test_source_port;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_PROTOCOL].value.uint8 = _test_protocol;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_COMPARTMENT_ID].value.uint32 = _test_compartment_id;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
+    incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_ALE_APP_ID].value.byteBlob = &_test_app_id;
+
+    return test_callout(FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6, incoming_value);
 }
 
 typedef struct _fwp_injection_handle
@@ -249,7 +430,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
     UNREFERENCED_PARAMETER(flow_id);
     UNREFERENCED_PARAMETER(layer_id);
     UNREFERENCED_PARAMETER(callout_id);
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsFlowAssociateContext0(
@@ -259,7 +440,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsFlowAssociateContext0(
     UNREFERENCED_PARAMETER(layer_id);
     UNREFERENCED_PARAMETER(callout_id);
     UNREFERENCED_PARAMETER(flowContext);
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsAllocateNetBufferAndNetBufferList0(
