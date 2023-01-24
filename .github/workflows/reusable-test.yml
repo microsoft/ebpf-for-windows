@@ -79,7 +79,7 @@ jobs:
     # Checking out the branch is needed to gather correct code coverage data.
     steps:
     - id: skip_check
-      uses: fkirc/skip-duplicate-actions@v5
+      uses: fkirc/skip-duplicate-actions@12aca0a884f6137d619d6a8a09fcc3406ced5281 # v5.3.0
       with:
         cancel_others: 'false'
         paths_ignore: '["**.md", "**/docs/**"]'
@@ -343,8 +343,13 @@ jobs:
     if: ${{ failure() }}
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518 # v2.1.0
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
       - id: skip_check
-        uses: fkirc/skip-duplicate-actions@v5
+        uses: fkirc/skip-duplicate-actions@12aca0a884f6137d619d6a8a09fcc3406ced5281 # v5.3.0
         with:
           cancel_others: 'false'
           paths_ignore: '["**.md", "**/docs/**"]'
