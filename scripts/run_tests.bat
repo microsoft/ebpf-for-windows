@@ -1,25 +1,12 @@
 @echo off
 rem Copyright (c) Microsoft Corporation
 rem SPDX-License-Identifier: MIT
-if [%1]==[] (
-    set /A install=1
-    goto :INSTALL
-)
-if "%1" == "/noinstall" (
-    set /A install=0
-) else (
-    goto :USAGE
-)
-:INSTALL
-if %install% == 1 (
-    @echo Installing eBPF components.
-    call .\install-ebpf.bat
-)
-@echo =====================
-@echo Populate eBPF Store.
-@echo =====================
-.\export_program_info.exe --clear
-.\export_program_info.exe
+
+@echo ==============================
+@echo Cleanup & Populate eBPF Store.
+@echo ==============================
+export_program_info.exe --clear
+export_program_info.exe
 @echo =====================
 @echo Executing Unit Tests.
 @echo =====================
@@ -41,6 +28,7 @@ if %install% == 1 (
 .\bpftool_tests.exe
 @if ERRORLEVEL 1 goto EOF
 goto EOF
-:USAGE
-@echo Usage: run_tests /noinstall
+
+:SUCCESS
+@echo TESTS PASSED!
 :EOF
