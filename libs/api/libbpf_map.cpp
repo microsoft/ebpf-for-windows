@@ -302,20 +302,27 @@ typedef struct ring_buffer
 } ring_buffer_t;
 
 struct ring_buffer*
-ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* opts)
+ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* /* opts */)
 {
     ebpf_result result = EBPF_SUCCESS;
-    ring_buffer_subscription_t* subscription = nullptr;
-    UNREFERENCED_PARAMETER(opts);
-    ring_buffer_t* ring_buffer = new ring_buffer_t();
-    if (ring_buffer == nullptr)
+    ring_buffer_t* local_ring_buffer = nullptr;
+
+    try {
+        std::unique_ptr<ring_buffer_t> ring_buffer = std::make_unique<ring_buffer_t>();
+        ring_buffer_subscription_t* subscription = nullptr;
+        result = ebpf_ring_buffer_map_subscribe(map_fd, ctx, sample_cb, &subscription);
+        if (result != EBPF_SUCCESS)
+            goto Exit;
+        ring_buffer->subscriptions.push_back(subscription);
+        local_ring_buffer = ring_buffer.release();
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
         goto Exit;
-    result = ebpf_ring_buffer_map_subscribe(map_fd, ctx, sample_cb, &subscription);
-    if (result != EBPF_SUCCESS)
-        goto Exit;
-    ring_buffer->subscriptions.push_back(subscription);
+    }
 Exit:
-    return ring_buffer;
+    if (result != EBPF_SUCCESS)
+        EBPF_LOG_FUNCTION_ERROR(result);
+    EBPF_RETURN_POINTER(ring_buffer_t*, local_ring_buffer);
 }
 
 void

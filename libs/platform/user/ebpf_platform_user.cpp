@@ -253,8 +253,8 @@ _get_environment_variable_as_string(const std::string& name)
  * @brief Get an environment variable as a boolean.
  *
  * @param[in] name Environment variable name.
- * @return false Environment variable is set to "false", "0", or if it's not set.
- * @return true Environment variable is set to any other value.
+ * @retval false Environment variable is set to "false", "0", or if it's not set.
+ * @retval true Environment variable is set to any other value.
  */
 static bool
 _get_environment_variable_as_bool(const std::string& name)
