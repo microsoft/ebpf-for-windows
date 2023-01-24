@@ -771,12 +771,16 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     PACCESS_TOKEN access_token = SeQuerySubjectContextToken(&context);
     // SeQuerySubjectContextToken() is not expected to fail.
     if (access_token == NULL) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "SeQuerySubjectContextToken failed");
+
         return EBPF_FAILED;
     }
 
     NTSTATUS status = SeQueryAuthenticationIdToken(access_token, &local_authentication_id);
     // SeQueryAuthenticationIdToken() is not expected to fail.
     if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, SeQueryAuthenticationIdToken, status);
+
         return EBPF_FAILED;
     }
 

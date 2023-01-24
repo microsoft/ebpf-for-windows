@@ -494,6 +494,9 @@ _net_ebpf_sock_addr_create_security_descriptor()
 
     NTSTATUS status = RtlCreateSecurityDescriptor(admin_security_descriptor, SECURITY_DESCRIPTOR_REVISION);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlCreateSecurityDescriptor", status);
+
         goto Exit;
     }
 
@@ -503,6 +506,10 @@ _net_ebpf_sock_addr_create_security_descriptor()
 
     dacl = (ACL*)ExAllocatePoolUninitialized(NonPagedPoolNx, acl_length, NET_EBPF_EXTENSION_POOL_TAG);
     if (dacl == NULL) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "DACL memory allocation failed");
         status = STATUS_NO_MEMORY;
         goto Exit;
     }
@@ -511,15 +518,22 @@ _net_ebpf_sock_addr_create_security_descriptor()
 
     status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, access_mask, SeExports->SeAliasAdminsSid);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlAddAccessAllowedAce", status);
+
         goto Exit;
     }
     status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, access_mask, SeExports->SeLocalSystemSid);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlAddAccessAllowedAce", status);
         goto Exit;
     }
 
     status = RtlSetDaclSecurityDescriptor(admin_security_descriptor, TRUE, dacl, FALSE);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlSetDaclSecurityDescriptor", status);
         goto Exit;
     }
 

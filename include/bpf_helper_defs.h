@@ -311,7 +311,7 @@ EBPF_HELPER(uint64_t, bpf_get_current_pid_tgid, ());
 #endif
 
 /**
- * @brief Get the 64-bit logon ID of the current process. In case of sock_addr
+ * @brief Get the 64-bit logon ID of the current thread. In case of sock_addr
  * attach types, get the logon ID of the user mode app making the request. In other
  * cases, get the logon ID of the current thread.
  *

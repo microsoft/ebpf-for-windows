@@ -1153,22 +1153,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     uint32_t error;
     TOKEN_GROUPS_AND_PRIVILEGES* privileges = nullptr;
     uint32_t size = 0;
-    HANDLE process_handle;
-    HANDLE token_handle;
+    HANDLE thread_token_handle = GetCurrentThreadEffectiveToken();
 
-    process_handle = OpenProcess(PROCESS_QUERY_INFORMATION, false, ebpf_platform_process_id());
-    if (process_handle == nullptr) {
-        return win32_error_code_to_ebpf_result(GetLastError());
-    }
-
-    bool result = OpenProcessToken(process_handle, TOKEN_QUERY, &token_handle);
-    if (result == false) {
-        return win32_error_code_to_ebpf_result(GetLastError());
-    }
-
-    result = GetTokenInformation(token_handle, TokenGroupsAndPrivileges, nullptr, 0, (PDWORD)&size);
+    bool result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, nullptr, 0, (PDWORD)&size);
     error = GetLastError();
     if (error != ERROR_INSUFFICIENT_BUFFER) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, GetTokenInformation);
         return win32_error_code_to_ebpf_result(GetLastError());
     }
 
@@ -1177,8 +1167,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
         return EBPF_NO_MEMORY;
     }
 
-    result = GetTokenInformation(token_handle, TokenGroupsAndPrivileges, privileges, size, (PDWORD)&size);
+    result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (PDWORD)&size);
     if (result == false) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, GetTokenInformation);
         return_value = win32_error_code_to_ebpf_result(GetLastError());
         goto Exit;
     }

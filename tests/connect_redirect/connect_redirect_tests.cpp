@@ -73,6 +73,29 @@ _impersonate_user()
     REQUIRE(result == true);
 }
 
+uint64_t
+_get_current_thread_authentication_id()
+{
+    TOKEN_GROUPS_AND_PRIVILEGES* privileges = nullptr;
+    uint32_t size = 0;
+    HANDLE thread_token_handle = GetCurrentThreadEffectiveToken();
+    uint64_t authentication_id;
+
+    bool result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, nullptr, 0, (PDWORD)&size);
+    REQUIRE(GetLastError() == ERROR_INSUFFICIENT_BUFFER);
+
+    privileges = (TOKEN_GROUPS_AND_PRIVILEGES*)malloc(size);
+    REQUIRE(privileges != nullptr);
+
+    result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (PDWORD)&size);
+    REQUIRE(result == true);
+
+    authentication_id = *(uint64_t*)&privileges->AuthenticationId;
+
+    free(privileges);
+    return authentication_id;
+}
+
 static void
 _revert_to_self()
 {
@@ -216,7 +239,7 @@ _initialize_test_globals()
 }
 
 static void
-_validate_audit_map_entry(_In_ const struct bpf_object* object)
+_validate_audit_map_entry(_In_ const struct bpf_object* object, uint64_t authentication_id)
 {
     bpf_map* audit_map = bpf_object__find_map_by_name(object, "audit_map");
     REQUIRE(audit_map != nullptr);
@@ -229,7 +252,7 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object)
     REQUIRE(result == 0);
 
     REQUIRE(process_id == entry.process_id);
-
+    REQUIRE(entry.logon_id == authentication_id);
     SECURITY_LOGON_SESSION_DATA* data = NULL;
     result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
     REQUIRE(result == ERROR_SUCCESS);
@@ -327,6 +350,7 @@ connect_redirect_test(
     bool add_policy = true;
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
+    uint64_t authentication_id;
 
     // Update policy in the map to redirect the connection to the proxy.
     _update_policy_map(
@@ -334,6 +358,9 @@ connect_redirect_test(
 
     {
         impersonation_helper_t helper(_globals.user_type);
+
+        authentication_id = _get_current_thread_authentication_id();
+        REQUIRE(authentication_id != 0);
 
         // Try to send and receive message to "destination". It should succeed.
         sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
@@ -349,7 +376,7 @@ connect_redirect_test(
         REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
     }
 
-    _validate_audit_map_entry(object);
+    _validate_audit_map_entry(object, authentication_id);
 
     // Remove entry from policy map.
     add_policy = false;
@@ -364,11 +391,16 @@ authorize_test(
     _Inout_ sockaddr_storage& destination,
     bool dual_stack)
 {
+    uint64_t authentication_id;
     // Default behavior of the eBPF program is to block the connection.
 
     // Send should fail as the connection is blocked.
     {
         impersonation_helper_t helper(_globals.user_type);
+
+        authentication_id = _get_current_thread_authentication_id();
+        REQUIRE(authentication_id != 0);
+
         sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
         sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
 
@@ -377,7 +409,7 @@ authorize_test(
         sender_socket->complete_async_receive(1000, true);
     }
 
-    _validate_audit_map_entry(object);
+    _validate_audit_map_entry(object, authentication_id);
 
     // Now update the policy map to allow the connection and test again.
     connect_redirect_test(

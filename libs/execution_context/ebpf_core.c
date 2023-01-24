@@ -1764,6 +1764,9 @@ _ebpf_core_get_current_logon_id(_In_ const void* ctx)
     UNREFERENCED_PARAMETER(ctx);
 
     if (!ebpf_is_preemptible()) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_CORE, "get_current_logon_id: Called at DISPATCH.");
+
         return 0;
     }
 
