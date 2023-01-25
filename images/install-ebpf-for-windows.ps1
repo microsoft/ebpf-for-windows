@@ -9,8 +9,17 @@ if ($env:CONTAINER_SANDBOX_MOUNT_POINT) {
     throw "Install script is NOT running in a HostProcess container."
 }
 
-Write-Host "Install ebpf-for-windows ..."
-.\ebpf-for-windows.msi /quiet
+Write-Host "Installing VC Redistributable. This will take a while ..."
+invoke-webrequest https://aka.ms/vs/17/release/vc_redist.x64.exe -OutFile vc_redist.x64.exe
+.\vc_redist.x64.exe
+Write-Host "Installation of VC Redistributable completed."
+
+Start-Sleep -Seconds 10
+
+Write-Host "Installing ebpf-for-windows ..."
+.\ebpf-for-windows.msi /quiet /L*V ".\ebpf-for-windows.install.log"
+
+Start-Sleep -Seconds 10
 
 # Make sure netsh ebpf works.
 Write-Host "ebpf-for-windows installation completed. Show program..."
