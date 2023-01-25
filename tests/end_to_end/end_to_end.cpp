@@ -2731,6 +2731,8 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         bpf_link* link = nullptr;
         // Attach only to the single interface being tested.
         REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
+        bpf_link__disconnect(link);
+        bpf_link__destroy(link);
 
         // Program should run.
         int hook_result;

@@ -36,7 +36,6 @@ void
 _ebpf_leak_detector::dump_leaks()
 {
     std::unique_lock<std::mutex> lock(_mutex);
-    ebpf_assert(_allocations.empty());
     for (auto& allocation : _allocations) {
         std::vector<uintptr_t> stack = _stack_hashes[allocation.second.stack_hash];
         std::cout << "Leak of " << allocation.second.size << " bytes at " << allocation.second.address << std::endl;
@@ -55,6 +54,7 @@ _ebpf_leak_detector::dump_leaks()
         }
         std::cout << std::endl;
     }
+    ebpf_assert(_allocations.empty());
 
     _allocations.clear();
     _stack_hashes.clear();
