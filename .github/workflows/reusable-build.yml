@@ -55,12 +55,19 @@ jobs:
       LD_FLAGS: ${{inputs.ld_flags}}
 
     steps:
+    - id: skip_check
+      uses: fkirc/skip-duplicate-actions@12aca0a884f6137d619d6a8a09fcc3406ced5281 # v5.3.0
+      with:
+        cancel_others: 'false'
+        paths_ignore: '["**.md", "**/docs/**"]'
+
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      if: steps.skip_check.outputs.should_skip != 'true'
       with:
         submodules: 'recursive'
 
     - name: Initialize CodeQL
-      if: inputs.build_codeql == true
+      if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
       uses: github/codeql-action/init@a34ca99b4610d924e04c68db79e503e1f79f9f02
       with:
         languages: 'cpp'
@@ -70,6 +77,7 @@ jobs:
 
     - name: Setup choco cache folder
       # Set the choco cache to a local folder so that it can be cached.
+      if: steps.skip_check.outputs.should_skip != 'true'
       id: choco-cache
       run: |
         mkdir ${{github.workspace}}\choco_cache
@@ -78,6 +86,7 @@ jobs:
     - name: Cache choco packages
       # Add cache entry for any choco packages that are installed.
       # The cache key is based on the hash of this file so if any choco packages are added or removed, the cache will be invalidated.
+      if: steps.skip_check.outputs.should_skip != 'true'
       uses: actions/cache@4723a57e26efda3a62cbde1812113b730952852d
       env:
         cache-name: cache-choco-packages
@@ -86,12 +95,14 @@ jobs:
         key: ${{ hashFiles('.github/workflows/reusable-build.yml') }}
 
     - name: Install tools
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         choco install -y llvm --version 11.0.1 --allow-downgrade
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache nuget packages
+      if: steps.skip_check.outputs.should_skip != 'true'
       uses: actions/cache@58c146cc91c5b9e778e71775dfe9bf1442ad9a12
       env:
         cache-name: cache-nuget-modules
@@ -100,11 +111,13 @@ jobs:
         key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}
 
     - name: Restore NuGet packages
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
     - name: Cache verifier project
       # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
+      if: steps.skip_check.outputs.should_skip != 'true'
       uses: actions/cache@4723a57e26efda3a62cbde1812113b730952852d
       env:
         cache-name: cache-verifier-project
@@ -113,6 +126,7 @@ jobs:
         key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}-${{ hashFiles('external/Directory.Build.props')}}
 
     - name: Create verifier project
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
         CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
@@ -121,6 +135,7 @@ jobs:
         cmake -G "Visual Studio 17 2022" -S external\ebpf-verifier -B external\ebpf-verifier\build
 
     - name: Create catch2 project
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
         CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
@@ -129,6 +144,7 @@ jobs:
         cmake -G "Visual Studio 17 2022" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
     - name: Create ubpf project
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
         CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
@@ -137,24 +153,29 @@ jobs:
         cmake -G "Visual Studio 17 2022" -S external\ubpf -B external\ubpf\build
 
     - name: Build
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}}
 
     - name: Copy VC Libs for Sanitizer
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
 
     - name: Download demo repository
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
     - name: Extract artifacts to build path
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         tar -xf ..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
 
     - name: Upload Build Output
+      if: steps.skip_check.outputs.should_skip != 'true'
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
@@ -162,7 +183,7 @@ jobs:
         retention-days: 5
 
     - name: Generate the package data
-      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      if: matrix.configurations == 'Release' && inputs.generate_release_package == true && steps.skip_check.outputs.should_skip != 'true'
       shell: cmd
       working-directory: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       env:
@@ -171,7 +192,7 @@ jobs:
         ${{github.workspace}}\scripts\create_package_data.bat ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}
 
     - name: Generate the MSI release package
-      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      if: matrix.configurations == 'Release' && inputs.generate_release_package == true && steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         $version = scripts\Get-Version.ps1
@@ -179,7 +200,7 @@ jobs:
         cmake --build build\setup --target package
 
     - name: Locate the packages
-      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      if: matrix.configurations == 'Release' && inputs.generate_release_package == true && steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       id: packages
       shell: bash
@@ -187,24 +208,24 @@ jobs:
         echo "REL_MSI_PACKAGE_PATH=$(ls build/setup/*.msi)" >> $GITHUB_OUTPUT
 
     - name: Upload the MSI package
-      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      if: matrix.configurations == 'Release' && inputs.generate_release_package == true && steps.skip_check.outputs.should_skip != 'true'
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ebpf-for-windows.msi
         path: ${{ steps.packages.outputs.REL_MSI_PACKAGE_PATH }}
 
     - name: Build nuget package
-      if: matrix.configurations == 'Release' && inputs.build_nuget == true
+      if: matrix.configurations == 'Release' && inputs.build_nuget == true && steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\nuget
 
     - name: Upload the nuget package
-      if: matrix.configurations == 'Release' && inputs.build_nuget == true
+      if: matrix.configurations == 'Release' && inputs.build_nuget == true && steps.skip_check.outputs.should_skip != 'true'
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ebpf-for-windows nuget
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.nupkg
 
     - name: Perform CodeQL Analysis
-      if: inputs.build_codeql == true
+      if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
       uses: github/codeql-action/analyze@a34ca99b4610d924e04c68db79e503e1f79f9f02
