@@ -50,16 +50,31 @@ CATCH_REGISTER_LISTENER(_passed_test_log)
 #define BPF_ATTACH_TYPE_INVALID 100
 
 #define CONCAT(s1, s2) s1 s2
-#define DECLARE_ALL_TEST_CASES(_name, _group, _function)                              \
-                                                                                      \
-    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); }       \
-    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); } \
-    TEST_CASE(CONCAT(_name, "-interpret"), _group) { _function(EBPF_EXECUTION_INTERPRET); }
+#define DECLARE_ALL_TEST_CASES(_name, _group, _function) \
+                                                         \
+    TEST_CASE(CONCAT(_name, "-jit"), _group)             \
+    {                                                    \
+        _function(EBPF_EXECUTION_JIT);                   \
+    }                                                    \
+    TEST_CASE(CONCAT(_name, "-native"), _group)          \
+    {                                                    \
+        _function(EBPF_EXECUTION_NATIVE);                \
+    }                                                    \
+    TEST_CASE(CONCAT(_name, "-interpret"), _group)       \
+    {                                                    \
+        _function(EBPF_EXECUTION_INTERPRET);             \
+    }
 
-#define DECLARE_JIT_TEST_CASES(_name, _group, _function)                        \
-                                                                                \
-    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); } \
-    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
+#define DECLARE_JIT_TEST_CASES(_name, _group, _function) \
+                                                         \
+    TEST_CASE(CONCAT(_name, "-jit"), _group)             \
+    {                                                    \
+        _function(EBPF_EXECUTION_JIT);                   \
+    }                                                    \
+    TEST_CASE(CONCAT(_name, "-native"), _group)          \
+    {                                                    \
+        _function(EBPF_EXECUTION_NATIVE);                \
+    }
 
 extern thread_local bool ebpf_non_preemptible;
 
@@ -2685,3 +2700,119 @@ TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
 
     bpf_object__close(jit_object);
 }
+
+static void
+extension_reload_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    // Create a 0-byte UDP packet.
+    auto packet0 = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+
+    // Test that we drop the packet and increment the map
+    xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
+
+    // Try loading with out the extension loaded.
+    bpf_object* droppacket_object;
+    int program_fd = -1;
+    const char* error_message = nullptr;
+
+    // Should fail.
+    REQUIRE(
+        ebpf_program_load(
+            execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o",
+            BPF_PROG_TYPE_UNSPEC,
+            execution_type,
+            &droppacket_object,
+            &program_fd,
+            &error_message) != 0);
+
+    ebpf_free((void*)error_message);
+
+    // Load the program with the extension loaded.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+        REQUIRE(
+            ebpf_program_load(
+                execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o",
+                BPF_PROG_TYPE_UNSPEC,
+                execution_type,
+                &droppacket_object,
+                &program_fd,
+                &error_message) == 0);
+
+        uint32_t if_index = TEST_IFINDEX;
+        bpf_link* link = nullptr;
+        // Attach only to the single interface being tested.
+        REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
+
+        // Program should run.
+        int hook_result;
+        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == XDP_PASS);
+
+        // Unload the extension (xdp_program_info and hook will be destroyed).
+    }
+
+    // Reload the extension provider with unchanged data.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+        // Program should re-attach to the hook.
+
+        // Program should run.
+        int hook_result;
+        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == XDP_PASS);
+    }
+
+    // Reload the extension provider with missing helper function.
+    {
+        ebpf_helper_function_addresses_t changed_helper_function_address_table =
+            _test_ebpf_xdp_helper_function_address_table;
+        ebpf_program_data_t changed_program_data = _ebpf_xdp_program_data;
+        changed_program_data.program_type_specific_helper_function_addresses = &changed_helper_function_address_table;
+        changed_helper_function_address_table.helper_function_count = 0;
+
+        ebpf_extension_data_t changed_provider_data = {
+            TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(changed_program_data), &changed_program_data};
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP, &changed_provider_data);
+
+        // Program should re-attach to the hook.
+
+        // Program should run.
+        int hook_result;
+        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result != XDP_PASS);
+    }
+
+    // Reload the extension provider with changed helper function data
+    {
+        ebpf_program_info_t changed_program_info = _ebpf_xdp_program_info;
+        ebpf_helper_function_prototype_t helper_function_prototypes[] = {
+            _xdp_ebpf_extension_helper_function_prototype[0]};
+        helper_function_prototypes[0].return_type = EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL;
+        changed_program_info.program_type_specific_helper_prototype = helper_function_prototypes;
+        ebpf_program_data_t changed_program_data = _ebpf_xdp_program_data;
+        changed_program_data.program_info = &changed_program_info;
+
+        ebpf_extension_data_t changed_provider_data = {
+            TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(changed_program_data), &changed_program_data};
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP, &changed_provider_data);
+
+        // Program should re-attach to the hook.
+
+        // Program should run.
+        int hook_result;
+        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result != XDP_PASS);
+    }
+}
+
+DECLARE_ALL_TEST_CASES("extension_reload_test", "[end_to_end]", extension_reload_test);
