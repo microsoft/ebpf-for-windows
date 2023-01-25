@@ -163,6 +163,7 @@ jobs:
         retention-days: 5
 
     - name: Upload the MSI package
+      if: inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release'
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ebpf-for-windows installer
