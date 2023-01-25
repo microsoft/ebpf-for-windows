@@ -56,7 +56,7 @@ Alternative install steps (for *basic* Visual Studio Community edition):
 
    ```ps
    Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
-   if ((get-filehash $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '4000D4B2478A5CE9A779140DEDAEF99E422D9A8706B4ECE596CF0F69DB667055') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+   if ((get-filehash $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '9B9C4358B05DBD16EF58C0548B1ADBA4B5591FE14DFD3239FC580BB95B39988C') { &"$env:TEMP\Setup-DeveEnv.ps1" }
    ```
    >**Note**: the WDK for Windows 11 is [not currently available on Chocolatey](https://community.chocolatey.org/packages?q=windowsdriverkit),
     please install manually with the link in the [Prerequisites](#prerequisites) section above.
