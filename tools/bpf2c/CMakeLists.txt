@@ -7,7 +7,7 @@ add_executable("bpf2c"
 
   bpf_code_generator.h
   bpf_code_generator.cpp
-
+  "${CMAKE_SOURCE_DIR}/tests/libs/util/hash.cpp"
   bpf2c.cpp
 )
 
@@ -15,6 +15,7 @@ target_include_directories("bpf2c" PRIVATE
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/resource"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_SOURCE_DIR}/tests/libs/util"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"
 )
 
