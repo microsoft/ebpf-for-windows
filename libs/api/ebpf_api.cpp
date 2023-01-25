@@ -3838,6 +3838,8 @@ ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
             result = win32_error_code_to_ebpf_result(GetLastError());
         }
     }
+    // Note: Result can change from EBPF_PENDING to EBPF_SUCCESS or EBPF_ERROR_* based on the result of the
+    // GetOverlappedResult call above.
 
     if (result == EBPF_SUCCESS) {
         if (options->data_out) {
