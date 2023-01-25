@@ -50,31 +50,16 @@ CATCH_REGISTER_LISTENER(_passed_test_log)
 #define BPF_ATTACH_TYPE_INVALID 100
 
 #define CONCAT(s1, s2) s1 s2
-#define DECLARE_ALL_TEST_CASES(_name, _group, _function) \
-                                                         \
-    TEST_CASE(CONCAT(_name, "-jit"), _group)             \
-    {                                                    \
-        _function(EBPF_EXECUTION_JIT);                   \
-    }                                                    \
-    TEST_CASE(CONCAT(_name, "-native"), _group)          \
-    {                                                    \
-        _function(EBPF_EXECUTION_NATIVE);                \
-    }                                                    \
-    TEST_CASE(CONCAT(_name, "-interpret"), _group)       \
-    {                                                    \
-        _function(EBPF_EXECUTION_INTERPRET);             \
-    }
+#define DECLARE_ALL_TEST_CASES(_name, _group, _function)                              \
+                                                                                      \
+    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); }       \
+    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); } \
+    TEST_CASE(CONCAT(_name, "-interpret"), _group) { _function(EBPF_EXECUTION_INTERPRET); }
 
-#define DECLARE_JIT_TEST_CASES(_name, _group, _function) \
-                                                         \
-    TEST_CASE(CONCAT(_name, "-jit"), _group)             \
-    {                                                    \
-        _function(EBPF_EXECUTION_JIT);                   \
-    }                                                    \
-    TEST_CASE(CONCAT(_name, "-native"), _group)          \
-    {                                                    \
-        _function(EBPF_EXECUTION_NATIVE);                \
-    }
+#define DECLARE_JIT_TEST_CASES(_name, _group, _function)                        \
+                                                                                \
+    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); } \
+    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
 
 extern thread_local bool ebpf_non_preemptible;
 
