@@ -121,12 +121,8 @@ command prompt:
 The following instructions will build an ebpf-for-windows image and deploy a daemonset referencing the image. This is the easiest way
 to install eBPF on all Windows nodes in a Kubernetes cluster.
 
-1. Deploy the binaries to `C:\Temp` on the machine (Windows Host) where you built the binaries.
-   Start an admin Powershell on the Windows Host and run:
+1. Download the `.msi` file from the [latest release on GitHub](https://github.com/microsoft/ebpf-for-windows/releases) and copy it over to [images](../images) directory.
 
-    ```ps
-    .\x64\debug\deploy-ebpf
-    ```
 
 2. Build ebpf-for-windows image.
 
@@ -138,13 +134,6 @@ Start an admin Powershell on the Windows Host and run the following command and 
         ````
 
     * To **build the image on a Linux machine** (e.g. Ubuntu), make sure docker is installed (see [install docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)), and do the following:
-
-      - Run the following Powershell command on the Windows Host to create zip files containing the binaries.
-          ```ps
-          Compress-Archive -Update -Path C:\temp -DestinationPath ebpf-for-windows-c-temp.zip
-          ```
-
-      - Copy `images\*` and `ebpf-for-windows-c-temp.zip` from the Windows Host to a directory on the Linux machine (e.g. `$HOME/ebpf-for-windows-image`).
 
       - Run the following command and provide parameters for `repository`, `tag` and `OSVersion`:
           ```bash
