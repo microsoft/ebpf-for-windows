@@ -96,17 +96,12 @@
     <ClInclude Include="..\end_to_end\test_helper.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="corpus.zip">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-  </ItemGroup>
-  <ItemGroup>
     <CustomBuild Include="..\..\..\scripts\create_execution_context_corpus.bat">
       <FileType>Document</FileType>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)execution_context_corpus\0053f779cc22bd93bfd6005715472402cf0b411d</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)execution_context_corpus\0053f779cc22bd93bfd6005715472402cf0b411d</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)scripts\create_execution_context_corpus.bat $(SolutionDir) $(OutDir)execution_context_fuzzer_corpus</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)scripts\create_execution_context_corpus.bat $(SolutionDir) $(OutDir)execution_context_fuzzer_corpus</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)execution_context_fuzzer_corpus</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)execution_context_fuzzer_corpus</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
