@@ -236,7 +236,7 @@ SPDX-License-Identifier: MIT
 				<File Id="eBPFCore.pdb" Name="eBPFCore.pdb" Source="$(var.EbpfCore.TargetDir)eBPFCore.pdb" KeyPath="yes" />
 			</Component>
 		</ComponentGroup>
-		<SetProperty Id="eBPFCore_Driver_install" Value='"sc.exe" create eBPFCore type=kernel start=demand binpath="[#eBPFCore.sys]"' Before="eBPFCore_Driver_install" Sequence="execute"/>
+		<SetProperty Id="eBPFCore_Driver_install" Value='"sc.exe" create eBPFCore type=kernel start=auto binpath="[#eBPFCore.sys]"' Before="eBPFCore_Driver_install" Sequence="execute"/>
 		<CustomAction Id="eBPFCore_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<Property Id="eBPFCore_Driver_start" Value='"net.exe" start eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
@@ -262,7 +262,7 @@ SPDX-License-Identifier: MIT
 				<File Id="NetEbpfExt.pdb" Name="NetEbpfExt.pdb" Source="$(var.netebpfext.TargetDir)NetEbpfExt.pdb" KeyPath="yes" />
 			</Component>
 		</ComponentGroup>
-		<SetProperty Id="NetEbpfExt_Driver_install" Value='"sc.exe" create NetEbpfExt type=kernel start=demand binpath="[#NetEbpfExt.sys]"' Before="NetEbpfExt_Driver_install" Sequence="execute"/>
+		<SetProperty Id="NetEbpfExt_Driver_install" Value='"sc.exe" create NetEbpfExt type=kernel start=auto binpath="[#NetEbpfExt.sys]"' Before="NetEbpfExt_Driver_install" Sequence="execute"/>
 		<CustomAction Id="NetEbpfExt_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<Property Id="NetEbpfExt_Driver_start" Value='"net.exe" start NetEbpfExt' />
 		<CustomAction Id="NetEbpfExt_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
@@ -545,7 +545,7 @@ SPDX-License-Identifier: MIT
 				<File Id="SAMPLE_EBPF_EXT.PDB" Name="sample_ebpf_ext.pdb" Source="$(var.sample_ebpf_ext.TargetDir)sample_ebpf_ext.pdb" />
 			</Component>
 		</ComponentGroup>
-		<SetProperty Id="sample_ebpf_ext_Driver_install" Value='"sc.exe" create SampleEbpfExt type=kernel start=demand binpath="[#SAMPLE_EBPF_EXT.SYS]"' Before="sample_ebpf_ext_Driver_install" Sequence="execute"/>
+		<SetProperty Id="sample_ebpf_ext_Driver_install" Value='"sc.exe" create SampleEbpfExt type=kernel start=auto binpath="[#SAMPLE_EBPF_EXT.SYS]"' Before="sample_ebpf_ext_Driver_install" Sequence="execute"/>
 		<CustomAction Id="sample_ebpf_ext_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<Property Id="sample_ebpf_ext_Driver_start" Value='"net.exe" start SampleEbpfExt' />
 		<CustomAction Id="sample_ebpf_ext_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
