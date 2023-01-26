@@ -441,10 +441,10 @@ To capture a trace in a file use the following commands:
 
 1. Start tracing:
    ```cmd
-   wpr.exe -start "%ProgramFiles%\ebpf-for-windows\ebpfforwindows.wprp" -filemode
+   wpr.exe -start "%ProgramFiles%\[eBPF for Windows install folder]\ebpfforwindows.wprp" -filemode
    ```
    This will capture traces from eBPF execution context and the network eBPF extension drivers.
-     (The path `%ProgramFiles%\ebpf-for-windows` assumes you installed eBPF for Windows via the MSI file.
+     (The path `%ProgramFiles%\[eBPF for Windows install folder]` assumes you installed eBPF for Windows via the MSI file.
      If you installed it via some other method, [ebpfforwindows.wprp](../scripts/ebpfforwindows.wprp) may be in some other location.)
 1. Run the scenario to be traced.
 1. Stop tracing:
@@ -471,7 +471,7 @@ To view all eBPF trace events that would be captured to a file, use the followin
 
 1. Create a trace session with some name such as MyTrace:
    ```cmd
-   tracelog -start MyTrace -guid "%ProgramFiles%\ebpf-for-windows\ebpf-all.guid" -rt
+   tracelog -start MyTrace -guid "%ProgramFiles%\[eBPF for Windows install folder]ebpf-all.guid" -rt
    ```
 1. View the session in real-time on stdout:
    ```cmd
@@ -490,7 +490,7 @@ To do so, use `ebpf-printk.guid` instead of `ebpf-all.guid` when creating a trac
 
 1. Create a trace session with some name such as MyTrace:
    ```cmd
-   tracelog -start MyTrace -guid "%ProgramFiles%\ebpf-for-windows\ebpf-printk.guid" -rt
+   tracelog -start MyTrace -guid "%ProgramFiles%\[eBPF for Windows install folder]\ebpf-printk.guid" -rt
    ```
 1. View the session in real-time on stdout:
 
