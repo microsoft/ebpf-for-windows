@@ -32,9 +32,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="corpus.zip" />
-  </ItemGroup>
-  <ItemGroup>
     <CustomBuild Include="..\..\..\scripts\create_execution_context_corpus.bat">
       <Filter>Source Files</Filter>
     </CustomBuild>

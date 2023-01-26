@@ -659,8 +659,8 @@ _net_ebpf_ext_connection_context_initialize_value(
  * @param[in] addr1 Pointer to first sock_addr struct to compare.
  * @param[in] addr2 Pointer to second sock_addr struct to compare.
 
- * @return TRUE if the addresses are same.
-   @return FALSE otherwise.
+ * @return TRUE The addresses are same.
+   @return FALSE The addresses are different.
  */
 static inline BOOLEAN
 _net_ebpf_ext_compare_destination_address(_In_ const bpf_sock_addr_t* addr1, _In_ const bpf_sock_addr_t* addr2)

@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: MIT
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <future>
 #include <map>
 #include <mutex>
+#include <sstream>
 using namespace std::chrono_literals;
 
 #include "bpf/bpf.h"
@@ -15,6 +17,7 @@ using namespace std::chrono_literals;
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_platform.h"
+#include "hash.h"
 #include "helpers.h"
 #include "mock.h"
 #include "test_helper.hpp"
@@ -23,6 +26,8 @@ extern "C" bool ebpf_fuzzing_enabled;
 extern bool _ebpf_platform_is_preemptible;
 
 static bool _is_platform_preemptible = false;
+
+bool _ebpf_capture_corpus = false;
 
 extern "C" metadata_table_t*
 get_metadata_table();
@@ -146,6 +151,46 @@ class duplicate_handles_table_t
 };
 
 static duplicate_handles_table_t _duplicate_handles;
+
+static std::string
+_get_environment_variable_as_string(const std::string& name)
+{
+    std::string value;
+    size_t required_size = 0;
+    getenv_s(&required_size, nullptr, 0, name.c_str());
+    if (required_size > 0) {
+        value.resize(required_size);
+        getenv_s(&required_size, &value[0], required_size, name.c_str());
+        value.resize(required_size - 1);
+    }
+    return value;
+}
+
+/**
+ * @brief Get an environment variable as a boolean.
+ *
+ * @param[in] name Environment variable name.
+ * @retval false Environment variable is set to "false", "0", or if it's not set.
+ * @retval true Environment variable is set to any other value.
+ */
+static bool
+_get_environment_variable_as_bool(const std::string& name)
+{
+    std::string value = _get_environment_variable_as_string(name);
+    if (value.empty()) {
+        return false;
+    }
+
+    // Convert value to lower case.
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+    if (value == "false") {
+        return false;
+    }
+    if (value == "0") {
+        return false;
+    }
+    return true;
+}
 
 HANDLE
 GlueCreateFileW(
@@ -522,7 +567,55 @@ Glue_delete_service(SC_HANDLE handle)
 
 _test_helper_end_to_end::_test_helper_end_to_end()
 {
-    device_io_control_handler = GlueDeviceIoControl;
+    if (_get_environment_variable_as_bool("EBPF_GENERATE_CORPUS")) {
+        device_io_control_handler = [](HANDLE hDevice,
+                                       DWORD dwIoControlCode,
+                                       PVOID lpInBuffer,
+                                       DWORD nInBufferSize,
+                                       LPVOID lpOutBuffer,
+                                       DWORD nOutBufferSize,
+                                       PDWORD lpBytesReturned,
+                                       OVERLAPPED* lpOverlapped) -> BOOL {
+            UNREFERENCED_PARAMETER(hDevice);
+            UNREFERENCED_PARAMETER(dwIoControlCode);
+            UNREFERENCED_PARAMETER(lpOutBuffer);
+            UNREFERENCED_PARAMETER(nOutBufferSize);
+            UNREFERENCED_PARAMETER(lpBytesReturned);
+            UNREFERENCED_PARAMETER(lpOverlapped);
+
+            // Generate SHA1 of the input buffer and write it to an output file.
+            hash_t hash("SHA1");
+
+            auto sha1_hash = hash.hash_byte_ranges({{(uint8_t*)lpInBuffer, nInBufferSize}});
+
+            // Convert the hash to a string.
+            std::ostringstream hash_string;
+            hash_string << std::hex << std::setfill('0');
+            for (auto byte : sha1_hash) {
+                hash_string << std::setw(2) << (int)byte;
+            }
+
+            if (!std::filesystem::exists("corpus\\" + hash_string.str())) {
+
+                // Write the hash to a file.
+                std::ofstream output_file("corpus\\" + hash_string.str(), std::ios::binary);
+                output_file.write((char*)lpInBuffer, nInBufferSize);
+                output_file.close();
+            }
+
+            return GlueDeviceIoControl(
+                hDevice,
+                dwIoControlCode,
+                lpInBuffer,
+                nInBufferSize,
+                lpOutBuffer,
+                nOutBufferSize,
+                lpBytesReturned,
+                lpOverlapped);
+        };
+    } else {
+        device_io_control_handler = GlueDeviceIoControl;
+    }
     cancel_io_ex_handler = GlueCancelIoEx;
     create_file_handler = GlueCreateFileW;
     close_handle_handler = GlueCloseHandle;
