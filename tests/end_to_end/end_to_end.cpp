@@ -2696,7 +2696,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     // Test that we drop the packet and increment the map
     xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
 
-    // Try loading with out the extension loaded.
+    // Try loading without the extension loaded.
     bpf_object* droppacket_object;
     int program_fd = -1;
     const char* error_message = nullptr;
