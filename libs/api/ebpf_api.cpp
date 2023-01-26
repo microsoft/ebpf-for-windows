@@ -55,6 +55,44 @@ static std::vector<ebpf_object_t*> _ebpf_objects;
 #define SERVICE_PARAMETERS L"Parameters"
 #define NPI_MODULE_ID L"NpiModuleId"
 
+typedef class _ebpf_signal
+{
+  public:
+    _ebpf_signal()
+    {
+        _event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        if (_event == INVALID_HANDLE_VALUE) {
+            throw std::bad_alloc();
+        }
+    }
+
+    ~_ebpf_signal() noexcept { CloseHandle(_event); }
+
+    void
+    set() noexcept
+    {
+        SetEvent(_event);
+    }
+
+    void
+    reset() noexcept
+    {
+        ResetEvent(_event);
+    }
+
+    void
+    wait() noexcept
+    {
+        WaitForSingleObject(_event, INFINITE);
+    }
+
+    HANDLE
+    get() noexcept { return _event; }
+
+  private:
+    HANDLE _event;
+} ebpf_signal_t;
+
 static void
 _clean_up_ebpf_objects() noexcept;
 
@@ -3738,6 +3776,10 @@ ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
 
     size_t input_buffer_size = EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data);
     size_t output_buffer_size = EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data);
+    ebpf_signal_t completion_event;
+    OVERLAPPED overlapped;
+    memset(&overlapped, 0, sizeof(overlapped));
+    overlapped.hEvent = completion_event.get();
 
     if ((options->context_size_in + options->data_size_in) >
         MAXUINT16 - EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data)) {
@@ -3786,7 +3828,18 @@ ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
     std::copy(
         options->context_in, options->context_in + options->context_size_in, request->data + options->data_size_in);
 
-    result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer, &overlapped));
+    if (result == EBPF_PENDING) {
+        unsigned long bytes_returned;
+        completion_event.wait();
+        if (GetOverlappedResult(reinterpret_cast<HANDLE>(get_device_handle()), &overlapped, &bytes_returned, FALSE)) {
+            result = EBPF_SUCCESS;
+        } else {
+            result = win32_error_code_to_ebpf_result(GetLastError());
+        }
+    }
+    // Note: Result can change from EBPF_PENDING to EBPF_SUCCESS or EBPF_ERROR_* based on the result of the
+    // GetOverlappedResult call above.
 
     if (result == EBPF_SUCCESS) {
         if (options->data_out) {

@@ -761,58 +761,6 @@ ebpf_platform_thread_id()
     return (uint32_t)(uintptr_t)PsGetCurrentThreadId();
 }
 
-typedef struct _ebpf_signal
-{
-    KEVENT event;
-} ebpf_signal_t;
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_signal_create(_Outptr_ ebpf_signal_t** signal)
-{
-    *signal = (ebpf_signal_t*)ebpf_allocate(sizeof(ebpf_signal_t));
-    if (!*signal) {
-        return EBPF_NO_MEMORY;
-    }
-
-    KeInitializeEvent(&(*signal)->event, SynchronizationEvent, FALSE);
-
-    return EBPF_SUCCESS;
-}
-
-void
-ebpf_signal_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_signal_t* signal)
-{
-    ebpf_free(signal);
-}
-
-void
-ebpf_signal_set(_In_ ebpf_signal_t* signal)
-{
-    KeSetEvent(&signal->event, 0, FALSE);
-}
-
-void
-ebpf_signal_reset(_In_ ebpf_signal_t* signal)
-{
-    KeResetEvent(&signal->event);
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms)
-{
-    LARGE_INTEGER timeout;
-    timeout.QuadPart = -10000 * (uint64_t)timeout_ms;
-
-    NTSTATUS status = KeWaitForSingleObject(&signal->event, Executive, KernelMode, FALSE, timeout_ms ? &timeout : NULL);
-    if (status == STATUS_SUCCESS) {
-        return EBPF_SUCCESS;
-    } else if (status == STATUS_TIMEOUT) {
-        return EBPF_TIMEOUT;
-    } else {
-        return EBPF_FAILED;
-    }
-}
-
 _IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql)
 {
     KIRQL old_irql;
