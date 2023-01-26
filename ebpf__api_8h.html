@@ -118,86 +118,86 @@ Typedefs</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a9d86b24b5aeccfef5860632ea8897dee"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a9d86b24b5aeccfef5860632ea8897dee">ebpf_program_query_info</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> *execution_type, _Outptr_result_z_ const char **file_name, _Outptr_result_z_ const char **section_name)</td></tr>
-<tr class="memdesc:a9d86b24b5aeccfef5860632ea8897dee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query info about an eBPF program.  <a href="ebpf__api_8h.html#a9d86b24b5aeccfef5860632ea8897dee">More...</a><br /></td></tr>
-<tr class="separator:a9d86b24b5aeccfef5860632ea8897dee"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af9cd59861509903ffc0c7aa9b77945d6"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af9cd59861509903ffc0c7aa9b77945d6">ebpf_enumerate_sections</a> (const char *file, bool verbose, _Outptr_result_maybenull_ <a class="el" href="ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006">ebpf_section_info_t</a> **infos, const char **error_message)</td></tr>
-<tr class="memdesc:af9cd59861509903ffc0c7aa9b77945d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get list of programs and stats in an eBPF file.  <a href="ebpf__api_8h.html#af9cd59861509903ffc0c7aa9b77945d6">More...</a><br /></td></tr>
-<tr class="separator:af9cd59861509903ffc0c7aa9b77945d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1c3da23f50b88bb49d5ef0bf9c3e77f6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a1c3da23f50b88bb49d5ef0bf9c3e77f6">ebpf_free_sections</a> (<a class="el" href="ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006">ebpf_section_info_t</a> *infos)</td></tr>
-<tr class="memdesc:a1c3da23f50b88bb49d5ef0bf9c3e77f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory returned from <a class="el" href="ebpf__api_8h.html#af9cd59861509903ffc0c7aa9b77945d6">ebpf_enumerate_sections</a>.  <a href="ebpf__api_8h.html#a1c3da23f50b88bb49d5ef0bf9c3e77f6">More...</a><br /></td></tr>
-<tr class="separator:a1c3da23f50b88bb49d5ef0bf9c3e77f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">ebpf_api_elf_disassemble_section</a> (const char *file, const char *section, const char **disassembly, const char **error_message)</td></tr>
-<tr class="memdesc:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert an eBPF program to human readable byte code.  <a href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">More...</a><br /></td></tr>
-<tr class="separator:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac8b5a14825344d3e28be39753cf7618b"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ac8b5a14825344d3e28be39753cf7618b">ebpf_api_elf_verify_section_from_file</a> (const char *file, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, bool verbose, const char **report, const char **error_message, _Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats)</td></tr>
-<tr class="memdesc:ac8b5a14825344d3e28be39753cf7618b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#ac8b5a14825344d3e28be39753cf7618b">More...</a><br /></td></tr>
-<tr class="separator:ac8b5a14825344d3e28be39753cf7618b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afb890ffe6e45389578b02e35805981f6"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#afb890ffe6e45389578b02e35805981f6">ebpf_api_elf_verify_section_from_memory</a> (_In_reads_(data_length) const char *data, size_t data_length, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, bool verbose, const char **report, const char **error_message, _Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats)</td></tr>
-<tr class="memdesc:afb890ffe6e45389578b02e35805981f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#afb890ffe6e45389578b02e35805981f6">More...</a><br /></td></tr>
-<tr class="separator:afb890ffe6e45389578b02e35805981f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a90cbc93764ecd96f2a84fd659e517851"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a90cbc93764ecd96f2a84fd659e517851">ebpf_free_string</a> (const char *string)</td></tr>
-<tr class="memdesc:a90cbc93764ecd96f2a84fd659e517851"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory for a string returned from an eBPF API.  <a href="ebpf__api_8h.html#a90cbc93764ecd96f2a84fd659e517851">More...</a><br /></td></tr>
-<tr class="separator:a90cbc93764ecd96f2a84fd659e517851"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af3dc979c21fbfa8e63d80eb5726cc090"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af3dc979c21fbfa8e63d80eb5726cc090">ebpf_api_unpin_object</a> (const uint8_t *name, uint32_t name_length)</td></tr>
-<tr class="memdesc:af3dc979c21fbfa8e63d80eb5726cc090"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dissociate a name with an object handle.  <a href="ebpf__api_8h.html#af3dc979c21fbfa8e63d80eb5726cc090">More...</a><br /></td></tr>
-<tr class="separator:af3dc979c21fbfa8e63d80eb5726cc090"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a76de7fc74edd5716a9b878fd38bcbd13"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a76de7fc74edd5716a9b878fd38bcbd13">ebpf_object_unpin</a> (const char *path)</td></tr>
-<tr class="memdesc:a76de7fc74edd5716a9b878fd38bcbd13"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unpin the object from the specified path.  <a href="ebpf__api_8h.html#a76de7fc74edd5716a9b878fd38bcbd13">More...</a><br /></td></tr>
-<tr class="separator:a76de7fc74edd5716a9b878fd38bcbd13"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4ee4bea94cb59e453ea485124c38d54d"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4ee4bea94cb59e453ea485124c38d54d">ebpf_api_unlink_program</a> (<a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> link_handle)</td></tr>
-<tr class="memdesc:a4ee4bea94cb59e453ea485124c38d54d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach the eBPF program from the link.  <a href="ebpf__api_8h.html#a4ee4bea94cb59e453ea485124c38d54d">More...</a><br /></td></tr>
-<tr class="separator:a4ee4bea94cb59e453ea485124c38d54d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afd32357ac5b13d2c713f64cc981af335"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#afd32357ac5b13d2c713f64cc981af335">ebpf_api_close_handle</a> (<a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> handle)</td></tr>
-<tr class="memdesc:afd32357ac5b13d2c713f64cc981af335"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close an eBPF handle.  <a href="ebpf__api_8h.html#afd32357ac5b13d2c713f64cc981af335">More...</a><br /></td></tr>
-<tr class="separator:afd32357ac5b13d2c713f64cc981af335"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a899d4e8284ae93332f27da14bb3a0a8c"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a899d4e8284ae93332f27da14bb3a0a8c">ebpf_api_get_pinned_map_info</a> (uint16_t *map_count,(*map_count) <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> **map_info)</td></tr>
-<tr class="memdesc:a899d4e8284ae93332f27da14bb3a0a8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns an array of <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> for all pinned maps.  <a href="ebpf__api_8h.html#a899d4e8284ae93332f27da14bb3a0a8c">More...</a><br /></td></tr>
-<tr class="separator:a899d4e8284ae93332f27da14bb3a0a8c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afa6f86ddbf4799f3e34501e8b9e8bf7e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#afa6f86ddbf4799f3e34501e8b9e8bf7e">ebpf_api_map_info_free</a> (uint16_t map_count, const <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> *map_info)</td></tr>
-<tr class="memdesc:afa6f86ddbf4799f3e34501e8b9e8bf7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper Function to free array of <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> allocated by <a class="el" href="ebpf__api_8h.html#a899d4e8284ae93332f27da14bb3a0a8c">ebpf_api_get_pinned_map_info</a> function.  <a href="ebpf__api_8h.html#afa6f86ddbf4799f3e34501e8b9e8bf7e">More...</a><br /></td></tr>
-<tr class="separator:afa6f86ddbf4799f3e34501e8b9e8bf7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac5b5ae4310778946ed1383af628d8ab0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ac5b5ae4310778946ed1383af628d8ab0">ebpf_object_get_execution_type</a> (const struct bpf_object *object)</td></tr>
-<tr class="memdesc:ac5b5ae4310778946ed1383af628d8ab0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the execution type for an eBPF object file.  <a href="ebpf__api_8h.html#ac5b5ae4310778946ed1383af628d8ab0">More...</a><br /></td></tr>
-<tr class="separator:ac5b5ae4310778946ed1383af628d8ab0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9d065439381d0bc1101ed32d9c1b9a52"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a9d065439381d0bc1101ed32d9c1b9a52">ebpf_object_set_execution_type</a> (_Inout_ struct bpf_object *object, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type)</td></tr>
-<tr class="memdesc:a9d065439381d0bc1101ed32d9c1b9a52"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the execution type for an eBPF object file.  <a href="ebpf__api_8h.html#a9d065439381d0bc1101ed32d9c1b9a52">More...</a><br /></td></tr>
-<tr class="separator:a9d065439381d0bc1101ed32d9c1b9a52"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af2a495071ff996f924ae352d36490268"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af2a495071ff996f924ae352d36490268">ebpf_program_attach</a> (const struct bpf_program *program, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_params_size) void *attach_parameters, size_t attach_params_size, struct bpf_link **link)</td></tr>
-<tr class="memdesc:af2a495071ff996f924ae352d36490268"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program.  <a href="ebpf__api_8h.html#af2a495071ff996f924ae352d36490268">More...</a><br /></td></tr>
-<tr class="separator:af2a495071ff996f924ae352d36490268"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abbc0a8669cc21883f0e0149bcc68168f"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#abbc0a8669cc21883f0e0149bcc68168f">ebpf_program_attach_by_fd</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_parameters_size) void *attach_parameters, size_t attach_parameters_size, struct bpf_link **link)</td></tr>
-<tr class="memdesc:abbc0a8669cc21883f0e0149bcc68168f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program by program file descriptor.  <a href="ebpf__api_8h.html#abbc0a8669cc21883f0e0149bcc68168f">More...</a><br /></td></tr>
-<tr class="separator:abbc0a8669cc21883f0e0149bcc68168f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab363f1fa097ae2c00a90fdd712bed476"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ab363f1fa097ae2c00a90fdd712bed476">ebpf_link_detach</a> (_Inout_ struct bpf_link *link)</td></tr>
-<tr class="memdesc:ab363f1fa097ae2c00a90fdd712bed476"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach an eBPF program from an attach point represented by the bpf_link structure.  <a href="ebpf__api_8h.html#ab363f1fa097ae2c00a90fdd712bed476">More...</a><br /></td></tr>
-<tr class="separator:ab363f1fa097ae2c00a90fdd712bed476"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a505f2faed973ba155517d3ac7d76c1ee"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a505f2faed973ba155517d3ac7d76c1ee">ebpf_program_query_info</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> *execution_type, _Outptr_result_z_ const char **file_name, _Outptr_result_z_ const char **section_name) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a505f2faed973ba155517d3ac7d76c1ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query info about an eBPF program.  <a href="ebpf__api_8h.html#a505f2faed973ba155517d3ac7d76c1ee">More...</a><br /></td></tr>
+<tr class="separator:a505f2faed973ba155517d3ac7d76c1ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aed9d014f75defbf41d3d5d5959908ab6"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aed9d014f75defbf41d3d5d5959908ab6">ebpf_enumerate_sections</a> (const char *file, bool verbose, _Outptr_result_maybenull_ <a class="el" href="ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006">ebpf_section_info_t</a> **infos, const char **error_message) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:aed9d014f75defbf41d3d5d5959908ab6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get list of programs and stats in an eBPF file.  <a href="ebpf__api_8h.html#aed9d014f75defbf41d3d5d5959908ab6">More...</a><br /></td></tr>
+<tr class="separator:aed9d014f75defbf41d3d5d5959908ab6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3d757981d14229ed50088f5a147e3117"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a3d757981d14229ed50088f5a147e3117">ebpf_free_sections</a> (<a class="el" href="ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006">ebpf_section_info_t</a> *infos) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a3d757981d14229ed50088f5a147e3117"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory returned from <a class="el" href="ebpf__api_8h.html#aed9d014f75defbf41d3d5d5959908ab6">ebpf_enumerate_sections</a>.  <a href="ebpf__api_8h.html#a3d757981d14229ed50088f5a147e3117">More...</a><br /></td></tr>
+<tr class="separator:a3d757981d14229ed50088f5a147e3117"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea9ceb50adb06fa4e0525dbfd4ddcdbb"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aea9ceb50adb06fa4e0525dbfd4ddcdbb">ebpf_api_elf_disassemble_section</a> (const char *file, const char *section, const char **disassembly, const char **error_message) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:aea9ceb50adb06fa4e0525dbfd4ddcdbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert an eBPF program to human readable byte code.  <a href="ebpf__api_8h.html#aea9ceb50adb06fa4e0525dbfd4ddcdbb">More...</a><br /></td></tr>
+<tr class="separator:aea9ceb50adb06fa4e0525dbfd4ddcdbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3d8b8fdba49c7f61cc493f64f4d12fbe"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a3d8b8fdba49c7f61cc493f64f4d12fbe">ebpf_api_elf_verify_section_from_file</a> (const char *file, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, bool verbose, const char **report, const char **error_message, _Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a3d8b8fdba49c7f61cc493f64f4d12fbe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#a3d8b8fdba49c7f61cc493f64f4d12fbe">More...</a><br /></td></tr>
+<tr class="separator:a3d8b8fdba49c7f61cc493f64f4d12fbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a139fa02674f20df5036e03b06d4b9bca"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a139fa02674f20df5036e03b06d4b9bca">ebpf_api_elf_verify_section_from_memory</a> (_In_reads_(data_length) const char *data, size_t data_length, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, bool verbose, const char **report, const char **error_message, _Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a139fa02674f20df5036e03b06d4b9bca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#a139fa02674f20df5036e03b06d4b9bca">More...</a><br /></td></tr>
+<tr class="separator:a139fa02674f20df5036e03b06d4b9bca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a14787e155f85da98a152d5117d8e044c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a14787e155f85da98a152d5117d8e044c">ebpf_free_string</a> (const char *string) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a14787e155f85da98a152d5117d8e044c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory for a string returned from an eBPF API.  <a href="ebpf__api_8h.html#a14787e155f85da98a152d5117d8e044c">More...</a><br /></td></tr>
+<tr class="separator:a14787e155f85da98a152d5117d8e044c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2b094a5b04325c64ba3a4cf3c2624041"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a2b094a5b04325c64ba3a4cf3c2624041">ebpf_api_unpin_object</a> (const uint8_t *name, uint32_t name_length) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a2b094a5b04325c64ba3a4cf3c2624041"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dissociate a name with an object handle.  <a href="ebpf__api_8h.html#a2b094a5b04325c64ba3a4cf3c2624041">More...</a><br /></td></tr>
+<tr class="separator:a2b094a5b04325c64ba3a4cf3c2624041"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4cf291f6e969c275fc6d6e184f45779a"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4cf291f6e969c275fc6d6e184f45779a">ebpf_object_unpin</a> (const char *path) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a4cf291f6e969c275fc6d6e184f45779a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unpin the object from the specified path.  <a href="ebpf__api_8h.html#a4cf291f6e969c275fc6d6e184f45779a">More...</a><br /></td></tr>
+<tr class="separator:a4cf291f6e969c275fc6d6e184f45779a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1ee898f156a37c884b16087465df51c0"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a1ee898f156a37c884b16087465df51c0">ebpf_api_unlink_program</a> (<a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> link_handle) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a1ee898f156a37c884b16087465df51c0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach the eBPF program from the link.  <a href="ebpf__api_8h.html#a1ee898f156a37c884b16087465df51c0">More...</a><br /></td></tr>
+<tr class="separator:a1ee898f156a37c884b16087465df51c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac20e37da4aa71ea34b4b73c69d4975c8"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ac20e37da4aa71ea34b4b73c69d4975c8">ebpf_api_close_handle</a> (<a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> handle) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:ac20e37da4aa71ea34b4b73c69d4975c8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close an eBPF handle.  <a href="ebpf__api_8h.html#ac20e37da4aa71ea34b4b73c69d4975c8">More...</a><br /></td></tr>
+<tr class="separator:ac20e37da4aa71ea34b4b73c69d4975c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7acc089f558f9f05ca6ee53debca4e81"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a7acc089f558f9f05ca6ee53debca4e81">ebpf_api_get_pinned_map_info</a> (uint16_t *map_count,(*map_count) <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> **map_info) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a7acc089f558f9f05ca6ee53debca4e81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns an array of <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> for all pinned maps.  <a href="ebpf__api_8h.html#a7acc089f558f9f05ca6ee53debca4e81">More...</a><br /></td></tr>
+<tr class="separator:a7acc089f558f9f05ca6ee53debca4e81"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3646adcb28edd17fe5d360a4bc12f7a3"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a3646adcb28edd17fe5d360a4bc12f7a3">ebpf_api_map_info_free</a> (uint16_t map_count, const <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> *map_info) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a3646adcb28edd17fe5d360a4bc12f7a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper Function to free array of <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> allocated by <a class="el" href="ebpf__api_8h.html#a7acc089f558f9f05ca6ee53debca4e81">ebpf_api_get_pinned_map_info</a> function.  <a href="ebpf__api_8h.html#a3646adcb28edd17fe5d360a4bc12f7a3">More...</a><br /></td></tr>
+<tr class="separator:a3646adcb28edd17fe5d360a4bc12f7a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5d348f57fccaeb2e62503dd46e6d75a6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a5d348f57fccaeb2e62503dd46e6d75a6">ebpf_object_get_execution_type</a> (const struct bpf_object *object) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a5d348f57fccaeb2e62503dd46e6d75a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the execution type for an eBPF object file.  <a href="ebpf__api_8h.html#a5d348f57fccaeb2e62503dd46e6d75a6">More...</a><br /></td></tr>
+<tr class="separator:a5d348f57fccaeb2e62503dd46e6d75a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4285557944012dc94115df1fa73388b1"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4285557944012dc94115df1fa73388b1">ebpf_object_set_execution_type</a> (_Inout_ struct bpf_object *object, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a4285557944012dc94115df1fa73388b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the execution type for an eBPF object file.  <a href="ebpf__api_8h.html#a4285557944012dc94115df1fa73388b1">More...</a><br /></td></tr>
+<tr class="separator:a4285557944012dc94115df1fa73388b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa82dd9cfb2ba844f7557d1eef6e4c831"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aa82dd9cfb2ba844f7557d1eef6e4c831">ebpf_program_attach</a> (const struct bpf_program *program, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_params_size) void *attach_parameters, size_t attach_params_size, struct bpf_link **link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:aa82dd9cfb2ba844f7557d1eef6e4c831"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program.  <a href="ebpf__api_8h.html#aa82dd9cfb2ba844f7557d1eef6e4c831">More...</a><br /></td></tr>
+<tr class="separator:aa82dd9cfb2ba844f7557d1eef6e4c831"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a489c1bd82890d76793bffd687fd302ef"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a489c1bd82890d76793bffd687fd302ef">ebpf_program_attach_by_fd</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_parameters_size) void *attach_parameters, size_t attach_parameters_size, struct bpf_link **link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a489c1bd82890d76793bffd687fd302ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program by program file descriptor.  <a href="ebpf__api_8h.html#a489c1bd82890d76793bffd687fd302ef">More...</a><br /></td></tr>
+<tr class="separator:a489c1bd82890d76793bffd687fd302ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa8da98ec98f5a4b99fc7c2758f69efd4"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aa8da98ec98f5a4b99fc7c2758f69efd4">ebpf_link_detach</a> (_Inout_ struct bpf_link *link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:aa8da98ec98f5a4b99fc7c2758f69efd4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach an eBPF program from an attach point represented by the bpf_link structure.  <a href="ebpf__api_8h.html#aa8da98ec98f5a4b99fc7c2758f69efd4">More...</a><br /></td></tr>
+<tr class="separator:aa8da98ec98f5a4b99fc7c2758f69efd4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a883ed5f50a08b56842a8cb47641dc3af"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a883ed5f50a08b56842a8cb47641dc3af">ebpf_program_detach</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_(attach_parameter_size) void *attach_parameter, size_t attach_parameter_size) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a883ed5f50a08b56842a8cb47641dc3af"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach an eBPF program.  <a href="ebpf__api_8h.html#a883ed5f50a08b56842a8cb47641dc3af">More...</a><br /></td></tr>
 <tr class="separator:a883ed5f50a08b56842a8cb47641dc3af"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1422be925e0305115614e95e7141ff98"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a1422be925e0305115614e95e7141ff98">ebpf_link_close</a> (_Frees_ptr_ struct bpf_link *link)</td></tr>
-<tr class="separator:a1422be925e0305115614e95e7141ff98"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a55a2025edb7d653eeed64de187ec56a5"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a55a2025edb7d653eeed64de187ec56a5">ebpf_close_fd</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd)</td></tr>
-<tr class="memdesc:a55a2025edb7d653eeed64de187ec56a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close a file descriptor. Also close the underlying handle.  <a href="ebpf__api_8h.html#a55a2025edb7d653eeed64de187ec56a5">More...</a><br /></td></tr>
-<tr class="separator:a55a2025edb7d653eeed64de187ec56a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3a5e0b15f28322a43310dddba4c062db"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a3a5e0b15f28322a43310dddba4c062db">ebpf_get_program_type_by_name</a> (const char *name, <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *expected_attach_type)</td></tr>
-<tr class="memdesc:a3a5e0b15f28322a43310dddba4c062db"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get eBPF program type and expected attach type by name.  <a href="ebpf__api_8h.html#a3a5e0b15f28322a43310dddba4c062db">More...</a><br /></td></tr>
-<tr class="separator:a3a5e0b15f28322a43310dddba4c062db"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2580612b984676360476991f28483ecc"><td class="memItemLeft" align="right" valign="top">_Ret_maybenull_z_ const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a2580612b984676360476991f28483ecc">ebpf_get_program_type_name</a> (const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type)</td></tr>
-<tr class="memdesc:a2580612b984676360476991f28483ecc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the name of a given program type.  <a href="ebpf__api_8h.html#a2580612b984676360476991f28483ecc">More...</a><br /></td></tr>
-<tr class="separator:a2580612b984676360476991f28483ecc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af6e2ef1ca08a65df7c77764059544aa9"><td class="memItemLeft" align="right" valign="top">_Ret_maybenull_z_ const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af6e2ef1ca08a65df7c77764059544aa9">ebpf_get_attach_type_name</a> (const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type)</td></tr>
-<tr class="memdesc:af6e2ef1ca08a65df7c77764059544aa9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the name of a given attach type.  <a href="ebpf__api_8h.html#af6e2ef1ca08a65df7c77764059544aa9">More...</a><br /></td></tr>
-<tr class="separator:af6e2ef1ca08a65df7c77764059544aa9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6f1d15dcb4c03a482c74e3276c08d9ee"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a6f1d15dcb4c03a482c74e3276c08d9ee">ebpf_get_next_pinned_program_path</a> (const char *start_path, _Out_writes_z_(<a class="el" href="ebpf__core__structs_8h.html#aae1786ca038916d3ec8af469fcdeeaa4">EBPF_MAX_PIN_PATH_LENGTH</a>) char *next_path)</td></tr>
-<tr class="memdesc:a6f1d15dcb4c03a482c74e3276c08d9ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the next pinned program after a given path.  <a href="ebpf__api_8h.html#a6f1d15dcb4c03a482c74e3276c08d9ee">More...</a><br /></td></tr>
-<tr class="separator:a6f1d15dcb4c03a482c74e3276c08d9ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adecb65d04d66bfa22a4c2fcdcb53cc1a"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#adecb65d04d66bfa22a4c2fcdcb53cc1a">ebpf_get_program_info_from_verifier</a> (const <a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a> **program_info)</td></tr>
-<tr class="memdesc:adecb65d04d66bfa22a4c2fcdcb53cc1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the set of program information used by the verifier during the last verification.  <a href="ebpf__api_8h.html#adecb65d04d66bfa22a4c2fcdcb53cc1a">More...</a><br /></td></tr>
-<tr class="separator:adecb65d04d66bfa22a4c2fcdcb53cc1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a96cc5f4ca50052c6e2fa15cb1c040111"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a96cc5f4ca50052c6e2fa15cb1c040111">ebpf_program_test_run</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd, _Inout_ <a class="el" href="ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341">ebpf_test_run_options_t</a> *options)</td></tr>
-<tr class="memdesc:a96cc5f4ca50052c6e2fa15cb1c040111"><td class="mdescLeft">&#160;</td><td class="mdescRight">Run the program in the eBPF VM, measure the execution time, and return the result.  <a href="ebpf__api_8h.html#a96cc5f4ca50052c6e2fa15cb1c040111">More...</a><br /></td></tr>
-<tr class="separator:a96cc5f4ca50052c6e2fa15cb1c040111"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abc700a48b16468b970f12fd3b545081b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#abc700a48b16468b970f12fd3b545081b">ebpf_link_close</a> (_Frees_ptr_ struct bpf_link *link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="separator:abc700a48b16468b970f12fd3b545081b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a93ba94440af2bab2fa9fd2677ac71cb6"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a93ba94440af2bab2fa9fd2677ac71cb6">ebpf_close_fd</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a93ba94440af2bab2fa9fd2677ac71cb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close a file descriptor. Also close the underlying handle.  <a href="ebpf__api_8h.html#a93ba94440af2bab2fa9fd2677ac71cb6">More...</a><br /></td></tr>
+<tr class="separator:a93ba94440af2bab2fa9fd2677ac71cb6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7ab75c632138f9ec7e53cff6b2ff45fc"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a7ab75c632138f9ec7e53cff6b2ff45fc">ebpf_get_program_type_by_name</a> (const char *name, <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *expected_attach_type) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a7ab75c632138f9ec7e53cff6b2ff45fc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get eBPF program type and expected attach type by name.  <a href="ebpf__api_8h.html#a7ab75c632138f9ec7e53cff6b2ff45fc">More...</a><br /></td></tr>
+<tr class="separator:a7ab75c632138f9ec7e53cff6b2ff45fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a351cd982a3c89461abbb9ebc129cfeba"><td class="memItemLeft" align="right" valign="top">_Ret_maybenull_z_ const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a351cd982a3c89461abbb9ebc129cfeba">ebpf_get_program_type_name</a> (const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a351cd982a3c89461abbb9ebc129cfeba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the name of a given program type.  <a href="ebpf__api_8h.html#a351cd982a3c89461abbb9ebc129cfeba">More...</a><br /></td></tr>
+<tr class="separator:a351cd982a3c89461abbb9ebc129cfeba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a07967d7396873a295edad21e88c0932e"><td class="memItemLeft" align="right" valign="top">_Ret_maybenull_z_ const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a07967d7396873a295edad21e88c0932e">ebpf_get_attach_type_name</a> (const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a07967d7396873a295edad21e88c0932e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the name of a given attach type.  <a href="ebpf__api_8h.html#a07967d7396873a295edad21e88c0932e">More...</a><br /></td></tr>
+<tr class="separator:a07967d7396873a295edad21e88c0932e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1a4d8fb7669ae00087bd94620d993ba2"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a1a4d8fb7669ae00087bd94620d993ba2">ebpf_get_next_pinned_program_path</a> (const char *start_path, _Out_writes_z_(<a class="el" href="ebpf__core__structs_8h.html#aae1786ca038916d3ec8af469fcdeeaa4">EBPF_MAX_PIN_PATH_LENGTH</a>) char *next_path) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a1a4d8fb7669ae00087bd94620d993ba2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the next pinned program after a given path.  <a href="ebpf__api_8h.html#a1a4d8fb7669ae00087bd94620d993ba2">More...</a><br /></td></tr>
+<tr class="separator:a1a4d8fb7669ae00087bd94620d993ba2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2e98338e2f76024209ef6d2cf43580c4"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a2e98338e2f76024209ef6d2cf43580c4">ebpf_get_program_info_from_verifier</a> (const <a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a> **program_info) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a2e98338e2f76024209ef6d2cf43580c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the set of program information used by the verifier during the last verification.  <a href="ebpf__api_8h.html#a2e98338e2f76024209ef6d2cf43580c4">More...</a><br /></td></tr>
+<tr class="separator:a2e98338e2f76024209ef6d2cf43580c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9436237eddbf00d5ff983812910903f2"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a9436237eddbf00d5ff983812910903f2">ebpf_program_test_run</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd, _Inout_ <a class="el" href="ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341">ebpf_test_run_options_t</a> *options) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a9436237eddbf00d5ff983812910903f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Run the program in the eBPF VM, measure the execution time, and return the result.  <a href="ebpf__api_8h.html#a9436237eddbf00d5ff983812910903f2">More...</a><br /></td></tr>
+<tr class="separator:a9436237eddbf00d5ff983812910903f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -305,8 +305,8 @@ Variables</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="afd32357ac5b13d2c713f64cc981af335"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afd32357ac5b13d2c713f64cc981af335">&#9670;&nbsp;</a></span>ebpf_api_close_handle()</h2>
+<a id="ac20e37da4aa71ea34b4b73c69d4975c8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac20e37da4aa71ea34b4b73c69d4975c8">&#9670;&nbsp;</a></span>ebpf_api_close_handle()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -338,8 +338,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="ae4fbdf4fbbb9196651fd40fd0640c3c9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae4fbdf4fbbb9196651fd40fd0640c3c9">&#9670;&nbsp;</a></span>ebpf_api_elf_disassemble_section()</h2>
+<a id="aea9ceb50adb06fa4e0525dbfd4ddcdbb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aea9ceb50adb06fa4e0525dbfd4ddcdbb">&#9670;&nbsp;</a></span>ebpf_api_elf_disassemble_section()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -389,8 +389,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="ac8b5a14825344d3e28be39753cf7618b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac8b5a14825344d3e28be39753cf7618b">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_file()</h2>
+<a id="a3d8b8fdba49c7f61cc493f64f4d12fbe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3d8b8fdba49c7f61cc493f64f4d12fbe">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_file()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -468,8 +468,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="afb890ffe6e45389578b02e35805981f6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afb890ffe6e45389578b02e35805981f6">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_memory()</h2>
+<a id="a139fa02674f20df5036e03b06d4b9bca"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a139fa02674f20df5036e03b06d4b9bca">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_memory()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -554,8 +554,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a899d4e8284ae93332f27da14bb3a0a8c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a899d4e8284ae93332f27da14bb3a0a8c">&#9670;&nbsp;</a></span>ebpf_api_get_pinned_map_info()</h2>
+<a id="a7acc089f558f9f05ca6ee53debca4e81"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7acc089f558f9f05ca6ee53debca4e81">&#9670;&nbsp;</a></span>ebpf_api_get_pinned_map_info()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -590,7 +590,7 @@ Variables</h2></td></tr>
 </dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
-    <tr><td class="paramname">EBPF_SUCCESS</td><td>The API suceeded. </td></tr>
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The API succeeded. </td></tr>
     <tr><td class="paramname">EBPF_NO_MEMORY</td><td>Out of memory. </td></tr>
     <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are wrong. </td></tr>
   </table>
@@ -599,8 +599,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="afa6f86ddbf4799f3e34501e8b9e8bf7e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afa6f86ddbf4799f3e34501e8b9e8bf7e">&#9670;&nbsp;</a></span>ebpf_api_map_info_free()</h2>
+<a id="a3646adcb28edd17fe5d360a4bc12f7a3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3646adcb28edd17fe5d360a4bc12f7a3">&#9670;&nbsp;</a></span>ebpf_api_map_info_free()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -625,7 +625,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Helper Function to free array of <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> allocated by <a class="el" href="ebpf__api_8h.html#a899d4e8284ae93332f27da14bb3a0a8c">ebpf_api_get_pinned_map_info</a> function. </p>
+<p>Helper Function to free array of <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> allocated by <a class="el" href="ebpf__api_8h.html#a7acc089f558f9f05ca6ee53debca4e81">ebpf_api_get_pinned_map_info</a> function. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">map_count</td><td>Length of array to be freed. </td></tr>
@@ -636,8 +636,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a4ee4bea94cb59e453ea485124c38d54d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4ee4bea94cb59e453ea485124c38d54d">&#9670;&nbsp;</a></span>ebpf_api_unlink_program()</h2>
+<a id="a1ee898f156a37c884b16087465df51c0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1ee898f156a37c884b16087465df51c0">&#9670;&nbsp;</a></span>ebpf_api_unlink_program()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -669,8 +669,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="af3dc979c21fbfa8e63d80eb5726cc090"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af3dc979c21fbfa8e63d80eb5726cc090">&#9670;&nbsp;</a></span>ebpf_api_unpin_object()</h2>
+<a id="a2b094a5b04325c64ba3a4cf3c2624041"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2b094a5b04325c64ba3a4cf3c2624041">&#9670;&nbsp;</a></span>ebpf_api_unpin_object()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -706,8 +706,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a55a2025edb7d653eeed64de187ec56a5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a55a2025edb7d653eeed64de187ec56a5">&#9670;&nbsp;</a></span>ebpf_close_fd()</h2>
+<a id="a93ba94440af2bab2fa9fd2677ac71cb6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a93ba94440af2bab2fa9fd2677ac71cb6">&#9670;&nbsp;</a></span>ebpf_close_fd()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -739,8 +739,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="af9cd59861509903ffc0c7aa9b77945d6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af9cd59861509903ffc0c7aa9b77945d6">&#9670;&nbsp;</a></span>ebpf_enumerate_sections()</h2>
+<a id="aed9d014f75defbf41d3d5d5959908ab6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aed9d014f75defbf41d3d5d5959908ab6">&#9670;&nbsp;</a></span>ebpf_enumerate_sections()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -795,7 +795,7 @@ Variables</h2></td></tr>
 </li>
 <li>*<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[out]</td><td class="paramname">infos</td><td>On success points to a list of eBPF programs. The caller is responsible for freeing the list via <a class="el" href="ebpf__api_8h.html#a1c3da23f50b88bb49d5ef0bf9c3e77f6" title="Free memory returned from ebpf_enumerate_sections.">ebpf_free_sections()</a>.</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">infos</td><td>On success points to a list of eBPF programs. The caller is responsible for freeing the list via <a class="el" href="ebpf__api_8h.html#a3d757981d14229ed50088f5a147e3117" title="Free memory returned from ebpf_enumerate_sections.">ebpf_free_sections()</a>.</td></tr>
   </table>
   </dd>
 </dl>
@@ -812,8 +812,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a1c3da23f50b88bb49d5ef0bf9c3e77f6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1c3da23f50b88bb49d5ef0bf9c3e77f6">&#9670;&nbsp;</a></span>ebpf_free_sections()</h2>
+<a id="a3d757981d14229ed50088f5a147e3117"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3d757981d14229ed50088f5a147e3117">&#9670;&nbsp;</a></span>ebpf_free_sections()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -828,7 +828,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Free memory returned from <a class="el" href="ebpf__api_8h.html#af9cd59861509903ffc0c7aa9b77945d6">ebpf_enumerate_sections</a>. </p>
+<p>Free memory returned from <a class="el" href="ebpf__api_8h.html#aed9d014f75defbf41d3d5d5959908ab6">ebpf_enumerate_sections</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Memory to free. </td></tr>
@@ -838,8 +838,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a90cbc93764ecd96f2a84fd659e517851"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a90cbc93764ecd96f2a84fd659e517851">&#9670;&nbsp;</a></span>ebpf_free_string()</h2>
+<a id="a14787e155f85da98a152d5117d8e044c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a14787e155f85da98a152d5117d8e044c">&#9670;&nbsp;</a></span>ebpf_free_string()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -864,8 +864,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="af6e2ef1ca08a65df7c77764059544aa9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af6e2ef1ca08a65df7c77764059544aa9">&#9670;&nbsp;</a></span>ebpf_get_attach_type_name()</h2>
+<a id="a07967d7396873a295edad21e88c0932e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a07967d7396873a295edad21e88c0932e">&#9670;&nbsp;</a></span>ebpf_get_attach_type_name()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -891,8 +891,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a6f1d15dcb4c03a482c74e3276c08d9ee"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6f1d15dcb4c03a482c74e3276c08d9ee">&#9670;&nbsp;</a></span>ebpf_get_next_pinned_program_path()</h2>
+<a id="a1a4d8fb7669ae00087bd94620d993ba2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1a4d8fb7669ae00087bd94620d993ba2">&#9670;&nbsp;</a></span>ebpf_get_next_pinned_program_path()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -935,8 +935,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="adecb65d04d66bfa22a4c2fcdcb53cc1a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adecb65d04d66bfa22a4c2fcdcb53cc1a">&#9670;&nbsp;</a></span>ebpf_get_program_info_from_verifier()</h2>
+<a id="a2e98338e2f76024209ef6d2cf43580c4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2e98338e2f76024209ef6d2cf43580c4">&#9670;&nbsp;</a></span>ebpf_get_program_info_from_verifier()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -968,8 +968,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a3a5e0b15f28322a43310dddba4c062db"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3a5e0b15f28322a43310dddba4c062db">&#9670;&nbsp;</a></span>ebpf_get_program_type_by_name()</h2>
+<a id="a7ab75c632138f9ec7e53cff6b2ff45fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7ab75c632138f9ec7e53cff6b2ff45fc">&#9670;&nbsp;</a></span>ebpf_get_program_type_by_name()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1019,8 +1019,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a2580612b984676360476991f28483ecc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2580612b984676360476991f28483ecc">&#9670;&nbsp;</a></span>ebpf_get_program_type_name()</h2>
+<a id="a351cd982a3c89461abbb9ebc129cfeba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a351cd982a3c89461abbb9ebc129cfeba">&#9670;&nbsp;</a></span>ebpf_get_program_type_name()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1046,8 +1046,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a1422be925e0305115614e95e7141ff98"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1422be925e0305115614e95e7141ff98">&#9670;&nbsp;</a></span>ebpf_link_close()</h2>
+<a id="abc700a48b16468b970f12fd3b545081b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abc700a48b16468b970f12fd3b545081b">&#9670;&nbsp;</a></span>ebpf_link_close()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1074,8 +1074,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="ab363f1fa097ae2c00a90fdd712bed476"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab363f1fa097ae2c00a90fdd712bed476">&#9670;&nbsp;</a></span>ebpf_link_detach()</h2>
+<a id="aa8da98ec98f5a4b99fc7c2758f69efd4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa8da98ec98f5a4b99fc7c2758f69efd4">&#9670;&nbsp;</a></span>ebpf_link_detach()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1107,8 +1107,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="ac5b5ae4310778946ed1383af628d8ab0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac5b5ae4310778946ed1383af628d8ab0">&#9670;&nbsp;</a></span>ebpf_object_get_execution_type()</h2>
+<a id="a5d348f57fccaeb2e62503dd46e6d75a6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5d348f57fccaeb2e62503dd46e6d75a6">&#9670;&nbsp;</a></span>ebpf_object_get_execution_type()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1134,8 +1134,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a9d065439381d0bc1101ed32d9c1b9a52"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9d065439381d0bc1101ed32d9c1b9a52">&#9670;&nbsp;</a></span>ebpf_object_set_execution_type()</h2>
+<a id="a4285557944012dc94115df1fa73388b1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4285557944012dc94115df1fa73388b1">&#9670;&nbsp;</a></span>ebpf_object_set_execution_type()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1178,8 +1178,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a76de7fc74edd5716a9b878fd38bcbd13"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a76de7fc74edd5716a9b878fd38bcbd13">&#9670;&nbsp;</a></span>ebpf_object_unpin()</h2>
+<a id="a4cf291f6e969c275fc6d6e184f45779a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4cf291f6e969c275fc6d6e184f45779a">&#9670;&nbsp;</a></span>ebpf_object_unpin()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1210,8 +1210,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="af2a495071ff996f924ae352d36490268"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af2a495071ff996f924ae352d36490268">&#9670;&nbsp;</a></span>ebpf_program_attach()</h2>
+<a id="aa82dd9cfb2ba844f7557d1eef6e4c831"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa82dd9cfb2ba844f7557d1eef6e4c831">&#9670;&nbsp;</a></span>ebpf_program_attach()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1274,8 +1274,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="abbc0a8669cc21883f0e0149bcc68168f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abbc0a8669cc21883f0e0149bcc68168f">&#9670;&nbsp;</a></span>ebpf_program_attach_by_fd()</h2>
+<a id="a489c1bd82890d76793bffd687fd302ef"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a489c1bd82890d76793bffd687fd302ef">&#9670;&nbsp;</a></span>ebpf_program_attach_by_fd()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1396,8 +1396,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a9d86b24b5aeccfef5860632ea8897dee"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9d86b24b5aeccfef5860632ea8897dee">&#9670;&nbsp;</a></span>ebpf_program_query_info()</h2>
+<a id="a505f2faed973ba155517d3ac7d76c1ee"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a505f2faed973ba155517d3ac7d76c1ee">&#9670;&nbsp;</a></span>ebpf_program_query_info()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1453,8 +1453,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a96cc5f4ca50052c6e2fa15cb1c040111"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a96cc5f4ca50052c6e2fa15cb1c040111">&#9670;&nbsp;</a></span>ebpf_program_test_run()</h2>
+<a id="a9436237eddbf00d5ff983812910903f2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9436237eddbf00d5ff983812910903f2">&#9670;&nbsp;</a></span>ebpf_program_test_run()</h2>
 
 <div class="memitem">
 <div class="memproto">
