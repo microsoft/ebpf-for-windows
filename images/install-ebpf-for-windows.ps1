@@ -9,19 +9,17 @@ if ($env:CONTAINER_SANDBOX_MOUNT_POINT) {
     throw "Install script is NOT running in a HostProcess container."
 }
 
-# Unzip release archive to c:\temp.
-$EbpfWindowsZip = "ebpf-for-windows-c-temp.zip"
-if (!(Test-Path $EbpfWindowsZip))
-{
-    throw "$EbpfWindowsZip not found..."
-}
-Write-Host "Unzip ebpf-for-windows release..."
-Expand-Archive -Force $EbpfWindowsZip c:\
+Write-Host "Installing VC Redistributable. This will take a while ..."
+invoke-webrequest https://aka.ms/vs/17/release/vc_redist.x64.exe -OutFile vc_redist.x64.exe
+.\vc_redist.x64.exe
+Write-Host "Installation of VC Redistributable completed."
 
-# Run install-ebpf.bat
-cd c:\temp
-Write-Host "Install ebpf-for-windows ..."
-.\install-ebpf.bat
+Start-Sleep -Seconds 10
+
+Write-Host "Installing ebpf-for-windows ..."
+.\ebpf-for-windows.msi /quiet /L*V ".\ebpf-for-windows.install.log"
+
+Start-Sleep -Seconds 10
 
 # Make sure netsh ebpf works.
 Write-Host "ebpf-for-windows installation completed. Show program..."
