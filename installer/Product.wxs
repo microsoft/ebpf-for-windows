@@ -191,7 +191,7 @@ SPDX-License-Identifier: MIT
 			</Component>
 		</ComponentGroup>
 
-		<!--Clear/Setup eBPF store-->
+		<!--Clear/Setup the eBPF store-->
 		<SetProperty Id="Clear_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Before="Clear_eBPF_store" Sequence="execute"/>
 		<CustomAction Id="Clear_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<SetProperty Id="Clear_eBPF_store_uninstall" Value='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Before="Clear_eBPF_store" Sequence="execute"/>
@@ -199,13 +199,17 @@ SPDX-License-Identifier: MIT
 		<SetProperty Id="Setup_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]"' Before="Setup_eBPF_store" Sequence="execute"/>
 		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 
-		<!--Install/Uninstall netsh helper-->
+		<!--Install/Uninstall the netsh helper-->
 		<!--qtexec does not currently support a working directory (ref. https://github.com/wixtoolset/issues/issues/1265)-->
-		<CustomAction Id="eBPF_netsh_helper_install" ExeCommand='netsh add helper ebpfnetsh.dll' Directory="INSTALLFOLDER" Execute="deferred" Return="check" Impersonate="no"/>
-		<CustomAction Id="eBPF_netsh_helper_uninstall" ExeCommand='netsh delete helper ebpfnetsh.dll' Directory="INSTALLFOLDER" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<CustomAction Id="eBPF_netsh_helper_uninstall_rollback" ExeCommand='netsh delete helper ebpfnetsh.dll' Directory="INSTALLFOLDER" Execute="rollback" Return="ignore" Impersonate="no"/>
+		<!--This workaround uses PowerShell to batch two commands, one to change the working directory, the other to execute the actual command from that directory.-->
+		<SetProperty Id="eBPF_netsh_helper_install" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';netsh add helper ebpfnetsh.dll&quot;" Before="eBPF_netsh_helper_install" Sequence="execute"/>
+		<CustomAction Id="eBPF_netsh_helper_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="eBPF_netsh_helper_uninstall" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';netsh delete helper ebpfnetsh.dll&quot;" Before="eBPF_netsh_helper_uninstall" Sequence="execute"/>
+		<CustomAction Id="eBPF_netsh_helper_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<SetProperty Id="eBPF_netsh_helper_uninstall_rollback" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';netsh delete helper ebpfnetsh.dll&quot;" Before="eBPF_netsh_helper_uninstall_rollback" Sequence="execute"/>
+		<CustomAction Id="eBPF_netsh_helper_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 
-		<!--Install/Uninstall eBPF Service -->
+		<!--Install/Uninstall the eBPF Service -->
 		<?if $(var.Configuration) = Debug ?>
 		<ComponentGroup Id="eBPF_Service" Directory="dir_JIT">
 			<Component Id="EBPFSVC.PDB" DiskId="1" Guid="{D1935DF0-2FC7-42F5-81E5-19AF88D6244B}">
@@ -231,7 +235,7 @@ SPDX-License-Identifier: MIT
 		</ComponentGroup>
 		<?endif?>
 
-		<!--Install/Uninstall eBPFCore Driver-->
+		<!--Install/Uninstall the eBPFCore Driver-->
 		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
 		<ComponentGroup Id="eBPFCore_Driver" Directory="dir_drivers">
 			<Component Id="eBPFCore.inf" Guid="{3D31A9C8-8BB0-48A2-94BD-CBA734438E0C}">
@@ -257,7 +261,7 @@ SPDX-License-Identifier: MIT
 		<Property Id="eBPFCore_Driver_uninstall_rollback" Value='"sc.exe" delete eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 
-		<!--Install/Uninstall NetEbpfExt Driver-->
+		<!--Install/Uninstall the NetEbpfExt Driver-->
 		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
 		<ComponentGroup Id="NetEbpfExt_Driver" Directory="dir_drivers">
 			<Component Id="NetEbpfExt.inf" Guid="{F1E813EE-665E-488C-84AA-0F47011C12F0}">
