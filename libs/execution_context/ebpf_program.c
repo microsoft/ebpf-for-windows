@@ -1659,7 +1659,7 @@ typedef struct _ebpf_program_test_run_context
     void* context;
     ebpf_program_test_run_options_t* options;
     uint8_t required_irql;
-    bool cancelled;
+    bool canceled;
     void* async_context;
     void* completion_context;
     ebpf_program_test_run_complete_callback_t completion_callback;
@@ -1689,7 +1689,7 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
     for (size_t i = 0; i < options->repeat_count; i++) {
-        if (context->cancelled) {
+        if (context->canceled) {
             result = EBPF_CANCELED;
             break;
         }
@@ -1745,7 +1745,7 @@ _ebpf_program_test_run_cancel(_Inout_opt_ void* context)
 {
     _Analysis_assume_(context != NULL);
     ebpf_program_test_run_context_t* test_run_context = (ebpf_program_test_run_context_t*)context;
-    test_run_context->cancelled = true;
+    test_run_context->canceled = true;
 }
 
 _Must_inspect_result_ ebpf_result_t
