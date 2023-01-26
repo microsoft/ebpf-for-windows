@@ -2771,7 +2771,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
         // Program should re-attach to the hook.
 
-        // Program should run.
+        // Program should not run.
         int hook_result;
         REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
         REQUIRE(hook_result != XDP_PASS);
@@ -2795,7 +2795,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
         // Program should re-attach to the hook.
 
-        // Program should run.
+        // Program should not run.
         int hook_result;
         REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
         REQUIRE(hook_result != XDP_PASS);

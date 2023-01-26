@@ -1478,7 +1478,17 @@ _ebpf_helper_id_to_index_compare(const void* lhs, const void* rhs)
 /**
  * @brief Compute the hash of the program info and compare it with the hash stored in the program. If the hash does not
  * match then the program was verified against the wrong program info. If the hash is not present then store the hash
- * in the program to be used for future verification.
+ * in the program so it can be compared when the program information provider reattaches.
+ *
+ * Notes on why this works:
+ * 1) The user application creates a ebpf_program_t object and set the program type.
+ * 2) During initialization, the program binds to the program information provider.
+ * 3) During the attach callback, the program information is hashed and stored.
+ * 4) The verifier then queries the program information from the ebpf_program_t object and uses it to verify the program
+ * safety. 5) If the program information provider is reattached, the program information is hashed and compared with the
+ * hash stored in the program and the program is rejected if the hash does not match. This ensures that the program
+ * information the verifier uses to verify the program safety is the same as the program information the program uses to
+ * execute.
  *
  * @param[in] program Program to validate.
  * @param[in] program_info Program info to validate against.
