@@ -11,6 +11,7 @@
 #include "ebpf_platform.h"
 #include "hash.h"
 #include "helpers.h"
+#include "crab_utils/lazy_allocator.hpp"
 #include "mock.h"
 #include "test_helper.hpp"
 
@@ -66,7 +67,7 @@ static uint64_t _ebpf_file_descriptor_counter = 0;
 static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
 
 static uint32_t _ebpf_service_handle_counter = 0;
-static std::map<std::wstring, service_context_t*> _service_path_to_context_map;
+static crab::lazy_allocator<std::map<std::wstring, std::unique_ptr<service_context_t>>> _service_path_to_context_map;
 
 class duplicate_handles_table_t
 {
@@ -278,7 +279,7 @@ GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
 static void
 _unload_all_native_modules()
 {
-    for (auto& [path, context] : _service_path_to_context_map) {
+    for (auto& [path, context] : *_service_path_to_context_map) {
         if (context->loaded) {
             // Deregister client.
             ebpf_extension_unload(context->binding_context);
@@ -288,7 +289,6 @@ _unload_all_native_modules()
         if (context->dll != nullptr) {
             FreeLibrary(context->dll);
         }
-        ebpf_free(context);
     }
     _service_path_to_context_map.clear();
 }
@@ -357,14 +357,14 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
 
             std::wstring service_path;
             service_path.assign((wchar_t*)request->data, service_name_length / 2);
-            auto context = _service_path_to_context_map.find(service_path);
-            if (context != _service_path_to_context_map.end()) {
+            auto context = _service_path_to_context_map->find(service_path);
+            if (context != _service_path_to_context_map->end()) {
                 context->second->module_id = request->module_id;
 
                 if (context->second->loaded) {
                     REQUIRE(get_native_module_failures());
                 } else {
-                    _preprocess_load_native_module(context->second);
+                    _preprocess_load_native_module(context->second.get());
                 }
             }
         } catch (...) {
@@ -528,18 +528,14 @@ Glue_create_service(
         std::wstring service_path(SERVICE_PATH_PREFIX);
         service_path = service_path + service_name;
 
-        service_context_t* context = new (std::nothrow) service_context_t();
-        if (context == nullptr) {
-            return ERROR_NOT_ENOUGH_MEMORY;
-        }
+        std::unique_ptr<service_context_t> context = std::make_unique<service_context_t>();
 
         context->name.assign(service_name);
         context->file_path.assign(file_path);
-
-        _service_path_to_context_map.insert(std::pair<std::wstring, service_context_t*>(service_path, context));
         context->handle = InterlockedIncrement64((int64_t*)&_ebpf_service_handle_counter);
-
         *service_handle = (SC_HANDLE)context->handle;
+
+        _service_path_to_context_map->insert({service_path, std::move(context)});
     } catch (...) {
         return ERROR_NOT_ENOUGH_MEMORY;
     }
@@ -550,13 +546,12 @@ Glue_create_service(
 uint32_t
 Glue_delete_service(SC_HANDLE handle)
 {
-    for (auto& [path, context] : _service_path_to_context_map) {
+    for (auto& [path, context] : *_service_path_to_context_map) {
         if (context->handle == (intptr_t)handle) {
             // Delete the service if it has not been loaded yet. Otherwise
             // mark it pending for delete.
             if (!context->loaded) {
-                ebpf_free(context);
-                _service_path_to_context_map.erase(path);
+                _service_path_to_context_map->erase(path);
             } else {
                 context->delete_pending = true;
             }
@@ -656,6 +651,9 @@ _rundown_osfhandles()
 void
 clear_program_info_cache();
 
+void
+ebpf_verifier_clear_thread_local_state();
+
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
     try {
@@ -677,6 +675,8 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
     _unload_all_native_modules();
 
     clear_program_info_cache();
+    ebpf_verifier_clear_thread_local_state();
+
     if (api_initialized)
         ebpf_api_terminate();
     if (ec_initialized)
@@ -742,7 +742,7 @@ _Must_inspect_result_ ebpf_result_t
 get_service_details_for_file(
     _In_ const std::wstring& file_path, _Out_ const wchar_t** service_name, _Out_ GUID* provider_guid)
 {
-    for (auto& [path, context] : _service_path_to_context_map) {
+    for (auto& [path, context] : *_service_path_to_context_map) {
         if (context->file_path == file_path) {
             *service_name = context->name.c_str();
             *provider_guid = context->module_id;

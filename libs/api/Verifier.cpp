@@ -9,6 +9,8 @@
 #include "ebpf_program_types.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "elfio_wrapper.hpp"
+#include "ElfWrapper.h"
+#include "crab_utils/lazy_allocator.hpp"
 #include "platform.hpp"
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"
@@ -23,7 +25,7 @@
 #define elf_everparse_error ElfEverParseError
 #define elf_everparse_verify ElfCheckElf
 
-thread_local static std::string _elf_everparse_error;
+thread_local static crab::lazy_allocator<std::string> _elf_everparse_error;
 
 extern "C" void
 elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _In_ const char* reason);
@@ -31,7 +33,7 @@ elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _
 void
 elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _In_ const char* reason)
 {
-    _elf_everparse_error =
+    *_elf_everparse_error =
         std::string() + "Failed parsing in struct " + struct_name + " field " + field_name + " reason " + reason;
 }
 
@@ -61,10 +63,12 @@ _get_program_and_map_names(
     _Inout_ vector<section_offset_to_map_t>& map_names,
     uint32_t expected_map_count) noexcept(false)
 {
+    std::ifstream stream{path, std::ios::in | std::ios::binary};
+
     ELFIO::elfio reader;
     size_t symbols_count = 0;
 
-    if (!reader.load(path)) {
+    if (!reader.load(stream)) {
         throw std::runtime_error(string("Can't process ELF file ") + path);
     }
 
@@ -595,7 +599,8 @@ static _Success_(return == 0) uint32_t _verify_section_from_string(
             static_cast<uint32_t>(data.size()))) {
 
         *error_message =
-            allocate_string(std::string("error: ELF file ") + name + " is malformed: " + _elf_everparse_error);
+            allocate_string(std::string("error: ELF file ") + name + " is malformed: " + *_elf_everparse_error);
+        _elf_everparse_error.clear();
         return 1;
     }
 

@@ -3,6 +3,7 @@
 
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
+#include "crab_utils/lazy_allocator.hpp"
 #include "platform.h"
 #include "programs.h"
 #include "tokens.h"
@@ -48,7 +49,7 @@ static TOKEN_VALUE _ebpf_pinned_type_enum[] = {
     {L"all", PT_ALL},
 };
 
-std::vector<struct bpf_object*> _ebpf_netsh_objects;
+crab::lazy_allocator<std::vector<struct bpf_object*>> _ebpf_netsh_objects;
 
 bool
 _prog_type_supports_interface(bpf_prog_type prog_type)
@@ -244,7 +245,7 @@ handle_ebpf_add_program(
     std::cout << "Loaded with ID " << info.id << std::endl;
 
     ebpf_link_close(link);
-    _ebpf_netsh_objects.push_back(object);
+    _ebpf_netsh_objects->push_back(object);
 
     return ERROR_SUCCESS;
 }
@@ -292,7 +293,7 @@ _unpin_program_by_id(ebpf_id_t id)
 static std::vector<struct bpf_object*>::const_iterator
 _find_object_with_program(ebpf_id_t id)
 {
-    for (auto object = _ebpf_netsh_objects.begin(); object != _ebpf_netsh_objects.end(); object++) {
+    for (auto object = _ebpf_netsh_objects->begin(); object != _ebpf_netsh_objects->end(); object++) {
         bpf_program* program;
         bpf_object__for_each_program(program, *object)
         {
@@ -307,7 +308,7 @@ _find_object_with_program(ebpf_id_t id)
             }
         }
     }
-    return _ebpf_netsh_objects.end();
+    return _ebpf_netsh_objects->end();
 }
 
 // The following function uses windows specific type to match 
@@ -362,9 +363,9 @@ handle_ebpf_delete_program(
     // Remove from our list of programs to release our own reference if we took one.
     // If there are no other references to the program, it will be unloaded.
     std::vector<struct bpf_object*>::const_iterator object = _find_object_with_program(id);
-    if (object != _ebpf_netsh_objects.end()) {
+    if (object != _ebpf_netsh_objects->end()) {
         bpf_object__close(*object);
-        _ebpf_netsh_objects.erase(object);
+        _ebpf_netsh_objects->erase(object);
     }
 
     // TODO: see if the program is still loaded, in which case some other process holds

@@ -19,6 +19,7 @@
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
 #include "libbpf.h"
 #pragma warning(pop)
+#include "crab_utils/lazy_allocator.hpp"
 #include "map_descriptors.hpp"
 #define _PEPARSE_WINDOWS_CONFLICTS
 #include "pe-parse/parse.h"
@@ -45,10 +46,9 @@ const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
-static std::mutex _ebpf_state_mutex;
-_Guarded_by_(_ebpf_state_mutex) static std::map<ebpf_handle_t, ebpf_program_t*> _ebpf_programs;
-_Guarded_by_(_ebpf_state_mutex) static std::map<ebpf_handle_t, ebpf_map_t*> _ebpf_maps;
-_Guarded_by_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects;
+_Guarded_by_(_ebpf_state_mutex) static crab::lazy_allocator<std::map<ebpf_handle_t, ebpf_program_t*>> _ebpf_programs;
+_Guarded_by_(_ebpf_state_mutex) static crab::lazy_allocator<std::map<ebpf_handle_t, ebpf_map_t*>> _ebpf_maps;
+_Guarded_by_(_ebpf_state_mutex) static crab::lazy_allocator<std::vector<ebpf_object_t*>> _ebpf_objects;
 
 #define DEFAULT_PIN_ROOT_PATH "/ebpf/global"
 
@@ -161,8 +161,8 @@ _Requires_lock_not_held_(_ebpf_state_mutex) inline static ebpf_map_t* _get_ebpf_
 
     ebpf_map_t* map = nullptr;
     std::unique_lock lock(_ebpf_state_mutex);
-    std::map<ebpf_handle_t, ebpf_map_t*>::iterator it = _ebpf_maps.find(map_handle);
-    if (it != _ebpf_maps.end()) {
+    std::map<ebpf_handle_t, ebpf_map_t*>::iterator it = _ebpf_maps->find(map_handle);
+    if (it != _ebpf_maps->end()) {
         map = it->second;
     }
 
@@ -177,8 +177,8 @@ _Requires_lock_not_held_(_ebpf_state_mutex) inline static ebpf_program_t* _get_e
 
     std::unique_lock lock(_ebpf_state_mutex);
     ebpf_program_t* program = nullptr;
-    std::map<ebpf_handle_t, ebpf_program_t*>::iterator it = _ebpf_programs.find(program_handle);
-    if (it != _ebpf_programs.end()) {
+    std::map<ebpf_handle_t, ebpf_program_t*>::iterator it = _ebpf_programs->find(program_handle);
+    if (it != _ebpf_programs->end()) {
         program = it->second;
     }
 
@@ -1421,7 +1421,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) void clean_up_ebpf_map(_In_ _Post_in
     }
     if (map->map_handle != ebpf_handle_invalid) {
         std::unique_lock lock(_ebpf_state_mutex);
-        _ebpf_maps.erase(map->map_handle);
+        _ebpf_maps->erase(map->map_handle);
     }
     ebpf_free(map->name);
     ebpf_free(map->pin_path);
@@ -1475,11 +1475,9 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static void _remove_ebpf_object_from
     EBPF_LOG_ENTRY();
     ebpf_assert(object);
     std::unique_lock lock(_ebpf_state_mutex);
-    auto it = std::find(_ebpf_objects.begin(), _ebpf_objects.end(), object);
-    if (it == _ebpf_objects.end()) {
-        return;
-    }
-    _ebpf_objects.erase(it);
+    auto it = std::find(_ebpf_objects->begin(), _ebpf_objects->end(), object);
+    ebpf_assert(it != _ebpf_objects->end());
+    _ebpf_objects->erase(it);
 }
 
 _Requires_lock_not_held_(_ebpf_state_mutex) static void _clean_up_ebpf_objects() noexcept
@@ -1490,7 +1488,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static void _clean_up_ebpf_objects()
     // Intentional use of scope to limit lifetime of lock.
     {
         std::unique_lock lock(_ebpf_state_mutex);
-        objects = std::move(_ebpf_objects);
+        objects = std::move(*_ebpf_objects);
     }
 
     for (auto& object : objects) {
@@ -2313,7 +2311,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t 
     *object = new_object;
     {
         std::unique_lock lock(_ebpf_state_mutex);
-        _ebpf_objects.emplace_back(*object);
+        _ebpf_objects->emplace_back(*object);
     }
 
 Done:
@@ -2495,7 +2493,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
         if (result == EBPF_SUCCESS) {
             for (auto& map : object->maps) {
                 std::unique_lock lock(_ebpf_state_mutex);
-                _ebpf_maps.insert(std::pair<ebpf_handle_t, ebpf_map_t*>(map->map_handle, map));
+                _ebpf_maps->insert(std::pair<ebpf_handle_t, ebpf_map_t*>(map->map_handle, map));
             }
         }
     } catch (const std::bad_alloc&) {
@@ -2691,7 +2689,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
     if (result == EBPF_SUCCESS) {
         std::unique_lock lock(_ebpf_state_mutex);
         for (auto& program : object->programs) {
-            _ebpf_programs.insert(std::pair<ebpf_handle_t, ebpf_program_t*>(program->handle, program));
+            _ebpf_programs->insert(std::pair<ebpf_handle_t, ebpf_program_t*>(program->handle, program));
         }
     }
     EBPF_RETURN_RESULT(result);
@@ -2761,7 +2759,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t
         }
         if (map->map_handle != ebpf_handle_invalid) {
             std::unique_lock lock(_ebpf_state_mutex);
-            _ebpf_maps.erase(map->map_handle);
+            _ebpf_maps->erase(map->map_handle);
             map->map_handle = ebpf_handle_invalid;
         }
     }
@@ -2786,7 +2784,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t
     }
     if (program->handle != ebpf_handle_invalid) {
         std::unique_lock lock(_ebpf_state_mutex);
-        _ebpf_programs.erase(program->handle);
+        _ebpf_programs->erase(program->handle);
         program->handle = ebpf_handle_invalid;
     }
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
@@ -3177,15 +3175,15 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Ret_maybenull_
     std::unique_lock lock(_ebpf_state_mutex);
     if (previous == nullptr) {
         // Return first object.
-        EBPF_RETURN_POINTER(struct bpf_object*, (!_ebpf_objects.empty()) ? _ebpf_objects[0] : nullptr);
+        EBPF_RETURN_POINTER(struct bpf_object*, (!_ebpf_objects->empty()) ? (*_ebpf_objects)[0] : nullptr);
     }
-    auto it = std::find(_ebpf_objects.begin(), _ebpf_objects.end(), previous);
-    if (it == _ebpf_objects.end()) {
+    auto it = std::find(_ebpf_objects->begin(), _ebpf_objects->end(), previous);
+    if (it == _ebpf_objects->end()) {
         // Previous object not found.
         EBPF_RETURN_POINTER(struct bpf_object*, nullptr);
     }
     it++;
-    if (it == _ebpf_objects.end()) {
+    if (it == _ebpf_objects->end()) {
         // No more objects.
         EBPF_RETURN_POINTER(struct bpf_object*, nullptr);
     }

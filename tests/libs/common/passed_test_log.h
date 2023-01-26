@@ -10,6 +10,8 @@
 #include <fstream>
 #include <iostream>
 
+extern thread_local bool ebpf_enable_memory_tests;
+
 /**
  * @brief A Catch2 reporter that logs the name of each test that passes.
  * This is used to generate a list of tests that passed in the last run in a
@@ -25,6 +27,7 @@ class _passed_test_log : public Catch::EventListenerBase
     void
     testCaseEnded(Catch::TestCaseStats const& testCaseStats) override
     {
+        assert(!ebpf_enable_memory_tests);
         if (!passed_tests) {
             char process_name[MAX_PATH];
             GetModuleFileNameA(nullptr, process_name, MAX_PATH);

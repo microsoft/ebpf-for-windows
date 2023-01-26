@@ -39,6 +39,12 @@ typedef class _rundown_ref_table
         return *_instance;
     }
 
+    static void
+    reset()
+    {
+        _instance->_rundown_ref_counts.clear();
+    }
+
     /**
      * @brief Initialize the rundown ref table entry for the given context.
      *
@@ -166,6 +172,12 @@ typedef class _rundown_ref_table
     std::map<uint64_t, std::tuple<bool, uint64_t>> _rundown_ref_counts;
     std::condition_variable _rundown_ref_cv;
 } rundown_ref_table_t;
+
+void
+kernel_um_reset_rundown_table()
+{
+    rundown_ref_table_t::reset();
+}
 
 /**
  * @brief The singleton instance of the rundown ref table. Created during static initialization and destroyed during

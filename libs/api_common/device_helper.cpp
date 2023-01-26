@@ -18,6 +18,8 @@
 
 #include <mutex>
 
+extern thread_local bool ebpf_enable_memory_tests;
+
 typedef struct _async_ioctl_completion_context
 {
     OVERLAPPED overlapped;
@@ -29,9 +31,12 @@ typedef struct _async_ioctl_completion_context
 static ebpf_handle_t _device_handle = ebpf_handle_invalid;
 static std::mutex _mutex;
 
+static EX_RUNDOWN_REF _async_io_rundown;
+
 _Must_inspect_result_ ebpf_result_t
 initialize_device_handle()
 {
+
     std::scoped_lock lock(_mutex);
 
     if (_device_handle != ebpf_handle_invalid) {
@@ -45,12 +50,17 @@ initialize_device_handle()
         return win32_error_code_to_ebpf_result(GetLastError());
     }
 
+    ExInitializeRundownProtection(&_async_io_rundown);
+
     return EBPF_SUCCESS;
 }
 
 void
 clean_up_device_handle()
 {
+    if (_device_handle != ebpf_handle_invalid) {
+        ExWaitForRundownProtectionRelease(&_async_io_rundown);
+    }
     std::scoped_lock lock(_mutex);
 
     if (_device_handle != ebpf_handle_invalid) {
@@ -86,6 +96,7 @@ clean_up_async_ioctl_completion(_Inout_opt_ _Post_invalid_ async_ioctl_completio
             ::CloseHandle(async_ioctl_completion->overlapped.hEvent);
 
         ebpf_free(async_ioctl_completion);
+        ExReleaseRundownProtection(&_async_io_rundown);
     }
 }
 
@@ -174,6 +185,8 @@ initialize_async_ioctl_operation(
         goto Exit;
     }
 
+    ExAcquireRundownProtection(&_async_io_rundown);
+
     local_async_ioctl_completion->callback_context = callback_context;
     local_async_ioctl_completion->callback = callback;
 
@@ -186,9 +199,10 @@ initialize_async_ioctl_operation(
             UNREFERENCED_PARAMETER(instance);
             UNREFERENCED_PARAMETER(wait);
             UNREFERENCED_PARAMETER(wait_result);
-
+            ebpf_enable_memory_tests = true;
             async_ioctl_completion_context_t* local_async_ioctl_completion = (async_ioctl_completion_context_t*)context;
             local_async_ioctl_completion->callback(local_async_ioctl_completion->callback_context);
+            ebpf_enable_memory_tests = false;
         },
         local_async_ioctl_completion,
         nullptr);

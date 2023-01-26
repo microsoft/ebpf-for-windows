@@ -63,10 +63,10 @@ main(int argc, const char** argv)
     unsigned long bytes_sent;
 
     volatile long packet_sent = 0;
-    std::vector<std::thread> threads(4);
+    std::vector<std::jthread> threads(4);
 
     for (auto& t : threads) {
-        t = std::thread([&] {
+        t = std::jthread([&] {
             for (;;) {
                 if (WSASend(
                         socket,

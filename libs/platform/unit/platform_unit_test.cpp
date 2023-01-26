@@ -24,6 +24,9 @@
 
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;
+extern thread_local bool ebpf_enable_memory_tests;
+
+using namespace std::chrono_literals;
 
 class _test_helper
 {
@@ -202,6 +205,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
     };
     REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
     auto worker = [table, iterations, key_count, load_factor, &cpu_id]() {
+        ebpf_enable_memory_tests = true;
         uint32_t next_key = 0;
         uint64_t value = 11;
         uint64_t** returned_value = nullptr;
@@ -239,11 +243,12 @@ TEST_CASE("hash_table_stress_test", "[platform]")
             for (auto& key : keys)
                 run_in_epoch([&]() { (void)ebpf_hash_table_delete(table, reinterpret_cast<const uint8_t*>(&key)); });
         }
+        ebpf_enable_memory_tests = false;
     };
 
-    std::vector<std::thread> threads;
+    std::vector<std::jthread> threads;
     for (size_t i = 0; i < worker_threads; i++) {
-        threads.emplace_back(std::thread(worker));
+        threads.emplace_back(std::jthread(worker));
     }
 
     for (auto& thread : threads) {
@@ -314,6 +319,8 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     _test_helper test_helper;
 
     auto epoch = []() {
+        ebpf_enable_memory_tests = true;
+
         if (ebpf_epoch_enter() != EBPF_SUCCESS)
             return;
         void* memory = ebpf_epoch_allocate(10);
@@ -324,8 +331,8 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
         ebpf_epoch_flush();
     };
 
-    std::thread thread_1(epoch);
-    std::thread thread_2(epoch);
+    std::jthread thread_1(epoch);
+    std::jthread thread_2(epoch);
     thread_1.join();
     thread_2.join();
 }
@@ -335,11 +342,11 @@ extern bool _ebpf_platform_is_preemptible;
 class _signal
 {
   public:
-    void
-    wait()
+    bool
+    wait(std::chrono::milliseconds timeout = std::chrono::milliseconds::max())
     {
         std::unique_lock l(lock);
-        condition_variable.wait(l, [&]() { return signaled; });
+        return condition_variable.wait_for(l, timeout, [&]() { return signaled; });
     }
     void
     signal()
@@ -376,20 +383,28 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
     for (size_t test_iteration = 0; test_iteration < test_iterations; test_iteration++) {
 
         auto t1 = [&]() {
+            ebpf_enable_memory_tests = true;
+
             uintptr_t old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_affinity(1, &old_thread_affinity));
             bool _in_epoch = (ebpf_epoch_enter() == EBPF_SUCCESS);
             void* memory = _in_epoch ? ebpf_epoch_allocate(10) : nullptr;
             signal_2.signal();
-            signal_1.wait();
+            if (!signal_1.wait(1000ms)) {
+                return;
+            }
             ebpf_epoch_free(memory);
             if (_in_epoch)
                 ebpf_epoch_exit();
         };
         auto t2 = [&]() {
+            ebpf_enable_memory_tests = true;
+
             uintptr_t old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_affinity(2, &old_thread_affinity));
-            signal_2.wait();
+            if (!signal_2.wait(1000ms)) {
+                return;
+            }
             if (ebpf_epoch_enter() == EBPF_SUCCESS) {
                 void* memory = ebpf_epoch_allocate(10);
                 ebpf_epoch_free(memory);
@@ -398,8 +413,8 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
             signal_1.signal();
         };
 
-        std::thread thread_1(t1);
-        std::thread thread_2(t2);
+        std::jthread thread_1(t1);
+        std::jthread thread_2(t2);
 
         thread_1.join();
         thread_2.join();

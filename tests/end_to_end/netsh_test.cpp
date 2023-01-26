@@ -8,6 +8,7 @@
 #pragma warning(pop)
 #include "ebpf_epoch.h"
 #include "netsh_test_helper.h"
+#include "crab_utils/lazy_allocator.hpp"
 #include "platform.h"
 #include "test_helper.hpp"
 
@@ -18,7 +19,7 @@
 #include <sstream>
 #include <string.h>
 
-extern std::vector<struct bpf_object*> _ebpf_netsh_objects;
+extern crab::lazy_allocator<std::vector<struct bpf_object*>> _ebpf_netsh_objects;
 
 class _test_helper_netsh
 {
@@ -38,12 +39,14 @@ ebpf_low_memory_test_in_progress();
 _test_helper_netsh::~_test_helper_netsh()
 {
     if (ebpf_low_memory_test_in_progress()) {
-        for (auto& object : _ebpf_netsh_objects) {
+        for (auto& object : *_ebpf_netsh_objects) {
             bpf_object__close(object);
         }
         _ebpf_netsh_objects.clear();
+    } else {
+        REQUIRE(_ebpf_netsh_objects->size() == 0);
+        _ebpf_netsh_objects.clear();
     }
-    REQUIRE(_ebpf_netsh_objects.size() == 0);
 }
 
 std::string

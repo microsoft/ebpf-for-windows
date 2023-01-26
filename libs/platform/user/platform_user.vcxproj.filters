@@ -144,5 +144,8 @@
     <ClInclude Include="ebpf_rundown.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ebpf_recursion_guard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

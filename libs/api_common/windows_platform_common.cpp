@@ -11,6 +11,7 @@
 #include "ebpf_registry_helper.h"
 #include "ebpf_serialize.h"
 #include "helpers.hpp"
+#include "crab_utils/lazy_allocator.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
 #include "spec_type_descriptors.hpp"
@@ -109,7 +110,7 @@ static thread_local std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t,
 // Global cache for the program and section information queried from eBPF store.
 typedef std::unique_ptr<ebpf_section_definition_t, _ebpf_section_info_deleter> ebpf_section_info_ptr_t;
 static std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t, guid_compare> _windows_program_types;
-static std::vector<ebpf_section_info_ptr_t> _windows_section_definitions;
+static crab::lazy_allocator<std::vector<ebpf_section_info_ptr_t>> _windows_section_definitions;
 static std::map<ebpf_program_type_t, ebpf_program_info_ptr_t, guid_compare> _windows_program_information;
 
 void
@@ -252,10 +253,10 @@ _get_section_definition(const std::string& section)
 {
     int32_t match_index = -1;
     size_t match_length = 0;
-    for (size_t index = 0; index < _windows_section_definitions.size(); index++) {
-        std::string section_prefix(_windows_section_definitions[index].get()->section_prefix);
+    for (size_t index = 0; index < _windows_section_definitions->size(); index++) {
+        std::string section_prefix((*_windows_section_definitions)[index].get()->section_prefix);
         if (section.find(section_prefix) == 0) {
-            size_t prefix_length = strlen(_windows_section_definitions[index].get()->section_prefix);
+            size_t prefix_length = strlen((*_windows_section_definitions)[index].get()->section_prefix);
             if (match_length < prefix_length) {
                 match_index = int32_t(index);
                 match_length = prefix_length;
@@ -264,7 +265,7 @@ _get_section_definition(const std::string& section)
     }
 
     if (match_index >= 0) {
-        return _windows_section_definitions[match_index].get();
+        return (*_windows_section_definitions)[match_index].get();
     }
 
     return nullptr;
@@ -285,7 +286,7 @@ get_ebpf_program_type(bpf_prog_type_t bpf_program_type)
 _Ret_maybenull_ const ebpf_attach_type_t*
 get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type) noexcept
 {
-    for (const auto& definition : _windows_section_definitions) {
+    for (const auto& definition : *_windows_section_definitions) {
         if (definition.get()->bpf_attach_type == bpf_attach_type) {
             return definition.get()->attach_type;
         }
@@ -309,7 +310,7 @@ get_bpf_program_type(_In_ const ebpf_program_type_t* ebpf_program_type) noexcept
 bpf_attach_type_t
 get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept
 {
-    for (const auto& definition : _windows_section_definitions) {
+    for (const auto& definition : *_windows_section_definitions) {
         if (IsEqualGUID(*ebpf_attach_type, *definition.get()->attach_type)) {
             return definition.get()->bpf_attach_type;
         }
@@ -456,7 +457,7 @@ get_attach_type_windows(const std::string& section)
 _Ret_maybenull_z_ const char*
 get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
 {
-    for (const auto& t : _windows_section_definitions) {
+    for (const auto& t : *_windows_section_definitions) {
         if (IsEqualGUID(*t.get()->attach_type, *attach_type)) {
             return t.get()->section_prefix;
         }
@@ -607,7 +608,7 @@ _load_all_section_data_information()
     try {
         for (uint32_t index = 0; index < section_info_count; index++) {
             ebpf_section_definition_t* info = section_info[index];
-            _windows_section_definitions.emplace_back(ebpf_section_info_ptr_t(info));
+            _windows_section_definitions->emplace_back(ebpf_section_info_ptr_t(info));
             section_info[index] = nullptr;
         }
     } catch (const std::bad_alloc&) {
@@ -618,7 +619,7 @@ _load_all_section_data_information()
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        _windows_section_definitions.clear();
+        _windows_section_definitions->clear();
     }
     if (section_info) {
         for (uint32_t index = 0; index < section_info_count; index++) {

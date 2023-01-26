@@ -49,6 +49,7 @@
     <ClInclude Include="..\ebpf_state.h" />
     <ClInclude Include="ebpf_leak_detector.h" />
     <ClInclude Include="ebpf_low_memory_test.h" />
+    <ClInclude Include="ebpf_recursion_guard.h" />
     <ClInclude Include="ebpf_rundown.h" />
     <ClInclude Include="ebpf_symbol_decoder.h" />
     <ClInclude Include="framework.h" />

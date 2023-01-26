@@ -19,6 +19,12 @@
 #include <string>
 #include <vector>
 
+#include "ebpf_leak_detector.h"
+#include "ebpf_low_memory_test.h"
+#include "ebpf_recursion_guard.h"
+#include "ebpf_symbol_decoder.h"
+#include "ebpf_utilities.h"
+
 // Global variables used to override behavior for testing.
 // Permit the test to simulate both Hyper-V Code Integrity.
 bool _ebpf_platform_code_integrity_enabled = false;
@@ -33,8 +39,11 @@ int32_t _ebpf_platform_initiate_count = 0;
 extern "C" bool ebpf_fuzzing_enabled = false;
 extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
-std::unique_ptr<ebpf_low_memory_test_t> _ebpf_low_memory_test_ptr;
-ebpf_leak_detector_ptr _ebpf_leak_detector_ptr;
+static std::unique_ptr<ebpf_low_memory_test_t> _ebpf_low_memory_test_ptr;
+static ebpf_leak_detector_ptr _ebpf_leak_detector_ptr;
+
+// Thread local variable to indicate this thread should engage in low memory and leak testing.
+thread_local bool ebpf_enable_memory_tests = false;
 
 /**
  * @brief Environment variable to enable low memory testing.
@@ -145,8 +154,9 @@ class _ebpf_emulated_dpc
     _ebpf_emulated_dpc(size_t i) : head({}), terminate(false)
     {
         ebpf_list_initialize(&head);
-        thread = std::thread([i, this]() {
+        thread = std::jthread([i, this]() {
             ebpf_non_preemptible = true;
+            ebpf_enable_memory_tests = true;
             std::unique_lock<std::mutex> l(mutex);
             uintptr_t old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_affinity(1ull << i, &old_thread_affinity));
@@ -226,7 +236,7 @@ class _ebpf_emulated_dpc
   private:
     ebpf_list_entry_t flush_entry;
     ebpf_list_entry_t head;
-    std::thread thread;
+    std::jthread thread;
     std::mutex mutex;
     std::condition_variable condition_variable;
     bool terminate;
@@ -298,6 +308,9 @@ _get_environment_variable_as_size_t(const std::string& name)
     }
 }
 
+void
+kernel_um_initiate();
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
@@ -316,15 +329,6 @@ ebpf_platform_initiate()
         if (low_memory_stack_depth || leak_detector) {
             _ebpf_symbol_decoder_initialize();
         }
-        if (low_memory_stack_depth && !_ebpf_low_memory_test_ptr) {
-            _ebpf_low_memory_test_ptr = std::make_unique<ebpf_low_memory_test_t>(low_memory_stack_depth);
-            // Set flag to remove some asserts that fire from incorrect client behavior.
-            ebpf_fuzzing_enabled = true;
-        }
-
-        if (leak_detector) {
-            _ebpf_leak_detector_ptr = std::make_unique<ebpf_leak_detector_t>();
-        }
 
         for (size_t i = 0; i < ebpf_get_cpu_count(); i++) {
             _ebpf_emulated_dpcs.push_back(std::make_shared<_ebpf_emulated_dpc>(i));
@@ -336,12 +340,26 @@ ebpf_platform_initiate()
             _ebpf_platform_group_to_index_map[i] = base_index;
             base_index += GetMaximumProcessorCount((uint16_t)i);
         }
+
+        if (low_memory_stack_depth && !_ebpf_low_memory_test_ptr) {
+            _ebpf_low_memory_test_ptr = std::make_unique<ebpf_low_memory_test_t>(low_memory_stack_depth);
+            // Set flag to remove some asserts that fire from incorrect client behavior.
+            ebpf_fuzzing_enabled = true;
+        }
+
+        if (leak_detector) {
+            _ebpf_leak_detector_ptr = std::make_unique<ebpf_leak_detector_t>();
+        }
+        ebpf_enable_memory_tests = true;
     } catch (const std::bad_alloc&) {
         return EBPF_NO_MEMORY;
     }
 
     return _initialize_thread_pool();
 }
+
+void
+kernel_um_reset_rundown_table();
 
 void
 ebpf_platform_terminate()
@@ -353,10 +371,17 @@ ebpf_platform_terminate()
 
     _clean_up_thread_pool();
     _ebpf_emulated_dpcs.resize(0);
+    kernel_um_reset_rundown_table();
+
     if (_ebpf_leak_detector_ptr) {
+        ebpf_recursion_guard_t recursion_guard;
         _ebpf_leak_detector_ptr->dump_leaks();
         _ebpf_leak_detector_ptr.reset();
     }
+    ebpf_enable_memory_tests = false;
+
+    _clean_up_thread_pool();
+    _ebpf_emulated_dpcs.resize(0);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -382,11 +407,14 @@ ebpf_low_memory_test_in_progress()
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
 {
     ebpf_assert(size);
+    ebpf_recursion_guard_t recursion_guard;
+
     if (size > ebpf_fuzzing_memory_limit) {
         return nullptr;
     }
 
-    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
+    if (ebpf_enable_memory_tests && !recursion_guard.is_recursing() && _ebpf_low_memory_test_ptr &&
+        _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
         return nullptr;
     }
 
@@ -395,7 +423,7 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void*
     if (memory != nullptr)
         memset(memory, 0, size);
 
-    if (memory && _ebpf_leak_detector_ptr) {
+    if (ebpf_enable_memory_tests && memory && !recursion_guard.is_recursing() && _ebpf_leak_detector_ptr) {
         _ebpf_leak_detector_ptr->register_allocation(reinterpret_cast<uintptr_t>(memory), size);
     }
 
@@ -414,11 +442,14 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) v
     _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
 {
     UNREFERENCED_PARAMETER(old_size);
+    ebpf_recursion_guard_t recursion_guard;
+
     if (new_size > ebpf_fuzzing_memory_limit) {
         return nullptr;
     }
 
-    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
+    if (ebpf_enable_memory_tests && !recursion_guard.is_recursing() && _ebpf_low_memory_test_ptr &&
+        _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
         return nullptr;
     }
 
@@ -426,7 +457,7 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) v
     if (p && (new_size > old_size))
         memset(((char*)p) + old_size, 0, new_size - old_size);
 
-    if (_ebpf_leak_detector_ptr) {
+    if (ebpf_enable_memory_tests && !recursion_guard.is_recursing() && _ebpf_leak_detector_ptr) {
         _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
         _ebpf_leak_detector_ptr->register_allocation(reinterpret_cast<uintptr_t>(p), new_size);
     }
@@ -445,20 +476,57 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) v
 void
 ebpf_free(_Frees_ptr_opt_ void* memory)
 {
-    if (_ebpf_leak_detector_ptr) {
+    ebpf_recursion_guard_t recursion_guard;
+
+    if (ebpf_enable_memory_tests && !recursion_guard.is_recursing() && _ebpf_leak_detector_ptr) {
         _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
     }
     free(memory);
 }
 
+_Ret_notnull_ _Post_writable_byte_size_(size) void*
+operator new(size_t size)
+{
+    void* memory = ebpf_allocate(size);
+    if (memory == nullptr) {
+        throw std::bad_alloc();
+    }
+    return memory;
+}
+
+void
+operator delete(void* memory)
+{
+    ebpf_free(memory);
+}
+
+_Ret_notnull_ _Post_writable_byte_size_(size) void*
+operator new[](size_t size)
+{
+    void* memory = ebpf_allocate(size);
+    if (memory == nullptr) {
+        throw std::bad_alloc();
+    }
+    return memory;
+}
+
+void
+operator delete[](void* memory)
+{
+    ebpf_free(memory);
+}
+
 __drv_allocatesMem(Mem) _Must_inspect_result_
     _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
 {
+    ebpf_recursion_guard_t recursion_guard;
+
     if (size > ebpf_fuzzing_memory_limit) {
         return nullptr;
     }
 
-    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
+    if (ebpf_enable_memory_tests && !recursion_guard.is_recursing() && _ebpf_low_memory_test_ptr &&
+        _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
         return nullptr;
     }
 
@@ -898,6 +966,8 @@ _ebpf_preemptible_routine(_Inout_ PTP_CALLBACK_INSTANCE instance, _In_opt_ void*
     UNREFERENCED_PARAMETER(instance);
     UNREFERENCED_PARAMETER(work);
 
+    ebpf_enable_memory_tests = true;
+
     if (parameter == nullptr) {
         return;
     }
@@ -906,6 +976,8 @@ _ebpf_preemptible_routine(_Inout_ PTP_CALLBACK_INSTANCE instance, _In_opt_ void*
     work_item->work_item_routine(work_item->work_item_context);
 
     ebpf_free_preemptible_work_item(work_item);
+
+    ebpf_enable_memory_tests = false;
 }
 
 void
@@ -967,8 +1039,10 @@ _ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* c
     ebpf_timer_work_item_t* timer_work_item = reinterpret_cast<ebpf_timer_work_item_t*>(context);
     UNREFERENCED_PARAMETER(instance);
     UNREFERENCED_PARAMETER(timer);
+    ebpf_enable_memory_tests = true;
     if (timer_work_item)
         timer_work_item->work_item_routine(timer_work_item->work_item_context);
+    ebpf_enable_memory_tests = false;
 }
 
 _Must_inspect_result_ ebpf_result_t

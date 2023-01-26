@@ -57,9 +57,9 @@ template <typename T> class _performance_measure
     run_test(size_t multiplier = 1)
     {
         int32_t ready_count = 0;
-        std::vector<std::thread> threads;
+        std::vector<std::jthread> threads;
         for (uint32_t i = 0; i < cpu_count; i++) {
-            threads.emplace_back(std::thread([i, this, &ready_count] {
+            threads.emplace_back(std::jthread([i, this, &ready_count] {
                 uint32_t local_cpu_id = i;
                 uintptr_t thread_mask = local_cpu_id;
                 thread_mask = static_cast<uintptr_t>(1) << thread_mask;
