@@ -563,8 +563,13 @@ __bpf_set_link_xdp_fd_replace(int ifindex, int fd, int old_fd, __u32 flags)
 
     if (fd != ebpf_fd_invalid) {
         // Link the new program fd to the specified ifindex.
-        struct bpf_link* link;
+        struct bpf_link* link = nullptr;
         result = ebpf_program_attach_by_fd(fd, &EBPF_ATTACH_TYPE_XDP, &ifindex, sizeof(ifindex), &link);
+        if (result == EBPF_SUCCESS) {
+            // Disconnect and destroy the link object.
+            bpf_link__disconnect(link);
+            bpf_link__destroy(link);
+        }
     }
     if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
