@@ -3,7 +3,7 @@ rem Copyright (c) Microsoft Corporation
 rem SPDX-License-Identifier: MIT
 
 @echo ==============================
-@echo Cleanup & Populate eBPF Store.
+@echo Clean up & Populate eBPF Store.
 @echo ==============================
 export_program_info.exe --clear
 export_program_info.exe
