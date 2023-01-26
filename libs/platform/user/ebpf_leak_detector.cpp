@@ -54,7 +54,6 @@ _ebpf_leak_detector::dump_leaks()
         }
         std::cout << std::endl;
     }
-    ebpf_assert(_allocations.empty());
 
     // assert to make sure that a leaking test throws an exception thereby failing the test.
     ebpf_assert(_allocations.empty());
