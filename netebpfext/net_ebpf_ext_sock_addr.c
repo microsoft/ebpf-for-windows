@@ -154,6 +154,8 @@ _IRQL_requires_max_(DISPATCH_LEVEL) static NTSTATUS _perform_access_check(
         &granted_access,
         &status);
 
+    // Not tracing error as this function can be called in hot path.
+    // Non-success status means access not granted, and does not mean failure.
     return status;
 }
 
@@ -332,10 +334,10 @@ _net_ebpf_extension_sock_addr_program_info_on_client_attach(
 
     _net_ebpf_sock_addr_get_program_context = net_ebpf_extension_get_program_context_function(attaching_client);
     if (_net_ebpf_sock_addr_get_program_context == NULL) {
-        return EBPF_INVALID_ARGUMENT;
+        NET_EBPF_EXT_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
-    return EBPF_SUCCESS;
+    NET_EBPF_EXT_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 static void
@@ -383,8 +385,7 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         &compartment_id,
         &wild_card_compartment_id,
         (net_ebpf_extension_hook_provider_t*)provider_context);
-    if (result != EBPF_SUCCESS)
-        goto Exit;
+    NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
     if (client_data->data != NULL)
         compartment_id = *(uint32_t*)client_data->data;
@@ -401,8 +402,8 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         sizeof(net_ebpf_extension_sock_addr_wfp_filter_context_t),
         attaching_client,
         (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
-    if (result != EBPF_SUCCESS)
-        goto Exit;
+    NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
+
     filter_context->compartment_id = compartment_id;
 
     // Get the WFP filter parameters for this hook type.
@@ -427,8 +428,7 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
         &filter_context->base.filter_ids);
-    if (result != EBPF_SUCCESS)
-        goto Exit;
+    NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
     // Set the filter context as the client context's provider data.
     net_ebpf_extension_hook_client_set_provider_data(
@@ -477,6 +477,7 @@ _net_ebpf_sock_addr_update_store_entries()
 static NTSTATUS
 _net_ebpf_sock_addr_create_security_descriptor()
 {
+    NTSTATUS status;
     ACL* dacl = NULL;
     uint32_t acl_length = 0;
     GENERIC_MAPPING* mapping = NULL;
@@ -489,10 +490,11 @@ _net_ebpf_sock_addr_create_security_descriptor()
     admin_security_descriptor = (SECURITY_DESCRIPTOR*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(SECURITY_DESCRIPTOR), NET_EBPF_EXTENSION_POOL_TAG);
     if (admin_security_descriptor == NULL) {
-        return STATUS_NO_MEMORY;
+        status = STATUS_NO_MEMORY;
+        NET_EBPF_EXT_RETURN_NTSTATUS(status);
     }
 
-    NTSTATUS status = RtlCreateSecurityDescriptor(admin_security_descriptor, SECURITY_DESCRIPTOR_REVISION);
+    status = RtlCreateSecurityDescriptor(admin_security_descriptor, SECURITY_DESCRIPTOR_REVISION);
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlCreateSecurityDescriptor", status);
@@ -550,7 +552,7 @@ Exit:
         ExFreePool(admin_security_descriptor);
     }
 
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 static void
@@ -832,8 +834,7 @@ net_ebpf_ext_sock_addr_register_providers()
         _net_ebpf_extension_sock_addr_program_info_on_client_attach,
         _net_ebpf_extension_sock_addr_program_info_on_client_detach,
         &_ebpf_sock_addr_program_info_provider_context);
-    if (status != STATUS_SUCCESS)
-        goto Exit;
+    NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status);
 
     for (int i = 0; i < NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT; i++) {
         const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
@@ -860,9 +861,6 @@ net_ebpf_ext_sock_addr_register_providers()
             &_net_ebpf_extension_sock_addr_wfp_filter_parameters[i],
             &_ebpf_sock_addr_hook_provider_context[i]);
     }
-
-    if (status != EBPF_SUCCESS)
-        goto Exit;
 
 Exit:
     if (!NT_SUCCESS(status)) {
@@ -1042,14 +1040,10 @@ net_ebpf_ext_connect_redirect_filter_change_notify(
     if (callout_notification_type == FWPS_CALLOUT_NOTIFY_ADD_FILTER) {
         HANDLE redirect_handle;
         status = FwpsRedirectHandleCreate(&EBPF_HOOK_ALE_CONNECT_REDIRECT_PROVIDER, 0, &redirect_handle);
-        if (!NT_SUCCESS(status)) {
-            goto Exit;
-        }
+        NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status);
 
         status = _net_ebpf_ext_sock_addr_update_redirect_handle(filter->filterId, redirect_handle);
-        if (!NT_SUCCESS(status)) {
-            goto Exit;
-        }
+        NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status);
     } else if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
         _net_ebpf_ext_sock_addr_delete_redirect_handle(filter->filterId);
     }
@@ -1541,9 +1535,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         redirect_handle,
         &redirected,
         classify_output);
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status);
 
 CreateContext:
     if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
