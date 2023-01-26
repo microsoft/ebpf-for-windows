@@ -757,7 +757,7 @@ Exit:
 }
 
 void
-ebpf_free_string(_In_opt_ _Post_invalid_ const char* error_message)
+ebpf_free_string(_In_opt_ _Post_invalid_ const char* error_message) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_free(const_cast<char*>(error_message));
@@ -795,7 +795,7 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) noexcept
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_object_unpin(_In_z_ const char* path)
+ebpf_object_unpin(_In_z_ const char* path) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(path);
@@ -923,7 +923,7 @@ ebpf_program_query_info(
     fd_t fd,
     _Out_ ebpf_execution_type_t* execution_type,
     _Outptr_result_z_ const char** file_name,
-    _Outptr_result_z_ const char** section_name)
+    _Outptr_result_z_ const char** section_name) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
@@ -1097,7 +1097,7 @@ ebpf_program_attach(
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
     size_t attach_params_size,
-    _Outptr_ struct bpf_link** link)
+    _Outptr_ struct bpf_link** link) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1134,7 +1134,7 @@ ebpf_program_attach_by_fd(
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
     size_t attach_parameters_size,
-    _Outptr_ struct bpf_link** link)
+    _Outptr_ struct bpf_link** link) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(attach_parameters || !attach_parameters_size);
@@ -1161,7 +1161,7 @@ ebpf_program_attach_by_fd(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_api_unlink_program(ebpf_handle_t link_handle)
+ebpf_api_unlink_program(ebpf_handle_t link_handle) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_operation_unlink_program_request_t request = {0};
@@ -1173,7 +1173,7 @@ ebpf_api_unlink_program(ebpf_handle_t link_handle)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_link_detach(_Inout_ struct bpf_link* link)
+ebpf_link_detach(_Inout_ struct bpf_link* link) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(link);
@@ -1223,7 +1223,7 @@ Exit:
 }
 
 void
-ebpf_link_close(_Frees_ptr_ struct bpf_link* link)
+ebpf_link_close(_Frees_ptr_ struct bpf_link* link) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(link);
@@ -1232,7 +1232,7 @@ ebpf_link_close(_Frees_ptr_ struct bpf_link* link)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_api_close_handle(ebpf_handle_t handle)
+ebpf_api_close_handle(ebpf_handle_t handle) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_operation_close_handle_request_t request = {
@@ -1243,7 +1243,7 @@ ebpf_api_close_handle(ebpf_handle_t handle)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_api_get_pinned_map_info(
-    _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info)
+    _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1339,7 +1339,8 @@ Exit:
 
 void
 ebpf_api_map_info_free(
-    const uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_info_t* map_info)
+    const uint16_t map_count,
+    _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_info_t* map_info) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_map_info_array_free(map_count, const_cast<ebpf_map_info_t*>(map_info));
@@ -1846,7 +1847,7 @@ _ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info) noexcept
 }
 
 void
-ebpf_free_sections(_In_opt_ _Post_invalid_ ebpf_section_info_t* infos)
+ebpf_free_sections(_In_opt_ _Post_invalid_ ebpf_section_info_t* infos) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     while (infos != nullptr) {
@@ -2206,7 +2207,7 @@ ebpf_enumerate_sections(
     _In_z_ const char* file,
     bool verbose,
     _Outptr_result_maybenull_ ebpf_section_info_t** infos,
-    _Outptr_result_maybenull_z_ const char** error_message)
+    _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     std::string file_name_string(file);
@@ -2274,7 +2275,7 @@ _ebpf_is_map_in_map(_In_ const ebpf_map_t* map) noexcept
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type)
+ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type) EBPF_NO_EXCEPT
 {
     if (Platform::_is_native_program(object->file_name)) {
         if (execution_type == EBPF_EXECUTION_INTERPRET || execution_type == EBPF_EXECUTION_JIT) {
@@ -2296,7 +2297,7 @@ ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution
 }
 
 ebpf_execution_type_t
-ebpf_object_get_execution_type(_In_ const struct bpf_object* object)
+ebpf_object_get_execution_type(_In_ const struct bpf_object* object) EBPF_NO_EXCEPT
 {
     return object->execution_type;
 }
@@ -3289,7 +3290,7 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_next_pinned_program_path(
-    _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path)
+    _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(start_path);
@@ -3388,7 +3389,9 @@ ebpf_object_get_info_by_fd(
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_program_type_by_name(
-    _In_z_ const char* name, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* expected_attach_type)
+    _In_z_ const char* name,
+    _Out_ ebpf_program_type_t* program_type,
+    _Out_ ebpf_attach_type_t* expected_attach_type) EBPF_NO_EXCEPT
 {
     ebpf_result_t result = EBPF_SUCCESS;
     EBPF_LOG_ENTRY();
@@ -3402,7 +3405,7 @@ ebpf_get_program_type_by_name(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info)
+ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info) EBPF_NO_EXCEPT
 {
     ebpf_result_t result = EBPF_SUCCESS;
     EBPF_LOG_ENTRY();
@@ -3423,7 +3426,7 @@ ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) noexcept
 }
 
 _Ret_maybenull_z_ const char*
-ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
+ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program_type);
@@ -3437,7 +3440,7 @@ ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
 }
 
 _Ret_maybenull_z_ const char*
-ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
+ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(attach_type);
@@ -3730,7 +3733,7 @@ ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t*
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
+ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
 
