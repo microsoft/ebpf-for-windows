@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "bpf_helpers.h"
+#include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
 #include "ebpf_handle.h"
@@ -1659,10 +1660,14 @@ Exit:
 typedef struct _ebpf_program_test_run_context
 {
     const ebpf_program_t* program;
+    ebpf_program_data_t* program_data;
     void* context;
     ebpf_program_test_run_options_t* options;
-    ebpf_signal_t* completion_event;
     uint8_t required_irql;
+    bool canceled;
+    void* async_context;
+    void* completion_context;
+    ebpf_program_test_run_complete_callback_t completion_callback;
 } ebpf_program_test_run_context_t;
 
 static void
@@ -1689,6 +1694,10 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
     for (size_t i = 0; i < options->repeat_count; i++) {
+        if (context->canceled) {
+            result = EBPF_CANCELED;
+            break;
+        }
         result = ebpf_epoch_enter();
         if (result != EBPF_SUCCESS)
             break;
@@ -1723,16 +1732,38 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     ebpf_restore_current_thread_affinity(old_thread_affinity);
 
 Done:
-    ebpf_signal_set(context->completion_event);
+    if (context->program_data && context->program_data->context_destroy != NULL && context->context != NULL) {
+        context->program_data->context_destroy(
+            context->context,
+            options->data_out,
+            &options->data_size_out,
+            options->context_out,
+            &options->context_size_out);
+    }
+    context->completion_callback(
+        result, context->program, context->options, context->completion_context, context->async_context);
+    ebpf_extension_dereference_provider_data(context->program->info_extension_client);
+}
+
+static void
+_ebpf_program_test_run_cancel(_Inout_opt_ void* context)
+{
+    _Analysis_assume_(context != NULL);
+    ebpf_program_test_run_context_t* test_run_context = (ebpf_program_test_run_context_t*)context;
+    test_run_context->canceled = true;
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options)
+ebpf_program_execute_test_run(
+    _In_ const ebpf_program_t* program,
+    _Inout_ ebpf_program_test_run_options_t* options,
+    _In_ void* async_context,
+    _In_ void* completion_context,
+    _In_ ebpf_program_test_run_complete_callback_t callback)
 {
     EBPF_LOG_ENTRY();
 
     ebpf_result_t return_value = EBPF_SUCCESS;
-    ebpf_signal_t* signal = NULL;
     ebpf_program_test_run_context_t* test_run_context = NULL;
     void* context = NULL;
     ebpf_preemptible_work_item_t* work_item = NULL;
@@ -1773,17 +1804,14 @@ ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_p
         goto Exit;
     }
 
-    return_value = ebpf_signal_create(&signal);
-    if (return_value != EBPF_SUCCESS) {
-        return_value = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-
     test_run_context->program = program;
+    test_run_context->program_data = program_data;
     test_run_context->required_irql = program_data->required_irql;
     test_run_context->context = context;
     test_run_context->options = options;
-    test_run_context->completion_event = signal;
+    test_run_context->async_context = async_context;
+    test_run_context->completion_context = completion_context;
+    test_run_context->completion_callback = callback;
 
     // Queue the work item so that it can be executed on the target CPU and at the target dispatch level.
     // The work item will signal the completion event when it is done.
@@ -1792,11 +1820,18 @@ ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_p
         goto Exit;
     }
 
+    ebpf_assert_success(ebpf_async_set_cancel_callback(async_context, test_run_context, _ebpf_program_test_run_cancel));
+
     // ebpf_queue_preemptible_work_item() will free both the work item and the context when it is done.
     ebpf_queue_preemptible_work_item(work_item);
-    test_run_context = NULL;
 
-    (void)ebpf_signal_wait(signal, MAXUINT32);
+    // This thread no longer owns the test run context.
+    test_run_context = NULL;
+    // This thread no longer owns the reference to the provider data.
+    provider_data_referenced = false;
+    // This thread no longer owns the BPF context.
+    context = NULL;
+    return_value = EBPF_PENDING;
 
 Exit:
     if (program_data && program_data->context_destroy != NULL && context != NULL) {
@@ -1804,7 +1839,6 @@ Exit:
             context, options->data_out, &options->data_size_out, options->context_out, &options->context_size_out);
     }
     ebpf_free(test_run_context);
-    ebpf_signal_destroy(signal);
 
     if (provider_data_referenced) {
         ebpf_extension_dereference_provider_data(program->info_extension_client);

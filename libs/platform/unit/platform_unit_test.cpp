@@ -843,7 +843,7 @@ TEST_CASE("async", "[platform]")
 
         struct _cancellation_context
         {
-            bool cancelled;
+            bool canceled;
         } cancellation_context = {false};
 
         REQUIRE(
@@ -856,20 +856,20 @@ TEST_CASE("async", "[platform]")
 
         REQUIRE(ebpf_async_set_cancel_callback(&async_context, &cancellation_context, [](void* context) {
                     auto cancellation_context = reinterpret_cast<_cancellation_context*>(context);
-                    cancellation_context->cancelled = true;
+                    cancellation_context->canceled = true;
                 }) == EBPF_SUCCESS);
         REQUIRE(async_context.result == EBPF_PENDING);
-        REQUIRE(!cancellation_context.cancelled);
+        REQUIRE(!cancellation_context.canceled);
 
         if (complete) {
             ebpf_async_complete(&async_context, 0, EBPF_SUCCESS);
             REQUIRE(async_context.result == EBPF_SUCCESS);
-            REQUIRE(!cancellation_context.cancelled);
+            REQUIRE(!cancellation_context.canceled);
             REQUIRE(!ebpf_async_cancel(&async_context));
         } else {
             REQUIRE(ebpf_async_cancel(&async_context));
             REQUIRE(async_context.result == EBPF_PENDING);
-            REQUIRE(cancellation_context.cancelled);
+            REQUIRE(cancellation_context.canceled);
             ebpf_async_complete(&async_context, 0, EBPF_SUCCESS);
         }
         ebpf_epoch_exit();
