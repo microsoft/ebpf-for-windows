@@ -15,6 +15,66 @@
 
 #define PAGE_SIZE 4096
 
+typedef class _ebpf_async_wrapper
+{
+  public:
+    _ebpf_async_wrapper()
+    {
+        _event = CreateEvent(nullptr, false, false, nullptr);
+        if (_event == INVALID_HANDLE_VALUE) {
+            throw std::bad_alloc();
+        }
+        if (ebpf_async_set_completion_callback(this, _ebpf_async_wrapper::completion_callback) != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_async_set_completion_callback failed");
+        }
+    }
+    ~_ebpf_async_wrapper()
+    {
+        if (!_completed) {
+            ebpf_async_complete(this, 0, EBPF_CANCELED);
+        }
+    }
+
+    ebpf_result_t
+    get_result()
+    {
+        return _result;
+    }
+
+    bool
+    get_completed()
+    {
+        return _completed;
+    }
+
+    size_t
+    get_reply_size()
+    {
+        return _reply_size;
+    }
+
+    void
+    wait()
+    {
+        REQUIRE(WaitForSingleObject(_event, INFINITE) == WAIT_OBJECT_0);
+    }
+
+  private:
+    static void
+    completion_callback(_In_ void* context, size_t reply_size, ebpf_result_t result)
+    {
+        ebpf_async_wrapper_t* async_wrapper = (ebpf_async_wrapper_t*)context;
+        async_wrapper->_result = result;
+        async_wrapper->_reply_size = reply_size;
+        async_wrapper->_completed = true;
+        SetEvent(async_wrapper->_event);
+    }
+    ebpf_result_t _result = EBPF_SUCCESS;
+    size_t _reply_size = 0;
+    bool _completed = false;
+    HANDLE _event;
+} ebpf_async_wrapper_t;
+
 class _ebpf_core_initializer
 {
   public:
@@ -654,7 +714,30 @@ TEST_CASE("program", "[execution_context]")
     options.data_size_out = output_buffer.size();
     options.repeat_count = 10;
 
-    REQUIRE(ebpf_program_execute_test_run(program.get(), &options) == EBPF_SUCCESS);
+    ebpf_async_wrapper_t async_context;
+    uint64_t unused_completion_context = 0;
+
+    REQUIRE(
+        ebpf_program_execute_test_run(
+            program.get(),
+            &options,
+            &async_context,
+            &unused_completion_context,
+            [](_In_ ebpf_result_t result,
+               _In_ const ebpf_program_t* program,
+               _In_ const ebpf_program_test_run_options_t* options,
+               _Inout_ void* completion_context,
+               _Inout_ void* async_context) {
+                ebpf_assert(program != nullptr);
+                ebpf_assert(options != nullptr);
+                ebpf_assert(completion_context != nullptr);
+                ebpf_assert(async_context != nullptr);
+                ebpf_async_complete(async_context, options->data_size_out, result);
+            }) == EBPF_PENDING);
+
+    async_context.wait();
+    REQUIRE(async_context.get_result() == EBPF_SUCCESS);
+    REQUIRE(async_context.get_completed() == true);
 
     REQUIRE(options.return_value == TEST_FUNCTION_RETURN);
     REQUIRE(options.duration > 0);
