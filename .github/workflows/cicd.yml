@@ -336,7 +336,7 @@ jobs:
       gather_dumps: true
       low_memory: true
 
-  # Additional jobs to on a schedule only (skip push and pull request).
+  # Additional jobs to run on a schedule only (skip push and pull request).
   # ---------------------------------------------------------------------------
   codeql:
     # Only run during daily scheduled run
