@@ -2693,7 +2693,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     // Create a 0-byte UDP packet.
     auto packet0 = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
 
-    // Test that we drop the packet and increment the map
+    // Test that we drop the packet and increment the map.
     xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
 
     // Try loading without the extension loaded.
@@ -2777,7 +2777,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         REQUIRE(hook_result != XDP_PASS);
     }
 
-    // Reload the extension provider with changed helper function data
+    // Reload the extension provider with changed helper function data.
     {
         ebpf_program_info_t changed_program_info = _ebpf_xdp_program_info;
         ebpf_helper_function_prototype_t helper_function_prototypes[] = {
