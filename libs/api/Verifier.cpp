@@ -448,7 +448,7 @@ ebpf_api_elf_disassemble_section(
     _In_z_ const char* file,
     _In_z_ const char* section,
     _Outptr_result_maybenull_z_ const char** disassembly,
-    _Outptr_result_maybenull_z_ const char** error_message)
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
@@ -612,7 +612,7 @@ _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_file(
     bool verbose,
     _Outptr_result_maybenull_z_ const char** report,
     _Outptr_result_maybenull_z_ const char** error_message,
-    _Out_opt_ ebpf_api_verifier_stats_t* stats)
+    _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
 {
     *error_message = nullptr;
     *report = nullptr;
@@ -632,7 +632,7 @@ _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_memory(
     bool verbose,
     _Outptr_result_maybenull_z_ const char** report,
     _Outptr_result_maybenull_z_ const char** error_message,
-    _Out_opt_ ebpf_api_verifier_stats_t* stats)
+    _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
 {
     return _verify_section_from_string(
         std::string(data, data_length), "memory", section, program_type, verbose, report, error_message, stats);
