@@ -4,6 +4,7 @@
 .*\.md$
 .*\.rst$
 .*\.o$
+.*\.bmp$
 .*\.png$
 .*\.proj$
 .*\.rc$
@@ -18,6 +19,7 @@ tools/netsh/resource.h
 
 # Other Files
 LICENSE.txt
+LICENSE.rtf
 Doxyfile
 \.check-license\.ignore
 \.clang-format
