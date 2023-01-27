@@ -441,11 +441,11 @@ To capture a trace in a file use the following commands:
 
 1. Start tracing:
    ```cmd
-   wpr.exe -start "%ProgramFiles%\[eBPF for Windows install folder]\ebpfforwindows.wprp" -filemode
+   wpr.exe -start "%ProgramFiles%\ebpf-for-windows\ebpfforwindows.wprp" -filemode
    ```
    This will capture traces from eBPF execution context and the network eBPF extension drivers.
-     (The path `%ProgramFiles%\[eBPF for Windows install folder]` assumes you installed eBPF for Windows via the MSI file.
-     If you installed it via some other method, [ebpfforwindows.wprp](../scripts/ebpfforwindows.wprp) may be in some other location.)
+    >**Note**: The path `%ProgramFiles%\ebpf-for-windows` assumes you installed eBPF for Windows via the MSI file, using the default installation folder.
+         If you installed it in another folder or via some other method, [ebpfforwindows.wprp](../scripts/ebpfforwindows.wprp) may be in some other location.
 1. Run the scenario to be traced.
 1. Stop tracing:
    ```cmd

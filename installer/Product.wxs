@@ -117,7 +117,7 @@ SPDX-License-Identifier: MIT
 	<Fragment>
 		<Directory Id="TARGETDIR" Name="SourceDir">
 			<Directory Id="ProgramFiles64Folder">
-				<Directory Id="INSTALLFOLDER" Name="eBPFforWindows">
+				<Directory Id="INSTALLFOLDER" Name="ebpf-for-windows">
 					<?if $(var.Configuration) = Debug ?>
 					<Directory Id="dir_JIT" Name="JIT" />
 					<?endif?>

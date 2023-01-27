@@ -9,9 +9,9 @@ install or update the eBPF installation in the VM.
 Do the following from within the VM:
 
 1. Download and install the *VC++ Redist* package from [this location](https://aka.ms/vs/17/release/vc_redist.x64.exe).
-1. Download the `ebpf-for-windows_installer.msi` file from the [latest release on GitHub](https://github.com/microsoft/ebpf-for-windows/releases).
-1. Execute the `ebpf-for-windows_installer.msi` file you downloaded.
-1. After accepting the License and selecting the desired installation folder (default will be "`C:\Program Files\eBPFforWindows`"), the following components will be selectable from the *Installation Wizard*:
+1. Download the `ebpf-for-windows.msi` file from the [latest release on GitHub](https://github.com/microsoft/ebpf-for-windows/releases).
+1. Execute the `ebpf-for-windows.msi` file you downloaded.
+1. After accepting the License and selecting the desired installation folder (default will be "`C:\Program Files\ebpf-for-windows`"), the following components will be selectable from the *Installation Wizard*:
 
     * **Runtime Components** (mandatory): this feature adds the eBPF runtime and core components, which are also required by the other components. If you select only this
       feature, only [native code generation](NativeCodeGeneration.md) is enabled.
@@ -21,26 +21,32 @@ Do the following from within the VM:
       instead of the MSI.
     * **Testing** (optional): this feature adds tests for the eBPF runtime for use by eBPF runtime developers.
 
-An **unattended install/uninstall** is also supported, through the following commands (examples show a full-feature installation/uninstallation, using "`C:\Program Files\eBPFforWindows`" as a custom installation folder):
+An **unattended install/uninstall** is also supported, through the direct use of `msiexec.exe`.
+
+Following is an example that shows a full-feature installation/uninstallation, using "`C:\eBpfForWindows`" as a custom installation folder:
 
 * Installation:
 
     ```bash
-    C:\Windows\system32\msiexec.exe /i ebpf-for-windows_installer.msi INSTALLFOLDER="C:\Program Files\eBPFforWindows" ADDLOCAL=eBPF_Runtime_Components_JIT,eBPF_Development,eBPF_Testing /qn
+    # Debug MSI (including the JIT component)
+    C:\Windows\system32\msiexec.exe /i ebpf-for-windows.msi INSTALLFOLDER="C:\eBpfForWindows" ADDLOCAL=eBPF_Runtime_Components_JIT,eBPF_Development,eBPF_Testing /qn
+
+    # Release MSI
+    C:\Windows\system32\msiexec.exe /i ebpf-for-windows.msi INSTALLFOLDER="C:\eBpfForWindows" ADDLOCAL=eBPF_Development,eBPF_Testing /qn
     ```
-    >**Note**: like in the graphical *Installation Wizard*, you can also customize the installation by choosing what **optional** features (i.e., `eBPF_Development` and/or `eBPF_Testing`) should be installed and assigning the comma-separated values to the `ADDLOCAL` parameter. The above commands, besides the mandatory `Runtime_Components`, also install the *Development* and *Testing* components.
+    >**Note**: like in the graphical *Installation Wizard*, you can also customize the installation by choosing what **optional** features should be installed (i.e., `eBPF_Runtime_Components_JIT`, `eBPF_Development` and `eBPF_Testing`), and assigning the comma-separated values to the `ADDLOCAL` parameter. The above commands, besides the mandatory `Runtime_Components`, also install the *Development* and *Testing* components.
 
 * Uninstallation:
 
     ```bash
-    C:\Windows\system32\msiexec.exe /x ebpf-for-windows_installer.msi /qn
+    C:\Windows\system32\msiexec.exe /x ebpf-for-windows.msi /qn
     ```
 
 **Troubleshooting logs** from the Windows Installer can be obtained be appending the `\lv <filename>` option to the install command line (for verbose logs), e.g.:
 
 ```bash
 
-C:\Windows\system32\msiexec.exe /i ebpf-for-windows_installer.msi *<other options>* /lv c:\installer-logs.txt
+C:\Windows\system32\msiexec.exe /i ebpf-for-windows.msi *<other options>* /lv c:\installer-logs.txt
 
 ```
 
