@@ -21,7 +21,7 @@ The following must be installed in order to build this project:
 
    during the installation, select the following feature from the *Visual Studio Installer*:
 
-   - `"Desktop development with C++"`
+   - `"Desktop development with C++"` (ensure that the "*C++ Address Sanitizer*" component is installed)
 
    including the following *Spectre* library, which must be selected from the "*Individual components*" tab in the Visual Studio Installer:
 
@@ -37,6 +37,8 @@ The following must be installed in order to build this project:
  Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
 1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.31 or higher**), which can be installed to a location
  such as "C:\Program Files (x86)\NuGet\".
+1. [WiX Toolset v3.11.2](https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe), along with the correlated [WiX v3 - Visual Studio 2022 Extension](https://marketplace.visualstudio.com/items?itemName=WixToolset.WixToolsetVisualStudio2022Extension).
+
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages
  above have been installed.
@@ -54,7 +56,7 @@ Alternative install steps (for *basic* Visual Studio Community edition):
 
    ```ps
    Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
-   if ((get-filehash $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '4000D4B2478A5CE9A779140DEDAEF99E422D9A8706B4ECE596CF0F69DB667055') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+   if ((get-filehash $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '9B9C4358B05DBD16EF58C0548B1ADBA4B5591FE14DFD3239FC580BB95B39988C') { &"$env:TEMP\Setup-DeveEnv.ps1" }
    ```
    >**Note**: the WDK for Windows 11 is [not currently available on Chocolatey](https://community.chocolatey.org/packages?q=windowsdriverkit),
     please install manually with the link in the [Prerequisites](#prerequisites) section above.
@@ -442,8 +444,8 @@ To capture a trace in a file use the following commands:
    wpr.exe -start "%ProgramFiles%\ebpf-for-windows\ebpfforwindows.wprp" -filemode
    ```
    This will capture traces from eBPF execution context and the network eBPF extension drivers.
-     (The path `%ProgramFiles%\ebpf-for-windows` assumes you installed eBPF for Windows via the MSI file.
-     If you installed it via some other method, [ebpfforwindows.wprp](../scripts/ebpfforwindows.wprp) may be in some other location.)
+    >**Note**: The path `%ProgramFiles%\ebpf-for-windows` assumes you installed eBPF for Windows via the MSI file, using the default installation folder.
+         If you installed it in another folder or via some other method, [ebpfforwindows.wprp](../scripts/ebpfforwindows.wprp) may be in some other location.
 1. Run the scenario to be traced.
 1. Stop tracing:
    ```cmd
@@ -469,7 +471,7 @@ To view all eBPF trace events that would be captured to a file, use the followin
 
 1. Create a trace session with some name such as MyTrace:
    ```cmd
-   tracelog -start MyTrace -guid "%ProgramFiles%\ebpf-for-windows\ebpf-all.guid" -rt
+   tracelog -start MyTrace -guid "%ProgramFiles%\[eBPF for Windows install folder]ebpf-all.guid" -rt
    ```
 1. View the session in real-time on stdout:
    ```cmd
@@ -488,7 +490,7 @@ To do so, use `ebpf-printk.guid` instead of `ebpf-all.guid` when creating a trac
 
 1. Create a trace session with some name such as MyTrace:
    ```cmd
-   tracelog -start MyTrace -guid "%ProgramFiles%\ebpf-for-windows\ebpf-printk.guid" -rt
+   tracelog -start MyTrace -guid "%ProgramFiles%\[eBPF for Windows install folder]\ebpf-printk.guid" -rt
    ```
 1. View the session in real-time on stdout:
 

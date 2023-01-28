@@ -16,6 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="capture_helper.cpp" />
+    <ClCompile Include="hash.cpp" />
     <ClCompile Include="ioctl_helper.cpp" />
     <ClCompile Include="netsh_helper.cpp" />
     <ClCompile Include="service_helper.cpp" />
@@ -23,6 +24,8 @@
     <ClCompile Include="program_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="hash.h" />
+    <ClInclude Include="header.h" />
     <ClInclude Include="ioctl_helper.h" />
     <ClInclude Include="service_helper.h" />
     <ClInclude Include="socket_helper.h" />

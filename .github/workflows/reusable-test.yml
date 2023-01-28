@@ -78,9 +78,15 @@ jobs:
 
     # Checking out the branch is needed to gather correct code coverage data.
     steps:
+    - id: skip_check
+      uses: fkirc/skip-duplicate-actions@12aca0a884f6137d619d6a8a09fcc3406ced5281 # v5.3.0
+      with:
+        cancel_others: 'false'
+        paths_ignore: '["**.md", "**/docs/**"]'
+
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       # Only check out source code if code coverage is being gathered.
-      if: inputs.code_coverage == true
+      if: (inputs.code_coverage == true) && (steps.skip_check.outputs.should_skip != 'true')
       with:
         submodules: 'recursive'
         ref: ${{ github.event.workflow_run.head_branch }}
@@ -92,20 +98,20 @@ jobs:
 
     # Perform shallow checkout for self-hosted runner.
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
-      if: inputs.environment == 'ebpf_cicd_tests'
+      if: (inputs.environment == 'ebpf_cicd_tests') && (steps.skip_check.outputs.should_skip != 'true')
       with:
         ref: ${{ github.event.workflow_run.head_branch }}
 
     - name: Set up OpenCppCoverage and add to PATH
       id: set_up_opencppcoverage
-      if: (inputs.code_coverage == true) && (inputs.environment != 'ebpf_cicd_tests')
+      if: (inputs.code_coverage == true) && (inputs.environment != 'ebpf_cicd_tests') && (steps.skip_check.outputs.should_skip != 'true')
       run: |
         choco install -y --requirechecksum=true --checksum=2295A733DA39412C61E4F478677519DD0BB1893D88313CE56B468C9E50517888 --checksum-type=sha256 OpenCppCoverage
         echo "C:\Program Files\OpenCppCoverage" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Configure Windows Error Reporting to make a local copy of any crashes that occur.
       id: configure_windows_error_reporting
-      if: inputs.gather_dumps == true
+      if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
       run: |
         mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
@@ -113,12 +119,12 @@ jobs:
         New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}" -PropertyType ExpandString -ErrorAction SilentlyContinue
 
     - name: Remove existing artifacts
-      if: inputs.environment == 'ebpf_cicd_tests'
+      if: (inputs.environment == 'ebpf_cicd_tests') && (steps.skip_check.outputs.should_skip != 'true')
       run: |
         Remove-Item -Path ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -Recurse -Force -ErrorAction SilentlyContinue
 
     - name: Download build artifact
-      if: success()
+      if: (steps.skip_check.outputs.should_skip != 'true') && success()
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       id: download_artifact
       with:
@@ -131,13 +137,14 @@ jobs:
 
     - name: Start ETW tracing
       id: start_etw_tracing
-      if: inputs.capture_etw == true
+      if: (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
       shell: cmd
       run: |
         mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
         wpr.exe -start ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\ebpfforwindows.wprp -filemode
 
     - name: Configure eBPF store
+      if: steps.skip_check.outputs.should_skip != 'true'
       id: configure_ebpf_store
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
@@ -145,14 +152,15 @@ jobs:
         .\export_program_info.exe
 
     - name: Run pre test command
+      if: steps.skip_check.outputs.should_skip != 'true'
       id: run_pre_test_command
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
         ${{env.PRE_COMMAND}}
 
-    # TODO: Cleanup the combination of options: https://github.com/microsoft/ebpf-for-windows/issues/1590
+    # TODO: Clean up the combination of options: https://github.com/microsoft/ebpf-for-windows/issues/1590
     - name: Run test with Code Coverage in VS Dev environment
-      if: (inputs.code_coverage == true) && (inputs.vs_dev == true)
+      if: (inputs.code_coverage == true) && (inputs.vs_dev == true) && (steps.skip_check.outputs.should_skip != 'true')
       id: run_test_with_code_coverage_in_vs_dev
       shell: cmd
       run: |
@@ -161,7 +169,7 @@ jobs:
           OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
 
     - name: Run test with Code Coverage and low resource simulation
-      if: (inputs.code_coverage == true) && (inputs.low_memory == true)
+      if: (inputs.code_coverage == true) && (inputs.low_memory == true) && (steps.skip_check.outputs.should_skip != 'true')
       id: run_test_with_code_coverage_in_low_memory
       shell: cmd
       run: |
@@ -169,7 +177,7 @@ jobs:
           OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-LowMemory.ps1 ${{env.TEST_COMMAND}} 4
 
     - name: Run test with low resource simulation
-      if: (inputs.code_coverage != true) && (inputs.low_memory == true)
+      if: (inputs.code_coverage != true) && (inputs.low_memory == true) && (steps.skip_check.outputs.should_skip != 'true')
       id: run_test_with_low_memory
       shell: cmd
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -178,7 +186,7 @@ jobs:
           powershell.exe .\Test-LowMemory.ps1 ${{env.TEST_COMMAND}} 16
 
     - name: Run test with Code Coverage
-      if: (inputs.code_coverage == true) && (inputs.vs_dev != true) && (inputs.low_memory != true)
+      if: (inputs.code_coverage == true) && (inputs.vs_dev != true) && (inputs.low_memory != true) && (steps.skip_check.outputs.should_skip != 'true')
       id: run_test_with_code_coverage
       shell: cmd
       run: |
@@ -186,27 +194,28 @@ jobs:
           OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
 
     - name: Run test without Code Coverage
-      if: inputs.code_coverage == false
+      if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true')
       id: run_test_without_code_coverage
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
         ${{env.TEST_COMMAND}}
 
     - name: Run post test command
-      if: always()
+      if: (steps.skip_check.outputs.should_skip != 'true') && always()
       id: run_post_test_command
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
         ${{env.POST_COMMAND}}
 
     - name: Check for CodeCoverage
+      if: steps.skip_check.outputs.should_skip != 'true'
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       id: check_coverage
       with:
         files: ebpf_for_windows.xml
 
     - name: Upload Report to Codecov attempt 1
-      if: steps.check_coverage.outputs.files_exists == 'true'
+      if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_coverage.outputs.files_exists == 'true')
       uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70
       id: upload_code_coverage_report_1
       continue-on-error: true
@@ -217,11 +226,11 @@ jobs:
         root_dir: ${{github.workspace}}
 
     - name: Wait on failure 1
-      if: steps.upload_code_coverage_report_1.outcome == 'failure'
+      if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_1.outcome == 'failure')
       run: Start-Sleep -Seconds 30
 
     - name: Upload Report to Codecov attempt 2
-      if: steps.upload_code_coverage_report_1.outcome == 'failure'
+      if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_1.outcome == 'failure')
       uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70
       id: upload_code_coverage_report_2
       continue-on-error: true
@@ -232,11 +241,11 @@ jobs:
         root_dir: ${{github.workspace}}
 
     - name: Wait on failure 2
-      if: steps.upload_code_coverage_report_2.outcome == 'failure'
+      if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_2.outcome == 'failure')
       run: Start-Sleep -Seconds 60
 
     - name: Upload Report to Codecov attempt 3
-      if: steps.upload_code_coverage_report_2.outcome == 'failure'
+      if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_2.outcome == 'failure')
       uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70
       id: upload_code_coverage_report_3
       continue-on-error: true
@@ -247,11 +256,11 @@ jobs:
         root_dir: ${{github.workspace}}
 
     - name: Wait on failure 3
-      if: steps.upload_code_coverage_report_3.outcome == 'failure'
+      if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_3.outcome == 'failure')
       run: Start-Sleep -Seconds 120
 
     - name: Upload Report to Codecov attempt 4
-      if: steps.upload_code_coverage_report_3.outcome == 'failure'
+      if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_3.outcome == 'failure')
       uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70
       id: upload_code_coverage_report_4
       continue-on-error: true
@@ -262,7 +271,7 @@ jobs:
         root_dir: ${{github.workspace}}
 
     - name: Fail if code coverage upload fails
-      if: always()
+      if: (steps.skip_check.outputs.should_skip != 'true') && always()
       run: |
         if ($${{ steps.test.upload_code_coverage_report_1!='failure' }}) { exit 0 }
         if ($${{ steps.test.upload_code_coverage_report_2!='failure' }}) { exit 0 }
@@ -272,24 +281,25 @@ jobs:
 
     - name: Stop ETW tracing
       id: stop_etw_tracing
-      if: inputs.capture_etw == true
+      if: (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
       shell: cmd
       run: wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
 
     - name: Copy any bpf2c test logs to TestLogs
-      if: (inputs.name == 'bpf2c') && (inputs.capture_etw == true)
+      if: (inputs.name == 'bpf2c') && (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
       shell: cmd
       run: |
           copy ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\*.log ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
 
     - name: Check for crash dumps
+      if: steps.skip_check.outputs.should_skip != 'true'
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       id: check_dumps
       with:
         files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
 
     - name: Upload any crash dumps
-      if: always() && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
+      if: (steps.skip_check.outputs.should_skip != 'true') && always() && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       id: upload_crash_dumps
       with:
@@ -299,13 +309,13 @@ jobs:
 
     - name: Check for TestLogs
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
-      if: always()
+      if: (steps.skip_check.outputs.should_skip != 'true') && always()
       id: check_logs
       with:
         files: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs/*
 
     - name: Upload log files
-      if: always() && steps.check_logs.outputs.files_exists == 'true'
+      if: (steps.skip_check.outputs.should_skip != 'true') && always() && (steps.check_logs.outputs.files_exists == 'true')
       id: upload_logs
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
@@ -314,14 +324,14 @@ jobs:
         retention-days: 5
 
     - name: Check for generated artifacts
-      if: always()
+      if: (steps.skip_check.outputs.should_skip != 'true') && always()
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       id: check_artifacts
       with:
         files: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts\*
 
     - name: Upload generated artifacts
-      if: always() && steps.check_artifacts.outputs.files_exists == 'true'
+      if: (steps.skip_check.outputs.should_skip != 'true') && always() && (steps.check_artifacts.outputs.files_exists == 'true')
       id: upload_artifacts
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
@@ -330,7 +340,7 @@ jobs:
         retention-days: 5
 
     - name: Mark run as failed if crash dumps are found
-      if: steps.check_dumps.outputs.files_exists == 'true'
+      if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true')
       run: exit 1
 
   create_or_update_issue:
@@ -338,8 +348,19 @@ jobs:
     if: ${{ failure() }}
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518 # v2.1.0
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@12aca0a884f6137d619d6a8a09fcc3406ced5281 # v5.3.0
+        with:
+          cancel_others: 'false'
+          paths_ignore: '["**.md", "**/docs/**"]'
+
       - uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0
-        if: github.event_name == 'schedule' || github.event_name == 'push'
+        if: (github.event_name == 'schedule') || (github.event_name == 'push') && (steps.skip_check.outputs.should_skip != 'true')
         env:
           TITLE: Workflow failed - ${{inputs.name}}
           BODY: |
