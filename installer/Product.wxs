@@ -193,16 +193,16 @@ SPDX-License-Identifier: MIT
 		</ComponentGroup>
 
 		<!--Clear/Setup the eBPF store-->
-		<SetProperty Id="Clear_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Before="Clear_eBPF_store" Sequence="execute"/>
-		<CustomAction Id="Clear_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<SetProperty Id="Clear_eBPF_store_uninstall" Value='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Before="Clear_eBPF_store" Sequence="execute"/>
-		<CustomAction Id="Clear_eBPF_store_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<SetProperty Id="Setup_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]"' Before="Setup_eBPF_store" Sequence="execute"/>
-		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-
-		<!--Install/Uninstall the netsh helper-->
 		<!--qtexec does not currently support a working directory (ref. https://github.com/wixtoolset/issues/issues/1265)-->
 		<!--This workaround uses PowerShell to batch two commands, one to change the working directory, the other to execute the actual command from that directory.-->
+		<SetProperty Id="Clear_eBPF_store" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';export_program_info.exe --clear&quot;" Before="Clear_eBPF_store" Sequence="execute"/>
+		<CustomAction Id="Clear_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="yes"/>
+		<SetProperty Id="Clear_eBPF_store_uninstall" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';export_program_info.exe --clear&quot;" Before="Clear_eBPF_store_uninstall" Sequence="execute"/>
+		<CustomAction Id="Clear_eBPF_store_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="yes"/>
+		<SetProperty Id="Setup_eBPF_store" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';export_program_info.exe&quot;" Before="Setup_eBPF_store" Sequence="execute"/>
+		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="yes"/>
+
+		<!--Install/Uninstall the netsh helper-->
 		<SetProperty Id="eBPF_netsh_helper_install" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';netsh add helper ebpfnetsh.dll&quot;" Before="eBPF_netsh_helper_install" Sequence="execute"/>
 		<CustomAction Id="eBPF_netsh_helper_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<SetProperty Id="eBPF_netsh_helper_uninstall" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';netsh delete helper ebpfnetsh.dll&quot;" Before="eBPF_netsh_helper_uninstall" Sequence="execute"/>
