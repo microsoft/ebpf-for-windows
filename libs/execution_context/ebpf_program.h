@@ -293,15 +293,35 @@ extern "C"
     } ebpf_program_test_run_options_t;
 
     /**
+     * @brief Function called when the program test run completes.
+     *
+     */
+    typedef void (*ebpf_program_test_run_complete_callback_t)(
+        _In_ ebpf_result_t result,
+        _In_ const ebpf_program_t* program,
+        _In_ const ebpf_program_test_run_options_t* options,
+        _Inout_ void* completion_context,
+        _Inout_ void* async_context);
+
+    /**
      * @brief Run the program with the given input and output buffers and measure the duration.
      *
      * @param[in] program Program to run.
+     * @param[in, out] options Options to control the test run.
+     * @param[in] async_context Async context to receive cancellation notifications on.
+     * @param[in] completion_context Context to pass to the completion callback.
+     * @param[in] callback Completion callback.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT Invalid argument.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this program.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options);
+    ebpf_program_execute_test_run(
+        _In_ const ebpf_program_t* program,
+        _Inout_ ebpf_program_test_run_options_t* options,
+        _In_ void* async_context,
+        _In_ void* completion_context,
+        _In_ ebpf_program_test_run_complete_callback_t callback);
 
     typedef ebpf_result_t (*ebpf_helper_function_addresses_changed_callback_t)(
         _Inout_ ebpf_program_t* program, _In_opt_ void* context);

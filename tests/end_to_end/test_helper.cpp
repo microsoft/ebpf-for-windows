@@ -257,6 +257,7 @@ _complete_overlapped(_Inout_ void* context, size_t output_buffer_length, ebpf_re
 {
     UNREFERENCED_PARAMETER(output_buffer_length);
     auto overlapped = reinterpret_cast<OVERLAPPED*>(context);
+    overlapped->InternalHigh = static_cast<ULONG_PTR>(output_buffer_length);
     overlapped->Internal = ebpf_result_to_ntstatus(result);
     SetEvent(overlapped->hEvent);
 }
