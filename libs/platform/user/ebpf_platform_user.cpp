@@ -770,6 +770,8 @@ ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintp
 {
     uintptr_t old_mask = SetThreadAffinityMask(GetCurrentThread(), new_thread_affinity_mask);
     if (old_mask == 0) {
+        DWORD error = GetLastError();
+        ebpf_assert(error != ERROR_SUCCESS);
         return EBPF_OPERATION_NOT_SUPPORTED;
     } else {
         *old_thread_affinity_mask = old_mask;
@@ -1179,63 +1181,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
 Exit:
     ebpf_free(privileges);
     return return_value;
-}
-
-typedef struct _ebpf_signal
-{
-    HANDLE event;
-} ebpf_signal_t;
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_signal_create(_Outptr_ ebpf_signal_t** signal)
-{
-    *signal = (ebpf_signal_t*)ebpf_allocate(sizeof(ebpf_signal_t));
-    if (!*signal) {
-        return EBPF_NO_MEMORY;
-    }
-
-    (*signal)->event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    if (!(*signal)->event) {
-        ebpf_free(*signal);
-        *signal = NULL;
-        return EBPF_NO_MEMORY;
-    }
-
-    return EBPF_SUCCESS;
-}
-
-void
-ebpf_signal_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_signal_t* signal)
-{
-    if (signal) {
-        CloseHandle(signal->event);
-    }
-    ebpf_free(signal);
-}
-
-void
-ebpf_signal_set(_In_ ebpf_signal_t* signal)
-{
-    SetEvent(signal->event);
-}
-
-void
-ebpf_signal_reset(_In_ ebpf_signal_t* signal)
-{
-    ResetEvent(signal->event);
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms)
-{
-    DWORD wait_result = WaitForSingleObject(signal->event, timeout_ms);
-    if (wait_result == WAIT_OBJECT_0) {
-        return EBPF_SUCCESS;
-    } else if (wait_result == WAIT_TIMEOUT) {
-        return EBPF_TIMEOUT;
-    } else {
-        return EBPF_FAILED;
-    }
 }
 
 _IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql)

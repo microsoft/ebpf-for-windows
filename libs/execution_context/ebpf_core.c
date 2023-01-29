@@ -871,15 +871,49 @@ Done:
     EBPF_RETURN_RESULT(retval);
 }
 
+/**
+ * @brief Complete the test run of an eBPF program. This is called when a program test run has completed. This
+ * function will build the reply message and send it to the client.
+ *
+ * @param[in] result The result of the test run.
+ * @param[in] program Program that was tested.
+ * @param[in] options Results of the test run.
+ * @param[in] completion_context The reply message to send to the client.
+ * @param[in] async_context Handle to the async operation to complete.
+ */
+static void
+_ebpf_core_protocol_program_test_run_complete(
+    _In_ ebpf_result_t result,
+    _In_ const ebpf_program_t* program,
+    _In_ const ebpf_program_test_run_options_t* options,
+    _Inout_ void* completion_context,
+    _Inout_ void* async_context)
+{
+    ebpf_operation_program_test_run_reply_t* reply = (ebpf_operation_program_test_run_reply_t*)completion_context;
+    if (result == EBPF_SUCCESS) {
+        reply->header.length = (uint16_t)(
+            EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) + options->data_size_out +
+            options->context_size_out);
+        reply->return_value = options->return_value;
+        reply->context_offset = (uint16_t)options->data_size_out;
+        reply->duration = options->duration;
+    }
+
+    ebpf_async_complete(async_context, reply->header.length, result);
+    ebpf_object_release_reference((ebpf_core_object_t*)program);
+    ebpf_free((void*)options);
+}
+
 static ebpf_result_t
 _ebpf_core_protocol_program_test_run(
     _In_ const ebpf_operation_program_test_run_request_t* request,
     _Inout_updates_bytes_(reply_length) ebpf_operation_program_test_run_reply_t* reply,
-    uint16_t reply_length)
+    uint16_t reply_length,
+    _Inout_ void* async_context)
 {
     EBPF_LOG_ENTRY();
 
-    ebpf_program_test_run_options_t options = {0};
+    ebpf_program_test_run_options_t* options = NULL;
 
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
@@ -902,33 +936,34 @@ _ebpf_core_protocol_program_test_run(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    options.data_size_in = request->context_offset;
-    options.context_size_in = (size_t)(request->header.length) - data_in_end;
-    options.context_size_out = options.context_size_in;
-    options.data_size_out =
-        (size_t)reply_length - EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) - options.context_size_out;
-    options.repeat_count = request->repeat_count;
-    options.flags = request->flags;
-    options.cpu = request->cpu;
-    options.batch_size = request->batch_size;
-    options.data_in = options.data_size_in ? request->data : NULL;
-    options.context_in = options.context_size_in ? request->data + request->context_offset : NULL;
-    options.data_out = options.data_size_out ? reply->data : NULL;
-    options.context_out = options.context_size_out ? reply->data + options.data_size_out : NULL;
-
-    retval = ebpf_program_execute_test_run(program, &options);
-
-    if (retval == EBPF_SUCCESS) {
-        reply->header.length = (uint16_t)(
-            EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) + options.data_size_out +
-            options.context_size_out);
-        reply->return_value = options.return_value;
-        reply->context_offset = (uint16_t)options.data_size_out;
-        reply->duration = options.duration;
+    options = (ebpf_program_test_run_options_t*)ebpf_allocate(sizeof(ebpf_program_test_run_options_t));
+    if (!options) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
     }
 
+    options->data_size_in = request->context_offset;
+    options->context_size_in = (size_t)(request->header.length) - data_in_end;
+    options->context_size_out = options->context_size_in;
+    options->data_size_out = (size_t)reply_length - EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) -
+                             options->context_size_out;
+    options->repeat_count = request->repeat_count;
+    options->flags = request->flags;
+    options->cpu = request->cpu;
+    options->batch_size = request->batch_size;
+    options->data_in = options->data_size_in ? request->data : NULL;
+    options->context_in = options->context_size_in ? request->data + request->context_offset : NULL;
+    options->data_out = options->data_size_out ? reply->data : NULL;
+    options->context_out = options->context_size_out ? reply->data + options->data_size_out : NULL;
+
+    retval = ebpf_program_execute_test_run(
+        program, options, async_context, reply, _ebpf_core_protocol_program_test_run_complete);
+
 Done:
-    ebpf_object_release_reference((ebpf_core_object_t*)program);
+    if (retval != EBPF_PENDING) {
+        ebpf_free(options);
+        ebpf_object_release_reference((ebpf_core_object_t*)program);
+    }
     EBPF_RETURN_RESULT(retval);
 }
 
@@ -1972,6 +2007,7 @@ typedef enum _ebpf_protocol_call_type
     EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY,
     EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY,
     EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC,
+    EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC,
 } ebpf_protocol_call_type_t;
 
 typedef struct _ebpf_protocol_handler
@@ -2062,6 +2098,14 @@ typedef struct _ebpf_protocol_handler
             .flags.value = FLAGS                                                                          \
     }
 
+#define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(                                \
+    OPERATION, VARIABLE_REQUEST, VARIABLE_REPLY, FLAGS)                                                \
+    {                                                                                                  \
+        EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC, (void*)_ebpf_core_protocol_##OPERATION,   \
+            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                  \
+            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY), .flags.value = FLAGS \
+    }
+
 #define ALIAS_TYPES(X, Y)                                                  \
     typedef ebpf_operation_##X##_request_t ebpf_operation_##Y##_request_t; \
     typedef ebpf_operation_##X##_reply_t ebpf_operation_##Y##_reply_t;
@@ -2109,7 +2153,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(ring_buffer_map_async_query, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(load_native_module, data, PROTOCOL_NATIVE_MODE),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(load_native_programs, data, PROTOCOL_NATIVE_MODE),
-    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(program_test_run, data, data, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(program_test_run, data, data, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
@@ -2159,7 +2203,16 @@ ebpf_core_get_protocol_handler_properties(
 
     *minimum_request_size = _ebpf_protocol_handlers[operation_id].minimum_request_size;
     *minimum_reply_size = _ebpf_protocol_handlers[operation_id].minimum_reply_size;
-    *async = _ebpf_protocol_handlers[operation_id].call_type == EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC;
+
+    switch (_ebpf_protocol_handlers[operation_id].call_type) {
+    case EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC:
+    case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC:
+        *async = true;
+        break;
+    default:
+        *async = false;
+        break;
+    }
 
     return EBPF_SUCCESS;
 }
@@ -2297,6 +2350,23 @@ ebpf_core_invoke_protocol_handler(
         _Analysis_assume_(reply);
         retval = handler->dispatch.protocol_handler_with_variable_reply(request, reply, output_buffer_length);
         reply->id = operation_id;
+        break;
+    case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC:
+        // Validated above.
+        _Analysis_assume_(reply);
+        if (!async_context || !on_complete) {
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
+        retval = ebpf_async_set_completion_callback(async_context, on_complete);
+        if (retval != EBPF_SUCCESS) {
+            goto Done;
+        }
+        retval =
+            handler->dispatch.async_protocol_handler_with_reply(request, reply, output_buffer_length, async_context);
+        if ((retval != EBPF_SUCCESS) && (retval != EBPF_PENDING)) {
+            ebpf_assert_success(ebpf_async_reset_completion_callback(async_context));
+        }
         break;
     }
 
