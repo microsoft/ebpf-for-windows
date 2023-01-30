@@ -1233,6 +1233,16 @@ extern "C"
 #define EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(hash, string) \
     ebpf_cryptographic_hash_append(hash, (const uint8_t*)(string), strlen(string))
 
+    /**
+     * @brief Get 64-bit Authentication ID for the current user.
+     *
+     * @param[out] authentication_id The authentication ID.
+     *
+     * @return result of the operation.
+     */
+    _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
+        ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id);
+
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"
 #define EBPF_TRACELOG_EVENT_GENERIC_ERROR "EbpfGenericError"
