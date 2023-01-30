@@ -163,6 +163,11 @@ typedef ULONG PFN_NUMBER;
       (((((ULONG)(size - 1) & (PAGE_SIZE - 1)) + (PtrToUlong(Va) & (PAGE_SIZE - 1)))) >> PAGE_SHIFT)) + \
      1L)
 
+static GENERIC_MAPPING _mapping = {1, 1, 1};
+
+static SE_EXPORTS _SeExports = {0};
+PSE_EXPORTS SeExports = &_SeExports;
+
 unsigned long
 MmGetMdlByteCount(_In_ MDL* mdl)
 {
@@ -471,3 +476,110 @@ QueryInterruptTimeEx()
 
     return time;
 }
+
+PGENERIC_MAPPING
+IoGetFileObjectGenericMapping() { return &_mapping; }
+
+NTSTATUS
+RtlCreateAcl(_Out_ PACL Acl, ULONG AclLength, ULONG AclRevision)
+{
+    UNREFERENCED_PARAMETER(Acl);
+    UNREFERENCED_PARAMETER(AclRevision);
+
+    if (AclLength < sizeof(ACL)) {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    memset(Acl, 0, AclLength);
+
+    return STATUS_SUCCESS;
+}
+
+VOID
+RtlMapGenericMask(_Inout_ PACCESS_MASK AccessMask, _In_ const GENERIC_MAPPING* GenericMapping)
+{
+    UNREFERENCED_PARAMETER(AccessMask);
+    UNREFERENCED_PARAMETER(GenericMapping);
+}
+
+ULONG
+RtlLengthSid(_In_ PSID Sid)
+{
+    UNREFERENCED_PARAMETER(Sid);
+    return (ULONG)sizeof(SID);
+}
+
+NTSTATUS
+RtlAddAccessAllowedAce(_Inout_ PACL Acl, _In_ ULONG AceRevision, _In_ ACCESS_MASK AccessMask, _In_ PSID Sid)
+{
+    UNREFERENCED_PARAMETER(Acl);
+    UNREFERENCED_PARAMETER(AceRevision);
+    UNREFERENCED_PARAMETER(AccessMask);
+    UNREFERENCED_PARAMETER(Sid);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+NTAPI
+RtlSetDaclSecurityDescriptor(
+    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ BOOLEAN DaclPresent,
+    _In_opt_ PACL Dacl,
+    _In_ BOOLEAN DaclDefaulted)
+{
+    UNREFERENCED_PARAMETER(SecurityDescriptor);
+    UNREFERENCED_PARAMETER(DaclPresent);
+    UNREFERENCED_PARAMETER(Dacl);
+    UNREFERENCED_PARAMETER(DaclDefaulted);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+NTAPI
+RtlCreateSecurityDescriptor(_Out_ PSECURITY_DESCRIPTOR SecurityDescriptor, _In_ ULONG Revision)
+{
+    UNREFERENCED_PARAMETER(Revision);
+    memset(SecurityDescriptor, 0, sizeof(SECURITY_DESCRIPTOR));
+
+    return STATUS_SUCCESS;
+}
+
+BOOLEAN
+SeAccessCheckFromState(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ PTOKEN_ACCESS_INFORMATION PrimaryTokenInformation,
+    _In_opt_ PTOKEN_ACCESS_INFORMATION ClientTokenInformation,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ACCESS_MASK PreviouslyGrantedAccess,
+    _Outptr_opt_result_maybenull_ PPRIVILEGE_SET* Privileges,
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _Out_ PACCESS_MASK GrantedAccess,
+    _Out_ NTSTATUS* AccessStatus)
+{
+    UNREFERENCED_PARAMETER(SecurityDescriptor);
+    UNREFERENCED_PARAMETER(PrimaryTokenInformation);
+    UNREFERENCED_PARAMETER(ClientTokenInformation);
+    UNREFERENCED_PARAMETER(PreviouslyGrantedAccess);
+    UNREFERENCED_PARAMETER(GenericMapping);
+    UNREFERENCED_PARAMETER(AccessMode);
+
+    if (Privileges != NULL) {
+        *Privileges = NULL;
+    }
+    *GrantedAccess = DesiredAccess;
+    *AccessStatus = STATUS_SUCCESS;
+
+    return true;
+}
+
+KIRQL
+KeGetCurrentIrql() { return PASSIVE_LEVEL; }
+
+HANDLE
+PsGetCurrentProcessId() { return (HANDLE)(uintptr_t)GetCurrentProcessId(); }
+
+HANDLE
+PsGetCurrentThreadId() { return (HANDLE)(uintptr_t)GetCurrentThreadId(); }
