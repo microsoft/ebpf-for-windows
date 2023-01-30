@@ -93,6 +93,7 @@ jobs:
     
     # Install Windows SDK. 
     - uses: fbactions/setup-winsdk@8231b3de335b4ec6b0949748e3c7213363badb6d
+      if: (inputs.environment == 'windows-2022')
       with:
         winsdk-build-version: 22621
 
