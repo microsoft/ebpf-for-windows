@@ -24,12 +24,25 @@ main(int argc, char** argv)
     }
 
     if (!clear) {
+        uint32_t status;
+
         std::cout << "Exporting program information." << std::endl;
-        export_all_program_information();
+        status = export_all_program_information();
+        if (status != ERROR_SUCCESS) {
+            std::cout << "Failed export_all_program_information() - ERROR #" << status << std::endl;
+        }
+
         std::cout << "Exporting section information." << std::endl;
-        export_all_section_information();
+        status = export_all_section_information();
+        if (status != ERROR_SUCCESS) {
+            std::cout << "Failed export_all_section_information() - ERROR #" << status << std::endl;
+        }
+
         std::cout << "Exporting global helper information." << std::endl;
-        export_global_helper_information();
+        status = export_global_helper_information();
+        if (status != ERROR_SUCCESS) {
+            std::cout << "Failed export_global_helper_information() - ERROR #" << status << std::endl;
+        }
     } else {
         clear_all_ebpf_stores();
     }
