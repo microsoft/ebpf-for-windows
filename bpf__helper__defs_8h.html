@@ -139,6 +139,12 @@ Functions</h2></td></tr>
 <tr class="memitem:a19d6848ceb9191760aced858b95ce22e"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a19d6848ceb9191760aced858b95ce22e">bpf_get_current_pid_tgid</a> ()</td></tr>
 <tr class="memdesc:a19d6848ceb9191760aced858b95ce22e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the current thread ID (PID) and process ID (TGID).  <a href="bpf__helper__defs_8h.html#a19d6848ceb9191760aced858b95ce22e">More...</a><br /></td></tr>
 <tr class="separator:a19d6848ceb9191760aced858b95ce22e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a51ab6797f98ab75efd0a315e5ad185be"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a51ab6797f98ab75efd0a315e5ad185be">bpf_get_current_logon_id</a> (const void *ctx)</td></tr>
+<tr class="memdesc:a51ab6797f98ab75efd0a315e5ad185be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the 64-bit logon ID of the current thread. In case of sock_addr attach types, get the logon ID of the user mode app making the request. In other cases, get the logon ID of the current thread.  <a href="bpf__helper__defs_8h.html#a51ab6797f98ab75efd0a315e5ad185be">More...</a><br /></td></tr>
+<tr class="separator:a51ab6797f98ab75efd0a315e5ad185be"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1cf21c253fa4ea868ddeefba950b1469"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a1cf21c253fa4ea868ddeefba950b1469">bpf_is_current_admin</a> (const void *ctx)</td></tr>
+<tr class="memdesc:a1cf21c253fa4ea868ddeefba950b1469"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get whether the current user is admin. In case of sock_addr attach types, returns whether the user initiating the request is admin or not. In other cases, returns whether the current thread user is admin or not.  <a href="bpf__helper__defs_8h.html#a1cf21c253fa4ea868ddeefba950b1469">More...</a><br /></td></tr>
+<tr class="separator:a1cf21c253fa4ea868ddeefba950b1469"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
@@ -200,6 +206,33 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a51ab6797f98ab75efd0a315e5ad185be"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a51ab6797f98ab75efd0a315e5ad185be">&#9670;&nbsp;</a></span>bpf_get_current_logon_id()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t bpf_get_current_logon_id </td>
+          <td>(</td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>ctx</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the 64-bit logon ID of the current thread. In case of sock_addr attach types, get the logon ID of the user mode app making the request. In other cases, get the logon ID of the current thread. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Context passed to the eBPF program.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The logon ID, or 0 in case of error. </dd></dl>
+
+</div>
+</div>
 <a id="a19d6848ceb9191760aced858b95ce22e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a19d6848ceb9191760aced858b95ce22e">&#9670;&nbsp;</a></span>bpf_get_current_pid_tgid()</h2>
 
@@ -257,6 +290,40 @@ Functions</h2></td></tr>
 
 <p>Return SMP id of the processor running the program. </p>
 <dl class="section return"><dt>Returns</dt><dd>SMP id of the processor running the program. </dd></dl>
+
+</div>
+</div>
+<a id="a1cf21c253fa4ea868ddeefba950b1469"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1cf21c253fa4ea868ddeefba950b1469">&#9670;&nbsp;</a></span>bpf_is_current_admin()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int32_t bpf_is_current_admin </td>
+          <td>(</td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>ctx</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get whether the current user is admin. In case of sock_addr attach types, returns whether the user initiating the request is admin or not. In other cases, returns whether the current thread user is admin or not. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Context passed to the eBPF program.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">1</td><td>Is admin. </td></tr>
+    <tr><td class="paramname">0</td><td>Is not admin. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
