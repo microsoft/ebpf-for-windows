@@ -170,7 +170,7 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     ebpf_lock_state_t state;
     ebpf_program_t* program = NULL;
 
-    ebpf_object_acquire_reference(link);
+    ebpf_object_acquire_reference((ebpf_core_object_t*)link);
 
     state = ebpf_lock_lock(&link->attach_lock);
     if (link->program != NULL && !link->detaching) {
@@ -194,7 +194,7 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     link->client_data.data = NULL;
     link->client_data.size = 0;
 
-    ebpf_object_release_reference(link);
+    ebpf_object_release_reference((ebpf_core_object_t*)link);
 
     EBPF_RETURN_VOID();
 }
