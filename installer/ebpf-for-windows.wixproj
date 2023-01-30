@@ -26,6 +26,7 @@ SPDX-License-Identifier: MIT
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">IncludeJIT=False</DefineConstants>
+    <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <!-- In accordance to what defined in sample.vcxproj, the MSI build is disabled for the 'Analysis' CI/CD build, as it  does not generate the *.o artifacts. -->
   <ItemGroup Condition="'$(Analysis)'==''">
