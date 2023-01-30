@@ -49,6 +49,7 @@ jobs:
     uses: ./.github/workflows/reusable-cmake-build.yml
     with:
       build_artifact: Build-x64-cmake
+      build_options: /p:ReleaseJIT='True'
 
   # Perform the libfuzzer build.
   libfuzzer:
