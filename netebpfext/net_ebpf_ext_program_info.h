@@ -38,6 +38,15 @@ static ebpf_program_info_t _ebpf_bind_program_info = {
 static ebpf_program_section_info_t _ebpf_bind_section_info[] = {
     {L"bind", &EBPF_PROGRAM_TYPE_BIND, &EBPF_ATTACH_TYPE_BIND, BPF_PROG_TYPE_BIND, BPF_ATTACH_TYPE_BIND}};
 
+// CGROUP_SOCK_ADDR global helper function prototypes.
+static ebpf_helper_function_prototype_t _ebpf_sock_addr_global_helper_function_prototype[] = {
+    {BPF_FUNC_get_current_pid_tgid, "bpf_get_current_pid_tgid", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {BPF_FUNC_get_current_logon_id,
+     "bpf_get_current_logon_id",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
+    {BPF_FUNC_is_current_admin, "bpf_is_current_admin", EBPF_RETURN_TYPE_INTEGER, {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}}};
+
 // CGROUP_SOCK_ADDR program information.
 static ebpf_context_descriptor_t _ebpf_sock_addr_context_descriptor = {
     sizeof(bpf_sock_addr_t),
@@ -46,7 +55,11 @@ static ebpf_context_descriptor_t _ebpf_sock_addr_context_descriptor = {
     -1, // Offset into ctx struct for pointer to metadata, or -1 if none.
 };
 static ebpf_program_info_t _ebpf_sock_addr_program_info = {
-    {"sock_addr", &_ebpf_sock_addr_context_descriptor, {0}, BPF_PROG_TYPE_CGROUP_SOCK_ADDR}, 0, NULL};
+    {"sock_addr", &_ebpf_sock_addr_context_descriptor, {0}, BPF_PROG_TYPE_CGROUP_SOCK_ADDR},
+    0,
+    NULL,
+    EBPF_COUNT_OF(_ebpf_sock_addr_global_helper_function_prototype),
+    _ebpf_sock_addr_global_helper_function_prototype};
 static ebpf_program_section_info_t _ebpf_sock_addr_section_info[] = {
     {L"cgroup/connect4",
      &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
