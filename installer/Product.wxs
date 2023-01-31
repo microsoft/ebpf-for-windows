@@ -34,10 +34,17 @@ SPDX-License-Identifier: MIT
 				<ComponentGroupRef Id="eBPF_Runtime_Components" />
 				<ComponentGroupRef Id="eBPFCore_Driver" />
 				<ComponentGroupRef Id="NetEbpfExt_Driver" />
+				<?if $(var.IncludeJIT) = True ?>
 				<?if $(var.Configuration) = Debug ?>
 				<Feature Id="eBPF_Runtime_Components_JIT" Level="1" Title="JIT" Absent="allow">
 					<ComponentGroupRef Id="eBPF_Service" />
 				</Feature>
+				<?endif?>
+				<?if $(var.Configuration) = Release ?>
+				<Feature Id="eBPF_Runtime_Components_JIT" Level="11" Title="JIT" Absent="allow" >
+					<ComponentGroupRef Id="eBPF_Service" />
+				</Feature>
+				<?endif?>
 				<?endif?>
 			</Feature>
 			<Feature Id="eBPF_Development" Level="2" Title="Development components">
@@ -119,7 +126,7 @@ SPDX-License-Identifier: MIT
 		<Directory Id="TARGETDIR" Name="SourceDir">
 			<Directory Id="ProgramFiles64Folder">
 				<Directory Id="INSTALLFOLDER" Name="ebpf-for-windows">
-					<?if $(var.Configuration) = Debug ?>
+					<?if $(var.IncludeJIT) = True ?>
 					<Directory Id="dir_JIT" Name="JIT" />
 					<?endif?>
 					<Directory Id="dir_drivers" Name="drivers"/>
@@ -209,7 +216,7 @@ SPDX-License-Identifier: MIT
 		<CustomAction Id="eBPF_netsh_helper_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 
 		<!--Install/Uninstall the eBPF Service -->
-		<?if $(var.Configuration) = Debug ?>
+		<?if $(var.IncludeJIT) = True ?>
 		<ComponentGroup Id="eBPF_Service" Directory="dir_JIT">
 			<Component Id="EBPFSVC.PDB" DiskId="1" Guid="{D1935DF0-2FC7-42F5-81E5-19AF88D6244B}">
 				<File Id="EBPFSVC.PDB" Name="EbpfSvc.pdb" Source="$(var.ebpfsvc.TargetDir)ebpfsvc.pdb" />
