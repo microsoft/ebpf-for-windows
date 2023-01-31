@@ -83,7 +83,7 @@ jobs:
       build_artifact: Build-x64-fuzzer
       cxx_flags: '/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div'
       ld_flags: '"clang_rt.fuzzer_MD-x86_64.lib" "libsancov.lib"'
-      build_options: /p:Fuzzer=True /t:tests\libfuzzer\execution_context_fuzzer /t:tests\libfuzzer\bpf2c_fuzzer /t:tests\libfuzzer\verifier_fuzzer /t:tests\libfuzzer\core_helper_fuzzer
+      build_options: /p:Fuzzer=True /t:tests\libfuzzer\execution_context_fuzzer /t:tests\libfuzzer\bpf2c_fuzzer /t:tests\libfuzzer\verifier_fuzzer /t:tests\libfuzzer\core_helper_fuzzer /t:tests\libfuzzer\netebpfext_fuzzer
 
 # unit_tests
 # Always run this job.
@@ -194,22 +194,22 @@ jobs:
       build_artifact: Build-x64-Sanitize
       build_options: /p:AddressSanitizer=True
 
-# fuzzing
-# Only run on schedule and pull request.
-- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+# bpf2c_fuzzer
+# Only run on pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest') }}:
   - template: ./ob-reusable-test.yml
     parameters:
-      name: fuzzing
-      test_command: '.\fuzz.exe -d yes'
-      dependency: sanitize
-      build_artifact: Build-x64-Sanitize
+      name: bpf2c_fuzzer
+      test_command: '.\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=300 -artifact_prefix=Artifacts\'
+      dependency: libfuzzer
+      build_artifact: Build-x64-fuzzer
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
 
-# bpf2c_fuzzer
-# Only run on schedule and pull request.
-- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+# bpf2c_fuzzer_scheduled
+# Only run on schedule.
+- ${{ if in(variables['Build.Reason'], 'Schedule') }}:
   - template: ./ob-reusable-test.yml
     parameters:
       name: bpf2c_fuzzer
@@ -234,8 +234,21 @@ jobs:
       gather_dumps: true
 
 # Run the verifier fuzzer.
-# Only run on schedule and pull request.
-- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+# Only run on pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: verifier_fuzzer
+      test_command: '.\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=300 -artifact_prefix=Artifacts\'
+      dependency: libfuzzer
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+
+# Run the verifier fuzzer.
+# Only run on schedule.
+- ${{ if in(variables['Build.Reason'], 'Schedule') }}:
   - template: ./ob-reusable-test.yml
     parameters:
       name: verifier_fuzzer
@@ -255,6 +268,33 @@ jobs:
       test_command: '.\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\'
       dependency: libfuzzer
       build_artifact: Build-x64-fuzzer
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+
+# netebpfext_fuzzer
+# Only run on schedule and pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: netebpfext_fuzzer
+      test_command: '.\netebpfext_fuzzer netebpfext_corpus -max_len=12 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\'
+      dependency: libfuzzer
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+
+# cilium_tests
+# Run Cilium regression tests.
+# Only run on schedule and pull request.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: cilium_tests
+      test_command: '.\cilium_tests.exe -d yes'
+      dependency: regular
+      build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
       gather_dumps: true

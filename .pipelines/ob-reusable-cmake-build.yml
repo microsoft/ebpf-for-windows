@@ -69,8 +69,15 @@ jobs:
         workingDirectory: $(Build.SourcesDirectory)
         displayName: 'Build the project'
 
-      ## TODO: "Download demo repository artifacts"
-      ## TODO: "Extract artifacts to build path"
+      - powershell: |
+          Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/$(BUILD_PLATFORM)-$(BUILD_CONFIGURATION)-cilium-xdp.zip -OutFile x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
+        workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Download demo repository'
+
+      - script: |
+          tar -xf ..\..\..\x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
+        workingDirectory: $(Build.SourcesDirectory)/build/$(BUILD_PLATFORM)/$(buildConfiguration)
+        displayName: 'Extract artifacts to build path'
 
       - publish: $(Build.SourcesDirectory)/build/$(BUILD_PLATFORM)/$(buildConfiguration)
         artifact: "${{parameters.build_artifact}} $(buildConfiguration)"
