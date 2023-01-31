@@ -325,10 +325,10 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     REQUIRE(result == FWP_ACTION_BLOCK);
 
     result = helper.test_cgroup_inet4_connect();
-    REQUIRE(result == FWP_ACTION_PERMIT);
+    REQUIRE(result == FWP_ACTION_BLOCK);
 
     result = helper.test_cgroup_inet6_connect();
-    REQUIRE(result == FWP_ACTION_PERMIT);
+    REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
 TEST_CASE("sock_addr_context", "[netebpfext]")

@@ -195,3 +195,19 @@ net_ebpf_ext_trace_terminate();
         TraceLoggingUInt64((protocol), "Protocol"),                                                             \
         TraceLoggingUInt64((redirect), "Redirected"),                                                           \
         TraceLoggingUInt64((verdict), "Verdict"));
+
+#define NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result) \
+    do {                                          \
+        ebpf_result_t local_result = (result);    \
+        if (local_result != EBPF_SUCCESS) {       \
+            goto Exit;                            \
+        }                                         \
+    } while (false);
+
+#define NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status) \
+    do {                                          \
+        NTSTATUS local_status = (status);         \
+        if (!NT_SUCCESS(local_status)) {          \
+            goto Exit;                            \
+        }                                         \
+    } while (false);

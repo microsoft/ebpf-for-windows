@@ -17,13 +17,15 @@ SPDX-License-Identifier: MIT
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>Debug</DefineConstants>
+    <DefineConstants>Debug;IncludeJIT=True</DefineConstants>
+    <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>
-    </DefineConstants>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">IncludeJIT=True</DefineConstants>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">IncludeJIT=False</DefineConstants>
+    <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <!-- In accordance to what defined in sample.vcxproj, the MSI build is disabled for the 'Analysis' CI/CD build, as it  does not generate the *.o artifacts. -->
   <ItemGroup Condition="'$(Analysis)'==''">
