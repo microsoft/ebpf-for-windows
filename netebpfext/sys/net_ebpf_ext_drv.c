@@ -14,7 +14,8 @@ Environment:
 
 --*/
 
-// ntddk.h needs to be included first due to inter header dependencies on Windows.
+// net_ebpf_ext.h, followed by ntddk.h, need to be included first due to inter header dependencies on Windows.
+#include "net_ebpf_ext.h"
 #include <ntddk.h>
 
 #pragma warning(push)
@@ -27,7 +28,6 @@ Environment:
 
 #include "ebpf_platform.h"
 #include "ebpf_store_helper.h"
-#include "net_ebpf_ext.h"
 
 #define NET_EBPF_EXT_DEVICE_NAME L"\\Device\\NetEbpfExt"
 

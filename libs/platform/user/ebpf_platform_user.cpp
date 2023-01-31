@@ -1148,6 +1148,41 @@ ebpf_platform_thread_id()
     return GetCurrentThreadId();
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
+    ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
+{
+    ebpf_result_t return_value = EBPF_SUCCESS;
+    uint32_t error;
+    TOKEN_GROUPS_AND_PRIVILEGES* privileges = nullptr;
+    uint32_t size = 0;
+    HANDLE thread_token_handle = GetCurrentThreadEffectiveToken();
+
+    bool result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, nullptr, 0, (PDWORD)&size);
+    error = GetLastError();
+    if (error != ERROR_INSUFFICIENT_BUFFER) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, GetTokenInformation);
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    privileges = (TOKEN_GROUPS_AND_PRIVILEGES*)ebpf_allocate(size);
+    if (privileges == nullptr) {
+        return EBPF_NO_MEMORY;
+    }
+
+    result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (PDWORD)&size);
+    if (result == false) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, GetTokenInformation);
+        return_value = win32_error_code_to_ebpf_result(GetLastError());
+        goto Exit;
+    }
+
+    *authentication_id = *(uint64_t*)&privileges->AuthenticationId;
+
+Exit:
+    ebpf_free(privileges);
+    return return_value;
+}
+
 _IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql)
 {
     UNREFERENCED_PARAMETER(new_irql);
