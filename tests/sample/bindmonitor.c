@@ -25,6 +25,12 @@ typedef struct _process_entry
     uint8_t name[64];
 } process_entry_t;
 
+typedef struct _audit_entry
+{
+    uint64_t logon_id;
+    int32_t is_admin;
+} audit_entry_t;
+
 SEC("maps")
 struct bpf_map_def process_map = {
     .type = BPF_MAP_TYPE_HASH,
@@ -33,8 +39,24 @@ struct bpf_map_def process_map = {
     .max_entries = 1024};
 
 SEC("maps")
+struct bpf_map_def audit_map = {
+    .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(uint64_t), .value_size = sizeof(audit_entry_t), .max_entries = 1024};
+
+SEC("maps")
 struct bpf_map_def limits_map = {
     .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
+
+inline void
+update_audit_entry(bind_md_t* ctx)
+{
+    uint64_t process_id = bpf_get_current_pid_tgid();
+    audit_entry_t audit_entry = {0};
+
+    audit_entry.logon_id = bpf_get_current_logon_id(ctx);
+    audit_entry.is_admin = bpf_is_current_admin(ctx);
+
+    bpf_map_update_elem(&audit_map, &process_id, &audit_entry, 0);
+}
 
 inline process_entry_t*
 find_or_create_process_entry(bind_md_t* ctx)
@@ -79,6 +101,9 @@ BindMonitor(bind_md_t* ctx)
 {
     uint32_t limit_key = 0;
     process_entry_t* entry;
+
+    update_audit_entry(ctx);
+
     uint32_t* limit = bpf_map_lookup_elem(&limits_map, &limit_key);
     if (!limit || *limit == 0)
         return BIND_PERMIT;
