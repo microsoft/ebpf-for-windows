@@ -434,10 +434,12 @@ static ebpf_extension_data_t _test_ebpf_sample_extension_program_info_provider_d
 typedef class _program_info_provider
 {
   public:
-    _program_info_provider(ebpf_program_type_t program_type)
+    _program_info_provider(ebpf_program_type_t program_type, ebpf_extension_data_t* custom_provider_data = nullptr)
         : program_type(program_type), provider(nullptr), provider_data(nullptr)
     {
-        if (program_type == EBPF_PROGRAM_TYPE_XDP) {
+        if (custom_provider_data != nullptr) {
+            provider_data = custom_provider_data;
+        } else if (program_type == EBPF_PROGRAM_TYPE_XDP) {
             provider_data = &_ebpf_xdp_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_BIND) {
             provider_data = &_ebpf_bind_program_info_provider_data;
