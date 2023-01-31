@@ -761,6 +761,34 @@ ebpf_platform_thread_id()
     return (uint32_t)(uintptr_t)PsGetCurrentThreadId();
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
+    ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
+{
+    SECURITY_SUBJECT_CONTEXT context = {0};
+    SeCaptureSubjectContext(&context);
+    LUID local_authentication_id;
+
+    PACCESS_TOKEN access_token = SeQuerySubjectContextToken(&context);
+    // SeQuerySubjectContextToken() is not expected to fail.
+    if (access_token == NULL) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "SeQuerySubjectContextToken failed");
+
+        return EBPF_FAILED;
+    }
+
+    NTSTATUS status = SeQueryAuthenticationIdToken(access_token, &local_authentication_id);
+    // SeQueryAuthenticationIdToken() is not expected to fail.
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, SeQueryAuthenticationIdToken, status);
+
+        return EBPF_FAILED;
+    }
+
+    *authentication_id = *(uint64_t*)&local_authentication_id;
+
+    return EBPF_SUCCESS;
+}
+
 _IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql)
 {
     KIRQL old_irql;

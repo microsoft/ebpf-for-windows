@@ -170,14 +170,28 @@ function Invoke-ConnectRedirectTest
           [parameter(Mandatory=$true)][string] $VirtualIPv6Address,
           [parameter(Mandatory=$true)][int] $DestinationPort,
           [parameter(Mandatory=$true)][int] $ProxyPort,
+          [parameter(Mandatory=$true)][string] $StandardUserName,
+          [parameter(Mandatory=$true)][string] $StandardUserPassword,
+          [parameter(Mandatory=$true)][string] $UserType,
           [parameter(Mandatory=$true)][string] $WorkingDirectory)
 
     pushd $WorkingDirectory
 
-    $Parameters = "--virtual-ip-v4 $VirtualIPv4Address --virtual-ip-v6 $VirtualIPv6Address --local-ip-v4 $LocalIPv4Address --local-ip-v6 $LocalIPv6Address --remote-ip-v4 $RemoteIPv4Address --remote-ip-v6 $RemoteIPv6Address --destination-port $DestinationPort --proxy-port $ProxyPort"
+    $Parameters = "--virtual-ip-v4 $VirtualIPv4Address --virtual-ip-v6 $VirtualIPv6Address --local-ip-v4 $LocalIPv4Address --local-ip-v6 $LocalIPv6Address --remote-ip-v4 $RemoteIPv4Address --remote-ip-v6 $RemoteIPv6Address --destination-port $DestinationPort --proxy-port $ProxyPort --user-type $UserType"
     Write-Log "Executing connect redirect tests with parameters: $Parameters"
     $LASTEXITCODE = 0
-    $Output = .\connect_redirect_tests.exe --virtual-ip-v4 $VirtualIPv4Address --virtual-ip-v6 $VirtualIPv6Address --local-ip-v4 $LocalIPv4Address --local-ip-v6 $LocalIPv6Address --remote-ip-v4 $RemoteIPv4Address --remote-ip-v6 $RemoteIPv6Address --destination-port $DestinationPort --proxy-port $ProxyPort
+    $Output = .\connect_redirect_tests.exe `
+        --virtual-ip-v4 $VirtualIPv4Address `
+        --virtual-ip-v6 $VirtualIPv6Address `
+        --local-ip-v4 $LocalIPv4Address `
+        --local-ip-v6 $LocalIPv6Address `
+        --remote-ip-v4 $RemoteIPv4Address `
+        --remote-ip-v6 $RemoteIPv6Address `
+        --destination-port $DestinationPort `
+        --proxy-port $ProxyPort `
+        --user-name $StandardUserName `
+        --password $StandardUserPassword `
+        --user-type $UserType
     Out-String -InputObject $Output | Write-Log
     $ParsedOutput = $Output.Split(" ")
     if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("Connect-Redirect Test Failed.") }
