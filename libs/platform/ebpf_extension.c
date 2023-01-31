@@ -78,8 +78,7 @@ _ebpf_extension_client_attach_provider(
     NTSTATUS status;
     ebpf_extension_client_t* local_client_context = (ebpf_extension_client_t*)client_context;
     ebpf_extension_client_binding_context_t* local_client_binding_context = NULL;
-
-    ExInitializeRundownProtection(&local_client_context->nmr_rundown_ref);
+    bool rundown_ref_initialized = false;
 
     // Check that the provider module Id matches the client's expected provider module Id.
     ebpf_assert(provider_registration_instance->ModuleId != NULL);
@@ -109,6 +108,10 @@ _ebpf_extension_client_attach_provider(
             *provider_registration_instance->NpiId)
         goto Done;
     }
+
+    // Only initialize the rundown reference after we know we are going to try to attach.
+    ExInitializeRundownProtection(&local_client_context->nmr_rundown_ref);
+    rundown_ref_initialized = true;
 
     local_client_binding_context =
         (ebpf_extension_client_binding_context_t*)ebpf_allocate(sizeof(ebpf_extension_client_binding_context_t));
@@ -148,6 +151,10 @@ _ebpf_extension_client_attach_provider(
     }
 
 Done:
+    if (!NT_SUCCESS(status) && rundown_ref_initialized) {
+        // Mark the nmr_rundown_ref as rundown if the attach fails.
+        ExWaitForRundownProtectionRelease(&local_client_context->nmr_rundown_ref);
+    }
     EBPF_RETURN_NTSTATUS(status);
 }
 
