@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # Download and copy release archive to local directory as ./ebpf-for-windows.msi before running this script.
- 
+
 param ([parameter(Mandatory=$false)][string] $TEMPDir = "c:\temp",
     [parameter(Mandatory=$true)][string] $Repository = "",
     [parameter(Mandatory=$true)][string] $Tag = "",

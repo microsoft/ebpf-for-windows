@@ -1115,8 +1115,14 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                   << "}" << std::endl
                   << std::endl;
 
-    output_stream << "metadata_table_t " << (c_name.c_identifier() + "_metadata_table")
-                  << " = {_get_programs, _get_maps, _get_hash, _get_version};\n";
+    std::string meta_data_table = "metadata_table_t " + c_name.c_identifier() + "_metadata_table = {";
+    meta_data_table += "sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version};\n";
+
+    if (meta_data_table.size() > LINE_BREAK_WIDTH) {
+        meta_data_table.insert(meta_data_table.find_first_of("{") + 1, "\n" INDENT);
+    }
+
+    output_stream << meta_data_table;
 }
 
 std::string

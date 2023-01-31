@@ -1486,7 +1486,7 @@ _ebpf_helper_id_to_index_compare(const void* lhs, const void* rhs)
  * 2) During initialization, the program binds to the program information provider.
  * 3) During the attach callback, the program information is hashed and stored.
  * 4) The verifier then queries the program information from the ebpf_program_t object and uses it to verify the program
- * safety. 
+ * safety.
  * 5) If the program information provider is reattached, the program information is hashed and compared with the
  * hash stored in the program and the program is rejected if the hash does not match. This ensures that the program
  * information the verifier uses to verify the program safety is the same as the program information the program uses to
