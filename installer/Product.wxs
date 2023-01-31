@@ -35,9 +35,16 @@ SPDX-License-Identifier: MIT
 				<ComponentGroupRef Id="eBPFCore_Driver" />
 				<ComponentGroupRef Id="NetEbpfExt_Driver" />
 				<?if $(var.IncludeJIT) = True ?>
+				<?if $(var.Configuration) = Debug ?>
 				<Feature Id="eBPF_Runtime_Components_JIT" Level="1" Title="JIT" Absent="allow">
 					<ComponentGroupRef Id="eBPF_Service" />
 				</Feature>
+				<?endif?>
+				<?if $(var.Configuration) = Release ?>
+				<Feature Id="eBPF_Runtime_Components_JIT" Level="11" Title="JIT" Absent="allow" >
+					<ComponentGroupRef Id="eBPF_Service" />
+				</Feature>
+				<?endif?>
 				<?endif?>
 			</Feature>
 			<Feature Id="eBPF_Development" Level="2" Title="Development components">
