@@ -42,6 +42,7 @@ jobs:
       build_artifact: Build-x64
       generate_release_package: true
       build_nuget: true
+      build_options: /p:ReleaseJIT='True'
 
   cmake:
     # Always run this job.
