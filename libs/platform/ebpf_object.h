@@ -174,6 +174,45 @@ extern "C"
     ebpf_object_reference_by_handle(
         ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ struct _ebpf_core_object** object);
 
+    /**
+     * @brief Find an ID in the ID table, verify the type matches,
+     *  and release a reference previously acquired via
+     *  ebpf_object_reference_id.
+     *
+     * @param[in] id ID to find in table.
+     * @param[in] object_type Object type to match.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type);
+
+    /**
+     * @brief Find an ID in the ID table, verify the type matches,
+     *  and acquire a reference on the id table entry for this
+     *  id
+     *
+     * @param[in] id ID to find in table.
+     * @param[in] object_type Object type to match.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_object_acquire_id_reference(ebpf_id_t start_id, ebpf_object_type_t object_type);
+
+    /**
+     * @brief Find an ID in the ID table, verify the type matches,
+     *  and release the id table entry reference previously acquired
+     *  via ebpf_object_reference_by_id.
+     *
+     * @param[in] id ID to find in table.
+     * @param[in] object_type Object type to match.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_object_release_id_reference(ebpf_id_t start_id, ebpf_object_type_t object_type);
+
 #ifdef __cplusplus
 }
 #endif
