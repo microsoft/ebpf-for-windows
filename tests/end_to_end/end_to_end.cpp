@@ -9,6 +9,7 @@
 #include <thread>
 #include <WinSock2.h>
 #include <in6addr.h> // Must come after Winsock2.h
+#include <ntsecapi.h>
 
 #include "api_common.hpp"
 #include "api_internal.h"
@@ -535,6 +536,12 @@ typedef struct _process_entry
     uint8_t name[64];
 } process_entry_t;
 
+typedef struct _audit_entry
+{
+    uint64_t logon_id;
+    int32_t is_admin;
+} audit_entry_t;
+
 uint32_t
 get_bind_count_for_pid(fd_t map_fd, uint64_t pid)
 {
@@ -542,6 +549,23 @@ get_bind_count_for_pid(fd_t map_fd, uint64_t pid)
     bpf_map_lookup_elem(map_fd, &pid, &entry);
 
     return entry.count;
+}
+
+static void
+_validate_bind_audit_entry(fd_t map_fd, uint64_t pid)
+{
+    audit_entry_t entry = {0};
+    int result = bpf_map_lookup_elem(map_fd, &pid, &entry);
+    REQUIRE(result == 0);
+
+    REQUIRE(entry.is_admin == -1);
+
+    REQUIRE(entry.logon_id != 0);
+    SECURITY_LOGON_SESSION_DATA* data = NULL;
+    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    LsaFreeReturnBuffer(data);
 }
 
 bind_action_t
@@ -576,6 +600,12 @@ set_bind_limit(fd_t map_fd, uint32_t limit)
     REQUIRE(bpf_map_update_elem(map_fd, &limit_key, &limit, EBPF_ANY) == EBPF_SUCCESS);
 }
 
+static uint64_t
+_get_current_pid_tgid()
+{
+    return ((uint64_t)GetCurrentProcessId() << 32 | GetCurrentThreadId());
+}
+
 void
 bindmonitor_test(ebpf_execution_type_t execution_type)
 {
@@ -587,6 +617,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     bpf_object* object = nullptr;
     bpf_link* link = nullptr;
     fd_t program_fd;
+    uint64_t process_id = _get_current_pid_tgid();
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
@@ -606,6 +637,8 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     REQUIRE(limit_map_fd > 0);
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
     REQUIRE(process_map_fd > 0);
+    fd_t audit_map_fd = bpf_object__find_map_fd_by_name(object, "audit_map");
+    REQUIRE(audit_map_fd > 0);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
@@ -620,30 +653,37 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     // Bind first port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Bind second port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Bind third port - blocked
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_DENY);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Unbind second port
     emulate_unbind(invoke, fake_pid, "fake_app_1");
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Unbind first port
     emulate_unbind(invoke, fake_pid, "fake_app_1");
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 0);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Bind from two apps to test enumeration
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     fake_pid = 54321;
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     uint64_t pid;
     REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == 0);
@@ -2752,3 +2792,121 @@ TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
 
     bpf_object__close(jit_object);
 }
+
+static void
+extension_reload_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    // Create a 0-byte UDP packet.
+    auto packet0 = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+
+    // Test that we drop the packet and increment the map.
+    xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
+
+    // Try loading without the extension loaded.
+    bpf_object* droppacket_object;
+    int program_fd = -1;
+    const char* error_message = nullptr;
+
+    // Should fail.
+    REQUIRE(
+        ebpf_program_load(
+            execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o",
+            BPF_PROG_TYPE_UNSPEC,
+            execution_type,
+            &droppacket_object,
+            &program_fd,
+            &error_message) != 0);
+
+    ebpf_free((void*)error_message);
+
+    // Load the program with the extension loaded.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+        REQUIRE(
+            ebpf_program_load(
+                execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o",
+                BPF_PROG_TYPE_UNSPEC,
+                execution_type,
+                &droppacket_object,
+                &program_fd,
+                &error_message) == 0);
+
+        uint32_t if_index = TEST_IFINDEX;
+        bpf_link* link = nullptr;
+        // Attach only to the single interface being tested.
+        REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
+        bpf_link__disconnect(link);
+        bpf_link__destroy(link);
+
+        // Program should run.
+        int hook_result;
+        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == XDP_PASS);
+
+        // Unload the extension (xdp_program_info and hook will be destroyed).
+    }
+
+    // Reload the extension provider with unchanged data.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+        // Program should re-attach to the hook.
+
+        // Program should run.
+        int hook_result;
+        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == XDP_PASS);
+    }
+
+    // Reload the extension provider with missing helper function.
+    {
+        ebpf_helper_function_addresses_t changed_helper_function_address_table =
+            _test_ebpf_xdp_helper_function_address_table;
+        ebpf_program_data_t changed_program_data = _ebpf_xdp_program_data;
+        changed_program_data.program_type_specific_helper_function_addresses = &changed_helper_function_address_table;
+        changed_helper_function_address_table.helper_function_count = 0;
+
+        ebpf_extension_data_t changed_provider_data = {
+            TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(changed_program_data), &changed_program_data};
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP, &changed_provider_data);
+
+        // Program should re-attach to the hook.
+
+        // Program should not run.
+        int hook_result;
+        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result != XDP_PASS);
+    }
+
+    // Reload the extension provider with changed helper function data.
+    {
+        ebpf_program_info_t changed_program_info = _ebpf_xdp_program_info;
+        ebpf_helper_function_prototype_t helper_function_prototypes[] = {
+            _xdp_ebpf_extension_helper_function_prototype[0]};
+        helper_function_prototypes[0].return_type = EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL;
+        changed_program_info.program_type_specific_helper_prototype = helper_function_prototypes;
+        ebpf_program_data_t changed_program_data = _ebpf_xdp_program_data;
+        changed_program_data.program_info = &changed_program_info;
+
+        ebpf_extension_data_t changed_provider_data = {
+            TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(changed_program_data), &changed_program_data};
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP, &changed_provider_data);
+
+        // Program should re-attach to the hook.
+
+        // Program should not run.
+        int hook_result;
+        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result != XDP_PASS);
+    }
+}
+
+DECLARE_ALL_TEST_CASES("extension_reload_test", "[end_to_end]", extension_reload_test);
