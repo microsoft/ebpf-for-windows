@@ -146,7 +146,7 @@ SPDX-License-Identifier: MIT
 	<Fragment>
 		<ComponentGroup Id="eBPF_Runtime_Components" Directory="INSTALLFOLDER">
 			<Component Id ="eBpfPATH" Guid="{C062B980-4B93-4FC7-A4F9-A751C2B419FD}" KeyPath="yes">
-				<Environment Id="eBpfPATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="no" Part="last" Action="set" System="yes" />
+				<Environment Id="eBpfPATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="no" Part="last" Action="set" System="yes" Separator=";" />
 			</Component>
 			<Component Id="LICENSE" Guid="{AF22EAE5-7D8D-4F22-BB64-6B6A079A2947}">
 				<File Id="LICENSE.txt" Name="LICENSE.txt" DiskId="1" Source="$(var.SolutionDir)LICENSE.txt" />
@@ -193,12 +193,10 @@ SPDX-License-Identifier: MIT
 		</ComponentGroup>
 
 		<!--Clear/Setup the eBPF store-->
-		<SetProperty Id="Clear_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Before="Clear_eBPF_store" Sequence="execute"/>
-		<CustomAction Id="Clear_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<SetProperty Id="Clear_eBPF_store_uninstall" Value='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Before="Clear_eBPF_store" Sequence="execute"/>
-		<CustomAction Id="Clear_eBPF_store_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<CustomAction Id="Clear_eBPF_store" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="check" Impersonate="yes"/>
+		<CustomAction Id="Clear_eBPF_store_uninstall" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="ignore" Impersonate="yes"/>
 		<SetProperty Id="Setup_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]"' Before="Setup_eBPF_store" Sequence="execute"/>
-		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="yes"/>
 
 		<!--Install/Uninstall the netsh helper-->
 		<!--qtexec does not currently support a working directory (ref. https://github.com/wixtoolset/issues/issues/1265)-->

@@ -9,6 +9,7 @@
 #include <thread>
 #include <WinSock2.h>
 #include <in6addr.h> // Must come after Winsock2.h
+#include <ntsecapi.h>
 
 #include "api_common.hpp"
 #include "api_internal.h"
@@ -535,6 +536,12 @@ typedef struct _process_entry
     uint8_t name[64];
 } process_entry_t;
 
+typedef struct _audit_entry
+{
+    uint64_t logon_id;
+    int32_t is_admin;
+} audit_entry_t;
+
 uint32_t
 get_bind_count_for_pid(fd_t map_fd, uint64_t pid)
 {
@@ -542,6 +549,23 @@ get_bind_count_for_pid(fd_t map_fd, uint64_t pid)
     bpf_map_lookup_elem(map_fd, &pid, &entry);
 
     return entry.count;
+}
+
+static void
+_validate_bind_audit_entry(fd_t map_fd, uint64_t pid)
+{
+    audit_entry_t entry = {0};
+    int result = bpf_map_lookup_elem(map_fd, &pid, &entry);
+    REQUIRE(result == 0);
+
+    REQUIRE(entry.is_admin == -1);
+
+    REQUIRE(entry.logon_id != 0);
+    SECURITY_LOGON_SESSION_DATA* data = NULL;
+    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    LsaFreeReturnBuffer(data);
 }
 
 bind_action_t
@@ -576,6 +600,12 @@ set_bind_limit(fd_t map_fd, uint32_t limit)
     REQUIRE(bpf_map_update_elem(map_fd, &limit_key, &limit, EBPF_ANY) == EBPF_SUCCESS);
 }
 
+static uint64_t
+_get_current_pid_tgid()
+{
+    return ((uint64_t)GetCurrentProcessId() << 32 | GetCurrentThreadId());
+}
+
 void
 bindmonitor_test(ebpf_execution_type_t execution_type)
 {
@@ -587,6 +617,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     bpf_object* object = nullptr;
     bpf_link* link = nullptr;
     fd_t program_fd;
+    uint64_t process_id = _get_current_pid_tgid();
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
@@ -606,6 +637,8 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     REQUIRE(limit_map_fd > 0);
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
     REQUIRE(process_map_fd > 0);
+    fd_t audit_map_fd = bpf_object__find_map_fd_by_name(object, "audit_map");
+    REQUIRE(audit_map_fd > 0);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
@@ -620,30 +653,37 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     // Bind first port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Bind second port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Bind third port - blocked
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_DENY);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Unbind second port
     emulate_unbind(invoke, fake_pid, "fake_app_1");
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Unbind first port
     emulate_unbind(invoke, fake_pid, "fake_app_1");
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 0);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Bind from two apps to test enumeration
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     fake_pid = 54321;
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     uint64_t pid;
     REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == 0);

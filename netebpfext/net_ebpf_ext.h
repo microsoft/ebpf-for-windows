@@ -16,8 +16,9 @@ Environment:
 
 #pragma once
 
-#include "framework.h"
+// netebpfext_platform.h needs to be included ahead of other headers to satisfy the Windows build system.
 #include "netebpfext_platform.h"
+#include "framework.h"
 
 #include <guiddef.h>
 #include <netioapi.h>
@@ -54,6 +55,7 @@ typedef struct _wfp_ale_layer_fields
     uint32_t direction_field;
     uint16_t compartment_id_field;
     uint16_t interface_luid_field;
+    uint16_t user_id_field;
 } wfp_ale_layer_fields_t;
 
 typedef struct _net_ebpf_extension_wfp_filter_parameters
