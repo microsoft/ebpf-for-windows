@@ -19,40 +19,40 @@ In the context of this project's epoch memory management module
 mean a period of indeterminate length. At the heart of the epoch module
 are two clocks:
 
-1)  \_ebpf_current_epoch
+1)  _ebpf_current_epoch
 
-2)  \_ebpf_release_epoch
+2)  _ebpf_release_epoch
 
-The first clock (\_ebpf_current_epoch) tracks the current "time" in the
-system, with this clock that monotonically increases. The second clock
-(\_ebpf_release_epoch) tracks the highest epoch that no longer has any
+The first clock (_ebpf_current_epoch) tracks the current "time" in the
+system, with this being a clock that monotonically increases. The second clock
+(_ebpf_release_epoch) tracks the highest epoch that no longer has any
 code executing in it.
 
 Every execution context (a thread at passive IRQL or a DPC running at
 dispatch IRQL) is associated with the point in time when execution began
-(i.e. the value of the \_ebpf_current_epoch clock at the point where it
+(i.e. the value of the _ebpf_current_epoch clock at the point where it
 began execution). All memory that the execution context could touch
 during its execution is part of that epoch.
 
 When memory is no longer needed, it is first made non-reachable (all
 pointers to it are removed) after which it is stamped with the current
 epoch and inserted into a "free list". The timestamp is point in time
-when the memory transitioned from visible -\> non-visible and as such
+when the memory transitioned from visible -> non-visible and as such
 can only be returned to the OS once no active execution context could be
-using that memory (i.e. when memory time stamp \<=
-\_ebpf_release_epoch).
+using that memory (i.e. when memory time stamp <=
+_ebpf_release_epoch).
 
 ## Implementation details
 
 Each execution context maintains it's own state in the form of:
 
 ```
-typedef struct \_ebpf_epoch_state
+typedef struct _ebpf_epoch_state
 {
 int64_t epoch; // The highest epoch seen by this epoch state.
 bool active : 1; // Currently within an entry/exit block.
 bool timer_armed : 1; // This state has requested the global timer.
-bool stale : 1; // This state has entries that haven\'t been freed.
+bool stale : 1; // This state has entries that haven't been freed.
 bool timer_disabled : 1; // Prevent re-arming the timer during shutdown.
 } ebpf_epoch_state_t;
 ```
