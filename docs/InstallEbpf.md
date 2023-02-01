@@ -71,6 +71,10 @@ has already built the binaries for `x64/Debug` or `x64/Release`.
         ```ps
         .\x64\debug\deploy-ebpf --vm="<test-vm-name>" -t
         ```
+        or, to copy files to a specific directory, including file shares, run:
+        ```ps
+        .\x64\debug\deploy-ebpf -l="c:\some\path"
+        ```
 
 2. From within the VM, install the binaries by starting an administrator Command Prompt shell (cmd.exe)
 , and running the following commands:
