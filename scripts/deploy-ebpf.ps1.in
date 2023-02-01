@@ -179,14 +179,14 @@ OVERVIEW:
 
 Copies eBPF framework files into a temp directory on the local machine or into a VM
 
-    $ deploy-ebpf [--dir="..."] [-h] [-l] [-m] [-t] [--vm="..."]
+    $ deploy-ebpf [--dir="..."] [-h] [-l[=path]] [-m] [-t] [--vm="..."]
 
 OPTIONS:
     --dir          Specifies the source directory path, which defaults to "."
     -h, --help     Print this help message.
     -m, --msi      Copies MSI instead of individual files
     -l, --local    Copies files to the local temp directory instead of into a VM
-    -t, --test     Includes files needed only for testing and debugging
+\    -t, --test     Includes files needed only for testing and debugging
     --vm           Specifies the VM name, which defaults to "Windows 10 dev environment"
 
 '@
@@ -202,8 +202,11 @@ OPTIONS:
             $vm=($arg -split "=")[1];
             break
         }
-    { @("-l", "--local") -contains $_ }
+    "^(?:-l|--list)(?:=(.+))?$"
         {
+            if ($matches[1]) {
+                $destination_directory = $matches[1]
+            }
             Clear-Variable -name vm
             break
         }
@@ -234,22 +237,24 @@ if ($vm -eq $null) {
    foreach ( $file in $built_files ) {
       $source_path = "$build_directory\$file"
       $destination_path = "$destination_directory\$file"
+      $destination_full_dir = Split-Path $destination_path
       Write-Host " $source_path -> $destination_path"
-      Copy-Item "$source_path" -Destination "$destination_path"
-      if (! $?) {
-         exit 1
+      if (! (Test-Path $destination_full_dir)) {
+         New-Item -Type Directory $destination_full_dir -ErrorAction Stop | Write-Verbose
       }
+      Copy-Item "$source_path" -Destination "$destination_path" -ErrorAction Stop
    }
 
    Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`""
    foreach ( $file in $source_files ) {
       $source_path = "$source_directory\$file"
       $destination_path = "$destination_directory\$file"
+      $destination_full_dir = Split-Path $destination_path
       Write-Host " $source_path -> $destination_path"
-      Copy-Item "$source_path" -Destination "$destination_path"
-      if (! $?) {
-         exit 1
+      if (! (Test-Path $destination_full_dir)) {
+         New-Item -Type Directory $destination_full_dir -ErrorAction Stop | Write-Verbose
       }
+      Copy-Item "$source_path" -Destination "$destination_path" -ErrorAction Stop
    }
    exit 0
 }
