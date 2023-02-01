@@ -77,6 +77,28 @@ The memory is then enqueued on a per-CPU free list. On epoch exit, the
 free list is then scanned to locate entries whose timestamp is older than
 the release epoch. These entries are then returned to the OS.
 
+Note:
+A per-CPU free list is not necessary, but is instead an optimization to reduce
+cross-CPU contention.
+
+```
+// There are two possible actions that can be taken at the end of an epoch.
+// 1. Return a block of memory to the memory pool.
+// 2. Invoke a work item, which is used to free custom allocations.
+typedef enum _ebpf_epoch_allocation_type
+{
+    EBPF_EPOCH_ALLOCATION_MEMORY,
+    EBPF_EPOCH_ALLOCATION_WORK_ITEM,
+} ebpf_epoch_allocation_type_t;
+
+typedef struct _ebpf_epoch_allocation_header
+{
+    ebpf_list_entry_t list_entry;
+    int64_t freed_epoch;
+    ebpf_epoch_allocation_type_t entry_type;
+} ebpf_epoch_allocation_header_t;
+```
+
 Determining the release epoch is necessarily an expensive operation as
 it requires scanning the epoch of every active execution context, with
 execution contexts being protected by spinlocks. To limit the impact,
@@ -113,7 +135,8 @@ behavior, the epoch module exposes ebpf_epoch_schedule_work_item which
 can be used to run a block of work when the current epoch becomes
 inactive (i.e., when no other execution contexts are active in this
 epoch). This is implemented as a special entry in the free list that
-causes a callback to be invoked instead of freeing the memory.
+causes a callback to be invoked instead of freeing the memory. The callback
+can then perform additional cleanup of state as needed.
 
 ### Future investigations
 The use of a common clock leads to contention when the memory state changes
