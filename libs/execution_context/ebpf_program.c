@@ -1504,7 +1504,7 @@ _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* pro
     ebpf_result_t result;
     ebpf_cryptographic_hash_t* cryptographic_hash = NULL;
     ebpf_helper_id_to_index_t* helper_id_to_index = NULL;
-    const ebpf_program_info_t* program_info = NULL;
+    ebpf_program_info_t* program_info = NULL;
 
     result = ebpf_program_get_program_info(program, &program_info);
     if (result != EBPF_SUCCESS) {
