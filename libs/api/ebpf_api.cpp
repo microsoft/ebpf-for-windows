@@ -2208,36 +2208,40 @@ _ebpf_enumerate_native_sections(
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     EBPF_LOG_ENTRY();
-    *infos = nullptr;
-    *error_message = nullptr;
+    try {
+        *infos = nullptr;
+        *error_message = nullptr;
 
-    parsed_pe* pe = ParsePEFromFile(file);
-    if (pe == nullptr) {
-        EBPF_RETURN_RESULT(EBPF_FILE_NOT_FOUND);
-    }
-
-    ebpf_pe_context_t context = {
-        .result = EBPF_SUCCESS,
-        .object = object,
-        .pin_root_path = pin_root_path,
-        .image_base = pe->peHeader.nt.OptionalHeader64.ImageBase};
-    IterSec(pe, _ebpf_pe_get_map_definitions, &context);
-    IterSec(pe, _ebpf_pe_get_section_names, &context);
-    IterSec(pe, _ebpf_pe_add_section, &context);
-
-    DestructParsedPE(pe);
-
-    if (context.result != EBPF_SUCCESS) {
-        *error_message = ebpf_duplicate_string("Failed to parse PE file.");
-        while (context.infos) {
-            ebpf_section_info_t* next = context.infos->next;
-            _ebpf_free_section_info(context.infos);
-            context.infos = next;
+        parsed_pe* pe = ParsePEFromFile(file);
+        if (pe == nullptr) {
+            EBPF_RETURN_RESULT(EBPF_FILE_NOT_FOUND);
         }
-    } else {
-        *infos = context.infos;
+
+        ebpf_pe_context_t context = {
+            .result = EBPF_SUCCESS,
+            .object = object,
+            .pin_root_path = pin_root_path,
+            .image_base = pe->peHeader.nt.OptionalHeader64.ImageBase};
+        IterSec(pe, _ebpf_pe_get_map_definitions, &context);
+        IterSec(pe, _ebpf_pe_get_section_names, &context);
+        IterSec(pe, _ebpf_pe_add_section, &context);
+
+        DestructParsedPE(pe);
+
+        if (context.result != EBPF_SUCCESS) {
+            *error_message = ebpf_duplicate_string("Failed to parse PE file.");
+            while (context.infos) {
+                ebpf_section_info_t* next = context.infos->next;
+                _ebpf_free_section_info(context.infos);
+                context.infos = next;
+            }
+        } else {
+            *infos = context.infos;
+        }
+        EBPF_RETURN_RESULT(context.result);
+    } catch (const std::bad_alloc&) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
-    EBPF_RETURN_RESULT(context.result);
 }
 
 _Must_inspect_result_ ebpf_result_t
