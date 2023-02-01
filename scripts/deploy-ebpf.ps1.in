@@ -237,10 +237,10 @@ if ($vm -eq $null) {
    foreach ( $file in $built_files ) {
       $source_path = "$build_directory\$file"
       $destination_path = "$destination_directory\$file"
-      $destination_full_dir = Split-Path $destination_path
+      $destination_full_directory = Split-Path $destination_path
       Write-Host " $source_path -> $destination_path"
-      if (! (Test-Path $destination_full_dir)) {
-         New-Item -Type Directory $destination_full_dir -ErrorAction Stop | Write-Verbose
+      if (! (Test-Path $destination_full_directory)) {
+         New-Item -Type Directory $destination_full_directory -ErrorAction Stop | Write-Verbose
       }
       Copy-Item "$source_path" -Destination "$destination_path" -ErrorAction Stop
    }
@@ -249,10 +249,10 @@ if ($vm -eq $null) {
    foreach ( $file in $source_files ) {
       $source_path = "$source_directory\$file"
       $destination_path = "$destination_directory\$file"
-      $destination_full_dir = Split-Path $destination_path
+      $destination_full_directory = Split-Path $destination_path
       Write-Host " $source_path -> $destination_path"
-      if (! (Test-Path $destination_full_dir)) {
-         New-Item -Type Directory $destination_full_dir -ErrorAction Stop | Write-Verbose
+      if (! (Test-Path $destination_full_directory)) {
+         New-Item -Type Directory $destination_full_directory -ErrorAction Stop | Write-Verbose
       }
       Copy-Item "$source_path" -Destination "$destination_path" -ErrorAction Stop
    }
