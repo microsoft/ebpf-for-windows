@@ -1208,54 +1208,6 @@ extern "C"
         size_t input_length,
         _Out_ size_t* output_length);
 
-    typedef struct _ebpf_signal ebpf_signal_t;
-
-    /**
-     * @brief Create a signal object.
-     *
-     * @param[out] signal The signal object.
-     * @return EBPF_SUCCESS The signal object was created.
-     * @return EBPF_NO_MEMORY Unable to allocate memory for the signal object.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_signal_create(_Outptr_ ebpf_signal_t** signal);
-
-    /**
-     * @brief Destroy a signal object.
-     *
-     * @param[in] signal The signal object to destroy.
-     */
-    void
-    ebpf_signal_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_signal_t* signal);
-
-    /**
-     * @brief Set the signal object.
-     *
-     * @param[in] signal The signal object to set.
-     */
-    void
-    ebpf_signal_set(_In_ ebpf_signal_t* signal);
-
-    /**
-     * @brief Reset the signal object.
-     *
-     * @param[in] signal The signal object to reset.
-     */
-    void
-    ebpf_signal_reset(_In_ ebpf_signal_t* signal);
-
-    /**
-     * @brief Wait for the signal object to be set.
-     *
-     * @param[in] signal The signal object to wait on.
-     * @param[in] timeout_ms Timeout in milliseconds.
-     * @return EBPF_SUCCESS The signal object was set.
-     * @return EBPF_OPERATION_ABORTED The wait was aborted.
-     * @return EBPF_TIMEOUT The wait timed out.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms);
-
     /**
      * @brief Should the current thread yield the processor?
      *
@@ -1280,6 +1232,16 @@ extern "C"
  */
 #define EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(hash, string) \
     ebpf_cryptographic_hash_append(hash, (const uint8_t*)(string), strlen(string))
+
+    /**
+     * @brief Get 64-bit Authentication ID for the current user.
+     *
+     * @param[out] authentication_id The authentication ID.
+     *
+     * @return result of the operation.
+     */
+    _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
+        ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id);
 
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"

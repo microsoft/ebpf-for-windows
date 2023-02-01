@@ -15,4 +15,5 @@ choco install visualstudio2022buildtools --version 117.4.2.0 -y
 choco install llvm --version 11.0.1 -y
 choco install nuget.commandline --version 6.4.0 -y
 choco install cmake.portable --version 3.25.1 -y
-Start-Process "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Community\Common7\IDE\VSIXInstaller.exe" -ArgumentList @("/q", "/a", "${Env:ProgramFiles(x86)}\Windows Kits\10\vsix\vs2022\WDK.vsix") -Wait
+choco install wixtoolset
+Start-Process "${Env:ProgramFiles}\Microsoft Visual Studio\2022\Community\Common7\IDE\VSIXInstaller.exe" -ArgumentList @("/q", "/a", "${Env:ProgramFiles}\Windows Kits\10\vsix\vs2022\WDK.vsix") -Wait

@@ -30,6 +30,7 @@ target_link_libraries("api_test" PRIVATE
   "test_util"
   "Catch2::Catch2WithMain"
   "ws2_32.lib"
+  "Secur32.lib"
 )
 
 target_compile_definitions("api_test" PRIVATE

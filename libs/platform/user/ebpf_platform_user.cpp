@@ -770,6 +770,8 @@ ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintp
 {
     uintptr_t old_mask = SetThreadAffinityMask(GetCurrentThread(), new_thread_affinity_mask);
     if (old_mask == 0) {
+        DWORD error = GetLastError();
+        ebpf_assert(error != ERROR_SUCCESS);
         return EBPF_OPERATION_NOT_SUPPORTED;
     } else {
         *old_thread_affinity_mask = old_mask;
@@ -1146,61 +1148,39 @@ ebpf_platform_thread_id()
     return GetCurrentThreadId();
 }
 
-typedef struct _ebpf_signal
+_IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
+    ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
 {
-    HANDLE event;
-} ebpf_signal_t;
+    ebpf_result_t return_value = EBPF_SUCCESS;
+    uint32_t error;
+    TOKEN_GROUPS_AND_PRIVILEGES* privileges = nullptr;
+    uint32_t size = 0;
+    HANDLE thread_token_handle = GetCurrentThreadEffectiveToken();
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_signal_create(_Outptr_ ebpf_signal_t** signal)
-{
-    *signal = (ebpf_signal_t*)ebpf_allocate(sizeof(ebpf_signal_t));
-    if (!*signal) {
+    bool result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, nullptr, 0, (PDWORD)&size);
+    error = GetLastError();
+    if (error != ERROR_INSUFFICIENT_BUFFER) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, GetTokenInformation);
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    privileges = (TOKEN_GROUPS_AND_PRIVILEGES*)ebpf_allocate(size);
+    if (privileges == nullptr) {
         return EBPF_NO_MEMORY;
     }
 
-    (*signal)->event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    if (!(*signal)->event) {
-        ebpf_free(*signal);
-        *signal = NULL;
-        return EBPF_NO_MEMORY;
+    result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (PDWORD)&size);
+    if (result == false) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, GetTokenInformation);
+        return_value = win32_error_code_to_ebpf_result(GetLastError());
+        goto Exit;
     }
 
-    return EBPF_SUCCESS;
-}
+    *authentication_id = *(uint64_t*)&privileges->AuthenticationId;
 
-void
-ebpf_signal_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_signal_t* signal)
-{
-    if (signal) {
-        CloseHandle(signal->event);
-    }
-    ebpf_free(signal);
-}
-
-void
-ebpf_signal_set(_In_ ebpf_signal_t* signal)
-{
-    SetEvent(signal->event);
-}
-
-void
-ebpf_signal_reset(_In_ ebpf_signal_t* signal)
-{
-    ResetEvent(signal->event);
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms)
-{
-    DWORD wait_result = WaitForSingleObject(signal->event, timeout_ms);
-    if (wait_result == WAIT_OBJECT_0) {
-        return EBPF_SUCCESS;
-    } else if (wait_result == WAIT_TIMEOUT) {
-        return EBPF_TIMEOUT;
-    } else {
-        return EBPF_FAILED;
-    }
+Exit:
+    ebpf_free(privileges);
+    return return_value;
 }
 
 _IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql)
