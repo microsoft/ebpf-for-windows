@@ -100,7 +100,7 @@ extern "C"
     /**
      * @brief Version information for the bpf2c compiler.
      * This structure contains the version information for the bpf2c compiler that generated the module. It can be
-     * used to determine if the module is compatible with the current version of eBPF for Windows runtime.
+     * used to determine if the module is compatible with the current version of the eBPF for Windows runtime.
      */
     typedef struct _bpf2c_version
     {
@@ -119,13 +119,13 @@ extern "C"
         size_t size; ///< Size of this structure. Used for versioning.
         void (*programs)(
             _Outptr_result_buffer_maybenull_(*count) program_entry_t** programs,
-            _Out_ size_t* count); ///< Returns the list of programs in the this module.
+            _Out_ size_t* count); ///< Returns the list of programs in this module.
         void (*maps)(
             _Outptr_result_buffer_maybenull_(*count) map_entry_t** maps,
-            _Out_ size_t* count); ///< Returns the list of maps in the this module.
+            _Out_ size_t* count); ///< Returns the list of maps in this module.
         void (*hash)(
             _Outptr_result_buffer_maybenull_(*size) const uint8_t** hash,
-            _Out_ size_t* size); ///< Returns the hash of ELF file used to generate this module.
+            _Out_ size_t* size); ///< Returns the hash of the ELF file used to generate this module.
         void (*version)(_Out_ bpf2c_version_t* version);
     } metadata_table_t;
 
