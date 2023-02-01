@@ -84,14 +84,19 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Data Structures</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__helper__function__entry.html">_helper_function_entry</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper function entry. This structure defines a helper function entry in the metadata table. The address of the helper function is written into the entry during load time. The helper_id and name are used to identify the helper function to bind to when the program is loaded.  <a href="struct__helper__function__entry.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__entry.html">_map_entry</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Map entry. This structure contains the address of the map and the map definition. The address is written into the entry during load time. The map definition is used to initialize the map when the program is loaded.  <a href="struct__map__entry.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__program__entry.html">_program_entry</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program entry. This structure contains the address of the program and additional information about the program.  <a href="struct__program__entry.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bpf2c__version.html">_bpf2c_version</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version information for the bpf2c compiler. This structure contains the version information for the bpf2c compiler that generated the module. It can be used to determine if the module is compatible with the current version of the eBPF for Windows runtime.  <a href="struct__bpf2c__version.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html">_metadata_table</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Metadata table for a module. This structure is returned by the module's metadata function, get_metadata_table and contains information about the module including the list of programs and maps.  <a href="struct__metadata__table.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
@@ -120,23 +125,31 @@ Macros</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:a5a615dcc4f1c8b536fd125680aa93b72"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__helper__function__entry.html">_helper_function_entry</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a5a615dcc4f1c8b536fd125680aa93b72">helper_function_entry_t</a></td></tr>
+<tr class="memdesc:a5a615dcc4f1c8b536fd125680aa93b72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper function entry. This structure defines a helper function entry in the metadata table. The address of the helper function is written into the entry during load time. The helper_id and name are used to identify the helper function to bind to when the program is loaded.  <a href="bpf2c_8h.html#a5a615dcc4f1c8b536fd125680aa93b72">More...</a><br /></td></tr>
 <tr class="separator:a5a615dcc4f1c8b536fd125680aa93b72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4fe28d06b61887b8c086b1e132383707"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__map__entry.html">_map_entry</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707">map_entry_t</a></td></tr>
+<tr class="memdesc:a4fe28d06b61887b8c086b1e132383707"><td class="mdescLeft">&#160;</td><td class="mdescRight">Map entry. This structure contains the address of the map and the map definition. The address is written into the entry during load time. The map definition is used to initialize the map when the program is loaded.  <a href="bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707">More...</a><br /></td></tr>
 <tr class="separator:a4fe28d06b61887b8c086b1e132383707"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa90fb1b455357ca56d50c4eaab83f7a0"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__program__entry.html">_program_entry</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a></td></tr>
+<tr class="memdesc:aa90fb1b455357ca56d50c4eaab83f7a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program entry. This structure contains the address of the program and additional information about the program.  <a href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">More...</a><br /></td></tr>
 <tr class="separator:aa90fb1b455357ca56d50c4eaab83f7a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab89f9a3008e6862217c45fc719bc5869"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__bpf2c__version.html">_bpf2c_version</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#ab89f9a3008e6862217c45fc719bc5869">bpf2c_version_t</a></td></tr>
+<tr class="memdesc:ab89f9a3008e6862217c45fc719bc5869"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version information for the bpf2c compiler. This structure contains the version information for the bpf2c compiler that generated the module. It can be used to determine if the module is compatible with the current version of the eBPF for Windows runtime.  <a href="bpf2c_8h.html#ab89f9a3008e6862217c45fc719bc5869">More...</a><br /></td></tr>
 <tr class="separator:ab89f9a3008e6862217c45fc719bc5869"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae777b2c463d86d373db6806421ee42ff"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__metadata__table.html">_metadata_table</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#ae777b2c463d86d373db6806421ee42ff">metadata_table_t</a></td></tr>
+<tr class="memdesc:ae777b2c463d86d373db6806421ee42ff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Metadata table for a module. This structure is returned by the module's metadata function, get_metadata_table and contains information about the module including the list of programs and maps.  <a href="bpf2c_8h.html#ae777b2c463d86d373db6806421ee42ff">More...</a><br /></td></tr>
 <tr class="separator:ae777b2c463d86d373db6806421ee42ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:a7cf3526e1af5c8642d2ec02caecf99bc"><td class="memItemLeft" align="right" valign="top">uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a7cf3526e1af5c8642d2ec02caecf99bc">swap16</a> (uint16_t value)</td></tr>
+<tr class="memdesc:a7cf3526e1af5c8642d2ec02caecf99bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inline function used to implement the 16 bit EBPF_OP_LE/EBPF_OP_BE instruction.  <a href="bpf2c_8h.html#a7cf3526e1af5c8642d2ec02caecf99bc">More...</a><br /></td></tr>
 <tr class="separator:a7cf3526e1af5c8642d2ec02caecf99bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5bdbc60a02db00841f567d1ade52f877"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a5bdbc60a02db00841f567d1ade52f877">swap32</a> (uint32_t value)</td></tr>
+<tr class="memdesc:a5bdbc60a02db00841f567d1ade52f877"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inline function used to implement the 32 bit EBPF_OP_LE/EBPF_OP_BE instruction.  <a href="bpf2c_8h.html#a5bdbc60a02db00841f567d1ade52f877">More...</a><br /></td></tr>
 <tr class="separator:a5bdbc60a02db00841f567d1ade52f877"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a27634689306157c465da8414fabf1df2"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a27634689306157c465da8414fabf1df2">swap64</a> (uint64_t value)</td></tr>
+<tr class="memdesc:a27634689306157c465da8414fabf1df2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inline function used to implement the 64 bit EBPF_OP_LE/EBPF_OP_BE instruction.  <a href="bpf2c_8h.html#a27634689306157c465da8414fabf1df2">More...</a><br /></td></tr>
 <tr class="separator:a27634689306157c465da8414fabf1df2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af82e66f38a2661862bd93c95221266b5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#af82e66f38a2661862bd93c95221266b5">division_by_zero</a> (uint32_t address)</td></tr>
 <tr class="separator:af82e66f38a2661862bd93c95221266b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -331,6 +344,8 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
+<p>Version information for the bpf2c compiler. This structure contains the version information for the bpf2c compiler that generated the module. It can be used to determine if the module is compatible with the current version of the eBPF for Windows runtime. </p>
+
 </div>
 </div>
 <a id="a5a615dcc4f1c8b536fd125680aa93b72"></a>
@@ -344,6 +359,8 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>Helper function entry. This structure defines a helper function entry in the metadata table. The address of the helper function is written into the entry during load time. The helper_id and name are used to identify the helper function to bind to when the program is loaded. </p>
 
 </div>
 </div>
@@ -359,6 +376,8 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
+<p>Map entry. This structure contains the address of the map and the map definition. The address is written into the entry during load time. The map definition is used to initialize the map when the program is loaded. </p>
+
 </div>
 </div>
 <a id="ae777b2c463d86d373db6806421ee42ff"></a>
@@ -373,6 +392,8 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
+<p>Metadata table for a module. This structure is returned by the module's metadata function, get_metadata_table and contains information about the module including the list of programs and maps. </p>
+
 </div>
 </div>
 <a id="aa90fb1b455357ca56d50c4eaab83f7a0"></a>
@@ -386,6 +407,8 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>Program entry. This structure contains the address of the program and additional information about the program. </p>
 
 </div>
 </div>
@@ -432,6 +455,15 @@ Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
+<p>Inline function used to implement the 16 bit EBPF_OP_LE/EBPF_OP_BE instruction. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>The value to swap. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The swapped value. </dd></dl>
+
 </div>
 </div>
 <a id="a5bdbc60a02db00841f567d1ade52f877"></a>
@@ -458,6 +490,15 @@ Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
+<p>Inline function used to implement the 32 bit EBPF_OP_LE/EBPF_OP_BE instruction. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>The value to swap. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The swapped value. </dd></dl>
+
 </div>
 </div>
 <a id="a27634689306157c465da8414fabf1df2"></a>
@@ -483,6 +524,15 @@ Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+
+<p>Inline function used to implement the 64 bit EBPF_OP_LE/EBPF_OP_BE instruction. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>The value to swap. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The swapped value. </dd></dl>
 
 </div>
 </div>
