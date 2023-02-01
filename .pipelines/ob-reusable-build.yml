@@ -68,15 +68,15 @@ jobs:
       - bash: |
           echo "*** All environment variables ***"
           env | sort
-        displayName: 'Dump Environment variables'
         workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Dump Environment variables'
 
       - bash: |
           choco install -y llvm --version 11.0.1 --allow-downgrade
           echo '##vso[task.prependpath]C:\Program Files\LLVM\bin'
           choco install wixtoolset
-        displayName:  'Install tools'
         workingDirectory: $(Build.SourcesDirectory)
+        displayName:  'Install tools'
 
       - task: NuGetCommand@2
         inputs:
@@ -89,34 +89,34 @@ jobs:
         env:
           CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
           LDFLAGS: $(LD_FLAGS)
-        displayName: 'Create verifier project'
         workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Create verifier project'
 
       - bash: |
           cmake -G "Visual Studio 17 2022" -S external/catch2 -B external/catch2/build -DBUILD_TESTING=OFF
         env:
           CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
           LDFLAGS: $(LD_FLAGS)
-        displayName: 'Create catch2 project'
         workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Create catch2 project'
 
       - bash: |
           cmake -G "Visual Studio 17 2022" -S external/ubpf -B external/ubpf/build
         env:
           CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
           LDFLAGS: $(LD_FLAGS)
-        displayName: 'Create ubpf project'
         workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Create ubpf project'
 
       - script: |
           "$(MSBUILD_PATH)\msbuild.exe" /m /p:Configuration=$(BUILD_CONFIGURATION) /p:Platform=$(BUILD_PLATFORM) $(SOLUTION_FILE_PATH) $(BUILD_OPTIONS)
-        displayName: 'Build'
         workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Build'
 
       - script: |
           copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
         workingDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
-        displayName: Copy LLVM libs for Fuzzing & Address Sanitizing
+        displayName: 'Copy LLVM libs for Fuzzing & Address Sanitizing'
 
       - powershell: |
           Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/$(BUILD_PLATFORM)-$(BUILD_CONFIGURATION)-cilium-xdp.zip -OutFile x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
@@ -130,17 +130,17 @@ jobs:
 
       - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
         artifact: "${{parameters.build_artifact}} $(buildConfiguration)"
-        displayName: "Upload Build Output"
+        displayName: 'Upload Build Output'
 
       - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)/ebpf-for-windows.msi
-        artifact: 'ebpf-for-windows MSI installer (Debug)'
+        artifact: "ebpf-for-windows MSI installer $(buildConfiguration)"
+        condition: and(eq('${{parameters.build_artifact}}', 'Build-x64'), eq(variables.buildConfiguration, 'Debug'))
         displayName: 'Upload the MSI package (Debug)'
-        condition: and(eq(variables.buildConfiguration, 'Debug'), eq('${{parameters.build_artifact}}', 'Build-x64'))
 
       - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)/ebpf-for-windows.msi
-        artifact: 'ebpf-for-windows MSI installer (Release)'
+        artifact: "ebpf-for-windows MSI installer $(buildConfiguration)"
+        condition: and(eq('${{parameters.build_artifact}}', 'Build-x64'), eq(variables.buildConfiguration, 'Release'))
         displayName: 'Upload the MSI package (Release)'
-        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_artifact}}', 'Build-x64'))
 
       - script: |
           "$(MSBUILD_PATH)\msbuild.exe" /m /p:Configuration="$(BUILD_CONFIGURATION)" /p:Platform="$(BUILD_PLATFORM)" "$(SOLUTION_FILE_PATH)" "$(BUILD_OPTIONS)" /t:tools\nuget
