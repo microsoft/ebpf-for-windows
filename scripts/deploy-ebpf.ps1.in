@@ -186,7 +186,7 @@ OPTIONS:
     -h, --help     Print this help message.
     -m, --msi      Copies MSI instead of individual files
     -l, --local    Copies files to the local temp directory instead of into a VM
-\    -t, --test     Includes files needed only for testing and debugging
+    -t, --test     Includes files needed only for testing and debugging
     --vm           Specifies the VM name, which defaults to "Windows 10 dev environment"
 
 '@
