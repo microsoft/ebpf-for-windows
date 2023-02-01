@@ -59,7 +59,8 @@ typedef struct _ebpf_epoch_state
 
 The epoch state is then embedded into both a per-CPU and per-thread
 state, each of which maintains additional metadata that is specific to
-that execution context type.
+that execution context type. In addition, the per-CPU state maintains a
+table of per-thread states for each thread affinitized to this CPU.
 
 Each execution context then must first call ebpf_epoch_enter prior to
 accessing any memory that is under epoch protection and then call
