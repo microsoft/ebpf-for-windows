@@ -590,6 +590,7 @@ net_ebpf_ext_layer_2_classify(
     NTSTATUS status = STATUS_SUCCESS;
     NET_BUFFER_LIST* nbl = (NET_BUFFER_LIST*)layer_data;
     NET_BUFFER* net_buffer = NULL;
+    KIRQL old_irql;
     uint8_t* packet_buffer;
     uint32_t result = 0;
     net_ebpf_xdp_md_t net_xdp_ctx = {0};
@@ -667,6 +668,8 @@ net_ebpf_ext_layer_2_classify(
         net_xdp_ctx.base.data_end = packet_buffer + net_buffer->DataLength;
     }
 
+    old_irql = KeRaiseIrqlToDpcLevel();
+
     if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case XDP_PASS:
@@ -703,6 +706,9 @@ net_ebpf_ext_layer_2_classify(
             break;
         }
     }
+
+    KeLowerIrql(old_irql);
+
 Done:
 
     if (attached_client)
