@@ -559,7 +559,8 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     // Create a pagefile-backed section for the buffer.
     //
 
-    section = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, static_cast<DWORD>(length), nullptr);
+    section = CreateFileMapping(
+        INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, static_cast<unsigned long>(length), nullptr);
     if (section == nullptr) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, CreateFileMapping);
         goto Exit;
@@ -659,8 +660,8 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
     EBPF_LOG_ENTRY();
-    ULONG mm_protection_state = 0;
-    ULONG old_mm_protection_state = 0;
+    unsigned long mm_protection_state = 0;
+    unsigned long old_mm_protection_state = 0;
     switch (protection) {
     case EBPF_PAGE_PROTECT_READ_ONLY:
         mm_protection_state = PAGE_READONLY;
@@ -770,7 +771,7 @@ ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintp
 {
     uintptr_t old_mask = SetThreadAffinityMask(GetCurrentThread(), new_thread_affinity_mask);
     if (old_mask == 0) {
-        DWORD error = GetLastError();
+        unsigned long error = GetLastError();
         ebpf_assert(error != ERROR_SUCCESS);
         return EBPF_OPERATION_NOT_SUPPORTED;
     } else {
@@ -1025,9 +1026,9 @@ ebpf_access_check(
     ebpf_result_t result;
     HANDLE token = INVALID_HANDLE_VALUE;
     BOOL access_status = FALSE;
-    DWORD granted_access;
+    unsigned long granted_access;
     PRIVILEGE_SET privilege_set;
-    DWORD privilege_set_size = sizeof(privilege_set);
+    unsigned long privilege_set_size = sizeof(privilege_set);
     bool is_impersonating = false;
 
     if (!ImpersonateSelf(SecurityImpersonation)) {
@@ -1049,7 +1050,7 @@ ebpf_access_check(
             &privilege_set_size,
             &granted_access,
             &access_status)) {
-        DWORD err = GetLastError();
+        unsigned long err = GetLastError();
         printf("LastError: %d\n", err);
         result = EBPF_ACCESS_DENIED;
     } else {
@@ -1071,8 +1072,8 @@ ebpf_validate_security_descriptor(
 {
     ebpf_result_t result;
     SECURITY_DESCRIPTOR_CONTROL security_descriptor_control;
-    DWORD version;
-    DWORD length;
+    unsigned long version;
+    unsigned long length;
     if (!IsValidSecurityDescriptor(const_cast<_SECURITY_DESCRIPTOR*>(security_descriptor))) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -1157,7 +1158,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     uint32_t size = 0;
     HANDLE thread_token_handle = GetCurrentThreadEffectiveToken();
 
-    bool result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, nullptr, 0, (PDWORD)&size);
+    bool result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, nullptr, 0, (unsigned long*)&size);
     error = GetLastError();
     if (error != ERROR_INSUFFICIENT_BUFFER) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, GetTokenInformation);
@@ -1169,7 +1170,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
         return EBPF_NO_MEMORY;
     }
 
-    result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (PDWORD)&size);
+    result =
+        GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (unsigned long*)&size);
     if (result == false) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, GetTokenInformation);
         return_value = win32_error_code_to_ebpf_result(GetLastError());

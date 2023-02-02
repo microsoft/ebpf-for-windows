@@ -81,13 +81,13 @@ _get_current_thread_authentication_id()
     HANDLE thread_token_handle = GetCurrentThreadEffectiveToken();
     uint64_t authentication_id;
 
-    bool result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, nullptr, 0, (PDWORD)&size);
+    bool result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, nullptr, 0, (unsigned long*)&size);
     REQUIRE(GetLastError() == ERROR_INSUFFICIENT_BUFFER);
 
     privileges = (TOKEN_GROUPS_AND_PRIVILEGES*)malloc(size);
     REQUIRE(privileges != nullptr);
 
-    result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (PDWORD)&size);
+    result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (unsigned long*)&size);
     REQUIRE(result == true);
 
     authentication_id = *(uint64_t*)&privileges->AuthenticationId;

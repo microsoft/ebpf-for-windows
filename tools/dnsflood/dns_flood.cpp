@@ -60,7 +60,7 @@ main(int argc, const char** argv)
         b.buf = &a;
         b.len = 0;
     }
-    DWORD bytes_sent;
+    unsigned long bytes_sent;
 
     volatile long packet_sent = 0;
     std::vector<std::thread> threads(4);
@@ -69,7 +69,13 @@ main(int argc, const char** argv)
         t = std::thread([&] {
             for (;;) {
                 if (WSASend(
-                        socket, buffers.data(), static_cast<DWORD>(buffers.size()), &bytes_sent, 0, nullptr, nullptr) !=
+                        socket,
+                        buffers.data(),
+                        static_cast<unsigned long>(buffers.size()),
+                        &bytes_sent,
+                        0,
+                        nullptr,
+                        nullptr) !=
                     0) {
                     printf("WSASend failed\n");
                     return 1;

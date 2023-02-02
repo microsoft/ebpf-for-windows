@@ -570,12 +570,12 @@ _test_helper_end_to_end::_test_helper_end_to_end()
 {
     if (_get_environment_variable_as_bool("EBPF_GENERATE_CORPUS")) {
         device_io_control_handler = [](HANDLE hDevice,
-                                       DWORD dwIoControlCode,
-                                       PVOID lpInBuffer,
-                                       DWORD nInBufferSize,
-                                       LPVOID lpOutBuffer,
-                                       DWORD nOutBufferSize,
-                                       PDWORD lpBytesReturned,
+                                       unsigned long dwIoControlCode,
+                                       void* lpInBuffer,
+                                       unsigned long nInBufferSize,
+                                       void* lpOutBuffer,
+                                       unsigned long nOutBufferSize,
+                                       unsigned long* lpBytesReturned,
                                        OVERLAPPED* lpOverlapped) -> BOOL {
             UNREFERENCED_PARAMETER(hDevice);
             UNREFERENCED_PARAMETER(dwIoControlCode);

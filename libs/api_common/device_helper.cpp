@@ -146,7 +146,7 @@ get_async_ioctl_operation_overlapped(_In_ const async_ioctl_completion_t* async_
 _Must_inspect_result_ ebpf_result_t
 get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion)
 {
-    DWORD dummy;
+    unsigned long dummy;
     if (!GetOverlappedResult(
             reinterpret_cast<HANDLE>(get_device_handle()),
             get_async_ioctl_operation_overlapped(ioctl_completion),

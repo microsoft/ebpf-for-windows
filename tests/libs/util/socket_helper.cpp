@@ -50,9 +50,13 @@ get_string_from_address(_In_ const SOCKADDR* sockaddr)
 {
     char ip_string[MAXIMUM_IP_BUFFER_SIZE] = {0};
 
-    DWORD length = sizeof(ip_string);
+    unsigned long length = sizeof(ip_string);
     int error = WSAAddressToStringA(
-        const_cast<SOCKADDR*>(sockaddr), (DWORD)INET_SOCKADDR_LENGTH(sockaddr->sa_family), nullptr, ip_string, &length);
+        const_cast<SOCKADDR*>(sockaddr),
+        (unsigned long)INET_SOCKADDR_LENGTH(sockaddr->sa_family),
+        nullptr,
+        ip_string,
+        &length);
     if (error != 0) {
         error = WSAGetLastError();
         printf("Failure calling WSAAddressToStringA with error code %d\n", error);
@@ -73,8 +77,8 @@ _base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port, socket
 
     if (family == Dual) {
         uint32_t ipv6_option = 0;
-        error =
-            setsockopt(socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(ULONG));
+        error = setsockopt(
+            socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(unsigned long));
         if (error != 0)
             FAIL("Could not enable dual family endpoint: " << WSAGetLastError());
     }
@@ -135,7 +139,8 @@ _client_socket::post_async_receive(bool error_expected)
     int error = 0;
     int wsaerr = 0;
 
-    WSABUF wsa_recv_buffer{static_cast<ULONG>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+    WSABUF wsa_recv_buffer{
+        static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
@@ -147,8 +152,8 @@ _client_socket::post_async_receive(bool error_expected)
         socket,
         &wsa_recv_buffer,
         1,
-        reinterpret_cast<LPDWORD>(&bytes_received),
-        reinterpret_cast<LPDWORD>(&recv_flags),
+        reinterpret_cast<unsigned long*>(&bytes_received),
+        reinterpret_cast<unsigned long*>(&recv_flags),
         &overlapped,
         nullptr);
 
@@ -180,9 +185,9 @@ _client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
         bool result = WSAGetOverlappedResult(
             socket,
             &overlapped,
-            reinterpret_cast<LPDWORD>(&bytes_received),
+            reinterpret_cast<unsigned long*>(&bytes_received),
             FALSE,
-            reinterpret_cast<LPDWORD>(&recv_flags));
+            reinterpret_cast<unsigned long*>(&recv_flags));
         if (!result && !timeout_or_error_expected) {
             FAIL("WSARecvFrom on the receiver socket failed with error: " << WSAGetLastError());
         }
@@ -217,14 +222,14 @@ _datagram_client_socket::send_message_to_remote_host(
     // Send a message to the remote host using the sender socket.
     ((PSOCKADDR_IN6)&remote_address)->sin6_port = htons(remote_port);
     std::vector<char> send_buffer(message, message + strlen(message));
-    WSABUF wsa_send_buffer{static_cast<ULONG>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
+    WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
     uint32_t bytes_sent = 0;
     uint32_t send_flags = 0;
     error = WSASendTo(
         socket,
         &wsa_send_buffer,
         1,
-        reinterpret_cast<LPDWORD>(&bytes_sent),
+        reinterpret_cast<unsigned long*>(&bytes_sent),
         send_flags,
         (const SOCKADDR*)&remote_address,
         sizeof(remote_address),
@@ -261,7 +266,7 @@ _stream_client_socket::_stream_client_socket(int _sock_type, int _protocol, uint
         sizeof(guid),
         &connectex,
         sizeof(connectex),
-        reinterpret_cast<LPDWORD>(&bytes),
+        reinterpret_cast<unsigned long*>(&bytes),
         NULL,
         NULL);
 
@@ -283,8 +288,8 @@ _stream_client_socket::send_message_to_remote_host(
             (PSOCKADDR)&remote_address,
             sizeof(remote_address),
             send_buffer.data(),
-            static_cast<DWORD>(send_buffer.size()),
-            reinterpret_cast<LPDWORD>(&bytes_sent),
+            static_cast<unsigned long>(send_buffer.size()),
+            reinterpret_cast<unsigned long*>(&bytes_sent),
             &overlapped)) {
         int wsaerr = WSAGetLastError();
         if (wsaerr != WSA_IO_PENDING)
@@ -325,9 +330,9 @@ _stream_client_socket::complete_async_send(int timeout_in_ms, expected_result_t 
         if (!WSAGetOverlappedResult(
                 socket,
                 &overlapped,
-                reinterpret_cast<LPDWORD>(&bytes_sent),
+                reinterpret_cast<unsigned long*>(&bytes_sent),
                 FALSE,
-                reinterpret_cast<LPDWORD>(&send_flags))) {
+                reinterpret_cast<unsigned long*>(&send_flags))) {
             if (expected_result != expected_result_t::FAILURE) {
                 FAIL("WSASend on the socket failed with error: " << WSAGetLastError());
             }
@@ -357,7 +362,7 @@ _server_socket::_server_socket(int _sock_type, int _protocol, uint16_t _port)
         sizeof(guid),
         &receive_message,
         sizeof(receive_message),
-        reinterpret_cast<LPDWORD>(&bytes),
+        reinterpret_cast<unsigned long*>(&bytes),
         NULL,
         NULL);
 
@@ -384,9 +389,9 @@ _server_socket::complete_async_receive(int timeout_in_ms, bool timeout_expected)
         if (!WSAGetOverlappedResult(
                 socket,
                 &overlapped,
-                reinterpret_cast<LPDWORD>(&bytes_received),
+                reinterpret_cast<unsigned long*>(&bytes_received),
                 FALSE,
-                reinterpret_cast<LPDWORD>(&recv_flags)))
+                reinterpret_cast<unsigned long*>(&recv_flags)))
             FAIL("WSARecvFrom on the receiver socket failed with error: " << WSAGetLastError());
         WSACloseEvent(overlapped.hEvent);
         overlapped.hEvent = INVALID_HANDLE_VALUE;
@@ -420,7 +425,7 @@ _datagram_server_socket::post_async_receive()
 {
     int error = 0;
 
-    WSABUF wsa_recv_buffer{static_cast<ULONG>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+    WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
@@ -433,7 +438,7 @@ _datagram_server_socket::post_async_receive()
         &wsa_recv_buffer,
         1,
         nullptr,
-        reinterpret_cast<LPDWORD>(&recv_flags),
+        reinterpret_cast<unsigned long*>(&recv_flags),
         (PSOCKADDR)&sender_address,
         &sender_address_size,
         &overlapped,
@@ -459,14 +464,14 @@ _datagram_server_socket::send_async_response(_In_z_ const char* message)
 
     // Send a response to the sender.
     std::vector<char> send_buffer(message, message + strlen(message));
-    WSABUF wsa_send_buffer{static_cast<ULONG>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
+    WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
     uint32_t bytes_sent = 0;
     uint32_t send_flags = 0;
     error = WSASendTo(
         socket,
         &wsa_send_buffer,
         1,
-        reinterpret_cast<LPDWORD>(&bytes_sent),
+        reinterpret_cast<unsigned long*>(&bytes_sent),
         send_flags,
         (PSOCKADDR)&sender_address,
         sizeof(sender_address),
@@ -506,7 +511,7 @@ _stream_server_socket::_stream_server_socket(int _sock_type, int _protocol, uint
         sizeof(guid),
         &acceptex,
         sizeof(acceptex),
-        reinterpret_cast<LPDWORD>(&bytes),
+        reinterpret_cast<unsigned long*>(&bytes),
         NULL,
         NULL);
 
@@ -533,7 +538,7 @@ _stream_server_socket::initialize_accept_socket()
     accept_socket = WSASocket(AF_INET6, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
     uint32_t ipv6_option = 0;
     int error = setsockopt(
-        accept_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(ULONG));
+        accept_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(unsigned long));
     if (error != 0)
         FAIL("Could not enable dual family endpoint on accept socket: " << WSAGetLastError());
 }
@@ -549,7 +554,7 @@ _stream_server_socket::post_async_receive()
 {
     initialize_accept_socket();
 
-    WSABUF wsa_recv_buffer{static_cast<ULONG>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+    WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
@@ -561,10 +566,10 @@ _stream_server_socket::post_async_receive()
             socket,        // Listen socket.
             accept_socket, // Accept socket.
             recv_buffer.data(),
-            static_cast<DWORD>(message_length),
-            static_cast<DWORD>(sizeof(sockaddr_storage)) + 16,
-            static_cast<DWORD>(sizeof(sockaddr_storage)) + 16,
-            reinterpret_cast<LPDWORD>(&bytes_received),
+            static_cast<unsigned long>(message_length),
+            static_cast<unsigned long>(sizeof(sockaddr_storage)) + 16,
+            static_cast<unsigned long>(sizeof(sockaddr_storage)) + 16,
+            reinterpret_cast<unsigned long*>(&bytes_received),
             &overlapped)) {
         int wsaerr = WSAGetLastError();
         if (wsaerr != WSA_IO_PENDING)
@@ -577,11 +582,11 @@ _stream_server_socket::send_async_response(_In_z_ const char* message)
 {
     // Send a message to the remote host using the sender socket.
     std::vector<char> send_buffer(message, message + strlen(message));
-    WSABUF wsa_send_buffer{static_cast<ULONG>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
+    WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
     uint32_t bytes_sent = 0;
     overlapped.hEvent = WSACreateEvent();
-    int32_t error =
-        WSASend(accept_socket, &wsa_send_buffer, 1, reinterpret_cast<LPDWORD>(&bytes_sent), 0, &overlapped, NULL);
+    int32_t error = WSASend(
+        accept_socket, &wsa_send_buffer, 1, reinterpret_cast<unsigned long*>(&bytes_sent), 0, &overlapped, NULL);
     if (error != 0) {
         int wsaerr = WSAGetLastError();
         FAIL("send_async_response failed with " << wsaerr);
@@ -601,9 +606,9 @@ _stream_server_socket::complete_async_send(int timeout_in_ms)
         if (!WSAGetOverlappedResult(
                 socket,
                 &overlapped,
-                reinterpret_cast<LPDWORD>(&bytes_sent),
+                reinterpret_cast<unsigned long*>(&bytes_sent),
                 FALSE,
-                reinterpret_cast<LPDWORD>(&send_flags)))
+                reinterpret_cast<unsigned long*>(&send_flags)))
             FAIL("WSASend on the receiver socket failed with error: " << WSAGetLastError());
         WSACloseEvent(overlapped.hEvent);
         overlapped.hEvent = INVALID_HANDLE_VALUE;

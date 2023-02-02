@@ -17,9 +17,15 @@
 #include "platform.h"
 #include "tokens.h"
 
-DWORD
+unsigned long
 handle_ebpf_show_pins(
-    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
+    _Null_terminated_ const wchar_t* machine,
+    _Null_terminated_ wchar_t** argv,
+    unsigned long current_index,
+    unsigned long argc,
+    unsigned long flags,
+    const void* data,
+    BOOL* done)
 {
     UNREFERENCED_PARAMETER(argv);
     UNREFERENCED_PARAMETER(current_index);

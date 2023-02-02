@@ -350,7 +350,8 @@ perform_socket_bind(const uint16_t test_port, bool expect_success = true)
     REQUIRE(_socket != INVALID_SOCKET);
     uint32_t ipv6_option = 0;
     REQUIRE(
-        setsockopt(_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(ULONG)) ==
+        setsockopt(
+            _socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(unsigned long)) ==
         0);
     SOCKADDR_STORAGE sock_addr;
     sock_addr.ss_family = AF_INET6;
@@ -646,8 +647,8 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
     REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
 
     // Verify PID/TID values.
-    DWORD pid = GetCurrentProcessId();
-    DWORD tid = GetCurrentThreadId();
+    unsigned long pid = GetCurrentProcessId();
+    unsigned long tid = GetCurrentThreadId();
     REQUIRE(pid == value.context_pid);
     REQUIRE(pid == value.current_pid);
     REQUIRE(tid == value.current_tid);

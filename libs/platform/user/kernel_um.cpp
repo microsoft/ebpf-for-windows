@@ -152,15 +152,15 @@ typedef struct _IO_WORKITEM
     void* context;
 } IO_WORKITEM;
 
-typedef ULONG PFN_NUMBER;
+typedef unsigned long PFN_NUMBER;
 #define PAGE_SIZE 4096
 #define PAGE_SHIFT 12L
 
-#define PAGE_ALIGN(Va) ((PVOID)((ULONG_PTR)(Va) & ~(PAGE_SIZE - 1)))
-#define BYTE_OFFSET(Va) ((ULONG)((LONG_PTR)(Va) & (PAGE_SIZE - 1)))
+#define PAGE_ALIGN(Va) ((void*)((ULONG_PTR)(Va) & ~(PAGE_SIZE - 1)))
+#define BYTE_OFFSET(Va) ((unsigned long)((LONG_PTR)(Va) & (PAGE_SIZE - 1)))
 #define ADDRESS_AND_SIZE_TO_SPAN_PAGES(Va, size)                                                        \
     (((((size)-1) >> PAGE_SHIFT) +                                                                      \
-      (((((ULONG)(size - 1) & (PAGE_SIZE - 1)) + (PtrToUlong(Va) & (PAGE_SIZE - 1)))) >> PAGE_SHIFT)) + \
+      (((((unsigned long)(size - 1) & (PAGE_SIZE - 1)) + (PtrToUlong(Va) & (PAGE_SIZE - 1)))) >> PAGE_SHIFT)) + \
      1L)
 
 static GENERIC_MAPPING _mapping = {1, 1, 1};
@@ -176,14 +176,14 @@ MmGetMdlByteCount(_In_ MDL* mdl)
 
 #define MmGetMdlByteOffset(mdl) ((mdl)->byte_offset)
 #define MmGetMdlBaseVa(mdl) ((mdl)->start_va)
-#define MmGetMdlVirtualAddress(mdl) ((PVOID)((PCHAR)((mdl)->start_va) + (mdl)->byte_offset))
+#define MmGetMdlVirtualAddress(mdl) ((void*)((PCHAR)((mdl)->start_va) + (mdl)->byte_offset))
 #define MmInitializeMdl(mdl, base_va, length)                                                                     \
     {                                                                                                             \
         (mdl)->next = (PMDL)NULL;                                                                                 \
         (mdl)->size =                                                                                             \
             (uint16_t)(sizeof(MDL) + (sizeof(PFN_NUMBER) * ADDRESS_AND_SIZE_TO_SPAN_PAGES((base_va), (length)))); \
         (mdl)->flags = 0;                                                                                         \
-        (mdl)->start_va = (PVOID)PAGE_ALIGN((base_va));                                                           \
+        (mdl)->start_va = (void*)PAGE_ALIGN((base_va));                                                           \
         (mdl)->byte_offset = BYTE_OFFSET((base_va));                                                              \
         (mdl)->byte_count = (ULONG)(length);                                                                      \
     }
@@ -357,7 +357,7 @@ IoAllocateMdl(
 }
 
 void NTAPI
-io_work_item_wrapper(_Inout_ PTP_CALLBACK_INSTANCE instance, _Inout_opt_ PVOID context, _Inout_ PTP_WORK work)
+io_work_item_wrapper(_Inout_ PTP_CALLBACK_INSTANCE instance, _Inout_opt_ void* context, _Inout_ PTP_WORK work)
 {
     UNREFERENCED_PARAMETER(instance);
     UNREFERENCED_PARAMETER(work);
@@ -455,7 +455,7 @@ MmGetSystemAddressForMdlSafe(
 )
 {
     UNREFERENCED_PARAMETER(page_priority);
-    return ((PVOID)((PUCHAR)(mdl)->start_va + (mdl)->byte_offset));
+    return ((void*)((PUCHAR)(mdl)->start_va + (mdl)->byte_offset));
 }
 
 NTSTATUS
@@ -468,10 +468,10 @@ RtlULongAdd(
     return STATUS_SUCCESS;
 }
 
-ULONGLONG
+unsigned long long
 QueryInterruptTimeEx()
 {
-    ULONGLONG time = 0;
+    unsigned long long time = 0;
     QueryInterruptTime(&time);
 
     return time;
@@ -481,7 +481,7 @@ PGENERIC_MAPPING
 IoGetFileObjectGenericMapping() { return &_mapping; }
 
 NTSTATUS
-RtlCreateAcl(_Out_ PACL Acl, ULONG AclLength, ULONG AclRevision)
+RtlCreateAcl(_Out_ PACL Acl, unsigned long AclLength, unsigned long AclRevision)
 {
     UNREFERENCED_PARAMETER(Acl);
     UNREFERENCED_PARAMETER(AclRevision);
@@ -502,15 +502,15 @@ RtlMapGenericMask(_Inout_ PACCESS_MASK AccessMask, _In_ const GENERIC_MAPPING* G
     UNREFERENCED_PARAMETER(GenericMapping);
 }
 
-ULONG
+unsigned long
 RtlLengthSid(_In_ PSID Sid)
 {
     UNREFERENCED_PARAMETER(Sid);
-    return (ULONG)sizeof(SID);
+    return (unsigned long)sizeof(SID);
 }
 
 NTSTATUS
-RtlAddAccessAllowedAce(_Inout_ PACL Acl, _In_ ULONG AceRevision, _In_ ACCESS_MASK AccessMask, _In_ PSID Sid)
+RtlAddAccessAllowedAce(_Inout_ PACL Acl, _In_ unsigned long AceRevision, _In_ ACCESS_MASK AccessMask, _In_ PSID Sid)
 {
     UNREFERENCED_PARAMETER(Acl);
     UNREFERENCED_PARAMETER(AceRevision);
@@ -538,7 +538,7 @@ RtlSetDaclSecurityDescriptor(
 
 NTSTATUS
 NTAPI
-RtlCreateSecurityDescriptor(_Out_ PSECURITY_DESCRIPTOR SecurityDescriptor, _In_ ULONG Revision)
+RtlCreateSecurityDescriptor(_Out_ PSECURITY_DESCRIPTOR SecurityDescriptor, _In_ unsigned long Revision)
 {
     UNREFERENCED_PARAMETER(Revision);
     memset(SecurityDescriptor, 0, sizeof(SECURITY_DESCRIPTOR));

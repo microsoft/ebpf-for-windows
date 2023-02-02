@@ -27,12 +27,12 @@
 
 uint32_t _vectored_exception_handler_test = 1;
 
-ULONG AddVectoredExceptionHandler_test_first = 0;
+unsigned long AddVectoredExceptionHandler_test_first = 0;
 PVECTORED_EXCEPTION_HANDLER AddVectoredExceptionHandler_test_handler = nullptr;
 
 // Incorrect SAL required to match header.
-_Ret_maybenull_ PVOID
-AddVectoredExceptionHandler_test(_In_ ULONG first, _In_ PVECTORED_EXCEPTION_HANDLER handler)
+_Ret_maybenull_ void*
+AddVectoredExceptionHandler_test(_In_ unsigned long first, _In_ PVECTORED_EXCEPTION_HANDLER handler)
 {
     AddVectoredExceptionHandler_test_first = first;
     AddVectoredExceptionHandler_test_handler = handler;
@@ -48,7 +48,7 @@ SetThreadStackGuarantee_test(_Inout_ unsigned long* stack_size_in_bytes)
     return TRUE;
 }
 
-ULONG
+unsigned long
 WINAPI
 RemoveVectoredExceptionHandler_test(_In_ void* handle)
 {
@@ -62,7 +62,7 @@ bool WerReportCreate_test_fail = false;
 bool WerReportCreate_test_called = false;
 
 // Incorrect SAL required to match header.
-HRESULT
+long
 WINAPI
 WerReportCreate_test(
     _In_ const wchar_t* event_type,
@@ -81,7 +81,7 @@ WerReportCreate_test(
 bool WerReportAddDump_test_fail = false;
 bool WerReportAddDump_test_called = false;
 
-HRESULT
+long
 WINAPI
 WerReportAddDump_test(
     _In_ HREPORT report_handle,
@@ -90,7 +90,7 @@ WerReportAddDump_test(
     _In_ WER_DUMP_TYPE dump_type,
     _In_opt_ WER_EXCEPTION_INFORMATION* exception_param,
     _In_opt_ WER_DUMP_CUSTOM_OPTIONS* dump_custom_options,
-    _In_ DWORD dwFlags)
+    _In_ unsigned long dwFlags)
 {
     REQUIRE(report_handle == &WerReportCreate_test_report_handle);
     REQUIRE(process == GetCurrentProcess());
@@ -106,7 +106,7 @@ WerReportAddDump_test(
 bool WerReportSubmit_test_fail = false;
 bool WerReportSubmit_test_called = false;
 
-HRESULT
+long
 WINAPI
 WerReportSubmit_test(
     _In_ HREPORT report_handle,

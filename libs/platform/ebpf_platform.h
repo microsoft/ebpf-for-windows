@@ -1394,7 +1394,7 @@ extern "C"
         TraceLoggingLevel(trace_level),                                     \
         TraceLoggingKeyword((keyword)),                                     \
         TraceLoggingString(message, "Message"),                             \
-        TraceLoggingCountedUtf8String((const char*)(string).value, (ULONG)(string).length, #string));
+        TraceLoggingCountedUtf8String((const char*)(string).value, (unsigned long)(string).length, #string));
 
 #define EBPF_LOG_MESSAGE_UINT64(trace_level, keyword, message, value) \
     TraceLoggingWrite(                                                \
@@ -1475,7 +1475,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_API_FAILURE(keyword, api)          \
     do {                                                  \
-        DWORD last_error = GetLastError();                \
+        unsigned long last_error = GetLastError();                \
         TraceLoggingWrite(                                \
             ebpf_tracelog_provider,                       \
             EBPF_TRACELOG_EVENT_API_ERROR,                \
@@ -1487,7 +1487,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_STRING_API_FAILURE(keyword, message, api) \
     do {                                                         \
-        DWORD last_error = GetLastError();                       \
+        unsigned long last_error = GetLastError();                       \
         TraceLoggingWrite(                                       \
             ebpf_tracelog_provider,                              \
             EBPF_TRACELOG_EVENT_API_ERROR,                       \
@@ -1500,7 +1500,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_WSTRING_API_FAILURE(keyword, wstring, api) \
     do {                                                          \
-        DWORD last_error = GetLastError();                        \
+        unsigned long last_error = GetLastError();                        \
         TraceLoggingWrite(                                        \
             ebpf_tracelog_provider,                               \
             EBPF_TRACELOG_EVENT_API_ERROR,                        \
@@ -1513,7 +1513,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_GUID_API_FAILURE(keyword, guid, api) \
     do {                                                    \
-        DWORD last_error = GetLastError();                  \
+        unsigned long last_error = GetLastError();                  \
         TraceLoggingWrite(                                  \
             ebpf_tracelog_provider,                         \
             EBPF_TRACELOG_EVENT_API_ERROR,                  \

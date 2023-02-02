@@ -761,7 +761,7 @@ _ebpf_xdp_context_create(
     memset(new_context, 0, sizeof(net_ebpf_xdp_md_t));
 
     // Create a MDL with the packet buffer.
-    mdl_chain = IoAllocateMdl((void*)data_in, (ULONG)data_size_in, FALSE, FALSE, NULL);
+    mdl_chain = IoAllocateMdl((void*)data_in, (unsigned long)data_size_in, FALSE, FALSE, NULL);
     if (mdl_chain == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;

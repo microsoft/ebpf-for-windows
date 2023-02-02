@@ -16,9 +16,15 @@ TOKEN_VALUE g_LevelEnum[2] = {
     {L"verbose", VL_VERBOSE},
 };
 
-DWORD
+unsigned long
 handle_ebpf_show_disassembly(
-    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
+    _Null_terminated_ const wchar_t* machine,
+    _Null_terminated_ wchar_t** argv,
+    unsigned long current_index,
+    unsigned long argc,
+    unsigned long flags,
+    const void* data,
+    BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -29,9 +35,9 @@ handle_ebpf_show_disassembly(
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
     };
-    ULONG tag_type[_countof(tags)] = {0};
+    unsigned long tag_type[_countof(tags)] = {0};
 
-    ULONG status =
+    unsigned long status =
         PreprocessCommand(nullptr, argv, current_index, argc, tags, _countof(tags), 0, _countof(tags), tag_type);
 
     std::string filename;
@@ -79,9 +85,15 @@ _get_map_type_name(ebpf_map_type_t type)
     return _ebpf_map_display_names[index];
 }
 
-DWORD
+unsigned long
 handle_ebpf_show_sections(
-    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
+    _Null_terminated_ const wchar_t* machine,
+    _Null_terminated_ wchar_t** argv,
+    unsigned long current_index,
+    unsigned long argc,
+    unsigned long flags,
+    const void* data,
+    BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -93,9 +105,9 @@ handle_ebpf_show_sections(
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
         {TOKEN_LEVEL, NS_REQ_ZERO, FALSE},
     };
-    ULONG tag_type[_countof(tags)] = {0};
+    unsigned long tag_type[_countof(tags)] = {0};
 
-    ULONG status =
+    unsigned long status =
         PreprocessCommand(nullptr, argv, current_index, argc, tags, _countof(tags), 0, _countof(tags), tag_type);
 
     VERBOSITY_LEVEL level = VL_NORMAL;
@@ -114,7 +126,8 @@ handle_ebpf_show_sections(
             break;
         }
         case 2: // LEVEL
-            status = MatchEnumTag(NULL, argv[current_index + i], _countof(g_LevelEnum), g_LevelEnum, (PULONG)&level);
+            status =
+                MatchEnumTag(NULL, argv[current_index + i], _countof(g_LevelEnum), g_LevelEnum, (unsigned long*)&level);
             if (status != NO_ERROR) {
                 status = ERROR_INVALID_PARAMETER;
             }
@@ -198,9 +211,15 @@ handle_ebpf_show_sections(
     return NO_ERROR;
 }
 
-DWORD
+unsigned long
 handle_ebpf_show_verification(
-    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
+    _Null_terminated_ const wchar_t* machine,
+    _Null_terminated_ wchar_t** argv,
+    unsigned long current_index,
+    unsigned long argc,
+    unsigned long flags,
+    const void* data,
+    BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -218,9 +237,9 @@ handle_ebpf_show_verification(
     const int TYPE_INDEX = 2;
     const int LEVEL_INDEX = 3;
 
-    ULONG tag_type[_countof(tags)] = {0};
+    unsigned long tag_type[_countof(tags)] = {0};
 
-    ULONG status =
+    unsigned long status =
         PreprocessCommand(nullptr, argv, current_index, argc, tags, _countof(tags), 0, _countof(tags), tag_type);
 
     VERBOSITY_LEVEL level = VL_NORMAL;
@@ -251,7 +270,8 @@ handle_ebpf_show_verification(
             break;
         }
         case LEVEL_INDEX: {
-            status = MatchEnumTag(NULL, argv[current_index + i], _countof(g_LevelEnum), g_LevelEnum, (PULONG)&level);
+            status =
+                MatchEnumTag(NULL, argv[current_index + i], _countof(g_LevelEnum), g_LevelEnum, (unsigned long*)&level);
             if (status != NO_ERROR) {
                 status = ERROR_INVALID_PARAMETER;
             }

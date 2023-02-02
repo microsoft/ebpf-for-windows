@@ -59,7 +59,7 @@ _ebpf_driver_io_device_control(
     _In_ WDFREQUEST request,
     size_t output_buffer_length,
     size_t input_buffer_length,
-    ULONG io_control_code);
+    unsigned long io_control_code);
 
 static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
     _IRQL_requires_max_(PASSIVE_LEVEL) void _ebpf_driver_unload(_In_ WDFDRIVER driver_object)
@@ -243,7 +243,7 @@ _ebpf_driver_io_device_control(
     _In_ WDFREQUEST request,
     size_t output_buffer_length,
     size_t input_buffer_length,
-    ULONG io_control_code)
+    unsigned long io_control_code)
 {
     NTSTATUS status = STATUS_SUCCESS;
     WDFDEVICE device;

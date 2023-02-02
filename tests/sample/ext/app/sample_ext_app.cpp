@@ -72,7 +72,7 @@ struct _sample_extension_helper
                 static_cast<uint32_t>(input_buffer.size()),
                 output_buffer.data(),
                 static_cast<uint32_t>(output_buffer.size()),
-                (DWORD*)&count_of_bytes_returned,
+                (unsigned long*)&count_of_bytes_returned,
                 nullptr) == TRUE);
     }
 
