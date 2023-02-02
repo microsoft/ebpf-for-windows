@@ -1392,26 +1392,56 @@ TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT", "[execution_context][negative]")
 TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
-    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key));
-    auto map_update_element_with_handle_request =
-        reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
-    map_update_element_with_handle_request->map_handle = program_handles[0];
 
-    // Invalid handle.
-    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+    {
+        std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key));
+        auto map_update_element_with_handle_request =
+            reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+        map_update_element_with_handle_request->map_handle = program_handles[0];
 
-    map_update_element_with_handle_request->map_handle = map_handles["BPF_MAP_TYPE_HASH_OF_MAPS"];
+        // Invalid handle.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
 
-    // Invalid key_size.
-    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_ARGUMENT);
+        map_update_element_with_handle_request->map_handle = map_handles["BPF_MAP_TYPE_HASH_OF_MAPS"];
 
-    request.resize(request.size() + 4);
-    map_update_element_with_handle_request =
-        reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
-    map_update_element_with_handle_request->value_handle = program_handles[0];
+        // Invalid key_size.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_ARGUMENT);
 
-    // Invalid value handle.
-    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+        request.resize(request.size() + 4);
+        map_update_element_with_handle_request =
+            reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+        map_update_element_with_handle_request->value_handle = program_handles[0];
+
+        // Invalid value handle.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+    }
+
+    {
+        std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key));
+        auto map_update_element_with_handle_request =
+            reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+        map_update_element_with_handle_request->map_handle = program_handles[0];
+
+        // Invalid handle.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+
+        map_update_element_with_handle_request->map_handle = map_handles["BPF_MAP_TYPE_ARRAY_OF_MAPS"];
+
+        // Invalid key_size.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_ARGUMENT);
+
+        request.resize(request.size() + 4);
+        map_update_element_with_handle_request =
+            reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+        map_update_element_with_handle_request->value_handle = program_handles[0];
+
+        // Invalid value handle.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+
+        // Invalid option
+        map_update_element_with_handle_request->option = EBPF_NOEXIST;
+        // REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_ARGUMENT);
+    }
 }
 
 TEST_CASE("EBPF_OPERATION_MAP_DELETE_ELEMENT", "[execution_context][negative]")
