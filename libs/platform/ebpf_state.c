@@ -85,12 +85,12 @@ ebpf_state_allocate_index(_Out_ size_t* new_index)
 }
 
 static _Must_inspect_result_ ebpf_result_t
-_ebpf_state_get_entry(_Outptr_ ebpf_state_entry_t** entry)
+_ebpf_state_get_entry(uint8_t current_irql, _Outptr_ ebpf_state_entry_t** entry)
 {
     // High frequency call, don't log entry/exit.
     ebpf_state_entry_t* local_entry = NULL;
 
-    if (!ebpf_is_non_preemptible_work_item_supported() || ebpf_is_preemptible()) {
+    if (!ebpf_is_non_preemptible_work_item_supported() || current_irql == PASSIVE_LEVEL) {
         ebpf_result_t return_value;
         uint64_t current_thread_id = ebpf_get_current_thread_id();
 
@@ -127,11 +127,17 @@ _ebpf_state_get_entry(_Outptr_ ebpf_state_entry_t** entry)
 _Must_inspect_result_ ebpf_result_t
 ebpf_state_store(size_t index, uintptr_t value)
 {
+    return ebpf_state_store_with_irql(ebpf_get_current_irql(), index, value);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_state_store_with_irql(uint8_t current_irql, size_t index, uintptr_t value)
+{
     // High frequency call, don't log entry/exit.
     ebpf_state_entry_t* entry = NULL;
     ebpf_result_t return_value;
 
-    return_value = _ebpf_state_get_entry(&entry);
+    return_value = _ebpf_state_get_entry(current_irql, &entry);
     if (return_value == EBPF_SUCCESS) {
         entry->state[index] = value;
     }
@@ -141,11 +147,17 @@ ebpf_state_store(size_t index, uintptr_t value)
 _Must_inspect_result_ ebpf_result_t
 ebpf_state_load(size_t index, _Out_ uintptr_t* value)
 {
+    return ebpf_state_load_with_irql(ebpf_get_current_irql(), index, value);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_state_load_with_irql(uint8_t current_irql, size_t index, _Out_ uintptr_t* value)
+{
     // High frequency call, don't log entry/exit.
     ebpf_state_entry_t* entry = NULL;
     ebpf_result_t return_value;
 
-    return_value = _ebpf_state_get_entry(&entry);
+    return_value = _ebpf_state_get_entry(current_irql, &entry);
     if (return_value == EBPF_SUCCESS) {
         *value = entry->state[index];
     }

@@ -51,6 +51,18 @@ extern "C"
     ebpf_state_store(size_t index, uintptr_t value);
 
     /**
+     * @brief Store a value in the state tracker.
+     *
+     * @param[in] index Assigned for storing state.
+     * @param[in] value Value to be stored.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_state_store_with_irql(uint8_t current_irql, size_t index, uintptr_t value);
+
+    /**
      * @brief Load a value in the state tracker.
      *
      * @param[in] index Assigned for storing state.
@@ -61,6 +73,19 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_state_load(size_t index, _Out_ uintptr_t* value);
+
+    /**
+     * @brief Load a value in the state tracker.
+     *
+     * @param[in] current_irql Current IRQL.
+     * @param[in] index Assigned for storing state.
+     * @param[out] value Value to be loaded.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_state_load_with_irql(uint8_t current_irql, size_t index, _Out_ uintptr_t* value);
 
 #ifdef __cplusplus
 }

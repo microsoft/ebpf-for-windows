@@ -793,6 +793,12 @@ ebpf_is_preemptible()
     return !ebpf_non_preemptible;
 }
 
+uint8_t
+ebpf_get_current_irql()
+{
+    return ebpf_non_preemptible ? DISPATCH_LEVEL : PASSIVE_LEVEL;
+}
+
 bool
 ebpf_is_non_preemptible_work_item_supported()
 {

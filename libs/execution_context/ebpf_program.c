@@ -81,6 +81,7 @@ typedef struct _ebpf_program
 
     ebpf_helper_function_addresses_changed_callback_t helper_function_addresses_changed_callback;
     void* helper_function_addresses_changed_context;
+    uint8_t required_irql;
 } ebpf_program_t;
 
 static ebpf_result_t
@@ -176,6 +177,7 @@ _ebpf_program_program_info_provider_changed(
             return_value = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
+        program->required_irql = program_data->required_irql;
 
         helper_function_addresses = program_data->program_type_specific_helper_function_addresses;
         global_helper_function_addresses = program_data->global_helper_function_addresses;
@@ -1032,8 +1034,12 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
 
     provider_data_referenced = true;
 
+    // On debug builds validate that the provider is calling at the correct IRQL.
+    ebpf_assert(program->required_irql == ebpf_get_current_irql());
+
     state.context = context;
-    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
+    if (!ebpf_state_store_with_irql(program->required_irql, _ebpf_program_state_index, (uintptr_t)&state) ==
+        EBPF_SUCCESS) {
         *result = 0;
         goto Done;
     }
@@ -1075,7 +1081,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
 
 Done:
     if (program_state_stored) {
-        ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0));
+        ebpf_assert_success(ebpf_state_store_with_irql(program->required_irql, _ebpf_program_state_index, 0));
     }
     if (provider_data_referenced) {
         ebpf_extension_dereference_provider_data(program->info_extension_client);

@@ -401,6 +401,14 @@ extern "C"
     ebpf_is_preemptible();
 
     /**
+     * @brief Get the current IRQL.
+     *
+     * @return The current IRQL.
+     */
+    uint8_t
+    ebpf_get_current_irql();
+
+    /**
      * @brief Query the platform to determine which CPU this execution is
      *   running on. Only valid if ebpf_is_preemptible() == true.
      * @retval Zero based index of CPUs.
