@@ -19,5 +19,30 @@ BinPackParameters: false
 # Open brace goes on new line only when starting a new struct, enum, or func.
 BreakBeforeBraces: Mozilla
 #
-# Don't sort includes in alphabetical order because Windows headers are odd.
-SortIncludes: false
+# Special include file sort ordering rules.
+SortIncludes: CaseInsensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"'
+    Priority: 1
+  - Regex: '^<[Ww]insock2.h>'
+    Priority: 1
+  - Regex: '^<ws2def.h>'
+  - Regex: '^<ws2ipdef.h>'
+    Priority: 2
+  - Regex: '^<in6addr.h>'
+    Priority: 3
+  - Regex: '^<[Ww]indows.h>'
+    Priority: 3
+  - Regex: '^<ElfWrapper.h>'
+    Priority: 3
+  - Regex: '^<ntifs.h>'
+    Priority: 3
+  - Regex: '^<'
+    Priority: 4
+# winsock2.h -> in6addr.h
+# winsock2.h -> windows.h
+# windows.h -> ElfWrapper.h
+# windows.h -> netsh.h
+# ws2def.h ws2ipdef.h -> iphlpapi.h
+# ntifs.h -> ntddk.h
