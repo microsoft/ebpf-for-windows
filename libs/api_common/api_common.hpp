@@ -97,6 +97,7 @@ ebpf_result_to_errno(ebpf_result_t result)
 
     case EBPF_ALREADY_INITIALIZED:
     case EBPF_INVALID_ARGUMENT:
+    case EBPF_EXTENSION_FAILED_TO_LOAD:
     case EBPF_INVALID_OBJECT:
         error = EINVAL;
         break;
