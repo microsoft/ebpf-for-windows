@@ -156,4 +156,5 @@ _get_version(_Out_ bpf2c_version_t* version)
     version->revision = 0;
 }
 
-metadata_table_t bad_map_name_metadata_table = {_get_programs, _get_maps, _get_hash, _get_version};
+metadata_table_t bad_map_name_metadata_table = {
+    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version};
