@@ -3656,77 +3656,83 @@ ebpf_ring_buffer_map_subscribe(
     _Outptr_ ring_buffer_subscription_t** subscription) noexcept
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(sample_callback);
-    ebpf_assert(subscription);
-    EBPF_LOG_ENTRY();
+    try {
 
-    ebpf_result_t result = EBPF_SUCCESS;
+        ebpf_assert(sample_callback);
+        ebpf_assert(subscription);
+        EBPF_LOG_ENTRY();
 
-    *subscription = nullptr;
+        ebpf_result_t result = EBPF_SUCCESS;
 
-    ebpf_ring_buffer_subscription_ptr local_subscription = std::make_unique<ebpf_ring_buffer_subscription_t>();
+        *subscription = nullptr;
 
-    local_subscription->ring_buffer_map_handle = ebpf_handle_invalid;
+        ebpf_ring_buffer_subscription_ptr local_subscription = std::make_unique<ebpf_ring_buffer_subscription_t>();
 
-    // Get the handle to ring buffer map.
-    ebpf_handle_t ring_buffer_map_handle = _get_handle_from_file_descriptor(ring_buffer_map_fd);
-    if (ring_buffer_map_handle == ebpf_handle_invalid) {
-        result = EBPF_INVALID_FD;
+        local_subscription->ring_buffer_map_handle = ebpf_handle_invalid;
+
+        // Get the handle to ring buffer map.
+        ebpf_handle_t ring_buffer_map_handle = _get_handle_from_file_descriptor(ring_buffer_map_fd);
+        if (ring_buffer_map_handle == ebpf_handle_invalid) {
+            result = EBPF_INVALID_FD;
+            EBPF_RETURN_RESULT(result);
+        }
+
+        if (!Platform::DuplicateHandle(
+                reinterpret_cast<ebpf_handle_t>(GetCurrentProcess()),
+                ring_buffer_map_handle,
+                reinterpret_cast<ebpf_handle_t>(GetCurrentProcess()),
+                &local_subscription->ring_buffer_map_handle,
+                0,
+                FALSE,
+                DUPLICATE_SAME_ACCESS)) {
+            result = win32_error_code_to_ebpf_result(GetLastError());
+            _Analysis_assume_(result != EBPF_SUCCESS);
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, DuplicateHandle);
+            EBPF_RETURN_RESULT(result);
+        }
+
+        // Get user-mode address to ring buffer shared data.
+        ebpf_operation_ring_buffer_map_query_buffer_request_t query_buffer_request{
+            sizeof(query_buffer_request),
+            ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER,
+            local_subscription->ring_buffer_map_handle};
+        ebpf_operation_ring_buffer_map_query_buffer_reply_t query_buffer_reply{};
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(query_buffer_request, query_buffer_reply));
+        if (result != EBPF_SUCCESS)
+            EBPF_RETURN_RESULT(result);
+        ebpf_assert(query_buffer_reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER);
+        local_subscription->buffer =
+            reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(query_buffer_reply.buffer_address));
+
+        // Initialize the async IOCTL operation.
+        local_subscription->sample_callback_context = sample_callback_context;
+        local_subscription->sample_callback = sample_callback;
+        memset(&local_subscription->reply, 0, sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t));
+        result = initialize_async_ioctl_operation(
+            local_subscription.get(),
+            _ebpf_ring_buffer_map_async_query_completion,
+            &local_subscription->async_ioctl_completion);
+        if (result != EBPF_SUCCESS)
+            EBPF_RETURN_RESULT(result);
+
+        // Issue the async query IOCTL.
+        ebpf_operation_ring_buffer_map_async_query_request_t async_query_request{
+            sizeof(async_query_request),
+            ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
+            local_subscription->ring_buffer_map_handle};
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(
+            async_query_request,
+            local_subscription->reply,
+            get_async_ioctl_operation_overlapped(local_subscription->async_ioctl_completion)));
+        if (result == EBPF_PENDING)
+            result = EBPF_SUCCESS;
+
+        *subscription = local_subscription.release();
+
         EBPF_RETURN_RESULT(result);
+    } catch (const std::bad_alloc&) {
+        return EBPF_NO_MEMORY;
     }
-
-    if (!Platform::DuplicateHandle(
-            reinterpret_cast<ebpf_handle_t>(GetCurrentProcess()),
-            ring_buffer_map_handle,
-            reinterpret_cast<ebpf_handle_t>(GetCurrentProcess()),
-            &local_subscription->ring_buffer_map_handle,
-            0,
-            FALSE,
-            DUPLICATE_SAME_ACCESS)) {
-        result = win32_error_code_to_ebpf_result(GetLastError());
-        _Analysis_assume_(result != EBPF_SUCCESS);
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, DuplicateHandle);
-        EBPF_RETURN_RESULT(result);
-    }
-
-    // Get user-mode address to ring buffer shared data.
-    ebpf_operation_ring_buffer_map_query_buffer_request_t query_buffer_request{
-        sizeof(query_buffer_request),
-        ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER,
-        local_subscription->ring_buffer_map_handle};
-    ebpf_operation_ring_buffer_map_query_buffer_reply_t query_buffer_reply{};
-    result = win32_error_code_to_ebpf_result(invoke_ioctl(query_buffer_request, query_buffer_reply));
-    if (result != EBPF_SUCCESS)
-        EBPF_RETURN_RESULT(result);
-    ebpf_assert(query_buffer_reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER);
-    local_subscription->buffer = reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(query_buffer_reply.buffer_address));
-
-    // Initialize the async IOCTL operation.
-    local_subscription->sample_callback_context = sample_callback_context;
-    local_subscription->sample_callback = sample_callback;
-    memset(&local_subscription->reply, 0, sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t));
-    result = initialize_async_ioctl_operation(
-        local_subscription.get(),
-        _ebpf_ring_buffer_map_async_query_completion,
-        &local_subscription->async_ioctl_completion);
-    if (result != EBPF_SUCCESS)
-        EBPF_RETURN_RESULT(result);
-
-    // Issue the async query IOCTL.
-    ebpf_operation_ring_buffer_map_async_query_request_t async_query_request{
-        sizeof(async_query_request),
-        ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
-        local_subscription->ring_buffer_map_handle};
-    result = win32_error_code_to_ebpf_result(invoke_ioctl(
-        async_query_request,
-        local_subscription->reply,
-        get_async_ioctl_operation_overlapped(local_subscription->async_ioctl_completion)));
-    if (result == EBPF_PENDING)
-        result = EBPF_SUCCESS;
-
-    *subscription = local_subscription.release();
-
-    EBPF_RETURN_RESULT(result);
 }
 
 bool
