@@ -165,12 +165,6 @@ _bpf2c_npi_client_detach_provider(_In_ void* client_binding_context)
     return STATUS_SUCCESS;
 }
 
-void
-division_by_zero(uint32_t address)
-{
-    UNREFERENCED_PARAMETER(address);
-}
-
 #include "bpf2c.h"
 
 static void
