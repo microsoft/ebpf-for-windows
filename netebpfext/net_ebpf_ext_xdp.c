@@ -669,7 +669,7 @@ net_ebpf_ext_layer_2_classify(
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_ctx, &result) != EBPF_SUCCESS) {
         // Perform a default action if the program fails.
-        result = XDP_PASS;
+        result = XDP_DROP;
     }
 
     switch (result) {
