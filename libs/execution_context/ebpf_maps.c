@@ -473,8 +473,7 @@ _delete_object_array_map(_Inout_ _Post_invalid_ ebpf_core_map_t* map, ebpf_objec
     for (uint32_t i = 0; i < map->ebpf_map_definition.max_entries; i++) {
         ebpf_id_t id = *(ebpf_id_t*)&map->data[i * map->ebpf_map_definition.value_size];
         if (id) {
-            ebpf_result_t result = ebpf_object_release_id_reference(id, value_type);
-            ebpf_assert(result == EBPF_SUCCESS);
+            ebpf_assert_success(ebpf_object_release_id_reference(id, value_type));
         }
     }
 
