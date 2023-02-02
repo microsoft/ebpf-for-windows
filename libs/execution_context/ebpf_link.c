@@ -141,17 +141,18 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
     ebpf_result_t return_value = EBPF_SUCCESS;
     bool attach_lock_held = false;
     bool program_attached_link = false;
-    ebpf_lock_state_t state;
+    ebpf_lock_state_t state = 0;
     ebpf_extension_data_t* provider_data;
     GUID module_id = {0};
 
-    state = ebpf_lock_lock(&link->attach_lock);
-    attach_lock_held = true;
-
+    // GUID create must be called at IRQL PASSIVE_LEVEL.
     return_value = ebpf_guid_create(&module_id);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
+
+    state = ebpf_lock_lock(&link->attach_lock);
+    attach_lock_held = true;
 
     if (link->program) {
         return_value = EBPF_INVALID_ARGUMENT;
