@@ -20,29 +20,34 @@ BinPackParameters: false
 BreakBeforeBraces: Mozilla
 #
 # Special include file sort ordering rules.
-SortIncludes: CaseInsensitive
+SortIncludes: 'true'
 IncludeBlocks: Regroup
+IncludeIsMainRegex: "UNUSED$"
 IncludeCategories:
   - Regex: '^"'
     Priority: 1
+  # winsock2.h must be before in6addr.h or windows.h
   - Regex: '^<[Ww]insock2.h>'
-    Priority: 1
-  - Regex: '^<ws2def.h>'
-  - Regex: '^<ws2ipdef.h>'
     Priority: 2
+    SortPriority: 2
   - Regex: '^<in6addr.h>'
-    Priority: 3
+    Priority: 2
+    SortPriority: 3
+  # windows.h must be before ElfWrapper.h or netsh.h
   - Regex: '^<[Ww]indows.h>'
-    Priority: 3
+    Priority: 2
+    SortPriority: 2
+  # ws2def.h and ws2ipdef.h must be before iphlpapi.h
+  - Regex: '^<(ws2def|ws2ipdef).h>'
+    Priority: 2
+    SortPriority: 2
   - Regex: '^<ElfWrapper.h>'
-    Priority: 3
+    Priority: 2
+    SortPriority: 3
+  # ntifs.h must be before ntddk.h
   - Regex: '^<ntifs.h>'
-    Priority: 3
+    Priority: 2
+    SortPriority: 3
   - Regex: '^<'
-    Priority: 4
-# winsock2.h -> in6addr.h
-# winsock2.h -> windows.h
-# windows.h -> ElfWrapper.h
-# windows.h -> netsh.h
-# ws2def.h ws2ipdef.h -> iphlpapi.h
-# ntifs.h -> ntddk.h
+    Priority: 2
+    SortPriority: 4

@@ -3,15 +3,15 @@
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <codecvt>
-#include <ws2def.h>
-#include <ws2ipdef.h>
-// ws2def.h and ws2ipdef.h should be included prior to iphlpapi.h.
-#include <iphlpapi.h>
 #include "ebpf_utilities.h"
 #include "utilities.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <ws2def.h>
+#include <ws2ipdef.h>
+#include <codecvt>
+#include <iphlpapi.h>
 
 std::string
 down_cast_from_wstring(const std::wstring& wide_string)
