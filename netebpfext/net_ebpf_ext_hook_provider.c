@@ -16,6 +16,7 @@ typedef ebpf_result_t (*ebpf_invoke_program_function_t)(
 typedef struct _net_ebpf_ext_hook_client_rundown
 {
     EX_RUNDOWN_REF protection;
+    bool rundown_reinitialized;
     bool rundown_occurred;
 } net_ebpf_ext_hook_client_rundown_t;
 
@@ -100,11 +101,27 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
         goto Exit;
     }
 
+    // Initialize the rundown and disable new references.
     ExInitializeRundownProtection(&rundown->protection);
+    ExWaitForRundownProtectionRelease(&rundown->protection);
+    rundown->rundown_reinitialized = FALSE;
     rundown->rundown_occurred = FALSE;
 
 Exit:
     return status;
+}
+
+/**
+ * @brief Enable acquisition of references to the client rundown.
+ *
+ * @param[in, out] rundown Rundown object to enable.
+ *
+ */
+static void
+_ebpf_ext_attach_enable_rundown(_Inout_ net_ebpf_ext_hook_client_rundown_t* rundown)
+{
+    ExReInitializeRundownProtection(&rundown->protection);
+    rundown->rundown_reinitialized = TRUE;
 }
 
 /**
@@ -330,16 +347,19 @@ _net_ebpf_extension_hook_provider_attach_client(
     hook_client->invoke_program = (ebpf_invoke_program_function_t)client_dispatch_table->function[0];
     hook_client->provider_context = local_provider_context;
 
+    status = _ebpf_ext_attach_init_rundown(hook_client);
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
     // Invoke the hook specific callback to process client attach.
     result = local_provider_context->attach_callback(hook_client, local_provider_context);
 
     if (result == EBPF_SUCCESS) {
-        status = _ebpf_ext_attach_init_rundown(hook_client);
-        if (status == STATUS_SUCCESS) {
-            ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
-            InsertTailList(&local_provider_context->attached_clients_list, &hook_client->link);
-            RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
-        }
+        _ebpf_ext_attach_enable_rundown(&hook_client->rundown);
+        ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
+        InsertTailList(&local_provider_context->attached_clients_list, &hook_client->link);
+        RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
     } else {
         status = STATUS_ACCESS_DENIED;
     }
