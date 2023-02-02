@@ -132,9 +132,7 @@ _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* pro
 
 static ebpf_result_t
 _ebpf_program_program_info_provider_changed(
-    _In_ const void* client_binding_context,
-    _In_ const void* provider_binding_context,
-    _In_opt_ const ebpf_extension_data_t* provider_data)
+    _In_ const void* client_binding_context, _In_opt_ const ebpf_extension_data_t* provider_data)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
@@ -143,13 +141,11 @@ _ebpf_program_program_info_provider_changed(
     if (provider_data == NULL) {
         // Detach
         // Extension is detaching. Program will get invalidated.
-        program->info_extension_provider_binding_context = NULL;
         program->info_extension_provider_data = NULL;
         return_value = EBPF_SUCCESS;
         goto Exit;
     } else {
         // Attach
-        program->info_extension_provider_binding_context = provider_binding_context;
         program->info_extension_provider_data = provider_data;
 
         ebpf_helper_function_addresses_t* helper_function_addresses = NULL;
@@ -237,7 +233,6 @@ Exit:
 
     if (return_value != EBPF_SUCCESS) {
         program->info_extension_provider_data = NULL;
-        program->info_extension_provider_binding_context = NULL;
     }
 
     EBPF_RETURN_RESULT(return_value);
