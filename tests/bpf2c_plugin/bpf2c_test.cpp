@@ -6,16 +6,15 @@
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 // Windows Header Files
 #include <windows.h>
-
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <map>
-#include <vector>
 #include <sstream>
-#include <string>
 #include <stdio.h>
+#include <string>
+#include <vector>
 
 #define metadata_table ___METADATA_TABLE___##_metadata_table
 extern metadata_table_t metadata_table;

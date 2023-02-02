@@ -8,8 +8,8 @@
 #include "platform.h"
 #include "tokens.h"
 
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <set>
 #include <string>
 #include <vector>

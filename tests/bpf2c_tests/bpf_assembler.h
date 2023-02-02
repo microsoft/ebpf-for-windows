@@ -3,9 +3,10 @@
 #pragma once
 
 #include "ebpf.h"
+
+#include <iostream>
 #include <string>
 #include <vector>
-#include <iostream>
 
 /**
  * @brief Accept an input stream containing BPF instructions and return a vector of ebpf_inst.

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "api_internal.h"
 #include "api_common.hpp"
+#include "api_internal.h"
 #include "crab_verifier_wrapper.hpp"
 #include "device_helper.hpp"
 #include "ebpf_api.h"

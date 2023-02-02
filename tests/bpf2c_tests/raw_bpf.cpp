@@ -3,9 +3,9 @@
 
 #define CATCH_CONFIG_MAIN
 
+#include "bpf_assembler.h"
 #include "bpf_code_generator.h"
 #include "catch_wrapper.hpp"
-#include "bpf_assembler.h"
 #include "test_helpers.h"
 extern "C"
 {

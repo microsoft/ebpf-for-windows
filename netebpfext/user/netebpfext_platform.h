@@ -14,9 +14,8 @@
 // Note: iphlpapi.h requires ws2def.h and ws2ipdef.h to be included first.
 #include <ws2def.h>
 #include <ws2ipdef.h>
+#include <../km/fwpmk.h>
+#include <../km/fwpsk.h>
+#include <../km/netioddk.h>
 #include <iphlpapi.h>
 #include <winnt.h>
-
-#include <../km/fwpsk.h>
-#include <../km/fwpmk.h>
-#include <../km/netioddk.h>

@@ -6,8 +6,9 @@
 #include "ebpf_symbol_decoder.h"
 #include "ebpf_utilities.h"
 
-#include <intsafe.h>
+#include <TraceLoggingProvider.h>
 #include <functional>
+#include <intsafe.h>
 #include <map>
 #include <mutex>
 #include <queue>
@@ -16,7 +17,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string>
-#include <TraceLoggingProvider.h>
 #include <vector>
 
 // Global variables used to override behavior for testing.

@@ -4,6 +4,7 @@
 #include "ebpf_platform.h"
 #include "kernel_um.h"
 
+#include <../km/netioddk.h>
 #include <condition_variable>
 #include <functional>
 #include <map>
@@ -11,7 +12,6 @@
 #include <netiodef.h>
 #include <optional>
 #include <vector>
-#include <../km/netioddk.h>
 
 typedef class _nmr
 {

@@ -2,14 +2,15 @@
 // SPDX-License-Identifier: MIT
 #include "bpf_code_generator.h"
 #include "libfuzzer.h"
+
+#include <Windows.h>
+#include <ElfWrapper.h>
 #include <chrono>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 #include <ranges>
 #include <sstream>
 #include <vector>
-#include <Windows.h>
-#include <ElfWrapper.h> // Everparse's ElfWrapper must be included after Windows.h.
 #undef max
 
 #define elf_everparse_error ElfEverParseError

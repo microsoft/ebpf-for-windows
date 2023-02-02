@@ -19,14 +19,13 @@
 #include "map_descriptors.hpp"
 #define _PEPARSE_WINDOWS_CONFLICTS
 #include "pe-parse/parse.h"
-
 #include "rpc_client.h"
 extern "C"
 {
 #include "ubpf.h"
 }
-#include "utilities.hpp"
 #include "Verifier.h"
+#include "utilities.hpp"
 #include "windows_platform_common.hpp"
 
 #include <codecvt>

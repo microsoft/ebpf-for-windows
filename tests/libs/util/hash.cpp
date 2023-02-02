@@ -3,12 +3,13 @@
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
 #include "hash.h"
+
 #include <windows.h>
 #include <bcrypt.h>
-#include <string>
-#include <vector>
 #include <codecvt>
 #include <exception>
+#include <string>
+#include <vector>
 
 #pragma comment(lib, "Bcrypt.lib")
 

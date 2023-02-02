@@ -4,6 +4,7 @@
 
 #define _NDIS_
 #include "kernel_um.h"
+
 #include <ndis/objectheader.h>
 #include <ndis/types.h>
 

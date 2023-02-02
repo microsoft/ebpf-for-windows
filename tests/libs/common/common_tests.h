@@ -11,8 +11,9 @@
 #include "bpf/libbpf.h"
 #include "ebpf_api.h"
 #include "ebpf_result.h"
-#include <future>
+
 #include <windows.h>
+#include <future>
 
 void
 ebpf_test_pinned_map_enum();

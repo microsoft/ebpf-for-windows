@@ -9,8 +9,8 @@
 #include <ntintsafe.h>
 #pragma warning(pop)
 #include <ntifs.h> // Must be before ntddk.h
-#include <ntddk.h>
 #include <netioddk.h>
+#include <ntddk.h>
 #include <stdint.h>
 #include <wdm.h>
 

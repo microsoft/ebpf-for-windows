@@ -3,13 +3,14 @@
 
 #include "bpf2c.h"
 #include "test_helpers.h"
+
 #include <cmath>
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <string.h>
 #include <string>
 #include <vector>
-#include <string.h>
 
 #if !defined(C_NAME)
 #define C_NAME test_metadata_table

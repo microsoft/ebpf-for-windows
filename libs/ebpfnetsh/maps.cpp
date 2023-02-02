@@ -5,12 +5,12 @@
 #include "bpf/libbpf.h"
 #include "ebpf_api.h"
 #include "ebpf_windows.h"
-#include "platform.h"
 #include "maps.h"
+#include "platform.h"
 #include "tokens.h"
 
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <string>
 #include <vector>
 

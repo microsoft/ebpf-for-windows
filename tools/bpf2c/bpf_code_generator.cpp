@@ -11,17 +11,17 @@
 // Example:
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
-#include "btf_parser.h"
 #include "bpf_code_generator.h"
+#include "btf_parser.h"
 #include "ebpf_version.h"
 
+#include <windows.h>
 #include <cassert>
 #include <format>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include <windows.h>
 #undef max
 
 #if !defined(_countof)

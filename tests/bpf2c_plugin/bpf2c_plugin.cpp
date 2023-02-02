@@ -10,13 +10,14 @@
  */
 
 #include "bpf_code_generator.h"
+
 #include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <memory>
 #include <regex>
-#include <string>
 #include <sstream>
+#include <string>
 #include <vector>
 
 const char copyright_notice[] = "// Copyright (c) Microsoft Corporation\n// SPDX-License-Identifier: MIT\n";

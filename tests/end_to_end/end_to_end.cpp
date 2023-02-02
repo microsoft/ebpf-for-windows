@@ -5,9 +5,9 @@
 
 #include "api_common.hpp"
 #include "api_internal.h"
-#include "bpf2c.h"
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
+#include "bpf2c.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
@@ -27,14 +27,14 @@ namespace ebpf {
 #include "test_helper.hpp"
 #include "xdp_tests_common.h"
 
+#include <WinSock2.h>
+#include <in6addr.h>
 #include <array>
 #include <cguid.h>
 #include <chrono>
 #include <mutex>
-#include <thread>
-#include <WinSock2.h>
-#include <in6addr.h> // Must come after Winsock2.h
 #include <ntsecapi.h>
+#include <thread>
 
 using namespace Platform;
 

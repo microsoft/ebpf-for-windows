@@ -10,12 +10,13 @@
 #include "netsh_test_helper.h"
 #include "platform.h"
 #include "test_helper.hpp"
-#include <winsock2.h> // Must be included before windows.h
+
+#include <winsock2.h>
 #include <windows.h>
-#include <netsh.h> // Must be included after windows.h
+#include <netsh.h>
 #include <regex>
-#include <string.h>
 #include <sstream>
+#include <string.h>
 
 extern std::vector<struct bpf_object*> _ebpf_netsh_objects;
 

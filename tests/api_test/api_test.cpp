@@ -14,6 +14,7 @@
 #include "service_helper.h"
 #include "socket_helper.h"
 
+#include <winsock2.h>
 #include <chrono>
 #include <io.h>
 #include <mstcpip.h>
@@ -21,7 +22,6 @@
 #include <ntsecapi.h>
 #include <thread>
 #include <vector>
-#include <winsock2.h>
 #include <ws2tcpip.h>
 
 #define SAMPLE_PATH ""

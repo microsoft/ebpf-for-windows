@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "Verifier.h"
 #include "api_common.hpp"
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "platform.hpp"
-#include "Verifier.h"
 #include "windows_platform_service.hpp"
+
 #include <filesystem>
 #include <iostream>
 #include <sstream>

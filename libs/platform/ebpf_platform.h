@@ -6,6 +6,7 @@
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
 #include "framework.h"
+
 #include <TraceLoggingProvider.h>
 #include <winmeta.h>
 

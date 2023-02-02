@@ -10,6 +10,7 @@
 #include "common_tests.h"
 #include "platform.h"
 #include "sample_test_common.h"
+
 #include <chrono>
 #include <future>
 #include <map>

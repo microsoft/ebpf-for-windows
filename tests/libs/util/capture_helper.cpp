@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include "capture_helper.hpp"
+
+#include <windows.h>
 #include <fcntl.h>
 #include <fstream>
 #include <io.h>
@@ -9,9 +11,8 @@
 #include <sal.h>
 #include <sstream>
 #include <stdio.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <windows.h>
+#include <sys/types.h>
 
 // This class can be used by tests to catch stdout and stderr output.
 

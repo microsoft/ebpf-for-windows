@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-#include "framework.h"
-
 #include "CLI11.hpp"
 #include "elfio/elfio.hpp"
+#include "framework.h"
 #include "win_ebpf.hpp"
 
 #include <cassert>

@@ -10,7 +10,6 @@
 // the behavior of other Windows headers.
 #include <winsock2.h>
 #include <windows.h>
-
 #include <ctype.h>
 #include <iostream>
 #include <sddl.h>

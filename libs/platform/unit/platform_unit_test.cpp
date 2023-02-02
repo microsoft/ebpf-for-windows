@@ -18,12 +18,11 @@
 // headers.
 #include <winsock2.h>
 #include <Windows.h>
-
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
-#include <thread>
 #include <sddl.h>
+#include <thread>
 
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;

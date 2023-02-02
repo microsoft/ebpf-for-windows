@@ -10,6 +10,7 @@
 #include "spec_type_descriptors.hpp"
 #include "windows_platform_common.hpp"
 #include "windows_platform_service.hpp"
+
 #include <cassert>
 #include <stdexcept>
 

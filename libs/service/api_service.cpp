@@ -15,6 +15,7 @@ extern "C"
 #include "Verifier.h"
 #include "verifier_service.h"
 #include "windows_platform.hpp"
+
 #include <map>
 #include <stdexcept>
 

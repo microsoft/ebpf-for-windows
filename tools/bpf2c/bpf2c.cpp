@@ -7,9 +7,9 @@
 #include "hash.h"
 
 #include <Windows.h>
-#include <ElfWrapper.h> // Must be after Windows.h.
-#include <functional>
+#include <ElfWrapper.h>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <regex>

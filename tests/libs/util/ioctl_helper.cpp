@@ -3,8 +3,8 @@
 
 #include "api_common.hpp"
 #include "catch_wrapper.hpp"
-#include "ebpf_protocol.h"
 #include "device_helper.hpp"
+#include "ebpf_protocol.h"
 #include "ioctl_helper.h"
 
 #include <future>

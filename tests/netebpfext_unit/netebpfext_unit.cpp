@@ -4,6 +4,7 @@
 #define CATCH_CONFIG_MAIN
 #include "catch_wrapper.hpp"
 #include "netebpf_ext_helper.h"
+
 #include <map>
 
 TEST_CASE("query program info", "[netebpfext]")

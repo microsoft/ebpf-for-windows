@@ -10,11 +10,11 @@
 #include "netebpf_ext_helper.h"
 #include "platform.h"
 
+#include <Windows.h>
 #include <chrono>
 #include <filesystem>
 #include <map>
 #include <vector>
-#include <Windows.h>
 
 // Currently the only program type with helpers is XDP. Although this test just
 // uses the mock helper for XDP, it does result in exercising the core path for
