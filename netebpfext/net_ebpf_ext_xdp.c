@@ -562,6 +562,7 @@ _net_ebpf_ext_handle_xdp_tx(
 
     if (status != STATUS_SUCCESS) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "FwpsInjectMacSendAsync", status);
+        _net_ebpf_ext_l2_inject_send_complete((void*)(uintptr_t)cloned_packet, nbl, FALSE);
         goto Exit;
     }
 
