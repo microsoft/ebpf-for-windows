@@ -8,20 +8,47 @@ install or update the eBPF installation in the VM.
 
 Do the following from within the VM:
 
-1. Download latest VC++ Redist package from [this location](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170).
-2. Install the redist package downloaded in the above step.
-3. Download the `.msi` file from the [latest release on GitHub](https://github.com/microsoft/ebpf-for-windows/releases).
-4. Execute the `.msi` file you downloaded.
+1. Download and install the *VC++ Redist* package from [this location](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+1. Download the `ebpf-for-windows.msi` file from the [latest release on GitHub](https://github.com/microsoft/ebpf-for-windows/releases).
+1. Execute the `ebpf-for-windows.msi` file you downloaded.
+1. After accepting the License and selecting the desired installation folder (default will be "`C:\Program Files\ebpf-for-windows`"), the following components will be selectable from the *Installation Wizard*:
 
-The following components are shown in the MSI to select from:
+    * **Runtime Components** (mandatory): this feature adds the eBPF runtime and core components, which are also required by the other components. If you select only this
+      feature, only [native code generation](NativeCodeGeneration.md) is enabled.
+        * **JIT** (optional): this sub-feature adds support for JIT-compiled eBPF programs and (in a Debug build only) interpreted eBPF programs.
+    * **Development** (optional): this feature adds headers and libraries used for development. If you only want to use eBPF for development
+      rather than running programs, you can [use the NuGet package](GettingStarted.md#using-ebpf-in-development)
+      instead of the MSI.
+    * **Testing** (optional): this feature adds tests for the eBPF runtime for use by eBPF runtime developers.
 
-* **Runtime**: this is the base eBPF runtime, and is required by the other components.  If you select only this
-  component, only [native code generation](NativeCodeGeneration.md) is enabled.
-* **JIT**: this adds support for JIT-compiled eBPF programs and (in a Debug build only) interpreted eBPF programs.
-* **Development**: this adds headers and libraries used for development.  If you only want to use eBPF for development
-  rather than running programs, you can [use the NuGet package](GettingStarted.md#using-ebpf-in-development)
-  instead of the MSI.
-* **Testing**: this adds tests for the eBPF runtime for use by eBPF runtime developers.
+An **unattended install/uninstall** is also supported, through the direct use of `msiexec.exe`.
+
+Following is an example that shows a full-feature installation/uninstallation, using "`C:\eBpfForWindows`" as a custom installation folder:
+
+* Installation:
+
+    ```bash
+    # Debug MSI (including the JIT component)
+    C:\Windows\system32\msiexec.exe /i ebpf-for-windows.msi INSTALLFOLDER="C:\eBpfForWindows" ADDLOCAL=eBPF_Runtime_Components_JIT,eBPF_Development,eBPF_Testing /qn
+
+    # Release MSI
+    C:\Windows\system32\msiexec.exe /i ebpf-for-windows.msi INSTALLFOLDER="C:\eBpfForWindows" ADDLOCAL=eBPF_Development,eBPF_Testing /qn
+    ```
+    >**Note**: like in the graphical *Installation Wizard*, you can also customize the installation by choosing what **optional** features should be installed (i.e., `eBPF_Runtime_Components_JIT`, `eBPF_Development` and `eBPF_Testing`), and assigning the comma-separated values to the `ADDLOCAL` parameter. The above commands, besides the mandatory `Runtime_Components`, also install the *Development* and *Testing* components.
+
+* Uninstallation:
+
+    ```bash
+    C:\Windows\system32\msiexec.exe /x ebpf-for-windows.msi /qn
+    ```
+
+**Troubleshooting logs** from the Windows Installer can be obtained be appending the `\lv <filename>` option to the install command line (for verbose logs), e.g.:
+
+```bash
+
+C:\Windows\system32\msiexec.exe /i ebpf-for-windows.msi *<other options>* /lv c:\installer-logs.txt
+
+```
 
 ### Method 2 (Install files you built yourself)
 This method uses a machine that
@@ -43,6 +70,10 @@ has already built the binaries for `x64/Debug` or `x64/Release`.
         or, to also copy files needed to run various tests, run:
         ```ps
         .\x64\debug\deploy-ebpf --vm="<test-vm-name>" -t
+        ```
+        or, to copy files to a specific directory, including file shares, run:
+        ```ps
+        .\x64\debug\deploy-ebpf -l="c:\some\path"
         ```
 
 2. From within the VM, install the binaries by starting an administrator Command Prompt shell (cmd.exe)

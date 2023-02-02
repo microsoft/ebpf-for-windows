@@ -63,6 +63,10 @@ static uint64_t
 _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value);
 static uint64_t
 _ebpf_core_get_pid_tgid();
+static uint64_t
+_ebpf_core_get_current_logon_id(_In_ const void* ctx);
+static int32_t
+_ebpf_core_is_current_admin(_In_ const void* ctx);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -93,6 +97,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_map_pop_elem,
     (void*)&_ebpf_core_map_peek_elem,
     (void*)&_ebpf_core_get_pid_tgid,
+    (void*)&_ebpf_core_get_current_logon_id,
+    (void*)&_ebpf_core_is_current_admin,
 };
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
@@ -1783,6 +1789,37 @@ static uint64_t
 _ebpf_core_get_pid_tgid()
 {
     return ((uint64_t)ebpf_platform_process_id() << 32) | ebpf_platform_thread_id();
+}
+
+static uint64_t
+_ebpf_core_get_current_logon_id(_In_ const void* ctx)
+{
+    uint64_t logon_id = 0;
+
+    UNREFERENCED_PARAMETER(ctx);
+
+    if (!ebpf_is_preemptible()) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_CORE, "get_current_logon_id: Called at DISPATCH.");
+
+        return 0;
+    }
+
+    ebpf_result_t result = ebpf_platform_get_authentication_id(&logon_id);
+    if (result != EBPF_SUCCESS) {
+        return 0;
+    }
+
+    return logon_id;
+}
+
+static int32_t
+_ebpf_core_is_current_admin(_In_ const void* ctx)
+{
+    // TODO: Issue# 1871 - Implement this function.
+    UNREFERENCED_PARAMETER(ctx);
+
+    return -1;
 }
 
 // Pick a limit on string size based on the size of the eBPF stack.

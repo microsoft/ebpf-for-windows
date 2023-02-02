@@ -154,6 +154,8 @@ typedef enum
     BPF_FUNC_map_pop_elem = 17,              ///< \ref bpf_map_pop_elem
     BPF_FUNC_map_peek_elem = 18,             ///< \ref bpf_map_peek_elem
     BPF_FUNC_get_current_pid_tgid = 19,      ///< \ref bpf_get_current_pid_tgid
+    BPF_FUNC_get_current_logon_id = 20,      ///< \ref bpf_get_current_logon_id
+    BPF_FUNC_is_current_admin = 21,          ///< \ref bpf_is_current_admin
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.

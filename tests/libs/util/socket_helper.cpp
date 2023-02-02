@@ -10,6 +10,12 @@
 
 #define MAXIMUM_IP_BUFFER_SIZE 65
 
+uint64_t
+get_current_pid_tgid()
+{
+    return ((uint64_t)GetCurrentProcessId() << 32 | GetCurrentThreadId());
+}
+
 void
 get_address_from_string(
     std::string& address_string, sockaddr_storage& address, bool dual_stack, _Out_opt_ ADDRESS_FAMILY* address_family)

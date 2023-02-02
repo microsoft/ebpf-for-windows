@@ -21,7 +21,6 @@ typedef struct _ebpf_link
     ebpf_extension_data_t client_data;
     ebpf_extension_client_t* extension_client_context;
     ebpf_lock_t attach_lock;
-    bool detaching;
 
     void* provider_binding_context;
 } ebpf_link_t;
@@ -73,14 +72,6 @@ ebpf_link_initialize(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
-    ebpf_extension_data_t* provider_data;
-    ebpf_attach_provider_data_t* attach_provider_data;
-    GUID module_id = {0};
-
-    return_value = ebpf_guid_create(&module_id);
-    if (return_value != EBPF_SUCCESS) {
-        goto Exit;
-    }
 
     link->client_data.version = 0;
     link->client_data.size = context_data_length;
@@ -94,41 +85,53 @@ ebpf_link_initialize(
         memcpy(link->client_data.data, context_data, context_data_length);
     }
 
-    return_value = ebpf_extension_load(
-        &(link->extension_client_context),
-        &ebpf_hook_extension_interface_id, // Load hook extension.
-        &attach_type,                      // Attach type is the expected provider module Id.
-        &module_id,
-        link,
-        &link->client_data,
-        (ebpf_extension_dispatch_table_t*)&_ebpf_link_dispatch_table,
-        &(link->provider_binding_context),
-        &provider_data,
-        NULL,
-        NULL);
+    link->attach_type = attach_type;
 
-    if (return_value != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "No providers support attach type", attach_type);
-        goto Exit;
+    return_value = EBPF_SUCCESS;
+Exit:
+    EBPF_RETURN_RESULT(return_value);
+}
+
+static ebpf_result_t
+_ebpf_link_extension_changed_callback(
+    _In_ const void* client_binding_context,
+    _In_ const void* provider_binding_context,
+    _In_opt_ const ebpf_extension_data_t* provider_data)
+{
+    UNREFERENCED_PARAMETER(provider_binding_context);
+    ebpf_link_t* link = (ebpf_link_t*)client_binding_context;
+
+    // Complete detach.
+    if (provider_data == NULL) {
+        return EBPF_SUCCESS;
     }
 
     if ((provider_data->version != EBPF_ATTACH_PROVIDER_DATA_VERSION) || (!provider_data->data) ||
         (provider_data->size != sizeof(ebpf_attach_provider_data_t))) {
         EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "Provider version not supported", attach_type);
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Exit;
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "Provider version not supported", link->attach_type);
+        return EBPF_INVALID_ARGUMENT;
     }
 
-    attach_provider_data = (ebpf_attach_provider_data_t*)provider_data->data;
-    link->program_type = attach_provider_data->supported_program_type;
-    link->attach_type = attach_type;
-    link->bpf_attach_type = attach_provider_data->bpf_attach_type;
-    link->link_type = attach_provider_data->link_type;
+    const ebpf_program_type_t* program_type = ebpf_program_type_uuid(link->program);
+    ebpf_attach_provider_data_t* attach_provider_data = (ebpf_attach_provider_data_t*)provider_data->data;
 
-Exit:
-    EBPF_RETURN_RESULT(return_value);
+    if (memcmp(
+            program_type,
+            &attach_provider_data->supported_program_type,
+            sizeof(attach_provider_data->supported_program_type)) != 0) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_LINK,
+            "Attach failed due to incorrect program type",
+            *program_type);
+        return EBPF_INVALID_ARGUMENT;
+    } else {
+        link->program_type = attach_provider_data->supported_program_type;
+        link->bpf_attach_type = attach_provider_data->bpf_attach_type;
+        link->link_type = attach_provider_data->link_type;
+        return EBPF_SUCCESS;
+    }
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -136,30 +139,67 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value = EBPF_SUCCESS;
-    ebpf_lock_state_t state;
+    bool attach_lock_held = false;
+    bool program_attached_link = false;
+    ebpf_lock_state_t state = 0;
+    ebpf_extension_data_t* provider_data;
+    GUID module_id = {0};
+
+    // GUID create must be called at IRQL PASSIVE_LEVEL.
+    return_value = ebpf_guid_create(&module_id);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     state = ebpf_lock_lock(&link->attach_lock);
+    attach_lock_held = true;
+
     if (link->program) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    const ebpf_program_type_t* program_type = ebpf_program_type_uuid(program);
-    if (memcmp(program_type, &link->program_type, sizeof(link->program_type)) != 0) {
+    link->program = program;
+    ebpf_program_attach_link(program, link);
+    program_attached_link = true;
+
+    ebpf_lock_unlock(&link->attach_lock, state);
+    attach_lock_held = false;
+
+    return_value = ebpf_extension_load(
+        &(link->extension_client_context),
+        &ebpf_hook_extension_interface_id, // Load hook extension.
+        &link->attach_type,                // Attach type is the expected provider module Id.
+        &module_id,
+        link,
+        &link->client_data,
+        (ebpf_extension_dispatch_table_t*)&_ebpf_link_dispatch_table,
+        &(link->provider_binding_context),
+        &provider_data,
+        NULL,
+        _ebpf_link_extension_changed_callback);
+
+    if (return_value != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_LINK,
-            "Attach failed due to incorrect program type",
-            *program_type);
-        return_value = EBPF_INVALID_ARGUMENT;
+            "No providers support attach type",
+            link->attach_type);
         goto Done;
     }
 
-    link->program = program;
-    link->detaching = FALSE;
-    ebpf_program_attach_link(program, link);
-
 Done:
-    ebpf_lock_unlock(&link->attach_lock, state);
+    if (return_value != EBPF_SUCCESS && program_attached_link) {
+        state = ebpf_lock_lock(&link->attach_lock);
+        attach_lock_held = true;
+
+        ebpf_program_detach_link(program, link);
+        link->program = NULL;
+    }
+
+    if (attach_lock_held) {
+        ebpf_lock_unlock(&link->attach_lock, state);
+    }
     EBPF_RETURN_RESULT(return_value);
 }
 
@@ -170,10 +210,11 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     ebpf_lock_state_t state;
     ebpf_program_t* program = NULL;
 
+    ebpf_object_acquire_reference((ebpf_core_object_t*)link);
+
     state = ebpf_lock_lock(&link->attach_lock);
-    if (link->program != NULL && !link->detaching) {
+    if (link->program != NULL) {
         program = link->program;
-        link->detaching = TRUE;
     }
     ebpf_lock_unlock(&link->attach_lock, state);
 
@@ -191,6 +232,9 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     ebpf_free(link->client_data.data);
     link->client_data.data = NULL;
     link->client_data.size = 0;
+
+    ebpf_object_release_reference((ebpf_core_object_t*)link);
+
     EBPF_RETURN_VOID();
 }
 
