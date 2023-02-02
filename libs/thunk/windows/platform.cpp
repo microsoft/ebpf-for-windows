@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
-#include <string>
-#include <Windows.h>
-#include <io.h>
-#include <stdint.h>
+#include "ebpf_api.h"
 #include <cstdlib>
 #include <crtdbg.h> // For _CrtSetReportMode
-#include "ebpf_api.h"
+#include <io.h>
+#include <stdint.h>
+#include <string>
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+#include <Windows.h>
 
 class _invalid_parameter_suppression
 {

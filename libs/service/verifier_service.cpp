@@ -1,10 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <filesystem>
-#include <iostream>
-#include <sstream>
-#include <sys/stat.h>
 #include "api_common.hpp"
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
@@ -12,6 +8,10 @@
 #include "platform.hpp"
 #include "Verifier.h"
 #include "windows_platform_service.hpp"
+#include <filesystem>
+#include <iostream>
+#include <sstream>
+#include <sys/stat.h>
 
 static ebpf_result_t
 _analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)

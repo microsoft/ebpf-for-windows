@@ -1,14 +1,12 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
-
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 #pragma once
+
+#include "ebpf_base.h"
+#include "ebpf_result.h"
 
 #include <guiddef.h>
 #include <stdint.h>
-#include "ebpf_base.h"
-#include "ebpf_result.h"
 
 #define EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH 256
 #define EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH 256

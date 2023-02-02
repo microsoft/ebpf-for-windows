@@ -3,14 +3,6 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include <array>
-#include <chrono>
-#include <mutex>
-#include <thread>
-#include <WinSock2.h>
-#include <in6addr.h> // Must come after Winsock2.h
-#include <ntsecapi.h>
-
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "bpf2c.h"
@@ -23,6 +15,11 @@
 #include "helpers.h"
 #include "ioctl_helper.h"
 #include "mock.h"
+namespace ebpf {
+#include "net/if_ether.h"
+#include "net/ip.h"
+#include "net/udp.h"
+}; // namespace ebpf
 #include "passed_test_log.h"
 #include "platform.h"
 #include "program_helper.h"
@@ -30,11 +27,14 @@
 #include "test_helper.hpp"
 #include "xdp_tests_common.h"
 
-namespace ebpf {
-#include "net/if_ether.h"
-#include "net/ip.h"
-#include "net/udp.h"
-}; // namespace ebpf
+#include <array>
+#include <cguid.h>
+#include <chrono>
+#include <mutex>
+#include <thread>
+#include <WinSock2.h>
+#include <in6addr.h> // Must come after Winsock2.h
+#include <ntsecapi.h>
 
 using namespace Platform;
 

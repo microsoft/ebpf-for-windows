@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_api.h"
+#include "libfuzzer.h"
 #include <chrono>
 #include <cstdlib>
-#include <ebpf_api.h>
-#include "libfuzzer.h"
 
 bool use_ebpf_store = true;
 

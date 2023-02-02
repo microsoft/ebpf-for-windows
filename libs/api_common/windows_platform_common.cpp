@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <cassert>
-#include <stdexcept>
 #include "api_internal.h"
 #include "api_common.hpp"
 #include "crab_verifier_wrapper.hpp"
@@ -20,6 +18,9 @@
 #include "utilities.hpp"
 #include "windows_platform.hpp"
 #include "windows_program_type.h"
+
+#include <cassert>
+#include <stdexcept>
 
 #define GET_PROGRAM_INFO_REPLY_BUFFER_SIZE 2048
 

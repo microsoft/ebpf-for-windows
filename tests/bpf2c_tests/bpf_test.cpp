@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "bpf2c.h"
+#include "test_helpers.h"
 #include <cmath>
 #include <iostream>
 #include <map>
@@ -8,13 +10,6 @@
 #include <string>
 #include <vector>
 #include <string.h>
-
-#include "test_helpers.h"
-
-extern "C"
-{
-#include "bpf2c.h"
-}
 
 #if !defined(C_NAME)
 #define C_NAME test_metadata_table

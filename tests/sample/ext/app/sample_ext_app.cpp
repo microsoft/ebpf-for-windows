@@ -3,10 +3,6 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include <chrono>
-#include <mutex>
-#include <thread>
-
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
@@ -15,6 +11,10 @@
 #include "program_helper.h"
 #include "service_helper.h"
 #include "sample_ext_app.h"
+
+#include <chrono>
+#include <mutex>
+#include <thread>
 
 #define SAMPLE_PATH ""
 

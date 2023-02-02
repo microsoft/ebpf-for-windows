@@ -1,21 +1,18 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
-#include <iostream>
-#include <iomanip>
-#include <netsh.h>
-#include <set>
-#include <string>
-#include <vector>
 #include "bpf/bpf.h"
 #include "ebpf_api.h"
 #include "ebpf_windows.h"
 #include "pins.h"
 #include "platform.h"
 #include "tokens.h"
+
+#include <iostream>
+#include <iomanip>
+#include <set>
+#include <string>
+#include <vector>
 
 DWORD
 handle_ebpf_show_pins(

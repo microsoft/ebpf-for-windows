@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
+
 #include "ebpf_result.h"
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
 #include "framework.h"
-
 #include <TraceLoggingProvider.h>
 #include <winmeta.h>
 

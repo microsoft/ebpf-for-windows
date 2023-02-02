@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
+#include "hash.h"
 #include <windows.h>
 #include <bcrypt.h>
 #include <string>
@@ -9,7 +10,6 @@
 #include <codecvt>
 #include <exception>
 
-#include "hash.h"
 #pragma comment(lib, "Bcrypt.lib")
 
 _hash::_hash(const std::string& algorithm)

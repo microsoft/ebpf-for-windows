@@ -1,13 +1,5 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-#include <chrono>
-#include <filesystem>
-#include <fstream>
-#include <future>
-#include <map>
-#include <mutex>
-#include <sstream>
-using namespace std::chrono_literals;
 
 #include "bpf/bpf.h"
 #include "catch_wrapper.hpp"
@@ -21,6 +13,15 @@ using namespace std::chrono_literals;
 #include "helpers.h"
 #include "mock.h"
 #include "test_helper.hpp"
+
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <future>
+#include <map>
+#include <mutex>
+#include <sstream>
+using namespace std::chrono_literals;
 
 extern "C" bool ebpf_fuzzing_enabled;
 extern bool _ebpf_platform_is_preemptible;

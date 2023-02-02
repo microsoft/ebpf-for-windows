@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_platform.h"
+#include "ebpf_leak_detector.h"
+#include "ebpf_low_memory_test.h"
+#include "ebpf_symbol_decoder.h"
+#include "ebpf_utilities.h"
 
 #include <intsafe.h>
 #include <functional>
@@ -15,11 +18,6 @@
 #include <string>
 #include <TraceLoggingProvider.h>
 #include <vector>
-
-#include "ebpf_leak_detector.h"
-#include "ebpf_low_memory_test.h"
-#include "ebpf_symbol_decoder.h"
-#include "ebpf_utilities.h"
 
 // Global variables used to override behavior for testing.
 // Permit the test to simulate both Hyper-V Code Integrity.

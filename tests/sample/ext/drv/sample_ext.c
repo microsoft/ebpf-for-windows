@@ -8,9 +8,6 @@
 
 #define INITGUID
 
-#include <guiddef.h>
-#include <ntddk.h>
-
 #include "ebpf_extension_uuids.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"

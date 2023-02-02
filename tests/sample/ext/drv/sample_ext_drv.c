@@ -2,18 +2,18 @@
 // SPDX-License-Identifier: MIT
 
 /**
+ * @file
  * @brief WDF based driver that does the following:
  * Registers as an eBPF extension program information provider and hook provider.
  */
-
-#include <ntddk.h>
-#include <wdf.h>
 
 #include "ebpf_platform.h"
 
 #include "sample_ext.h"
 #include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"
+
+#include <wdf.h>
 
 #define SAMPLE_EBPF_EXT_DEVICE_NAME L"\\Device\\" SAMPLE_EBPF_EXT_NAME_W
 #define SAMPLE_EBPF_EXT_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\" SAMPLE_EBPF_EXT_DEVICE_BASE_NAME

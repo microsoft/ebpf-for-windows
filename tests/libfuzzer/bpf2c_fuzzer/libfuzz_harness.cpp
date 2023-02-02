@@ -1,18 +1,16 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
-#include <Windows.h>
+#include "bpf_code_generator.h"
+#include "libfuzzer.h"
 #include <chrono>
 #include <fstream>
 #include <filesystem>
 #include <ranges>
 #include <sstream>
 #include <vector>
-
+#include <Windows.h>
+#include <ElfWrapper.h> // Everparse's ElfWrapper must be included after Windows.h.
 #undef max
-#include "bpf_code_generator.h"
-#include "ElfWrapper.h"
-#include "libfuzzer.h"
 
 #define elf_everparse_error ElfEverParseError
 #define elf_everparse_verify ElfCheckElf

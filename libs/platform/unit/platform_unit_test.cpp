@@ -1,6 +1,19 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "api_common.hpp"
+#include "catch_wrapper.hpp"
+#include "ebpf_async.h"
+#include "ebpf_bitmap.h"
+#include "ebpf_epoch.h"
+#include "ebpf_nethooks.h"
+#include "ebpf_pinning_table.h"
+#include "ebpf_platform.h"
+#include "ebpf_program_types.h"
+#include "ebpf_ring_buffer.h"
+#include "ebpf_serialize.h"
+#include "ebpf_state.h"
+
 // Windows build system requires include of Windows.h before other Windows
 // headers.
 #include <winsock2.h>
@@ -11,19 +24,6 @@
 #include <mutex>
 #include <thread>
 #include <sddl.h>
-
-#include "api_common.hpp"
-#include "catch_wrapper.hpp"
-#include "ebpf_async.h"
-#include "ebpf_bitmap.h"
-#include "ebpf_epoch.h"
-#include "ebpf_nethooks.h"
-#include "ebpf_platform.h"
-#include "ebpf_pinning_table.h"
-#include "ebpf_program_types.h"
-#include "ebpf_serialize.h"
-#include "ebpf_ring_buffer.h"
-#include "ebpf_state.h"
 
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;

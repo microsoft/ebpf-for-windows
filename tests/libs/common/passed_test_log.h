@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#pragma once
 
-#include <windows.h>
-
-#include <fstream>
-#include <iostream>
+#include "catch_wrapper.hpp"
 #include <catch2/reporters/catch_reporter_event_listener.hpp>
 #include <catch2/reporters/catch_reporter_registrars.hpp>
-#include "catch_wrapper.hpp"
+#include <fstream>
+#include <iostream>
+#include <windows.h>
 
 /**
  * @brief A Catch2 reporter that logs the name of each test that passes.

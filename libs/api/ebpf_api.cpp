@@ -2,13 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-#include "pch.h"
-
-#include <codecvt>
-#include <fcntl.h>
-#include <io.h>
-#include <mutex>
-
 #include "api_internal.h"
 #include "bpf.h"
 #include "bpf2c.h"
@@ -18,6 +11,7 @@
 #include "ebpf_protocol.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
+#include "framework.h"
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
 #include "libbpf.h"
@@ -34,6 +28,11 @@ extern "C"
 #include "utilities.hpp"
 #include "Verifier.h"
 #include "windows_platform_common.hpp"
+
+#include <codecvt>
+#include <fcntl.h>
+#include <io.h>
+#include <mutex>
 
 using namespace peparse;
 using namespace Platform;

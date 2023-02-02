@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "bpf2c.h"
+
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 // Windows Header Files
 #include <windows.h>
@@ -14,8 +16,6 @@
 #include <sstream>
 #include <string>
 #include <stdio.h>
-
-#include "bpf2c.h"
 
 #define metadata_table ___METADATA_TABLE___##_metadata_table
 extern metadata_table_t metadata_table;

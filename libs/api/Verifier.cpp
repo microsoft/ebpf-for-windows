@@ -1,11 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <filesystem>
-#include <iostream>
-#include <sstream>
-#include <sys/stat.h>
-#include <vector>
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "ebpf_api.h"
@@ -18,6 +13,12 @@
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"
 #include "Verifier.h"
+
+#include <filesystem>
+#include <iostream>
+#include <sstream>
+#include <sys/stat.h>
+#include <vector>
 
 #define elf_everparse_error ElfEverParseError
 #define elf_everparse_verify ElfCheckElf

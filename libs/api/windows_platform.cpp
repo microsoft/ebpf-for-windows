@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-#include <cassert>
-#include <stdexcept>
+
 #include "api_internal.h"
 #include "crab_verifier_wrapper.hpp"
 #include "api_common.hpp"
@@ -12,6 +11,9 @@
 #include "spec_type_descriptors.hpp"
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"
+
+#include <cassert>
+#include <stdexcept>
 
 void
 parse_maps_section_windows(

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <ebpf_platform.h>
+#include "ebpf_platform.h"
 
 #include <dpfilter.h>
 #include <fwpmtypes.h>
@@ -11,7 +11,7 @@
 #include <fwpvi.h>
 #include <ndis.h>
 #include <netiodef.h>
-// Note: iphlpapi.h requires ws2def.h and ws2ipdef.h.
+// Note: iphlpapi.h requires ws2def.h and ws2ipdef.h to be included first.
 #include <ws2def.h>
 #include <ws2ipdef.h>
 #include <iphlpapi.h>

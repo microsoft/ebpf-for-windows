@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <stdlib.h>
-
 #include "bpf_helpers.h"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
@@ -15,8 +13,9 @@
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_program_types.h"
 #include "ebpf_state.h"
-
 #include "ubpf.h"
+
+#include <stdlib.h>
 
 static size_t _ebpf_program_state_index = MAXUINT64;
 #define EBPF_MAX_HASH_SIZE 128

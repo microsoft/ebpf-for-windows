@@ -3,15 +3,15 @@
 
 #define TEST_AREA "ExecutionContext"
 
-#include <numeric>
-#include <optional>
-
 #include "performance.h"
 
 extern "C"
 {
 #include "ubpf.h"
 }
+
+#include <numeric>
+#include <optional>
 
 typedef class _ebpf_program_test_state
 {

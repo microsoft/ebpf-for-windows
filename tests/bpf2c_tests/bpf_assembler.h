@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
+
+#include "ebpf.h"
 #include <string>
 #include <vector>
 #include <iostream>
-#include "ebpf.h"
 
 /**
  * @brief Accept an input stream containing BPF instructions and return a vector of ebpf_inst.

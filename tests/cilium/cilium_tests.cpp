@@ -3,11 +3,10 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include <iostream>
-
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "ebpf_api.h"
+#include <iostream>
 
 #define SAMPLE_PATH ""
 #define CILIUM_XDP_SECTIONS_SNAT 10

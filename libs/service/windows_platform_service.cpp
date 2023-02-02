@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <cassert>
-#include <stdexcept>
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "crab_verifier_wrapper.hpp"
@@ -12,6 +10,8 @@
 #include "spec_type_descriptors.hpp"
 #include "windows_platform_common.hpp"
 #include "windows_platform_service.hpp"
+#include <cassert>
+#include <stdexcept>
 
 const ebpf_platform_t g_ebpf_platform_windows_service = {
     get_program_type_windows,

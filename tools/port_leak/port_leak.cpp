@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <WinSock2.h>
 #include <iostream>
+#include <WinSock2.h>
 #include <Windows.h>
 
 int

@@ -3,14 +3,14 @@
 
 #define CATCH_CONFIG_MAIN
 
+#include "capture_helper.hpp"
+#include "catch_wrapper.hpp"
+#include "ebpf_api.h"
 #include <cstdarg>
 #include <filesystem>
 #include <fstream>
 #include <stdio.h>
 #include <string>
-#include "capture_helper.hpp"
-#include "catch_wrapper.hpp"
-#include "ebpf_api.h"
 
 // Run a given command and return the output and exit code.
 std::string

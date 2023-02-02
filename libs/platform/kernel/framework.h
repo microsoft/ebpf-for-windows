@@ -8,6 +8,7 @@
 #pragma warning(disable : 28253) // Inconsistent annotation for '_umul128'
 #include <ntintsafe.h>
 #pragma warning(pop)
+#include <ntifs.h> // Must be before ntddk.h
 #include <ntddk.h>
 #include <netioddk.h>
 #include <stdint.h>

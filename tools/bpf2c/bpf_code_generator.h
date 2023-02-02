@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
+
+#include "ebpf.h"
+#include "ebpf_structs.h"
+#include "elfio_wrapper.hpp"
+
 #include <fstream>
 #include <map>
 #include <optional>
 #include <set>
 #include <string>
 #include <vector>
-
-#include "ebpf.h"
-#include "ebpf_structs.h"
-#include "elfio_wrapper.hpp"
 
 class bpf_code_generator
 {

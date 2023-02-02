@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #include <codecvt>
 #include <ws2def.h>
 #include <ws2ipdef.h>

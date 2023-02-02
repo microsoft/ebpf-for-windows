@@ -1,18 +1,16 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "api_common.hpp"
+#include "device_helper.hpp"
+#include "ebpf_protocol.h"
+#include "ebpf_result.h"
+#include "ebpf_verifier_wrapper.hpp"
+#include "map_descriptors.hpp"
+
 #include <stdint.h>
 #include <string>
 #include <vector>
-
-#include "api_common.hpp"
-#include "ebpf_protocol.h"
-#include "ebpf_result.h"
-#include "device_helper.hpp"
-
-#include "ebpf_verifier_wrapper.hpp"
-
-#include "map_descriptors.hpp"
 
 thread_local static const ebpf_program_type_t* _global_program_type = nullptr;
 thread_local static const ebpf_attach_type_t* _global_attach_type = nullptr;

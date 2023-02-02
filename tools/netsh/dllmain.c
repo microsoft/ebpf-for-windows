@@ -1,12 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <netsh.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include "ebpf_api.h"
 #include "elf.h"
 #include "links.h"
@@ -14,6 +8,13 @@
 #include "pins.h"
 #include "programs.h"
 #include "resource.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <netsh.h> // Must be after windows.h.
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 static const GUID g_EbpfHelperGuid = {/* 634d21b8-13f9-46a3-945f-885cbd661c13 */
                                       0x634d21b8,

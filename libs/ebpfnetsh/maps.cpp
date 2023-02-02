@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
-#include <iostream>
-#include <iomanip>
-#include <netsh.h>
-#include <string>
-#include <vector>
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "ebpf_api.h"
@@ -16,6 +8,11 @@
 #include "platform.h"
 #include "maps.h"
 #include "tokens.h"
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <vector>
 
 DWORD
 handle_ebpf_show_maps(

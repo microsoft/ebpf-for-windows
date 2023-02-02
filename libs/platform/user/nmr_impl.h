@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_platform.h"
+#include "kernel_um.h"
+
 #include <condition_variable>
 #include <functional>
 #include <map>
 #include <mutex>
+#include <netiodef.h>
 #include <optional>
 #include <vector>
-
-#include "ebpf_platform.h"
-#include "kernel_um.h"
-#include <netiodef.h>
 #include <../km/netioddk.h>
 
 typedef class _nmr
