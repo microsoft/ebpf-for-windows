@@ -167,10 +167,10 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
     net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
     int32_t is_admin;
 
-    if (KeGetCurrentIrql() != PASSIVE_LEVEL) {
-        is_admin = -1;
-        goto Exit;
-    }
+    // if (KeGetCurrentIrql() != PASSIVE_LEVEL) {
+    //     is_admin = -1;
+    //     goto Exit;
+    // }
 
     sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     status = _perform_access_check(
@@ -182,7 +182,7 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
         is_admin = 0;
     }
 
-Exit:
+    // Exit:
     return is_admin;
 }
 
