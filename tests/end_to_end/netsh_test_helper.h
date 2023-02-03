@@ -19,20 +19,25 @@
 // Mock Netsh.exe APIs.
 
 // This function has incorrect SAL annotations, but it's declared in public headers so we can't fix it.
-DWORD WINAPI
+unsigned long WINAPI
 PreprocessCommand(
     _In_opt_ HANDLE hModule,
-    _Inout_updates_(dwArgCount) LPWSTR* ppwcArguments,
-    _In_ DWORD dwCurrentIndex,
-    _In_ DWORD dwArgCount,
+    _Inout_updates_(dwArgCount) wchar_t** ppwcArguments,
+    _In_ unsigned long dwCurrentIndex,
+    _In_ unsigned long dwArgCount,
     _Inout_updates_opt_(dwTagCount) TAG_TYPE* pttTags,
-    _In_ DWORD dwTagCount,
-    _In_ DWORD dwMinArgs,
-    _In_ DWORD dwMaxArgs,
-    _Out_writes_opt_(dwArgCount - dwCurrentIndex) DWORD* pdwTagType);
+    _In_ unsigned long dwTagCount,
+    _In_ unsigned long dwMinArgs,
+    _In_ unsigned long dwMaxArgs,
+    _Out_writes_opt_(dwArgCount - dwCurrentIndex) unsigned long* pdwTagType);
 
-DWORD
-MatchEnumTag(HANDLE hModule, LPCWSTR pwcArg, DWORD dwNumArg, const TOKEN_VALUE* pEnumTable, PDWORD pdwValue);
+unsigned long
+MatchEnumTag(
+    HANDLE hModule,
+    const wchar_t* pwcArg,
+    unsigned long dwNumArg,
+    const TOKEN_VALUE* pEnumTable,
+    unsigned long* pdwValue);
 #pragma endregion
 
 std::string
