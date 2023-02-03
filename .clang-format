@@ -21,7 +21,7 @@ BreakBeforeBraces: Mozilla
 #
 # Special include file sort ordering rules.
 # Priority indicates the "group" (where groups are separated by a blank line).
-# SortPriority indicates the order within a group when we need to override alphabetical
+# SortPriority indicates the overall order when we need to override alphabetical
 # order due to Windows header dependencies.
 SortIncludes: 'true'
 IncludeBlocks: Regroup
@@ -53,6 +53,8 @@ IncludeCategories:
   - Regex: '^<ntifs.h'
     Priority: 2
     SortPriority: 4
+  - Regex: '\.c"'
+    Priority: 6
   - Regex: '^"'
     Priority: 1
   - Regex: '^<'

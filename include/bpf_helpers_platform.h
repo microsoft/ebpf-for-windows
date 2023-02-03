@@ -4,7 +4,7 @@
 
 /**
  * @file
- * @brief This file contains platform - specific defines used by eBPF programs.
+ * @brief This file contains platform specific defines used by eBPF programs.
  */
 
 #include <stdint.h>

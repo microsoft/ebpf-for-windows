@@ -3,14 +3,12 @@
 
 #include "svc_common.h"
 
-// Windows.h needs to be included before other headers.
-// It has a #define for WINAPI_FAMILY_PARTITION among others that control
-// the behavior of other Windows headers.
 #include <winsock2.h>
 #include <windows.h>
-#include "rpc_interface_s.c" // RPC generated headers must appear after including winsock2.h.
 #include <malloc.h>
 #include <sddl.h>
+
+#include "rpc_interface_s.c"
 
 #pragma comment(lib, "Rpcrt4.lib")
 
