@@ -4,12 +4,11 @@
 // Do not alter this generated file.
 // This file was generated from bpf.o
 
-#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
-// Windows Header Files
 #include "bpf2c.h"
 
-#include <windows.h>
 #include <stdio.h>
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+#include <windows.h>
 
 #define metadata_table bpf##_metadata_table
 extern metadata_table_t metadata_table;
