@@ -18,8 +18,8 @@ TOKEN_VALUE g_LevelEnum[2] = {
 
 unsigned long
 handle_ebpf_show_disassembly(
-    _In_z_ const wchar_t* machine,
-    _In_reads_(argc) wchar_t** argv,
+    _Null_terminated_ const wchar_t* machine,
+    _Inout_updates_(argc) wchar_t** argv,
     unsigned long current_index,
     unsigned long argc,
     unsigned long flags,
@@ -87,13 +87,13 @@ _get_map_type_name(ebpf_map_type_t type)
 
 unsigned long
 handle_ebpf_show_sections(
-    _In_z_ const wchar_t* machine,
-    _In_reads_(argc) wchar_t** argv,
+    _Null_terminated_ const wchar_t* machine,
+    _Inout_updates_(argc) wchar_t** argv,
     unsigned long current_index,
     unsigned long argc,
     unsigned long flags,
     const void* data,
-    BOOL* done)
+    int* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -213,8 +213,8 @@ handle_ebpf_show_sections(
 
 unsigned long
 handle_ebpf_show_verification(
-    _In_z_ const wchar_t* machine,
-    _In_reads_(argc) wchar_t** argv,
+    _Null_terminated_ const wchar_t* machine,
+    _Inout_updates_(argc) wchar_t** argv,
     unsigned long current_index,
     unsigned long argc,
     unsigned long flags,
