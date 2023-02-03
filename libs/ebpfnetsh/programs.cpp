@@ -79,8 +79,8 @@ struct _program_unloader
 
 unsigned long
 handle_ebpf_add_program(
-    _Null_terminated_ const wchar_t* machine,
-    _Null_terminated_ wchar_t** argv,
+    const wchar_t* machine,
+    wchar_t** argv,
     unsigned long current_index,
     unsigned long argc,
     unsigned long flags,
@@ -315,8 +315,8 @@ _find_object_with_program(ebpf_id_t id)
 
 unsigned long
 handle_ebpf_delete_program(
-    _Null_terminated_ const wchar_t* machine,
-    _Null_terminated_ wchar_t** argv,
+    const wchar_t* machine,
+    wchar_t** argv,
     unsigned long current_index,
     unsigned long argc,
     unsigned long flags,
@@ -449,8 +449,8 @@ _ebpf_program_detach_by_id(ebpf_id_t program_id)
 
 unsigned long
 handle_ebpf_set_program(
-    _Null_terminated_ const wchar_t* machine,
-    _Null_terminated_ wchar_t** argv,
+    const wchar_t* machine,
+    wchar_t** argv,
     unsigned long current_index,
     unsigned long argc,
     unsigned long flags,
@@ -565,8 +565,8 @@ handle_ebpf_set_program(
 
 unsigned long
 handle_ebpf_show_programs(
-    _Null_terminated_ const wchar_t* machine,
-    _Null_terminated_ wchar_t** argv,
+    const wchar_t* machine,
+    wchar_t** argv,
     unsigned long current_index,
     unsigned long argc,
     unsigned long flags,

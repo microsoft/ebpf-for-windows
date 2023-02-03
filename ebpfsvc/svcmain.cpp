@@ -14,14 +14,14 @@ HANDLE ebpf_service_stop_event_handle = nullptr;
 void WINAPI
 service_control_handler(unsigned long ctrl);
 void
-service_report_event(_Null_terminated_ wchar_t* function);
+service_report_event( wchar_t* function);
 void
 report_service_status(unsigned long current_state, unsigned long win32exitcode, unsigned long wait_hint);
 void
-service_init(unsigned long argc, _Null_terminated_ wchar_t** argv);
+service_init(unsigned long argc, wchar_t** argv);
 
 void WINAPI
-service_main(unsigned long argc, _Null_terminated_ wchar_t** argv);
+service_main(unsigned long argc, wchar_t** argv);
 int
 service_install();
 

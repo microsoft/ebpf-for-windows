@@ -19,8 +19,8 @@
 
 unsigned long
 handle_ebpf_show_pins(
-    _Null_terminated_ const wchar_t* machine,
-    _Null_terminated_ wchar_t** argv,
+    const wchar_t* machine,
+    wchar_t** argv,
     unsigned long current_index,
     unsigned long argc,
     unsigned long flags,
