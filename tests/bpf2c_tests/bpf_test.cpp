@@ -22,12 +22,6 @@ extern "C"
 
 extern "C" metadata_table_t C_NAME;
 
-extern "C" void
-division_by_zero(uint32_t address)
-{
-    std::cerr << "BPF program hit divide by zero at PC=" << address << std::endl;
-}
-
 int
 main(int argc, char** argv)
 {
