@@ -112,6 +112,9 @@ extern "C"
 
         /// Operation timed out.
         EBPF_TIMEOUT,
+
+        /// Key is valid, but the object has been deleted.
+        EBPF_STALE_KEY,
     } ebpf_result_t;
 
 #define EBPF_RESULT_COUNT (EBPF_INVALID_POINTER + 1)
