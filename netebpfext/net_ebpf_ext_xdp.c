@@ -667,42 +667,49 @@ net_ebpf_ext_layer_2_classify(
         net_xdp_ctx.base.data_end = packet_buffer + net_buffer->DataLength;
     }
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_ctx, &result) == EBPF_SUCCESS) {
-        switch (result) {
-        case XDP_PASS:
-            if (net_xdp_ctx.cloned_nbl != NULL) {
-                // Drop the original NBL.
-                classify_output->actionType = FWP_ACTION_BLOCK;
-                classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-
-                // Inject the cloned NBL in receive path.
-                status = _net_ebpf_ext_receive_inject_cloned_nbl(net_xdp_ctx.cloned_nbl, incoming_fixed_values);
-                if (NT_SUCCESS(status))
-                    // If cloned packet could be successfully injected, no need to audit for dropping the original.
-                    // So absorb the original packet.
-                    classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
-            }
-            // No special processing required in the non-clone case.
-            // The inbound original NBL will be allowed to proceed in the ingress path.
-            break;
-        case XDP_TX:
-            _net_ebpf_ext_handle_xdp_tx(&net_xdp_ctx, incoming_fixed_values);
-            // Absorb the original NBL.
-            classify_output->actionType = FWP_ACTION_BLOCK;
-            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-            classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
-            break;
-        case XDP_DROP:
-            classify_output->actionType = FWP_ACTION_BLOCK;
-            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-            // Do not audit XDP drops.
-            classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
-            // Free cloned NBL, if any.
-            if (net_xdp_ctx.cloned_nbl != NULL)
-                _net_ebpf_ext_free_nbl(net_xdp_ctx.cloned_nbl, TRUE);
-            break;
-        }
+    if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_ctx, &result) != EBPF_SUCCESS) {
+        // Perform a default action if the program fails.
+        result = XDP_DROP;
     }
+
+    switch (result) {
+    case XDP_PASS:
+        if (net_xdp_ctx.cloned_nbl != NULL) {
+            // Drop the original NBL.
+            classify_output->actionType = FWP_ACTION_BLOCK;
+            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+
+            // Inject the cloned NBL in receive path.
+            status = _net_ebpf_ext_receive_inject_cloned_nbl(net_xdp_ctx.cloned_nbl, incoming_fixed_values);
+            if (NT_SUCCESS(status))
+                // If cloned packet could be successfully injected, no need to audit for dropping the original.
+                // So absorb the original packet.
+                classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
+        }
+        // No special processing required in the non-clone case.
+        // The inbound original NBL will be allowed to proceed in the ingress path.
+        break;
+    case XDP_TX:
+        _net_ebpf_ext_handle_xdp_tx(&net_xdp_ctx, incoming_fixed_values);
+        // Absorb the original NBL.
+        classify_output->actionType = FWP_ACTION_BLOCK;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
+        break;
+    default:
+        ASSERT(FALSE);
+        __fallthrough;
+    case XDP_DROP:
+        classify_output->actionType = FWP_ACTION_BLOCK;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        // Do not audit XDP drops.
+        classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
+        // Free cloned NBL, if any.
+        if (net_xdp_ctx.cloned_nbl != NULL)
+            _net_ebpf_ext_free_nbl(net_xdp_ctx.cloned_nbl, TRUE);
+        break;
+    }
+
 Done:
 
     if (attached_client)
