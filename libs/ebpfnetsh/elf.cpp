@@ -87,8 +87,8 @@ _get_map_type_name(ebpf_map_type_t type)
 
 unsigned long
 handle_ebpf_show_sections(
-    const wchar_t* machine,
-    wchar_t** argv,
+    _In_z_ const wchar_t* machine,
+    _In_reads_(argc) wchar_t** argv,
     unsigned long current_index,
     unsigned long argc,
     unsigned long flags,
@@ -213,8 +213,8 @@ handle_ebpf_show_sections(
 
 unsigned long
 handle_ebpf_show_verification(
-    const wchar_t* machine,
-    wchar_t** argv,
+    _In_z_ const wchar_t* machine,
+    _In_reads_(argc) wchar_t** argv,
     unsigned long current_index,
     unsigned long argc,
     unsigned long flags,

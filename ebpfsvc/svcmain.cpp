@@ -129,7 +129,7 @@ Exit:
  *
  */
 void WINAPI
-service_main(unsigned long argc, _Null_terminated_ wchar_t** argv)
+service_main(unsigned long argc, wchar_t** argv)
 {
     // Register the handler function for the service
 
@@ -153,7 +153,7 @@ service_main(unsigned long argc, _Null_terminated_ wchar_t** argv)
 }
 
 void
-service_report_event(_Null_terminated_ wchar_t* function)
+service_report_event( wchar_t* function)
 {
     UNREFERENCED_PARAMETER(function);
     return;
@@ -246,7 +246,7 @@ Cleanup()
  *
  */
 void
-service_init(unsigned long argc, _Null_terminated_ wchar_t** argv)
+service_init(unsigned long argc, wchar_t** argv)
 {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
