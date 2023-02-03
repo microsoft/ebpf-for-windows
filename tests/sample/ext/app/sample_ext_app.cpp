@@ -9,8 +9,8 @@
 #include "common_tests.h"
 #include "netsh_test_helper.h"
 #include "program_helper.h"
-#include "service_helper.h"
 #include "sample_ext_app.h"
+#include "service_helper.h"
 
 #include <chrono>
 #include <mutex>

@@ -53,6 +53,10 @@ IncludeCategories:
   - Regex: '^<ntifs.h'
     Priority: 2
     SortPriority: 4
+  # ndis.h must be before fwpsk.h
+  - Regex: '^<ndis.h'
+    Priority: 2
+    SortPriority: 4
   - Regex: '\.c"'
     Priority: 6
   - Regex: '^"'

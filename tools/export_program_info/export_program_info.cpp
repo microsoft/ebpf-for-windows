@@ -5,13 +5,14 @@
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
 #include "ebpf_api.h"
-#include "ebpf_general_helpers.c"
 #include "ebpf_nethooks.h"
 #include "ebpf_store_helper.h"
 #include "export_program_info.h"
 #include "windows_program_type.h"
 
 #include <codecvt>
+
+#include "ebpf_general_helpers.c"
 
 #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)

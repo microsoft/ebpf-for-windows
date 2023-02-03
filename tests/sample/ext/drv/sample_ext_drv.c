@@ -8,7 +8,6 @@
  */
 
 #include "ebpf_platform.h"
-
 #include "sample_ext.h"
 #include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"
