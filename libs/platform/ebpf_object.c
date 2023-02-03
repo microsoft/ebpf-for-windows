@@ -10,20 +10,19 @@ static ebpf_lock_t _ebpf_object_tracking_list_lock = {0};
 
 /**
  * @brief Objects are allocated an entry in the the ID
- * table when they are initialized.  Along with a pointer to
- *  the object, each id table entry maintains its own ref-count
- *  that starts off at 1 when it is assigned to a new object.
- *  The entry ref-count indicates the number of other objects
- *  holding a reference to the corresponding object's id.  On
- *  the destruction of an object, the object pointer in the
- *  corresponding id table entry is reset to NULL and the entry
- *  ref-count is also decremented. Note that the entry will
- *  continue to be considered 'in use' until all other objects
- *  are done with the associated object (they let go of their
- *  references to this entry).  When the entry ref-count goes
- *  down to 0 _and_ the object pointer is NULL, it is eligible
- *  for re-use. Note that either of these events can occur
- *  first.
+ * table when they are initialized.  Along with a pointer to the
+ * object, each id table entry maintains its own ref-count that
+ * starts off at 1 when it is assigned to a new object. The
+ * entry ref-count indicates the number of other objects
+ * holding a reference to the corresponding object's id.  On the
+ * destruction of an object, the object pointer in the
+ * corresponding id table entry is reset to NULL and the entry
+ * ref-count is also decremented. Note that the entry will
+ * continue to be considered 'in use' until all other objects
+ * are done with the associated object (they let go of their
+ * references to this entry).  When the entry ref-count goes
+ * down to 0 _and_ the object pointer is NULL, it is eligible
+ * for re-use. Note that either of these events can occur first.
  *
  * Map objects can have references due to one of the following:
  * 1) An open handle holds a reference on it.
@@ -434,7 +433,7 @@ ebpf_object_acquire_id_reference(ebpf_id_t id, ebpf_object_type_t object_type)
         // The object at this entry has been deleted and all that remains are (the now stale) references to this entry
         // held by other objects.  This is a non-reversible situation and there's no point in giving out references
         // for such entries, so deny with a suitable error code.
-        result = EBPF_STALE_KEY;
+        result = EBPF_STALE_ID;
         goto Done;
     }
 
