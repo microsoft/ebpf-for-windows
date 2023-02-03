@@ -364,6 +364,18 @@ _ebpf_native_provider_attach_client_callback(
         goto Done;
     }
 
+    // If the metadata table changes in size, then require the regeneration of the native module.
+    if (table->size != sizeof(metadata_table_t)) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "The metadata table size is wrong for client module. The version of bpf2c used to generate this module "
+            "may be too old.",
+            *client_module_id);
+        goto Done;
+    }
+
     bpf2c_version_t client_version = {0, 0, 0};
     table->version(&client_version);
     if (_ebpf_compare_versions(&client_version, &_ebpf_minimum_version) < 0) {
