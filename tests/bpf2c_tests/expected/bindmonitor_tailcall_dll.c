@@ -30,12 +30,6 @@ DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpRese
     return TRUE;
 }
 
-void
-division_by_zero(uint32_t address)
-{
-    fprintf(stderr, "Divide by zero at address %d\n", address);
-}
-
 __declspec(dllexport) metadata_table_t* get_metadata_table() { return &metadata_table; }
 
 #include "bpf2c.h"
@@ -77,7 +71,7 @@ static map_entry_t _maps[] = {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
          4,                       // Size in bytes of a map value.
-         2,                       // Maximum number of entries allowed in the map.
+         8,                       // Maximum number of entries allowed in the map.
          0,                       // Inner map index.
          PIN_NONE,                // Pinning type for the map.
          0,                       // Identifier for a map template.
