@@ -148,7 +148,7 @@ var searchData=
   ['ebpf_5fsection_5fdata_5fprogram_5ftype_526',['EBPF_SECTION_DATA_PROGRAM_TYPE',['../ebpf__windows_8h.html#a6fcdef43f3292afd9853cbb8cd8765ab',1,'ebpf_windows.h']]],
   ['ebpf_5fsection_5finfo_5ft_527',['ebpf_section_info_t',['../ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006',1,'ebpf_api.h']]],
   ['ebpf_5fsections_5fregistry_5fpath_528',['EBPF_SECTIONS_REGISTRY_PATH',['../ebpf__windows_8h.html#a77b82c878d2196369e2a995dc9c14244',1,'ebpf_windows.h']]],
-  ['ebpf_5fstale_5fkey_529',['EBPF_STALE_KEY',['../ebpf__result_8h.html#a916ce31f9038720787b441792c088372a5f70f0c64131c8e23cc9225f0b005855',1,'ebpf_result.h']]],
+  ['ebpf_5fstale_5fid_529',['EBPF_STALE_ID',['../ebpf__result_8h.html#a916ce31f9038720787b441792c088372ac72e20369919955243219b16ad1fa9c8',1,'ebpf_result.h']]],
   ['ebpf_5fstat_5ft_530',['ebpf_stat_t',['../ebpf__api_8h.html#a03e330e1ab6b5c901410d1ffbe0196a1',1,'ebpf_api.h']]],
   ['ebpf_5fstore_5fhelper_2eh_531',['ebpf_store_helper.h',['../ebpf__store__helper_8h.html',1,'']]],
   ['ebpf_5fstore_5fregistry_5fpath_532',['EBPF_STORE_REGISTRY_PATH',['../ebpf__windows_8h.html#a2dec541ebcd26576f178eaee1e5e4fe5',1,'ebpf_windows.h']]],
