@@ -30,12 +30,6 @@ DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpRese
     return TRUE;
 }
 
-void
-division_by_zero(uint32_t address)
-{
-    fprintf(stderr, "Divide by zero at address %d\n", address);
-}
-
 __declspec(dllexport) metadata_table_t* get_metadata_table() { return &metadata_table; }
 
 #include "bpf2c.h"
