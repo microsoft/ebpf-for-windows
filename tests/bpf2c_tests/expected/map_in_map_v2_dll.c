@@ -4,13 +4,11 @@
 // Do not alter this generated file.
 // This file was generated from map_in_map_v2.o
 
-#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
-// Windows Header Files
-#include <windows.h>
+#include "bpf2c.h"
 
 #include <stdio.h>
-
-#include "bpf2c.h"
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+#include <windows.h>
 
 #define metadata_table map_in_map_v2##_metadata_table
 extern metadata_table_t metadata_table;

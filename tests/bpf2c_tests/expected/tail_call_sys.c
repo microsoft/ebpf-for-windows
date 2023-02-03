@@ -4,12 +4,12 @@
 // Do not alter this generated file.
 // This file was generated from tail_call.o
 
+#define NO_CRT
+#include "bpf2c.h"
+
 #include <guiddef.h>
 #include <wdm.h>
 #include <wsk.h>
-
-#define NO_CRT
-#include "bpf2c.h"
 
 DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
