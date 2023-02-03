@@ -665,14 +665,33 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         REQUIRE(errno == ENOENT);
     }
 
-    // Detach all the native module clients.
+    // auto unload_native_module = []() {
+    //     // Detach all the native module clients.
+    // _unload_all_native_modules();
+    // }
+
+    // auto terminate_core = [ec_initialized]() {
+    //     if (ec_initialized) {
+    //         ebpf_core_terminate();
+    //     }
+    // }
+
     _unload_all_native_modules();
 
     clear_program_info_cache();
-    if (api_initialized)
+    if (api_initialized) {
         ebpf_api_terminate();
-    if (ec_initialized)
+    }
+    if (ec_initialized) {
         ebpf_core_terminate();
+    }
+
+    // // Unload of native modules and core termination cannot
+    // // happen in the same thread as one would block for the other.
+    // std::thread thread_1(unload_native_module);
+    // std::thread thread_2(terminate_core);
+    // thread_1.join();
+    // thread_2.join();
 
     device_io_control_handler = nullptr;
     cancel_io_ex_handler = nullptr;
