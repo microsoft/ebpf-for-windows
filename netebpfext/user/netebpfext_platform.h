@@ -5,17 +5,16 @@
 
 #include "ebpf_platform.h"
 
-#include <dpfilter.h>
-#include <fwpmtypes.h>
-#include <fwpstypes.h>
-#include <fwpvi.h>
-#include <ndis.h>
-#include <netiodef.h>
-// Note: iphlpapi.h requires ws2def.h and ws2ipdef.h to be included first.
 #include <ws2def.h>
 #include <ws2ipdef.h>
 #include <../km/fwpmk.h>
 #include <../km/fwpsk.h>
 #include <../km/netioddk.h>
+#include <dpfilter.h>
+#include <fwpmtypes.h>
+#include <fwpstypes.h>
+#include <fwpvi.h>
 #include <iphlpapi.h>
+#include <ndis.h>
+#include <netiodef.h>
 #include <winnt.h>

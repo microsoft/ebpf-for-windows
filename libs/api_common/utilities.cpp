@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "framework.h"
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+#include "framework.h"
 #include "utilities.hpp"
 
 #include <codecvt>

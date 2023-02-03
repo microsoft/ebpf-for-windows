@@ -4,7 +4,7 @@
 
 #include <csignal>
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
-#include <Windows.h>        // Must be included before errorrep.h.
+#include <Windows.h>
 #include <errorrep.h>
 #include <stdexcept>
 #include <string>

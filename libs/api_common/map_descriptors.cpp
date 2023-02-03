@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-/* @file
+/**
+ * @file
  * This file implements a cache of map descriptors as used by the
  * verifier.  It operates on original file descriptors (which
  * might be mock file descriptors) that appear in the eBPF byte

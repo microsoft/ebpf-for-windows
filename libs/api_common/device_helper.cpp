@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-/* @file
+/**
+ * @file
  * @brief Contains code to manage device for kernel mode execution context.
  */
 

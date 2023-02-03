@@ -12,7 +12,7 @@
 #include "programs.h"
 
 #include <windows.h>
-#include <netsh.h> // Must be included after windows.h
+#include <netsh.h>
 #include <string.h>
 
 #pragma region

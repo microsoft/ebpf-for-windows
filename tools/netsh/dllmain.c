@@ -11,7 +11,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <netsh.h> // Must be after windows.h.
+#include <netsh.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>

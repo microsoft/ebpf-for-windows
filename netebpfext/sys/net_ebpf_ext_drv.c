@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 /**
- *
  * WDF based driver that does the following:
  * 1. Registers a set of WFP callouts.
  * 2. Registers as an eBPF program information provider and hook provider.

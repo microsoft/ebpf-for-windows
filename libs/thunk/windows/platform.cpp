@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_api.h"
-#include <cstdlib>
+
 #include <crtdbg.h> // For _CrtSetReportMode
+#include <cstdlib>
 #include <io.h>
 #include <stdint.h>
 #include <string>

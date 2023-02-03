@@ -3,7 +3,7 @@
 
 /**
  * @file
- * brief This file implements the hook for the CGROUP_SOCK_ADDR program type and associated attach types, on eBPF for
+ * @brief This file implements the hook for the CGROUP_SOCK_ADDR program type and associated attach types, on eBPF for
  * Windows.
  */
 

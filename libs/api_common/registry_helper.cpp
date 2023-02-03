@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-/* @file
+/**
+ * @file
  * @brief Contains user mode registry related helper APIs.
  */
 
