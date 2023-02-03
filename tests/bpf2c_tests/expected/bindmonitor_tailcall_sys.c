@@ -204,7 +204,7 @@ static map_entry_t _maps[] = {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
          4,                       // Size in bytes of a map value.
-         2,                       // Maximum number of entries allowed in the map.
+         8,                       // Maximum number of entries allowed in the map.
          0,                       // Inner map index.
          PIN_NONE,                // Pinning type for the map.
          0,                       // Identifier for a map template.
