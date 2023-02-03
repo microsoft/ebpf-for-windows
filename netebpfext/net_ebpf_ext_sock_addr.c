@@ -1511,6 +1511,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &verdict) != EBPF_SUCCESS) {
         status = STATUS_UNSUCCESSFUL;
+        KeLowerIrql(old_irql);
         goto Exit;
     }
 
