@@ -19,7 +19,7 @@ TOKEN_VALUE g_LevelEnum[2] = {
 unsigned long
 handle_ebpf_show_disassembly(
     _Null_terminated_ const wchar_t* machine,
-    _Null_terminated_ wchar_t** argv,
+    _In_reads_(argc) wchar_t** argv,
     unsigned long current_index,
     unsigned long argc,
     unsigned long flags,
