@@ -519,6 +519,12 @@ extern "C"
     KIRQL
     KeGetCurrentIrql();
 
+    KIRQL
+    KeRaiseIrqlToDpcLevel();
+
+    void
+    KeLowerIrql(KIRQL new_irql);
+
     HANDLE
     PsGetCurrentProcessId();
 
