@@ -42,6 +42,10 @@ IncludeCategories:
   - Regex: '^<(ws2def|ws2ipdef).h>'
     Priority: 2
     SortPriority: 3
+  # ws2tcpip.h must be before mstcpip.h
+  - Regex: '^<ws2tcpip.h>'
+    Priority: 2
+    SortPriority: 3
   - Regex: '^(<|")ElfWrapper.h'
     Priority: 2
     SortPriority: 4

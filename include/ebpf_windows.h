@@ -5,6 +5,11 @@
 #ifdef _MSC_VER
 #include <guiddef.h>
 #else
+#if !defined(NO_CRT)
+#include <stdint.h>
+#else
+typedef unsigned char uint8_t;
+#endif
 typedef uint8_t GUID[16];
 #endif
 

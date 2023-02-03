@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include <windows.h>
 #include <netsh.h>
 
 #ifdef __cplusplus
