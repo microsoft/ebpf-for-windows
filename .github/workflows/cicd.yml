@@ -44,6 +44,17 @@ jobs:
       build_nuget: true
       build_options: /p:ReleaseJIT='True'
 
+  # Perform the native-only build.
+  regular_Native-only:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build-x64-native-only
+      generate_release_package: true
+      build_nuget: true
+      build_options: /p:DisableJIT='True' /p:DisableInterpreter='True'
+
   cmake:
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
@@ -253,7 +264,6 @@ jobs:
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
-
 
   core_helper_fuzzer:
     needs: libfuzzer

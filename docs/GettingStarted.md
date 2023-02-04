@@ -108,27 +108,32 @@ The following steps need to be executed *once* before the first build on a new c
 
 ##### Setting compile time options when building from Developer Command Prompt
 
-To build with specific compile time options, append `/p:DefineConstants=<option_name>`. Options available include:
+To build with the specific compile time options for disabling JIT compiler and/or the Interpreter, append "`/p:<option>=True`". Available options are:
 
-1. `CONFIG_BPF_JIT_ALWAYS_ON` - Compile eBPF Execution Context without support for eBPF interpreter.
+1. `DisableJIT` - Compile eBPF's *Execution Context* without support for eBPF JIT compiler.
+1. `DisableInterpreter` - Compile eBPF's *Execution Context* without support for eBPF interpreter.
 
 #### Building using Visual Studio IDE
 
-1. Open `ebpf-for-windows.sln`
-1. Switch to debug / x64
-1. Build solution
+1. Open the `ebpf-for-windows.sln` solution.
+1. Switch the configuration to "`Debug`|`x64`".
+1. Rebuild the solution.
 
 ##### Setting compile time options when building from Visual Studio IDE
 
-To build with specific compile time options:
+To build with the specific compile time options for disabling JIT compiler and/or the Interpreter:
 
 1. Select the project to modify from the Solution Explorer.
-1. Navigate to "C/C++" -> "Preprocessor" -> "Preprocessor Definitions"
-1. Add the option to the list of preprocessor options.
+1. Navigate to "`C/C++`" -> "`Preprocessor`" -> "`Preprocessor Definitions`"
+1. Click the "`V`" combobox arrow and then "`Edit`" for adding the option(s) to the list of preprocessor options. Available options are:
 
-Options available include:
+    -  `CONFIG_BPF_JIT_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF JIT compiler.
+    -  `CONFIG_BPF_INTERPRETER_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF interpreter.
 
-1. `CONFIG_BPF_JIT_ALWAYS_ON` - Compile eBPF Execution Context without support for eBPF interpreter.
+    >Note: do the above steps for the following projects within the `ebpf-for-windows.sln` solution:
+    >- `api_test`
+    >- `execution_context_kernel`
+    >- `sample_ext_app`
 
 This will build the following binaries:
 
