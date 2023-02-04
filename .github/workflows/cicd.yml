@@ -45,7 +45,7 @@ jobs:
       build_options: /p:ReleaseJIT='True'
 
   # Perform the native-only build.
-  regular_Native-only:
+  regular_native-only:
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-build.yml
