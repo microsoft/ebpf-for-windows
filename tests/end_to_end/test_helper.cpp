@@ -665,6 +665,7 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         REQUIRE(errno == ENOENT);
     }
 
+    // Detach all the native module clients.
     _unload_all_native_modules();
 
     clear_program_info_cache();
