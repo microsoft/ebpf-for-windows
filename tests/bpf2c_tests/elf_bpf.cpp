@@ -128,6 +128,17 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
             auto actual_output = read_contents<std::istringstream>(
                 out, {transform_line_directives<'\\'>, transform_line_directives<'/'>});
 
+            // Find the first line that differs.
+            if (actual_output.size() != expected_output.size()) {
+                for (size_t i = 0; i < min(actual_output.size(), expected_output.size()); i++) {
+                    if (actual_output[i] != expected_output[i]) {
+                        std::cout << "First difference at line " << i << std::endl;
+                        std::cout << "Expected: " << expected_output[i] << std::endl;
+                        std::cout << "Actual: " << actual_output[i] << std::endl;
+                        break;
+                    }
+                }
+            }
             REQUIRE(actual_output.size() == expected_output.size());
             for (size_t i = 0; i < actual_output.size(); i++) {
                 REQUIRE(expected_output[i] == actual_output[i]);
