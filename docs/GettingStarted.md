@@ -121,19 +121,22 @@ To build with the specific compile time options for disabling JIT compiler and/o
 
 ##### Setting compile time options when building from Visual Studio IDE
 
-To build with the specific compile time options for disabling JIT compiler and/or the Interpreter:
+To build with the specific compile time options for disabling JIT compiler and/or the interpreter:
 
 1. Select the project to modify from the Solution Explorer.
 1. Navigate to "`C/C++`" -> "`Preprocessor`" -> "`Preprocessor Definitions`"
 1. Click the "`V`" combobox arrow and then "`Edit`" for adding the option(s) to the list of preprocessor options. Available options are:
 
-    -  `CONFIG_BPF_JIT_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF JIT compiler.
-    -  `CONFIG_BPF_INTERPRETER_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF interpreter.
+   *  `CONFIG_BPF_JIT_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF JIT compiler.
+   *  `CONFIG_BPF_INTERPRETER_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF interpreter.
 
-    >Note: do the above steps for the following projects within the `ebpf-for-windows.sln` solution:
-    >- `api_test`
-    >- `execution_context_kernel`
-    >- `sample_ext_app`
+      >*Note for Linux users*: this switch is similar to the `CONFIG_BPF_JIT_ALWAYS_ON` which, as documented 
+[here](https://googleprojectzero.blogspot.com/2018/01/reading-privileged-memory-with-side.html), is used to disable support for the interpreter.
+
+>Note: do the above steps for the following projects within the `ebpf-for-windows.sln` solution:
+>- `api_test`
+>- `execution_context_kernel`
+>- `sample_ext_app`
 
 This will build the following binaries:
 
