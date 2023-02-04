@@ -578,15 +578,6 @@ SeAccessCheckFromState(
 KIRQL
 KeGetCurrentIrql() { return PASSIVE_LEVEL; }
 
-KIRQL
-KeRaiseIrqlToDpcLevel() { return PASSIVE_LEVEL; }
-
-void
-KeLowerIrql(KIRQL new_irql)
-{
-    UNREFERENCED_PARAMETER(new_irql);
-}
-
 HANDLE
 PsGetCurrentProcessId() { return (HANDLE)(uintptr_t)GetCurrentProcessId(); }
 

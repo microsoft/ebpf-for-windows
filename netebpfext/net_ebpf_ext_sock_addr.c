@@ -168,11 +168,6 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
     net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
     int32_t is_admin;
 
-    // if (KeGetCurrentIrql() != PASSIVE_LEVEL) {
-    //     is_admin = -1;
-    //     goto Exit;
-    // }
-
     sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     status = _perform_access_check(
         _net_ebpf_ext_security_descriptor_admin, sock_addr_ctx->access_information, &access_allowed);
@@ -183,7 +178,6 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
         is_admin = 0;
     }
 
-    // Exit:
     return is_admin;
 }
 
@@ -1318,7 +1312,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     BOOLEAN classify_handle_acquired = FALSE;
     BOOLEAN v4_mapped = FALSE;
     BOOLEAN is_original_connection;
-    KIRQL old_irql;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
@@ -1507,15 +1500,10 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         v4_mapped,
         &connection_context_original->key);
 
-    old_irql = KeRaiseIrqlToDpcLevel();
-
     if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &verdict) != EBPF_SUCCESS) {
         status = STATUS_UNSUCCESSFUL;
-        KeLowerIrql(old_irql);
         goto Exit;
     }
-
-    KeLowerIrql(old_irql);
 
     // Initialize connection_context_redirected destination with the redirected address.
     is_original_connection = FALSE;
