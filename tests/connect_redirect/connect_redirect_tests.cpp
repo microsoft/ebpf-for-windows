@@ -60,6 +60,8 @@ typedef struct _test_globals
     uint16_t destination_port;
     uint16_t proxy_port;
     test_addresses_t addresses[socket_family_t::Max];
+    bool attach_v4_program;
+    bool attach_v6_program;
 } test_globals_t;
 
 static test_globals_t _globals;
@@ -178,6 +180,8 @@ _initialize_test_globals()
     ADDRESS_FAMILY family;
     uint32_t v4_addresses = 0;
     uint32_t v6_addresses = 0;
+    _globals.attach_v4_program = false;
+    _globals.attach_v6_program = false;
 
     // Read v4 addresses.
     if (_remote_ip_v4 != "") {
@@ -203,6 +207,9 @@ _initialize_test_globals()
         v4_addresses++;
     }
     REQUIRE((v4_addresses == 0 || v4_addresses == 3));
+    if (v4_addresses != 0) {
+        _globals.attach_v4_program = true;
+    }
 
     IN4ADDR_SETLOOPBACK((PSOCKADDR_IN)&_globals.addresses[socket_family_t::IPv4].loopback_address);
     IN6ADDR_SETV4MAPPED(
@@ -229,6 +236,9 @@ _initialize_test_globals()
         v6_addresses++;
     }
     REQUIRE((v6_addresses == 0 || v6_addresses == 3));
+    if (v6_addresses != 0) {
+        _globals.attach_v6_program = true;
+    }
     IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[socket_family_t::IPv6].loopback_address);
 
     _globals.user_type = _get_user_type(_user_type_string);
@@ -271,24 +281,31 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object, uint64_t authent
 static void
 _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 {
+    int result;
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
     REQUIRE(object != nullptr);
 
     REQUIRE(bpf_object__load(object) == 0);
 
-    bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object, "connect_redirect4");
-    REQUIRE(connect_program_v4 != nullptr);
+    if (_globals.attach_v4_program) {
+        printf("Attaching v4 program\n");
+        bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object, "connect_redirect4");
+        REQUIRE(connect_program_v4 != nullptr);
 
-    int result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(connect_program_v4)), 0, BPF_CGROUP_INET4_CONNECT, 0);
-    REQUIRE(result == 0);
+        result = bpf_prog_attach(
+            bpf_program__fd(const_cast<const bpf_program*>(connect_program_v4)), 0, BPF_CGROUP_INET4_CONNECT, 0);
+        REQUIRE(result == 0);
+    }
 
-    bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object, "connect_redirect6");
-    REQUIRE(connect_program_v6 != nullptr);
+    if (_globals.attach_v6_program) {
+        printf("Attaching v6 program\n");
+        bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object, "connect_redirect6");
+        REQUIRE(connect_program_v6 != nullptr);
 
-    result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(connect_program_v6)), 0, BPF_CGROUP_INET6_CONNECT, 0);
-    REQUIRE(result == 0);
+        result = bpf_prog_attach(
+            bpf_program__fd(const_cast<const bpf_program*>(connect_program_v6)), 0, BPF_CGROUP_INET6_CONNECT, 0);
+        REQUIRE(result == 0);
+    }
 
     *return_object = object;
 }
@@ -546,6 +563,22 @@ TEST_CASE("connect_redirect_tcp_v6", "[connect_redirect_tests]") { test_common(A
 TEST_CASE("connect_redirect_udp_v4", "[connect_redirect_tests]") { test_common(AF_INET, IPPROTO_UDP); }
 
 TEST_CASE("connect_redirect_udp_v6", "[connect_redirect_tests]") { test_common(AF_INET6, IPPROTO_UDP); }
+
+// TEST_CASE("connect_redirect_stress_test", "[connect_redirect_tests]")
+// {
+//     // Create multiple threads.
+//     // In each thread, create sockets, connect and test. Combinations:
+//     // 1. v4 traffic / v6 traffic.
+//     // 2. dual stack / pure sockets
+//     // UDP / TCP
+//     // Allow / Block / Redirect
+
+//     /*
+//     Create 12 threads. 4 threads for allow, 4 for block and 4 for redirect.
+//     2 threads for TCP and 2 threads for UDP for each of allow, block and redirect.
+//     Each thread will test the following
+//     */
+// }
 
 int
 main(int argc, char* argv[])
