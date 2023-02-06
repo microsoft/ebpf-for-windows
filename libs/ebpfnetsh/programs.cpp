@@ -85,7 +85,7 @@ handle_ebpf_add_program(
     unsigned long argc,
     unsigned long flags,
     const void* data,
-    BOOL* done)
+    int* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -321,7 +321,7 @@ handle_ebpf_delete_program(
     unsigned long argc,
     unsigned long flags,
     const void* data,
-    BOOL* done)
+    int* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -455,7 +455,7 @@ handle_ebpf_set_program(
     unsigned long argc,
     unsigned long flags,
     const void* data,
-    BOOL* done)
+    int* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -571,7 +571,7 @@ handle_ebpf_show_programs(
     unsigned long argc,
     unsigned long flags,
     const void* data,
-    BOOL* done)
+    int* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);

@@ -25,7 +25,7 @@ handle_ebpf_show_links(
     unsigned long argc,
     unsigned long flags,
     const void* data,
-    BOOL* done)
+    int* done)
 {
     UNREFERENCED_PARAMETER(argv);
     UNREFERENCED_PARAMETER(current_index);

@@ -24,7 +24,7 @@ handle_ebpf_show_disassembly(
     unsigned long argc,
     unsigned long flags,
     const void* data,
-    BOOL* done)
+    int* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -219,7 +219,7 @@ handle_ebpf_show_verification(
     unsigned long argc,
     unsigned long flags,
     const void* data,
-    BOOL* done)
+    int* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);

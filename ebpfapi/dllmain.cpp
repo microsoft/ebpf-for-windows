@@ -7,7 +7,7 @@
 
 bool use_ebpf_store = true;
 
-BOOL APIENTRY
+int APIENTRY
 DllMain(HMODULE hModule, unsigned long ul_reason_for_call, void* lpReserved)
 {
     UNREFERENCED_PARAMETER(hModule);
