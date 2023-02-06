@@ -16,7 +16,7 @@
 unsigned long WINAPI
 PreprocessCommand(
     _In_opt_ HANDLE hModule,
-    _Inout_updates_(dwArgCount) _Null_terminated_ wchar_t** ppwcArguments,
+    _Inout_updates_(dwArgCount) wchar_t** ppwcArguments,
     _In_ unsigned long dwCurrentIndex,
     _In_ unsigned long dwArgCount,
     _Inout_updates_opt_(dwTagCount) TAG_TYPE* pttTags,
@@ -82,7 +82,7 @@ PreprocessCommand(
 unsigned long
 MatchEnumTag(
     HANDLE hModule,
-    _Null_terminated_ const wchar_t* pwcArg,
+    const wchar_t* pwcArg,
     unsigned long dwNumArg,
     const TOKEN_VALUE* pEnumTable,
     unsigned long* pdwValue)
@@ -136,7 +136,7 @@ run_netsh_command_with_args(_In_ FN_HANDLE_CMD* command, _Out_ int* result, int 
         }
     }
 
-    *result = command(nullptr, (_Null_terminated_ wchar_t**)argv.data(), 0, argc, 0, 0, nullptr);
+    *result = command(nullptr, (wchar_t**)argv.data(), 0, argc, 0, 0, nullptr);
 
     va_end(args);
 
