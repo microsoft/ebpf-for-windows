@@ -10,6 +10,9 @@ Note: Currently releases are not production signed.
     * docs\tutorial.md
 2. Regenerate the expected bpf2c output:
     ``` .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\```
+   and (until issue #2026 is fixed) manually update:
+    * .\tests\bpf2c_tests\expected\bpf_{dll,raw,sys}.c
+    * .\tests\bpf2c_tests\expected\empty_{dll,raw,sys}.c
 3. Create a pull request with the version number changes
 4. Once the build completes on the PR, download the
    "ebpf-for-windows.msi" and "ebpf-for-windows nuget" build artifacts
