@@ -14,7 +14,7 @@
 
 _hash::_hash(const std::string& algorithm)
 {
-    long hr;
+    HRESULT hr;
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
     std::wstring wide_algorithm = converter.from_bytes(algorithm);
 
@@ -41,7 +41,7 @@ _hash::hash_byte_ranges(const byte_range_t& byte_ranges)
     uint32_t hash_length;
     std::vector<uint8_t> hash;
     BCRYPT_HASH_HANDLE hash_handle;
-    long hr;
+    HRESULT hr;
     hr = BCryptCreateHash(algorithm_handle, &hash_handle, nullptr, 0, nullptr, 0, 0);
     if (!SUCCEEDED(hr)) {
         throw std::runtime_error(std::string("BCryptCreateHash failed with HR=") + std::to_string(hr));

@@ -134,7 +134,7 @@ class _wer_report
             return EXCEPTION_CONTINUE_SEARCH;
         }
 
-        long hr;
+        HRESULT hr;
         hr = WerReportCreate(wer_event_type, WerReportApplicationCrash, nullptr, &report_handle);
         if (FAILED(hr)) {
             fprintf(stderr, "WerReportCreate failed with error %X\n", hr);

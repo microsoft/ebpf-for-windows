@@ -62,7 +62,7 @@ bool WerReportCreate_test_fail = false;
 bool WerReportCreate_test_called = false;
 
 // Incorrect SAL required to match header.
-long
+HRESULT
 WINAPI
 WerReportCreate_test(
     _In_ const wchar_t* event_type,
@@ -81,7 +81,7 @@ WerReportCreate_test(
 bool WerReportAddDump_test_fail = false;
 bool WerReportAddDump_test_called = false;
 
-long
+HRESULT
 WINAPI
 WerReportAddDump_test(
     _In_ HREPORT report_handle,
@@ -106,7 +106,7 @@ WerReportAddDump_test(
 bool WerReportSubmit_test_fail = false;
 bool WerReportSubmit_test_called = false;
 
-long
+HRESULT
 WINAPI
 WerReportSubmit_test(
     _In_ HREPORT report_handle,
