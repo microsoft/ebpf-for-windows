@@ -94,6 +94,7 @@ template <typename T> class ebpf_object_deleter
 
 typedef std::unique_ptr<ebpf_map_t, ebpf_object_deleter<ebpf_map_t>> map_ptr;
 typedef std::unique_ptr<ebpf_program_t, ebpf_object_deleter<ebpf_program_t>> program_ptr;
+typedef std::unique_ptr<ebpf_link_t, ebpf_object_deleter<ebpf_link_t>> link_ptr;
 
 static void
 _test_crud_operations(ebpf_map_type_t map_type)
@@ -637,6 +638,7 @@ test_function()
 TEST_CASE("program", "[execution_context]")
 {
     _ebpf_core_initializer core;
+
     program_ptr program;
     {
         ebpf_program_t* local_program = nullptr;
@@ -753,6 +755,49 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(addresses[0] != 0);
     REQUIRE(addresses[1] != 0);
     REQUIRE(addresses[2] != 0);
+
+    link_ptr link;
+    {
+        ebpf_link_t* local_link = nullptr;
+        REQUIRE(ebpf_link_create(&local_link) == EBPF_SUCCESS);
+        link.reset(local_link);
+    }
+
+    REQUIRE(ebpf_link_initialize(link.get(), EBPF_ATTACH_TYPE_XDP, nullptr, 0) == EBPF_SUCCESS);
+
+    // Correct attach type, but wrong program type.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_XDP);
+
+        REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
+    }
+
+    // Wrong attach type, but correct program type.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_BIND);
+
+        REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
+    }
+
+    // Correct attach type and correct program type.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+
+        // First attach should succeed.
+        REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_SUCCESS);
+
+        // Second attach should fail.
+        REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_INVALID_ARGUMENT);
+
+        // First detach should succeed.
+        ebpf_link_detach_program(link.get());
+
+        // Second detach should be no-op.
+        ebpf_link_detach_program(link.get());
+    }
+
+    link.reset();
+
     ebpf_free_trampoline_table(table);
 }
 
