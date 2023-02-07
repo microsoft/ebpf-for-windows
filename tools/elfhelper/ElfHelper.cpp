@@ -1,15 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#include "CLI11.hpp"
+#include "elfio/elfio.hpp"
 #include "framework.h"
+#include "win_ebpf.hpp"
 
 #include <cassert>
 #include <iostream>
 #include <string>
 #include <vector>
-
-#include "CLI11.hpp"
-#include "elfio/elfio.hpp"
-#include "win_ebpf.hpp"
 
 using std::string;
 using std::vector;

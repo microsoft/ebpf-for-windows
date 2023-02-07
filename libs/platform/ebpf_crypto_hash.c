@@ -1,13 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// Include framework.h to capture the platform specific Windows headers.
-// Required by bcrypt.h.
-#include "framework.h"
+#include "ebpf_platform.h"
 
 #include <bcrypt.h>
 #pragma comment(lib, "bcrypt")
-#include "ebpf_platform.h"
 
 // This file contains the wrapper around the crypto API.
 

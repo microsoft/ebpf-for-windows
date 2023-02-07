@@ -1,38 +1,26 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
-/*++
-
-Abstract:
-
-   Header file for structures/prototypes of the driver.
-
-
-Environment:
-
-    Kernel mode
-
---*/
-
 #pragma once
 
-// netebpfext_platform.h needs to be included ahead of other headers to satisfy the Windows build system.
-#include "netebpfext_platform.h"
-#include "framework.h"
+/**
+ * @file
+ * @brief Header file for structures/prototypes of the driver.
+ */
 
-#include <guiddef.h>
-#include <netioapi.h>
-#include <netiodef.h>
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
-#include "ebpf_program_types.h"
 #include "ebpf_program_attach_type_guids.h"
+#include "ebpf_program_types.h"
 #include "ebpf_windows.h"
-
 #include "net_ebpf_ext_hook_provider.h"
 #include "net_ebpf_ext_prog_info_provider.h"
 #include "net_ebpf_ext_program_info.h"
 #include "net_ebpf_ext_tracelog.h"
+#include "netebpfext_platform.h"
+
+#include <guiddef.h>
+#include <netioapi.h>
+#include <netiodef.h>
 
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0

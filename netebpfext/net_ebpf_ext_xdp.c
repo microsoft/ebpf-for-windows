@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @file This file implements the XDP program type hook and helper functions on eBPF for Windows.
- *
+ * @file
+ * @brief This file implements the XDP program type hook and helper functions on eBPF for Windows.
  */
 
-#include "net_ebpf_ext.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_xdp.h"
 

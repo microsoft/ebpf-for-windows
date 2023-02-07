@@ -3,26 +3,27 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include <chrono>
-#include <mutex>
-#include <thread>
-#include <vector>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <mstcpip.h>
-#include <ntsecapi.h>
-
 #include "api_internal.h"
 #include "api_test.h"
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_structs.h"
-#include <io.h>
 #include "misc_helper.h"
 #include "program_helper.h"
 #include "service_helper.h"
 #include "socket_helper.h"
+
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <chrono>
+#include <io.h>
+#include <mstcpip.h>
+#include <mutex>
+#include <ntsecapi.h>
+#include <thread>
+#include <vector>
+
 #define SAMPLE_PATH ""
 
 #define EBPF_CORE_DRIVER_BINARY_NAME L"ebpfcore.sys"
@@ -268,14 +269,20 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
         _test_program_load(file, program_type, execution_type, expected_result);                        \
     }
 
-#if defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if defined(CONFIG_BPF_JIT_DISABLED)
+#define JIT_LOAD_RESULT -EOTHER
+#else
+#define JIT_LOAD_RESULT 0
+#endif
+
+#if defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #define INTERPRET_LOAD_RESULT -EOTHER
 #else
 #define INTERPRET_LOAD_RESULT 0
 #endif
 
 // Load droppacket (JIT) without providing expected program type.
-DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, 0);
+DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 
 DECLARE_LOAD_TEST_CASE("droppacket.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, 0);
 
@@ -293,13 +300,13 @@ DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTE
 DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
 // Load bindmonitor (JIT) without providing expected program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, 0);
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 
 // Load bindmonitor (INTERPRET) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
 // Load bindmonitor with providing expected program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, 0);
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 
 // Try to load bindmonitor with providing wrong program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, -EACCES);
@@ -407,10 +414,12 @@ divide_by_zero_test_km(ebpf_execution_type_t execution_type)
     // If we don't bug-check, the test passed.
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("ringbuf_api_jit", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("divide_by_zero_jit", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_JIT); }
+#endif
 
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("ringbuf_api_interpret", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("divide_by_zero_interpret", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_INTERPRET); }
 #endif

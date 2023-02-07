@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
-// This file contains program context and helper functions declarations that are
-// exposed by the sample extension.
-
 #pragma once
+
+/**
+ * @file
+ * @brief This file contains program context and helper functions declarations that are
+ * exposed by the sample extension.
+ */
 
 #include <stdint.h>
 

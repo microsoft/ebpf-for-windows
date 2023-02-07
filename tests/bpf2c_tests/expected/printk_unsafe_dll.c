@@ -6,11 +6,10 @@
 
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 // Windows Header Files
-#include <windows.h>
-
-#include <stdio.h>
-
 #include "bpf2c.h"
+
+#include <windows.h>
+#include <stdio.h>
 
 #define metadata_table printk_unsafe##_metadata_table
 extern metadata_table_t metadata_table;

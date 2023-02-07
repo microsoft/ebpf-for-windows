@@ -8,18 +8,14 @@
 
 #define INITGUID
 
-#include <guiddef.h>
-#include <ntddk.h>
-
 #include "ebpf_extension_uuids.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_structs.h"
-
-#include "sample_ext_program_info.h"
 #include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"
+#include "sample_ext_program_info.h"
 
 #define SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 

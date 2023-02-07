@@ -44,6 +44,17 @@ jobs:
       build_nuget: true
       build_options: /p:ReleaseJIT='True'
 
+  # Perform the native-only build.
+  regular_native-only:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build-x64-native-only
+      generate_release_package: true
+      build_nuget: true
+      build_options: /p:DisableJIT='True' /p:DisableInterpreter='True'
+
   cmake:
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
@@ -254,7 +265,6 @@ jobs:
       code_coverage: false
       gather_dumps: true
 
-
   core_helper_fuzzer:
     needs: libfuzzer
     # Always run this job.
@@ -347,3 +357,19 @@ jobs:
     with:
       build_artifact: Build-x64-CodeQl
       build_codeql: true
+
+
+  # Run the complete low memory simulator in GitHub.
+  # Runs on a schedule as this takes a long time to run.
+  low_memory_full:
+    needs: regular
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: low_memory_full
+      test_command: .\unit_tests.exe
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
+      low_memory: true

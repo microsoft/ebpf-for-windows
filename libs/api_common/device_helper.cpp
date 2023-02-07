@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// Contains code to manage device for kernel mode execution context.
+/**
+ * @file
+ * @brief Contains code to manage device for kernel mode execution context.
+ */
 
-#include <map>
-#include <mutex>
-#include <stdexcept>
 #include "api_common.hpp"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
@@ -15,6 +15,8 @@
 #include "ebpf_result.h"
 #include "platform.h"
 #include "platform.hpp"
+
+#include <mutex>
 
 typedef struct _async_ioctl_completion_context
 {
