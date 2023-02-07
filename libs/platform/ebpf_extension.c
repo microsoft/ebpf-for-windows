@@ -61,9 +61,7 @@ _ebpf_extension_client_notify_change(
     EBPF_LOG_ENTRY();
     if (client_context->extension_change_callback) {
         result = client_context->extension_change_callback(
-            client_context->extension_client_context,
-            client_binding_context->provider_binding_context,
-            client_binding_context->provider_data);
+            client_context->extension_client_context, client_binding_context->provider_data);
     }
     EBPF_RETURN_RESULT(result);
 }
@@ -128,6 +126,15 @@ _ebpf_extension_client_attach_provider(
 
     local_client_context->client_binding_context = local_client_binding_context;
 
+    ebpf_result_t result = _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_BASE, "Client notify change failed with error");
+
+        status = STATUS_UNSUCCESSFUL;
+        goto Done;
+    }
+
     status = NmrClientAttachProvider(
         nmr_binding_handle,
         local_client_context->client_binding_context,
@@ -137,17 +144,9 @@ _ebpf_extension_client_attach_provider(
 
     local_client_binding_context->provider_is_attached = NT_SUCCESS(status);
 
-    if (NT_SUCCESS(status)) {
-        ebpf_result_t result = _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
-        if (result != EBPF_SUCCESS) {
-            EBPF_LOG_MESSAGE(
-                EBPF_TRACELOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_BASE, "Client notify change failed with error");
-
-            status = STATUS_UNSUCCESSFUL;
-            goto Done;
-        }
-    } else {
+    if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrClientAttachProvider, status);
+        goto Done;
     }
 
 Done:

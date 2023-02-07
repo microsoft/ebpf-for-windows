@@ -3,15 +3,15 @@
 
 #define TEST_AREA "ExecutionContext"
 
-#include <numeric>
-#include <optional>
-
 #include "performance.h"
 
 extern "C"
 {
 #include "ubpf.h"
 }
+
+#include <numeric>
+#include <optional>
 
 typedef class _ebpf_program_test_state
 {
@@ -460,9 +460,12 @@ test_lpm_trie_ipv4(bool preemptible)
     measure.run_test();
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 PERF_TEST(test_program_invoke_jit);
+#endif
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 PERF_TEST(test_program_invoke_interpret);
-
+#endif
 PERF_TEST(test_bpf_map_lookup_elem_read<BPF_MAP_TYPE_HASH>);
 PERF_TEST(test_bpf_map_lookup_elem_read<BPF_MAP_TYPE_ARRAY>);
 PERF_TEST(test_bpf_map_lookup_elem_read<BPF_MAP_TYPE_PERCPU_HASH>);

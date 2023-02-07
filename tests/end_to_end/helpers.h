@@ -1,8 +1,13 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 #pragma once
+
+#include "ebpf_api.h"
+#include "ebpf_nethooks.h"
+#include "ebpf_platform.h"
+#include "ebpf_program_types.h"
+#include "net_ebpf_ext_program_info.h"
+#include "sample_ext_program_info.h"
 
 // We need the NET_BUFFER typedefs without the other NT kernel defines that
 // ndis.h might pull in and conflict with user-mode headers.
@@ -11,13 +16,7 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #pragma warning(disable : 4324) // structure was padded due to alignment specifier
 #include <ndis/nbl.h>
 #endif
-
-#include "ebpf_api.h"
-#include "ebpf_nethooks.h"
-#include "ebpf_platform.h"
-#include "ebpf_program_types.h"
-#include "net_ebpf_ext_program_info.h"
-#include "sample_ext_program_info.h"
+#include <vector>
 
 bpf_attach_type_t
 get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;

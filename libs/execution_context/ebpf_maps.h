@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "ebpf_core_structs.h"
 #include "bpf_helpers.h"
+#include "ebpf_core_structs.h"
 #include "ebpf_platform.h"
 
 #ifdef __cplusplus

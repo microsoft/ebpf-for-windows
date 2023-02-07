@@ -1,17 +1,20 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// Common test functions used by end to end and component tests.
-
-#include <chrono>
-#include <future>
-#include <map>
-using namespace std::chrono_literals;
+/**
+ * @file
+ * @brief Common test functions used by end to end and component tests.
+ */
 
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "platform.h"
 #include "sample_test_common.h"
+
+#include <chrono>
+#include <future>
+#include <map>
+using namespace std::chrono_literals;
 
 bool use_ebpf_store = true;
 
