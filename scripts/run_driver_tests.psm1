@@ -209,7 +209,8 @@ function Invoke-ConnectRedirectTest
         --proxy-port $ProxyPort `
         --user-name $StandardUserName `
         --password $StandardUserPassword `
-        --user-type $UserType
+        --user-type $UserType `
+        "[connect_redirect_tests_v4]"
     Out-String -InputObject $Output | Write-Log
     $ParsedOutput = $Output.Split(" ")
     if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("Connect-Redirect Test Failed.") }
@@ -226,7 +227,8 @@ function Invoke-ConnectRedirectTest
         --proxy-port $ProxyPort `
         --user-name $StandardUserName `
         --password $StandardUserPassword `
-        --user-type $UserType
+        --user-type $UserType `
+        "[connect_redirect_tests_v6]"
     Out-String -InputObject $Output | Write-Log
     $ParsedOutput = $Output.Split(" ")
     if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("Connect-Redirect Test Failed.") }

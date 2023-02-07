@@ -554,29 +554,13 @@ test_common(ADDRESS_FAMILY family, IPPROTO protocol)
     bpf_object__close(object);
 }
 
-TEST_CASE("connect_redirect_tcp_v4", "[connect_redirect_tests]") { test_common(AF_INET, IPPROTO_TCP); }
+TEST_CASE("connect_redirect_tcp_v4", "[connect_redirect_tests_v4]") { test_common(AF_INET, IPPROTO_TCP); }
 
-TEST_CASE("connect_redirect_tcp_v6", "[connect_redirect_tests]") { test_common(AF_INET6, IPPROTO_TCP); }
+TEST_CASE("connect_redirect_udp_v4", "[connect_redirect_tests_v4]") { test_common(AF_INET, IPPROTO_UDP); }
 
-TEST_CASE("connect_redirect_udp_v4", "[connect_redirect_tests]") { test_common(AF_INET, IPPROTO_UDP); }
+TEST_CASE("connect_redirect_tcp_v6", "[connect_redirect_tests_v6]") { test_common(AF_INET6, IPPROTO_TCP); }
 
-TEST_CASE("connect_redirect_udp_v6", "[connect_redirect_tests]") { test_common(AF_INET6, IPPROTO_UDP); }
-
-// TEST_CASE("connect_redirect_stress_test", "[connect_redirect_tests]")
-// {
-//     // Create multiple threads.
-//     // In each thread, create sockets, connect and test. Combinations:
-//     // 1. v4 traffic / v6 traffic.
-//     // 2. dual stack / pure sockets
-//     // UDP / TCP
-//     // Allow / Block / Redirect
-
-//     /*
-//     Create 12 threads. 4 threads for allow, 4 for block and 4 for redirect.
-//     2 threads for TCP and 2 threads for UDP for each of allow, block and redirect.
-//     Each thread will test the following
-//     */
-// }
+TEST_CASE("connect_redirect_udp_v6", "[connect_redirect_tests_v6]") { test_common(AF_INET6, IPPROTO_UDP); }
 
 int
 main(int argc, char* argv[])
