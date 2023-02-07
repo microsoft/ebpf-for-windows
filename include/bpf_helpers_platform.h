@@ -2,7 +2,12 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-// This file contains platform-specific defines used by eBPF programs.
+/**
+ * @file
+ * @brief This file contains platform specific defines used by eBPF programs.
+ */
+
+#include <stdint.h>
 
 // For eBPF programs, struct bpf_map means struct _ebpf_map_definition_in_file,
 // since they use inner_map_idx and pass pointers to such structures to the various

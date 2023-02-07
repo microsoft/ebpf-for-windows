@@ -3,13 +3,14 @@
 
 #define USER_MODE
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-#include <codecvt>
 
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_store_helper.h"
 #include "export_program_info.h"
 #include "windows_program_type.h"
+
+#include <codecvt>
 
 #include "ebpf_general_helpers.c"
 

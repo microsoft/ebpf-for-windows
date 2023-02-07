@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <iostream>
-
 #include "ebpf_leak_detector.h"
 #include "ebpf_symbol_decoder.h"
+
+#include <iostream>
 
 void
 _ebpf_leak_detector::register_allocation(uintptr_t address, size_t size)

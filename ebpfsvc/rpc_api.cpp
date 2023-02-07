@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "api_service.h"
+#include "rpc_interface_h.h"
+#include "svc_common.h"
+
 #include <mutex>
 #include <stdexcept>
 #include <stdio.h>
 #include <vector>
-#include "api_service.h"
-#include "rpc_interface_h.h"
-#include "svc_common.h"
 
 bool use_ebpf_store = false;
 

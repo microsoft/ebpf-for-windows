@@ -5,7 +5,6 @@ add_library("api" STATIC
   ../thunk/platform.h
 
   api_internal.h
-  pch.h
   rpc_client.h
 
   bpf_syscall.cpp

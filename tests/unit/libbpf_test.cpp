@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-#include <io.h>
-#include <WinSock2.h>
 
 #include "bpf/bpf.h"
 #pragma warning(push)

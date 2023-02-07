@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include <WinSock2.h>
-#include <iostream>
 #include <Windows.h>
+#include <iostream>
 
 int
 main()

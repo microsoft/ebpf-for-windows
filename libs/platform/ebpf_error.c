@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_result.h"
+
 #if !defined(_AMD64_)
 #define _AMD64_
 #endif
 #include <ntdef.h>
 #include <ntstatus.h>
-#include <ebpf_result.h>
 
 // Mapping from each eBPF result to NTSTATUS
 // (and also show the Win32 error code that the NTSTATUS maps to).

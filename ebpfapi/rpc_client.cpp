@@ -1,20 +1,21 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_api.h"
+#include "ebpf_platform.h"
+
+#include "rpc_interface_c.c"
+
 // Windows.h needs to be included before other headers.
 // It has a #define for WINAPI_FAMILY_PARTITION among others that control
 // the behavior of other Windows headers.
 #include <winsock2.h>
 #include <windows.h>
-
 #include <ctype.h>
 #include <iostream>
 #include <sddl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "ebpf_api.h"
-#include "ebpf_platform.h"
-#include "rpc_interface_c.c"
 
 #pragma comment(lib, "Rpcrt4.lib")
 

@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_result.h"
 #include "ebpf_handle.h"
-#include "framework.h"
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name)

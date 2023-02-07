@@ -1,17 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
 
-// Windows build system requires include of Windows.h before other Windows
-// headers.
-#include <Windows.h>
+#include "ebpf_platform.h"
 
+#include <stdexcept>
 #include <thread>
 #include <vector>
-#include <stdexcept>
-
-#include <ebpf_platform.h>
 
 #define PERFORMANCE_MEASURE_ITERATION_COUNT 1000000
 #define PERFORMANCE_MEASURE_TIMEOUT 60000
