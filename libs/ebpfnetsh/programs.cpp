@@ -117,7 +117,7 @@ handle_ebpf_add_program(
     bpf_attach_type attach_type = BPF_ATTACH_TYPE_UNSPEC;
     pinned_type_t pinned_type = PT_FIRST; // Like bpftool, we default to pin first.
     ebpf_execution_type_t execution = EBPF_EXECUTION_JIT;
-    _Null_terminated_ wchar_t* interface_parameter = nullptr;
+    wchar_t* interface_parameter = nullptr;
 
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
