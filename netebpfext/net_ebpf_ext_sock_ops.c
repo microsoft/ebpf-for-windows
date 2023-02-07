@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-/**
- * @file This file implements the hook for the SOCK_OPS program type and associated attach types, on eBPF for
+/*
+ * @file
+ * @brief This file implements the hook for the SOCK_OPS program type and associated attach types, on eBPF for
  * Windows.
  *
  */
-
-#include "net_ebpf_ext.h"
 
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_ops.h"

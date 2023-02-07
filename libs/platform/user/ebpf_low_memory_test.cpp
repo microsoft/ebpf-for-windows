@@ -2,12 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_low_memory_test.h"
+#include "ebpf_symbol_decoder.h"
 
 #include <DbgHelp.h>
 #include <sstream>
 #include <string>
-
-#include "ebpf_symbol_decoder.h"
 
 // Link with DbgHelp.lib
 #pragma comment(lib, "dbghelp.lib")

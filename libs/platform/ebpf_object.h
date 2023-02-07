@@ -1,11 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
 
 #include "ebpf_platform.h"
-#include "ebpf_structs.h"
-#include "framework.h"
 
 #ifdef __cplusplus
 extern "C"

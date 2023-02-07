@@ -1,9 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// dllmain.cpp : Defines the entry point for the DLL application.
-#include "pch.h"
+/**
+ * @file
+ * @brief Defines the entry point for the DLL application.
+ */
 #include "api_internal.h"
+#include "framework.h"
 
 bool use_ebpf_store = true;
 

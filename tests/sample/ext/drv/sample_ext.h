@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#pragma once
 
 /**
+ * @file
  * @brief Header file for structures/prototypes of the driver.
  */
 
-#pragma once
-
-#include <ntddk.h>
 #include "ebpf_platform.h"
 #include "sample_ext_ioctls.h"
 

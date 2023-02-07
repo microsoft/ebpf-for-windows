@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "net_ebpf_ext.h"
-
-#include "net_ebpf_ext_hook_provider.h"
 #include "ebpf_extension_uuids.h"
+#include "net_ebpf_ext_hook_provider.h"
 
 /**
  * @brief Pointer to function to invoke the eBPF program associated with the hook NPI client.

@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <errno.h>
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
@@ -14,6 +13,8 @@
 #include "ebpf_program.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
+
+#include <errno.h>
 
 GUID ebpf_program_information_extension_interface_id;
 GUID ebpf_hook_extension_interface_id;
@@ -2166,11 +2167,15 @@ ebpf_core_get_protocol_handler_properties(
     // Native is always permitted.
     bool native_permitted = true;
 
-    // JIT is permitted if HVCI is off.
+#if defined(CONFIG_BPF_JIT_DISABLED)
+    bool jit_permitted = false;
+#else
+    // JIT is permitted only if HVCI is off.
     bool jit_permitted = (_ebpf_core_code_integrity_state == EBPF_CODE_INTEGRITY_DEFAULT) ? true : false;
+#endif
 
-    // Interpret is only permitted if CONFIG_BPF_JIT_ALWAYS_ON is not set.
-#if defined(CONFIG_BPF_JIT_ALWAYS_ON)
+    // Interpret is only permitted if CONFIG_BPF_INTERPRETER_DISABLED is not set.
+#if defined(CONFIG_BPF_INTERPRETER_DISABLED)
     bool interpret_permitted = false;
 #else
     bool interpret_permitted = true;

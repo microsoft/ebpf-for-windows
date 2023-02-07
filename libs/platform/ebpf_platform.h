@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
+
 #include "ebpf_result.h"
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
@@ -834,9 +834,7 @@ extern "C"
     ebpf_interlocked_xor_int64(_Inout_ volatile int64_t* destination, int64_t mask);
 
     typedef ebpf_result_t (*ebpf_extension_change_callback_t)(
-        _In_ const void* client_binding_context,
-        _In_ const void* provider_binding_context,
-        _In_opt_ const ebpf_extension_data_t* provider_data);
+        _In_ const void* client_binding_context, _In_opt_ const ebpf_extension_data_t* provider_data);
 
     /**
      * @brief Load an extension and get its dispatch table.

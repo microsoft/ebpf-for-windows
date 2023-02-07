@@ -6,9 +6,8 @@
 
 #define CATCH_CONFIG_RUNNER
 
-#include "catch_wrapper.hpp"
-
 #include "bpf/bpf.h"
+#include "catch_wrapper.hpp"
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #include "bpf/libbpf.h"

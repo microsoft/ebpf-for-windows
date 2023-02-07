@@ -10,13 +10,13 @@
 
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 // Windows Header Files
-#include <rpc.h>
 #include <windows.h>
+#include <rpc.h>
 #include <winioctl.h>
 typedef _Return_type_success_(return >= 0) long NTSTATUS;
+#include <../km/netioddk.h>
 #include <kernel_um.h>
 #include <netiodef.h>
-#include <../km/netioddk.h>
 #define STATUS_NOINTERFACE ((NTSTATUS)0xC00002B9L)
 
 #pragma comment(lib, "rpcrt4")

@@ -9,8 +9,8 @@
 // this version of bpf_helpers.h is already cross-platform.
 
 // Include platform-specific definitions.
-#include "ebpf_structs.h"
 #include "bpf_helpers_platform.h"
+#include "ebpf_structs.h"
 
 // If we're compiling an actual eBPF program, then include
 // libbpf's bpf_helpers.h for the rest of the platform-agnostic

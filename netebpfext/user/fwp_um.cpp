@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "netebpfext_platform.h"
 #include "fwp_um.h"
 #include "net_ebpf_ext_sock_addr.h"
+#include "netebpfext_platform.h"
 
 // 98849e12-b07d-11ec-9a30-18602489beee
 DEFINE_GUID(

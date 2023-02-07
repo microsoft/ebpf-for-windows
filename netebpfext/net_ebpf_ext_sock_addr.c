@@ -2,14 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @file This file implements the hook for the CGROUP_SOCK_ADDR program type and associated attach types, on eBPF for
+ * @file
+ * @brief This file implements the hook for the CGROUP_SOCK_ADDR program type and associated attach types, on eBPF for
  * Windows.
- *
  */
 
-// net_ebpf_ext.h needs to be included ahead of other headers to satisfy the Windows
-// build system.
-#include "net_ebpf_ext.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_addr.h"
 

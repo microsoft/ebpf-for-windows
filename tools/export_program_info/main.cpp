@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <string>
 #include "export_program_info.h"
+
 #include <iostream>
+#include <string>
 
 int
 main(int argc, char** argv)

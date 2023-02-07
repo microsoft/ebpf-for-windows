@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#pragma once
+
+#include "ebpf_platform.h"
 
 #include <DbgHelp.h>
 #include <optional>
-
-#include "ebpf_platform.h"
 
 inline ebpf_result_t
 _ebpf_symbol_decoder_initialize()

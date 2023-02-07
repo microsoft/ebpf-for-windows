@@ -1,6 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_core.h"
+#include "ebpf_handle.h"
+#include "ebpf_program.h"
+#include "helpers.h"
+#include "libfuzzer.h"
+#include "platform.h"
+
 #include <chrono>
 #include <filesystem>
 #include <map>
@@ -11,13 +18,6 @@
         bool x = (X);              \
         UNREFERENCED_PARAMETER(x); \
     }
-
-#include "ebpf_core.h"
-#include "ebpf_handle.h"
-#include "ebpf_program.h"
-#include "helpers.h"
-#include "libfuzzer.h"
-#include "platform.h"
 
 extern "C" size_t ebpf_fuzzing_memory_limit;
 

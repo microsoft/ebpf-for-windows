@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define NO_CRT
+#include "bpf2c.h"
+
 #include <guiddef.h>
 #include <wdm.h>
 #include <wsk.h>
-
-#define NO_CRT
-#include "bpf2c.h"
 
 DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;

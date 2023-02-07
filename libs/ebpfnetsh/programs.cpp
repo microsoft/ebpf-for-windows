@@ -1,20 +1,21 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <iomanip>
-#include <string>
-#include <vector>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <combaseapi.h>
-#include <netsh.h>
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "platform.h"
 #include "programs.h"
 #include "tokens.h"
 #include "utilities.h"
+
+#include <iomanip>
 #include <set>
+#include <string>
+#include <vector>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <combaseapi.h>
+#include <netsh.h>
 
 typedef enum
 {

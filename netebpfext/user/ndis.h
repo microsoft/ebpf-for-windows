@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
 
 #define _NDIS_
 #include "kernel_um.h"
+
 #include <ndis/objectheader.h>
 #include <ndis/types.h>
 
@@ -30,18 +30,15 @@ typedef struct _NET_BUFFER_LIST_POOL_PARAMETERS
     unsigned long DataSize;
 } NET_BUFFER_LIST_POOL_PARAMETERS, *PNET_BUFFER_LIST_POOL_PARAMETERS;
 
-typedef struct _NET_BUFFER
-{
-    MDL* MdlChain;
-    unsigned long DataLength;
-} NET_BUFFER, *PNET_BUFFER;
+// We need the NET_BUFFER typedefs without the other NT kernel defines that
+// ndis.h might pull in and conflict with user-mode headers.
+typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
+#pragma warning(push)
+#pragma warning(disable : 4324) // structure was padded due to alignment specifier
+#include <ndis/nbl.h>
+#pragma warning(pop)
 
 typedef struct _NET_BUFFER_LIST_CONTEXT NET_BUFFER_LIST_CONTEXT, *PNET_BUFFER_LIST_CONTEXT;
-
-typedef struct _NET_BUFFER_LIST
-{
-    NET_BUFFER* FirstNetBuffer;
-} NET_BUFFER_LIST, *PNET_BUFFER_LIST;
 
 typedef struct _NDIS_GENERIC_OBJECT NDIS_GENERIC_OBJECT, *PNDIS_GENERIC_OBJECT;
 

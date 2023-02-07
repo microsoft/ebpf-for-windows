@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_platform.h"
+#include "kernel_um.h"
+
 #include <condition_variable>
 #include <map>
 #include <mutex>
 #include <tuple>
-
-#include "ebpf_platform.h"
-#include "kernel_um.h"
 
 /***
  * @brief This following class implements a mock of the Windows Kernel's rundown reference implementation.

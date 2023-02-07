@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <iomanip>
-#include <locale>
-#include <netsh.h>
 #include "bpf/libbpf.h"
 #include "elf.h"
 #include "tokens.h"
 #include "utilities.h"
+
+#include <iomanip>
+#include <locale>
 
 TOKEN_VALUE g_LevelEnum[2] = {
     {L"normal", VL_NORMAL},

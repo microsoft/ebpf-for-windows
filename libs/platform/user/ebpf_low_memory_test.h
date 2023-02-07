@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include "ebpf_platform.h"
+
 #include <cstddef>
 #include <fstream>
 #include <mutex>
 #include <unordered_set>
 #include <vector>
-
-#include "ebpf_platform.h"
 
 /**
  * @brief This class is used to track memory allocations and fail the first allocation for

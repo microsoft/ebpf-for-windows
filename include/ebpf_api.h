@@ -3,13 +3,14 @@
 
 #pragma once
 
-#include <specstrings.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include "ebpf_core_structs.h"
 #include "ebpf_execution_type.h"
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_result.h"
+
+#include <specstrings.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 #include <stdexcept>
