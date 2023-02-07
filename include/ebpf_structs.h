@@ -1,16 +1,23 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
-// This file contains eBPF definitions common to eBPF programs, core execution engine
-// as well as eBPF API library.
-
 #pragma once
+
+/**
+ * @file
+ * @brief This file contains eBPF definitions common to eBPF programs, core execution engine
+ * as well as eBPF API library.
+ */
+
+#include "ebpf_windows.h"
 
 #if !defined(NO_CRT)
 #include <stdbool.h>
 #include <stdint.h>
+#else
+typedef unsigned char uint8_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
 #endif
-#include "ebpf_windows.h"
 
 #define BPF_ENUM_TO_STRING(X) #X
 

@@ -1,14 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
+
+#include "ebpf_result.h"
 
 #include <stdint.h>
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 // Windows Header Files
 #include <windows.h>
-
-#include "ebpf_result.h"
 
 // This should be consistent with _ebpf_result_mapping[]
 // in ebpf_error.c

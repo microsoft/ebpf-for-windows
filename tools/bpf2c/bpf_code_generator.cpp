@@ -11,18 +11,18 @@
 // Example:
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
+#include "bpf_code_generator.h"
+#include "btf_parser.h"
+#include "ebpf_version.h"
+
+#include <windows.h>
 #include <cassert>
 #include <format>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include <windows.h>
 #undef max
-
-#include "btf_parser.h"
-#include "bpf_code_generator.h"
-#include "ebpf_version.h"
 
 #if !defined(_countof)
 #define _countof(array) (sizeof(array) / sizeof(array[0]))

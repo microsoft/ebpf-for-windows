@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <errno.h>
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
@@ -14,6 +13,8 @@
 #include "ebpf_program.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
+
+#include <errno.h>
 
 GUID ebpf_program_information_extension_interface_id;
 GUID ebpf_hook_extension_interface_id;

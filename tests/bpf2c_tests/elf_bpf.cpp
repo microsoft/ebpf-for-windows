@@ -5,13 +5,13 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include <optional>
-#include <string>
-#include <vector>
-
 #include "bpf_code_generator.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
+
+#include <optional>
+#include <string>
+#include <vector>
 
 #define main test_main
 #define ENABLE_SKIP_VERIFY

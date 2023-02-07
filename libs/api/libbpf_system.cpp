@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <windows.h>
 #include "libbpf.h"
+
+#include <windows.h>
 
 long
 libbpf_get_error(const void* ptr)
