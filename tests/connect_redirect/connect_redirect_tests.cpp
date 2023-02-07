@@ -256,12 +256,10 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object, uint64_t authent
     result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
     REQUIRE(result == ERROR_SUCCESS);
 
-    if (_globals.protocol == IPPROTO_TCP) {
-        if (_globals.user_type == user_type_t::ADMINISTRATOR) {
-            REQUIRE(entry.is_admin == 1);
-        } else {
-            REQUIRE(entry.is_admin == 0);
-        }
+    if (_globals.user_type == user_type_t::ADMINISTRATOR) {
+        REQUIRE(entry.is_admin == 1);
+    } else {
+        REQUIRE(entry.is_admin == 0);
     }
 
     LsaFreeReturnBuffer(data);
