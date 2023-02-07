@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-#include <codecvt>
 #include "framework.h"
 #include "utilities.hpp"
+
+#include <codecvt>
 
 std::wstring
 guid_to_wide_string(_In_ const GUID* guid)

@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "ebpf_platform.h"
 #include "ebpf_api.h"
+#include "ebpf_platform.h"
 #include "platform.h"
 
 #define __return_type uint32_t

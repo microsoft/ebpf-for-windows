@@ -325,7 +325,7 @@ bpf_prog_load(
 
 #else
 #pragma warning(push)
-#include "libbpf/src/bpf.h"
 #include "bpf_legacy.h"
+#include "libbpf/src/bpf.h"
 #pragma warning(pop)
 #endif

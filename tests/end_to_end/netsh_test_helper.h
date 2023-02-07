@@ -1,11 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
 
-#include <windows.h>
-#include <netsh.h> // Must be included after windows.h
-#include <string.h>
 #include "bpf/bpf.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
@@ -14,6 +10,10 @@
 #include "maps.h"
 #include "pins.h"
 #include "programs.h"
+
+#include <windows.h>
+#include <netsh.h>
+#include <string.h>
 
 #pragma region
 // Mock Netsh.exe APIs.

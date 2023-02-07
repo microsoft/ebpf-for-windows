@@ -8,12 +8,11 @@
 #pragma once
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
-#include <netiodef.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-
-#include <mstcpip.h>
 #include <Mswsock.h>
+#include <mstcpip.h>
+#include <netiodef.h>
 
 #define CLIENT_MESSAGE "request from client"
 #define SERVER_MESSAGE "response from server"
