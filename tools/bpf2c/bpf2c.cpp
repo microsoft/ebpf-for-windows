@@ -1,8 +1,15 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+
+#include "bpf_code_generator.h"
+#include "ebpf_api.h"
+#include "ebpf_program_types.h"
+#include "hash.h"
+
 #include <Windows.h>
-#include <functional>
+#include <ElfWrapper.h>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <regex>
@@ -10,13 +17,6 @@
 #include <string>
 #include <tuple>
 #include <vector>
-
-#undef max
-#include "bpf_code_generator.h"
-#include "ebpf_api.h"
-#include "ebpf_program_types.h"
-#include "ElfWrapper.h"
-#include "hash.h"
 
 #define elf_everparse_error ElfEverParseError
 #define elf_everparse_verify ElfCheckElf

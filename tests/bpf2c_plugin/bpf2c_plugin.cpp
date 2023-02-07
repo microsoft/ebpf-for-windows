@@ -1,21 +1,24 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// This program reads BPF instructions from stdin and memory contents from
-// the first argument. It then executes the BPF program and prints the
-// value of r0 at the end of execution.
-// The program is intended to be used with the bpf conformance test suite.
+/**
+ * @file
+ * This program reads BPF instructions from stdin and memory contents from
+ * the first argument. It then executes the BPF program and prints the
+ * value of r0 at the end of execution.
+ * The program is intended to be used with the bpf conformance test suite.
+ */
+
+#include "bpf_code_generator.h"
 
 #include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <memory>
-#include <vector>
-#include <string>
-#include <sstream>
 #include <regex>
-
-#include "bpf_code_generator.h"
+#include <sstream>
+#include <string>
+#include <vector>
 
 const char copyright_notice[] = "// Copyright (c) Microsoft Corporation\n// SPDX-License-Identifier: MIT\n";
 

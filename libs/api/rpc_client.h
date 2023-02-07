@@ -3,8 +3,9 @@
 
 #pragma once
 
-#include <rpc.h>
 #include "rpc_interface_h.h"
+
+#include <rpc.h>
 
 RPC_STATUS
 initialize_rpc_binding(void);

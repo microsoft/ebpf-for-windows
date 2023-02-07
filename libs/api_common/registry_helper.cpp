@@ -1,13 +1,16 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// Contains user mode registry related helper APIs.
+/**
+ * @file
+ * @brief Contains user mode registry related helper APIs.
+ */
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-#include <codecvt>
-
 #include "api_common.hpp"
 #include "ebpf_registry_helper.h"
+
+#include <codecvt>
 
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
 

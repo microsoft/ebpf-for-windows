@@ -1,11 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
 
+#include <csignal>
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 #include <Windows.h>
-#include <csignal>
 #include <errorrep.h>
 #include <stdexcept>
 #include <string>

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <ntddk.h>
+#include "framework.h"
 
 #define __return_type NTSTATUS
 #define _SUCCESS STATUS_SUCCESS

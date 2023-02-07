@@ -6,13 +6,14 @@
 //! This file should be thought of as platform/bpf.h not Linux-specific per se.
 //! It is needed under this path though since the Libbpf bpf.h includes it as such.
 
-#include <stdint.h>
 #include "ebpf_structs.h"
+
+#include <stdint.h>
 
 #ifdef _MSC_VER
 // This file is being included by a user-mode Windows application.
-#include "ebpf_program_types.h"
 #include "ebpf_api.h"
+#include "ebpf_program_types.h"
 #define LIBBPF_API
 #include "libbpf/src/libbpf_common.h"
 #undef LIBBPF_DEPRECATED

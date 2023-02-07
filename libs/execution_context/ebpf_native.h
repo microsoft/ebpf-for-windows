@@ -3,9 +3,9 @@
 
 #pragma once
 
+#include "bpf2c.h"
 #include "ebpf_core_structs.h"
 #include "ebpf_maps.h"
-#include "bpf2c.h"
 
 #ifdef __cplusplus
 extern "C"

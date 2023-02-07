@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
 
-#include <iostream>
 #include "ebpf_api.h"
+
+#include <iostream>
 
 std::string
 down_cast_from_wstring(const std::wstring& wide_string);

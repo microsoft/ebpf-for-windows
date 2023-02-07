@@ -1,14 +1,17 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
-// This file contains eBPF definitions common to eBPF core libraries as well as
-// the eBPF API library.
-
 #pragma once
+
+/**
+ * @file
+ * @brief This file contains eBPF definitions common to eBPF core libraries as well as
+ * the eBPF API library.
+ */
+
+#include "ebpf_structs.h"
 
 #include <sal.h>
 #include <stdint.h>
-#include "ebpf_structs.h"
 
 #define EBPF_MAX_PIN_PATH_LENGTH 256
 

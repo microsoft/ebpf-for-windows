@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <set>
-
-#include <optional>
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
-#include "ebpf_ring_buffer.h"
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
+#include "ebpf_ring_buffer.h"
 #include "helpers.h"
+
+#include <optional>
+#include <set>
 
 #define PAGE_SIZE 4096
 

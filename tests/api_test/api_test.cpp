@@ -3,26 +3,27 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include <chrono>
-#include <mutex>
-#include <thread>
-#include <vector>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <mstcpip.h>
-#include <ntsecapi.h>
-
 #include "api_internal.h"
 #include "api_test.h"
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_structs.h"
-#include <io.h>
 #include "misc_helper.h"
 #include "program_helper.h"
 #include "service_helper.h"
 #include "socket_helper.h"
+
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <chrono>
+#include <io.h>
+#include <mstcpip.h>
+#include <mutex>
+#include <ntsecapi.h>
+#include <thread>
+#include <vector>
+
 #define SAMPLE_PATH ""
 
 #define EBPF_CORE_DRIVER_BINARY_NAME L"ebpfcore.sys"

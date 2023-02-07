@@ -1,5 +1,19 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+
+#include "api_common.hpp"
+#include "api_internal.h"
+#include "bpf/bpf.h"
+#include "bpf2c.h"
+#include "catch_wrapper.hpp"
+#include "ebpf_async.h"
+#include "ebpf_core.h"
+#include "ebpf_platform.h"
+#include "hash.h"
+#include "helpers.h"
+#include "mock.h"
+#include "test_helper.hpp"
+
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -8,19 +22,6 @@
 #include <mutex>
 #include <sstream>
 using namespace std::chrono_literals;
-
-#include "bpf/bpf.h"
-#include "catch_wrapper.hpp"
-#include "api_common.hpp"
-#include "api_internal.h"
-#include "bpf2c.h"
-#include "ebpf_async.h"
-#include "ebpf_core.h"
-#include "ebpf_platform.h"
-#include "hash.h"
-#include "helpers.h"
-#include "mock.h"
-#include "test_helper.hpp"
 
 extern "C" bool ebpf_fuzzing_enabled;
 extern bool _ebpf_platform_is_preemptible;
