@@ -76,6 +76,11 @@ TEST_CASE("classify_packet", "[netebpfext]")
     FWP_ACTION_TYPE result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
+    // Classify an inbound packet that should be hairpinned.
+    client_context.xdp_action = XDP_TX;
+    result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
     // Classify an inbound packet that should be dropped.
     client_context.xdp_action = XDP_DROP;
     result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);

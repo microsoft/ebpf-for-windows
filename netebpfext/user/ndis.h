@@ -48,6 +48,16 @@ NdisAllocateGenericObject(_In_opt_ DRIVER_OBJECT* driver_object, _In_ unsigned l
 NDIS_HANDLE
 NdisAllocateNetBufferListPool(_In_opt_ NDIS_HANDLE ndis_handle, _In_ NET_BUFFER_LIST_POOL_PARAMETERS const* parameters);
 
+NET_BUFFER_LIST*
+NdisAllocateCloneNetBufferList(
+    _In_ NET_BUFFER_LIST* original_net_buffer_list,
+    _In_ NDIS_HANDLE net_buffer_list_pool_handle,
+    _In_ NDIS_HANDLE net_buffer_pool_handle,
+    ULONG allocate_clone_flags);
+
+void
+NdisFreeCloneNetBufferList(_In_ NET_BUFFER_LIST* clone_net_buffer_list, ULONG free_clone_flags);
+
 PNET_BUFFER_LIST
 NdisAllocateNetBufferList(_In_ NDIS_HANDLE nbl_pool_handle, _In_ USHORT context_size, _In_ USHORT context_backfill);
 
