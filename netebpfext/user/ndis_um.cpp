@@ -59,6 +59,35 @@ NdisFreeNetBufferList(_In_ __drv_freesMem(mem) NET_BUFFER_LIST* net_buffer_list)
     free(net_buffer_list);
 }
 
+NET_BUFFER_LIST*
+NdisAllocateCloneNetBufferList(
+    _In_ NET_BUFFER_LIST* original_net_buffer_list,
+    _In_ NDIS_HANDLE net_buffer_list_pool_handle,
+    _In_ NDIS_HANDLE net_buffer_pool_handle,
+    ULONG allocate_clone_flags)
+{
+    UNREFERENCED_PARAMETER(allocate_clone_flags);
+    NET_BUFFER_LIST* nbl = NdisAllocateNetBufferList(net_buffer_list_pool_handle, 0, 0);
+    if (!nbl) {
+        return nullptr;
+    }
+    NET_BUFFER* original_nb = original_net_buffer_list->FirstNetBuffer;
+    NET_BUFFER* nb = NdisAllocateNetBuffer(net_buffer_pool_handle, original_nb->MdlChain, 0, original_nb->DataLength);
+    if (!nb) {
+        NdisFreeNetBufferList(nbl);
+        return nullptr;
+    }
+    nbl->FirstNetBuffer = nb;
+    return nbl;
+}
+
+void
+NdisFreeCloneNetBufferList(_In_ NET_BUFFER_LIST* clone_net_buffer_list, ULONG free_clone_flags)
+{
+    UNREFERENCED_PARAMETER(free_clone_flags);
+    return NdisFreeNetBufferList(clone_net_buffer_list);
+}
+
 void
 NdisFreeGenericObject(_In_ PNDIS_GENERIC_OBJECT ndis_object)
 {
