@@ -186,6 +186,10 @@ _nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& p
         // Clean up the binding on a failure.
         if (!NT_SUCCESS(status)) {
             unbind_complete(*binding_ptr);
+        } else {
+            std::unique_lock l(lock);
+            binding_ptr->client_binding_status = binding_status::Ready;
+            binding_ptr->provider_binding_status = binding_status::Ready;
         }
     }};
 }
