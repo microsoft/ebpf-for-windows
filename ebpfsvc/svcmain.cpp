@@ -12,20 +12,20 @@ SERVICE_STATUS_HANDLE ebpf_service_status_handle;
 HANDLE ebpf_service_stop_event_handle = nullptr;
 
 void WINAPI
-service_control_handler(_In_ unsigned long ctrl);
+service_control_handler(unsigned long ctrl);
 void
 service_report_event(_In_z_ wchar_t* function);
 void
-report_service_status(_In_ unsigned long current_state, _In_ unsigned long win32exitcode, _In_ unsigned long wait_hint);
+report_service_status(unsigned long current_state, unsigned long win32exitcode, unsigned long wait_hint);
 void
-service_init(_In_ unsigned long argc, _In_reads_(argc) wchar_t** argv);
+service_init( unsigned long argc, _In_reads_(argc) wchar_t** argv);
 
 void WINAPI
-service_main(_In_ unsigned long argc, _In_reads_(argc) wchar_t** argv);
+service_main( unsigned long argc, _In_reads_(argc) wchar_t** argv);
 int
 service_install();
 
-int __cdecl wmain(_In_ unsigned long argc, _In_reads_(argc) wchar_t** argv)
+int __cdecl wmain( unsigned long argc, _In_reads_(argc) wchar_t** argv)
 {
     SERVICE_TABLE_ENTRY dispatch_table[] = {
         {(wchar_t*)SERVICE_NAME, (SERVICE_MAIN_FUNCTION*)service_main}, {nullptr, nullptr}};
@@ -129,7 +129,7 @@ Exit:
  *
  */
 void WINAPI
-service_main(_In_ unsigned long argc, _In_reads_(argc) wchar_t** argv)
+service_main( unsigned long argc, _In_reads_(argc) wchar_t** argv)
 {
     // Register the handler function for the service
 
@@ -167,7 +167,7 @@ service_report_event(_In_z_ wchar_t* function)
  *
  */
 void WINAPI
-service_control_handler(_In_ unsigned long ctrl)
+service_control_handler( unsigned long ctrl)
 {
     // Handle the requested control code.
 
@@ -187,7 +187,7 @@ service_control_handler(_In_ unsigned long ctrl)
 }
 
 void
-report_service_status(_In_ unsigned long current_state, _In_ unsigned long win32_exit_code, _In_ unsigned long wait_hint)
+report_service_status( unsigned long current_state, unsigned long win32_exit_code, unsigned long wait_hint)
 {
     static unsigned long _checkpoint = 1;
 
@@ -246,7 +246,7 @@ Cleanup()
  *
  */
 void
-service_init(_In_ unsigned long argc, _In_reads_(argc) wchar_t** argv)
+service_init( unsigned long argc, _In_reads_(argc) wchar_t** argv)
 {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
