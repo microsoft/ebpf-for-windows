@@ -135,7 +135,7 @@ To build with the specific compile time options for disabling JIT compiler and/o
    *  `CONFIG_BPF_JIT_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF JIT compiler.
    *  `CONFIG_BPF_INTERPRETER_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF interpreter.
 
-      >*Note for Linux users*: this option is similar to the `CONFIG_BPF_JIT_ALWAYS_ON` which, as documented 
+      >*Note for Linux users*: this option is similar to the `CONFIG_BPF_JIT_ALWAYS_ON` which, as documented
 [here](https://googleprojectzero.blogspot.com/2018/01/reading-privileged-memory-with-side.html), is used to disable support for the interpreter.
 
 >Note: do the above steps for the following projects within the `ebpf-for-windows.sln` solution:
