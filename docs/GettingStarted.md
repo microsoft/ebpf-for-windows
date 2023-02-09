@@ -29,7 +29,7 @@ The following must be installed in order to build this project:
 
 1. [Visual Studio Build Tools 2022](https://aka.ms/vs/17/release/vs_buildtools.exe) (version **17.4.2 or later**).
 1. [WiX Toolset v3 - Visual Studio 2022 Extension](https://marketplace.visualstudio.com/items?itemName=WixToolset.WixToolsetVisualStudio2022Extension).
-1.[SDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/p/?linkid=2196241) (version **10.0.22621.x**).
+1. [SDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/p/?linkid=2196241) (version **10.0.22621.x**).
 1. [WDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/?linkid=2196230) (version **10.0.22621.x**), including the
  "*Windows Driver Kit Visual Studio extension*" (make sure the "*Install Windows Driver Kit Visual Studio Extension*"
   check box is checked before completing the installer).
@@ -135,7 +135,7 @@ To build with the specific compile time options for disabling JIT compiler and/o
    *  `CONFIG_BPF_JIT_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF JIT compiler.
    *  `CONFIG_BPF_INTERPRETER_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF interpreter.
 
-      >*Note for Linux users*: this option is similar to the `CONFIG_BPF_JIT_ALWAYS_ON` which, as documented 
+      >*Note for Linux users*: this option is similar to the `CONFIG_BPF_JIT_ALWAYS_ON` which, as documented
 [here](https://googleprojectzero.blogspot.com/2018/01/reading-privileged-memory-with-side.html), is used to disable support for the interpreter.
 
 >Note: do the above steps for the following projects within the `ebpf-for-windows.sln` solution:
