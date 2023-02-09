@@ -13,7 +13,7 @@
 #define metadata_table invalid_maps2##_metadata_table
 extern metadata_table_t metadata_table;
 
-BOOL APIENTRY
+int APIENTRY
 DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpReserved)
 {
     UNREFERENCED_PARAMETER(hModule);
