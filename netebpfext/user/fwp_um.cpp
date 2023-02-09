@@ -602,8 +602,7 @@ _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) _Must_ins
 _IRQL_requires_max_(DISPATCH_LEVEL) void FwpsFreeCloneNetBufferList0(
     _In_ NET_BUFFER_LIST* net_buffer_list, _In_ unsigned long free_clone_flags)
 {
-    UNREFERENCED_PARAMETER(net_buffer_list);
-    UNREFERENCED_PARAMETER(free_clone_flags);
+    NdisFreeCloneNetBufferList(net_buffer_list, free_clone_flags);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsAllocateCloneNetBufferList0(
@@ -613,13 +612,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsAllocateCloneNetBufferList0(
     _In_ unsigned long allocate_clone_flags,
     _Outptr_ NET_BUFFER_LIST** net_buffer_list)
 {
-    UNREFERENCED_PARAMETER(original_net_buffer_list);
-    UNREFERENCED_PARAMETER(net_buffer_list_pool_handle);
-    UNREFERENCED_PARAMETER(net_buffer_pool_handle);
-    UNREFERENCED_PARAMETER(net_buffer_pool_handle);
-    UNREFERENCED_PARAMETER(allocate_clone_flags);
-    UNREFERENCED_PARAMETER(net_buffer_list);
-    return STATUS_NOT_IMPLEMENTED;
+    if (net_buffer_list_pool_handle == nullptr || net_buffer_pool_handle == nullptr) {
+        return STATUS_INVALID_PARAMETER;
+    }
+    *net_buffer_list = NdisAllocateCloneNetBufferList(
+        original_net_buffer_list, net_buffer_list_pool_handle, net_buffer_pool_handle, allocate_clone_flags);
+    return (*net_buffer_list) ? STATUS_SUCCESS : STATUS_NO_MEMORY;
 }
 
 _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) _Must_inspect_result_ NTSTATUS
