@@ -337,7 +337,7 @@ _net_ebpf_extension_sock_addr_program_info_on_client_detach(
     _In_ const net_ebpf_extension_program_info_client_t* detaching_client)
 {
     UNREFERENCED_PARAMETER(detaching_client);
-    _net_ebpf_sock_addr_get_program_context = NULL;
+    // _net_ebpf_sock_addr_get_program_context = NULL;
 }
 
 static ebpf_result_t
