@@ -107,6 +107,7 @@ SPDX-License-Identifier: MIT
 			<Custom Action="sample_ebpf_ext_Driver_uninstall" After="sample_ebpf_ext_Driver_stop">REMOVE="ALL" OR REMOVE="eBPF_Testing" OR REMOVE="eBPF_Development,eBPF_Testing"</Custom>
 
 			<Custom Action="Clear_eBPF_store_uninstall" After="NetEbpfExt_Driver_uninstall">REMOVE="ALL"</Custom>
+			<Custom Action="eBPFCore_Driver_uninstall_flush" After="InstallFinalize">REMOVE="ALL"</Custom>
 		</InstallExecuteSequence>
 
 		<!-- Define the UI style & behavior -->
@@ -229,7 +230,9 @@ SPDX-License-Identifier: MIT
 								ErrorControl="normal"
 								Account="[WIX_ACCOUNT_LOCALSERVICE]"
 								Vital="yes"
-								Interactive="no" />
+								Interactive="no">
+					<ServiceConfig ServiceSid="restricted" OnInstall="yes" OnReinstall="yes" />
+				</ServiceInstall>
 				<ServiceControl Id="eBPFSvc_Start" Name="eBPFSvc"
 								Start="install"
 								Wait="no" />
@@ -262,6 +265,7 @@ SPDX-License-Identifier: MIT
 		<CustomAction Id="eBPFCore_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 		<Property Id="eBPFCore_Driver_uninstall" Value='"sc.exe" delete eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<CustomAction Id="eBPFCore_Driver_uninstall_flush" Directory="ProgramFiles64Folder" ExeCommand ='"sc.exe" query eBPFCore' Execute ="immediate" Return ="asyncNoWait"/>
 		<Property Id="eBPFCore_Driver_stop_rollback" Value='"net.exe" stop eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 		<Property Id="eBPFCore_Driver_uninstall_rollback" Value='"sc.exe" delete eBPFCore' />
@@ -460,11 +464,17 @@ SPDX-License-Identifier: MIT
 			<Component Id="BINDMONITOR.O" DiskId="1" Guid="88D66354-E6DF-4BE4-B1D4-3F716A7F81AB">
 				<File Id="BINDMONITOR.O" Name="bindmonitor.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor.o" />
 			</Component>
+			<Component Id="BINDMONITOR.SYS" DiskId="1" Guid="D36736C9-35B0-41AD-A19F-7E122035DC70">
+				<File Id="BINDMONITOR.SYS" Name="bindmonitor.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor.sys" />
+			</Component>
 			<Component Id="BINDMONITOR_RINGBUF.O" DiskId="1" Guid="BFF28F26-F7A5-44B0-9289-AD9F4A19E33E">
 				<File Id="BINDMONITOR_RINGBUF.O" Name="bindmonitor_ringbuf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_ringbuf.o" />
 			</Component>
 			<Component Id="BINDMONITOR_TAILCALL.O" DiskId="1" Guid="6A37AE43-179A-46BD-97D5-3D02B6807765">
 				<File Id="BINDMONITOR_TAILCALL.O" Name="bindmonitor_tailcall.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_tailcall.o" />
+			</Component>
+			<Component Id="BINDMONITOR_TAILCALL.SYS" DiskId="1" Guid="310B89C6-2EDB-41F8-8455-2738A07A6DF9">
+				<File Id="BINDMONITOR_TAILCALL.SYS" Name="bindmonitor_tailcall.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_tailcall.sys" />
 			</Component>
 			<Component Id="BPF.O" DiskId="1" Guid="EACD2AE9-0C63-4C0D-BC1D-FA698DB58A13">
 				<File Id="BPF.O" Name="bpf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bpf.o" />
@@ -489,6 +499,9 @@ SPDX-License-Identifier: MIT
 			</Component>
 			<Component Id="DROPPACKET.O" DiskId="1" Guid="32E91251-1D4F-48BA-978E-85F30E7903C5">
 				<File Id="DROPPACKET.O" Name="droppacket.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket.o" />
+			</Component>
+			<Component Id="DROPPACKET.SYS" DiskId="1" Guid="9B9A5A98-782F-40FA-B3CF-118DEDEEE832">
+				<File Id="DROPPACKET.SYS" Name="droppacket.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket.sys" />
 			</Component>
 			<Component Id="DROPPACKET_UM.DLL" DiskId="1" Guid="F4D422DB-ED15-48E2-8F99-B5BBA4B38EE1">
 				<File Id="DROPPACKET_UM.DLL" Name="droppacket_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_um.dll" />
@@ -520,8 +533,14 @@ SPDX-License-Identifier: MIT
 			<Component Id="PIDTGID.O" DiskId="1" Guid="85723409-15B9-499B-94F1-2AE72A5C8D85">
 				<File Id="PIDTGID.O" Name="pidtgid.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\pidtgid.o" />
 			</Component>
+			<Component Id="PIDTGID.SYS" DiskId="1" Guid="2CD5A445-523A-42F8-8965-0469A0415624">
+				<File Id="PIDTGID.SYS" Name="pidtgid.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\pidtgid.sys" />
+			</Component>
 			<Component Id="PRINTK.O" DiskId="1" Guid="6E02C38D-1024-495C-93C7-F998D7052CE5">
 				<File Id="PRINTK.O" Name="printk.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk.o" />
+			</Component>
+			<Component Id="PRINTK.SYS" DiskId="1" Guid="09399688-9C2F-47E2-B43E-330A4033013A">
+				<File Id="PRINTK.SYS" Name="printk.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk.sys" />
 			</Component>
 			<Component Id="PRINTK_UNSAFE.O" DiskId="1" Guid="10CBDD8C-BE25-43FD-86BB-A3A7A3129CE0">
 				<File Id="PRINTK_UNSAFE.O" Name="printk_unsafe.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk_unsafe.o" />
