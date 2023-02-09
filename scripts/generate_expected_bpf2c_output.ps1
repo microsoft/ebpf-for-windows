@@ -36,7 +36,7 @@ function TrimAndExport-Output
             continue
         }
 
-        [void]$OutputBuffer.Add($line.Substring(0, $line.IndexOf('"') + 1) +   $line.Substring($line.LastIndexOf('\\') + 2));
+        [void]$OutputBuffer.Add($line.Substring(0, $line.IndexOf('"') + 1) + $line.Substring($line.LastIndexOf('sample/')).Replace("\\", "/"));
     }
 
     $OutputBuffer > $OutputFile
@@ -62,10 +62,28 @@ function Update-ExpectedOutput
 
     ## Get all files in the sample path
     $SampleFiles = Get-ChildItem -Path $SamplePath | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
+    $CustomSampleFiles = Get-ChildItem -Path $SamplePath\custom_program_type | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
+    $UnsafeSampleFiles = Get-ChildItem -Path $SamplePath\unsafe | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
+
+    $SampleFiles += $CustomSampleFiles
+    $SampleFiles += $UnsafeSampleFiles
 
     Set-Location $BuildPath
     foreach ($file in $SampleFiles)
     {
+        $additional_options = ""
+        # If file is in the set $CustomSampleFiles, then add the --type xdp option.
+        if ($CustomSampleFiles -contains $file)
+        {
+            $additional_options = "--type xdp"
+        }
+
+        # If file is in the set $UnsafeSampleFiles, then add the --no-verify option.
+        if ($UnsafeSampleFiles -contains $file)
+        {
+            $additional_options = "--no-verify"
+        }
+
         $ext = [System.IO.Path]::GetExtension($file.Name)
         if (($ext -ne ".c") -and ($ext -ne ".C"))
         {
@@ -79,15 +97,15 @@ function Update-ExpectedOutput
         $ExpectedDllFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_dll.c"
         $ExpectedRawFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_raw.c"
 
-        $SysCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --sys" + " --hash none"
+        $SysCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --sys" + " --hash none" + " " + $additional_options
         $Output = Invoke-Expression $SysCommand
         TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedSysFileWithPath
 
-        $DllCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --dll" + " --hash none"
+        $DllCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --dll" + " --hash none" + " " + $additional_options
         $Output = Invoke-Expression $DllCommand
         TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedDllFileWithPath
 
-        $RawCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --hash none"
+        $RawCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --hash none" + " " + $additional_options
         $Output = Invoke-Expression $RawCommand
         TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedRawFileWithPath
     }
