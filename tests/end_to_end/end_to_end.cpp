@@ -2775,7 +2775,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         bpf_link__destroy(link);
 
         // Program should run.
-        int hook_result;
+        int hook_result = -1;
         REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
         REQUIRE(hook_result == XDP_PASS);
 
@@ -2790,7 +2790,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         // Program should re-attach to the hook.
 
         // Program should run.
-        int hook_result;
+        int hook_result = -1;
         REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
         REQUIRE(hook_result == XDP_PASS);
     }
@@ -2812,7 +2812,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         // Program should re-attach to the hook.
 
         // Program should not run.
-        int hook_result;
+        int hook_result = -1;
         REQUIRE(hook.fire(&ctx0, &hook_result) != EBPF_SUCCESS);
         REQUIRE(hook_result != XDP_PASS);
     }
@@ -2836,7 +2836,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         // Program should re-attach to the hook.
 
         // Program should not run.
-        int hook_result;
+        int hook_result = -1;
         REQUIRE(hook.fire(&ctx0, &hook_result) != EBPF_SUCCESS);
         REQUIRE(hook_result != XDP_PASS);
     }
