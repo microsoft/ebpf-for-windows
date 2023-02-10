@@ -704,7 +704,9 @@ TEST_CASE("program", "[execution_context]")
         EBPF_SUCCESS);
     uint32_t result = 0;
     bind_md_t ctx{0};
-    ebpf_program_invoke(program.get(), &ctx, &result);
+    ebpf_execution_context_state_t state{};
+    ebpf_get_execution_context_state(&state);
+    ebpf_program_invoke(program.get(), &ctx, &result, &state);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
     std::vector<uint8_t> input_buffer(10);

@@ -100,6 +100,21 @@ extern "C"
         enum bpf_link_type link_type;
     } ebpf_attach_provider_data_t;
 
+    /***
+     * The state of the execution context when the eBPF program was invoked.
+     * This is used to cache state that won't change during the execution of
+     * the eBPF program and is expensive to query.
+     */
+    typedef struct _ebpf_execution_context_state
+    {
+        union
+        {
+            uint64_t thread;
+            uint32_t cpu;
+        } id;
+        uint8_t current_irql;
+    } ebpf_execution_context_state_t;
+
 #define EBPF_ATTACH_CLIENT_DATA_VERSION 0
 #define EBPF_ATTACH_PROVIDER_DATA_VERSION 1
 
@@ -1240,6 +1255,14 @@ extern "C"
      */
     _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
         ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id);
+
+    /**
+     * @brief Query the current execution context state.
+     *
+     * @param[out] state The captured execution context state.
+     */
+    void
+    ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state);
 
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"
