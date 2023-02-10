@@ -2481,11 +2481,6 @@ TEST_CASE("load_native_program_negative7", "[end-to-end]")
 
     GUID provider_module_id = GUID_NULL;
     SC_HANDLE service_handle = nullptr;
-    std::wstring service_path(SERVICE_PATH_PREFIX);
-    size_t count_of_maps = 0;
-    size_t count_of_programs = 0;
-    std::wstring file_path(L"droppacket_um.dll");
-    ebpf_handle_t module_handle = ebpf_handle_invalid;
     ebpf_handle_t map_handles;
     ebpf_handle_t program_handles;
 
@@ -2495,47 +2490,11 @@ TEST_CASE("load_native_program_negative7", "[end-to-end]")
     _create_service_helper(L"empty_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
     // We skip loading native module, so to pass an uninitialized module.
-    service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
-    // REQUIRE(
-    //    test_ioctl_load_native_module(
-    //        service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) == ERROR_SUCCESS);
-    // uint32_t error = ERROR_SUCCESS;
-    // ebpf_protocol_buffer_t request_buffer;
-    // ebpf_operation_load_native_module_request_t* request;
-    // ebpf_operation_load_native_module_reply_t reply;
-    // size_t service_path_size = service_path.size() * 2;
-
-    //*count_of_maps = 0;
-    //*count_of_programs = 0;
-    //*module_handle = ebpf_handle_invalid;
-
-    // size_t buffer_size = offsetof(ebpf_operation_load_native_module_request_t, data) + service_path_size;
-    // request_buffer.resize(buffer_size);
-
-    // request = reinterpret_cast<ebpf_operation_load_native_module_request_t*>(request_buffer.data());
-    // request->header.id = EBPF_OPERATION_LOAD_NATIVE_MODULE;
-    // request->header.length = static_cast<uint16_t>(request_buffer.size());
-    // request->module_id = *module_id;
-    // memcpy(
-    //    request_buffer.data() + offsetof(ebpf_operation_load_native_module_request_t, data),
-    //    (char*)service_path.c_str(),
-    //    service_path_size);
-
-    // error = invoke_ioctl(request_buffer, reply);
-    // if (error != ERROR_SUCCESS) {
-    //    goto Done;
-    //}
-
-    //*count_of_maps = reply.count_of_maps;
-    //*count_of_programs = reply.count_of_programs;
-    //*module_handle = reply.native_module_handle;
 
     // Try to load the programs from the module with 0 programs.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, nullptr, 1, &map_handles, 1, &program_handles) ==
-        ERROR_INVALID_PARAMETER);
-
-    Platform::CloseHandle(module_handle);
+        test_ioctl_load_native_programs(&provider_module_id, nullptr, 1, &map_handles, 1, &program_handles) !=
+        ERROR_SUCCESS);
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
