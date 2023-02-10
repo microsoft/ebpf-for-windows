@@ -17,12 +17,12 @@ SPDX-License-Identifier: MIT
 		<PropertyRef Id="WIX_ACCOUNT_LOCALSERVICE" />
 		<Property Id="ARPCONTACT" Value="opencode@microsoft.com" />
 		<Property Id="INSTALLFOLDER" Secure="yes">
-			<RegistrySearch Id="FindInstallLocation" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\[WIX_UPGRADE_DETECTED]" Name="InstallLocation" Type="raw" />
+			<RegistrySearch Id="FindInstallLocation" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\[WIX_UPGRADE_DETECTED]" Name="InstallLocation" Type="raw" Win64="yes" />
 		</Property>
 
 		<!-- Install preconditions -->
 		<Property Id="VC_REDIST_INSTALLED" Secure="yes">
-			<RegistrySearch Id="VC_REDIST_RegKey" Type="raw" Root="HKLM" Key="SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64" Name="Version" Win64="yes"/>
+			<RegistrySearch Id="VC_REDIST_RegKey" Type="raw" Root="HKLM" Key="SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64" Name="Version"/>
 		</Property>
 		<Condition Message="This setup requires the 'VC++ Redistributable' v14.x to be installed. Please install it the from: https://aka.ms/vs/17/release/vc_redist.x64.exe">
 			Installed OR VC_REDIST_INSTALLED
