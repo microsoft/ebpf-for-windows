@@ -19,6 +19,7 @@ typedef struct _net_ebpf_bpf_sock_addr
     bpf_sock_addr_t base;
     TOKEN_ACCESS_INFORMATION* access_information;
     uint64_t process_id;
+    uint32_t flags;
 } net_ebpf_sock_addr_t;
 
 static ebpf_get_program_context_t _net_ebpf_sock_addr_get_program_context = NULL;
@@ -896,7 +897,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_INTERFACE,
-     FWPS_FIELD_ALE_AUTH_CONNECT_V4_ALE_USER_ID},
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_ALE_USER_ID,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_FLAGS},
 
     // EBPF_HOOK_ALE_AUTH_CONNECT_V6
     {FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_ADDRESS,
@@ -907,7 +909,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_INTERFACE,
-     FWPS_FIELD_ALE_AUTH_CONNECT_V6_ALE_USER_ID},
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_ALE_USER_ID,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_FLAGS},
 
     // EBPF_HOOK_ALE_CONNECT_REDIRECT_V4
     {FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_ADDRESS,
@@ -918,7 +921,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_COMPARTMENT_ID,
      0, // No interface luid in this layer.
-     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_USER_ID},
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_USER_ID,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_FLAGS},
 
     // EBPF_HOOK_ALE_CONNECT_REDIRECT_V6
     {FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS,
@@ -929,7 +933,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_COMPARTMENT_ID,
      0, // No interface luid in this layer.
-     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_USER_ID},
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_USER_ID,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_FLAGS},
 
     // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS,
@@ -940,7 +945,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_INTERFACE,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_USER_ID},
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_USER_ID,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_FLAGS},
 
     // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_ADDRESS,
@@ -951,7 +957,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_INTERFACE,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_USER_ID}};
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_USER_ID,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_FLAGS}};
 
 static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
@@ -1019,6 +1026,9 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
 
         sock_addr_ctx->process_id = 0;
     }
+
+    // Store the FLAGS field.
+    sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
 }
 
 NTSTATUS
@@ -1090,6 +1100,10 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
+    // eBPF programs will not be invoked on connection re-auth.
+    if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE)
+        goto Exit;
+
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
@@ -1158,6 +1172,10 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
+
+    // eBPF programs will not be invoked on connection re-auth.
+    if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE)
+        goto Exit;
 
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
