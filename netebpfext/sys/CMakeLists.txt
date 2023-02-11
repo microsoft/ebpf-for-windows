@@ -48,6 +48,7 @@ target_link_directories("NetEbpfExt" PRIVATE
 )
 
 target_link_libraries("NetEbpfExt"
+  "platform_kernel"
   "ebpf_for_windows_common_settings"
   "external::ebpfverifier_headers"
   "Ndis.lib"

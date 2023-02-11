@@ -17,6 +17,7 @@ Environment:
 
 --*/
 
+#include "ebpf_state.h"
 #include "net_ebpf_ext.h"
 #include "net_ebpf_ext_bind.h"
 #include "net_ebpf_ext_sock_addr.h"
@@ -27,6 +28,8 @@ Environment:
 NDIS_HANDLE _net_ebpf_ext_ndis_handle = NULL;
 NDIS_HANDLE _net_ebpf_ext_nbl_pool_handle = NULL;
 HANDLE _net_ebpf_ext_l2_injection_handle = NULL;
+
+static size_t _net_ext_context_id = MAXUINT64;
 
 static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
     {
@@ -712,28 +715,70 @@ _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_
     return;
 }
 
+_Must_inspect_result_ ebpf_result_t
+_net_ebpf_ext_program_context_init(void)
+{
+    ebpf_result_t result;
+
+    result = ebpf_state_initiate();
+    ebpf_assert(result == EBPF_SUCCESS);
+    if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE,
+            "ebpf_state_initiate() failed",
+            result);
+        goto Done;
+    }
+
+    result = ebpf_state_allocate_index(&_net_ext_context_id);
+    ebpf_assert(result == EBPF_SUCCESS);
+    if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE,
+            "ebpf_state_allocate_index() failed",
+            result);
+        goto Done;
+    }
+
+Done:
+    return result;
+}
+
 NTSTATUS
 net_ebpf_ext_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
+    ebpf_result_t result;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    status = net_ebpf_ext_xdp_register_providers();
-    if (status != STATUS_SUCCESS)
+    result = _net_ebpf_ext_program_context_init();
+    if (result != EBPF_SUCCESS) {
+        status = STATUS_UNSUCCESSFUL;
         goto Exit;
+    }
+
+    status = net_ebpf_ext_xdp_register_providers();
+    if (status != STATUS_SUCCESS) {
+        goto Exit;
+    }
 
     status = net_ebpf_ext_bind_register_providers();
-    if (status != STATUS_SUCCESS)
+    if (status != STATUS_SUCCESS) {
         goto Exit;
+    }
 
     status = net_ebpf_ext_sock_addr_register_providers();
-    if (status != STATUS_SUCCESS)
+    if (status != STATUS_SUCCESS) {
         goto Exit;
+    }
 
     status = net_ebpf_ext_sock_ops_register_providers();
-    if (status != STATUS_SUCCESS)
+    if (status != STATUS_SUCCESS) {
         goto Exit;
+    }
 
 Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
@@ -746,4 +791,51 @@ net_ebpf_ext_unregister_providers()
     net_ebpf_ext_bind_unregister_providers();
     net_ebpf_ext_sock_addr_unregister_providers();
     net_ebpf_ext_sock_ops_unregister_providers();
+}
+
+_Must_inspect_result_ ebpf_result_t
+net_ebpf_ext_set_context(_In_opt_ const void* context)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    result = ebpf_state_store(_net_ext_context_id, (uintptr_t)context);
+    ebpf_assert(result == EBPF_SUCCESS);
+    if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE,
+            "epbf_state_store() failed",
+            result);
+        goto Done;
+    }
+
+Done:
+    NET_EBPF_EXT_RETURN_RESULT(result);
+}
+
+_Must_inspect_result_ ebpf_result_t
+net_ebpf_ext_get_context(_Inout_ void** context)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    void* local_context;
+
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    result = ebpf_state_load(_net_ext_context_id, (uintptr_t*)&local_context);
+    ebpf_assert(result == EBPF_SUCCESS);
+    if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE,
+            "epbf_state_load() failed",
+            result);
+        local_context = NULL;
+        goto Done;
+    }
+
+Done:
+    *context = local_context;
+    NET_EBPF_EXT_RETURN_RESULT(result);
 }

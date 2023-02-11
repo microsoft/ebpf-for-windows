@@ -7,7 +7,9 @@
  * Windows.
  */
 
+#include "ebpf_state.h"
 #include "ebpf_store_helper.h"
+#include "net_ebpf_ext.h"
 #include "net_ebpf_ext_sock_addr.h"
 
 #define TARGET_PROCESS_ID 1234
@@ -20,8 +22,6 @@ typedef struct _net_ebpf_bpf_sock_addr
     TOKEN_ACCESS_INFORMATION* access_information;
     uint64_t process_id;
 } net_ebpf_sock_addr_t;
-
-static ebpf_get_program_context_t _net_ebpf_sock_addr_get_program_context = NULL;
 
 /**
  * Connection context info does not contain the source IP address because
@@ -105,17 +105,16 @@ static uint64_t
 _ebpf_sock_addr_get_current_pid_tgid()
 {
     net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
-    ASSERT(_net_ebpf_sock_addr_get_program_context != NULL);
-    _net_ebpf_sock_addr_get_program_context((void**)&sock_addr_ctx);
-    ASSERT(sock_addr_ctx != NULL);
-    if (sock_addr_ctx == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(
+    ebpf_result_t result;
+
+    result = net_ebpf_ext_get_context((void**)&sock_addr_ctx);
+    ASSERT(result == EBPF_SUCCESS && sock_addr_ctx != NULL);
+    if (result != EBPF_SUCCESS || sock_addr_ctx == NULL) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "_ebpf_sock_addr_get_current_pid_tgid: get_program_context failed.");
-    }
-
-    if (sock_addr_ctx == NULL) {
+            "_ebpf_sock_addr_get_current_pid_tgid: net_ebpf_get_program_context() failed.",
+            result);
         return (((uint64_t)_get_process_id() << 32) | _get_thread_id());
     }
 
@@ -316,29 +315,6 @@ static net_ebpf_extension_hook_provider_t*
 //
 // NMR Registration Helper Routines.
 //
-
-static ebpf_result_t
-_net_ebpf_extension_sock_addr_program_info_on_client_attach(
-    _In_ const net_ebpf_extension_program_info_client_t* attaching_client,
-    _In_ const net_ebpf_extension_program_info_provider_t* provider_context)
-{
-    UNREFERENCED_PARAMETER(provider_context);
-
-    _net_ebpf_sock_addr_get_program_context = net_ebpf_extension_get_program_context_function(attaching_client);
-    if (_net_ebpf_sock_addr_get_program_context == NULL) {
-        NET_EBPF_EXT_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-    }
-
-    NET_EBPF_EXT_RETURN_RESULT(EBPF_SUCCESS);
-}
-
-static void
-_net_ebpf_extension_sock_addr_program_info_on_client_detach(
-    _In_ const net_ebpf_extension_program_info_client_t* detaching_client)
-{
-    UNREFERENCED_PARAMETER(detaching_client);
-    _net_ebpf_sock_addr_get_program_context = NULL;
-}
 
 static ebpf_result_t
 _net_ebpf_extension_sock_addr_on_client_attach(
@@ -821,12 +797,10 @@ net_ebpf_ext_sock_addr_register_providers()
     // Set the program type as the provider module id.
     _ebpf_sock_addr_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     status = net_ebpf_extension_program_info_provider_register(
-        &program_info_provider_parameters,
-        _net_ebpf_extension_sock_addr_program_info_on_client_attach,
-        _net_ebpf_extension_sock_addr_program_info_on_client_detach,
-        &_ebpf_sock_addr_program_info_provider_context);
-    NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status);
-
+        &program_info_provider_parameters, &_ebpf_sock_addr_program_info_provider_context);
+    if (status != STATUS_SUCCESS) {
+        goto Exit;
+    }
     for (int i = 0; i < NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT; i++) {
         const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
             &_ebpf_sock_addr_hook_provider_moduleid[i], &_net_ebpf_extension_sock_addr_hook_provider_data[i]};
@@ -1059,12 +1033,13 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
-    uint32_t result;
+    ebpf_result_t result;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
+    uint32_t invoke_result;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
@@ -1075,12 +1050,14 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
-    if (filter_context == NULL)
+    if (filter_context == NULL) {
         goto Exit;
+    }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (attached_client == NULL)
+    attached_client = attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
+    if (attached_client == NULL) {
         goto Exit;
+    }
 
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         attached_client = NULL;
@@ -1103,12 +1080,42 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &result) != EBPF_SUCCESS)
+    // Stash the sock_addr context so that it is available to the helpers called by the program.
+    result = net_ebpf_ext_set_context(sock_addr_ctx);
+    if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "Set program context failed.",
+            result);
         goto Exit;
+    }
+
+    result = net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &invoke_result);
+    if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "Invoke program failed.",
+            result);
+        goto Exit;
+    }
+
+    // We're done with the program, so clear the stashed context.
+    result = net_ebpf_ext_set_context(NULL);
+    if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "Clear program context failed.",
+            result);
+        goto Exit;
+    }
 
     classify_output->actionType = (result == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
-    if (classify_output->actionType == FWP_ACTION_BLOCK)
+    if (classify_output->actionType == FWP_ACTION_BLOCK) {
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+    }
 
     NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
         NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
@@ -1119,8 +1126,9 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         result);
 
 Exit:
-    if (attached_client)
+    if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
+    }
 }
 
 /*
@@ -1273,6 +1281,47 @@ Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
+static _Must_inspect_result_ ebpf_result_t
+_net_ebpf_ext_prep_redir_invoke_program(
+    _In_ net_ebpf_extension_hook_client_t* attached_client, _In_ const void* ctx, _Inout_ uint32_t* verdict)
+{
+    ebpf_result_t result;
+
+    // Stash the sock_addr context so that it is available to the helpers called by the program.
+    result = net_ebpf_ext_set_context(ctx);
+    if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "Set program context failed.",
+            result);
+        goto Exit;
+    }
+
+    if (net_ebpf_extension_hook_invoke_program(attached_client, ctx, verdict) != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "Invoke program failed.",
+            result);
+        goto Exit;
+    }
+
+    // We're done with the program, so clear the stashed context.
+    result = net_ebpf_ext_set_context(NULL);
+    if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "Clear program context failed.",
+            result);
+        goto Exit;
+    }
+
+Exit:
+    return result;
+}
+
 /*
  * Default action is BLOCK. If this callout is being invoked, it means at least one
  * eBPF program is attached. Hence no connection should be allowed unless allowed by
@@ -1291,7 +1340,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
-    uint32_t verdict;
+    uint32_t verdict = 0;
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
@@ -1309,6 +1358,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     BOOLEAN classify_handle_acquired = FALSE;
     BOOLEAN v4_mapped = FALSE;
     BOOLEAN is_original_connection;
+    ebpf_result_t result = EBPF_SUCCESS;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
@@ -1497,7 +1547,15 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         v4_mapped,
         &connection_context_original->key);
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &verdict) != EBPF_SUCCESS) {
+    // The 'stash-context-invoke-program-clear-context' pattern has been abstracted out into a separate wrapper
+    // function to avoid a stack overflow detected by '/p:Analyze'.
+    //
+    // Note to maintainers: The stack usage of this function is very close to the default kernel stack size of 1024
+    // bytes.  While exceeding this boundary _is_ caught by the CI/CD 'analyzer' gate, you might want to do a 'analyze'
+    // run in your inner loop as well and make sure your mods do not push it over.
+    // A more long term fix might be re-factoring this function into smaller logical sub-functions.
+    result = _net_ebpf_ext_prep_redir_invoke_program(attached_client, sock_addr_ctx, &verdict);
+    if (result != EBPF_SUCCESS) {
         status = STATUS_UNSUCCESSFUL;
         goto Exit;
     }

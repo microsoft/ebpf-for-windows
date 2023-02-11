@@ -147,6 +147,11 @@
     <ClInclude Include="..\net_ebpf_ext_xdp.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
+  <ItemGroup>
+      <ProjectReference Include="..\..\libs\platform\kernel\platform_kernel.vcxproj">
+        <Project>{fc3f9998-4085-4767-8386-5453f07c3aad}</Project>
+      </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

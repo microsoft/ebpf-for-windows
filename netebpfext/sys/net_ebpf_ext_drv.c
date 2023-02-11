@@ -164,3 +164,10 @@ Exit:
     NET_EBPF_EXT_LOG_EXIT();
     return status;
 }
+
+// Needed by platform_kernel.lib.
+DEVICE_OBJECT*
+ebpf_driver_get_device_object()
+{
+    return WdfDeviceWdmGetDeviceObject(_net_ebpf_ext_device);
+}

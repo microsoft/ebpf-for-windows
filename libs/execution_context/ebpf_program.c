@@ -83,15 +83,6 @@ typedef struct _ebpf_program
 } ebpf_program_t;
 
 static ebpf_result_t
-_ebpf_program_get_context(_Outptr_ void** context);
-
-static struct
-{
-    size_t size;
-    _ebpf_extension_dispatch_function function[1];
-} _ebpf_program_dispatch_table = {1, {_ebpf_program_get_context}};
-
-static ebpf_result_t
 _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program);
 
 static ebpf_result_t
@@ -99,6 +90,9 @@ _ebpf_program_update_interpret_helpers(_Inout_ ebpf_program_t* program, _Inout_ 
 
 static ebpf_result_t
 _ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context);
+
+static ebpf_result_t
+_ebpf_program_register_helpers(_In_ const ebpf_program_t* program);
 
 static ebpf_result_t
 _ebpf_program_get_helper_function_address(
@@ -402,7 +396,7 @@ ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
         &module_id,
         program,
         NULL,
-        (ebpf_extension_dispatch_table_t*)&_ebpf_program_dispatch_table,
+        NULL,
         (void**)&program->info_extension_provider_binding_context,
         &program->info_extension_provider_data,
         NULL,
@@ -994,7 +988,6 @@ typedef struct _ebpf_program_tail_call_state
 {
     const ebpf_program_t* next_program;
     uint32_t count;
-    void* context;
 } ebpf_program_tail_call_state_t;
 
 _Must_inspect_result_ ebpf_result_t
@@ -1036,7 +1029,6 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
 
     provider_data_referenced = true;
 
-    state.context = context;
     if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
         *result = 0;
         goto Done;
@@ -1661,23 +1653,6 @@ Exit:
     ebpf_program_free_program_info((ebpf_program_info_t*)program_info);
 
     EBPF_RETURN_RESULT(result);
-}
-
-static ebpf_result_t
-_ebpf_program_get_context(_Outptr_ void** context)
-{
-    ebpf_result_t result;
-    ebpf_program_tail_call_state_t* state = NULL;
-    *context = NULL;
-    result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    *context = state->context;
-
-Exit:
-    return result;
 }
 
 typedef struct _ebpf_program_test_run_context
