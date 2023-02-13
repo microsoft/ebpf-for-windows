@@ -42,12 +42,12 @@ typedef struct _net_ebpf_ext_connect_context_address_info
 
 typedef struct _net_ebpf_extension_connection_context
 {
-    LIST_ENTRY list_entry;
     uint64_t transport_endpoint_handle;
     net_ebpf_ext_connect_context_address_info_t address_info;
     uint32_t compartment_id;
     uint16_t protocol;
     uint64_t timestamp;
+    LIST_ENTRY list_entry;
 } net_ebpf_extension_connection_context_t;
 
 typedef struct _net_ebpf_extension_redirect_handle_entry
@@ -1402,8 +1402,11 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     if (!_net_ebpf_extension_sock_addr_should_invoke_ebpf_program(filter_context, sock_addr_ctx, v4_mapped))
         goto Exit;
 
+#pragma warning(push)
+#pragma warning(suppress : 6387)
     // Acquire classify handle.
     status = FwpsAcquireClassifyHandle((void*)classify_context, 0, &classify_handle);
+#pragma warning(pop)
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
