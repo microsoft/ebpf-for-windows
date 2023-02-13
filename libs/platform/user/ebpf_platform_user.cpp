@@ -1023,7 +1023,7 @@ ebpf_access_check(
 {
     ebpf_result_t result;
     HANDLE token = INVALID_HANDLE_VALUE;
-    int access_status = FALSE;
+    bool access_status = FALSE;
     unsigned long granted_access;
     PRIVILEGE_SET privilege_set;
     unsigned long privilege_set_size = sizeof(privilege_set);
