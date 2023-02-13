@@ -214,7 +214,7 @@ GlueCreateFileW(
     return (HANDLE)CREATE_FILE_HANDLE;
 }
 
-int
+bool
 GlueCloseHandle(HANDLE object_handle)
 {
     if (object_handle == (HANDLE)CREATE_FILE_HANDLE) {
@@ -233,14 +233,14 @@ GlueCloseHandle(HANDLE object_handle)
     return TRUE;
 }
 
-int
+bool
 GlueDuplicateHandle(
     HANDLE source_process_handle,
     HANDLE source_handle,
     HANDLE target_process_handle,
     _Out_ HANDLE* target_handle,
     unsigned long desired_access,
-    int inherit_handle,
+    bool inherit_handle,
     unsigned long options)
 {
     UNREFERENCED_PARAMETER(source_process_handle);
@@ -267,7 +267,7 @@ int
 GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
 {
     UNREFERENCED_PARAMETER(file_handle);
-    int return_value = FALSE;
+    bool return_value = FALSE;
     if (overlapped != nullptr)
         return_value = ebpf_core_cancel_protocol_handler(overlapped);
     return return_value;
@@ -377,7 +377,7 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
     }
 }
 
-int
+bool
 GlueDeviceIoControl(
     HANDLE device_handle,
     unsigned long io_control_code,
@@ -577,7 +577,7 @@ _test_helper_end_to_end::_test_helper_end_to_end()
                                        void* lpOutBuffer,
                                        unsigned long nOutBufferSize,
                                        unsigned long* lpBytesReturned,
-                                       OVERLAPPED* lpOverlapped) -> int {
+                                       OVERLAPPED* lpOverlapped) -> bool {
             UNREFERENCED_PARAMETER(hDevice);
             UNREFERENCED_PARAMETER(dwIoControlCode);
             UNREFERENCED_PARAMETER(lpOutBuffer);

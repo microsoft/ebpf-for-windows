@@ -528,7 +528,7 @@ _net_ebpf_ext_handle_xdp_tx(
 {
     NET_BUFFER_LIST* nbl = NULL;
     NTSTATUS status = STATUS_SUCCESS;
-    int cloned_packet = FALSE;
+    bool cloned_packet = FALSE;
 
     uint32_t interface_index =
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;

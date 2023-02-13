@@ -22,7 +22,7 @@ static const GUID g_EbpfHelperGuid = {/* 634d21b8-13f9-46a3-945f-885cbd661c13 */
                                       0x46a3,
                                       {0x94, 0x5f, 0x88, 0x5c, 0xbd, 0x66, 0x1c, 0x13}};
 
-int WINAPI
+bool WINAPI
 DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
 {
     UNREFERENCED_PARAMETER(moduleHandle);
