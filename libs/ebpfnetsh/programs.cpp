@@ -78,15 +78,11 @@ struct _program_unloader
     ~_program_unloader() { bpf_object__close(object); }
 };
 
-unsigned long
+// The following function uses windows specific type to match 
+// definition of "FN_HANDLE_CMD" in public file of NetSh.h
+DWORD
 handle_ebpf_add_program(
-    const wchar_t* machine,
-    wchar_t** argv,
-    unsigned long current_index,
-    unsigned long argc,
-    unsigned long flags,
-    const void* data,
-    int* done)
+    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -314,15 +310,11 @@ _find_object_with_program(ebpf_id_t id)
     return _ebpf_netsh_objects.end();
 }
 
-unsigned long
+// The following function uses windows specific type to match 
+// definition of "FN_HANDLE_CMD" in public file of NetSh.h
+DWORD
 handle_ebpf_delete_program(
-    const wchar_t* machine,
-    wchar_t** argv,
-    unsigned long current_index,
-    unsigned long argc,
-    unsigned long flags,
-    const void* data,
-    int* done)
+    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -448,15 +440,11 @@ _ebpf_program_detach_by_id(ebpf_id_t program_id)
     return ERROR_NOT_FOUND;
 }
 
-unsigned long
+// The following function uses windows specific type to match 
+// definition of "FN_HANDLE_CMD" in public file of NetSh.h
+DWORD
 handle_ebpf_set_program(
-    const wchar_t* machine,
-    wchar_t** argv,
-    unsigned long current_index,
-    unsigned long argc,
-    unsigned long flags,
-    const void* data,
-    int* done)
+    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -564,15 +552,11 @@ handle_ebpf_set_program(
     return ERROR_OKAY;
 }
 
-unsigned long
+// The following function uses windows specific type to match 
+// definition of "FN_HANDLE_CMD" in public file of NetSh.h
+DWORD
 handle_ebpf_show_programs(
-    const wchar_t* machine,
-    wchar_t** argv,
-    unsigned long current_index,
-    unsigned long argc,
-    unsigned long flags,
-    const void* data,
-    int* done)
+    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);

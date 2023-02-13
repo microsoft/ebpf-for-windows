@@ -17,15 +17,11 @@
 #include <string>
 #include <vector>
 
-unsigned long
+// The following function uses windows specific type to match
+// definition of "FN_HANDLE_CMD" in public file of NetSh.h
+DWORD
 handle_ebpf_show_links(
-    const wchar_t* machine,
-    _Inout_updates_(argc) wchar_t** argv,
-    unsigned long current_index,
-    unsigned long argc,
-    unsigned long flags,
-    const void* data,
-    int* done)
+    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
     UNREFERENCED_PARAMETER(argv);
     UNREFERENCED_PARAMETER(current_index);

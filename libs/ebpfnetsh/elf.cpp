@@ -14,15 +14,11 @@ TOKEN_VALUE g_LevelEnum[2] = {
     {L"verbose", VL_VERBOSE},
 };
 
-unsigned long
+// The following function uses windows specific type to match
+// definition of "FN_HANDLE_CMD" in public file of NetSh.h
+DWORD
 handle_ebpf_show_disassembly(
-    const wchar_t* machine,
-    _Inout_updates_(argc) wchar_t** argv,
-    unsigned long current_index,
-    unsigned long argc,
-    unsigned long flags,
-    const void* data,
-    int* done)
+    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -83,15 +79,11 @@ _get_map_type_name(ebpf_map_type_t type)
     return _ebpf_map_display_names[index];
 }
 
-unsigned long
+// The following function uses windows specific type to match
+// definition of "FN_HANDLE_CMD" in public file of NetSh.h
+DWORD
 handle_ebpf_show_sections(
-    const wchar_t* machine,
-    _Inout_updates_(argc) wchar_t** argv,
-    unsigned long current_index,
-    unsigned long argc,
-    unsigned long flags,
-    const void* data,
-    int* done)
+    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -209,15 +201,11 @@ handle_ebpf_show_sections(
     return NO_ERROR;
 }
 
-unsigned long
+// The following function uses windows specific type to match
+// definition of "FN_HANDLE_CMD" in public file of NetSh.h
+DWORD
 handle_ebpf_show_verification(
-    const wchar_t* machine,
-    _Inout_updates_(argc) wchar_t** argv,
-    unsigned long current_index,
-    unsigned long argc,
-    unsigned long flags,
-    const void* data,
-    int* done)
+    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
