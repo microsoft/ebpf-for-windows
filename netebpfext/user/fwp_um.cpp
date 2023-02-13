@@ -651,14 +651,18 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS NTAPI FwpsAcquireWritableLayerDataP
     _Out_ void** writableLayerData,
     _Inout_opt_ FWPS_CLASSIFY_OUT0* classifyOut)
 {
+    NTSTATUS status = STATUS_SUCCESS;
     UNREFERENCED_PARAMETER(classifyHandle);
     UNREFERENCED_PARAMETER(filterId);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(classifyOut);
 
-    *writableLayerData = NULL;
+    *writableLayerData = ebpf_allocate(sizeof(FWPS_CONNECT_REQUEST0));
+    if (*writableLayerData == nullptr) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+    }
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS NTAPI
@@ -682,8 +686,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void NTAPI
     FwpsApplyModifiedLayerData0(_In_ UINT64 classifyHandle, _In_ void* modifiedLayerData, _In_ UINT32 flags)
 {
     UNREFERENCED_PARAMETER(classifyHandle);
-    UNREFERENCED_PARAMETER(modifiedLayerData);
     UNREFERENCED_PARAMETER(flags);
+
+    ebpf_assert(modifiedLayerData != nullptr);
+    ebpf_free(modifiedLayerData);
 }
 
 _IRQL_requires_(PASSIVE_LEVEL) NTSTATUS NTAPI

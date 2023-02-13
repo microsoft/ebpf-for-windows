@@ -7,6 +7,11 @@
 
 #include <map>
 
+#define SOCK_ADDR_TEST_ACTION_PERMIT 1
+#define SOCK_ADDR_TEST_ACTION_BLOCK 2
+#define SOCK_ADDR_TEST_ACTION_REDIRECT 3
+#define SOCK_ADDR_TEST_ACTION_FAILURE 4
+
 TEST_CASE("query program info", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
@@ -277,6 +282,7 @@ _Must_inspect_result_ ebpf_result_t
 netebpfext_unit_invoke_sock_addr_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
 {
+    ebpf_result_t return_result = EBPF_SUCCESS;
     auto client_context = (test_sock_addr_client_context_t*)client_binding_context;
     auto sock_addr_context = (bpf_sock_addr_t*)context;
 
@@ -291,8 +297,26 @@ netebpfext_unit_invoke_sock_addr_program(
     REQUIRE(sock_addr_context->user_port == htons(1234));
     REQUIRE(sock_addr_context->msg_src_port == htons(5678));
 
-    *result = client_context->sock_addr_action;
-    return EBPF_SUCCESS;
+    switch (client_context->sock_addr_action) {
+    case SOCK_ADDR_TEST_ACTION_PERMIT:
+        *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        break;
+    case SOCK_ADDR_TEST_ACTION_BLOCK:
+        *result = BPF_SOCK_ADDR_VERDICT_REJECT;
+        break;
+    case SOCK_ADDR_TEST_ACTION_REDIRECT:
+        sock_addr_context->user_port++;
+        // sock_addr_context->user_ip4++;
+        *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        break;
+    case SOCK_ADDR_TEST_ACTION_FAILURE:
+        return_result = EBPF_FAILED;
+        break;
+    default:
+        *result = BPF_SOCK_ADDR_VERDICT_REJECT;
+    }
+
+    return return_result;
 }
 
 TEST_CASE("sock_addr_invoke", "[netebpfext]")
@@ -306,7 +330,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
         (netebpfext_helper_base_client_context_t*)&client_context);
 
     // Classify operations that should be allowed.
-    client_context.sock_addr_action = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
 
     FWP_ACTION_TYPE result = helper.test_cgroup_inet4_recv_accept();
     REQUIRE(result == FWP_ACTION_PERMIT);
@@ -321,7 +345,31 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify operations that should be blocked.
-    client_context.sock_addr_action = BPF_SOCK_ADDR_VERDICT_REJECT;
+    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_BLOCK;
+
+    result = helper.test_cgroup_inet4_recv_accept();
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_recv_accept();
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet4_connect();
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_connect();
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    // Classify operations for redirect.
+    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
+
+    result = helper.test_cgroup_inet4_connect();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_connect();
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Test eBPF program invocation failure.
+    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_FAILURE;
 
     result = helper.test_cgroup_inet4_recv_accept();
     REQUIRE(result == FWP_ACTION_BLOCK);
