@@ -263,7 +263,7 @@ _complete_overlapped(_Inout_ void* context, size_t output_buffer_length, ebpf_re
     SetEvent(overlapped->hEvent);
 }
 
-int
+bool
 GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
 {
     UNREFERENCED_PARAMETER(file_handle);
