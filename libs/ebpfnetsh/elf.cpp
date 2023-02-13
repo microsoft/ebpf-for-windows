@@ -14,9 +14,9 @@ TOKEN_VALUE g_LevelEnum[2] = {
     {L"verbose", VL_VERBOSE},
 };
 
-// The following function uses windows specific type to match
+// The following function uses windows specific type as an input to match
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
-DWORD
+unsigned long
 handle_ebpf_show_disassembly(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
@@ -79,9 +79,9 @@ _get_map_type_name(ebpf_map_type_t type)
     return _ebpf_map_display_names[index];
 }
 
-// The following function uses windows specific type to match
+// The following function uses windows specific type as an input to match
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
-DWORD
+unsigned long
 handle_ebpf_show_sections(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
@@ -201,9 +201,9 @@ handle_ebpf_show_sections(
     return NO_ERROR;
 }
 
-// The following function uses windows specific type to match
+// The following function uses windows specific type as an input to match
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
-DWORD
+unsigned long
 handle_ebpf_show_verification(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
