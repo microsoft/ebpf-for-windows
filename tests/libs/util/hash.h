@@ -1,5 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#pragma once
+
+#include <stdexcept>
 #include <string>
 #include <vector>
 

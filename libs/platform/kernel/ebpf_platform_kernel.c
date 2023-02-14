@@ -1,10 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// ntifs.h needs to be included ahead of other headers to satisfy the Windows
-// build system.
-#include <ntifs.h>
-
 #include "ebpf_platform.h"
 #include "ebpf_store_helper.h"
 

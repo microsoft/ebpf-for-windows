@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "bpf_assembler.h"
+
 #include <array>
 #include <functional>
+#include <sstream>
 #include <unordered_map>
 #include <variant>
-#include <sstream>
-
-#include "bpf_assembler.h"
 
 typedef std::variant<ebpf_inst, std::array<ebpf_inst, 2>> bpf_encode_result_t;
 

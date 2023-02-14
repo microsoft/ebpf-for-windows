@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// Windows.h needs to be included before other headers.
-// It has a #define for WINAPI_FAMILY_PARTITION among others that control
-// the behavior of other Windows headers.
+#include "svc_common.h"
+
 #include <winsock2.h>
 #include <windows.h>
-
 #include <malloc.h>
 #include <sddl.h>
+
 #include "rpc_interface_s.c"
-#include "svc_common.h"
 
 #pragma comment(lib, "Rpcrt4.lib")
 

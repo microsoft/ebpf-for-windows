@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <set>
-
-#include <optional>
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
-#include "ebpf_ring_buffer.h"
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
+#include "ebpf_ring_buffer.h"
 #include "helpers.h"
+
+#include <optional>
+#include <set>
 
 #define PAGE_SIZE 4096
 
@@ -94,6 +94,7 @@ template <typename T> class ebpf_object_deleter
 
 typedef std::unique_ptr<ebpf_map_t, ebpf_object_deleter<ebpf_map_t>> map_ptr;
 typedef std::unique_ptr<ebpf_program_t, ebpf_object_deleter<ebpf_program_t>> program_ptr;
+typedef std::unique_ptr<ebpf_link_t, ebpf_object_deleter<ebpf_link_t>> link_ptr;
 
 static void
 _test_crud_operations(ebpf_map_type_t map_type)
@@ -637,6 +638,7 @@ test_function()
 TEST_CASE("program", "[execution_context]")
 {
     _ebpf_core_initializer core;
+
     program_ptr program;
     {
         ebpf_program_t* local_program = nullptr;
@@ -753,6 +755,49 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(addresses[0] != 0);
     REQUIRE(addresses[1] != 0);
     REQUIRE(addresses[2] != 0);
+
+    link_ptr link;
+    {
+        ebpf_link_t* local_link = nullptr;
+        REQUIRE(ebpf_link_create(&local_link) == EBPF_SUCCESS);
+        link.reset(local_link);
+    }
+
+    REQUIRE(ebpf_link_initialize(link.get(), EBPF_ATTACH_TYPE_XDP, nullptr, 0) == EBPF_SUCCESS);
+
+    // Correct attach type, but wrong program type.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_XDP);
+
+        REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
+    }
+
+    // Wrong attach type, but correct program type.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_BIND);
+
+        REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
+    }
+
+    // Correct attach type and correct program type.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+
+        // First attach should succeed.
+        REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_SUCCESS);
+
+        // Second attach should fail.
+        REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_INVALID_ARGUMENT);
+
+        // First detach should succeed.
+        ebpf_link_detach_program(link.get());
+
+        // Second detach should be no-op.
+        ebpf_link_detach_program(link.get());
+    }
+
+    link.reset();
+
     ebpf_free_trampoline_table(table);
 }
 
@@ -1392,26 +1437,64 @@ TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT", "[execution_context][negative]")
 TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
-    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key));
-    auto map_update_element_with_handle_request =
-        reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
-    map_update_element_with_handle_request->map_handle = program_handles[0];
 
-    // Invalid handle.
-    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+    {
+        std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key));
+        auto map_update_element_with_handle_request =
+            reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+        map_update_element_with_handle_request->map_handle = program_handles[0];
 
-    map_update_element_with_handle_request->map_handle = map_handles["BPF_MAP_TYPE_HASH_OF_MAPS"];
+        // Invalid handle.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
 
-    // Invalid key_size.
-    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_ARGUMENT);
+        map_update_element_with_handle_request->map_handle = map_handles["BPF_MAP_TYPE_HASH_OF_MAPS"];
 
-    request.resize(request.size() + 4);
-    map_update_element_with_handle_request =
-        reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
-    map_update_element_with_handle_request->value_handle = program_handles[0];
+        // Invalid key_size.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_ARGUMENT);
 
-    // Invalid value handle.
-    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+        request.resize(request.size() + 4);
+        map_update_element_with_handle_request =
+            reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+        map_update_element_with_handle_request->value_handle = program_handles[0];
+
+        // Invalid value handle.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+    }
+
+    {
+        std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key));
+        auto map_update_element_with_handle_request =
+            reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+        map_update_element_with_handle_request->map_handle = program_handles[0];
+
+        // Invalid handle.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+
+        // Update handle to a valid value and check for null key.
+        map_update_element_with_handle_request->map_handle = map_handles["BPF_MAP_TYPE_ARRAY_OF_MAPS"];
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_ARGUMENT);
+
+        // Make key non-null but pass an invalid value (0).
+        request.resize(request.size() + 4);
+        map_update_element_with_handle_request =
+            reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+
+        // Check invalid value handle.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+
+        map_update_element_with_handle_request->value_handle = program_handles[0];
+
+        // Pass an invalid key value.
+        uint32_t key = 0xFFFF;
+        memcpy(&map_update_element_with_handle_request->key, &key, sizeof(uint32_t));
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) != EBPF_SUCCESS);
+
+        // Check invalid option value.
+        key = 0x1;
+        memcpy(&map_update_element_with_handle_request->key, &key, sizeof(uint32_t));
+        map_update_element_with_handle_request->option = EBPF_NOEXIST;
+        REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_ARGUMENT);
+    }
 }
 
 TEST_CASE("EBPF_OPERATION_MAP_DELETE_ELEMENT", "[execution_context][negative]")

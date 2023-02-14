@@ -1,11 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "net_ebpf_ext_prog_info_provider.h"
-
 #include "ebpf_extension_uuids.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "net_ebpf_ext_prog_info_provider.h"
 
 /**
  *  @brief This is the per client binding context for program information

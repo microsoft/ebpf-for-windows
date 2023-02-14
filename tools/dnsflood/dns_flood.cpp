@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 #include <WinSock2.h>
+#include <ws2tcpip.h>
 #include <iostream>
 #include <thread>
 #include <vector>
-#include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 
 struct _address_info

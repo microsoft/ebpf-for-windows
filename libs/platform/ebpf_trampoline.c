@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_epoch.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
-#include "ebpf_epoch.h"
 
 #pragma pack(push)
 #pragma pack(1)

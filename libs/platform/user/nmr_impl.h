@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_platform.h"
+#include "kernel_um.h"
+
+#include <../km/netioddk.h>
 #include <condition_variable>
 #include <functional>
 #include <map>
 #include <mutex>
+#include <netiodef.h>
 #include <optional>
 #include <vector>
-
-#include "ebpf_platform.h"
-#include "kernel_um.h"
-#include <netiodef.h>
-#include <../km/netioddk.h>
 
 typedef class _nmr
 {
@@ -140,10 +140,13 @@ typedef class _nmr
 
     enum binding_status
     {
-        Ready = 0,
-        BeginUnbind,
-        UnbindPending,
-        UnbindComplete
+        Start = 0,   ///< Initial state. Binding has been created but ClientAttachProvider has not been called.
+        Ready,       ///< ClientAttachProvider has been called and returned STATUS_SUCCESS.
+        BeginUnbind, ///< Client or provider has called NmrDeregisterClient or NmrDeregisterProvider but detach has not
+                     ///< yet been called.
+        UnbindPending, ///< Client or provider detach returned STATUS_PENDING.
+        UnbindComplete ///< Client or provider detach returned STATUS_SUCCESS or called NmrBindingDetachClientComplete
+                       ///< or NmrBindingDetachProviderComplete.
     };
 
     struct binding
@@ -152,10 +155,10 @@ typedef class _nmr
         client_registration& client;
         const void* provider_binding_context = nullptr;
         const void* provider_dispatch = nullptr;
-        binding_status provider_binding_status = Ready;
+        binding_status provider_binding_status = Start;
         const void* client_binding_context = nullptr;
         const void* client_dispatch = nullptr;
-        binding_status client_binding_status = Ready;
+        binding_status client_binding_status = Start;
     };
     typedef std::function<void()> pending_action_t;
 
