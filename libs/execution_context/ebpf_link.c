@@ -47,7 +47,7 @@ _ebpf_link_instance_invoke(
 
 static ebpf_result_t
 _ebpf_link_instance_invoke_batch_begin(
-    _In_ const void* extension_client_binding_context, _In_ size_t state_size, _In_ void* state);
+    _In_ const void* extension_client_binding_context, size_t state_size, _Out_writes_(state_size) void* state);
 
 static ebpf_result_t
 _ebpf_link_instance_invoke_batch(
@@ -59,12 +59,23 @@ _ebpf_link_instance_invoke_batch(
 static ebpf_result_t
 _ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_context);
 
+typedef enum _ebpf_link_dispatch_table_version
+{
+    EBPF_LINK_DISPATCH_TABLE_VERSION_1 = 1, ///< Version 1 of the dispatch table. This is the original version. It
+                                            ///< does not support batch processing.
+    EBPF_LINK_DISPATCH_TABLE_VERSION_2 = 2, ///< Version 2 of the dispatch table. This version supports batch
+                                            ///< processing.
+    EBPF_LINK_DISPATCH_TABLE_VERSION = EBPF_LINK_DISPATCH_TABLE_VERSION_2, ///< Current version of the dispatch table.
+} ebpf_link_dispatch_table_version_t;
+
 static struct
 {
-    size_t size;
+    uint16_t version; ///< Version of the extension interface.
+    uint16_t count;   ///< Count of functions.
     _ebpf_extension_dispatch_function function[];
 } _ebpf_link_dispatch_table = {
-    4,
+    EBPF_LINK_DISPATCH_TABLE_VERSION,
+    4, // Count of functions. This should be updated when new functions are added.
     {
         _ebpf_link_instance_invoke,
         _ebpf_link_instance_invoke_batch_begin,
@@ -357,9 +368,9 @@ Done:
 
 static ebpf_result_t
 _ebpf_link_instance_invoke_batch_begin(
-    _In_ const void* extension_client_binding_context, _In_ size_t state_size, _In_ void* state)
+    _In_ const void* extension_client_binding_context, size_t state_size, _Out_writes_(state_size) void* state)
 {
-    bool enter_epoch = false;
+    bool epoch_entered = false;
     bool provider_reference_held = false;
     ebpf_result_t return_value;
     ebpf_link_t* link = (ebpf_link_t*)ebpf_extension_get_client_context(extension_client_binding_context);
@@ -381,7 +392,7 @@ _ebpf_link_instance_invoke_batch_begin(
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
-    enter_epoch = true;
+    epoch_entered = true;
 
     return_value = ebpf_program_reference_providers(link->program);
     if (return_value != EBPF_SUCCESS) {
@@ -396,7 +407,7 @@ Done:
         ebpf_program_dereference_providers(link->program);
     }
 
-    if (return_value != EBPF_SUCCESS && enter_epoch) {
+    if (return_value != EBPF_SUCCESS && epoch_entered) {
         ebpf_epoch_exit();
     }
 

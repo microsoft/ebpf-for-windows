@@ -1024,9 +1024,8 @@ ebpf_program_reference_providers(_Inout_ ebpf_program_t* program)
 {
     if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
         return EBPF_EXTENSION_FAILED_TO_LOAD;
-    } else {
-        return EBPF_SUCCESS;
     }
+    return EBPF_SUCCESS;
 }
 
 void

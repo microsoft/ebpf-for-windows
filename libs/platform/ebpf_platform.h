@@ -81,9 +81,9 @@ extern "C"
     typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
     typedef struct _ebpf_extension_dispatch_table
     {
-        uint16_t version;
-        uint16_t size;
-        _ebpf_extension_dispatch_function function[1];
+        uint16_t version; ///< Version of the dispatch table.
+        uint16_t count;   ///< Number of entries in the dispatch table.
+        _ebpf_extension_dispatch_function function[];
     } ebpf_extension_dispatch_table_t;
 
     typedef struct _ebpf_extension_data
