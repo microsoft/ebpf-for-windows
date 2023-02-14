@@ -27,7 +27,7 @@ This document discusses the steps to set up such a self-hosted actions-runner th
 9) Store the VM administrator credential:
    1) `Install-Module CredentialManager -force`
    2) `New-StoredCredential -Target `**`TEST_VM`**` -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine`
-10) Modify the environment of the VM as needed. Created new checkpoints using **Hyper-V**. Rename the new checkpoint as `baseline`, and remove the old baseline. 
+10) Modify the environment of the VM as needed. Create new checkpoints using **Hyper-V**. Rename the new checkpoint as `baseline`, and remove the old baseline. 
 11) Set up Windows Error Reporting [Local Dump Collection](https://docs.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps) on the VMs with the following commands.
     ```New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue```
     ```New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue```
