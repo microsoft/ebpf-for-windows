@@ -12,15 +12,19 @@
   <PropertyGroup Condition="'$(AddressSanitizer)'=='True'">
     <EnableASAN>true</EnableASAN>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MD-x86_64.lib</FuzzerLibs>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Release|True'">
     <EnableASAN>true</EnableASAN>
     <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
-    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MD-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Debug|True'">
     <EnableASAN>true</EnableASAN>
     <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
-    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Fuzzer)'!='True'">
     <SpectreMitigation>Spectre</SpectreMitigation>
