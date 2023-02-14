@@ -60,7 +60,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>$(BinDir)bpf2c.exe --bpf $(ProgramName).o --dll $(AdditionalOptions) &gt;$(ProgramName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --no-verify --bpf $(ProgramName).o --dll $(AdditionalOptions) &gt;$(ProgramName)_dll.c</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
