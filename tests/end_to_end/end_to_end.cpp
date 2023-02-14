@@ -450,6 +450,12 @@ droppacket_test(ebpf_execution_type_t execution_type)
     // Reset the count of dropped packets.
     REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
 
+    {
+        // Negative test: State is too small.
+        uint8_t state[sizeof(ebpf_execution_context_state_t) - 1] = {0};
+        REQUIRE(hook.batch_begin(sizeof(state), state) == EBPF_INVALID_ARGUMENT);
+    }
+
     // Fire a 0-length UDP packet on the interface index in the map, using batch mode, which should be dropped.
     uint8_t state[sizeof(ebpf_execution_context_state_t)] = {0};
     REQUIRE(hook.batch_begin(sizeof(state), state) == EBPF_SUCCESS);

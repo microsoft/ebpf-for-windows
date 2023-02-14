@@ -155,17 +155,12 @@ _netebpf_ext_helper::_hook_client_attach_provider(
 {
     UNREFERENCED_PARAMETER(provider_registration_instance);
     const void* provider_dispatch_table;
-    std::vector<uint8_t> client_dispatch_table_buffer(
-        offsetof(ebpf_extension_dispatch_table_t, function) + sizeof(uintptr_t));
-    ebpf_extension_dispatch_table_t* client_dispatch_table =
-        reinterpret_cast<ebpf_extension_dispatch_table_t*>(client_dispatch_table_buffer.data());
-    client_dispatch_table->count = 1;
-    client_dispatch_table->version = 1;
     auto base_client_context = reinterpret_cast<netebpfext_helper_base_client_context_t*>(client_context);
     if (base_client_context == nullptr) {
         return STATUS_INVALID_PARAMETER;
     }
-    client_dispatch_table->function[0] = base_client_context->helper->hook_invoke_function;
+    const ebpf_extension_dispatch_table_t client_dispatch_table = {
+        .version = 1, .count = 1, .function = base_client_context->helper->hook_invoke_function};
     auto provider_characteristics =
         (const ebpf_extension_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
     auto provider_data = (const ebpf_attach_provider_data_t*)provider_characteristics->data;

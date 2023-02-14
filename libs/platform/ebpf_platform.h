@@ -83,7 +83,7 @@ extern "C"
     {
         uint16_t version; ///< Version of the dispatch table.
         uint16_t count;   ///< Number of entries in the dispatch table.
-        _Field_size_(count) _ebpf_extension_dispatch_function function[];
+        _Field_size_(count) _ebpf_extension_dispatch_function function[1];
     } ebpf_extension_dispatch_table_t;
 
     typedef struct _ebpf_extension_data

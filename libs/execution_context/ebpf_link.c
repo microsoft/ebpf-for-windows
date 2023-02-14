@@ -68,21 +68,23 @@ typedef enum _ebpf_link_dispatch_table_version
     EBPF_LINK_DISPATCH_TABLE_VERSION = EBPF_LINK_DISPATCH_TABLE_VERSION_2, ///< Current version of the dispatch table.
 } ebpf_link_dispatch_table_version_t;
 
-static struct
+const typedef struct _ebpf_link_dispatch_table
 {
-    uint16_t version; ///< Version of the extension interface.
-    uint16_t count;   ///< Count of functions.
-    _ebpf_extension_dispatch_function function[];
-} _ebpf_link_dispatch_table = {
+    ebpf_extension_dispatch_table_t;
+    _ebpf_extension_dispatch_function new_functions[];
+} ebpf_link_dispatch_table_t;
+
+static ebpf_link_dispatch_table_t _ebpf_link_dispatch_table = {
     EBPF_LINK_DISPATCH_TABLE_VERSION,
     4, // Count of functions. This should be updated when new functions are added.
-    {
-        _ebpf_link_instance_invoke,
-        _ebpf_link_instance_invoke_batch_begin,
-        _ebpf_link_instance_invoke_batch,
-        _ebpf_link_instance_invoke_batch_end,
-    },
+    _ebpf_link_instance_invoke,
+    _ebpf_link_instance_invoke_batch_begin,
+    _ebpf_link_instance_invoke_batch,
+    _ebpf_link_instance_invoke_batch_end,
 };
+
+// Assert that new_functions is aligned with ebpf_extension_dispatch_table_t->function.
+C_ASSERT(sizeof(ebpf_extension_dispatch_table_t) == EBPF_OFFSET_OF(ebpf_link_dispatch_table_t, new_functions));
 
 static void
 _ebpf_link_free(_Frees_ptr_ ebpf_core_object_t* object)
