@@ -98,6 +98,7 @@ typedef class _fwp_engine
         }
 
         ebpf_assert(callout != nullptr);
+        __analysis_assume(callout != nullptr);
         // Invoke flow delete notification callback.
         callout->flowDeleteFn(layer_id, callout_id, flow_context);
     }
@@ -119,6 +120,7 @@ typedef class _fwp_engine
             fwps_filter.context = filter->rawContext;
         }
 
+        __analysis_assume(callout != nullptr);
         // Invoke filter add notification callback.
         callout->notifyFn(FWPS_CALLOUT_NOTIFY_ADD_FILTER, &filter->action.calloutKey, &fwps_filter);
 
@@ -146,6 +148,7 @@ typedef class _fwp_engine
         }
 
         ebpf_assert(callout != nullptr);
+        __analysis_assume(callout != nullptr);
         // Invoke filter delete notification callback.
         callout->notifyFn(FWPS_CALLOUT_NOTIFY_DELETE_FILTER, &callout->calloutKey, &fwps_filter);
 
