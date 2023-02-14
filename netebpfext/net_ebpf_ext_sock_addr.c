@@ -1091,7 +1091,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     }
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &result) != EBPF_SUCCESS) {
-        // Block the request is we failed to invoke the eBPF program.
+        // Block the request if we failed to invoke the eBPF program.
         classify_output->actionType = FWP_ACTION_BLOCK;
         goto Exit;
     }

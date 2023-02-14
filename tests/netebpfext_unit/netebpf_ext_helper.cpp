@@ -25,6 +25,9 @@ _netebpf_ext_helper::_netebpf_ext_helper(
     REQUIRE(NT_SUCCESS(status));
     trace_initiated = true;
 
+    REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
+    platform_initialized = true;
+
     status = net_ebpf_ext_initialize_ndis_handles(driver_object);
     REQUIRE(NT_SUCCESS(status));
 
@@ -78,6 +81,10 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
 
     if (ndis_handle_initialized) {
         net_ebpf_ext_uninitialize_ndis_handles();
+    }
+
+    if (platform_initialized) {
+        ebpf_platform_terminate();
     }
 
     if (trace_initiated) {

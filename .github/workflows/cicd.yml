@@ -121,6 +121,22 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
+  netebpf_ext_unit_tests_leak_detection:
+    # Always run this job.
+    needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: netebpf_ext_unit_tests
+      pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
+      test_command: .\netebpfext_unit.exe -d yes
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: true
+      gather_dumps: true
+      capture_etw: true
+      leak_detection: true
+
   # Run the bpf2c tests in GitHub.
   bpf2c:
     # Always run this job.

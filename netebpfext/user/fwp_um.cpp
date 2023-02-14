@@ -100,8 +100,6 @@ static FWP_BYTE_BLOB _test_user_id = {
 FWP_ACTION_TYPE
 _fwp_engine::test_bind_ipv4()
 {
-    std::unique_lock l(lock);
-
     FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_MAX] = {};
     incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16 = _test_destination_port;
     incoming_value[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS].value.uint32 =
@@ -116,8 +114,7 @@ _fwp_engine::test_bind_ipv4()
         incoming_value);
 }
 
-FWP_ACTION_TYPE
-_fwp_engine::test_callout(
+_Requires_lock_not_held_(this->lock) FWP_ACTION_TYPE _fwp_engine::test_callout(
     uint16_t layer_id,
     _In_ const GUID& layer_guid,
     _In_ const GUID& sublayer_guid,
@@ -125,20 +122,28 @@ _fwp_engine::test_callout(
 {
     FWPS_INCOMING_VALUES incoming_fixed_values = {.layerId = layer_id, .incomingValue = incoming_value};
     FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
-    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context(layer_guid, sublayer_guid);
-    if (!fwpm_filter) {
-        return FWP_ACTION_CALLOUT_UNKNOWN;
-    }
-    FWPS_FILTER fwps_filter = {.context = fwpm_filter->rawContext};
+    FWPS_FILTER fwps_filter = {};
+    const FWPS_CALLOUT3* callout = nullptr;
 
-    const GUID* callout_key = get_callout_key_from_layer_guid(&layer_guid);
-    if (callout_key == nullptr) {
-        return FWP_ACTION_CALLOUT_UNKNOWN;
-    }
+    {
+        std::unique_lock l(lock);
+        const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context(layer_guid, sublayer_guid);
+        if (!fwpm_filter) {
+            return FWP_ACTION_CALLOUT_UNKNOWN;
+        }
+        fwps_filter.context = fwpm_filter->rawContext;
 
-    const FWPS_CALLOUT3* callout = get_callout_from_key(callout_key);
-    if (callout == nullptr) {
-        return FWP_ACTION_CALLOUT_UNKNOWN;
+        const GUID* callout_key = get_callout_key_from_layer_guid(&layer_guid);
+        if (callout_key == nullptr) {
+            return FWP_ACTION_CALLOUT_UNKNOWN;
+        }
+
+        callout = get_callout_from_key(callout_key);
+        if (callout == nullptr) {
+            return FWP_ACTION_CALLOUT_UNKNOWN;
+        }
+
+        incoming_metadata_values.flowHandle = next_flow_id++;
     }
 
     FWPS_CLASSIFY_OUT0 result = {};
@@ -155,31 +160,10 @@ _fwp_engine::test_callout(
     return result.actionType;
 }
 
-// This is used to test CGROUP_SOCK_ADDR hooks.
-FWP_ACTION_TYPE
-_fwp_engine::test_cgroup_sock_addr(
-    uint16_t layer_id,
-    _In_ const GUID& layer_guid,
-    _In_ const GUID& sublayer_guid,
-    _In_ FWPS_INCOMING_VALUE0* incoming_value)
-{
-    GUID filter_key = {};
-    FWPS_FILTER filter = {};
-    net_ebpf_ext_connect_redirect_filter_change_notify(FWPS_CALLOUT_NOTIFY_ADD_FILTER, &filter_key, &filter);
-
-    FWP_ACTION_TYPE action_type = test_callout(layer_id, layer_guid, sublayer_guid, incoming_value);
-
-    net_ebpf_ext_connect_redirect_filter_change_notify(FWPS_CALLOUT_NOTIFY_DELETE_FILTER, &filter_key, &filter);
-
-    return action_type;
-}
-
-// This is used to test the INET4_RECV_ADDEPT hook.
+// This is used to test the INET4_RECV_ACCEPT hook.
 FWP_ACTION_TYPE
 _fwp_engine::test_cgroup_inet4_recv_accept()
 {
-    std::unique_lock l(lock);
-
     FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_MAX] = {};
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS].value.uint32 = _test_destination_ipv4_address;
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_PORT].value.uint16 = _test_destination_port;
@@ -191,7 +175,7 @@ _fwp_engine::test_cgroup_inet4_recv_accept()
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_USER_ID].value.byteBlob = &_test_user_id;
 
-    return test_cgroup_sock_addr(
+    return test_callout(
         FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4, EBPF_DEFAULT_SUBLAYER, incoming_value);
 }
 
@@ -199,8 +183,6 @@ _fwp_engine::test_cgroup_inet4_recv_accept()
 FWP_ACTION_TYPE
 _fwp_engine::test_cgroup_inet6_recv_accept()
 {
-    std::unique_lock l(lock);
-
     FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_MAX] = {};
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_ADDRESS].value.byteArray16 =
         &_test_destination_ipv6_address;
@@ -213,7 +195,7 @@ _fwp_engine::test_cgroup_inet6_recv_accept()
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_APP_ID].value.byteBlob = &_test_app_id;
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_USER_ID].value.byteBlob = &_test_user_id;
 
-    return test_cgroup_sock_addr(
+    return test_callout(
         FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V6, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6, EBPF_DEFAULT_SUBLAYER, incoming_value);
 }
 
@@ -222,7 +204,6 @@ FWP_ACTION_TYPE
 _fwp_engine::test_cgroup_inet4_connect()
 {
     FWP_ACTION_TYPE action;
-    std::unique_lock l(lock);
 
     // For CGROUP_CONNECT* attach type, first CONNECT_REDIRECT callout is invoked, followed by
     // AUTH_CONNECT.
@@ -236,7 +217,7 @@ _fwp_engine::test_cgroup_inet4_connect()
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_APP_ID].value.byteBlob = &_test_app_id;
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_USER_ID].value.byteBlob = &_test_user_id;
 
-    action = test_cgroup_sock_addr(
+    action = test_callout(
         FWPS_LAYER_ALE_CONNECT_REDIRECT_V4, FWPM_LAYER_ALE_CONNECT_REDIRECT_V4, EBPF_DEFAULT_SUBLAYER, incoming_value);
     ebpf_assert(action == FWP_ACTION_PERMIT);
 
@@ -251,7 +232,7 @@ _fwp_engine::test_cgroup_inet4_connect()
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V4_ALE_USER_ID].value.byteBlob = &_test_user_id;
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
 
-    return test_cgroup_sock_addr(
+    return test_callout(
         FWPS_LAYER_ALE_AUTH_CONNECT_V4, FWPM_LAYER_ALE_AUTH_CONNECT_V4, EBPF_DEFAULT_SUBLAYER, incoming_value2);
 }
 
@@ -260,7 +241,6 @@ FWP_ACTION_TYPE
 _fwp_engine::test_cgroup_inet6_connect()
 {
     FWP_ACTION_TYPE action;
-    std::unique_lock l(lock);
 
     FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_MAX] = {};
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS].value.byteArray16 = &_test_source_ipv6_address;
@@ -273,7 +253,7 @@ _fwp_engine::test_cgroup_inet6_connect()
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_APP_ID].value.byteBlob = &_test_app_id;
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_USER_ID].value.byteBlob = &_test_user_id;
 
-    action = test_cgroup_sock_addr(
+    action = test_callout(
         FWPS_LAYER_ALE_CONNECT_REDIRECT_V6,
         FWPM_LAYER_ALE_CONNECT_REDIRECT_V6,
         EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
@@ -292,7 +272,7 @@ _fwp_engine::test_cgroup_inet6_connect()
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V6_ALE_USER_ID].value.byteBlob = &_test_user_id;
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_INTERFACE].value.uint64 = &_test_interface_luid;
 
-    return test_cgroup_sock_addr(
+    return test_callout(
         FWPS_LAYER_ALE_AUTH_CONNECT_V6, FWPM_LAYER_ALE_AUTH_CONNECT_V6, EBPF_DEFAULT_SUBLAYER, incoming_value2);
 }
 
@@ -300,8 +280,6 @@ _fwp_engine::test_cgroup_inet6_connect()
 FWP_ACTION_TYPE
 _fwp_engine::test_sock_ops_v4()
 {
-    std::unique_lock l(lock);
-
     FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_MAX] = {};
     incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_LOCAL_ADDRESS].value.uint32 = _test_destination_ipv4_address;
     incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_LOCAL_PORT].value.uint16 = _test_destination_port;
@@ -320,8 +298,6 @@ _fwp_engine::test_sock_ops_v4()
 FWP_ACTION_TYPE
 _fwp_engine::test_sock_ops_v6()
 {
-    std::unique_lock l(lock);
-
     FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_MAX] = {};
     incoming_value[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_ADDRESS].value.byteArray16 =
         &_test_destination_ipv6_address;
@@ -497,19 +473,20 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsInjectionHandleDestroy0(_In_ HAN
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
     FwpsFlowRemoveContext0(_In_ uint64_t flow_id, _In_ UINT16 layer_id, _In_ uint32_t callout_id)
 {
-    UNREFERENCED_PARAMETER(flow_id);
-    UNREFERENCED_PARAMETER(layer_id);
-    UNREFERENCED_PARAMETER(callout_id);
+    auto& engine = *_fwp_engine::get()->get();
+    engine.delete_flow_context(flow_id, layer_id, callout_id);
+
     return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsFlowAssociateContext0(
     _In_ uint64_t flow_id, _In_ UINT16 layer_id, _In_ uint32_t callout_id, _In_ uint64_t flowContext)
 {
-    UNREFERENCED_PARAMETER(flow_id);
     UNREFERENCED_PARAMETER(layer_id);
-    UNREFERENCED_PARAMETER(callout_id);
-    UNREFERENCED_PARAMETER(flowContext);
+
+    auto& engine = *_fwp_engine::get()->get();
+    engine.associate_flow_context(flow_id, callout_id, flowContext);
+
     return STATUS_SUCCESS;
 }
 

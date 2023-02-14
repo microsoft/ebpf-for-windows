@@ -7,10 +7,21 @@
 
 #include <map>
 
-#define SOCK_ADDR_TEST_ACTION_PERMIT 1
-#define SOCK_ADDR_TEST_ACTION_BLOCK 2
-#define SOCK_ADDR_TEST_ACTION_REDIRECT 3
-#define SOCK_ADDR_TEST_ACTION_FAILURE 4
+typedef enum _sock_addr_test_action
+{
+    SOCK_ADDR_TEST_ACTION_PERMIT,
+    SOCK_ADDR_TEST_ACTION_BLOCK,
+    SOCK_ADDR_TEST_ACTION_REDIRECT,
+    SOCK_ADDR_TEST_ACTION_FAILURE
+} sock_addr_test_action_t;
+
+typedef enum _xdp_test_action
+{
+    XDP_TEST_ACTION_PASS,   ///< Allow the packet to pass.
+    XDP_TEST_ACTION_DROP,   ///< Drop the packet.
+    XDP_TEST_ACTION_TX,     ///< Bounce the received packet back out the same NIC it arrived on.
+    XDP_TEST_ACTION_FAILURE ///< Failed to invoke the eBPF program.
+} xdp_test_action_t;
 
 TEST_CASE("query program info", "[netebpfext]")
 {
@@ -49,7 +60,7 @@ typedef struct _test_xdp_client_context
 {
     netebpfext_helper_base_client_context_t base;
     void* provider_binding_context;
-    xdp_action_t xdp_action;
+    xdp_test_action_t xdp_action;
 } test_xdp_client_context_t;
 
 // This callback occurs when netebpfext gets a packet and submits it to our dummy
@@ -58,10 +69,29 @@ _Must_inspect_result_ ebpf_result_t
 netebpfext_unit_invoke_xdp_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
 {
+    ebpf_result_t return_result = EBPF_SUCCESS;
     auto client_context = (test_xdp_client_context_t*)client_binding_context;
     UNREFERENCED_PARAMETER(context);
-    *result = client_context->xdp_action;
-    return EBPF_SUCCESS;
+
+    switch (client_context->xdp_action) {
+    case XDP_TEST_ACTION_PASS:
+        *result = XDP_PASS;
+        break;
+    case XDP_TEST_ACTION_DROP:
+        *result = XDP_DROP;
+        break;
+    case XDP_TEST_ACTION_TX:
+        *result = XDP_TX;
+        break;
+    case XDP_TEST_ACTION_FAILURE:
+        return_result = EBPF_FAILED;
+        break;
+    default:
+        *result = XDP_DROP;
+        break;
+    }
+
+    return return_result;
 }
 
 TEST_CASE("classify_packet", "[netebpfext]")
@@ -77,17 +107,22 @@ TEST_CASE("classify_packet", "[netebpfext]")
         (netebpfext_helper_base_client_context_t*)&client_context);
 
     // Classify an inbound packet that should pass.
-    client_context.xdp_action = XDP_PASS;
+    client_context.xdp_action = XDP_TEST_ACTION_PASS;
     FWP_ACTION_TYPE result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify an inbound packet that should be hairpinned.
-    client_context.xdp_action = XDP_TX;
+    client_context.xdp_action = XDP_TEST_ACTION_TX;
     result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
     // Classify an inbound packet that should be dropped.
-    client_context.xdp_action = XDP_DROP;
+    client_context.xdp_action = XDP_TEST_ACTION_DROP;
+    result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    // Classify an inbound packet when eBPF program invocation failed.
+    client_context.xdp_action = XDP_TEST_ACTION_FAILURE;
     result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_BLOCK);
 }
@@ -306,7 +341,12 @@ netebpfext_unit_invoke_sock_addr_program(
         break;
     case SOCK_ADDR_TEST_ACTION_REDIRECT:
         sock_addr_context->user_port++;
-        // sock_addr_context->user_ip4++;
+        if (sock_addr_context->family == AF_INET) {
+            sock_addr_context->user_ip4++;
+        } else {
+            auto first_octet = &sock_addr_context->user_ip6[0];
+            (*first_octet)++;
+        }
         *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
         break;
     case SOCK_ADDR_TEST_ACTION_FAILURE:
