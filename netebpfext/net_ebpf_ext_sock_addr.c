@@ -1173,9 +1173,11 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
-    // eBPF programs will not be invoked on connection re-auth.
-    if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE)
+    if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
+        // This is a re-auth of a connection that was previously authorized by the eBPF programs. Permit it.
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
+    }
 
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
