@@ -272,6 +272,9 @@ extern "C"
     ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref);
 
     void
+    ExReInitializeRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref);
+
+    void
     ExWaitForRundownProtectionRelease(_Inout_ EX_RUNDOWN_REF* rundown_ref);
 
     BOOLEAN

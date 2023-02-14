@@ -58,6 +58,35 @@ typedef class _rundown_ref_table
     }
 
     /**
+     * @brief Reinitialize the rundown ref table entry for the given context.
+     *
+     * @param[in] context The address of a previously run down EX_RUNDOWN_REF structure.
+     */
+    void
+    reinitialize_rundown_ref(_In_ const void* context)
+    {
+        std::unique_lock lock(_lock);
+
+        // Fail if the entry is not initialized.
+        if (_rundown_ref_counts.find((uint64_t)context) == _rundown_ref_counts.end()) {
+            throw std::runtime_error("rundown ref table not initialized");
+        }
+
+        auto& [rundown, ref_count] = _rundown_ref_counts[(uint64_t)context];
+
+        // Check if the entry is not rundown.
+        if (!rundown) {
+            throw std::runtime_error("rundown ref table not rundown");
+        }
+
+        if (ref_count != 0) {
+            throw std::runtime_error("rundown ref table corruption");
+        }
+
+        rundown = false;
+    }
+
+    /**
      * @brief Acquire a rundown ref for the given context.
      *
      * @param[in] context The address of a EX_RUNDOWN_REF structure.
@@ -205,6 +234,12 @@ ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref)
                                  // dereferenced.
     rundown_ref_table_t::instance().initialize_rundown_ref(rundown_ref);
 #pragma warning(pop)
+}
+
+void
+ExReInitializeRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref)
+{
+    rundown_ref_table_t::instance().reinitialize_rundown_ref(rundown_ref);
 }
 
 void
