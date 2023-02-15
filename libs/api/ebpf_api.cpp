@@ -3729,7 +3729,10 @@ ebpf_ring_buffer_map_subscribe(
         if (result == EBPF_PENDING)
             result = EBPF_SUCCESS;
 
-        *subscription = local_subscription.release();
+        // If the async IOCTL failed, then free the subscription object.
+        if (result == EBPF_SUCCESS) {
+            *subscription = local_subscription.release();
+        }
 
         EBPF_RETURN_RESULT(result);
     } catch (const std::bad_alloc&) {
