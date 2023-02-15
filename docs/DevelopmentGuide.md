@@ -39,8 +39,12 @@ Header Files
   headers to be included first.  That is, any dependencies should be included within
   the header file itself.
 
-* **DO** include system headers (with `<>`) before local headers (with `""`), and list them
-  in alphabetical order where possible.  This helps ensure there are not duplicate includes,
+* **DO** include local headers (with `""`) before system headers (with `<>`). This
+  helps ensure that local headers don't have dependencies on other things being
+  included first, and is also consistent with the use of a local header for precompiled
+  headers.
+
+* **DO** list headers in alphabetical order where possible.  This helps ensure there are not duplicate includes,
   and also helps ensure that headers are usable directly.
 
 * **DO** use `#pragma once` in all header files, rather than using ifdefs to test for duplicate inclusion.

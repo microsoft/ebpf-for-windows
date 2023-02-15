@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <windows.h>
-#include <netsh.h> // Must be included after windows.h
-#include <string.h>
 #include "bpf/bpf.h"
 #include "catch_wrapper.hpp"
 #include "elf.h"
 #include "netsh_test_helper.h"
+
+#include <windows.h>
+#include <netsh.h>
+#include <string.h>
 
 #pragma region
 // Mock Netsh.exe APIs.

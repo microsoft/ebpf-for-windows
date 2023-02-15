@@ -1,13 +1,17 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <vector>
+/**
+ * @file
+ * This file implements a cache of map descriptors as used by the
+ * verifier.  It operates on original file descriptors (which
+ * might be mock file descriptors) that appear in the eBPF byte
+ * code before relocation, not map IDs as stored in the kernel.
+ */
+
 #include "api_common.hpp"
 
-// The file implements a cache of map descriptors as used by the
-// verifier.  It operates on original file descriptors (which
-// might be mock file descriptors) that appear in the eBPF byte
-// code before relocation, not map IDs as stored in the kernel.
+#include <vector>
 
 thread_local static std::vector<map_cache_t> _map_file_descriptors;
 

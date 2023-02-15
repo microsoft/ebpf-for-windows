@@ -2,13 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-#include "pch.h"
-
-#include <codecvt>
-#include <fcntl.h>
-#include <io.h>
-#include <mutex>
-
 #include "api_internal.h"
 #include "bpf.h"
 #include "bpf2c.h"
@@ -18,6 +11,7 @@
 #include "ebpf_protocol.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
+#include "framework.h"
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
 #include "libbpf.h"
@@ -25,15 +19,19 @@
 #include "map_descriptors.hpp"
 #define _PEPARSE_WINDOWS_CONFLICTS
 #include "pe-parse/parse.h"
-
 #include "rpc_client.h"
 extern "C"
 {
 #include "ubpf.h"
 }
-#include "utilities.hpp"
 #include "Verifier.h"
+#include "utilities.hpp"
 #include "windows_platform_common.hpp"
+
+#include <codecvt>
+#include <fcntl.h>
+#include <io.h>
+#include <mutex>
 
 using namespace peparse;
 using namespace Platform;
@@ -3731,7 +3729,10 @@ ebpf_ring_buffer_map_subscribe(
         if (result == EBPF_PENDING)
             result = EBPF_SUCCESS;
 
-        *subscription = local_subscription.release();
+        // If the async IOCTL failed, then free the subscription object.
+        if (result == EBPF_SUCCESS) {
+            *subscription = local_subscription.release();
+        }
 
         EBPF_RETURN_RESULT(result);
     } catch (const std::bad_alloc&) {

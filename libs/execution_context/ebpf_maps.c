@@ -23,7 +23,7 @@ typedef struct _ebpf_core_object_map
 {
     ebpf_core_map_t core_map;
     ebpf_lock_t lock;
-    struct _ebpf_core_map* inner_map_template;
+    ebpf_map_definition_in_memory_t inner_template_map_definition;
     bool is_program_type_set;
     ebpf_program_type_t program_type;
 } ebpf_core_object_map_t;
@@ -431,10 +431,12 @@ _associate_inner_map(_Inout_ ebpf_core_object_map_t* object_map, ebpf_handle_t i
     ebpf_core_object_t* inner_map_template_object = NULL;
 
     if (local_map_definition.type != BPF_MAP_TYPE_ARRAY_OF_MAPS &&
-        local_map_definition.type != BPF_MAP_TYPE_HASH_OF_MAPS)
+        local_map_definition.type != BPF_MAP_TYPE_HASH_OF_MAPS) {
         goto Exit;
+    }
 
     if (inner_map_handle == ebpf_handle_invalid) {
+
         // Must have a valid inner_map_handle.
         EBPF_LOG_MESSAGE(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Map in map must have a valid inner_map_handle");
@@ -444,31 +446,35 @@ _associate_inner_map(_Inout_ ebpf_core_object_map_t* object_map, ebpf_handle_t i
 
     // Convert value handle to an object pointer.
     result = ebpf_object_reference_by_handle(inner_map_handle, EBPF_OBJECT_MAP, &inner_map_template_object);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Get object ref by handle failed.", result);
         goto Exit;
+    }
 
-    object_map->inner_map_template = (ebpf_map_t*)inner_map_template_object;
-    object_map->core_map.ebpf_map_definition.inner_map_id = object_map->inner_map_template->object.id;
+    ebpf_core_map_t* template_core_map = (ebpf_core_map_t*)inner_map_template_object;
+    template_core_map = EBPF_FROM_FIELD(ebpf_core_map_t, object, inner_map_template_object);
+
+    object_map->inner_template_map_definition = template_core_map->ebpf_map_definition;
+    object_map->core_map.ebpf_map_definition.inner_map_id = template_core_map->object.id;
 
 Exit:
+    if (inner_map_template_object) {
+        ebpf_object_release_reference(inner_map_template_object);
+    }
+
     return result;
 }
 
 static void
 _delete_object_array_map(_Inout_ _Post_invalid_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
 {
-    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-
     // Release all entry references.
     for (uint32_t i = 0; i < map->ebpf_map_definition.max_entries; i++) {
         ebpf_id_t id = *(ebpf_id_t*)&map->data[i * map->ebpf_map_definition.value_size];
         if (id) {
-            ebpf_assert_success(ebpf_object_dereference_by_id(id, value_type));
+            ebpf_assert_success(ebpf_object_release_id_reference(id, value_type));
         }
-    }
-
-    if (object_map->inner_map_template != NULL) {
-        ebpf_object_release_reference(&object_map->inner_map_template->object);
     }
 
     _delete_array_map(map);
@@ -559,14 +565,13 @@ _check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_core_ob
     }
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, outer_map);
-
-    ebpf_core_map_t* template = object_map->inner_map_template;
     const ebpf_map_t* value_map = (ebpf_map_t*)value_object;
 
-    bool allowed = (template != NULL) && (value_map->ebpf_map_definition.type == template->ebpf_map_definition.type) &&
-                   (value_map->ebpf_map_definition.key_size == template->ebpf_map_definition.key_size) &&
-                   (value_map->ebpf_map_definition.value_size == template->ebpf_map_definition.value_size) &&
-                   (value_map->ebpf_map_definition.max_entries == template->ebpf_map_definition.max_entries);
+    bool allowed =
+        (value_map->ebpf_map_definition.type == object_map->inner_template_map_definition.type) &&
+        (value_map->ebpf_map_definition.key_size == object_map->inner_template_map_definition.key_size) &&
+        (value_map->ebpf_map_definition.value_size == object_map->inner_template_map_definition.value_size) &&
+        (value_map->ebpf_map_definition.max_entries == object_map->inner_template_map_definition.max_entries);
 
     return allowed;
 }
@@ -618,52 +623,97 @@ _update_array_map_entry_with_handle(
     uintptr_t value_handle,
     ebpf_map_option_t option)
 {
-    if (!map || !key || (option == EBPF_NOEXIST))
-        return EBPF_INVALID_ARGUMENT;
-
-    uint32_t index = *(uint32_t*)key;
-
-    if (index >= map->ebpf_map_definition.max_entries)
-        return EBPF_INVALID_ARGUMENT;
-
     ebpf_result_t result = EBPF_SUCCESS;
 
-    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-    ebpf_core_object_t* value_object = NULL;
+    // The 'map' and 'key' arguments cannot be NULL due to caller's prior validations.
+    ebpf_assert(map != NULL && key != NULL);
 
+    if (option == EBPF_NOEXIST) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Invalid map option rejected", option);
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    uint32_t index = *(uint32_t*)key;
+    if (index >= map->ebpf_map_definition.max_entries) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Index larger than max entries rejected", index);
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_core_object_t* value_object = NULL;
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
         result = ebpf_object_reference_by_handle(value_handle, value_type, &value_object);
         if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_UINT64_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_MAP,
+                "Invalid object handle rejected",
+                value_handle,
+                result);
             return result;
         }
     }
 
+    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
+    bool locked = FALSE;
+
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
+    locked = TRUE;
 
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
         result = _validate_map_value_object(object_map, value_type, value_object);
         if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_UINT64_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_MAP,
+                "Object validation failed",
+                value_object->id,
+                result);
             goto Done;
         }
     }
 
-    // Release the reference on the old ID stored here, if any.
     uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
     ebpf_id_t old_id = *(ebpf_id_t*)entry;
     if (old_id) {
-        ebpf_assert_success(ebpf_object_dereference_by_id(old_id, value_type));
+
+        // Release the reference on the old ID's id table entry. The object may have been already deleted, so an
+        // error return value of 'stale id' is ok.
+        result = ebpf_object_release_id_reference(old_id, value_type);
+        ebpf_assert(result == EBPF_SUCCESS || result == EBPF_STALE_ID);
+        if (result == EBPF_STALE_ID) {
+            result = EBPF_SUCCESS;
+        }
     }
 
-    ebpf_id_t id = value_object ? value_object->id : 0;
+    if (value_object) {
 
-    // Store the object ID as the value.
+        // Acquire a reference to the id table entry for the new incoming id. This operation _cannot_ fail as we
+        // already have a valid pointer to the object.  A failure here is indicative of a fatal internal error.
+        ebpf_assert_success(ebpf_object_acquire_id_reference(value_object->id, value_type));
+    }
+
+    // Note that this could be an 'update to erase' operation where we don't have a valid (incoming) object.  In this
+    // case, the 'id' value in the map entry is 'updated' to zero.
+    ebpf_id_t id = value_object ? value_object->id : 0;
     memcpy(entry, &id, map->ebpf_map_definition.value_size);
+    result = EBPF_SUCCESS;
 
 Done:
-    if (result != EBPF_SUCCESS && value_object != NULL) {
+
+    if (value_object != NULL) {
+
+        // We have stored the id of the object, so let go of our reference on the object itself.  Going forward, we'll
+        // use the id to get to the object, as and when required.  Note that this is with the explicit understanding
+        // that the object may well have been since destroyed by the time we actually need to use this id. This is
+        // perfectly valid and something we need to be prepared for.
         ebpf_object_release_reference((ebpf_core_object_t*)value_object);
     }
-    ebpf_lock_unlock(&object_map->lock, lock_state);
+
+    if (locked) {
+        ebpf_lock_unlock(&object_map->lock, lock_state);
+    }
 
     return result;
 }
@@ -686,8 +736,8 @@ static ebpf_result_t
 _delete_array_map_entry_with_reference(
     _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, ebpf_object_type_t value_type)
 {
-    if (value_type == EBPF_OBJECT_UNKNOWN)
-        return EBPF_INVALID_ARGUMENT;
+    ebpf_assert(value_type == EBPF_OBJECT_PROGRAM || value_type == EBPF_OBJECT_MAP);
+
     ebpf_result_t result;
     uint8_t* entry;
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
@@ -696,7 +746,13 @@ _delete_array_map_entry_with_reference(
     if (result == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)entry;
         if (id) {
-            ebpf_assert_success(ebpf_object_dereference_by_id(id, value_type));
+
+            // The object may have been already deleted, so an error return value of 'stale id' is ok.
+            result = ebpf_object_release_id_reference(id, value_type);
+            ebpf_assert(result == EBPF_SUCCESS || result == EBPF_STALE_ID);
+            if (result == EBPF_STALE_ID) {
+                result = EBPF_SUCCESS;
+            }
         }
         _delete_array_map_entry(map, key);
     }
@@ -731,9 +787,8 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
 {
     uint32_t index = *(uint32_t*)key;
 
-    // We need to take a lock here to make sure we can
-    // safely reference the object when another thread
-    // might be trying to delete the entry we find.
+    // We need to take a lock here to make sure we can safely reference the object when another thread might be trying
+    // to delete the entry we find.
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
@@ -745,7 +800,10 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
         ebpf_object_type_t value_type =
             (map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) ? EBPF_OBJECT_PROGRAM : EBPF_OBJECT_MAP;
         if (id != 0) {
-            ebpf_assert_success(ebpf_object_reference_by_id(id, value_type, &object));
+
+            // Note that this call might fail and that's fine.  The id might be valid, but the object might have been
+            // since deleted.
+            (void)ebpf_object_reference_by_id(id, value_type, &object);
         }
     }
 
@@ -833,8 +891,6 @@ _delete_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 static void
 _delete_object_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
-    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-
     // Release all entry references.
     uint8_t* next_key;
     for (uint8_t* previous_key = NULL;; previous_key = next_key) {
@@ -846,12 +902,14 @@ _delete_object_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
         }
         ebpf_id_t id = *(ebpf_id_t*)value;
         if (id) {
-            ebpf_assert_success(ebpf_object_dereference_by_id(id, EBPF_OBJECT_MAP));
-        }
-    }
 
-    if (object_map->inner_map_template != NULL) {
-        ebpf_object_release_reference(&object_map->inner_map_template->object);
+            // The object may have been already deleted, so an error return value of 'stale id' is ok.
+            result = ebpf_object_release_id_reference(id, EBPF_OBJECT_MAP);
+            ebpf_assert(result == EBPF_SUCCESS || result == EBPF_STALE_ID);
+            if (result == EBPF_STALE_ID) {
+                result = EBPF_SUCCESS;
+            }
+        }
     }
 
     _delete_hash_map(map);
@@ -1286,8 +1344,9 @@ _update_hash_map_entry_with_handle(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     size_t entry_count = 0;
-    if (!map || !key)
-        return EBPF_INVALID_ARGUMENT;
+
+    // The 'map' and 'key' arguments cannot be NULL due to caller's prior validations.
+    ebpf_assert(map != NULL && key != NULL);
 
     ebpf_hash_table_operations_t hash_table_operation;
     switch (option) {
@@ -1301,6 +1360,8 @@ _update_hash_map_entry_with_handle(
         hash_table_operation = EBPF_HASH_TABLE_OPERATION_REPLACE;
         break;
     default:
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Invalid map option rejected", option);
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -1308,6 +1369,12 @@ _update_hash_map_entry_with_handle(
     ebpf_core_object_t* value_object = NULL;
     result = ebpf_object_reference_by_handle(value_handle, value_type, &value_object);
     if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Invalid Object handle rejected",
+            value_handle,
+            result);
         return result;
     }
 
@@ -1317,33 +1384,49 @@ _update_hash_map_entry_with_handle(
 
     uint8_t* old_value = NULL;
     ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &old_value);
-    ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
-
     if ((found_result != EBPF_SUCCESS) && (entry_count == map->ebpf_map_definition.max_entries)) {
+
         // The hash table is already full.
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Hash table full");
         result = EBPF_OUT_OF_SPACE;
         goto Done;
     }
 
     result = _validate_map_value_object(object_map, value_type, value_object);
     if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Object validation failed", value_object->id, result);
         goto Done;
+    }
+
+    // Release the reference on the old ID stored here, if any.
+    ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
+    if (old_id) {
+
+        // Release the reference on the old ID's id table entry. The object may already have been deleted, so an
+        // error return value of 'stale id' is ok.
+        result = ebpf_object_release_id_reference(old_id, value_type);
+        ebpf_assert(result == EBPF_SUCCESS || result == EBPF_STALE_ID);
+        if (result == EBPF_STALE_ID) {
+            result = EBPF_SUCCESS;
+        }
     }
 
     // Store the new object ID as the value.
     result =
         ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value_object->id, hash_table_operation);
     if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Hash table update failed.", result);
         goto Done;
     }
 
-    // Release the reference on the old ID stored here, if any.
-    if (old_id) {
-        ebpf_assert_success(ebpf_object_dereference_by_id(old_id, value_type));
-    }
+    // Acquire a reference to the id table entry for the new incoming id. This operation _cannot_ fail as we already
+    // have a valid pointer to the object.  A failure here is indicative of a fatal internal error.
+    ebpf_assert_success(ebpf_object_acquire_id_reference(value_object->id, value_type));
 
 Done:
-    if ((result != EBPF_SUCCESS) && (value_object != NULL)) {
+    if (value_object != NULL) {
         ebpf_object_release_reference((ebpf_core_object_t*)value_object);
     }
     ebpf_lock_unlock(&object_map->lock, lock_state);
@@ -1360,20 +1443,25 @@ _update_map_hash_map_entry_with_handle(
 static ebpf_result_t
 _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
-    ebpf_result_t result;
-    if (!map || !key)
-        return EBPF_INVALID_ARGUMENT;
+    // The 'map' and 'key' arguments cannot be NULL due to caller's prior validations.
+    ebpf_assert(map != NULL && key != NULL);
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
     uint8_t* value = NULL;
-    result = _find_hash_map_entry(map, key, true, &value);
+    ebpf_result_t result = _find_hash_map_entry(map, key, true, &value);
     if (result == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)value;
         if (id) {
-            ebpf_assert_success(ebpf_object_dereference_by_id(id, EBPF_OBJECT_MAP));
+
+            // The object may have been already deleted, so an error return value of 'stale id' is ok.
+            result = ebpf_object_release_id_reference(id, EBPF_OBJECT_MAP);
+            ebpf_assert(result == EBPF_SUCCESS || result == EBPF_STALE_ID);
+            if (result == EBPF_STALE_ID) {
+                result = EBPF_SUCCESS;
+            }
         }
     }
 
@@ -2469,8 +2557,9 @@ ebpf_map_get_info(
     info->map_flags = 0;
     if (info->type == BPF_MAP_TYPE_ARRAY_OF_MAPS || info->type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-        info->inner_map_id =
-            (object_map->inner_map_template) ? object_map->inner_map_template->object.id : EBPF_ID_NONE;
+        info->inner_map_id = object_map->core_map.ebpf_map_definition.inner_map_id
+                                 ? object_map->core_map.ebpf_map_definition.inner_map_id
+                                 : EBPF_ID_NONE;
     } else {
         info->inner_map_id = EBPF_ID_NONE;
     }

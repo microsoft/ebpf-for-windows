@@ -11,6 +11,7 @@
 /**/.[Gg]radle/**
 /**/[Rr]elease/**
 /**/[Dd]ebug/**
+/**/FuzzerDebug/**
 /**/[Tt]arget/**
 
 # All kinds of output and temporary files that should not be checked in.
@@ -24,6 +25,7 @@
 /**/*.beam
 /**/*.trx
 /**/*.log
+/**/*.tlog
 /**/.vs/
 /**/*.bak
 /**/*.suo

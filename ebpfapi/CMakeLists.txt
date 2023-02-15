@@ -4,7 +4,6 @@
 add_library("EbpfApi" SHARED
   Source.def
 
-  pch.h
   resource.h
 
   dllmain.cpp

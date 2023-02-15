@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 #pragma once
-#include <unordered_map>
-#include <vector>
-#include <mutex>
 
 #include "ebpf_platform.h"
+
+#include <mutex>
+#include <unordered_map>
+#include <vector>
 
 typedef class _ebpf_leak_detector
 {

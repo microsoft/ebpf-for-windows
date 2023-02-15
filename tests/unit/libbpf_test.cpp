@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-#include <io.h>
-#include <WinSock2.h>
 
 #include "bpf/bpf.h"
 #pragma warning(push)
@@ -1504,20 +1502,21 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     _test_helper_end_to_end test_helper;
 
     // Create an inner map that we'll use both as a template and as an actual entry.
-    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map", sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
     // Verify that we cannot simply create an outer map without a template.
-    REQUIRE(bpf_map_create(type, nullptr, sizeof(__u32), sizeof(__u32), 2, nullptr) < 0);
+    REQUIRE(bpf_map_create(type, "array_map_of_maps", sizeof(__u32), sizeof(__u32), 2, nullptr) < 0);
     REQUIRE(errno == EBADF);
 
+    // Verify that we cannot create an outer map with an invalid fd for the inner map.
     bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)ebpf_fd_invalid};
-    REQUIRE(bpf_map_create(type, nullptr, sizeof(__u32), sizeof(fd_t), 2, &opts) < 0);
+    REQUIRE(bpf_map_create(type, "array_map_of_maps", sizeof(__u32), sizeof(fd_t), 2, &opts) < 0);
     REQUIRE(errno == EBADF);
 
     // Verify we can create an outer map with a template.
     opts.inner_map_fd = inner_map_fd;
-    int outer_map_fd = bpf_map_create(type, nullptr, sizeof(__u32), sizeof(fd_t), 2, &opts);
+    int outer_map_fd = bpf_map_create(type, "array_map_of_maps", sizeof(__u32), sizeof(fd_t), 2, &opts);
     REQUIRE(outer_map_fd > 0);
 
     // Verify we can insert the inner map into the outer map.
@@ -2650,3 +2649,49 @@ TEST_CASE("libbpf_num_possible_cpus", "[libbpf]")
     int cpu_count = libbpf_num_possible_cpus();
     REQUIRE(cpu_count > 0);
 }
+
+void
+_test_nested_maps(bpf_map_type map_type)
+{
+    _test_helper_end_to_end test_helper;
+
+    // First, create an inner map.
+    fd_t inner_map_fd1 =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map1", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd1 > 0);
+
+    // Create outer map with the inner map handle in options.
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd1};
+    fd_t outer_map_fd = bpf_map_create(map_type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 10, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Create second inner map.
+    fd_t inner_map_fd2 =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map2", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd2 > 0);
+
+    // Insert both inner maps in outer map.
+    uint32_t key = 1;
+    uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd1, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 2;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    // Remove the inner maps from outer map.
+    key = 1;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 2;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    Platform::_close(inner_map_fd2);
+    Platform::_close(inner_map_fd1);
+    Platform::_close(outer_map_fd);
+}
+
+TEST_CASE("array_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
+TEST_CASE("hash_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }

@@ -9,6 +9,22 @@
 #include "ebpf_platform.h"
 #include "ebpf_program.h"
 
+/**
+ * @brief State of the link between program and provider.
+ * The link starts in IDLE state. When a program is attached to a provider, the
+ * state transitions to ATTACHING. If the provider is not found, the state
+ * transitions to IDLE. If the provider is found, the state transitions to
+ * ATTACHED. When a program is detached from a provider, the state transitions
+ * to DETACHING. Once the provider is notified, the state transitions to IDLE.
+ */
+typedef enum _ebpf_link_state
+{
+    EBPF_LINK_STATE_IDLE,      ///< Program is not attached to any provider.
+    EBPF_LINK_STATE_ATTACHING, ///< Program is in the process of getting attached.
+    EBPF_LINK_STATE_ATTACHED,  ///< Program is attached to a provider.
+    EBPF_LINK_STATE_DETACHING, ///< Program is in the process of getting detached.
+} ebpf_link_state_t;
+
 typedef struct _ebpf_link
 {
     ebpf_core_object_t object;
@@ -21,7 +37,7 @@ typedef struct _ebpf_link
     ebpf_extension_data_t client_data;
     ebpf_extension_client_t* extension_client_context;
     ebpf_lock_t attach_lock;
-
+    ebpf_link_state_t state;
     void* provider_binding_context;
 } ebpf_link_t;
 
@@ -39,6 +55,7 @@ static void
 _ebpf_link_free(_Frees_ptr_ ebpf_core_object_t* object)
 {
     ebpf_link_t* link = (ebpf_link_t*)object;
+    ebpf_free(link->client_data.data);
     ebpf_lock_destroy(&link->attach_lock);
     ebpf_epoch_free(link);
 }
@@ -58,6 +75,8 @@ ebpf_link_create(_Outptr_ ebpf_link_t** link)
         ebpf_epoch_free(link);
         EBPF_RETURN_RESULT(result);
     }
+
+    (*link)->state = EBPF_LINK_STATE_IDLE;
 
     ebpf_lock_create(&(*link)->attach_lock);
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
@@ -94,23 +113,24 @@ Exit:
 
 static ebpf_result_t
 _ebpf_link_extension_changed_callback(
-    _In_ const void* client_binding_context,
-    _In_ const void* provider_binding_context,
-    _In_opt_ const ebpf_extension_data_t* provider_data)
+    _In_ const void* client_binding_context, _In_opt_ const ebpf_extension_data_t* provider_data)
 {
-    UNREFERENCED_PARAMETER(provider_binding_context);
+    ebpf_result_t result;
     ebpf_link_t* link = (ebpf_link_t*)client_binding_context;
+    ebpf_lock_state_t state = ebpf_lock_lock(&link->attach_lock);
 
     // Complete detach.
     if (provider_data == NULL) {
-        return EBPF_SUCCESS;
+        result = EBPF_SUCCESS;
+        goto Done;
     }
 
     if ((provider_data->version != EBPF_ATTACH_PROVIDER_DATA_VERSION) || (!provider_data->data) ||
         (provider_data->size != sizeof(ebpf_attach_provider_data_t))) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "Provider version not supported", link->attach_type);
-        return EBPF_INVALID_ARGUMENT;
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
     const ebpf_program_type_t* program_type = ebpf_program_type_uuid(link->program);
@@ -125,13 +145,21 @@ _ebpf_link_extension_changed_callback(
             EBPF_TRACELOG_KEYWORD_LINK,
             "Attach failed due to incorrect program type",
             *program_type);
-        return EBPF_INVALID_ARGUMENT;
-    } else {
-        link->program_type = attach_provider_data->supported_program_type;
-        link->bpf_attach_type = attach_provider_data->bpf_attach_type;
-        link->link_type = attach_provider_data->link_type;
-        return EBPF_SUCCESS;
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
+
+    link->program_type = attach_provider_data->supported_program_type;
+    link->bpf_attach_type = attach_provider_data->bpf_attach_type;
+    link->link_type = attach_provider_data->link_type;
+    ebpf_assert(link->program != NULL);
+
+    result = EBPF_SUCCESS;
+
+Done:
+    ebpf_lock_unlock(&link->attach_lock, state);
+    // Note: As soon as the attach is complete, the program can be invoked.
+    return result;
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -140,10 +168,10 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value = EBPF_SUCCESS;
     bool attach_lock_held = false;
-    bool program_attached_link = false;
     ebpf_lock_state_t state = 0;
     ebpf_extension_data_t* provider_data;
     GUID module_id = {0};
+    bool link_is_attaching = false;
 
     // GUID create must be called at IRQL PASSIVE_LEVEL.
     return_value = ebpf_guid_create(&module_id);
@@ -154,6 +182,17 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
     state = ebpf_lock_lock(&link->attach_lock);
     attach_lock_held = true;
 
+    // If the link is not in idle state, then it is either:
+    // 1. Attaching to a program.
+    // 2. Detaching from a program.
+    // 3. Attached to a program.
+    if (link->state != EBPF_LINK_STATE_IDLE) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+    // This thread is responsible for attaching the link to the program.
+    link_is_attaching = true;
+
     if (link->program) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -161,7 +200,7 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
 
     link->program = program;
     ebpf_program_attach_link(program, link);
-    program_attached_link = true;
+    link->state = EBPF_LINK_STATE_ATTACHING;
 
     ebpf_lock_unlock(&link->attach_lock, state);
     attach_lock_held = false;
@@ -189,12 +228,25 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
     }
 
 Done:
-    if (return_value != EBPF_SUCCESS && program_attached_link) {
+    if (!attach_lock_held) {
         state = ebpf_lock_lock(&link->attach_lock);
         attach_lock_held = true;
+    }
 
+    if (return_value != EBPF_SUCCESS && link_is_attaching && link->program) {
         ebpf_program_detach_link(program, link);
         link->program = NULL;
+    }
+
+    if (return_value == EBPF_SUCCESS) {
+        ebpf_assert(link->state == EBPF_LINK_STATE_ATTACHING);
+        ebpf_assert(link_is_attaching);
+        ebpf_assert(link->program != NULL);
+        link->state = EBPF_LINK_STATE_ATTACHED;
+    } else {
+        if (link_is_attaching) {
+            link->state = EBPF_LINK_STATE_IDLE;
+        }
     }
 
     if (attach_lock_held) {
@@ -209,30 +261,50 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;
     ebpf_program_t* program = NULL;
+    bool link_is_detaching = false;
 
     ebpf_object_acquire_reference((ebpf_core_object_t*)link);
 
     state = ebpf_lock_lock(&link->attach_lock);
-    if (link->program != NULL) {
+
+    if (link->state == EBPF_LINK_STATE_ATTACHED) {
+        link->state = EBPF_LINK_STATE_DETACHING;
+        // This thread is responsible for detaching the link from the program.
+        link_is_detaching = true;
         program = link->program;
+        ebpf_assert(program != NULL);
     }
+    if (link->state == EBPF_LINK_STATE_IDLE) {
+        ebpf_assert(link->program == NULL);
+    }
+
     ebpf_lock_unlock(&link->attach_lock, state);
 
-    if (program != NULL) {
+    if (!link_is_detaching) {
+        goto Done;
+    }
+
+    // Request the provider to detach.
+    ebpf_extension_unload(link->extension_client_context);
+
+    if (program) {
         ebpf_program_detach_link(program, link);
     }
 
-    ebpf_extension_unload(link->extension_client_context);
-
     state = ebpf_lock_lock(&link->attach_lock);
+
+    link->state = EBPF_LINK_STATE_IDLE;
+
+    link->extension_client_context = NULL;
+
+    ebpf_free(link->client_data.data);
+
+    link->client_data.data = NULL;
+    link->client_data.size = 0;
     link->program = NULL;
     ebpf_lock_unlock(&link->attach_lock, state);
 
-    link->extension_client_context = NULL;
-    ebpf_free(link->client_data.data);
-    link->client_data.data = NULL;
-    link->client_data.size = 0;
-
+Done:
     ebpf_object_release_reference((ebpf_core_object_t*)link);
 
     EBPF_RETURN_VOID();

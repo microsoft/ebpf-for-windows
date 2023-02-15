@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_platform.h"
+#include "kernel_um.h"
+
 #include <condition_variable>
 #include <map>
 #include <mutex>
 #include <tuple>
-
-#include "ebpf_platform.h"
-#include "kernel_um.h"
 
 /***
  * @brief This following class implements a mock of the Windows Kernel's rundown reference implementation.
@@ -55,6 +55,35 @@ typedef class _rundown_ref_table
         }
 
         _rundown_ref_counts[(uint64_t)context] = {false, 0};
+    }
+
+    /**
+     * @brief Reinitialize the rundown ref table entry for the given context.
+     *
+     * @param[in] context The address of a previously run down EX_RUNDOWN_REF structure.
+     */
+    void
+    reinitialize_rundown_ref(_In_ const void* context)
+    {
+        std::unique_lock lock(_lock);
+
+        // Fail if the entry is not initialized.
+        if (_rundown_ref_counts.find((uint64_t)context) == _rundown_ref_counts.end()) {
+            throw std::runtime_error("rundown ref table not initialized");
+        }
+
+        auto& [rundown, ref_count] = _rundown_ref_counts[(uint64_t)context];
+
+        // Check if the entry is not rundown.
+        if (!rundown) {
+            throw std::runtime_error("rundown ref table not rundown");
+        }
+
+        if (ref_count != 0) {
+            throw std::runtime_error("rundown ref table corruption");
+        }
+
+        rundown = false;
     }
 
     /**
@@ -205,6 +234,12 @@ ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref)
                                  // dereferenced.
     rundown_ref_table_t::instance().initialize_rundown_ref(rundown_ref);
 #pragma warning(pop)
+}
+
+void
+ExReInitializeRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref)
+{
+    rundown_ref_table_t::instance().reinitialize_rundown_ref(rundown_ref);
 }
 
 void

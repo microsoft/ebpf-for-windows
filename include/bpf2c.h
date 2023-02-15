@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
+
+#include "ebpf_structs.h"
+
 #if defined(NO_CRT)
 typedef signed char int8_t;
 typedef short int16_t;
@@ -17,12 +19,11 @@ typedef unsigned long long uint64_t;
 #define UINT32_MAX ((uint32_t)0xFFFFFFFF)
 
 #else
+#include <intrin.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #endif
-
-#include "ebpf_structs.h"
 
 #ifdef __cplusplus
 extern "C"

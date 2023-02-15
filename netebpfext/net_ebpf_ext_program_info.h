@@ -1,12 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
 
-#include "ebpf_structs.h"
-#include "ebpf_program_types.h"
-#include "ebpf_platform.h"
 #include "ebpf_nethooks.h"
+#include "ebpf_platform.h"
+#include "ebpf_program_types.h"
 
 #define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
 

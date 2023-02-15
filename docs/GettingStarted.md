@@ -23,11 +23,14 @@ The following must be installed in order to build this project:
 
    - `"Desktop development with C++"` (ensure that the "*C++ Address Sanitizer*" component is installed)
 
-   including the following *Spectre* library, which must be selected from the "*Individual components*" tab in the Visual Studio Installer:
+   including the following *Spectre* library, which must be selected from the "*Individual components*" tab in the *Visual Studio Installer*:
 
    - `"MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (latest)"`
 
 1. [Visual Studio Build Tools 2022](https://aka.ms/vs/17/release/vs_buildtools.exe) (version **17.4.2 or later**).
+1. The *WiX Toolset* has a dependency on the **.NET 3.5 Framework**: you can either enable from the Start menu -> "*Turn Windows features on or off*" and then select "*.NET Framework 3.5 (includes .NET 2.0 and 3.0)*" (recommended), *or*
+install it directly from [here](https://www.microsoft.com/en-us/download/details.aspx?id=21).
+1. [WiX Toolset v3 - Visual Studio 2022 Extension](https://marketplace.visualstudio.com/items?itemName=WixToolset.WixToolsetVisualStudio2022Extension).
 1. [SDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/p/?linkid=2196241) (version **10.0.22621.x**).
 1. [WDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/?linkid=2196230) (version **10.0.22621.x**), including the
  "*Windows Driver Kit Visual Studio extension*" (make sure the "*Install Windows Driver Kit Visual Studio Extension*"
@@ -37,8 +40,6 @@ The following must be installed in order to build this project:
  Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
 1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.31 or higher**), which can be installed to a location
  such as "C:\Program Files (x86)\NuGet\".
-1. [WiX Toolset v3.11.2](https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe), along with the correlated [WiX v3 - Visual Studio 2022 Extension](https://marketplace.visualstudio.com/items?itemName=WixToolset.WixToolsetVisualStudio2022Extension).
-
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages
  above have been installed.
@@ -91,10 +92,16 @@ The following steps need to be executed *once* before the first build on a new c
    "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat"
    ```
 1. Change directory to where the project is cloned (e.g. `cd ebpf-for-windows`), and run the following commands:
+
    - `cmake -G "Visual Studio 17 2022" -S external\ebpf-verifier -B external\ebpf-verifier\build`
    - `cmake -G "Visual Studio 17 2022" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF`
    - `cmake -G "Visual Studio 17 2022" -S external\ubpf -B external\ubpf\build`
    - `nuget restore ebpf-for-windows.sln`
+
+      >**Note**: you may get the following transitory error, which can be safely ignored as the *WiX Toolset* nuget package will be installed immediately afterwards:
+      >
+      >    `error : The WiX Toolset v3.11 build tools must be installed to build this project. To download the WiX Toolset, see https://wixtoolset.org/releases/v3.11/stable`
+
    - `del external\ebpf-verifier\build\obj\project.assets.json` (Note: the file may not be present)
 
 #### Building using Developer Command Prompt for VS 2022
@@ -108,27 +115,35 @@ The following steps need to be executed *once* before the first build on a new c
 
 ##### Setting compile time options when building from Developer Command Prompt
 
-To build with specific compile time options, append `/p:DefineConstants=<option_name>`. Options available include:
+To build with the specific compile time options for disabling JIT compiler and/or the Interpreter, append "`/p:<option>=True`". Available options are:
 
-1. `CONFIG_BPF_JIT_ALWAYS_ON` - Compile eBPF Execution Context without support for eBPF interpreter.
+1. `DisableJIT` - Compile eBPF's *Execution Context* without support for eBPF JIT compiler.
+1. `DisableInterpreter` - Compile eBPF's *Execution Context* without support for eBPF interpreter.
 
 #### Building using Visual Studio IDE
 
-1. Open `ebpf-for-windows.sln`
-1. Switch to debug / x64
-1. Build solution
+1. Open the `ebpf-for-windows.sln` solution.
+1. Switch the configuration to "`Debug`|`x64`".
+1. Rebuild the solution.
 
 ##### Setting compile time options when building from Visual Studio IDE
 
-To build with specific compile time options:
+To build with the specific compile time options for disabling JIT compiler and/or the interpreter:
 
 1. Select the project to modify from the Solution Explorer.
-1. Navigate to "C/C++" -> "Preprocessor" -> "Preprocessor Definitions"
-1. Add the option to the list of preprocessor options.
+1. Navigate to "`C/C++`" -> "`Preprocessor`" -> "`Preprocessor Definitions`"
+1. Click the "`V`" combobox arrow and then "`Edit`" for adding the option(s) to the list of preprocessor options. Available options are:
 
-Options available include:
+   *  `CONFIG_BPF_JIT_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF JIT compiler.
+   *  `CONFIG_BPF_INTERPRETER_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF interpreter.
 
-1. `CONFIG_BPF_JIT_ALWAYS_ON` - Compile eBPF Execution Context without support for eBPF interpreter.
+      >*Note for Linux users*: this option is similar to the `CONFIG_BPF_JIT_ALWAYS_ON` which, as documented
+[here](https://googleprojectzero.blogspot.com/2018/01/reading-privileged-memory-with-side.html), is used to disable support for the interpreter.
+
+>Note: do the above steps for the following projects within the `ebpf-for-windows.sln` solution:
+>- `api_test`
+>- `execution_context_kernel`
+>- `sample_ext_app`
 
 This will build the following binaries:
 

@@ -40,7 +40,7 @@ struct bpf_map_def limits_map = {
 
 SEC("maps")
 struct bpf_map_def prog_array_map = {
-    .type = BPF_MAP_TYPE_PROG_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 2};
+    .type = BPF_MAP_TYPE_PROG_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 8};
 
 SEC("maps")
 // Dummy map. Should not be populated by UM.

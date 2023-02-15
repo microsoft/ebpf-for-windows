@@ -9,14 +9,24 @@ static const uint32_t _ebpf_object_marker = 'eobj';
 static ebpf_lock_t _ebpf_object_tracking_list_lock = {0};
 
 /**
- * @brief Objects are added to the ID table when they are initialized and removed
- * from the table when they are freed. Objects in the table always have a
- *  ref-count > 0.
+ * @brief Objects are allocated an entry in the the ID
+ * table when they are initialized.  Along with a pointer to the
+ * object, each id table entry maintains its own ref-count that
+ * starts off at 1 when it is assigned to a new object. The
+ * entry ref-count indicates the number of other objects
+ * holding a reference to the corresponding object's id.  On the
+ * destruction of an object, the object pointer in the
+ * corresponding id table entry is reset to NULL and the entry
+ * ref-count is also decremented. Note that the entry will
+ * continue to be considered 'in use' until all other objects
+ * are done with the associated object (they let go of their
+ * references to this entry).  When the entry ref-count goes
+ * down to 0 _and_ the object pointer is NULL, it is eligible
+ * for re-use. Note that either of these events can occur first.
  *
  * Map objects can have references due to one of the following:
  * 1) An open handle holds a reference on it.
  * 2) A pinning table entry holds a reference on it.
- * 3) Program holds a reference on the map when it is associated with it.
  *
  * Program objects can have references due to one of the following:
  * 1) An open handle holds a reference on it.
@@ -36,6 +46,20 @@ typedef struct _ebpf_id_entry
 {
     // Counter incremented each time a new object is stored here.
     uint16_t counter;
+
+    // Reference count for this entry itself. This will be 1 when the pointed-to object (below) is created and
+    // incremented for every other object that holds a reference to this entry.
+    //
+    // If the pointed-to object gets destroyed first:
+    // - the object pointer will be nulled out and the id entry ref count will be decremented. After this point,
+    //   other objects that continue to hold a reference to this id entry, will fail to acquire a reference to the
+    //   pointed-to object (via its id) and will need to handle the failure gracefully.
+    //
+    // If the id references get dropped first:
+    // - the id entry count gets decremented.  Even after all the other objects holding a reference to this id entry
+    //   drop their references, the final ref-count will be 1 as the object is still around.  When the object is
+    //   finally destroyed, the entry id ref count goes to zero and and the entry can now be re-used.
+    int64_t reference_count;
 
     // Pointer to object.
     ebpf_core_object_t* object;
@@ -83,7 +107,7 @@ _ebpf_object_tracking_list_insert(_Inout_ ebpf_core_object_t* object)
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
     for (new_index = 1; new_index < EBPF_COUNT_OF(_ebpf_id_table); new_index++) {
-        if (_ebpf_id_table[new_index].object == NULL) {
+        if (_ebpf_id_table[new_index].object == NULL && _ebpf_id_table[new_index].reference_count == 0) {
             break;
         }
     }
@@ -94,6 +118,7 @@ _ebpf_object_tracking_list_insert(_Inout_ ebpf_core_object_t* object)
 
     // Generate a new ID.
     _ebpf_id_table[new_index].counter++;
+    _ebpf_id_table[new_index].reference_count = 1;
     _ebpf_id_table[new_index].object = object;
     object->id = _get_id_from_index(new_index);
 
@@ -112,10 +137,12 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static void _ebpf_object_
     ebpf_result_t return_value = _get_index_from_id(object->id, &index);
     ebpf_assert(return_value == EBPF_SUCCESS);
 
-    // In a release build, ebpf_assert is a no-op so we
-    // need to avoid an unreferenced variable warning.
+    // In a release build, ebpf_assert is a no-op so we need to avoid an unreferenced variable warning.
     UNREFERENCED_PARAMETER(return_value);
 
+    // Under lock, so un-protected access is ok.
+    _ebpf_id_table[index].reference_count--;
+    ebpf_assert(_ebpf_id_table[index].reference_count >= 0);
     _ebpf_id_table[index].object = NULL;
 }
 
@@ -244,6 +271,9 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static ebpf_core_object_t
     while (index < EBPF_COUNT_OF(_ebpf_id_table)) {
         ebpf_core_object_t* object = _ebpf_id_table[index].object;
         if ((object != NULL) && (object->type == object_type)) {
+
+            // Under lock, so un-protected access is ok.
+            _ebpf_id_table[index].reference_count++;
             return object;
         }
         index++;
@@ -367,4 +397,108 @@ ebpf_duplicate_string(_In_z_ const char* source)
     }
     memcpy(destination, source, length);
     return destination;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_object_acquire_id_reference(ebpf_id_t id, ebpf_object_type_t object_type)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
+
+    uint32_t index;
+    ebpf_result_t result = _get_index_from_id(id, &index);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    ebpf_id_entry_t* entry = &_ebpf_id_table[index];
+    ebpf_assert(entry->reference_count);
+    if (entry->reference_count == 0) {
+        if (entry->object == NULL) {
+
+            // Do not allow access to entries that are not in use.
+            result = EBPF_INVALID_ARGUMENT;
+        } else {
+
+            // This can _never_ happen.  If the object pointer is not null, the ref-count HAS TO BE _at_ _least_ 1.
+            // This conditon is indicative of a severe internal error.
+            ebpf_assert(0);
+            result = EBPF_FAILED;
+        }
+        goto Done;
+    }
+
+    // ref count is non-zero
+    if (entry->object == NULL) {
+
+        // The object at this entry has been deleted and all that remains are (the now stale) references to this entry
+        // held by other objects.  This is a non-reversible situation and there's no point in giving out references
+        // for such entries, so deny with a suitable error code.
+        result = EBPF_STALE_ID;
+        goto Done;
+    }
+
+    ebpf_assert(entry->object->type == object_type);
+    if (entry->object->type != object_type) {
+        result = EBPF_INVALID_OBJECT;
+        goto Done;
+    }
+
+    // We have a live object of the matching type and with an existing non-zero ref count, so we're good.
+    // We're under lock so un-protected access is ok.
+    entry->reference_count++;
+    result = EBPF_SUCCESS;
+
+Done:
+    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
+    return result;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_object_release_id_reference(ebpf_id_t id, ebpf_object_type_t object_type)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
+
+    uint32_t index;
+    ebpf_result_t result = _get_index_from_id(id, &index);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    ebpf_id_entry_t* entry = &_ebpf_id_table[index];
+    ebpf_assert(entry->reference_count);
+    if (entry->reference_count == 0) {
+        if (entry->object == NULL) {
+
+            // Do not allow access to entries that are not in use.
+            result = EBPF_INVALID_ARGUMENT;
+        } else {
+
+            // This can _never_ happen.  If the object pointer is not null, the ref-count HAS TO BE _at_ _least_ 1.
+            // This conditon is indicative of a severe internal error.
+            result = EBPF_FAILED;
+        }
+        goto Done;
+    }
+
+    // ref count is non-zero
+    if (entry->object != NULL) {
+
+        // If the object is still around, it needs to be of the expected type.
+        ebpf_assert(entry->object->type == object_type);
+        if (entry->object->type != object_type) {
+            result = EBPF_INVALID_OBJECT;
+            goto Done;
+        }
+    }
+
+    // Either we don't have an object or we have one of the matching type.  In either case, the existing entry
+    // ref count is non-zero, so we're ok to decrement it.
+    // We're also still under lock so un-protected updates are ok.
+    entry->reference_count--;
+    ebpf_assert(entry->reference_count >= 0);
+    result = EBPF_SUCCESS;
+
+Done:
+    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
+    return result;
 }

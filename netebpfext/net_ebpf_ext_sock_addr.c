@@ -2,14 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @file This file implements the hook for the CGROUP_SOCK_ADDR program type and associated attach types, on eBPF for
+ * @file
+ * @brief This file implements the hook for the CGROUP_SOCK_ADDR program type and associated attach types, on eBPF for
  * Windows.
- *
  */
 
-// net_ebpf_ext.h needs to be included ahead of other headers to satisfy the Windows
-// build system.
-#include "net_ebpf_ext.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_addr.h"
 
@@ -87,6 +84,7 @@ static uint32_t _net_ebpf_ext_connect_context_count = 0;
 
 static SECURITY_DESCRIPTOR* _net_ebpf_ext_security_descriptor_admin = NULL;
 static ACL* _net_ebpf_ext_dacl_admin = NULL;
+static GENERIC_MAPPING _net_ebpf_ext_generic_mapping = {0};
 
 //
 // sock_addr helper functions.
@@ -149,7 +147,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) static NTSTATUS _perform_access_check(
         FILE_WRITE_ACCESS,
         0,
         NULL,
-        IoGetFileObjectGenericMapping(),
+        &_net_ebpf_ext_generic_mapping,
         UserMode,
         &granted_access,
         &status);
@@ -167,11 +165,6 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
     net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
     int32_t is_admin;
 
-    if (KeGetCurrentIrql() != PASSIVE_LEVEL) {
-        is_admin = -1;
-        goto Exit;
-    }
-
     sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     status = _perform_access_check(
         _net_ebpf_ext_security_descriptor_admin, sock_addr_ctx->access_information, &access_allowed);
@@ -182,7 +175,6 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
         is_admin = 0;
     }
 
-Exit:
     return is_admin;
 }
 
@@ -480,12 +472,11 @@ _net_ebpf_sock_addr_create_security_descriptor()
     NTSTATUS status;
     ACL* dacl = NULL;
     uint32_t acl_length = 0;
-    GENERIC_MAPPING* mapping = NULL;
     ACCESS_MASK access_mask = GENERIC_ALL;
     SECURITY_DESCRIPTOR* admin_security_descriptor = NULL;
 
-    mapping = IoGetFileObjectGenericMapping();
-    RtlMapGenericMask(&access_mask, mapping);
+    _net_ebpf_ext_generic_mapping = *(IoGetFileObjectGenericMapping());
+    RtlMapGenericMask(&access_mask, &_net_ebpf_ext_generic_mapping);
 
     admin_security_descriptor = (SECURITY_DESCRIPTOR*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(SECURITY_DESCRIPTOR), NET_EBPF_EXTENSION_POOL_TAG);

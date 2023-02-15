@@ -12,20 +12,19 @@
   <PropertyGroup Condition="'$(AddressSanitizer)'=='True'">
     <EnableASAN>true</EnableASAN>
   </PropertyGroup>
-  <ItemDefinitionGroup>
-    <Link>
-      <AdditionalLibraryDirectories>$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
-  </ItemDefinitionGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MD-x86_64.lib</FuzzerLibs>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Release|True'">
     <EnableASAN>true</EnableASAN>
     <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
-    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MD-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Debug|True'">
     <EnableASAN>true</EnableASAN>
     <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
-    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Fuzzer)'!='True'">
     <SpectreMitigation>Spectre</SpectreMitigation>
@@ -46,7 +45,18 @@
     </ClCompile>
     <Link>
       <CETCompat>true</CETCompat>
+      <AdditionalLibraryDirectories>$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(DisableJIT)'=='Release|True'">
+    <ClCompile>
+        <PreprocessorDefinitions>CONFIG_BPF_JIT_DISABLED;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(DisableInterpreter)'=='Release|True'">
+    <ClCompile>
+        <PreprocessorDefinitions>CONFIG_BPF_INTERPRETER_DISABLED;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
