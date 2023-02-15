@@ -1224,6 +1224,21 @@ Exit:
     return;
 }
 
+static BOOLEAN
+_net_ebpf_ext_sock_addr_is_connection_locally_redirected_by_others(
+    _In_ const FWPS_CONNECT_REQUEST* connect_request, uint64_t filter_id)
+{
+    FWPS_CONNECT_REQUEST* previous_connect_request = connect_request->previousVersion;
+    while (previous_connect_request != NULL) {
+        if (previous_connect_request->modifierFilterId != filter_id) {
+            if (previous_connect_request->localRedirectHandle != NULL)
+                return TRUE;
+        }
+        previous_connect_request = previous_connect_request->previousVersion;
+    }
+    return FALSE;
+}
+
 static NTSTATUS
 _net_ebpf_ext_process_redirect_verdict(
     uint32_t verdict,
@@ -1260,6 +1275,13 @@ _net_ebpf_ext_process_redirect_verdict(
                 goto Exit;
             }
             commit_layer_data = TRUE;
+
+            if (_net_ebpf_ext_sock_addr_is_connection_locally_redirected_by_others(connect_request, filter->filterId)) {
+                // Since this connection has been redirected to a local proxy, it should not be redirected once more.
+                // Once the local proxy sends out another outbound connection to the original destination,
+                // that connection will get intercepted again and the eBPF program will be invoked again.
+                goto Exit;
+            }
 
             InterlockedIncrement(&_net_ebpf_ext_statistics.redirect_connection_count);
 
