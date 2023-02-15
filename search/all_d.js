@@ -6,7 +6,7 @@ var searchData=
   ['next_5fkey_665',['next_key',['../unionbpf__attr.html#a9f5cbc94b29edcbf51700d126a64fceb',1,'bpf_attr']]],
   ['nextheader_666',['NextHeader',['../struct___i_p_v6___h_e_a_d_e_r.html#a9acad219469f6f2d7683349bc5d79e7c',1,'_IPV6_HEADER']]],
   ['nr_5fmap_5fids_667',['nr_map_ids',['../structbpf__prog__info.html#ab707e966eb488feaf4268784ddc9735c',1,'bpf_prog_info']]],
-  ['ns_668',['ns',['../structtcphdr.html#a495f777d346bb790e1ec0f2b7126c769',1,'tcphdr']]],
+  ['ns_668',['ns',['../structtcphdr.html#aeafe34e2e91f4a4d9339afd1c3f1f6e8',1,'tcphdr']]],
   ['ntohl_669',['ntohl',['../bpf__endian_8h.html#a6a20f63e739c4f61a0f7f74cf1963c3b',1,'bpf_endian.h']]],
   ['ntohs_670',['ntohs',['../bpf__endian_8h.html#a118e9d76568ab81ad97f138d4ea1ddd2',1,'bpf_endian.h']]],
   ['numa_5fnode_671',['numa_node',['../structbpf__create__map__attr.html#af8723e4fa2d0798c321986487589a18e',1,'bpf_create_map_attr']]]

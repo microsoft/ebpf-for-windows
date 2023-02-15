@@ -6,6 +6,6 @@ var searchData=
   ['next_5fkey_1199',['next_key',['../unionbpf__attr.html#a9f5cbc94b29edcbf51700d126a64fceb',1,'bpf_attr']]],
   ['nextheader_1200',['NextHeader',['../struct___i_p_v6___h_e_a_d_e_r.html#a9acad219469f6f2d7683349bc5d79e7c',1,'_IPV6_HEADER']]],
   ['nr_5fmap_5fids_1201',['nr_map_ids',['../structbpf__prog__info.html#ab707e966eb488feaf4268784ddc9735c',1,'bpf_prog_info']]],
-  ['ns_1202',['ns',['../structtcphdr.html#a495f777d346bb790e1ec0f2b7126c769',1,'tcphdr']]],
+  ['ns_1202',['ns',['../structtcphdr.html#aeafe34e2e91f4a4d9339afd1c3f1f6e8',1,'tcphdr']]],
   ['numa_5fnode_1203',['numa_node',['../structbpf__create__map__attr.html#af8723e4fa2d0798c321986487589a18e',1,'bpf_create_map_attr']]]
 ];
