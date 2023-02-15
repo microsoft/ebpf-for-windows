@@ -102,23 +102,9 @@ _get_thread_id()
 }
 
 static uint64_t
-_ebpf_sock_addr_get_current_pid_tgid()
+_ebpf_sock_addr_get_current_pid_tgid(_In_ const bpf_sock_addr_t* ctx)
 {
-    net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
-    ASSERT(_net_ebpf_sock_addr_get_program_context != NULL);
-    _net_ebpf_sock_addr_get_program_context((void**)&sock_addr_ctx);
-    ASSERT(sock_addr_ctx != NULL);
-    if (sock_addr_ctx == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "_ebpf_sock_addr_get_current_pid_tgid: get_program_context failed.");
-    }
-
-    if (sock_addr_ctx == NULL) {
-        return (((uint64_t)_get_process_id() << 32) | _get_thread_id());
-    }
-
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     return (sock_addr_ctx->process_id << 32 | _get_thread_id());
 }
 
@@ -280,18 +266,22 @@ _ebpf_sock_addr_context_destroy(
 //
 // SOCK_ADDR Program Information NPI Provider.
 //
-static const void* _ebpf_sock_addr_helper_functions[] = {
-    (void*)_ebpf_sock_addr_get_current_pid_tgid,
-    (void*)_ebpf_sock_addr_get_current_logon_id,
-    (void*)_ebpf_sock_addr_is_current_admin};
 
-static ebpf_helper_function_addresses_t _ebpf_sock_addr_helper_function_address_table = {
-    EBPF_COUNT_OF(_ebpf_sock_addr_helper_functions), (uint64_t*)_ebpf_sock_addr_helper_functions};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_get_current_pid_tgid};
+
+static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
+    EBPF_COUNT_OF(_ebpf_sock_addr_specific_helper_functions), (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
+
+static const void* _ebpf_sock_addr_global_helper_functions[] = {
+    (void*)_ebpf_sock_addr_get_current_logon_id, (void*)_ebpf_sock_addr_is_current_admin};
+
+static ebpf_helper_function_addresses_t _ebpf_sock_addr_global_helper_function_address_table = {
+    EBPF_COUNT_OF(_ebpf_sock_addr_global_helper_functions), (uint64_t*)_ebpf_sock_addr_global_helper_functions};
 
 static ebpf_program_data_t _ebpf_sock_addr_program_data = {
     .program_info = &_ebpf_sock_addr_program_info,
-    .program_type_specific_helper_function_addresses = NULL,
-    .global_helper_function_addresses = &_ebpf_sock_addr_helper_function_address_table,
+    .program_type_specific_helper_function_addresses = &_ebpf_sock_addr_specific_helper_function_address_table,
+    .global_helper_function_addresses = &_ebpf_sock_addr_global_helper_function_address_table,
     .context_create = &_ebpf_sock_addr_context_create,
     .context_destroy = &_ebpf_sock_addr_context_destroy};
 

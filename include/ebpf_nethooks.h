@@ -151,6 +151,31 @@ typedef struct bpf_sock_addr
     uint64_t interface_luid; ///< Interface LUID.
 } bpf_sock_addr_t;
 
+#define SOCK_ADDR_EXT_HELPER_FN_BASE 0xFFFF
+
+typedef enum
+{
+    BPF_FUNC_sock_addr_get_current_pid_tgid = SOCK_ADDR_EXT_HELPER_FN_BASE + 1,
+} ebpf_sock_addr_helper_id_t;
+
+/**
+ * @brief Get current pid and tgid (sock_addr specific only).
+ *
+ * @param[in] ctx pointer to bpf_sock_addr_t context.
+ *
+ *
+ * @retval A 64-bit integer containing the current tgid and pid,
+ *  and created as such:
+ *
+ * 	*current_task*\ **->tgid << 32 \|**
+ * 	*current_task*\ **->pid**.
+ */
+EBPF_HELPER(uint64_t, bpf_sock_addr_get_current_pid_tgid, (bpf_sock_addr_t * ctx));
+#ifndef __doxygen
+#define bpf_sock_addr_get_current_pid_tgid \
+    ((bpf_sock_addr_get_current_pid_tgid_t)BPF_FUNC_sock_addr_get_current_pid_tgid)
+#endif
+
 /**
  * @brief Handle socket operation. Currently supports ingress/egress connection initialization.
  *
