@@ -67,6 +67,7 @@ SPDX-License-Identifier: MIT
 			</Feature>
 			<Feature Id="eBPF_Testing" Level="2" Title="Testing components">
 				<ComponentGroupRef Id="eBPF_Testing_Components" />
+				<ComponentGroupRef Id="eBPF_Testing_Components_bad" />
 				<ComponentGroupRef Id="sample_ebpf_ext_Driver" />
 			</Feature>
 		</Feature>
@@ -156,7 +157,9 @@ SPDX-License-Identifier: MIT
 					</Directory>
 					<Directory Id="dir_lib" Name="lib"/>
 					<Directory Id="dir_scripts" Name="scripts"/>
-					<Directory Id="dir_testing" Name="testing"/>
+					<Directory Id="dir_testing" Name="testing">
+						<Directory Id="dir_testing_bad" Name="bad" />
+					</Directory>
 				</Directory>
 			</Directory>
 		</Directory>
@@ -528,6 +531,14 @@ SPDX-License-Identifier: MIT
 
 	<!-- Define the product's <Testing> components -->
 	<Fragment>
+		<ComponentGroup Id="eBPF_Testing_Components_bad" Directory="dir_testing_bad">
+			<Component Id="BAD1.O" DiskId="1" Guid="{06A6BC9F-B4C6-43B5-953B-F890F257F136}">
+				<File Id="BAD1.O" Name="bad1.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bad\bad1.o" />
+			</Component>
+			<Component Id="BAD2.O" DiskId="1" Guid="{3B9F0887-05CE-48A9-85CA-77D0A611700D}">
+				<File Id="BAD2.O" Name="bad2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bad\bad2.o" />
+			</Component>
+		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Testing_Components" Directory="dir_testing">
 			<Component Id="API_TEST.EXE" DiskId="1" Guid="{70AA4D35-45C4-466A-AE08-64A38E4C50F2}">
 				<File Id="API_TEST.EXE" Name="api_test.exe" Source="$(var.api_test.TargetDir)api_test.exe" />
@@ -535,14 +546,29 @@ SPDX-License-Identifier: MIT
 			<Component Id="API_TEST.PDB" DiskId="1" Guid="{0884D5FB-CD5F-4780-892C-F9B37DF95989}">
 				<File Id="API_TEST.PDB" Name="api_test.pdb" Source="$(var.api_test.TargetDir)api_test.pdb" />
 			</Component>
+			<Component Id="BAD_MAP_NAME.O" DiskId="1" Guid="{6FFEB06E-D0B0-4390-BF68-4163D190B5A7}">
+				<File Id="BAD_MAP_NAME.O" Name="bad_map_name.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bad_map_name.o" />
+			</Component>
+			<Component Id="BAD_MAP_NAME_UM.DLL" DiskId="1" Guid="{CA9B3436-C77D-4B42-88BB-472ADFD6980F}">
+				<File Id="BAD_MAP_NAME_UM.DLL" Name="bad_map_name_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bad_map_name_um.dll" />
+			</Component>
 			<Component Id="BINDMONITOR.O" DiskId="1" Guid="{88D66354-E6DF-4BE4-B1D4-3F716A7F81AB}">
 				<File Id="BINDMONITOR.O" Name="bindmonitor.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor.o" />
 			</Component>
 			<Component Id="BINDMONITOR.SYS" DiskId="1" Guid="{D36736C9-35B0-41AD-A19F-7E122035DC70}">
 				<File Id="BINDMONITOR.SYS" Name="bindmonitor.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor.sys" />
 			</Component>
+			<Component Id="BINDMONITOR_UM.DLL" DiskId="1" Guid="{D7E035F7-7CF7-499A-8547-29E619068B21}">
+				<File Id="BINDMONITOR_UM.DLL" Name="bindmonitor_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_um.dll" />
+			</Component>
 			<Component Id="BINDMONITOR_RINGBUF.O" DiskId="1" Guid="{BFF28F26-F7A5-44B0-9289-AD9F4A19E33E}">
 				<File Id="BINDMONITOR_RINGBUF.O" Name="bindmonitor_ringbuf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_ringbuf.o" />
+			</Component>
+			<Component Id="BINDMONITOR_RINGBUF.SYS" DiskId="1" Guid="{8CC623C1-D5E0-4D23-A9DF-B785C5F01E02}">
+				<File Id="BINDMONITOR_RINGBUF.SYS" Name="bindmonitor_ringbuf.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_ringbuf.sys" />
+			</Component>
+			<Component Id="BINDMONITOR_RINGBUF_UM.DLL" DiskId="1" Guid="{ABA1E89F-C6B5-4EAB-812B-52D05DB1F11C}">
+				<File Id="BINDMONITOR_RINGBUF_UM.DLL" Name="bindmonitor_ringbuf_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_ringbuf_um.dll" />
 			</Component>
 			<Component Id="BINDMONITOR_TAILCALL.O" DiskId="1" Guid="{6A37AE43-179A-46BD-97D5-3D02B6807765}">
 				<File Id="BINDMONITOR_TAILCALL.O" Name="bindmonitor_tailcall.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_tailcall.o" />
@@ -550,11 +576,20 @@ SPDX-License-Identifier: MIT
 			<Component Id="BINDMONITOR_TAILCALL.SYS" DiskId="1" Guid="{310B89C6-2EDB-41F8-8455-2738A07A6DF9}">
 				<File Id="BINDMONITOR_TAILCALL.SYS" Name="bindmonitor_tailcall.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_tailcall.sys" />
 			</Component>
+			<Component Id="BINDMONITOR_TAILCALL_UM.DLL" DiskId="1" Guid="{16069864-43C3-4B4A-9409-4252228DA976}">
+				<File Id="BINDMONITOR_TAILCALL_UM.DLL" Name="bindmonitor_tailcall_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_tailcall_um.dll" />
+			</Component>
 			<Component Id="BPF.O" DiskId="1" Guid="{EACD2AE9-0C63-4C0D-BC1D-FA698DB58A13}">
 				<File Id="BPF.O" Name="bpf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bpf.o" />
 			</Component>
+			<Component Id="BPF.SYS" DiskId="1" Guid="{2CDA8C95-AA03-41F1-949B-B203F0908227}">
+				<File Id="BPF.SYS" Name="bpf.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bpf.sys" />
+			</Component>
 			<Component Id="BPF_CALL.O" DiskId="1" Guid="{438B5ECE-4410-477D-A60C-A5A68579791D}">
 				<File Id="BPF_CALL.O" Name="bpf_call.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bpf_call.o" />
+			</Component>
+			<Component Id="BPF_CALL.SYS" DiskId="1" Guid="{D1F8B3BB-C3DF-4DDF-AD84-92A8613AA9C0}">
+				<File Id="BPF_CALL.SYS" Name="bpf_call.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bpf_call.sys" />
 			</Component>
 			<Component Id="BPFTOOL_TESTS.EXE" DiskId="1" Guid="{9F720714-FD99-44DA-AB6C-2FDA71258628}">
 				<File Id="BPFTOOL_TESTS.EXE" Name="bpftool_test.exe" Source="$(var.bpftool_tests.TargetDir)bpftool_tests.exe" />
@@ -565,11 +600,26 @@ SPDX-License-Identifier: MIT
 			<Component Id="CGROUP_SOCK_ADDR.O" DiskId="1" Guid="{6AF0B01D-554F-4918-8D00-AA4104DD5BE0}">
 				<File Id="CGROUP_SOCK_ADDR.O" Name="cgroup_sock_addr.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr.o" />
 			</Component>
+			<Component Id="CGROUP_SOCK_ADDR.SYS" DiskId="1" Guid="{02B9F35C-03BA-477E-86C8-2FFFC1C6B525}">
+				<File Id="CGROUP_SOCK_ADDR.SYS" Name="cgroup_sock_addr.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr.sys" />
+			</Component>
+			<Component Id="CGROUP_SOCK_ADDR_UM.DLL" DiskId="1" Guid="{27E04F5B-E13A-4D37-8CDE-BD18BD93A45B}">
+				<File Id="CGROUP_SOCK_ADDR_UM.DLL" Name="cgroup_sock_addr_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr_um.dll" />
+			</Component>
 			<Component Id="DECAP_PERMIT_PACKET.O" DiskId="1" Guid="{EAD33B50-0E47-464B-A919-1A24B64C686A}">
 				<File Id="DECAP_PERMIT_PACKET.O" Name="decap_permit_packet.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\decap_permit_packet.o" />
 			</Component>
+			<Component Id="DECAP_PERMIT_PACKET.SYS" DiskId="1" Guid="{CB70F111-B380-43E9-A938-4A812CBD24D4}">
+				<File Id="DECAP_PERMIT_PACKET.SYS" Name="decap_permit_packet.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\decap_permit_packet.sys" />
+			</Component>
 			<Component Id="DIVIDE_BY_ZERO.O" DiskId="1" Guid="{DBCE744E-08BC-4241-816E-47D13E7F15DC}">
 				<File Id="DIVIDE_BY_ZERO.O" Name="divide_by_zero.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\divide_by_zero.o" />
+			</Component>
+			<Component Id="DIVIDE_BY_ZERO.SYS" DiskId="1" Guid="{B691F6B8-65FF-45C6-A1EC-11E8EB15103F}">
+				<File Id="DIVIDE_BY_ZERO.SYS" Name="divide_by_zero.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\divide_by_zero.sys" />
+			</Component>
+			<Component Id="DIVIDE_BY_ZERO_UM.DLL" DiskId="1" Guid="{7E4D6872-F0A5-4AEA-B95B-4F865B7805EF}">
+				<File Id="DIVIDE_BY_ZERO_UM.DLL" Name="divide_by_zero_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\divide_by_zero_um.dll" />
 			</Component>
 			<Component Id="DROPPACKET.O" DiskId="1" Guid="{32E91251-1D4F-48BA-978E-85F30E7903C5}">
 				<File Id="DROPPACKET.O" Name="droppacket.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket.o" />
@@ -586,23 +636,74 @@ SPDX-License-Identifier: MIT
 			<Component Id="DROPPACKET_UNSAFE.O" DiskId="1" Guid="{40156401-DDEA-4435-B559-E7071D251395}">
 				<File Id="DROPPACKET_UNSAFE.O" Name="droppacket_unsafe.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_unsafe.o" />
 			</Component>
+			<Component Id="DROPPACKET_UNSAFE.SYS" DiskId="1" Guid="{BF528F4D-E6FA-4044-AFD2-B306636246A0}">
+				<File Id="DROPPACKET_UNSAFE.SYS" Name="droppacket_unsafe.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_unsafe.sys" />
+			</Component>
+			<Component Id="EMPY_UM.DLL" DiskId="1" Guid="{321F2303-53CC-4CF2-8D92-5FCA988BDCB5}">
+				<File Id="EMPY_UM.DLL" Name="empty_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\empty_um.dll" />
+			</Component>
 			<Component Id="ENCAP_REFLECT_PACKET.O" DiskId="1" Guid="{767274A3-97F5-4F35-BB27-1A7166708AD8}">
 				<File Id="ENCAP_REFLECT_PACKET.O" Name="encap_reflect_packet.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\encap_reflect_packet.o" />
+			</Component>
+			<Component Id="ENCAP_REFLECT_PACKET.SYS" DiskId="1" Guid="{150DB22E-48FE-47C4-BD04-0F55F78360E3}">
+				<File Id="ENCAP_REFLECT_PACKET.SYS" Name="encap_reflect_packet.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\encap_reflect_packet.sys" />
+			</Component>
+			<Component Id="INVALID_MAPS1_UM.DLL" DiskId="1" Guid="{BC4496CD-3006-4EBF-96FE-D840E63E02AA}">
+				<File Id="INVALID_MAPS1_UM.DLL" Name="invalid_maps1_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\invalid_maps1_um.dll" />
+			</Component>
+			<Component Id="INVALID_MAPS2_UM.DLL" DiskId="1" Guid="{65CB9F94-05BD-41A8-BF76-99BCF99B324E}">
+				<File Id="INVALID_MAPS2_UM.DLL" Name="invalid_maps2_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\invalid_maps2_um.dll" />
+			</Component>
+			<Component Id="INVALID_MAPS3_UM.DLL" DiskId="1" Guid="{F29DFA6E-ED91-443D-971B-89401FAB7A15}">
+				<File Id="INVALID_MAPS3_UM.DLL" Name="invalid_maps3_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\invalid_maps3_um.dll" />
+			</Component>
+			<Component Id="INVALID_HELPERS_UM.DLL" DiskId="1" Guid="{D69A5C0D-C585-4EBC-BC31-D2F08C9E20D0}">
+				<File Id="INVALID_HELPERS_UM.DLL" Name="invalid_helpers_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\invalid_helpers_um.dll" />
 			</Component>
 			<Component Id="MAP.O" DiskId="1" Guid="{C0461A4A-1195-4965-9710-8EED78A271F6}">
 				<File Id="MAP.O" Name="map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map.o" />
 			</Component>
+			<Component Id="MAP.SYS" DiskId="1" Guid="{F4A14D78-AF2D-4305-9253-2DFAD8E86B36}">
+				<File Id="MAP.SYS" Name="map.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map.sys" />
+			</Component>
+			<Component Id="MAP_UM.DLL" DiskId="1" Guid="{80C8B103-6212-4F86-B6B3-05996C2639D0}">
+				<File Id="MAP_UM.DLL" Name="map_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_um.dll" />
+			</Component>
 			<Component Id="MAP_IN_MAP.O" DiskId="1" Guid="{D5BF9636-2A17-4E6C-8EFF-824794F48A01}">
 				<File Id="MAP_IN_MAP.O" Name="map_in_map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map.o" />
+			</Component>
+			<Component Id="MAP_IN_MAP.SYS" DiskId="1" Guid="{6AF324AB-39CD-4189-A18F-7DA43EFFF6CD}">
+				<File Id="MAP_IN_MAP.SYS" Name="map_in_map.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map.sys" />
+			</Component>
+			<Component Id="MAP_IN_MAP_UM.DLL" DiskId="1" Guid="{E625FEC7-6D4A-495C-B8CE-14D39F572719}">
+				<File Id="MAP_IN_MAP_UM.DLL" Name="map_in_map_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_um.dll" />
 			</Component>
 			<Component Id="MAP_IN_MAP_V2.O" DiskId="1" Guid="{D198FFAB-E146-4ED3-96B3-9FBED450C7D7}">
 				<File Id="MAP_IN_MAP_V2.O" Name="map_in_map_v2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_v2.o" />
 			</Component>
+			<Component Id="MAP_IN_MAP_V2.SYS" DiskId="1" Guid="{69B33845-E670-4485-A004-414BB39AB8B7}">
+				<File Id="MAP_IN_MAP_V2.SYS" Name="map_in_map_v2.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_v2.sys" />
+			</Component>
+			<Component Id="MAP_IN_MAP_V2_UM.DLL" DiskId="1" Guid="{F804A298-A598-4B2A-81C2-28D9021E1F54}">
+				<File Id="MAP_IN_MAP_V2_UM.DLL" Name="map_in_map_v2_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_v2_um.dll" />
+			</Component>
 			<Component Id="MAP_REUSE.O" DiskId="1" Guid="{3C17B815-A950-4103-A9D3-DB8EB5F41B47}">
 				<File Id="MAP_REUSE.O" Name="map_reuse.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_reuse.o" />
 			</Component>
+			<Component Id="MAP_REUSE.SYS" DiskId="1" Guid="{48775CE6-281A-4D6F-906D-78B56AAE61A6}">
+				<File Id="MAP_REUSE.SYS" Name="map_reuse.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_reuse.sys" />
+			</Component>
+			<Component Id="MAP_REUSE_UM.DLL" DiskId="1" Guid="{064F62B7-74BE-4EB7-B6A1-312E0626837F}">
+				<File Id="MAP_REUSE_UM.DLL" Name="map_reuse_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_reuse_um.dll" />
+			</Component>
 			<Component Id="MAP_REUSE_2.O" DiskId="1" Guid="{E32CF0E5-00E0-44D7-BE16-DD9FE35064D8}">
 				<File Id="MAP_REUSE_2.O" Name="map_reuse_2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_reuse_2.o" />
+			</Component>
+			<Component Id="MAP_REUSE_2.SYS" DiskId="1" Guid="{8FA5D9E9-4A40-4562-B0D0-6CBA97993C9C}">
+				<File Id="MAP_REUSE_2.SYS" Name="map_reuse_2.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_reuse_2.sys" />
+			</Component>
+			<Component Id="MAP_REUSE_2_UM.DLL" DiskId="1" Guid="{0E1D94C2-7B89-486F-B757-9F8BA9BCABDE}">
+				<File Id="MAP_REUSE_2_UM.DLL" Name="map_reuse_2_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_reuse_2_um.dll" />
 			</Component>
 			<Component Id="PIDTGID.O" DiskId="1" Guid="{85723409-15B9-499B-94F1-2AE72A5C8D85}">
 				<File Id="PIDTGID.O" Name="pidtgid.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\pidtgid.o" />
@@ -616,11 +717,23 @@ SPDX-License-Identifier: MIT
 			<Component Id="PRINTK.SYS" DiskId="1" Guid="{09399688-9C2F-47E2-B43E-330A4033013A}">
 				<File Id="PRINTK.SYS" Name="printk.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk.sys" />
 			</Component>
+			<Component Id="PRINTK_LEGACY.O" DiskId="1" Guid="{AFBC4E58-B9E2-4107-9554-731143CA2C62}">
+				<File Id="PRINTK_LEGACY.O" Name="printk_legacy.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk_legacy.o" />
+			</Component>
+			<Component Id="PRINTK_LEGACY.SYS" DiskId="1" Guid="{F4521398-B31B-4717-8446-14DF2CAA56A7}">
+				<File Id="PRINTK_LEGACY.SYS" Name="printk_legacy.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk_legacy.sys" />
+			</Component>
 			<Component Id="PRINTK_UNSAFE.O" DiskId="1" Guid="{10CBDD8C-BE25-43FD-86BB-A3A7A3129CE0}">
 				<File Id="PRINTK_UNSAFE.O" Name="printk_unsafe.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk_unsafe.o" />
 			</Component>
+			<Component Id="PRINTK_UNSAFE.SYS" DiskId="1" Guid="{E5269164-8335-4B49-BCDA-1D5C4E7DBE33}">
+				<File Id="PRINTK_UNSAFE.SYS" Name="printk_unsafe.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk_unsafe.sys" />
+			</Component>
 			<Component Id="REFLECT_PACKET.O" DiskId="1" Guid="{4AA8E3D7-1453-468B-98EE-3340BE55BA9C}">
 				<File Id="REFLECT_PACKET.O" Name="reflect_packet.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\reflect_packet.o" />
+			</Component>
+			<Component Id="REFLECT_PACKET.SYS" DiskId="1" Guid="{FDF38463-AA17-4064-8FEB-7F2D02BBB17E}">
+				<File Id="REFLECT_PACKET.SYS" Name="reflect_packet.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\reflect_packet.sys" />
 			</Component>
 			<Component Id="RUN_TESTS.BAT" DiskId="1" Guid="{C263C5FF-4A39-4078-9406-545F7D41DA13}">
 				<File Id="RUN_TESTS.BAT" Name="run_tests.bat" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\run_tests.bat" />
@@ -631,23 +744,56 @@ SPDX-License-Identifier: MIT
 			<Component Id="SAMPLE_EXT_APP.PDB" DiskId="1" Guid="{9DE5D44E-0C55-4959-AF57-F5735E92089A}">
 				<File Id="SAMPLE_EXT_APP.PDB" Name="sample_ext_app.pdb" Source="$(var.sample_ext_app.TargetDir)sample_ext_app.pdb" />
 			</Component>
+			<Component Id="SOCKOPS.O" DiskId="1" Guid="{AA322CED-530D-4E07-9786-56C1658F7230}">
+				<File Id="SOCKOPS.O" Name="sockops.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\sockops.o" />
+			</Component>
+			<Component Id="SOCKOPS.SYS" DiskId="1" Guid="{335F6212-7C2C-4814-99E0-2A62CBE80C33}">
+				<File Id="SOCKOPS.SYS" Name="sockops.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\sockops.sys" />
+			</Component>
 			<Component Id="TAIL_CALL.O" DiskId="1" Guid="{9DF26DC2-595C-4DED-9983-3802ADEC10D7}">
 				<File Id="TAIL_CALL.O" Name="tail_call.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call.o" />
+			</Component>
+			<Component Id="TAIL_CALL.SYS" DiskId="1" Guid="{842D5A33-A004-4286-823C-09D5CAC7791C}">
+				<File Id="TAIL_CALL.SYS" Name="tail_call.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call.sys" />
+			</Component>
+			<Component Id="TAIL_CALL_UM.DLL" DiskId="1" Guid="{7FB5BE0D-A9CB-493F-81C0-A54DA41FBE0C}">
+				<File Id="TAIL_CALL_UM.DLL" Name="tail_call_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_um.dll" />
 			</Component>
 			<Component Id="TAIL_CALL_BAD.O" DiskId="1" Guid="{98B8DA0B-18B3-4D74-B99B-A99F4D85CEE8}">
 				<File Id="TAIL_CALL_BAD.O" Name="tail_call_bad.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_bad.o" />
 			</Component>
+			<Component Id="TAIL_CALL_BAD.SYS" DiskId="1" Guid="{16716C24-4C67-4481-BD44-63607A5F92EA}">
+				<File Id="TAIL_CALL_BAD.SYS" Name="tail_call_bad.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_bad.sys" />
+			</Component>
+			<Component Id="TAIL_CALL_BAD_UM.DLL" DiskId="1" Guid="{0D4C5F32-98F8-4C72-9F79-1FB4C199CA04}">
+				<File Id="TAIL_CALL_BAD_UM.DLL" Name="tail_call_bad_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_bad_um.dll" />
+			</Component>
 			<Component Id="TAIL_CALL_MAP.O" DiskId="1" Guid="{A3F68C4D-00BF-4FB7-8B49-2BFC69AF7ABB}">
 				<File Id="TAIL_CALL_MAP.O" Name="tail_call_map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_map.o" />
+			</Component>
+			<Component Id="TAIL_CALL_MAP.SYS" DiskId="1" Guid="{5A163653-8F38-40D0-91CC-A9AF991668F3}">
+				<File Id="TAIL_CALL_MAP.SYS" Name="tail_call_map.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_map.sys" />
 			</Component>
 			<Component Id="TAIL_CALL_MULTIPLE.O" DiskId="1" Guid="{2779762A-9B87-490B-83CF-30A0C0C28CF3}">
 				<File Id="TAIL_CALL_MULTIPLE.O" Name="tail_call_multiple.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_multiple.o" />
 			</Component>
+			<Component Id="TAIL_CALL_MULTIPLE.SYS" DiskId="1" Guid="{F5B07483-3477-4D84-B209-B85A8C503B86}">
+				<File Id="TAIL_CALL_MULTIPLE.SYS" Name="tail_call_multiple.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_multiple.sys" />
+			</Component>
+			<Component Id="TAIL_CALL_MULTIPLE_UM.DLL" DiskId="1" Guid="{3C43A424-FC1E-4DB5-9DBE-50F25B7F1E00}">
+				<File Id="TAIL_CALL_MULTIPLE_UM.DLL" Name="tail_call_multiple_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_multiple_um.dll" />
+			</Component>
 			<Component Id="TEST_SAMPLE_EBPF.O" DiskId="1" Guid="{5E7F82E9-9631-44C6-A597-18DD96C87C44}">
 				<File Id="TEST_SAMPLE_EBPF.O" Name="test_sample_ebpf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\test_sample_ebpf.o" />
 			</Component>
+			<Component Id="TEST_SAMPLE_EBPF.SYS" DiskId="1" Guid="{4FFD5551-2C3C-44C8-AA5E-F72A64F94E20}">
+				<File Id="TEST_SAMPLE_EBPF.SYS" Name="test_sample_ebpf.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\test_sample_ebpf.sys" />
+			</Component>
 			<Component Id="TEST_UTILITY_HELPERS.O" DiskId="1" Guid="{B895F798-8A2D-4757-BDD2-F7A68860C92A}">
 				<File Id="TEST_UTILITY_HELPERS.O" Name="test_utility_helpers.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\test_utility_helpers.o" />
+			</Component>
+			<Component Id="TEST_UTILITY_HELPERS_UM.DLL" DiskId="1" Guid="{1CCC5D7B-CC60-4967-9EA7-EC28E6B35005}">
+				<File Id="TEST_UTILITY_HELPERS_UM.DLL" Name="test_utility_helpers_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\test_utility_helpers_um.dll" />
 			</Component>
 			<Component Id="UNIT_TESTS.EXE" DiskId="1" Guid="{CCF26677-3DDF-424F-80E8-184F65E323BA}">
 				<File Id="UNIT_TESTS.EXE" Name="unit_tests.exe" Source="$(var.unit_tests.TargetDir)unit_tests.exe" />

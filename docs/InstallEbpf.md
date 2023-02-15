@@ -29,12 +29,12 @@ Following is an example that shows a full-feature installation/uninstallation, u
 
     ```bash
     # Debug MSI (including the JIT component)
-    C:\Windows\system32\msiexec.exe /i ebpf-for-windows.msi INSTALLFOLDER="C:\eBpfForWindows" ADDLOCAL=eBPF_Runtime_Components_JIT,eBPF_Development,eBPF_Testing /qn
+    C:\Windows\system32\msiexec.exe /i ebpf-for-windows.msi INSTALLFOLDER="C:\eBpfForWindows" ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT,eBPF_Development,eBPF_Testing /qn
 
     # Release MSI
-    C:\Windows\system32\msiexec.exe /i ebpf-for-windows.msi INSTALLFOLDER="C:\eBpfForWindows" ADDLOCAL=eBPF_Development,eBPF_Testing /qn
+    C:\Windows\system32\msiexec.exe /i ebpf-for-windows.msi INSTALLFOLDER="C:\eBpfForWindows" ADDLOCAL=eBPF_Runtime_Components,eBPF_Development,eBPF_Testing /qn
     ```
-    >**Note**: like in the graphical *Installation Wizard*, you can also customize the installation by choosing what **optional** features should be installed (i.e., `eBPF_Runtime_Components_JIT`, `eBPF_Development` and `eBPF_Testing`), and assigning the comma-separated values to the `ADDLOCAL` parameter. The above commands, besides the mandatory `Runtime_Components`, also install the *Development* and *Testing* components.
+    >**Note**: like in the graphical *Installation Wizard*, you must provide the installation features by choosing what **optional** ones should be installed (i.e., `eBPF_Runtime_Components_JIT`, `eBPF_Development` and `eBPF_Testing`), and assigning the comma-separated values to the `ADDLOCAL` parameter. The above commands, besides the mandatory `eBPF_Runtime_Components`, also install the *Development* and *Testing* components.
 
 * Uninstallation:
 
