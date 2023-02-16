@@ -375,7 +375,7 @@ handle_ebpf_delete_program(
 
 _Must_inspect_result_ ebpf_result_t
 _ebpf_program_attach_by_id(
-    ebpf_id_t program_id, ebpf_attach_type_t attach_type, _In_opt_ _Null_terminated_ const wchar_t* interface_parameter)
+    ebpf_id_t program_id, ebpf_attach_type_t attach_type, _In_opt_z_ const wchar_t* interface_parameter)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t if_index;
