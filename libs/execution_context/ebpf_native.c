@@ -352,7 +352,7 @@ _ebpf_native_provider_attach_client_callback(
     ebpf_native_module_t** module = NULL;
     bool lock_acquired = false;
     metadata_table_t* table = NULL;
-    ebpf_native_module_t* client_context = ebpf_allocate(sizeof(ebpf_native_module_t));
+    ebpf_native_module_t* client_context = ebpf_allocate_with_tag(sizeof(ebpf_native_module_t), EBPF_POOL_TAG_NATIVE);
 
     if (!client_context) {
         result = EBPF_NO_MEMORY;
@@ -600,7 +600,8 @@ _ebpf_native_initialize_maps(
                 goto Done;
             }
 
-            native_maps[i].pin_path.value = ebpf_allocate(prefix_length + name_length + 1);
+            native_maps[i].pin_path.value =
+                ebpf_allocate_with_tag(prefix_length + name_length + 1, EBPF_POOL_TAG_NATIVE);
             if (native_maps[i].pin_path.value == NULL) {
                 result = EBPF_NO_MEMORY;
                 goto Done;
@@ -745,7 +746,8 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
 
-    module->maps = (ebpf_native_map_t*)ebpf_allocate(map_count * sizeof(ebpf_native_map_t));
+    module->maps =
+        (ebpf_native_map_t*)ebpf_allocate_with_tag(map_count * sizeof(ebpf_native_map_t), EBPF_POOL_TAG_NATIVE);
     if (module->maps == NULL) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
@@ -783,7 +785,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
 
         ebpf_handle_t inner_map_handle = (native_map->inner_map) ? native_map->inner_map->handle : ebpf_handle_invalid;
         map_name.length = strlen(native_map->entry->name);
-        map_name.value = (uint8_t*)ebpf_allocate(map_name.length);
+        map_name.value = (uint8_t*)ebpf_allocate_with_tag(map_name.length, EBPF_POOL_TAG_NATIVE);
         if (map_name.value == NULL) {
             result = EBPF_NO_MEMORY;
             break;
@@ -865,13 +867,13 @@ _ebpf_native_resolve_maps_for_program(_In_ ebpf_native_module_t* module, _In_ co
         }
     }
 
-    map_handles = ebpf_allocate(map_count * sizeof(ebpf_handle_t));
+    map_handles = ebpf_allocate_with_tag(map_count * sizeof(ebpf_handle_t), EBPF_POOL_TAG_NATIVE);
     if (map_handles == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
     }
 
-    map_addresses = ebpf_allocate(map_count * sizeof(uintptr_t));
+    map_addresses = ebpf_allocate_with_tag(map_count * sizeof(uintptr_t), EBPF_POOL_TAG_NATIVE);
     if (map_addresses == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -927,13 +929,13 @@ _ebpf_native_resolve_helpers_for_program(
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
 
-    helper_ids = ebpf_allocate(helper_count * sizeof(uint32_t));
+    helper_ids = ebpf_allocate_with_tag(helper_count * sizeof(uint32_t), EBPF_POOL_TAG_NATIVE);
     if (helper_ids == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
     }
 
-    helper_addresses = ebpf_allocate(helper_count * sizeof(helper_function_address));
+    helper_addresses = ebpf_allocate_with_tag(helper_count * sizeof(helper_function_address), EBPF_POOL_TAG_NATIVE);
     if (helper_addresses == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -999,7 +1001,8 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
         return EBPF_INVALID_OBJECT;
     }
 
-    module->programs = (ebpf_native_program_t*)ebpf_allocate(program_count * sizeof(ebpf_native_program_t));
+    module->programs = (ebpf_native_program_t*)ebpf_allocate_with_tag(
+        program_count * sizeof(ebpf_native_program_t), EBPF_POOL_TAG_NATIVE);
     if (module->programs == NULL) {
         return EBPF_NO_MEMORY;
     }
@@ -1023,12 +1026,12 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
             break;
         }
 
-        program_name = ebpf_allocate(program_name_length);
+        program_name = ebpf_allocate_with_tag(program_name_length, EBPF_POOL_TAG_NATIVE);
         if (program_name == NULL) {
             result = EBPF_NO_MEMORY;
             break;
         }
-        section_name = ebpf_allocate(section_name_length);
+        section_name = ebpf_allocate_with_tag(section_name_length, EBPF_POOL_TAG_NATIVE);
         if (section_name == NULL) {
             result = EBPF_NO_MEMORY;
             break;
@@ -1164,7 +1167,7 @@ ebpf_native_load(
     ebpf_handle_t local_module_hande = ebpf_handle_invalid;
     ebpf_preemptible_work_item_t* cleanup_workitem = NULL;
 
-    local_service_name = ebpf_allocate((size_t)service_name_length + 2);
+    local_service_name = ebpf_allocate_with_tag((size_t)service_name_length + 2, EBPF_POOL_TAG_NATIVE);
     if (local_service_name == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
