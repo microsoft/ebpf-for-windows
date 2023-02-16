@@ -37,7 +37,7 @@ write_registry_value_binary(
     ebpf_assert(value_name);
     ebpf_assert(value);
 
-    return RegSetValueEx(key, value_name, 0, REG_BINARY, value, (DWORD)value_size);
+    return RegSetValueEx(key, value_name, 0, REG_BINARY, value, (unsigned long)value_size);
 }
 
 _Must_inspect_result_ ebpf_registry_result_t
@@ -47,7 +47,7 @@ write_registry_value_wide_string(ebpf_registry_key_t key, _In_z_ const wchar_t* 
     ebpf_assert(value);
 
     auto length = (wcslen(value) + 1) * sizeof(wchar_t);
-    return RegSetValueEx(key, value_name, 0, REG_SZ, (uint8_t*)value, (DWORD)length);
+    return RegSetValueEx(key, value_name, 0, REG_SZ, (uint8_t*)value, (unsigned long)length);
 }
 
 _Must_inspect_result_ ebpf_registry_result_t
@@ -123,8 +123,8 @@ _Must_inspect_result_ ebpf_registry_result_t
 read_registry_value_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Outptr_result_z_ wchar_t** value)
 {
     uint32_t status = ERROR_SUCCESS;
-    DWORD type = REG_SZ;
-    DWORD value_size = 0;
+    unsigned long type = REG_SZ;
+    unsigned long value_size = 0;
     wchar_t* string_value = nullptr;
 
     *value = nullptr;
@@ -159,8 +159,8 @@ Exit:
 _Must_inspect_result_ ebpf_registry_result_t
 read_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Out_ uint32_t* value)
 {
-    DWORD type = REG_QWORD;
-    DWORD value_size = sizeof(uint32_t);
+    unsigned long type = REG_QWORD;
+    unsigned long value_size = sizeof(uint32_t);
     return RegQueryValueEx(key, value_name, 0, &type, (PBYTE)value, &value_size);
 }
 
@@ -172,8 +172,8 @@ read_registry_value_binary(
     size_t value_size)
 {
     uint32_t status = NO_ERROR;
-    DWORD type = REG_BINARY;
-    DWORD local_value_size = (DWORD)value_size;
+    unsigned long type = REG_BINARY;
+    unsigned long local_value_size = (unsigned long)value_size;
 
     status = RegQueryValueEx(key, value_name, 0, &type, value, &local_value_size);
     if (status != ERROR_SUCCESS || type != REG_BINARY || local_value_size != value_size) {
