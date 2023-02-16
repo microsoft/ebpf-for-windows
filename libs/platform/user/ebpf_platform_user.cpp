@@ -1024,7 +1024,7 @@ ebpf_access_check(
     ebpf_result_t result;
     HANDLE token = INVALID_HANDLE_VALUE;
 
-    //Using BOOL to pass "AccessCheck" defined in windows kit "securitybaseapi.h" file
+    // Using BOOL to pass "AccessCheck" defined in Windows "securitybaseapi.h" file
     BOOL access_status = FALSE;
     unsigned long granted_access;
     PRIVILEGE_SET privilege_set;
