@@ -14,7 +14,9 @@
 #include <string>
 #include <vector>
 
-DWORD
+// The following function uses windows specific type as an input to match
+// definition of "FN_HANDLE_CMD" in public file of NetSh.h
+unsigned long
 handle_ebpf_show_maps(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
