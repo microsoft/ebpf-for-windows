@@ -4,12 +4,12 @@
 // Do not alter this generated file.
 // This file was generated from bad_map_name.o
 
+#define NO_CRT
+#include "bpf2c.h"
+
 #include <guiddef.h>
 #include <wdm.h>
 #include <wsk.h>
-
-#define NO_CRT
-#include "bpf2c.h"
 
 DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
@@ -165,12 +165,6 @@ _bpf2c_npi_client_detach_provider(_In_ void* client_binding_context)
     return STATUS_SUCCESS;
 }
 
-void
-division_by_zero(uint32_t address)
-{
-    UNREFERENCED_PARAMETER(address);
-}
-
 #include "bpf2c.h"
 
 static void
@@ -319,7 +313,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 5;
+    version->minor = 6;
     version->revision = 0;
 }
 

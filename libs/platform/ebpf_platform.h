@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
+
 #include "ebpf_result.h"
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
@@ -81,9 +81,9 @@ extern "C"
     typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
     typedef struct _ebpf_extension_dispatch_table
     {
-        uint16_t version;
-        uint16_t size;
-        _ebpf_extension_dispatch_function function[1];
+        uint16_t version; ///< Version of the dispatch table.
+        uint16_t count;   ///< Number of entries in the dispatch table.
+        _Field_size_(count) _ebpf_extension_dispatch_function function[1];
     } ebpf_extension_dispatch_table_t;
 
     typedef struct _ebpf_extension_data
@@ -99,6 +99,21 @@ extern "C"
         bpf_attach_type_t bpf_attach_type;
         enum bpf_link_type link_type;
     } ebpf_attach_provider_data_t;
+
+    /***
+     * The state of the execution context when the eBPF program was invoked.
+     * This is used to cache state that won't change during the execution of
+     * the eBPF program and is expensive to query.
+     */
+    typedef struct _ebpf_execution_context_state
+    {
+        union
+        {
+            uint64_t thread;
+            uint32_t cpu;
+        } id;
+        uint8_t current_irql;
+    } ebpf_execution_context_state_t;
 
 #define EBPF_ATTACH_CLIENT_DATA_VERSION 0
 #define EBPF_ATTACH_PROVIDER_DATA_VERSION 1
@@ -834,9 +849,7 @@ extern "C"
     ebpf_interlocked_xor_int64(_Inout_ volatile int64_t* destination, int64_t mask);
 
     typedef ebpf_result_t (*ebpf_extension_change_callback_t)(
-        _In_ const void* client_binding_context,
-        _In_ const void* provider_binding_context,
-        _In_opt_ const ebpf_extension_data_t* provider_data);
+        _In_ const void* client_binding_context, _In_opt_ const ebpf_extension_data_t* provider_data);
 
     /**
      * @brief Load an extension and get its dispatch table.
@@ -1242,6 +1255,14 @@ extern "C"
      */
     _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
         ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id);
+
+    /**
+     * @brief Query the current execution context state.
+     *
+     * @param[out] state The captured execution context state.
+     */
+    void
+    ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state);
 
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"

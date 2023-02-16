@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <map>
-#include <stdexcept>
 #include "api_common.hpp"
 #include "api_service.h"
 #include "device_helper.hpp"
@@ -17,6 +15,9 @@ extern "C"
 #include "Verifier.h"
 #include "verifier_service.h"
 #include "windows_platform.hpp"
+
+#include <map>
+#include <stdexcept>
 
 // Maximum size of JIT'ed native code.
 #define MAX_NATIVE_CODE_SIZE_IN_BYTES (32 * 1024) // 32 KB

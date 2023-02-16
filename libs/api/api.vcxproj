@@ -101,7 +101,6 @@
   <ItemGroup>
     <ClInclude Include="..\thunk\platform.h" />
     <ClInclude Include="api_internal.h" />
-    <ClInclude Include="pch.h" />
     <ClInclude Include="rpc_client.h" />
     <ClInclude Include="tlv.h" />
     <ClInclude Include="Verifier.h" />

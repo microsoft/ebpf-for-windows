@@ -4,13 +4,11 @@
 // Do not alter this generated file.
 // This file was generated from test_sample_ebpf.o
 
-#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
-// Windows Header Files
-#include <windows.h>
+#include "bpf2c.h"
 
 #include <stdio.h>
-
-#include "bpf2c.h"
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+#include <windows.h>
 
 #define metadata_table test_sample_ebpf##_metadata_table
 extern metadata_table_t metadata_table;
@@ -28,12 +26,6 @@ DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpRese
         break;
     }
     return TRUE;
-}
-
-void
-division_by_zero(uint32_t address)
-{
-    fprintf(stderr, "Divide by zero at address %d\n", address);
 }
 
 __declspec(dllexport) metadata_table_t* get_metadata_table() { return &metadata_table; }
@@ -576,7 +568,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 5;
+    version->minor = 6;
     version->revision = 0;
 }
 

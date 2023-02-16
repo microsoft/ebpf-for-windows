@@ -1,29 +1,26 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// Windows build system requires include of Windows.h before other Windows
-// headers.
-#include <winsock2.h>
-#include <Windows.h>
-
-#include <chrono>
-#include <condition_variable>
-#include <mutex>
-#include <thread>
-#include <sddl.h>
-
 #include "api_common.hpp"
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
 #include "ebpf_nethooks.h"
-#include "ebpf_platform.h"
 #include "ebpf_pinning_table.h"
+#include "ebpf_platform.h"
 #include "ebpf_program_types.h"
-#include "ebpf_serialize.h"
 #include "ebpf_ring_buffer.h"
+#include "ebpf_serialize.h"
 #include "ebpf_state.h"
+
+#include <winsock2.h>
+#include <Windows.h>
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <sddl.h>
+#include <thread>
 
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;
@@ -777,7 +774,9 @@ TEST_CASE("state_test", "[state]")
     REQUIRE(ebpf_state_allocate_index(&allocated_index_1) == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_2) == EBPF_SUCCESS);
     REQUIRE(allocated_index_2 != allocated_index_1);
-    REQUIRE(ebpf_state_store(allocated_index_1, reinterpret_cast<uintptr_t>(&foo)) == EBPF_SUCCESS);
+    ebpf_execution_context_state_t state{};
+    ebpf_get_execution_context_state(&state);
+    REQUIRE(ebpf_state_store(allocated_index_1, reinterpret_cast<uintptr_t>(&foo), &state) == EBPF_SUCCESS);
     REQUIRE(ebpf_state_load(allocated_index_1, &retrieved_value) == EBPF_SUCCESS);
     REQUIRE(retrieved_value == reinterpret_cast<uintptr_t>(&foo));
 }

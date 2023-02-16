@@ -1,10 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// ntifs.h needs to be included ahead of other headers to satisfy the Windows
-// build system.
-#include <ntifs.h>
-
 #include "ebpf_platform.h"
 #include "ebpf_store_helper.h"
 
@@ -810,4 +806,15 @@ ebpf_should_yield_processor()
 
     // KeShouldYieldProcessor returns TRUE if the current thread should yield the processor.
     return KeShouldYieldProcessor() != FALSE;
+}
+
+void
+ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state)
+{
+    state->current_irql = KeGetCurrentIrql();
+    if (state->current_irql == DISPATCH_LEVEL) {
+        state->id.cpu = ebpf_get_current_cpu();
+    } else {
+        state->id.thread = ebpf_get_current_thread_id();
+    }
 }

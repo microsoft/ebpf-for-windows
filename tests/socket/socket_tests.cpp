@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// This module facilitates testing various socket related eBPF program types and hooks.
+/**
+ * @file
+ * @brief This module facilitates testing various socket related eBPF program types and hooks.
+ */
 
 #define CATCH_CONFIG_RUNNER
-
-#include <chrono>
-#include <future>
-using namespace std::chrono_literals;
 
 #include "bpf/bpf.h"
 #pragma warning(push)
@@ -21,6 +20,9 @@ using namespace std::chrono_literals;
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 
+#include <chrono>
+#include <future>
+using namespace std::chrono_literals;
 #include <mstcpip.h>
 
 void

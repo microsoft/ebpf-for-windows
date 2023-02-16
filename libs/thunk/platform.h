@@ -3,6 +3,9 @@
 
 #include "ebpf_core_structs.h"
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 #pragma once
 namespace Platform {
 bool

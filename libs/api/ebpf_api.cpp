@@ -2,13 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-#include "pch.h"
-
-#include <codecvt>
-#include <fcntl.h>
-#include <io.h>
-#include <mutex>
-
 #include "api_internal.h"
 #include "bpf.h"
 #include "bpf2c.h"
@@ -18,6 +11,7 @@
 #include "ebpf_protocol.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
+#include "framework.h"
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
 #include "libbpf.h"
@@ -25,15 +19,19 @@
 #include "map_descriptors.hpp"
 #define _PEPARSE_WINDOWS_CONFLICTS
 #include "pe-parse/parse.h"
-
 #include "rpc_client.h"
 extern "C"
 {
 #include "ubpf.h"
 }
-#include "utilities.hpp"
 #include "Verifier.h"
+#include "utilities.hpp"
 #include "windows_platform_common.hpp"
+
+#include <codecvt>
+#include <fcntl.h>
+#include <io.h>
+#include <mutex>
 
 using namespace peparse;
 using namespace Platform;
@@ -2208,36 +2206,40 @@ _ebpf_enumerate_native_sections(
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     EBPF_LOG_ENTRY();
-    *infos = nullptr;
-    *error_message = nullptr;
+    try {
+        *infos = nullptr;
+        *error_message = nullptr;
 
-    parsed_pe* pe = ParsePEFromFile(file);
-    if (pe == nullptr) {
-        EBPF_RETURN_RESULT(EBPF_FILE_NOT_FOUND);
-    }
-
-    ebpf_pe_context_t context = {
-        .result = EBPF_SUCCESS,
-        .object = object,
-        .pin_root_path = pin_root_path,
-        .image_base = pe->peHeader.nt.OptionalHeader64.ImageBase};
-    IterSec(pe, _ebpf_pe_get_map_definitions, &context);
-    IterSec(pe, _ebpf_pe_get_section_names, &context);
-    IterSec(pe, _ebpf_pe_add_section, &context);
-
-    DestructParsedPE(pe);
-
-    if (context.result != EBPF_SUCCESS) {
-        *error_message = ebpf_duplicate_string("Failed to parse PE file.");
-        while (context.infos) {
-            ebpf_section_info_t* next = context.infos->next;
-            _ebpf_free_section_info(context.infos);
-            context.infos = next;
+        parsed_pe* pe = ParsePEFromFile(file);
+        if (pe == nullptr) {
+            EBPF_RETURN_RESULT(EBPF_FILE_NOT_FOUND);
         }
-    } else {
-        *infos = context.infos;
+
+        ebpf_pe_context_t context = {
+            .result = EBPF_SUCCESS,
+            .object = object,
+            .pin_root_path = pin_root_path,
+            .image_base = pe->peHeader.nt.OptionalHeader64.ImageBase};
+        IterSec(pe, _ebpf_pe_get_map_definitions, &context);
+        IterSec(pe, _ebpf_pe_get_section_names, &context);
+        IterSec(pe, _ebpf_pe_add_section, &context);
+
+        DestructParsedPE(pe);
+
+        if (context.result != EBPF_SUCCESS) {
+            *error_message = ebpf_duplicate_string("Failed to parse PE file.");
+            while (context.infos) {
+                ebpf_section_info_t* next = context.infos->next;
+                _ebpf_free_section_info(context.infos);
+                context.infos = next;
+            }
+        } else {
+            *infos = context.infos;
+        }
+        EBPF_RETURN_RESULT(context.result);
+    } catch (const std::bad_alloc&) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
-    EBPF_RETURN_RESULT(context.result);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -3727,7 +3729,10 @@ ebpf_ring_buffer_map_subscribe(
         if (result == EBPF_PENDING)
             result = EBPF_SUCCESS;
 
-        *subscription = local_subscription.release();
+        // If the async IOCTL failed, then free the subscription object.
+        if (result == EBPF_SUCCESS) {
+            *subscription = local_subscription.release();
+        }
 
         EBPF_RETURN_RESULT(result);
     } catch (const std::bad_alloc&) {

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <stdlib.h>
-
 #include "bpf_helpers.h"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
@@ -15,8 +13,9 @@
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_program_types.h"
 #include "ebpf_state.h"
-
 #include "ubpf.h"
+
+#include <stdlib.h>
 
 static size_t _ebpf_program_state_index = MAXUINT64;
 #define EBPF_MAX_HASH_SIZE 128
@@ -132,9 +131,7 @@ _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* pro
 
 static ebpf_result_t
 _ebpf_program_program_info_provider_changed(
-    _In_ const void* client_binding_context,
-    _In_ const void* provider_binding_context,
-    _In_opt_ const ebpf_extension_data_t* provider_data)
+    _In_ const void* client_binding_context, _In_opt_ const ebpf_extension_data_t* provider_data)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
@@ -143,13 +140,11 @@ _ebpf_program_program_info_provider_changed(
     if (provider_data == NULL) {
         // Detach
         // Extension is detaching. Program will get invalidated.
-        program->info_extension_provider_binding_context = NULL;
         program->info_extension_provider_data = NULL;
         return_value = EBPF_SUCCESS;
         goto Exit;
     } else {
         // Attach
-        program->info_extension_provider_binding_context = provider_binding_context;
         program->info_extension_provider_data = provider_data;
 
         ebpf_helper_function_addresses_t* helper_function_addresses = NULL;
@@ -237,7 +232,6 @@ Exit:
 
     if (return_value != EBPF_SUCCESS) {
         program->info_extension_provider_data = NULL;
-        program->info_extension_provider_binding_context = NULL;
     }
 
     EBPF_RETURN_RESULT(return_value);
@@ -303,7 +297,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
     case EBPF_CODE_JIT:
         ebpf_unmap_memory(program->code_or_vm.code.code_memory_descriptor);
         break;
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     case EBPF_CODE_EBPF:
         if (program->code_or_vm.vm) {
             ubpf_destroy(program->code_or_vm.vm);
@@ -729,7 +723,7 @@ _ebpf_program_update_interpret_helpers(_Inout_ ebpf_program_t* program, _Inout_ 
         if (helper == NULL)
             continue;
 
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
         if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (void*)helper) < 0) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "ubpf_register failed", index);
@@ -879,7 +873,7 @@ Exit:
     return return_value;
 }
 
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static ebpf_result_t
 _ebpf_program_load_byte_code(
     _Inout_ ebpf_program_t* program, _In_ const ebpf_instruction_t* instructions, size_t instruction_count)
@@ -965,16 +959,24 @@ ebpf_program_load_code(
     ebpf_assert(
         (code_type == EBPF_CODE_NATIVE && code_context != NULL) ||
         (code_type != EBPF_CODE_NATIVE && code_context == NULL));
-    if (program->parameters.code_type == EBPF_CODE_JIT || program->parameters.code_type == EBPF_CODE_NATIVE)
+
+    switch (program->parameters.code_type) {
+
+    case EBPF_CODE_JIT:
+    case EBPF_CODE_NATIVE:
         result = _ebpf_program_load_machine_code(program, code_context, code, code_size);
-    else if (program->parameters.code_type == EBPF_CODE_EBPF)
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+        break;
+
+    case EBPF_CODE_EBPF:
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
         result = _ebpf_program_load_byte_code(
             program, (const ebpf_instruction_t*)code, code_size / sizeof(ebpf_instruction_t));
 #else
         result = EBPF_BLOCKED_BY_POLICY;
 #endif
-    else {
+        break;
+
+    default: {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
@@ -983,6 +985,8 @@ ebpf_program_load_code(
 
         result = EBPF_INVALID_ARGUMENT;
     }
+    }
+
     EBPF_RETURN_RESULT(result);
 }
 
@@ -1015,25 +1019,36 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
     return EBPF_SUCCESS;
 }
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_reference_providers(_Inout_ ebpf_program_t* program)
+{
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
+    }
+    return EBPF_SUCCESS;
+}
+
 void
-ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _Out_ uint32_t* result)
+ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program)
+{
+    ebpf_extension_dereference_provider_data(program->info_extension_client);
+}
+
+void
+ebpf_program_invoke(
+    _In_ const ebpf_program_t* program,
+    _Inout_ void* context,
+    _Out_ uint32_t* result,
+    _In_ const ebpf_execution_context_state_t* execution_state)
 {
     // High volume call - Skip entry/exit logging.
     ebpf_program_tail_call_state_t state = {0};
     const ebpf_program_t* current_program = program;
 
-    bool provider_data_referenced = false;
     bool program_state_stored = false;
 
-    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
-        *result = 0;
-        return;
-    }
-
-    provider_data_referenced = true;
-
     state.context = context;
-    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
+    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state, execution_state) == EBPF_SUCCESS) {
         *result = 0;
         goto Done;
     }
@@ -1041,13 +1056,14 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
     program_state_stored = true;
 
     for (state.count = 0; state.count < MAX_TAIL_CALL_CNT; state.count++) {
+
         if (current_program->parameters.code_type == EBPF_CODE_JIT ||
             current_program->parameters.code_type == EBPF_CODE_NATIVE) {
             ebpf_program_entry_point_t function_pointer;
             function_pointer = (ebpf_program_entry_point_t)(current_program->code_or_vm.code.code_pointer);
             *result = (function_pointer)(context);
         } else {
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
             uint64_t out_value;
             int ret = (uint32_t)(ubpf_exec(current_program->code_or_vm.vm, context, 1024, &out_value));
             if (ret < 0) {
@@ -1075,10 +1091,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
 
 Done:
     if (program_state_stored) {
-        ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0));
-    }
-    if (provider_data_referenced) {
-        ebpf_extension_dereference_provider_data(program->info_extension_client);
+        ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0, execution_state));
     }
 }
 
@@ -1700,15 +1713,30 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     uint64_t cumulative_time = 0;
     ebpf_result_t result;
     uint32_t return_value = 0;
-    uint8_t old_irql;
+    uint8_t old_irql = 0;
     uintptr_t old_thread_affinity;
+    size_t batch_size = options->batch_size ? options->batch_size : 1024;
+    ebpf_execution_context_state_t execution_context_state = {0};
+    bool epoch_entered = false;
+    bool irql_raised = false;
+    bool thread_affinity_set = false;
 
     result = ebpf_set_current_thread_affinity((uintptr_t)1 << options->cpu, &old_thread_affinity);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
+    thread_affinity_set = true;
 
     old_irql = ebpf_raise_irql(context->required_irql);
+    irql_raised = true;
+
+    result = ebpf_epoch_enter();
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    epoch_entered = true;
+
+    ebpf_get_execution_context_state(&execution_context_state);
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
     for (size_t i = 0; i < options->repeat_count; i++) {
@@ -1716,11 +1744,15 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
             result = EBPF_CANCELED;
             break;
         }
-        result = ebpf_epoch_enter();
-        if (result != EBPF_SUCCESS)
-            break;
-        ebpf_program_invoke(context->program, context->context, &return_value);
-        ebpf_epoch_exit();
+        // Start a new epoch every batch_size iterations.
+        if ((i % batch_size == (batch_size - 1))) {
+            ebpf_epoch_exit();
+            result = ebpf_epoch_enter();
+            if (result != EBPF_SUCCESS) {
+                break;
+            }
+        }
+        ebpf_program_invoke(context->program, context->context, &return_value, &execution_context_state);
         if (ebpf_should_yield_processor()) {
             // Compute the elapsed time since the last yield.
             end_time = ebpf_query_time_since_boot(false);
@@ -1746,10 +1778,19 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     options->duration /= options->repeat_count;
     options->return_value = return_value;
 
-    ebpf_lower_irql(old_irql);
-    ebpf_restore_current_thread_affinity(old_thread_affinity);
-
 Done:
+    if (epoch_entered) {
+        ebpf_epoch_exit();
+    }
+
+    if (irql_raised) {
+        ebpf_lower_irql(old_irql);
+    }
+
+    if (thread_affinity_set) {
+        ebpf_restore_current_thread_affinity(old_thread_affinity);
+    }
+
     if (context->program_data && context->program_data->context_destroy != NULL && context->context != NULL) {
         context->program_data->context_destroy(
             context->context,

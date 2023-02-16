@@ -1,11 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
 
-#include <errno.h>
-#include <map>
-#include <stdexcept>
 #include "ebpf_api.h"
 #include "ebpf_execution_context.h"
 #include "ebpf_platform.h"
@@ -13,6 +9,10 @@
 #undef VOID
 #include "platform.hpp"
 #include "windows_platform_common.hpp"
+
+#include <errno.h>
+#include <map>
+#include <stdexcept>
 
 typedef struct _map_cache
 {

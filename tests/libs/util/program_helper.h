@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 /**
+ * @file
  * @brief Utility functions for loading and attaching test eBPF programs.
  */
 

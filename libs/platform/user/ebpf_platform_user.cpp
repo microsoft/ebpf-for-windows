@@ -1,10 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_platform.h"
+#include "ebpf_leak_detector.h"
+#include "ebpf_low_memory_test.h"
+#include "ebpf_symbol_decoder.h"
+#include "ebpf_utilities.h"
 
-#include <intsafe.h>
+#include <TraceLoggingProvider.h>
 #include <functional>
+#include <intsafe.h>
 #include <map>
 #include <mutex>
 #include <queue>
@@ -13,13 +17,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string>
-#include <TraceLoggingProvider.h>
 #include <vector>
-
-#include "ebpf_leak_detector.h"
-#include "ebpf_low_memory_test.h"
-#include "ebpf_symbol_decoder.h"
-#include "ebpf_utilities.h"
 
 // Global variables used to override behavior for testing.
 // Permit the test to simulate both Hyper-V Code Integrity.
@@ -1198,4 +1196,22 @@ bool
 ebpf_should_yield_processor()
 {
     return false;
+}
+
+void
+ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state)
+{
+    if (ebpf_non_preemptible) {
+        state->current_irql = DISPATCH_LEVEL;
+        state->id.cpu = ebpf_get_current_cpu();
+    } else {
+        state->current_irql = PASSIVE_LEVEL;
+        state->id.thread = GetCurrentThreadId();
+    }
+}
+
+uint8_t
+ebpf_get_current_irql()
+{
+    return ebpf_non_preemptible ? DISPATCH_LEVEL : PASSIVE_LEVEL;
 }

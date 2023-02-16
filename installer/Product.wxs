@@ -52,6 +52,11 @@ SPDX-License-Identifier: MIT
 				<ComponentGroupRef Id="eBPF_Development_include_asm" />
 				<ComponentGroupRef Id="eBPF_Development_include_bpf" />
 				<ComponentGroupRef Id="eBPF_Development_include_kernel" />
+				<ComponentGroupRef Id="eBPF_Development_include_libbpf" />
+				<ComponentGroupRef Id="eBPF_Development_include_libbpf_asm" />
+				<ComponentGroupRef Id="eBPF_Development_include_libbpf_linux" />
+				<ComponentGroupRef Id="eBPF_Development_include_libbpf_uapi" />
+				<ComponentGroupRef Id="eBPF_Development_include_libbpf_uapi_linux" />
 				<ComponentGroupRef Id="eBPF_Development_include_linux" />
 				<ComponentGroupRef Id="eBPF_Development_include_net" />
 				<ComponentGroupRef Id="eBPF_Development_include_uapi" />
@@ -107,6 +112,7 @@ SPDX-License-Identifier: MIT
 			<Custom Action="sample_ebpf_ext_Driver_uninstall" After="sample_ebpf_ext_Driver_stop">REMOVE="ALL" OR REMOVE="eBPF_Testing" OR REMOVE="eBPF_Development,eBPF_Testing"</Custom>
 
 			<Custom Action="Clear_eBPF_store_uninstall" After="NetEbpfExt_Driver_uninstall">REMOVE="ALL"</Custom>
+			<Custom Action="eBPFCore_Driver_uninstall_flush" After="InstallFinalize">REMOVE="ALL"</Custom>
 		</InstallExecuteSequence>
 
 		<!-- Define the UI style & behavior -->
@@ -134,6 +140,13 @@ SPDX-License-Identifier: MIT
 						<Directory Id="dir_include_asm" Name="asm" />
 						<Directory Id="dir_include_bpf" Name="bpf" />
 						<Directory Id="dir_include_kernel" Name="kernel" />
+						<Directory Id="dir_include_libbpf" Name="libbpf">
+							<Directory Id="dir_include_libbpf_asm" Name="asm" />
+							<Directory Id="dir_include_libbpf_linux" Name="linux" />
+							<Directory Id="dir_include_libbpf_uapi" Name="uapi">
+								<Directory Id="dir_include_libbpf_uapi_linux" Name="linux" />
+							</Directory>
+						</Directory>
 						<Directory Id="dir_include_linux" Name="linux" />
 						<Directory Id="dir_include_net" Name="net" />
 						<Directory Id="dir_include_uapi" Name="uapi">
@@ -167,10 +180,10 @@ SPDX-License-Identifier: MIT
 			<Component Id="EBPF_ALL.GUID" DiskId="1" Guid="{F3C808AC-A63B-4A29-B110-00B5A903F3C9}">
 				<File Id="EBPF_ALL.GUID" Name="ebpf-all.guid" Source="$(var.SolutionDir)\scripts\ebpf-all.guid" />
 			</Component>
-			<Component Id="BPFTOOL.EXE" DiskId="1" Guid="E168EB1A-35F6-47E3-B977-B16DF7DFBDB0">
+			<Component Id="BPFTOOL.EXE" DiskId="1" Guid="{E168EB1A-35F6-47E3-B977-B16DF7DFBDB0}">
 				<File Id="BPFTOOL.EXE" Name="bpftool.exe" Source="$(var.bpftool.TargetDir)bpftool.exe" />
 			</Component>
-			<Component Id="BPFTOOL.PDB" DiskId="1" Guid="D2A6D747-A52C-43B9-A684-FF05A0DCE166">
+			<Component Id="BPFTOOL.PDB" DiskId="1" Guid="{D2A6D747-A52C-43B9-A684-FF05A0DCE166}">
 				<File Id="BPFTOOL.PDB" Name="bpftool.pdb" Source="$(var.bpftool.TargetDir)bpftool.pdb" />
 			</Component>
 			<Component Id="EBPFAPI.DLL" DiskId="1" Guid="{C44E4B08-901E-4B71-8FD1-F0B3D11D063F}">
@@ -229,7 +242,9 @@ SPDX-License-Identifier: MIT
 								ErrorControl="normal"
 								Account="[WIX_ACCOUNT_LOCALSERVICE]"
 								Vital="yes"
-								Interactive="no" />
+								Interactive="no">
+					<ServiceConfig ServiceSid="restricted" OnInstall="yes" OnReinstall="yes" />
+				</ServiceInstall>
 				<ServiceControl Id="eBPFSvc_Start" Name="eBPFSvc"
 								Start="install"
 								Wait="no" />
@@ -262,6 +277,7 @@ SPDX-License-Identifier: MIT
 		<CustomAction Id="eBPFCore_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 		<Property Id="eBPFCore_Driver_uninstall" Value='"sc.exe" delete eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<CustomAction Id="eBPFCore_Driver_uninstall_flush" Directory="ProgramFiles64Folder" ExeCommand ='"sc.exe" query eBPFCore' Execute ="immediate" Return ="asyncNoWait"/>
 		<Property Id="eBPFCore_Driver_stop_rollback" Value='"net.exe" stop eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 		<Property Id="eBPFCore_Driver_uninstall_rollback" Value='"sc.exe" delete eBPFCore' />
@@ -297,144 +313,206 @@ SPDX-License-Identifier: MIT
 	<!-- Define the product's <Development> components -->
 	<Fragment>
 		<ComponentGroup Id="eBPF_Development_scripts" Directory="dir_scripts">
-			<Component Id="CONVERT_BPFTONATIVE.PS1" DiskId="1" Guid="DA950F9A-6448-4EE1-8B0B-4FE568E65177">
+			<Component Id="CONVERT_BPFTONATIVE.PS1" DiskId="1" Guid="{DA950F9A-6448-4EE1-8B0B-4FE568E65177}">
 				<File Id="CONVERT_BPFTONATIVE.PS1" Name="Convert-BpfToNative.ps1" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\Convert-BpfToNative.ps1" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include" Directory="dir_include">
-			<Component Id="BPF_ENDIAN.H" DiskId="1" Guid="59B40FBC-2842-449B-9101-CFBCCF785335">
+			<Component Id="BPF_ENDIAN.H" DiskId="1" Guid="{59B40FBC-2842-449B-9101-CFBCCF785335}">
 				<File Id="BPF_ENDIAN.H" Name="bpf_endian.h" Source="$(var.SolutionDir)include\bpf_endian.h" />
 			</Component>
-			<Component Id="BPF_HELPER_DEFS.H" DiskId="1" Guid="EA36437E-777C-4FFE-ADF5-D806BBDB46FE">
+			<Component Id="BPF_HELPER_DEFS.H" DiskId="1" Guid="{EA36437E-777C-4FFE-ADF5-D806BBDB46FE}">
 				<File Id="BPF_HELPER_DEFS.H" Name="bpf_helper_defs.h" Source="$(var.SolutionDir)include\bpf_helper_defs.h" />
 			</Component>
-			<Component Id="BPF_HELPERS.H" DiskId="1" Guid="BD51CAA7-5D26-48C3-8822-EFB91AC0367E">
+			<Component Id="BPF_HELPERS.H" DiskId="1" Guid="{BD51CAA7-5D26-48C3-8822-EFB91AC0367E}">
 				<File Id="BPF_HELPERS.H" Name="bpf_helpers.h" Source="$(var.SolutionDir)include\bpf_helpers.h" />
 			</Component>
-			<Component Id="BPF_HELPERS_PLATFORM.H" DiskId="1" Guid="FD2EE81E-0EE7-4936-AA96-AAF7772164D3">
+			<Component Id="BPF_HELPERS_PLATFORM.H" DiskId="1" Guid="{FD2EE81E-0EE7-4936-AA96-AAF7772164D3}">
 				<File Id="BPF_HELPERS_PLATFORM.H" Name="bpf_helpers_platform.h" Source="$(var.SolutionDir)include\bpf_helpers_platform.h" />
 			</Component>
-			<Component Id="BPF2C.H" DiskId="1" Guid="7C3950B4-29B2-4F39-BEEC-9FE18E08FE88">
+			<Component Id="BPF2C.H" DiskId="1" Guid="{7C3950B4-29B2-4F39-BEEC-9FE18E08FE88}">
 				<File Id="BPF2C.H" Name="bpf2c.h" Source="$(var.SolutionDir)include\bpf2c.h" />
 			</Component>
-			<Component Id="EBPF_API.H" DiskId="1" Guid="0AAC29C6-1612-446F-BE6D-FFF42E032744">
+			<Component Id="EBPF_API.H" DiskId="1" Guid="{0AAC29C6-1612-446F-BE6D-FFF42E032744}">
 				<File Id="EBPF_API.H" Name="ebpf_api.h" Source="$(var.SolutionDir)include\ebpf_api.h" />
 			</Component>
-			<Component Id="EBPF_CORE_STRUCTS.H" DiskId="1" Guid="C3814D22-4D03-420A-8AB3-BCF1E875C072">
+			<Component Id="EBPF_CORE_STRUCTS.H" DiskId="1" Guid="{C3814D22-4D03-420A-8AB3-BCF1E875C072}">
 				<File Id="EBPF_CORE_STRUCTS.H" Name="ebpf_core_structs.h" Source="$(var.SolutionDir)include\ebpf_core_structs.h" />
 			</Component>
-			<Component Id="EBPF_EXECUTION_TYPE.H" DiskId="1" Guid="451BE64A-5CD6-49BF-AF90-9CEFF55332A2">
+			<Component Id="EBPF_EXECUTION_TYPE.H" DiskId="1" Guid="{451BE64A-5CD6-49BF-AF90-9CEFF55332A2}">
 				<File Id="EBPF_EXECUTION_TYPE.H" Name="ebpf_execution_type.h" Source="$(var.SolutionDir)include\ebpf_execution_type.h" />
 			</Component>
-			<Component Id="EBPF_EXTENSION_UUIDS.H" DiskId="1" Guid="02269617-BA66-4C22-A98D-CB699E785A35">
+			<Component Id="EBPF_EXTENSION_UUIDS.H" DiskId="1" Guid="{02269617-BA66-4C22-A98D-CB699E785A35}">
 				<File Id="EBPF_EXTENSION_UUIDS.H" Name="ebpf_extension_uuids.h" Source="$(var.SolutionDir)include\ebpf_extension_uuids.h" />
 			</Component>
-			<Component Id="EBPF_NETHOOKS.H" DiskId="1" Guid="7BF41E29-AFCE-4B11-9DF7-BB2BED9B453F">
+			<Component Id="EBPF_NETHOOKS.H" DiskId="1" Guid="{7BF41E29-AFCE-4B11-9DF7-BB2BED9B453F}">
 				<File Id="EBPF_NETHOOKS.H" Name="ebpf_nethooks.h" Source="$(var.SolutionDir)include\ebpf_nethooks.h" />
 			</Component>
-			<Component Id="EBPF_PROGRAM_ATTACH_TYPE_GUIDS.H" DiskId="1" Guid="ACDF9FAD-6C7B-49D0-9136-9FF0008BC5F0">
+			<Component Id="EBPF_PROGRAM_ATTACH_TYPE_GUIDS.H" DiskId="1" Guid="{ACDF9FAD-6C7B-49D0-9136-9FF0008BC5F0}">
 				<File Id="EBPF_PROGRAM_ATTACH_TYPE_GUIDS.H" Name="ebpf_program_attach_type_guids.h" Source="$(var.SolutionDir)include\ebpf_program_attach_type_guids.h" />
 			</Component>
-			<Component Id="EBPF_PROGRAM_TYPES.H" DiskId="1" Guid="15592AFC-A3CD-4A26-9F89-6656EB386354">
+			<Component Id="EBPF_PROGRAM_TYPES.H" DiskId="1" Guid="{15592AFC-A3CD-4A26-9F89-6656EB386354}">
 				<File Id="EBPF_PROGRAM_TYPES.H" Name="ebpf_program_types.h" Source="$(var.SolutionDir)include\ebpf_program_types.h" />
 			</Component>
-			<Component Id="EBPF_RESULT.H" DiskId="1" Guid="38D84F8F-1921-40F0-8A0D-13F02513CC93">
+			<Component Id="EBPF_RESULT.H" DiskId="1" Guid="{38D84F8F-1921-40F0-8A0D-13F02513CC93}">
 				<File Id="EBPF_RESULT.H" Name="ebpf_result.h" Source="$(var.SolutionDir)include\ebpf_result.h" />
 			</Component>
-			<Component Id="EBPF_STORE_HELPER.H" DiskId="1" Guid="14BE7BA2-DCD1-4AE1-A115-396E52CDF073">
+			<Component Id="EBPF_STORE_HELPER.H" DiskId="1" Guid="{14BE7BA2-DCD1-4AE1-A115-396E52CDF073}">
 				<File Id="EBPF_STORE_HELPER.H" Name="ebpf_store_helper.h" Source="$(var.SolutionDir)include\ebpf_store_helper.h" />
 			</Component>
-			<Component Id="EBPF_STRUCTS.H" DiskId="1" Guid="2D7F0268-8926-41C5-B592-5A3CEE10540D">
+			<Component Id="EBPF_STRUCTS.H" DiskId="1" Guid="{2D7F0268-8926-41C5-B592-5A3CEE10540D}">
 				<File Id="EBPF_STRUCTS.H" Name="ebpf_structs.h" Source="$(var.SolutionDir)include\ebpf_structs.h" />
 			</Component>
-			<Component Id="EBPF_UTILITIES.H" DiskId="1" Guid="24A4B689-2B6B-4431-BFB0-732388E41404">
+			<Component Id="EBPF_UTILITIES.H" DiskId="1" Guid="{24A4B689-2B6B-4431-BFB0-732388E41404}">
 				<File Id="EBPF_UTILITIES.H" Name="ebpf_utilities.h" Source="$(var.SolutionDir)include\ebpf_utilities.h" />
 			</Component>
-			<Component Id="EBPF_WINDOWS.H" DiskId="1" Guid="DFBF9B95-F1DF-4C08-A0D6-60556F3FA9EB">
+			<Component Id="EBPF_WINDOWS.H" DiskId="1" Guid="{DFBF9B95-F1DF-4C08-A0D6-60556F3FA9EB}">
 				<File Id="EBPF_WINDOWS.H" Name="ebpf_windows.h" Source="$(var.SolutionDir)include\ebpf_windows.h" />
 			</Component>
-			<Component Id="ELFIO_WRAPPER.HPP" DiskId="1" Guid="FB1B409E-F5F7-40C8-AE05-C99E65CF7347">
+			<Component Id="ELFIO_WRAPPER.HPP" DiskId="1" Guid="{FB1B409E-F5F7-40C8-AE05-C99E65CF7347}">
 				<File Id="ELFIO_WRAPPER.HPP" Name="elfio_wrapper.hpp" Source="$(var.SolutionDir)include\elfio_wrapper.hpp" />
 			</Component>
-			<Component Id="GIT_COMMIT_ID.H" DiskId="1" Guid="0AB71C9D-68E6-4892-A45D-306BA921CC07">
+			<Component Id="GIT_COMMIT_ID.H" DiskId="1" Guid="{0AB71C9D-68E6-4892-A45D-306BA921CC07}">
 				<File Id="GIT_COMMIT_ID.H" Name="git_commit_id.h" Source="$(var.SolutionDir)include\git_commit_id.h" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_asm" Directory="dir_include_asm">
-			<Component Id="ERRNO.H" DiskId="1" Guid="DF63C9C1-FA9C-44E3-94EB-F77B7072E4BE">
+			<Component Id="ERRNO.H" DiskId="1" Guid="{DF63C9C1-FA9C-44E3-94EB-F77B7072E4BE}">
 				<File Id="ERRNO.H" Name="errno.h" Source="$(var.SolutionDir)include\asm\errno.h" />
 			</Component>
-			<Component Id="POSIX_TYPES.H" DiskId="1" Guid="F28F43DC-B53F-4DF9-8E19-F2D7E736E446">
+			<Component Id="POSIX_TYPES.H" DiskId="1" Guid="{F28F43DC-B53F-4DF9-8E19-F2D7E736E446}">
 				<File Id="POSIX_TYPES.H" Name="posix_types.h" Source="$(var.SolutionDir)include\asm\posix_types.h" />
 			</Component>
-			<Component Id="TYPES.H" DiskId="1" Guid="030CB7C2-BD80-4677-A183-890315E75EAC">
+			<Component Id="TYPES.H" DiskId="1" Guid="{030CB7C2-BD80-4677-A183-890315E75EAC}">
 				<File Id="TYPES.H" Name="types.h" Source="$(var.SolutionDir)include\asm\types.h" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_bpf" Directory="dir_include_bpf">
-			<Component Id="BPF.H_1" DiskId="1" Guid="A41E9DEB-709E-4DA3-9A24-F5B8C21AF30E">
+			<Component Id="BPF.H_1" DiskId="1" Guid="{A41E9DEB-709E-4DA3-9A24-F5B8C21AF30E}">
 				<File Id="BPF.H_1" Name="bpf.h" Source="$(var.SolutionDir)include\bpf\bpf.h" />
 			</Component>
-			<Component Id="BPF_LEGACY.H" DiskId="1" Guid="B3E387BA-03DB-4FE9-A808-B334D48F2CAA">
+			<Component Id="BPF_LEGACY.H" DiskId="1" Guid="{B3E387BA-03DB-4FE9-A808-B334D48F2CAA}">
 				<File Id="BPF_LEGACY.H" Name="bpf_legacy.h" Source="$(var.SolutionDir)include\bpf\bpf_legacy.h" />
 			</Component>
-			<Component Id="HASHMAP.H" DiskId="1" Guid="47680BD2-8931-4098-AFDF-57A5E4688BB5">
+			<Component Id="HASHMAP.H" DiskId="1" Guid="{47680BD2-8931-4098-AFDF-57A5E4688BB5}">
 				<File Id="HASHMAP.H" Name="hashmap.h" Source="$(var.SolutionDir)include\bpf\hashmap.h" />
 			</Component>
-			<Component Id="LIBBPF.H" DiskId="1" Guid="2A878010-A1D6-4888-8694-FA4148259282">
+			<Component Id="LIBBPF.H" DiskId="1" Guid="{2A878010-A1D6-4888-8694-FA4148259282}">
 				<File Id="LIBBPF.H" Name="libbpf.h" Source="$(var.SolutionDir)include\bpf\libbpf.h" />
 			</Component>
-			<Component Id="LIBBPF_LEGACY.H" DiskId="1" Guid="62760909-DD06-4711-AFE3-E4FD5A2FE940">
+			<Component Id="LIBBPF_LEGACY.H" DiskId="1" Guid="{62760909-DD06-4711-AFE3-E4FD5A2FE940}">
 				<File Id="LIBBPF_LEGACY.H" Name="libbpf_legacy.h" Source="$(var.SolutionDir)include\bpf\libbpf_legacy.h" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_kernel" Directory="dir_include_kernel">
-			<Component Id="EBPF_REGISTRY_HELPER.H" DiskId="1" Guid="26717067-176B-4B94-8716-57A675E5F918">
+			<Component Id="EBPF_REGISTRY_HELPER.H" DiskId="1" Guid="{26717067-176B-4B94-8716-57A675E5F918}">
 				<File Id="EBPF_REGISTRY_HELPER.H" Name="ebpf_registry_helper.h" Source="$(var.SolutionDir)include\kernel\ebpf_registry_helper.h" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_linux" Directory="dir_include_linux">
-			<Component Id="BPF.H_2" DiskId="1" Guid="ED4F7D03-0334-4FB3-A3AC-1DAD36FF1228">
+			<Component Id="BPF.H_2" DiskId="1" Guid="{ED4F7D03-0334-4FB3-A3AC-1DAD36FF1228}">
 				<File Id="BPF.H_2" Name="bpf.h" Source="$(var.SolutionDir)include\linux\bpf.h" />
 			</Component>
-			<Component Id="STDDEF.H" DiskId="1" Guid="41D2F835-B4A7-450F-B064-1280C5D55505">
+			<Component Id="STDDEF.H" DiskId="1" Guid="{41D2F835-B4A7-450F-B064-1280C5D55505}">
 				<File Id="STDDEF.H" Name="stddef.h" Source="$(var.SolutionDir)include\linux\stddef.h" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_net" Directory="dir_include_net">
-			<Component Id="IF_ETHER.H_1" DiskId="1" Guid="A1524B6C-6AE6-498F-AAB5-2527C2A4BC0A">
+			<Component Id="IF_ETHER.H_1" DiskId="1" Guid="{A1524B6C-6AE6-498F-AAB5-2527C2A4BC0A}">
 				<File Id="IF_ETHER.H_1" Name="if_ether.h" Source="$(var.SolutionDir)include\net\if_ether.h" />
 			</Component>
-			<Component Id="IP.H_1" DiskId="1" Guid="AC6F71A8-778B-4BEE-B409-DF0166A36482">
+			<Component Id="IP.H_1" DiskId="1" Guid="{AC6F71A8-778B-4BEE-B409-DF0166A36482}">
 				<File Id="IP.H_1" Name="ip.h" Source="$(var.SolutionDir)include\net\ip.h" />
 			</Component>
-			<Component Id="TCP.H_1" DiskId="1" Guid="F8A57AE9-B14A-4FBF-8CC5-E164A5E63EB4">
+			<Component Id="TCP.H_1" DiskId="1" Guid="{F8A57AE9-B14A-4FBF-8CC5-E164A5E63EB4}">
 				<File Id="TCP.H_1" Name="tcp.h" Source="$(var.SolutionDir)include\net\tcp.h" />
 			</Component>
-			<Component Id="UDP.H" DiskId="1" Guid="442722D8-B3F8-4820-933C-84406859579B">
+			<Component Id="UDP.H" DiskId="1" Guid="{442722D8-B3F8-4820-933C-84406859579B}">
 				<File Id="UDP.H" Name="udp.h" Source="$(var.SolutionDir)include\net\udp.h" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_uapi" Directory="dir_include_uapi" />
-		<ComponentGroup Id="eBPF_Development_include_uapi_linux" Directory="dir_include_uapi_linux">
-			<Component Id="BPF.H" DiskId="1" Guid="CEF66B1A-8225-4B84-8239-C5238DA41BF2">
-				<File Id="BPF.H" Name="bpf.h" Source="$(var.SolutionDir)include\uapi\linux\bpf.h" />
+		<ComponentGroup Id="eBPF_Development_include_libbpf" Directory="dir_include_libbpf" />
+		<ComponentGroup Id="eBPF_Development_include_libbpf_asm" Directory="dir_include_libbpf_asm">
+			<Component Id="BARRIER.H" DiskId="1" Guid="{BE2698A4-4865-4F24-BA81-9A23555D99F4}">
+				<File Id="BARRIER.H" Name="barrier.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\asm\barrier.h" />
 			</Component>
-			<Component Id="IF_ETHER.H" DiskId="1" Guid="48230CCC-44D2-4875-91EF-12631D00A741">
+		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_include_libbpf_linux" Directory="dir_include_libbpf_linux">
+			<Component Id="COMPILER.H" DiskId="1" Guid="{417DA64B-E685-4EF6-8D96-18E9A41B003F}">
+				<File Id="COMPILER.H" Name="compiler.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\linux\compiler.h" />
+			</Component>
+			<Component Id="ERR.H" DiskId="1" Guid="{983B1790-3F35-45EF-9937-B0EDD9F2FA37}">
+				<File Id="ERR.H" Name="err.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\linux\err.h" />
+			</Component>
+			<Component Id="FILTER.H" DiskId="1" Guid="{60531224-DD83-4C83-BD25-688D2867681B}">
+				<File Id="FILTER.H" Name="filter.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\linux\filter.h" />
+			</Component>
+			<Component Id="KERNEL.H" DiskId="1" Guid="{8B0217C4-5DC9-4456-9912-AF98F2B56F80}">
+				<File Id="KERNEL.H" Name="kernel.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\linux\kernel.h" />
+			</Component>
+			<Component Id="LIST.H" DiskId="1" Guid="{E1D9D7E7-C942-4BCB-B8D2-014757A611F0}">
+				<File Id="LIST.H" Name="list.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\linux\list.h" />
+			</Component>
+			<Component Id="OVERFLOW.H" DiskId="1" Guid="{6BB5398C-E110-4496-A5DF-39401CFB6C7C}">
+				<File Id="OVERFLOW.H" Name="overflow.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\linux\overflow.h" />
+			</Component>
+			<Component Id="RING_BUFFER.H" DiskId="1" Guid="{5B9CEBE1-2C23-43A3-A48A-292766BE28B4}">
+				<File Id="RING_BUFFER.H" Name="ring_buffer.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\linux\ring_buffer.h" />
+			</Component>
+			<Component Id="TYPES_1.H" DiskId="1" Guid="{F624C418-861D-4F8D-B05A-7BFB075D35BE}">
+				<File Id="TYPES_1.H" Name="types.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\linux\types.h" />
+			</Component>
+		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_include_libbpf_uapi" Directory="dir_include_libbpf_uapi"/>
+		<ComponentGroup Id="eBPF_Development_include_libbpf_uapi_linux" Directory="dir_include_libbpf_uapi_linux">
+			<Component Id="BPF.H_3" DiskId="1" Guid="{CBACC6D2-C5DC-4F47-9A10-873CFCE5900C}">
+				<File Id="BPF.H_3" Name="bpf.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\uapi\linux\bpf.h" />
+			</Component>
+			<Component Id="BPF_COMMON.H" DiskId="1" Guid="{2F635111-E84D-4862-95FE-B94D14CD9BEC}">
+				<File Id="BPF_COMMON.H" Name="bpf_common.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\uapi\linux\bpf_common.h" />
+			</Component>
+			<Component Id="BTF.H" DiskId="1" Guid="{B8F4A5D4-5355-43D7-AE31-27B0905D04C3}">
+				<File Id="BTF.H" Name="btf.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\uapi\linux\btf.h" />
+			</Component>
+			<Component Id="IF_LINK.H" DiskId="1" Guid="{4882B98F-B313-4D8F-A268-4082BCB6AFF5}">
+				<File Id="IF_LINK.H" Name="if_link.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\uapi\linux\if_link.h" />
+			</Component>
+			<Component Id="IF_XDP.H" DiskId="1" Guid="{5AABA8F2-4D4F-40D4-B273-ABC022DBA3A4}">
+				<File Id="IF_XDP.H" Name="if_xdp.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\uapi\linux\if_xdp.h" />
+			</Component>
+			<Component Id="NETLINK.H" DiskId="1" Guid="{9FE3D961-82F7-44EB-8941-0AF215F7BBFB}">
+				<File Id="NETLINK.H" Name="netlink.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\uapi\linux\netlink.h" />
+			</Component>
+			<Component Id="PERF_EVENT.H" DiskId="1" Guid="{287B4EA6-5AED-4791-A579-5FFEFE0B1901}">
+				<File Id="PERF_EVENT.H" Name="perf_event.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\uapi\linux\perf_event.h" />
+			</Component>
+			<Component Id="PKT_CLS.H" DiskId="1" Guid="{DA933141-A16D-4715-9C16-0B03F86A7A91}">
+				<File Id="PKT_CLS.H" Name="pkt_cls.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\uapi\linux\pkt_cls.h" />
+			</Component>
+			<Component Id="PKT_SCHED.H" DiskId="1" Guid="{CC3A71B7-7E14-4AF1-9F29-980E72C19A26}">
+				<File Id="PKT_SCHED.H" Name="pkt_sched.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\uapi\linux\pkt_sched.h" />
+			</Component>
+		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_include_uapi_linux" Directory="dir_include_uapi_linux">
+			<Component Id="BPF.H_4" DiskId="1" Guid="{CEF66B1A-8225-4B84-8239-C5238DA41BF2}">
+				<File Id="BPF.H_4" Name="bpf.h" Source="$(var.SolutionDir)include\uapi\linux\bpf.h" />
+			</Component>
+			<Component Id="IF_ETHER.H" DiskId="1" Guid="{48230CCC-44D2-4875-91EF-12631D00A741}">
 				<File Id="IF_ETHER.H" Name="if_ether.h" Source="$(var.SolutionDir)include\uapi\linux\if_ether.h" />
 			</Component>
-			<Component Id="IN.H" DiskId="1" Guid="D7FFD894-2020-42C0-B6D3-10183CEC5452">
+			<Component Id="IN.H" DiskId="1" Guid="{D7FFD894-2020-42C0-B6D3-10183CEC5452}">
 				<File Id="IN.H" Name="in.h" Source="$(var.SolutionDir)include\uapi\linux\in.h" />
 			</Component>
-			<Component Id="IP.H" DiskId="1" Guid="4A7B59AE-4F8C-4BFE-AD76-F42F04C494E4">
+			<Component Id="IP.H" DiskId="1" Guid="{4A7B59AE-4F8C-4BFE-AD76-F42F04C494E4}">
 				<File Id="IP.H" Name="ip.h" Source="$(var.SolutionDir)include\uapi\linux\ip.h" />
 			</Component>
-			<Component Id="TCP.H" DiskId="1" Guid="A66521EB-BA4F-4741-969D-B727585BBE3C">
+			<Component Id="TCP.H" DiskId="1" Guid="{A66521EB-BA4F-4741-969D-B727585BBE3C}">
 				<File Id="TCP.H" Name="tcp.h" Source="$(var.SolutionDir)include\uapi\linux\tcp.h" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_user" Directory="dir_include_user">
-			<Component Id="EBPF_REGISTRY_HELPER.H_1" DiskId="1" Guid="D1BF1F4F-BD3D-484E-89D9-77A94522FC97">
+			<Component Id="EBPF_REGISTRY_HELPER.H_1" DiskId="1" Guid="{D1BF1F4F-BD3D-484E-89D9-77A94522FC97}">
 				<File Id="EBPF_REGISTRY_HELPER.H_1" Name="ebpf_registry_helper.h" Source="$(var.SolutionDir)include\user\ebpf_registry_helper.h" />
 			</Component>
 		</ComponentGroup>
@@ -451,109 +529,130 @@ SPDX-License-Identifier: MIT
 	<!-- Define the product's <Testing> components -->
 	<Fragment>
 		<ComponentGroup Id="eBPF_Testing_Components" Directory="dir_testing">
-			<Component Id="API_TEST.EXE" DiskId="1" Guid="70AA4D35-45C4-466A-AE08-64A38E4C50F2">
+			<Component Id="API_TEST.EXE" DiskId="1" Guid="{70AA4D35-45C4-466A-AE08-64A38E4C50F2}">
 				<File Id="API_TEST.EXE" Name="api_test.exe" Source="$(var.api_test.TargetDir)api_test.exe" />
 			</Component>
-			<Component Id="API_TEST.PDB" DiskId="1" Guid="0884D5FB-CD5F-4780-892C-F9B37DF95989">
+			<Component Id="API_TEST.PDB" DiskId="1" Guid="{0884D5FB-CD5F-4780-892C-F9B37DF95989}">
 				<File Id="API_TEST.PDB" Name="api_test.pdb" Source="$(var.api_test.TargetDir)api_test.pdb" />
 			</Component>
-			<Component Id="BINDMONITOR.O" DiskId="1" Guid="88D66354-E6DF-4BE4-B1D4-3F716A7F81AB">
+			<Component Id="BINDMONITOR.O" DiskId="1" Guid="{88D66354-E6DF-4BE4-B1D4-3F716A7F81AB}">
 				<File Id="BINDMONITOR.O" Name="bindmonitor.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor.o" />
 			</Component>
-			<Component Id="BINDMONITOR_RINGBUF.O" DiskId="1" Guid="BFF28F26-F7A5-44B0-9289-AD9F4A19E33E">
+			<Component Id="BINDMONITOR.SYS" DiskId="1" Guid="{D36736C9-35B0-41AD-A19F-7E122035DC70}">
+				<File Id="BINDMONITOR.SYS" Name="bindmonitor.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor.sys" />
+			</Component>
+			<Component Id="BINDMONITOR_RINGBUF.O" DiskId="1" Guid="{BFF28F26-F7A5-44B0-9289-AD9F4A19E33E}">
 				<File Id="BINDMONITOR_RINGBUF.O" Name="bindmonitor_ringbuf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_ringbuf.o" />
 			</Component>
-			<Component Id="BINDMONITOR_TAILCALL.O" DiskId="1" Guid="6A37AE43-179A-46BD-97D5-3D02B6807765">
+			<Component Id="BINDMONITOR_TAILCALL.O" DiskId="1" Guid="{6A37AE43-179A-46BD-97D5-3D02B6807765}">
 				<File Id="BINDMONITOR_TAILCALL.O" Name="bindmonitor_tailcall.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_tailcall.o" />
 			</Component>
-			<Component Id="BPF.O" DiskId="1" Guid="EACD2AE9-0C63-4C0D-BC1D-FA698DB58A13">
+			<Component Id="BINDMONITOR_TAILCALL.SYS" DiskId="1" Guid="{310B89C6-2EDB-41F8-8455-2738A07A6DF9}">
+				<File Id="BINDMONITOR_TAILCALL.SYS" Name="bindmonitor_tailcall.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_tailcall.sys" />
+			</Component>
+			<Component Id="BPF.O" DiskId="1" Guid="{EACD2AE9-0C63-4C0D-BC1D-FA698DB58A13}">
 				<File Id="BPF.O" Name="bpf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bpf.o" />
 			</Component>
-			<Component Id="BPF_CALL.O" DiskId="1" Guid="438B5ECE-4410-477D-A60C-A5A68579791D">
+			<Component Id="BPF_CALL.O" DiskId="1" Guid="{438B5ECE-4410-477D-A60C-A5A68579791D}">
 				<File Id="BPF_CALL.O" Name="bpf_call.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bpf_call.o" />
 			</Component>
-			<Component Id="BPFTOOL_TESTS.EXE" DiskId="1" Guid="9F720714-FD99-44DA-AB6C-2FDA71258628">
+			<Component Id="BPFTOOL_TESTS.EXE" DiskId="1" Guid="{9F720714-FD99-44DA-AB6C-2FDA71258628}">
 				<File Id="BPFTOOL_TESTS.EXE" Name="bpftool_test.exe" Source="$(var.bpftool_tests.TargetDir)bpftool_tests.exe" />
 			</Component>
-			<Component Id="BPFTOOL_TESTS.PDB" DiskId="1" Guid="8D3E4E35-14D0-45BD-B5E5-036B8C4777C5">
+			<Component Id="BPFTOOL_TESTS.PDB" DiskId="1" Guid="{8D3E4E35-14D0-45BD-B5E5-036B8C4777C5}">
 				<File Id="BPFTOOL_TESTS.PDB" Name="bpftool_test.pdb" Source="$(var.bpftool_tests.TargetDir)bpftool_tests.pdb" />
 			</Component>
-			<Component Id="CGROUP_SOCK_ADDR.O" DiskId="1" Guid="6AF0B01D-554F-4918-8D00-AA4104DD5BE0">
+			<Component Id="CGROUP_SOCK_ADDR.O" DiskId="1" Guid="{6AF0B01D-554F-4918-8D00-AA4104DD5BE0}">
 				<File Id="CGROUP_SOCK_ADDR.O" Name="cgroup_sock_addr.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr.o" />
 			</Component>
-			<Component Id="DECAP_PERMIT_PACKET.O" DiskId="1" Guid="EAD33B50-0E47-464B-A919-1A24B64C686A">
+			<Component Id="DECAP_PERMIT_PACKET.O" DiskId="1" Guid="{EAD33B50-0E47-464B-A919-1A24B64C686A}">
 				<File Id="DECAP_PERMIT_PACKET.O" Name="decap_permit_packet.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\decap_permit_packet.o" />
 			</Component>
-			<Component Id="DIVIDE_BY_ZERO.O" DiskId="1" Guid="DBCE744E-08BC-4241-816E-47D13E7F15DC">
+			<Component Id="DIVIDE_BY_ZERO.O" DiskId="1" Guid="{DBCE744E-08BC-4241-816E-47D13E7F15DC}">
 				<File Id="DIVIDE_BY_ZERO.O" Name="divide_by_zero.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\divide_by_zero.o" />
 			</Component>
-			<Component Id="DROPPACKET.O" DiskId="1" Guid="32E91251-1D4F-48BA-978E-85F30E7903C5">
+			<Component Id="DROPPACKET.O" DiskId="1" Guid="{32E91251-1D4F-48BA-978E-85F30E7903C5}">
 				<File Id="DROPPACKET.O" Name="droppacket.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket.o" />
 			</Component>
-			<Component Id="DROPPACKET_UM.DLL" DiskId="1" Guid="F4D422DB-ED15-48E2-8F99-B5BBA4B38EE1">
+			<Component Id="DROPPACKET.SYS" DiskId="1" Guid="{9B9A5A98-782F-40FA-B3CF-118DEDEEE832}">
+				<File Id="DROPPACKET.SYS" Name="droppacket.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket.sys" />
+			</Component>
+			<Component Id="DROPPACKET_UM.DLL" DiskId="1" Guid="{F4D422DB-ED15-48E2-8F99-B5BBA4B38EE1}">
 				<File Id="DROPPACKET_UM.DLL" Name="droppacket_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_um.dll" />
 			</Component>
-			<Component Id="DROPPACKET_UM.PDB" DiskId="1" Guid="5579C444-7640-4C41-A214-33AC21D04C26">
+			<Component Id="DROPPACKET_UM.PDB" DiskId="1" Guid="{5579C444-7640-4C41-A214-33AC21D04C26}">
 				<File Id="DROPPACKET_UM.PDB" Name="droppacket_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_um.pdb" />
 			</Component>
-			<Component Id="DROPPACKET_UNSAFE.O" DiskId="1" Guid="40156401-DDEA-4435-B559-E7071D251395">
+			<Component Id="DROPPACKET_UNSAFE.O" DiskId="1" Guid="{40156401-DDEA-4435-B559-E7071D251395}">
 				<File Id="DROPPACKET_UNSAFE.O" Name="droppacket_unsafe.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_unsafe.o" />
 			</Component>
-			<Component Id="ENCAP_REFLECT_PACKET.O" DiskId="1" Guid="767274A3-97F5-4F35-BB27-1A7166708AD8">
+			<Component Id="ENCAP_REFLECT_PACKET.O" DiskId="1" Guid="{767274A3-97F5-4F35-BB27-1A7166708AD8}">
 				<File Id="ENCAP_REFLECT_PACKET.O" Name="encap_reflect_packet.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\encap_reflect_packet.o" />
 			</Component>
-			<Component Id="MAP.O" DiskId="1" Guid="C0461A4A-1195-4965-9710-8EED78A271F6">
+			<Component Id="MAP.O" DiskId="1" Guid="{C0461A4A-1195-4965-9710-8EED78A271F6}">
 				<File Id="MAP.O" Name="map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map.o" />
 			</Component>
-			<Component Id="MAP_IN_MAP.O" DiskId="1" Guid="D5BF9636-2A17-4E6C-8EFF-824794F48A01">
+			<Component Id="MAP_IN_MAP.O" DiskId="1" Guid="{D5BF9636-2A17-4E6C-8EFF-824794F48A01}">
 				<File Id="MAP_IN_MAP.O" Name="map_in_map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map.o" />
 			</Component>
-			<Component Id="MAP_IN_MAP_V2.O" DiskId="1" Guid="D198FFAB-E146-4ED3-96B3-9FBED450C7D7">
+			<Component Id="MAP_IN_MAP_V2.O" DiskId="1" Guid="{D198FFAB-E146-4ED3-96B3-9FBED450C7D7}">
 				<File Id="MAP_IN_MAP_V2.O" Name="map_in_map_v2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_v2.o" />
 			</Component>
-			<Component Id="MAP_REUSE.O" DiskId="1" Guid="3C17B815-A950-4103-A9D3-DB8EB5F41B47">
+			<Component Id="MAP_REUSE.O" DiskId="1" Guid="{3C17B815-A950-4103-A9D3-DB8EB5F41B47}">
 				<File Id="MAP_REUSE.O" Name="map_reuse.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_reuse.o" />
 			</Component>
-			<Component Id="MAP_REUSE_2.O" DiskId="1" Guid="E32CF0E5-00E0-44D7-BE16-DD9FE35064D8">
+			<Component Id="MAP_REUSE_2.O" DiskId="1" Guid="{E32CF0E5-00E0-44D7-BE16-DD9FE35064D8}">
 				<File Id="MAP_REUSE_2.O" Name="map_reuse_2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_reuse_2.o" />
 			</Component>
-			<Component Id="PIDTGID.O" DiskId="1" Guid="85723409-15B9-499B-94F1-2AE72A5C8D85">
+			<Component Id="PIDTGID.O" DiskId="1" Guid="{85723409-15B9-499B-94F1-2AE72A5C8D85}">
 				<File Id="PIDTGID.O" Name="pidtgid.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\pidtgid.o" />
 			</Component>
-			<Component Id="PRINTK.O" DiskId="1" Guid="6E02C38D-1024-495C-93C7-F998D7052CE5">
+			<Component Id="PIDTGID.SYS" DiskId="1" Guid="{2CD5A445-523A-42F8-8965-0469A0415624}">
+				<File Id="PIDTGID.SYS" Name="pidtgid.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\pidtgid.sys" />
+			</Component>
+			<Component Id="PRINTK.O" DiskId="1" Guid="{6E02C38D-1024-495C-93C7-F998D7052CE5}">
 				<File Id="PRINTK.O" Name="printk.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk.o" />
 			</Component>
-			<Component Id="PRINTK_UNSAFE.O" DiskId="1" Guid="10CBDD8C-BE25-43FD-86BB-A3A7A3129CE0">
+			<Component Id="PRINTK.SYS" DiskId="1" Guid="{09399688-9C2F-47E2-B43E-330A4033013A}">
+				<File Id="PRINTK.SYS" Name="printk.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk.sys" />
+			</Component>
+			<Component Id="PRINTK_UNSAFE.O" DiskId="1" Guid="{10CBDD8C-BE25-43FD-86BB-A3A7A3129CE0}">
 				<File Id="PRINTK_UNSAFE.O" Name="printk_unsafe.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\printk_unsafe.o" />
 			</Component>
-			<Component Id="REFLECT_PACKET.O" DiskId="1" Guid="4AA8E3D7-1453-468B-98EE-3340BE55BA9C">
+			<Component Id="REFLECT_PACKET.O" DiskId="1" Guid="{4AA8E3D7-1453-468B-98EE-3340BE55BA9C}">
 				<File Id="REFLECT_PACKET.O" Name="reflect_packet.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\reflect_packet.o" />
 			</Component>
-			<Component Id="RUN_TESTS.BAT" DiskId="1" Guid="C263C5FF-4A39-4078-9406-545F7D41DA13">
+			<Component Id="RUN_TESTS.BAT" DiskId="1" Guid="{C263C5FF-4A39-4078-9406-545F7D41DA13}">
 				<File Id="RUN_TESTS.BAT" Name="run_tests.bat" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\run_tests.bat" />
 			</Component>
-			<Component Id="SAMPLE_EXT_APP.EXE" DiskId="1" Guid="901A57AF-4B88-4F14-B84D-61FEA2979C40">
+			<Component Id="SAMPLE_EXT_APP.EXE" DiskId="1" Guid="{901A57AF-4B88-4F14-B84D-61FEA2979C40}">
 				<File Id="SAMPLE_EXT_APP.EXE" Name="sample_ext_app.exe" Source="$(var.sample_ext_app.TargetDir)sample_ext_app.exe" />
 			</Component>
-			<Component Id="SAMPLE_EXT_APP.PDB" DiskId="1" Guid="9DE5D44E-0C55-4959-AF57-F5735E92089A">
+			<Component Id="SAMPLE_EXT_APP.PDB" DiskId="1" Guid="{9DE5D44E-0C55-4959-AF57-F5735E92089A}">
 				<File Id="SAMPLE_EXT_APP.PDB" Name="sample_ext_app.pdb" Source="$(var.sample_ext_app.TargetDir)sample_ext_app.pdb" />
 			</Component>
-			<Component Id="TAIL_CALL_MAP.O" DiskId="1" Guid="A3F68C4D-00BF-4FB7-8B49-2BFC69AF7ABB">
+			<Component Id="TAIL_CALL.O" DiskId="1" Guid="{9DF26DC2-595C-4DED-9983-3802ADEC10D7}">
+				<File Id="TAIL_CALL.O" Name="tail_call.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call.o" />
+			</Component>
+			<Component Id="TAIL_CALL_BAD.O" DiskId="1" Guid="{98B8DA0B-18B3-4D74-B99B-A99F4D85CEE8}">
+				<File Id="TAIL_CALL_BAD.O" Name="tail_call_bad.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_bad.o" />
+			</Component>
+			<Component Id="TAIL_CALL_MAP.O" DiskId="1" Guid="{A3F68C4D-00BF-4FB7-8B49-2BFC69AF7ABB}">
 				<File Id="TAIL_CALL_MAP.O" Name="tail_call_map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_map.o" />
 			</Component>
-			<Component Id="TAIL_CALL_MULTIPLE.O" DiskId="1" Guid="2779762A-9B87-490B-83CF-30A0C0C28CF3">
+			<Component Id="TAIL_CALL_MULTIPLE.O" DiskId="1" Guid="{2779762A-9B87-490B-83CF-30A0C0C28CF3}">
 				<File Id="TAIL_CALL_MULTIPLE.O" Name="tail_call_multiple.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_multiple.o" />
 			</Component>
-			<Component Id="TEST_SAMPLE_EBPF.O" DiskId="1" Guid="5E7F82E9-9631-44C6-A597-18DD96C87C44">
+			<Component Id="TEST_SAMPLE_EBPF.O" DiskId="1" Guid="{5E7F82E9-9631-44C6-A597-18DD96C87C44}">
 				<File Id="TEST_SAMPLE_EBPF.O" Name="test_sample_ebpf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\test_sample_ebpf.o" />
 			</Component>
-			<Component Id="TEST_UTILITY_HELPERS.O" DiskId="1" Guid="B895F798-8A2D-4757-BDD2-F7A68860C92A">
+			<Component Id="TEST_UTILITY_HELPERS.O" DiskId="1" Guid="{B895F798-8A2D-4757-BDD2-F7A68860C92A}">
 				<File Id="TEST_UTILITY_HELPERS.O" Name="test_utility_helpers.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\test_utility_helpers.o" />
 			</Component>
-			<Component Id="UNIT_TESTS.EXE" DiskId="1" Guid="CCF26677-3DDF-424F-80E8-184F65E323BA">
+			<Component Id="UNIT_TESTS.EXE" DiskId="1" Guid="{CCF26677-3DDF-424F-80E8-184F65E323BA}">
 				<File Id="UNIT_TESTS.EXE" Name="unit_tests.exe" Source="$(var.unit_tests.TargetDir)unit_tests.exe" />
 			</Component>
-			<Component Id="UNIT_TESTS.PDB" DiskId="1" Guid="3CF32625-22F9-4ABD-A0BF-44FA7EA2BCDE">
+			<Component Id="UNIT_TESTS.PDB" DiskId="1" Guid="{3CF32625-22F9-4ABD-A0BF-44FA7EA2BCDE}">
 				<File Id="UNIT_TESTS.PDB" Name="unit_tests.pdb" Source="$(var.unit_tests.TargetDir)unit_tests.pdb" />
 			</Component>
 		</ComponentGroup>
@@ -561,10 +660,10 @@ SPDX-License-Identifier: MIT
 		<!--Install/Uninstall sample_ebpf_ext Driver-->
 		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
 		<ComponentGroup Id="sample_ebpf_ext_Driver" Directory="dir_testing">
-			<Component Id="SAMPLE_EBPF_EXT.SYS" Guid="027287AF-9945-4CD9-B863-8E39712612F7">
+			<Component Id="SAMPLE_EBPF_EXT.SYS" Guid="{027287AF-9945-4CD9-B863-8E39712612F7}">
 				<File Id="SAMPLE_EBPF_EXT.SYS" Name="sample_ebpf_ext.sys" Source="$(var.sample_ebpf_ext.TargetPath)" />
 			</Component>
-			<Component Id="SAMPLE_EBPF_EXT.PDB" Guid="B77B362A-BC02-46E8-B2BB-05D0981B1CC9">
+			<Component Id="SAMPLE_EBPF_EXT.PDB" Guid="{B77B362A-BC02-46E8-B2BB-05D0981B1CC9}">
 				<File Id="SAMPLE_EBPF_EXT.PDB" Name="sample_ebpf_ext.pdb" Source="$(var.sample_ebpf_ext.TargetDir)sample_ebpf_ext.pdb" />
 			</Component>
 		</ComponentGroup>

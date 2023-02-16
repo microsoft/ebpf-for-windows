@@ -1,32 +1,22 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "bpf2c.h"
+#include "test_helpers.h"
+
 #include <cmath>
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <string.h>
 #include <string>
 #include <vector>
-#include <string.h>
-
-#include "test_helpers.h"
-
-extern "C"
-{
-#include "bpf2c.h"
-}
 
 #if !defined(C_NAME)
 #define C_NAME test_metadata_table
 #endif
 
 extern "C" metadata_table_t C_NAME;
-
-extern "C" void
-division_by_zero(uint32_t address)
-{
-    std::cerr << "BPF program hit divide by zero at PC=" << address << std::endl;
-}
 
 int
 main(int argc, char** argv)

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 #include "bpf.h"
 #include "libbpf.h"
+
 #include <linux/bpf.h>
 
 #define CHECK_SIZE(last_field_name)                                                         \
@@ -58,8 +59,7 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
         return bpf_obj_get((const char*)attr->pathname);
     case BPF_PROG_ATTACH: {
         CHECK_SIZE(attach_flags);
-        return bpf_prog_attach(
-            attr->attach_bpf_fd, attr->target_fd, attr->attach_type, attr->attach_flags);
+        return bpf_prog_attach(attr->attach_bpf_fd, attr->target_fd, attr->attach_type, attr->attach_flags);
     }
     case BPF_PROG_DETACH: {
         CHECK_SIZE(attach_type);
