@@ -86,14 +86,15 @@ ebpf_state_allocate_index(_Out_ size_t* new_index)
 }
 
 static _Must_inspect_result_ ebpf_result_t
-_ebpf_state_get_entry(_Outptr_ ebpf_state_entry_t** entry)
+_ebpf_state_get_entry(
+    _In_ const ebpf_execution_context_state_t* execution_context_state, _Outptr_ ebpf_state_entry_t** entry)
 {
     // High frequency call, don't log entry/exit.
     ebpf_state_entry_t* local_entry = NULL;
 
-    if (!ebpf_is_non_preemptible_work_item_supported() || ebpf_is_preemptible()) {
+    if (execution_context_state->current_irql == PASSIVE_LEVEL) {
         ebpf_result_t return_value;
-        uint64_t current_thread_id = ebpf_get_current_thread_id();
+        uint64_t current_thread_id = execution_context_state->id.thread;
 
         return_value =
             ebpf_hash_table_find(_ebpf_state_thread_table, (const uint8_t*)&current_thread_id, (uint8_t**)&local_entry);
@@ -115,7 +116,7 @@ _ebpf_state_get_entry(_Outptr_ ebpf_state_entry_t** entry)
                 _ebpf_state_thread_table, (const uint8_t*)&current_thread_id, (uint8_t**)&local_entry));
         }
     } else {
-        uint32_t current_cpu = ebpf_get_current_cpu();
+        uint32_t current_cpu = execution_context_state->id.cpu;
         if (current_cpu >= _ebpf_state_cpu_table_size) {
             return EBPF_OPERATION_NOT_SUPPORTED;
         }
@@ -126,13 +127,13 @@ _ebpf_state_get_entry(_Outptr_ ebpf_state_entry_t** entry)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_state_store(size_t index, uintptr_t value)
+ebpf_state_store(size_t index, uintptr_t value, _In_ const ebpf_execution_context_state_t* execution_context_state)
 {
     // High frequency call, don't log entry/exit.
     ebpf_state_entry_t* entry = NULL;
     ebpf_result_t return_value;
 
-    return_value = _ebpf_state_get_entry(&entry);
+    return_value = _ebpf_state_get_entry(execution_context_state, &entry);
     if (return_value == EBPF_SUCCESS) {
         entry->state[index] = value;
     }
@@ -145,8 +146,10 @@ ebpf_state_load(size_t index, _Out_ uintptr_t* value)
     // High frequency call, don't log entry/exit.
     ebpf_state_entry_t* entry = NULL;
     ebpf_result_t return_value;
+    ebpf_execution_context_state_t execution_context_state = {0};
+    ebpf_get_execution_context_state(&execution_context_state);
 
-    return_value = _ebpf_state_get_entry(&entry);
+    return_value = _ebpf_state_get_entry(&execution_context_state, &entry);
     if (return_value == EBPF_SUCCESS) {
         *value = entry->state[index];
     }

@@ -1221,3 +1221,21 @@ ebpf_should_yield_processor()
 {
     return false;
 }
+
+void
+ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state)
+{
+    if (ebpf_non_preemptible) {
+        state->current_irql = DISPATCH_LEVEL;
+        state->id.cpu = ebpf_get_current_cpu();
+    } else {
+        state->current_irql = PASSIVE_LEVEL;
+        state->id.thread = GetCurrentThreadId();
+    }
+}
+
+uint8_t
+ebpf_get_current_irql()
+{
+    return ebpf_non_preemptible ? DISPATCH_LEVEL : PASSIVE_LEVEL;
+}
