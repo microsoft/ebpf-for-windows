@@ -97,7 +97,7 @@
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
-    <CustomBuild Include="atomic_instruction_others.o">
+    <CustomBuild Condition="'$(Configuration)'=='Debug'" Include="atomic_instruction_others.o">
       <FileType>Document</FileType>
       <Command>
         xcopy atomic_instruction_others.o $(OutDir) /Y
