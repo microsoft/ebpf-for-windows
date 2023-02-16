@@ -77,7 +77,7 @@ CMD_ENTRY g_EbpfShowCommandTable[] = {
 #else
 typedef struct _CMD_ENTRY_ORIGINAL
 {
-    _Null_terminated_ const wchar_t* pwszCmdToken; // The token for the command
+    _Field_z_ const wchar_t* pwszCmdToken;          // The token for the command
     PFN_HANDLE_CMD pfnCmdHandler; // The function which handles this command
     unsigned long dwShortCmdHelpToken;              // The short help message
     unsigned long
@@ -92,7 +92,7 @@ typedef struct _CMD_ENTRY_ORIGINAL
 
 typedef struct _CMD_ENTRY_LONG
 {
-    _Null_terminated_ const wchar_t* pwszCmdToken; // The token for the command
+    _Field_z_ const wchar_t* pwszCmdToken;      // The token for the command
     PFN_HANDLE_CMD pfnCmdHandler; // The function which handles this command
     unsigned long dwShortCmdHelpToken;          // The short help message
     unsigned long
