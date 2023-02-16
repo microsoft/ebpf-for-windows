@@ -98,14 +98,15 @@
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
     <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
-    <CustomBuild Condition="'$(Configuration)'=='Debug'" Include="atomic_instruction_others.o">
+    <CustomBuild Include="atomic_instruction_others.o">
       <FileType>Document</FileType>
       <Command>
         xcopy atomic_instruction_others.o $(OutputPath) /Y
-        pushd $(OutDir)
+        pushd $(OutputPath)
+        echo "$(OutputPath)"
         echo "%(Filename)"
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -SkipVerification $true -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -SkipVerification $true -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true -SkipVerification $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
