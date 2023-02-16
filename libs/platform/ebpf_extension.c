@@ -347,7 +347,7 @@ ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context)
 void*
 ebpf_extension_get_client_context(_In_ const void* extension_client_binding_context)
 {
-    EBPF_LOG_ENTRY();
+    // No function entry/exit logging here because this is called with every eBPF program invocation.
     void* local_extension_client_context = NULL;
     ebpf_extension_client_binding_context_t* local_client_binding_context =
         (ebpf_extension_client_binding_context_t*)extension_client_binding_context;
@@ -355,7 +355,7 @@ ebpf_extension_get_client_context(_In_ const void* extension_client_binding_cont
     if (local_client_context != NULL)
         local_extension_client_context = local_client_context->extension_client_context;
 
-    EBPF_RETURN_POINTER(void*, local_extension_client_context);
+    return local_extension_client_context;
 }
 
 GUID

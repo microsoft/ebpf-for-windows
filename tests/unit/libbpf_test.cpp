@@ -1163,7 +1163,7 @@ TEST_CASE("libbpf obj pinning", "[libbpf]")
 }
 
 static void
-_ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
+_ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -1226,7 +1226,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    int result;
+    uint32_t result;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == expected_result);
 
@@ -1237,7 +1237,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
 
     // Is bpf_tail_call expected to work?
     // Verify stack unwind occured.
-    if (expected_result >= 0) {
+    if ((int)expected_result >= 0) {
         REQUIRE(value == 0);
     } else {
         REQUIRE(value != 0);
@@ -1260,9 +1260,15 @@ TEST_CASE("good_tail_call-native", "[libbpf]")
     _ebpf_test_tail_call("tail_call_um.dll", 42);
 }
 
-TEST_CASE("bad_tail_call-jit", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.o", -EBPF_INVALID_ARGUMENT); }
+TEST_CASE("bad_tail_call-jit", "[libbpf]")
+{
+    _ebpf_test_tail_call("tail_call_bad.o", (uint32_t)(-EBPF_INVALID_ARGUMENT));
+}
 
-TEST_CASE("bad_tail_call-native", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad_um.dll", -EBPF_INVALID_ARGUMENT); }
+TEST_CASE("bad_tail_call-native", "[libbpf]")
+{
+    _ebpf_test_tail_call("tail_call_bad_um.dll", (uint32_t)(-EBPF_INVALID_ARGUMENT));
+}
 
 static void
 _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
@@ -1336,7 +1342,7 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    int result;
+    uint32_t result;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == 3);
 
@@ -1597,7 +1603,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     REQUIRE(inner_map_fd > 0);
 
     // Add a value to the inner map.
-    int inner_value = 42;
+    uint32_t inner_value = 42;
     uint32_t inner_key = 0;
     int error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
     REQUIRE(error == 0);
@@ -1613,7 +1619,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     // Now run the ebpf program.
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    int result;
+    uint32_t result;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
 
     // Verify the return value is what we saved in the inner map.
@@ -1656,7 +1662,7 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     REQUIRE(inner_map_fd > 0);
 
     // Add a value to the inner map.
-    int inner_value = 42;
+    uint32_t inner_value = 42;
     uint32_t inner_key = 0;
     int error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
     REQUIRE(error == 0);
@@ -1672,7 +1678,7 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     // Now run the ebpf program.
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    int result;
+    uint32_t result;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
 
     // Verify the return value is what we saved in the inner map.

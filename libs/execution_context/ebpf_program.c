@@ -428,7 +428,7 @@ ebpf_program_create(_Outptr_ ebpf_program_t** program)
     ebpf_result_t retval;
     ebpf_program_t* local_program;
 
-    local_program = (ebpf_program_t*)ebpf_allocate(sizeof(ebpf_program_t));
+    local_program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_PROGRAM);
     if (!local_program) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -507,7 +507,8 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
         goto Done;
 
     if (program_parameters->program_info_hash_length > 0) {
-        local_program_info_hash = ebpf_allocate(program_parameters->program_info_hash_length);
+        local_program_info_hash =
+            ebpf_allocate_with_tag(program_parameters->program_info_hash_length, EBPF_POOL_TAG_PROGRAM);
         if (!local_program_info_hash) {
             return_value = EBPF_NO_MEMORY;
             goto Done;
@@ -600,7 +601,7 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
 {
     EBPF_LOG_ENTRY();
     size_t index;
-    ebpf_map_t** program_maps = ebpf_allocate(maps_count * sizeof(ebpf_map_t*));
+    ebpf_map_t** program_maps = ebpf_allocate_with_tag(maps_count * sizeof(ebpf_map_t*), EBPF_POOL_TAG_PROGRAM);
     if (!program_maps)
         return EBPF_NO_MEMORY;
 
@@ -1019,25 +1020,36 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
     return EBPF_SUCCESS;
 }
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_reference_providers(_Inout_ ebpf_program_t* program)
+{
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
+    }
+    return EBPF_SUCCESS;
+}
+
 void
-ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _Out_ uint32_t* result)
+ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program)
+{
+    ebpf_extension_dereference_provider_data(program->info_extension_client);
+}
+
+void
+ebpf_program_invoke(
+    _In_ const ebpf_program_t* program,
+    _Inout_ void* context,
+    _Out_ uint32_t* result,
+    _In_ const ebpf_execution_context_state_t* execution_state)
 {
     // High volume call - Skip entry/exit logging.
     ebpf_program_tail_call_state_t state = {0};
     const ebpf_program_t* current_program = program;
 
-    bool provider_data_referenced = false;
     bool program_state_stored = false;
 
-    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
-        *result = 0;
-        return;
-    }
-
-    provider_data_referenced = true;
-
     state.context = context;
-    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
+    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state, execution_state) == EBPF_SUCCESS) {
         *result = 0;
         goto Done;
     }
@@ -1080,10 +1092,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
 
 Done:
     if (program_state_stored) {
-        ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0));
-    }
-    if (provider_data_referenced) {
-        ebpf_extension_dereference_provider_data(program->info_extension_client);
+        ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0, execution_state));
     }
 }
 
@@ -1236,7 +1245,8 @@ ebpf_program_set_helper_function_ids(
         goto Exit;
 
     program->helper_function_count = helper_function_count;
-    program->helper_function_ids = ebpf_allocate(sizeof(uint32_t) * helper_function_count);
+    program->helper_function_ids =
+        ebpf_allocate_with_tag(sizeof(uint32_t) * helper_function_count, EBPF_POOL_TAG_PROGRAM);
     if (program->helper_function_ids == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -1296,7 +1306,8 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     }
 
     // Allocate buffer and make a shallow copy of the program info.
-    local_program_info = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
+    local_program_info =
+        (ebpf_program_info_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_info_t), EBPF_POOL_TAG_PROGRAM);
     if (local_program_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -1307,8 +1318,9 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     if (total_count_of_helpers > 0) {
         // Allocate buffer and make a shallow copy of the combined global and program-type specific helper function
         // prototypes.
-        local_program_info->program_type_specific_helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate(
-            total_count_of_helpers * sizeof(ebpf_helper_function_prototype_t));
+        local_program_info->program_type_specific_helper_prototype =
+            (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
+                total_count_of_helpers * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_PROGRAM);
         if (local_program_info->program_type_specific_helper_prototype == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -1516,8 +1528,9 @@ _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* pro
         goto Exit;
     }
 
-    helper_id_to_index = (ebpf_helper_id_to_index_t*)ebpf_allocate(
-        program_info->count_of_program_type_specific_helpers * sizeof(ebpf_helper_id_to_index_t));
+    helper_id_to_index = (ebpf_helper_id_to_index_t*)ebpf_allocate_with_tag(
+        program_info->count_of_program_type_specific_helpers * sizeof(ebpf_helper_id_to_index_t),
+        EBPF_POOL_TAG_PROGRAM);
     if (helper_id_to_index == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -1705,15 +1718,30 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     uint64_t cumulative_time = 0;
     ebpf_result_t result;
     uint32_t return_value = 0;
-    uint8_t old_irql;
+    uint8_t old_irql = 0;
     uintptr_t old_thread_affinity;
+    size_t batch_size = options->batch_size ? options->batch_size : 1024;
+    ebpf_execution_context_state_t execution_context_state = {0};
+    bool epoch_entered = false;
+    bool irql_raised = false;
+    bool thread_affinity_set = false;
 
     result = ebpf_set_current_thread_affinity((uintptr_t)1 << options->cpu, &old_thread_affinity);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
+    thread_affinity_set = true;
 
     old_irql = ebpf_raise_irql(context->required_irql);
+    irql_raised = true;
+
+    result = ebpf_epoch_enter();
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    epoch_entered = true;
+
+    ebpf_get_execution_context_state(&execution_context_state);
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
     for (size_t i = 0; i < options->repeat_count; i++) {
@@ -1721,11 +1749,15 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
             result = EBPF_CANCELED;
             break;
         }
-        result = ebpf_epoch_enter();
-        if (result != EBPF_SUCCESS)
-            break;
-        ebpf_program_invoke(context->program, context->context, &return_value);
-        ebpf_epoch_exit();
+        // Start a new epoch every batch_size iterations.
+        if ((i % batch_size == (batch_size - 1))) {
+            ebpf_epoch_exit();
+            result = ebpf_epoch_enter();
+            if (result != EBPF_SUCCESS) {
+                break;
+            }
+        }
+        ebpf_program_invoke(context->program, context->context, &return_value, &execution_context_state);
         if (ebpf_should_yield_processor()) {
             // Compute the elapsed time since the last yield.
             end_time = ebpf_query_time_since_boot(false);
@@ -1751,10 +1783,19 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     options->duration /= options->repeat_count;
     options->return_value = return_value;
 
-    ebpf_lower_irql(old_irql);
-    ebpf_restore_current_thread_affinity(old_thread_affinity);
-
 Done:
+    if (epoch_entered) {
+        ebpf_epoch_exit();
+    }
+
+    if (irql_raised) {
+        ebpf_lower_irql(old_irql);
+    }
+
+    if (thread_affinity_set) {
+        ebpf_restore_current_thread_affinity(old_thread_affinity);
+    }
+
     if (context->program_data && context->program_data->context_destroy != NULL && context->context != NULL) {
         context->program_data->context_destroy(
             context->context,
@@ -1820,7 +1861,8 @@ ebpf_program_execute_test_run(
         goto Exit;
     }
 
-    test_run_context = (ebpf_program_test_run_context_t*)ebpf_allocate(sizeof(ebpf_program_test_run_context_t));
+    test_run_context = (ebpf_program_test_run_context_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_program_test_run_context_t), EBPF_POOL_TAG_PROGRAM);
     if (test_run_context == NULL) {
         return_value = EBPF_NO_MEMORY;
         goto Exit;

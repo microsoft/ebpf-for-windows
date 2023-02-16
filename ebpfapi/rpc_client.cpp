@@ -19,7 +19,7 @@
 
 #pragma comment(lib, "Rpcrt4.lib")
 
-static const WCHAR* _protocol_sequence = L"ncalrpc";
+static const wchar_t* _protocol_sequence = L"ncalrpc";
 static bool _binding_initialized = false;
 
 _Must_inspect_result_ ebpf_result_t

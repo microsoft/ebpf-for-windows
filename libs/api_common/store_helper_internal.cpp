@@ -197,8 +197,8 @@ _load_program_data_information(
                 nullptr,
                 nullptr,
                 nullptr,
-                (LPDWORD)&max_helpers_count,
-                (LPDWORD)&max_helper_name_size,
+                (unsigned long*)&max_helpers_count,
+                (unsigned long*)&max_helper_name_size,
                 nullptr,
                 nullptr,
                 nullptr,
@@ -240,7 +240,7 @@ _load_program_data_information(
                 memset(helper_name, 0, (max_helper_name_size) * sizeof(wchar_t));
                 key_size = (max_helper_name_size - 1) * sizeof(wchar_t);
                 status = RegEnumKeyEx(
-                    helper_key, index, helper_name, (LPDWORD)&key_size, nullptr, nullptr, nullptr, nullptr);
+                    helper_key, index, helper_name, (unsigned long*)&key_size, nullptr, nullptr, nullptr, nullptr);
                 if (status != ERROR_SUCCESS) {
                     result = win32_error_code_to_ebpf_result(status);
                     goto Exit;
@@ -289,7 +289,7 @@ ebpf_store_load_program_information(
     ebpf_result_t result = EBPF_SUCCESS;
     HKEY program_data_key = nullptr;
     wchar_t program_type_key[GUID_STRING_LENGTH + 1];
-    DWORD key_size = 0;
+    unsigned long key_size = 0;
     uint32_t index = 0;
     ebpf_registry_key_t store_key = nullptr;
     std::vector<ebpf_program_info_t*> program_info_array;
@@ -486,7 +486,7 @@ ebpf_store_load_section_information(
     ebpf_result_t result = EBPF_SUCCESS;
     HKEY section_data_key = nullptr;
     wchar_t section_name_key[MAX_PATH];
-    DWORD key_size = 0;
+    unsigned long key_size = 0;
     uint32_t index = 0;
     ebpf_registry_key_t store_key = nullptr;
     std::vector<ebpf_section_definition_t*> section_info_array;
@@ -574,7 +574,7 @@ ebpf_store_load_global_helper_information(
     ebpf_result_t result = EBPF_SUCCESS;
     HKEY global_helpers_key = nullptr;
     wchar_t* helper_name = nullptr;
-    DWORD key_size = 0;
+    unsigned long key_size = 0;
     uint32_t max_helper_name_size = 0;
     uint32_t max_helpers_count = 0;
     ebpf_helper_function_prototype_t* helper_prototype = nullptr;
@@ -609,8 +609,8 @@ ebpf_store_load_global_helper_information(
         nullptr,
         nullptr,
         nullptr,
-        (LPDWORD)&max_helpers_count,
-        (LPDWORD)&max_helper_name_size,
+        (unsigned long*)&max_helpers_count,
+        (unsigned long*)&max_helper_name_size,
         nullptr,
         nullptr,
         nullptr,
