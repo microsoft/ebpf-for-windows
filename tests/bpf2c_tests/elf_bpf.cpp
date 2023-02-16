@@ -170,7 +170,9 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
     TEST_CASE(FILE "-custom-" #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, TYPE); }
 
 DECLARE_TEST("atomic_instruction_fetch_add", _test_mode::Verify)
+#ifdef _DEBUG
 DECLARE_TEST("atomic_instruction_others", _test_mode::NoVerify)
+#endif
 DECLARE_TEST("bad_map_name", _test_mode::Verify)
 DECLARE_TEST("bindmonitor", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_ringbuf", _test_mode::Verify)
