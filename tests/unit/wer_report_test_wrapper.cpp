@@ -42,7 +42,7 @@ AddVectoredExceptionHandler_test(_In_ unsigned long first, _In_ PVECTORED_EXCEPT
 unsigned long SetThreadStackGuarantee_test_stack_size_in_bytes = 0;
 
 // Use BOOL to pass "SetThreadStackGuarantee" 
-// defined in windows kit " processthreadapi.h " file
+// defined in windows "processthreadapi.h" file
 BOOL
 SetThreadStackGuarantee_test(_Inout_ unsigned long* stack_size_in_bytes)
 {
