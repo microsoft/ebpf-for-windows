@@ -566,7 +566,7 @@ TEST_CASE("access_check", "[platform]")
     _test_helper test_helper;
     ebpf_security_generic_mapping_ptr sd_ptr;
     ebpf_security_descriptor_t* sd = NULL;
-    DWORD sd_size = 0;
+    unsigned long sd_size = 0;
     ebpf_security_generic_mapping_t generic_mapping{1, 1, 1};
     auto allow_sddl = L"O:COG:BUD:(A;;FA;;;WD)";
     auto deny_sddl = L"O:COG:BUD:(D;;FA;;;WD)";
@@ -774,7 +774,9 @@ TEST_CASE("state_test", "[state]")
     REQUIRE(ebpf_state_allocate_index(&allocated_index_1) == EBPF_SUCCESS);
     REQUIRE(ebpf_state_allocate_index(&allocated_index_2) == EBPF_SUCCESS);
     REQUIRE(allocated_index_2 != allocated_index_1);
-    REQUIRE(ebpf_state_store(allocated_index_1, reinterpret_cast<uintptr_t>(&foo)) == EBPF_SUCCESS);
+    ebpf_execution_context_state_t state{};
+    ebpf_get_execution_context_state(&state);
+    REQUIRE(ebpf_state_store(allocated_index_1, reinterpret_cast<uintptr_t>(&foo), &state) == EBPF_SUCCESS);
     REQUIRE(ebpf_state_load(allocated_index_1, &retrieved_value) == EBPF_SUCCESS);
     REQUIRE(retrieved_value == reinterpret_cast<uintptr_t>(&foo));
 }

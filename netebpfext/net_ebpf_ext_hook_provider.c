@@ -410,7 +410,7 @@ _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_bindin
         local_client_context->detach_work_item,
         _net_ebpf_extension_detach_client_completion,
         DelayedWorkQueue,
-        (PVOID)local_client_context);
+        (void*)local_client_context);
 
 Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);

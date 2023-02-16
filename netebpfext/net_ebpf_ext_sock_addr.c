@@ -1228,7 +1228,7 @@ _net_ebpf_ext_process_redirect_verdict(
             *redirected = TRUE;
 
             status = FwpsAcquireWritableLayerDataPointer(
-                classify_handle, filter->filterId, 0, (PVOID*)&connect_request, classify_output);
+                classify_handle, filter->filterId, 0, (void**)&connect_request, classify_output);
             if (!NT_SUCCESS(status)) {
                 NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(
                     NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,

@@ -210,7 +210,8 @@ ebpf_epoch_initiate()
     _ebpf_release_epoch = 0;
     _ebpf_epoch_cpu_count = cpu_count;
 
-    _ebpf_epoch_cpu_table = ebpf_allocate_cache_aligned(sizeof(ebpf_epoch_cpu_entry_t) * cpu_count);
+    _ebpf_epoch_cpu_table =
+        ebpf_allocate_cache_aligned_with_tag(sizeof(ebpf_epoch_cpu_entry_t) * cpu_count, EBPF_POOL_TAG_EPOCH);
     if (!_ebpf_epoch_cpu_table) {
         return_value = EBPF_NO_MEMORY;
         goto Error;
@@ -434,17 +435,22 @@ ebpf_epoch_flush()
     }
 }
 
-_Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(size_t size)
+_Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_with_tag(size_t size, uint32_t tag)
 {
     ebpf_assert(size);
     ebpf_epoch_allocation_header_t* header;
 
     size += sizeof(ebpf_epoch_allocation_header_t);
-    header = (ebpf_epoch_allocation_header_t*)ebpf_allocate(size);
+    header = (ebpf_epoch_allocation_header_t*)ebpf_allocate_with_tag(size, tag);
     if (header)
         header++;
 
     return header;
+}
+
+_Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(size_t size)
+{
+    return ebpf_epoch_allocate_with_tag(size, EBPF_POOL_TAG_EPOCH);
 }
 
 void
