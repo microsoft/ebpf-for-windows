@@ -97,6 +97,7 @@
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
+    <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
     <CustomBuild Condition="'$(Configuration)'=='Debug'" Include="atomic_instruction_others.o">
       <FileType>Document</FileType>
       <Command>
