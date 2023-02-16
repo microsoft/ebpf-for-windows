@@ -35,7 +35,7 @@ An **command line install/uninstall** is also supported, through the direct use 
     - `eBPF_Development` (optional): header files, scripts and libraries for development (installed in `[Installation folder]\include`,`[Installation folder]\lib`,`[Installation folder]\scripts`).
     - `eBPF_Testing` (optional): header files for development (installed in `[Installation folder]\testing`).
 
-    eg. (full featured):
+    e.g., (full featured):
 
     ```bash
     ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT,eBPF_Development,eBPF_Testing
