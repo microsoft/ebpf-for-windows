@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 Invoke-WebRequest 'https://community.chocolatey.org/install.ps1' -OutFile $env:TEMP\install_choco.ps1
-if ((get-filehash $env:TEMP\install_choco.ps1).Hash -ne '6B2C4EF29B871090B758E403AEE3EFAF9018B21F90FFA03CD4E0C27506331F01') { throw "Wrong file hash for Chocolatey installer"}
+if ((get-filehash -Algorithm SHA256 $env:TEMP\install_choco.ps1).Hash -ne '45014AC94BAAA135449D73DA9F4760ACDAE4C8943FA9998A47B74D0BBA8A5295') { throw "Wrong file hash for Chocolatey installer"}
 &"$env:TEMP\install_choco.ps1"
 choco install git --version 2.38.1 -y
 choco install visualstudio2022community --version 117.4.2.0 -y
