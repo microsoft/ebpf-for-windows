@@ -52,6 +52,14 @@ extern "C"
     _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(size_t size);
 
     /**
+     * @brief Allocate memory under epoch control with tag.
+     * @param[in] size Size of memory to allocate
+     * @param[in] tag Pool tag to use.
+     * @returns Pointer to memory block allocated, or null on failure.
+     */
+    _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_with_tag(size_t size, uint32_t tag);
+
+    /**
      * @brief Free memory under epoch control.
      * @param[in] memory Allocation to be freed once epoch ends.
      */

@@ -28,11 +28,6 @@ struct _ebpf_ring_descriptor
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
-typedef enum _ebpf_pool_tag
-{
-    EBPF_POOL_TAG = 'fpbe'
-} ebpf_pool_tag_t;
-
 static KDEFERRED_ROUTINE _ebpf_deferred_routine;
 static KDEFERRED_ROUTINE _ebpf_timer_routine;
 
@@ -49,13 +44,19 @@ ebpf_platform_terminate()
     KeFlushQueuedDpcs();
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
+__drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag)
 {
     ebpf_assert(size);
-    void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size, EBPF_POOL_TAG);
+    void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size, tag);
     if (p)
         memset(p, 0, size);
     return p;
+}
+
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
+{
+    return ebpf_allocate_with_tag(size, EBPF_POOL_TAG_DEFAULT);
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
@@ -79,12 +80,18 @@ ebpf_free(_Frees_ptr_opt_ void* memory)
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned_with_tag(size_t size, uint32_t tag)
 {
-    void* p = ExAllocatePoolUninitialized(NonPagedPoolNxCacheAligned, size, EBPF_POOL_TAG);
+    void* p = ExAllocatePoolUninitialized(NonPagedPoolNxCacheAligned, size, tag);
     if (p)
         memset(p, 0, size);
     return p;
+}
+
+__drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
+{
+    return ebpf_allocate_cache_aligned_with_tag(size, EBPF_POOL_TAG_DEFAULT);
 }
 
 void

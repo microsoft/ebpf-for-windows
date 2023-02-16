@@ -387,6 +387,14 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void*
     return memory;
 }
 
+__drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag)
+{
+    UNREFERENCED_PARAMETER(tag);
+
+    return ebpf_allocate(size);
+}
+
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
     _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
 {
@@ -409,6 +417,14 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) v
     }
 
     return p;
+}
+
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate_with_tag(
+    _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size, uint32_t tag)
+{
+    UNREFERENCED_PARAMETER(tag);
+
+    return ebpf_reallocate(memory, old_size, new_size);
 }
 
 void
@@ -436,6 +452,14 @@ __drv_allocatesMem(Mem) _Must_inspect_result_
         memset(memory, 0, size);
     }
     return memory;
+}
+
+__drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned_with_tag(size_t size, uint32_t tag)
+{
+    UNREFERENCED_PARAMETER(tag);
+
+    return ebpf_allocate_cache_aligned(size);
 }
 
 void
