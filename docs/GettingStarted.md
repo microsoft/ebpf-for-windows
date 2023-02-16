@@ -219,7 +219,7 @@ Windows requires that one of the following criteria be met prior to loading a dr
 
 1. Driver is signed using a certificate that chains up to the Microsoft code signing root (aka a production signed driver).
 1. The OS is booted with a kernel debugger attached.
-1. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option),
+1. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option) (see also [VM Installation Instructions](vm-setup.md)),
  the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature)
   and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
 
