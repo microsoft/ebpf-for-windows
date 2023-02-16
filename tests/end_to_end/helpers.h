@@ -173,15 +173,72 @@ typedef class _single_instance_hook : public _hook_helper
     }
 
     _Must_inspect_result_ ebpf_result_t
-    fire(_Inout_ void* context, _Out_ int* result)
+    fire(_Inout_ void* context, _Out_ uint32_t* result)
     {
         if (client_binding_context == nullptr) {
             return EBPF_EXTENSION_FAILED_TO_LOAD;
         }
-        ebpf_result_t (*invoke_program)(_In_ const void* link, _Inout_ void* context, _Out_ int* result) =
+        ebpf_result_t (*invoke_program)(_In_ const void* link, _Inout_ void* context, _Out_ uint32_t* result) =
             reinterpret_cast<decltype(invoke_program)>(client_dispatch_table->function[0]);
 
         return invoke_program(client_binding_context, context, result);
+    }
+
+    _Must_inspect_result_ ebpf_result_t
+    batch_begin(size_t state_size, _Out_writes_(state_size) void* state)
+    {
+        if (client_binding_context == nullptr) {
+            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        }
+        // Check if the client supports batching.
+        if (client_dispatch_table->version < 2) {
+            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        }
+
+        ebpf_result (*batch_begin)(
+            _In_ const void* extension_client_binding_context,
+            size_t state_size,
+            _In_reads_bytes_(state_size) void* state);
+
+        batch_begin = reinterpret_cast<decltype(batch_begin)>(client_dispatch_table->function[1]);
+
+        return batch_begin(client_binding_context, state_size, state);
+    }
+
+    _Must_inspect_result_ ebpf_result_t
+    batch_invoke(_Inout_ void* program_context, _Out_ uint32_t* result, _In_ const void* state)
+    {
+        if (client_binding_context == nullptr) {
+            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        }
+        // Check if the client supports batching.
+        if (client_dispatch_table->version < 2) {
+            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        }
+
+        ebpf_result_t (*batch_invoke)(
+            _In_ const void* extension_client_binding_context,
+            _Inout_ void* program_context,
+            _Out_ uint32_t* result,
+            _In_ const void* state);
+        batch_invoke = reinterpret_cast<decltype(batch_invoke)>(client_dispatch_table->function[2]);
+        return batch_invoke(client_binding_context, program_context, result, state);
+    }
+
+    _Must_inspect_result_ ebpf_result_t
+    batch_end(_In_ const void* state)
+    {
+        if (client_binding_context == nullptr) {
+            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        }
+        // Check if the client supports batching.
+        if (client_dispatch_table->version < 2) {
+            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        }
+
+        ebpf_result_t (*batch_end)(_In_ const void* extension_client_binding_context, _In_ const void* state);
+        batch_end = reinterpret_cast<decltype(batch_end)>(client_dispatch_table->function[3]);
+        return batch_end(client_binding_context, state);
     }
 
   private:
