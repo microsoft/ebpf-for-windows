@@ -101,7 +101,7 @@
     <CustomBuild Condition="'$(Configuration)'=='Debug'" Include="atomic_instruction_others.o">
       <FileType>Document</FileType>
       <Command>
-        xcopy atomic_instruction_others.o $(OutDir) /Y
+        xcopy atomic_instruction_others.o $(OutputPath) /Y
         pushd $(OutDir)
         echo "%(Filename)"
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -SkipVerification $true -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
