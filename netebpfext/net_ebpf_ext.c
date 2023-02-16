@@ -367,7 +367,7 @@ net_ebpf_extension_add_wfp_filters(
 {
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
-    BOOL is_in_transaction = FALSE;
+    bool is_in_transaction = FALSE;
     uint64_t* local_filter_ids = NULL;
     *filter_ids = NULL;
 

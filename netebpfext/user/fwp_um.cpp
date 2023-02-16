@@ -56,7 +56,7 @@ _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_in
         return FWP_ACTION_CALLOUT_UNKNOWN;
     }
 
-    ULONG data = 0;
+    unsigned long data = 0;
     std::unique_ptr<MDL, decltype(&IoFreeMdl)> mdl_chain(
         IoAllocateMdl(&data, sizeof(data), FALSE, FALSE, nullptr), IoFreeMdl);
     if (!mdl_chain) {
@@ -648,7 +648,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS NTAPI FwpsAcquireWritableLayerDataP
     _In_ UINT64 classifyHandle,
     _In_ UINT64 filterId,
     _In_ UINT32 flags,
-    _Out_ PVOID* writableLayerData,
+    _Out_ void** writableLayerData,
     _Inout_opt_ FWPS_CLASSIFY_OUT0* classifyOut)
 {
     UNREFERENCED_PARAMETER(classifyHandle);
@@ -679,7 +679,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void NTAPI FwpsReleaseClassifyHandle0(_In_ U
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL) void NTAPI
-    FwpsApplyModifiedLayerData0(_In_ UINT64 classifyHandle, _In_ PVOID modifiedLayerData, _In_ UINT32 flags)
+    FwpsApplyModifiedLayerData0(_In_ UINT64 classifyHandle, _In_ void* modifiedLayerData, _In_ UINT32 flags)
 {
     UNREFERENCED_PARAMETER(classifyHandle);
     UNREFERENCED_PARAMETER(modifiedLayerData);

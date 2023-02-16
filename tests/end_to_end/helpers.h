@@ -291,9 +291,9 @@ typedef class xdp_md_helper : public xdp_md_t
     {
         original_nbl = &_original_nbl_storage;
         _original_nbl_storage.FirstNetBuffer = &_original_nb;
-        _original_nb.DataLength = (ULONG)packet.size();
+        _original_nb.DataLength = (unsigned long)packet.size();
         _original_nb.MdlChain = &_original_mdl;
-        _original_mdl.byte_count = (ULONG)packet.size();
+        _original_mdl.byte_count = (unsigned long)packet.size();
         _original_mdl.start_va = packet.data();
     }
 

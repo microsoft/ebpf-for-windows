@@ -45,7 +45,7 @@ _ebpf_decode_symbol(
         }
 
         name = symbol->Name;
-        DWORD displacement32 = (DWORD)displacement;
+        unsigned long displacement32 = (unsigned long)displacement;
 
         if (!SymGetLineFromAddr64(GetCurrentProcess(), address, &displacement32, &line)) {
             line_number = std::nullopt;
