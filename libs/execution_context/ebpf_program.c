@@ -1019,25 +1019,36 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
     return EBPF_SUCCESS;
 }
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_reference_providers(_Inout_ ebpf_program_t* program)
+{
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
+    }
+    return EBPF_SUCCESS;
+}
+
 void
-ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _Out_ uint32_t* result)
+ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program)
+{
+    ebpf_extension_dereference_provider_data(program->info_extension_client);
+}
+
+void
+ebpf_program_invoke(
+    _In_ const ebpf_program_t* program,
+    _Inout_ void* context,
+    _Out_ uint32_t* result,
+    _In_ const ebpf_execution_context_state_t* execution_state)
 {
     // High volume call - Skip entry/exit logging.
     ebpf_program_tail_call_state_t state = {0};
     const ebpf_program_t* current_program = program;
 
-    bool provider_data_referenced = false;
     bool program_state_stored = false;
 
-    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
-        *result = 0;
-        return;
-    }
-
-    provider_data_referenced = true;
-
     state.context = context;
-    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
+    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state, execution_state) == EBPF_SUCCESS) {
         *result = 0;
         goto Done;
     }
@@ -1080,10 +1091,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
 
 Done:
     if (program_state_stored) {
-        ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0));
-    }
-    if (provider_data_referenced) {
-        ebpf_extension_dereference_provider_data(program->info_extension_client);
+        ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0, execution_state));
     }
 }
 
@@ -1705,15 +1713,30 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     uint64_t cumulative_time = 0;
     ebpf_result_t result;
     uint32_t return_value = 0;
-    uint8_t old_irql;
+    uint8_t old_irql = 0;
     uintptr_t old_thread_affinity;
+    size_t batch_size = options->batch_size ? options->batch_size : 1024;
+    ebpf_execution_context_state_t execution_context_state = {0};
+    bool epoch_entered = false;
+    bool irql_raised = false;
+    bool thread_affinity_set = false;
 
     result = ebpf_set_current_thread_affinity((uintptr_t)1 << options->cpu, &old_thread_affinity);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
+    thread_affinity_set = true;
 
     old_irql = ebpf_raise_irql(context->required_irql);
+    irql_raised = true;
+
+    result = ebpf_epoch_enter();
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    epoch_entered = true;
+
+    ebpf_get_execution_context_state(&execution_context_state);
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
     for (size_t i = 0; i < options->repeat_count; i++) {
@@ -1721,11 +1744,15 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
             result = EBPF_CANCELED;
             break;
         }
-        result = ebpf_epoch_enter();
-        if (result != EBPF_SUCCESS)
-            break;
-        ebpf_program_invoke(context->program, context->context, &return_value);
-        ebpf_epoch_exit();
+        // Start a new epoch every batch_size iterations.
+        if ((i % batch_size == (batch_size - 1))) {
+            ebpf_epoch_exit();
+            result = ebpf_epoch_enter();
+            if (result != EBPF_SUCCESS) {
+                break;
+            }
+        }
+        ebpf_program_invoke(context->program, context->context, &return_value, &execution_context_state);
         if (ebpf_should_yield_processor()) {
             // Compute the elapsed time since the last yield.
             end_time = ebpf_query_time_since_boot(false);
@@ -1751,10 +1778,19 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     options->duration /= options->repeat_count;
     options->return_value = return_value;
 
-    ebpf_lower_irql(old_irql);
-    ebpf_restore_current_thread_affinity(old_thread_affinity);
-
 Done:
+    if (epoch_entered) {
+        ebpf_epoch_exit();
+    }
+
+    if (irql_raised) {
+        ebpf_lower_irql(old_irql);
+    }
+
+    if (thread_affinity_set) {
+        ebpf_restore_current_thread_affinity(old_thread_affinity);
+    }
+
     if (context->program_data && context->program_data->context_destroy != NULL && context->context != NULL) {
         context->program_data->context_destroy(
             context->context,
