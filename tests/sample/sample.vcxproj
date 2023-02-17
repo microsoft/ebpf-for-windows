@@ -82,8 +82,8 @@
   <ItemGroup>
     <ClInclude Include="ebpf.h" />
   </ItemGroup>
-  <!-- Build BPF programs that pass verification and build native images for them. -->
   <ItemGroup Condition="'$(Analysis)'==''">
+    <!-- Build BPF programs that pass verification and build native images for them. -->
     <CustomBuild Include="*.c">
       <FileType>CppCode</FileType>
       <Command>
@@ -97,22 +97,14 @@
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
-    <CustomBuild Include="atomic_instruction_others.o">
+    <!-- For explicit unsafe object files without a corresponding .c file, just copy them with the other generated .o files -->
+    <CustomBuild Include="unsafe\*.o">
       <FileType>Document</FileType>
       <Command>
-        xcopy atomic_instruction_others.o $(OutDir) /Y
-        pushd $(OutDir)
+        xcopy unsafe\%(Filename).o $(OutDir) /Y
       </Command>
-      <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
-      <Command Condition="'$(Configuration)'=='Debug'" >
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true -SkipVerification $true
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
-      </Command>
-      <Command>
-        popd
-      </Command>
-      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
-      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
