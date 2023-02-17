@@ -2416,7 +2416,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     ebpf_handle_t map_handles[INCORRECT_MAP_COUNT];
     ebpf_handle_t program_handles[PROGRAM_COUNT];
 
-    *(module_handle.get()) = ebpf_handle_invalid;
+    *module_handle = ebpf_handle_invalid;
 
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
 
@@ -2481,8 +2481,8 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     size_t count_of_programs = 0;
     set_native_module_failures(true);
 
-    *(module_handle.get()) = ebpf_handle_invalid;
-    *(module_handle2.get()) = ebpf_handle_invalid;
+    *module_handle = ebpf_handle_invalid;
+    *module_handle2 = ebpf_handle_invalid;
 
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
 
@@ -2529,7 +2529,7 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
     ebpf_handle_t program_handles;
     ebpf_handle_ptr_t module_handle((ebpf_handle_t*)ebpf_allocate(sizeof(ebpf_handle_t)));
 
-    *(module_handle.get()) = ebpf_handle_invalid;
+    *module_handle = ebpf_handle_invalid;
 
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
 
