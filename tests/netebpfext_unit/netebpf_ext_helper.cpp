@@ -6,15 +6,6 @@
 ebpf_registry_key_t ebpf_root_registry_key = HKEY_CURRENT_USER;
 DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
 
-static ebpf_result_t
-_get_program_context(_Outptr_ void** context)
-{
-    *context = nullptr;
-    return EBPF_KEY_NOT_FOUND;
-}
-
-ebpf_extension_dispatch_table_t dispatch_table = {0, 1, {(_ebpf_extension_dispatch_function)_get_program_context}};
-
 _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ const void* npi_specific_characteristics,
     _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
@@ -122,7 +113,7 @@ _netebpf_ext_helper::_program_info_client_attach_provider(
     NTSTATUS status = NmrClientAttachProvider(
         nmr_binding_handle,
         client_binding_context.get(),
-        &dispatch_table,
+        &client_binding_context,
         &client_binding_context->context,
         &client_binding_context->dispatch);
 
