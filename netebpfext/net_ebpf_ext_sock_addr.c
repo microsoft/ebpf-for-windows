@@ -1100,7 +1100,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
-    // eBPF programs will not be invoked on connection re-auth.
+    // eBPF programs will not be invoked on connection re-authorization.
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE)
         goto Exit;
 
@@ -1174,7 +1174,8 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
-        // This is a re-auth of a connection that was previously authorized by the eBPF programs. Permit it.
+        // This is a re-authorization of a connection that was previously authorized by the
+        // eBPF program. Permit it.
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
     }
@@ -1230,9 +1231,15 @@ _net_ebpf_ext_sock_addr_is_connection_locally_redirected_by_others(
 {
     FWPS_CONNECT_REQUEST* previous_connect_request = connect_request->previousVersion;
     while (previous_connect_request != NULL) {
-        if (previous_connect_request->modifierFilterId != filter_id) {
-            if (previous_connect_request->localRedirectHandle != NULL)
-                return TRUE;
+        if ((previous_connect_request->modifierFilterId != filter_id) &&
+            (previous_connect_request->localRedirectHandle != NULL)) {
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "Connection previously locally redirected",
+                previous_connect_request->modifierFilterId);
+
+            return TRUE;
         }
         previous_connect_request = previous_connect_request->previousVersion;
     }
