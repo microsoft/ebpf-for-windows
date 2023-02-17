@@ -75,8 +75,10 @@ typedef class _ebpf_program_test_state
     test(void* context)
     {
         uint32_t result;
+        ebpf_execution_context_state_t state = {0};
         REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
-        ebpf_program_invoke(program, context, &result);
+        ebpf_get_execution_context_state(&state);
+        ebpf_program_invoke(program, context, &result, &state);
         ebpf_epoch_exit();
     }
 

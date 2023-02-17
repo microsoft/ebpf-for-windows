@@ -31,12 +31,12 @@ DeviceIoControl(
 {
     return device_io_control_handler(
         reinterpret_cast<HANDLE>(device_handle),
-        (DWORD)io_control_code,
+        (unsigned long)io_control_code,
         input_buffer,
-        (DWORD)input_buffer_size,
+        (unsigned long)input_buffer_size,
         output_buffer,
-        (DWORD)output_buffer_size,
-        (DWORD*)count_of_bytes_returned,
+        (unsigned long)output_buffer_size,
+        (unsigned long*)count_of_bytes_returned,
         overlapped);
 }
 
@@ -134,7 +134,7 @@ uint32_t
 _update_registry_value(
     HKEY root_key,
     _In_z_ const wchar_t* sub_key,
-    DWORD type,
+    unsigned long type,
     _In_z_ const wchar_t* value_name,
     _In_reads_bytes_(value_size) const void* value,
     uint32_t value_size)

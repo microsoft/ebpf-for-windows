@@ -132,7 +132,7 @@ inline static int
 _ebpf_update_registry_value(
     HKEY root_key,
     _In_z_ const wchar_t* sub_key,
-    DWORD type,
+    unsigned long type,
     _In_z_ const wchar_t* value_name,
     _In_reads_bytes_(value_size) const void* value,
     uint32_t value_size) noexcept
@@ -3729,7 +3729,10 @@ ebpf_ring_buffer_map_subscribe(
         if (result == EBPF_PENDING)
             result = EBPF_SUCCESS;
 
-        *subscription = local_subscription.release();
+        // If the async IOCTL failed, then free the subscription object.
+        if (result == EBPF_SUCCESS) {
+            *subscription = local_subscription.release();
+        }
 
         EBPF_RETURN_RESULT(result);
     } catch (const std::bad_alloc&) {

@@ -426,7 +426,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     // Test that we drop the packet and increment the map
     xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_DROP);
 
@@ -461,12 +461,36 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 1);
 
+    // Reset the count of dropped packets.
+    REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
+
+    {
+        // Negative test: State is too small.
+        uint8_t state[sizeof(ebpf_execution_context_state_t) - 1] = {0};
+        REQUIRE(hook.batch_begin(sizeof(state), state) == EBPF_INVALID_ARGUMENT);
+    }
+
+    // Fire a 0-length UDP packet on the interface index in the map, using batch mode, which should be dropped.
+    uint8_t state[sizeof(ebpf_execution_context_state_t)] = {0};
+    REQUIRE(hook.batch_begin(sizeof(state), state) == EBPF_SUCCESS);
+    // Process 10 packets in batch mode.
+    for (int i = 0; i < 10; i++) {
+        REQUIRE(hook.batch_invoke(&ctx0, &hook_result, state) == EBPF_SUCCESS);
+        REQUIRE(hook_result == XDP_DROP);
+    }
+    REQUIRE(hook.batch_end(state) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 10);
+
+    // Reset the count of dropped packets.
+    REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
+
     // Fire a 0-length packet on any interface that is not in the map, which should be allowed.
     xdp_md_t ctx4{packet0.data(), packet0.data() + packet0.size(), 0, if_index + 1};
     REQUIRE(hook.fire(&ctx4, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_PASS);
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
-    REQUIRE(value == 1);
+    REQUIRE(value == 0);
 
     hook.detach_link(link);
     hook.close_link(link);
@@ -507,7 +531,7 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
 
     REQUIRE(hook_result == 0);
@@ -583,9 +607,9 @@ _validate_bind_audit_entry(fd_t map_fd, uint64_t pid)
 }
 
 bind_action_t
-emulate_bind(std::function<ebpf_result_t(void*, int*)>& invoke, uint64_t pid, const char* appid)
+emulate_bind(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pid, const char* appid)
 {
-    int result;
+    uint32_t result;
     std::string app_id = appid;
     bind_md_t ctx{0};
     ctx.app_id_start = (uint8_t*)app_id.c_str();
@@ -597,9 +621,9 @@ emulate_bind(std::function<ebpf_result_t(void*, int*)>& invoke, uint64_t pid, co
 }
 
 void
-emulate_unbind(std::function<ebpf_result_t(void*, int*)>& invoke, uint64_t pid, const char* appid)
+emulate_unbind(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pid, const char* appid)
 {
-    int result;
+    uint32_t result;
     std::string app_id = appid;
     bind_md_t ctx{0};
     ctx.process_id = pid;
@@ -662,8 +686,8 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     // Apply policy of maximum 2 binds per process
     set_bind_limit(limit_map_fd, 2);
 
-    std::function<ebpf_result_t(void*, int*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
+    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
     // Bind first port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
@@ -784,8 +808,8 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     // Apply policy of maximum 2 binds per process
     set_bind_limit(limit_map_fd, 2);
 
-    std::function<ebpf_result_t(void*, int*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
+    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
     // Bind first port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
@@ -874,8 +898,8 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
     }
 
     uint64_t fake_pid = 12345;
-    std::function<ebpf_result_t(void*, int*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
+    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
     ring_buffer_api_test_helper(process_map_fd, fake_app_ids, [&](int i) {
         // Emulate bind operation.
@@ -906,7 +930,7 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     // Dummy context (not used by the eBPF program).
     xdp_md_t ctx{};
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 0);
 
@@ -943,7 +967,7 @@ map_test(ebpf_execution_type_t execution_type)
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     // Program should return 0 if all the map tests pass.
     REQUIRE(hook_result >= 0);
@@ -1594,7 +1618,7 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
 
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_TX);
 
@@ -1636,7 +1660,7 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
     // Dummy context (not used by the eBPF program).
     xdp_md_helper_t ctx(packet.packet());
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_TX);
 
@@ -1684,7 +1708,7 @@ TEST_CASE("printk", "[end_to_end]")
 
     capture_helper_t capture;
     std::string output;
-    int hook_result = 0;
+    uint32_t hook_result = 0;
     errno_t error = capture.begin_capture();
     if (error == NO_ERROR) {
         ebpf_result_t hook_fire_result = hook.fire(&ctx, &hook_result);
@@ -1755,7 +1779,7 @@ _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRES
     uint8_t* inner_ip_header = packet.packet().data() + offset;
     std::vector<uint8_t> inner_ip_datagram(inner_ip_header, packet.packet().data() + packet.packet().size());
 
-    int hook_result;
+    uint32_t hook_result;
     xdp_md_helper_t ctx(packet.packet());
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_PASS);
@@ -1803,7 +1827,7 @@ TEST_CASE("link_tests", "[end_to_end]")
 
     // Dummy context (not used by the eBPF program).
     xdp_md_helper_t ctx(packet.packet());
-    int result;
+    uint32_t result;
 
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
     bpf_program* program = bpf_object__find_program_by_name(program_helper.get_object(), "func");
@@ -1871,7 +1895,7 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
-    int hook_result;
+    uint32_t hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -1975,7 +1999,7 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
-    int hook_result;
+    uint32_t hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -2037,7 +2061,7 @@ TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
-    int hook_result;
+    uint32_t hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -2145,7 +2169,7 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
-    int hook_result;
+    uint32_t hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -2220,7 +2244,7 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
-    int hook_result;
+    uint32_t hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -2792,7 +2816,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         bpf_link__destroy(link);
 
         // Program should run.
-        int hook_result;
+        uint32_t hook_result = MAXUINT32;
         REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
         REQUIRE(hook_result == XDP_PASS);
 
@@ -2807,7 +2831,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         // Program should re-attach to the hook.
 
         // Program should run.
-        int hook_result;
+        uint32_t hook_result = MAXUINT32;
         REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
         REQUIRE(hook_result == XDP_PASS);
     }
@@ -2829,8 +2853,8 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         // Program should re-attach to the hook.
 
         // Program should not run.
-        int hook_result;
-        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(&ctx0, &hook_result) != EBPF_SUCCESS);
         REQUIRE(hook_result != XDP_PASS);
     }
 
@@ -2853,8 +2877,8 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         // Program should re-attach to the hook.
 
         // Program should not run.
-        int hook_result;
-        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(&ctx0, &hook_result) != EBPF_SUCCESS);
         REQUIRE(hook_result != XDP_PASS);
     }
 }

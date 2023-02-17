@@ -28,6 +28,8 @@ The following must be installed in order to build this project:
    - `"MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (latest)"`
 
 1. [Visual Studio Build Tools 2022](https://aka.ms/vs/17/release/vs_buildtools.exe) (version **17.4.2 or later**).
+1. The *WiX Toolset* has a dependency on the **.NET 3.5 Framework**: you can either enable from the Start menu -> "*Turn Windows features on or off*" and then select "*.NET Framework 3.5 (includes .NET 2.0 and 3.0)*" (recommended), *or*
+install it directly from [here](https://www.microsoft.com/en-us/download/details.aspx?id=21).
 1. [WiX Toolset v3 - Visual Studio 2022 Extension](https://marketplace.visualstudio.com/items?itemName=WixToolset.WixToolsetVisualStudio2022Extension).
 1. [SDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/p/?linkid=2196241) (version **10.0.22621.x**).
 1. [WDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/?linkid=2196230) (version **10.0.22621.x**), including the
@@ -55,7 +57,7 @@ Alternative install steps (for *basic* Visual Studio Community edition):
 
    ```ps
    Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
-   if ((get-filehash $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '9B9C4358B05DBD16EF58C0548B1ADBA4B5591FE14DFD3239FC580BB95B39988C') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '9B9C4358B05DBD16EF58C0548B1ADBA4B5591FE14DFD3239FC580BB95B39988C') { &"$env:TEMP\Setup-DeveEnv.ps1" }
    ```
    >**Note**: the WDK for Windows 11 is [not currently available on Chocolatey](https://community.chocolatey.org/packages?q=windowsdriverkit),
     please install manually with the link in the [Prerequisites](#prerequisites) section above.

@@ -272,6 +272,9 @@ extern "C"
     ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref);
 
     void
+    ExReInitializeRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref);
+
+    void
     ExWaitForRundownProtectionRelease(_Inout_ EX_RUNDOWN_REF* rundown_ref);
 
     BOOLEAN
@@ -319,7 +322,7 @@ extern "C"
     void*
     ExAllocatePoolUninitialized(_In_ POOL_TYPE pool_type, _In_ size_t number_of_bytes, _In_ unsigned long tag);
 
-    ULONGLONG
+    unsigned long long
     QueryInterruptTimeEx();
 
     void
@@ -479,17 +482,18 @@ extern "C"
     IoGetFileObjectGenericMapping();
 
     NTSTATUS
-    RtlCreateAcl(_Out_ PACL Acl, ULONG AclLength, ULONG AclRevision);
+    RtlCreateAcl(_Out_ PACL Acl, unsigned long AclLength, unsigned long AclRevision);
 
     VOID
     RtlMapGenericMask(_Inout_ PACCESS_MASK AccessMask, _In_ const GENERIC_MAPPING* GenericMapping);
 
-    ULONG
+    unsigned long 
     RtlLengthSid(_In_ PSID Sid);
 
     NTSTATUS
     NTAPI
-    RtlAddAccessAllowedAce(_Inout_ PACL Acl, _In_ ULONG AceRevision, _In_ ACCESS_MASK AccessMask, _In_ PSID Sid);
+    RtlAddAccessAllowedAce(
+        _Inout_ PACL Acl, _In_ unsigned long AceRevision, _In_ ACCESS_MASK AccessMask, _In_ PSID Sid);
 
     BOOLEAN
     SeAccessCheckFromState(
@@ -506,7 +510,7 @@ extern "C"
 
     NTSTATUS
     NTAPI
-    RtlCreateSecurityDescriptor(_Out_ PSECURITY_DESCRIPTOR SecurityDescriptor, _In_ ULONG Revision);
+    RtlCreateSecurityDescriptor(_Out_ PSECURITY_DESCRIPTOR SecurityDescriptor, _In_ unsigned long Revision);
 
     NTSTATUS
     NTAPI
