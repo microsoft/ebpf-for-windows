@@ -66,6 +66,20 @@ extern "C"
         size_t length;
     } ebpf_utf8_string_t;
 
+    typedef enum _ebpf_pool_tag
+    {
+        EBPF_POOL_TAG_ASYNC = 'nsae',
+        EBPF_POOL_TAG_CORE = 'roce',
+        EBPF_POOL_TAG_DEFAULT = 'fpbe',
+        EBPF_POOL_TAG_EPOCH = 'cpee',
+        EBPF_POOL_TAG_LINK = 'knle',
+        EBPF_POOL_TAG_MAP = 'pame',
+        EBPF_POOL_TAG_NATIVE = 'vtne',
+        EBPF_POOL_TAG_PROGRAM = 'grpe',
+        EBPF_POOL_TAG_RING_BUFFER = 'fbre',
+        EBPF_POOL_TAG_STATE = 'atse',
+    } ebpf_pool_tag_t;
+
     typedef enum _ebpf_code_integrity_state
     {
         EBPF_CODE_INTEGRITY_DEFAULT = 0,
@@ -162,6 +176,15 @@ extern "C"
     __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size);
 
     /**
+     * @brief Allocate memory.
+     * @param[in] size Size of memory to allocate.
+     * @param[in] tag Pool tag to use.
+     * @returns Pointer to memory block allocated, or null on failure.
+     */
+    __drv_allocatesMem(Mem) _Must_inspect_result_
+        _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag);
+
+    /**
      * @brief Reallocate memory.
      * @param[in] memory Allocation to be reallocated.
      * @param[in] old_size Old size of memory to reallocate.
@@ -170,6 +193,17 @@ extern "C"
      */
     __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
         _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size);
+
+    /**
+     * @brief Reallocate memory with tag.
+     * @param[in] memory Allocation to be reallocated.
+     * @param[in] old_size Old size of memory to reallocate.
+     * @param[in] new_size New size of memory to reallocate.
+     * @param[in] tag Pool tag to use.
+     * @returns Pointer to memory block allocated, or null on failure.
+     */
+    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate_with_tag(
+        _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size, uint32_t tag);
 
     /**
      * @brief Free memory.
@@ -185,6 +219,15 @@ extern "C"
      */
     __drv_allocatesMem(Mem) _Must_inspect_result_
         _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size);
+
+    /**
+     * @brief Allocate memory that has a starting address that is cache aligned with tag.
+     * @param[in] size Size of memory to allocate
+     * @param[in] tag Pool tag to use.
+     * @returns Pointer to memory block allocated, or null on failure.
+     */
+    __drv_allocatesMem(Mem) _Must_inspect_result_
+        _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned_with_tag(size_t size, uint32_t tag);
 
     /**
      * @brief Free memory that has a starting address that is cache aligned.
@@ -1415,7 +1458,7 @@ extern "C"
         TraceLoggingLevel(trace_level),                                     \
         TraceLoggingKeyword((keyword)),                                     \
         TraceLoggingString(message, "Message"),                             \
-        TraceLoggingCountedUtf8String((const char*)(string).value, (ULONG)(string).length, #string));
+        TraceLoggingCountedUtf8String((const char*)(string).value, (unsigned long)(string).length, #string));
 
 #define EBPF_LOG_MESSAGE_UINT64(trace_level, keyword, message, value) \
     TraceLoggingWrite(                                                \
@@ -1496,7 +1539,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_API_FAILURE(keyword, api)          \
     do {                                                  \
-        DWORD last_error = GetLastError();                \
+        unsigned long last_error = GetLastError();                \
         TraceLoggingWrite(                                \
             ebpf_tracelog_provider,                       \
             EBPF_TRACELOG_EVENT_API_ERROR,                \
@@ -1508,7 +1551,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_STRING_API_FAILURE(keyword, message, api) \
     do {                                                         \
-        DWORD last_error = GetLastError();                       \
+        unsigned long last_error = GetLastError();                       \
         TraceLoggingWrite(                                       \
             ebpf_tracelog_provider,                              \
             EBPF_TRACELOG_EVENT_API_ERROR,                       \
@@ -1521,7 +1564,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_WSTRING_API_FAILURE(keyword, wstring, api) \
     do {                                                          \
-        DWORD last_error = GetLastError();                        \
+        unsigned long last_error = GetLastError();                        \
         TraceLoggingWrite(                                        \
             ebpf_tracelog_provider,                               \
             EBPF_TRACELOG_EVENT_API_ERROR,                        \
@@ -1534,7 +1577,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_GUID_API_FAILURE(keyword, guid, api) \
     do {                                                    \
-        DWORD last_error = GetLastError();                  \
+        unsigned long last_error = GetLastError();                  \
         TraceLoggingWrite(                                  \
             ebpf_tracelog_provider,                         \
             EBPF_TRACELOG_EVENT_API_ERROR,                  \

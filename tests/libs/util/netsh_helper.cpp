@@ -14,21 +14,21 @@
 // Mock Netsh.exe APIs.
 
 // This function has incorrect SAL annotations, but it's declared in public headers so we can't fix it.
-DWORD WINAPI
+unsigned long WINAPI
 PreprocessCommand(
     _In_opt_ HANDLE hModule,
-    _Inout_updates_(dwArgCount) LPWSTR* ppwcArguments,
-    _In_ DWORD dwCurrentIndex,
-    _In_ DWORD dwArgCount,
+    _Inout_updates_(dwArgCount) wchar_t** ppwcArguments,
+    _In_ unsigned long dwCurrentIndex,
+    _In_ unsigned long dwArgCount,
     _Inout_updates_opt_(dwTagCount) TAG_TYPE* pttTags,
-    _In_ DWORD dwTagCount,
-    _In_ DWORD dwMinArgs,
-    _In_ DWORD dwMaxArgs,
-    _Out_writes_opt_(dwArgCount - dwCurrentIndex) DWORD* pdwTagType)
+    _In_ unsigned long dwTagCount,
+    _In_ unsigned long dwMinArgs,
+    _In_ unsigned long dwMaxArgs,
+    _Out_writes_opt_(dwArgCount - dwCurrentIndex) unsigned long* pdwTagType)
 {
     UNREFERENCED_PARAMETER(hModule);
 
-    DWORD argc = dwArgCount - dwCurrentIndex;
+    unsigned long argc = dwArgCount - dwCurrentIndex;
     if (argc < dwMinArgs || argc > dwMaxArgs) {
         return ERROR_INVALID_SYNTAX;
     }
@@ -37,9 +37,9 @@ PreprocessCommand(
         return ERROR_INVALID_SYNTAX;
     }
 
-    for (DWORD i = 0; i < argc; i++) {
-        PWSTR equals = wcschr(ppwcArguments[dwCurrentIndex + i], L'=');
-        PWSTR tagName = nullptr;
+    for (unsigned long i = 0; i < argc; i++) {
+        wchar_t* equals = wcschr(ppwcArguments[dwCurrentIndex + i], L'=');
+        wchar_t* tagName = nullptr;
         if (equals) {
             tagName = _wcsdup(ppwcArguments[dwCurrentIndex + i]);
             if (tagName == nullptr) {
@@ -52,7 +52,7 @@ PreprocessCommand(
         }
 
         // Find which tag this argument goes with.
-        DWORD dwTagIndex;
+        unsigned long dwTagIndex;
         for (dwTagIndex = 0; dwTagIndex < dwTagCount; dwTagIndex++) {
             if ((tagName == nullptr && !pttTags[dwTagIndex].bPresent) ||
                 (tagName != nullptr && wcsncmp(pttTags[dwTagIndex].pwszTag, tagName, wcslen(tagName)) == 0)) {
@@ -71,7 +71,7 @@ PreprocessCommand(
     }
 
     // See if any required tags are absent.
-    for (DWORD i = 0; i < dwTagCount; i++) {
+    for (unsigned long i = 0; i < dwTagCount; i++) {
         if (!pttTags[i].bPresent && (pttTags[i].dwRequired & NS_REQ_PRESENT)) {
             return ERROR_INVALID_SYNTAX;
         }
@@ -80,12 +80,17 @@ PreprocessCommand(
     return NO_ERROR;
 }
 
-DWORD
-MatchEnumTag(HANDLE hModule, LPCWSTR pwcArg, DWORD dwNumArg, const TOKEN_VALUE* pEnumTable, PDWORD pdwValue)
+unsigned long
+MatchEnumTag(
+    HANDLE hModule,
+    const wchar_t* pwcArg,
+    unsigned long dwNumArg,
+    const TOKEN_VALUE* pEnumTable,
+    unsigned long* pdwValue)
 {
     UNREFERENCED_PARAMETER(hModule);
 
-    for (DWORD i = 0; i < dwNumArg; i++) {
+    for (unsigned long i = 0; i < dwNumArg; i++) {
         if (wcscmp(pwcArg, pEnumTable[i].pwszToken) == 0) {
             *pdwValue = pEnumTable[i].dwValue;
             return NO_ERROR;
@@ -132,7 +137,7 @@ run_netsh_command_with_args(_In_ FN_HANDLE_CMD* command, _Out_ int* result, int 
         }
     }
 
-    *result = command(nullptr, (LPWSTR*)argv.data(), 0, argc, 0, 0, nullptr);
+    *result = command(nullptr, (wchar_t**)argv.data(), 0, argc, 0, 0, nullptr);
 
     va_end(args);
 

@@ -78,7 +78,8 @@ ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
-    ebpf_ring_buffer_t* local_ring_buffer = ebpf_epoch_allocate(sizeof(ebpf_ring_buffer_t));
+    ebpf_ring_buffer_t* local_ring_buffer =
+        ebpf_epoch_allocate_with_tag(sizeof(ebpf_ring_buffer_t), EBPF_POOL_TAG_RING_BUFFER);
     if (!local_ring_buffer) {
         result = EBPF_NO_MEMORY;
         goto Error;
