@@ -512,14 +512,17 @@ Exit:
 }
 
 static void
-_net_ebpf_ext_l2_inject_send_complete(_In_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
+_net_ebpf_ext_l2_inject_send_complete(
+    _In_opt_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
 {
+    UNREFERENCED_PARAMETER(dispatch_level);
+
     if ((BOOLEAN)(uintptr_t)context == FALSE)
         // Free clone allocated using _net_ebpf_ext_allocate_cloned_nbl.
         _net_ebpf_ext_free_nbl(nbl, TRUE);
     else
         // Free clone allocated using FwpsAllocateCloneNetBufferList.
-        FwpsFreeCloneNetBufferList(nbl, dispatch_level);
+        FwpsFreeCloneNetBufferList(nbl, 0);
 }
 
 static void
@@ -561,6 +564,8 @@ _net_ebpf_ext_handle_xdp_tx(
 
     if (status != STATUS_SUCCESS) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "FwpsInjectMacSendAsync", status);
+        _net_ebpf_ext_l2_inject_send_complete(
+            (void*)(uintptr_t)cloned_packet, nbl, KeGetCurrentIrql() == DISPATCH_LEVEL);
         goto Exit;
     }
 
