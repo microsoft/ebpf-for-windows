@@ -35,7 +35,19 @@ class _test_helper_libbpf
 class _test_handle_helper
 {
   public:
+    _test_handle_helper() : handle(ebpf_handle_invalid){};
     _test_handle_helper(ebpf_handle_t handle) : handle(handle){};
+    _test_handle_helper(_test_handle_helper& object)
+    {
+        handle = object.handle;
+        object.handle = ebpf_handle_invalid;
+    }
+    void
+    operator=(_test_handle_helper& object)
+    {
+        handle = object.handle;
+        object.handle = ebpf_handle_invalid;
+    }
     ~_test_handle_helper();
     ebpf_handle_t*
     get_handle_pointer()

@@ -2398,7 +2398,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     std::wstring file_path(L"droppacket_um.dll");
-    _test_handle_helper module_handle(ebpf_handle_invalid);
+    _test_handle_helper module_handle;
     ebpf_handle_t map_handles[INCORRECT_MAP_COUNT];
     ebpf_handle_t program_handles[PROGRAM_COUNT];
 
@@ -2462,8 +2462,8 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     SC_HANDLE service_handle2 = nullptr;
     std::wstring service_path(SERVICE_PATH_PREFIX);
     std::wstring service_path2(SERVICE_PATH_PREFIX);
-    _test_handle_helper module_handle(ebpf_handle_invalid);
-    _test_handle_helper module_handle2(ebpf_handle_invalid);
+    _test_handle_helper module_handle;
+    _test_handle_helper module_handle2;
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     set_native_module_failures(true);
@@ -2517,7 +2517,7 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
     std::wstring file_path(L"droppacket_um.dll");
     ebpf_handle_t map_handles;
     ebpf_handle_t program_handles;
-    _test_handle_helper module_handle(ebpf_handle_invalid);
+    _test_handle_helper module_handle;
 
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
 
