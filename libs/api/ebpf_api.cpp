@@ -42,9 +42,10 @@ const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
-static std::map<ebpf_handle_t, ebpf_program_t*> _ebpf_programs;
-static std::map<ebpf_handle_t, ebpf_map_t*> _ebpf_maps;
-static std::vector<ebpf_object_t*> _ebpf_objects;
+static std::mutex _ebpf_state_mutex;
+_Requires_lock_held_(_ebpf_state_mutex) static std::map<ebpf_handle_t, ebpf_program_t*> _ebpf_programs;
+_Requires_lock_held_(_ebpf_state_mutex) static std::map<ebpf_handle_t, ebpf_map_t*> _ebpf_maps;
+_Requires_lock_held_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects;
 
 #define DEFAULT_PIN_ROOT_PATH "/ebpf/global"
 
@@ -154,6 +155,7 @@ _get_ebpf_map_from_handle(ebpf_handle_t map_handle) noexcept
 {
     EBPF_LOG_ENTRY();
 
+    std::unique_lock lock(_ebpf_state_mutex);
     ebpf_assert(map_handle != ebpf_handle_invalid);
 
     ebpf_map_t* map = nullptr;
@@ -171,6 +173,7 @@ _get_ebpf_program_from_handle(ebpf_handle_t program_handle) noexcept
     EBPF_LOG_ENTRY();
     ebpf_assert(program_handle != ebpf_handle_invalid);
 
+    std::unique_lock lock(_ebpf_state_mutex);
     ebpf_program_t* program = nullptr;
     std::map<ebpf_handle_t, ebpf_program_t*>::iterator it = _ebpf_programs.find(program_handle);
     if (it != _ebpf_programs.end()) {
@@ -1416,6 +1419,7 @@ clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map) noexcept
         Platform::_close(map->map_fd);
     }
     if (map->map_handle != ebpf_handle_invalid) {
+        std::unique_lock lock(_ebpf_state_mutex);
         _ebpf_maps.erase(map->map_handle);
     }
     ebpf_free(map->name);
@@ -1467,6 +1471,7 @@ _delete_ebpf_object(_In_opt_ _Post_invalid_ ebpf_object_t* object) noexcept
 static void
 _remove_ebpf_object_from_globals(_In_ const ebpf_object_t* object) noexcept
 {
+    std::unique_lock lock(_ebpf_state_mutex);
     EBPF_LOG_ENTRY();
     ebpf_assert(object);
     auto it = std::find(_ebpf_objects.begin(), _ebpf_objects.end(), object);
@@ -1478,11 +1483,15 @@ static void
 _clean_up_ebpf_objects() noexcept
 {
     EBPF_LOG_ENTRY();
-    for (auto& object : _ebpf_objects) {
+    std::unique_lock lock(_ebpf_state_mutex);
+    auto objects = std::move(_ebpf_objects);
+    _ebpf_objects.resize(0);
+
+    lock.unlock();
+
+    for (auto& object : objects) {
         _delete_ebpf_object(object);
     }
-
-    _ebpf_objects.resize(0);
 
     ebpf_assert(_ebpf_programs.size() == 0);
     ebpf_assert(_ebpf_maps.size() == 0);
@@ -2291,7 +2300,10 @@ ebpf_object_open(
     }
 
     *object = new_object;
-    _ebpf_objects.emplace_back(*object);
+    {
+        std::unique_lock lock(_ebpf_state_mutex);
+        _ebpf_objects.emplace_back(*object);
+    }
 
 Done:
     clear_map_descriptors();
@@ -2471,6 +2483,7 @@ _ebpf_object_create_maps(_Inout_ ebpf_object_t* object) noexcept(false)
     try {
         if (result == EBPF_SUCCESS) {
             for (auto& map : object->maps) {
+                std::unique_lock lock(_ebpf_state_mutex);
                 _ebpf_maps.insert(std::pair<ebpf_handle_t, ebpf_map_t*>(map->map_handle, map));
             }
         }
@@ -2665,6 +2678,7 @@ _ebpf_object_load_programs(_Inout_ struct bpf_object* object) noexcept(false)
     }
 
     if (result == EBPF_SUCCESS) {
+        std::unique_lock lock(_ebpf_state_mutex);
         for (auto& program : object->programs) {
             _ebpf_programs.insert(std::pair<ebpf_handle_t, ebpf_program_t*>(program->handle, program));
         }
@@ -2735,6 +2749,7 @@ ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept
             map->map_fd = ebpf_fd_invalid;
         }
         if (map->map_handle != ebpf_handle_invalid) {
+            std::unique_lock lock(_ebpf_state_mutex);
             _ebpf_maps.erase(map->map_handle);
             map->map_handle = ebpf_handle_invalid;
         }
@@ -2759,6 +2774,8 @@ ebpf_program_unload(_Inout_ struct bpf_program* program) noexcept
         program->fd = ebpf_fd_invalid;
     }
     if (program->handle != ebpf_handle_invalid) {
+        std::unique_lock lock(_ebpf_state_mutex);
+
         _ebpf_programs.erase(program->handle);
         program->handle = ebpf_handle_invalid;
     }
@@ -3147,6 +3164,7 @@ _Ret_maybenull_ struct bpf_object*
 ebpf_object_next(_In_opt_ const struct bpf_object* previous) noexcept
 {
     EBPF_LOG_ENTRY();
+    std::unique_lock lock(_ebpf_state_mutex);
     if (previous == nullptr) {
         // Return first object.
         EBPF_RETURN_POINTER(struct bpf_object*, (!_ebpf_objects.empty()) ? _ebpf_objects[0] : nullptr);
