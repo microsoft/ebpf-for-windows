@@ -24,7 +24,7 @@ std::unique_ptr<_fwp_engine> _fwp_engine::_engine;
 FWP_ACTION_TYPE
 _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
 {
-    std::unique_lock l(lock);
+    shared_lock_t l(lock);
     const GUID* callout_key = get_callout_key_from_layer_guid(layer_guid);
     if (callout_key == nullptr) {
         return FWP_ACTION_CALLOUT_UNKNOWN;
@@ -126,7 +126,7 @@ _Requires_lock_not_held_(this->lock) FWP_ACTION_TYPE _fwp_engine::test_callout(
     const FWPS_CALLOUT3* callout = nullptr;
 
     {
-        std::unique_lock l(lock);
+        shared_lock_t l(lock);
         const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context(layer_guid, sublayer_guid);
         if (!fwpm_filter) {
             return FWP_ACTION_CALLOUT_UNKNOWN;

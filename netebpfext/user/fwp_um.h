@@ -4,8 +4,11 @@
 
 #include "net_ebpf_ext.h"
 
-#include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
+
+typedef std::unique_lock<std::shared_mutex> exclusive_lock_t;
+typedef std::shared_lock<std::shared_mutex> shared_lock_t;
 
 typedef class _fwp_engine
 {
@@ -15,7 +18,7 @@ typedef class _fwp_engine
     uint32_t
     add_fwpm_callout(const FWPM_CALLOUT0* callout)
     {
-        std::unique_lock l(lock);
+        exclusive_lock_t l(lock);
         uint32_t id = next_id++;
         fwpm_callouts.insert({id, *callout});
         return id;
@@ -24,14 +27,14 @@ typedef class _fwp_engine
     bool
     remove_fwpm_callout(size_t id)
     {
-        std::unique_lock l(lock);
+        exclusive_lock_t l(lock);
         return fwpm_callouts.erase(id) == 1;
     }
 
     uint32_t
     register_fwps_callout(const FWPS_CALLOUT3* callout)
     {
-        std::unique_lock l(lock);
+        exclusive_lock_t l(lock);
         uint32_t id = next_id++;
         fwps_callouts.insert({id, *callout});
         return id;
@@ -64,7 +67,7 @@ typedef class _fwp_engine
     bool
     remove_fwps_callout(size_t id)
     {
-        std::unique_lock l(lock);
+        exclusive_lock_t l(lock);
         return fwps_callouts.erase(id) == 1;
     }
 
@@ -72,7 +75,7 @@ typedef class _fwp_engine
     associate_flow_context(uint64_t flow_id, uint32_t callout_id, uint64_t flow_context)
     {
         UNREFERENCED_PARAMETER(callout_id);
-        std::unique_lock l(lock);
+        exclusive_lock_t l(lock);
         fwpm_flow_contexts.insert({flow_id, flow_context});
     }
 
@@ -84,7 +87,7 @@ typedef class _fwp_engine
         uint64_t flow_context = 0;
 
         {
-            std::unique_lock l(lock);
+            exclusive_lock_t l(lock);
             for (auto& it : fwpm_flow_contexts) {
                 if (it.first == flow_id) {
                     callout = get_fwps_callout_under_lock(callout_id);
@@ -111,7 +114,7 @@ typedef class _fwp_engine
         uint32_t id;
 
         {
-            std::unique_lock l(lock);
+            exclusive_lock_t l(lock);
             id = next_id++;
             fwpm_filters.insert({id, *filter});
 
@@ -134,7 +137,7 @@ typedef class _fwp_engine
         FWPS_FILTER fwps_filter = {};
         bool return_value = false;
         {
-            std::unique_lock l(lock);
+            exclusive_lock_t l(lock);
             for (auto& it : fwpm_filters) {
                 if (it.first == id) {
                     callout = get_fwps_callout_under_lock(&it.second.action.calloutKey);
@@ -158,7 +161,7 @@ typedef class _fwp_engine
     uint32_t
     add_fwpm_sub_layer(const FWPM_SUBLAYER0* sub_layer)
     {
-        std::unique_lock l(lock);
+        exclusive_lock_t l(lock);
         uint32_t id = next_id++;
         fwpm_sub_layers.insert({id, *sub_layer});
         return id;
@@ -167,7 +170,7 @@ typedef class _fwp_engine
     bool
     remove_fwpm_sub_layer(size_t id)
     {
-        std::unique_lock l(lock);
+        exclusive_lock_t l(lock);
         return fwpm_sub_layers.erase(id) == 1;
     }
 
@@ -257,7 +260,7 @@ typedef class _fwp_engine
 
     static std::unique_ptr<_fwp_engine> _engine;
 
-    std::mutex lock;
+    std::shared_mutex lock;
     uint32_t next_id = 1;
     uint32_t next_flow_id = 1;
     std::unordered_map<size_t, FWPS_CALLOUT3> fwps_callouts;
