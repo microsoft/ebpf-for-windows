@@ -27,7 +27,7 @@ service_install_helper::initialize()
 QueryService:
     service_handle = OpenService(scm_handle, service_name.c_str(), SERVICE_ALL_ACCESS);
     if (service_handle == nullptr) {
-        WCHAR file_path[MAX_PATH] = {0};
+        wchar_t file_path[MAX_PATH] = {0};
         error = GetFullPathName(binary_name.c_str(), MAX_PATH, file_path, nullptr);
         if (error == 0) {
             error = GetLastError();
@@ -103,7 +103,7 @@ service_install_helper::start_service()
 {
     int error = ERROR_SUCCESS;
     bool service_running = false;
-    DWORD service_state;
+    unsigned long service_state;
 
     if ((service_handle != nullptr) && !StartService(service_handle, 0, nullptr)) {
         error = GetLastError();
@@ -131,7 +131,7 @@ service_install_helper::stop_service()
 {
     SERVICE_STATUS status;
     bool service_stopped = false;
-    DWORD service_state;
+    unsigned long service_state;
     int error = ERROR_SUCCESS;
 
     if ((service_handle != nullptr) && !ControlService(service_handle, SERVICE_CONTROL_STOP, &status)) {
@@ -147,7 +147,7 @@ service_install_helper::stop_service()
 }
 
 bool
-service_install_helper::check_service_state(DWORD expected_state, DWORD* final_state)
+service_install_helper::check_service_state(unsigned long expected_state, unsigned long* final_state)
 {
     int retry_count = 0;
     bool status = false;
