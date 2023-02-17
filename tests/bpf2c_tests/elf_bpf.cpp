@@ -91,14 +91,9 @@ enum class _test_mode
     FileNotFound,
 };
 
-#include <filesystem>
-#include <iostream>
 void
 run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optional<std::string>& type)
 {
-    INFO("Current dir: " << std::filesystem::current_path() << "\n");
-    INFO("Current file: " << elf_file << "\n");
-
     std::vector<const char*> argv;
     auto name = elf_file.substr(0, elf_file.find('.'));
     argv.push_back("bpf2c.exe");

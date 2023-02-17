@@ -97,14 +97,14 @@
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
-    <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
     <CustomBuild Include="atomic_instruction_others.o">
       <FileType>Document</FileType>
       <Command>
-        xcopy atomic_instruction_others.o $(OutputPath) /Y
-        pushd $(OutputPath)
-        echo "$(OutputPath)"
-        echo "%(Filename)"
+        xcopy atomic_instruction_others.o $(OutDir) /Y
+      </Command>
+      <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
+      <Command Condition="'$(Configuration)'=='Debug'" >
+        pushd $(OutDir)
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true -SkipVerification $true
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
         popd
