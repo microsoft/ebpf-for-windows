@@ -62,7 +62,7 @@ PNET_BUFFER_LIST
 NdisAllocateNetBufferList(_In_ NDIS_HANDLE nbl_pool_handle, _In_ USHORT context_size, _In_ USHORT context_backfill);
 
 _Must_inspect_result_ __drv_allocatesMem(mem) NET_BUFFER* NdisAllocateNetBuffer(
-    _In_ NDIS_HANDLE pool_handle, _In_opt_ MDL* mdl_chain, _In_ ULONG data_offset, _In_ SIZE_T data_length);
+    _In_ NDIS_HANDLE pool_handle, _In_opt_ MDL* mdl_chain, _In_ unsigned long data_offset, _In_ SIZE_T data_length);
 
 VOID
 NdisFreeNetBuffer(_In_ __drv_freesMem(mem) NET_BUFFER* net_buffer);

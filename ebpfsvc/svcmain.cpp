@@ -12,23 +12,23 @@ SERVICE_STATUS_HANDLE ebpf_service_status_handle;
 HANDLE ebpf_service_stop_event_handle = nullptr;
 
 void WINAPI
-service_control_handler(DWORD ctrl);
+service_control_handler(unsigned long ctrl);
 void
-service_report_event(PTSTR function);
+service_report_event(_In_z_ wchar_t* function);
 void
-report_service_status(DWORD current_state, DWORD win32exitcode, DWORD wait_hint);
+report_service_status(unsigned long current_state, unsigned long win32exitcode, unsigned long wait_hint);
 void
-service_init(DWORD argc, PTSTR* argv);
+service_init(unsigned long argc, _In_reads_(argc) wchar_t** argv);
 
 void WINAPI
-service_main(DWORD argc, PTSTR* argv);
+service_main(unsigned long argc, _In_reads_(argc) wchar_t** argv);
 int
 service_install();
 
-int __cdecl wmain(ULONG argc, PWSTR* argv)
+int __cdecl wmain(unsigned long argc, _In_reads_(argc) wchar_t** argv)
 {
     SERVICE_TABLE_ENTRY dispatch_table[] = {
-        {(PWSTR)SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)service_main}, {nullptr, nullptr}};
+        {(wchar_t*)SERVICE_NAME, (SERVICE_MAIN_FUNCTION*)service_main}, {nullptr, nullptr}};
 
     // If command-line parameter is "install", install the service.
     // Otherwise, the service is probably being started by the SCM.
@@ -43,7 +43,7 @@ int __cdecl wmain(ULONG argc, PWSTR* argv)
     // The process should simply terminate when the call returns.
 
     if (!StartServiceCtrlDispatcher(dispatch_table)) {
-        service_report_event((PWSTR)L"StartServiceCtrlDispatcher");
+        service_report_event((wchar_t*)L"StartServiceCtrlDispatcher");
     }
 
     return 0;
@@ -129,7 +129,7 @@ Exit:
  *
  */
 void WINAPI
-service_main(DWORD argc, PTSTR* argv)
+service_main(unsigned long argc, _In_reads_(argc) wchar_t** argv)
 {
     // Register the handler function for the service
 
@@ -153,7 +153,7 @@ service_main(DWORD argc, PTSTR* argv)
 }
 
 void
-service_report_event(PTSTR function)
+service_report_event(_In_z_ wchar_t* function)
 {
     UNREFERENCED_PARAMETER(function);
     return;
@@ -167,7 +167,7 @@ service_report_event(PTSTR function)
  *
  */
 void WINAPI
-service_control_handler(DWORD ctrl)
+service_control_handler(unsigned long ctrl)
 {
     // Handle the requested control code.
 
@@ -187,9 +187,9 @@ service_control_handler(DWORD ctrl)
 }
 
 void
-report_service_status(DWORD current_state, DWORD win32_exit_code, DWORD wait_hint)
+report_service_status(unsigned long current_state, unsigned long win32_exit_code, unsigned long wait_hint)
 {
-    static DWORD _checkpoint = 1;
+    static unsigned long _checkpoint = 1;
 
     // Fill in the SERVICE_STATUS structure.
 
@@ -211,10 +211,10 @@ report_service_status(DWORD current_state, DWORD win32_exit_code, DWORD wait_hin
     SetServiceStatus(ebpf_service_status_handle, &ebpf_service_status);
 }
 
-DWORD
+unsigned long
 Initialize()
 {
-    DWORD status;
+    unsigned long status;
     status = initialize_rpc_server();
     if (status != ERROR_SUCCESS) {
         goto Exit;
@@ -246,12 +246,12 @@ Cleanup()
  *
  */
 void
-service_init(DWORD argc, PTSTR* argv)
+service_init(unsigned long argc, _In_reads_(argc) wchar_t** argv)
 {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    DWORD status = NO_ERROR;
+    unsigned long status = NO_ERROR;
 
     // Create an event. The control handler function, service_control_handler,
     // signals this event when it receives the stop control code.
