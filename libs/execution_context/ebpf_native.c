@@ -1176,6 +1176,7 @@ ebpf_native_load(
 
     result = ebpf_allocate_preemptible_work_item(&cleanup_workitem, _ebpf_native_unload_work_item, local_service_name);
     if (result != EBPF_SUCCESS) {
+        ebpf_free(local_service_name);
         goto Done;
     }
 
