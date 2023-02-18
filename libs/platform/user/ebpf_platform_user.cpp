@@ -25,6 +25,11 @@ bool _ebpf_platform_code_integrity_enabled = false;
 // Permit the test to simulate non-preemptible execution.
 bool _ebpf_platform_is_preemptible = true;
 
+// Global variable to track the number to times ebpf_platform has been
+// initialized. In user mode it is possible for ebpf_platform_{initiate|terminate}
+// may be called multiple times.
+int32_t _ebpf_platform_initiate_count = 0;
+
 extern "C" bool ebpf_fuzzing_enabled = false;
 extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
@@ -296,6 +301,11 @@ _get_environment_variable_as_size_t(const std::string& name)
 _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
+    int32_t count = ebpf_interlocked_increment_int32(&_ebpf_platform_initiate_count);
+    if (count > 1) {
+        // Platform library already initialized, return.
+        return EBPF_SUCCESS;
+    }
 
     try {
         _ebpf_platform_maximum_group_count = GetMaximumProcessorGroupCount();
@@ -336,6 +346,11 @@ ebpf_platform_initiate()
 void
 ebpf_platform_terminate()
 {
+    int32_t count = ebpf_interlocked_decrement_int32(&_ebpf_platform_initiate_count);
+    if (count != 0) {
+        return;
+    }
+
     _clean_up_thread_pool();
     _ebpf_emulated_dpcs.resize(0);
     if (_ebpf_leak_detector_ptr) {
