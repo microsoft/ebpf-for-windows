@@ -70,7 +70,7 @@ typedef struct _ebpf_id_entry
 // if needed by making each array element store a linked list of
 // entries in order by ID, rather than a single entry, in which
 // case this becomes a hash table.
-static _Requires_lock_held_(&_ebpf_object_tracking_list_lock) ebpf_id_entry_t _ebpf_id_table[1024];
+static _Guarded_by_(&_ebpf_object_tracking_list_lock) ebpf_id_entry_t _ebpf_id_table[1024];
 
 // Get the ID last stored at a given index.
 static inline ebpf_id_t
