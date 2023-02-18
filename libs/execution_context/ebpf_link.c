@@ -61,11 +61,8 @@ _ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_c
 
 typedef enum _ebpf_link_dispatch_table_version
 {
-    EBPF_LINK_DISPATCH_TABLE_VERSION_1 = 1, ///< Version 1 of the dispatch table. This is the original version. It
-                                            ///< does not support batch processing.
-    EBPF_LINK_DISPATCH_TABLE_VERSION_2 = 2, ///< Version 2 of the dispatch table. This version supports batch
-                                            ///< processing.
-    EBPF_LINK_DISPATCH_TABLE_VERSION = EBPF_LINK_DISPATCH_TABLE_VERSION_2, ///< Current version of the dispatch table.
+    EBPF_LINK_DISPATCH_TABLE_VERSION_1 = 1,                                ///< Initial version of the dispatch table.
+    EBPF_LINK_DISPATCH_TABLE_VERSION = EBPF_LINK_DISPATCH_TABLE_VERSION_1, ///< Current version of the dispatch table.
 } ebpf_link_dispatch_table_version_t;
 
 const typedef struct _ebpf_link_dispatch_table
