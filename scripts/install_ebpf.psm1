@@ -118,18 +118,6 @@ function Start-eBPFComponents
     }
 }
 
-#
-# Update eBPF store.
-#
-function Update-eBPFStore
-{
-    Write-Log "Clearing eBPF store"
-    .\export_program_info.exe --clear
-
-    Write-Log "Populating eBPF store"
-    .\export_program_info.exe
-}
-
 function Install-eBPFComponents
 {
     param([parameter(Mandatory=$false)] [bool] $Tracing = $false,
@@ -159,10 +147,6 @@ function Install-eBPFComponents
 
     # Start all components.
     Start-eBPFComponents -Tracing $Tracing
-
-    ## TODO: Issue 1231, remove this step when this issue is fixed.
-    # Update eBPF store.
-    Update-eBPFStore
 }
 
 function Stop-eBPFComponents
@@ -180,7 +164,6 @@ function Uninstall-eBPFComponents
 {
     Stop-eBPFComponents
     Unregister-eBPFComponents
-    .\export_program_info.exe --clear
     Remove-Item "$Env:systemroot\system32\drivers\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
     Remove-Item "$Env:systemroot\system32\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
     wpr.exe -cancel
