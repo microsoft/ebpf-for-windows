@@ -8,7 +8,7 @@ name: Reusable Test Workflow
 on:
   workflow_call:
     inputs:
-      name:
+    name:
         required: true
         type: string
       # The test command to invoke.
@@ -123,7 +123,8 @@ jobs:
     - name: Extract build artifact
       working-directory: ${{github.workspace}}
       run: |
-        tar -xf build-${{ matrix.configurations }}.zip
+        mkdir ${{env.BUILD_PLATFORM}}
+        Expand-Archive .\build-${{ matrix.configurations }}.zip -DestinationPath .\${{env.BUILD_PLATFORM}}
 
     - name: Create generated artifact folder
       run: |

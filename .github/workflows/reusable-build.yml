@@ -157,13 +157,13 @@ jobs:
     - name: Zip Build Output
       working-directory: ${{github.workspace}}
       run: |
-        tar -cvf build-${{ matrix.configurations }}.zip ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{ matrix.configurations }}.zip
 
     - name: Upload Build Output
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{inputs.build_artifact}}-${{matrix.configurations}}
-        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/build-${{ matrix.configurations }}.zip
+        path: ${{github.workspace}}/build-${{ matrix.configurations }}.zip
         retention-days: 5
 
     - name: Generate the package data
