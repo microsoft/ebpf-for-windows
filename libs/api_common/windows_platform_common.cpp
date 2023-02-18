@@ -27,7 +27,8 @@
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
 
 // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
-ebpf_registry_key_t root_registry_key = HKEY_CURRENT_USER;
+ebpf_registry_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
+ebpf_registry_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
 
 extern bool use_ebpf_store;
 
