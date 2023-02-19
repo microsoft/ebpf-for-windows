@@ -208,25 +208,28 @@ TEST_CASE("bind_invoke", "[netebpfext]")
 {
     ebpf_extension_data_t npi_specific_characteristics = {};
     test_bind_client_context_t client_context = {};
+    fwp_classify_parameters_t parameters = {};
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_bind_program,
         (netebpfext_helper_base_client_context_t*)&client_context);
 
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
     // Classify a bind that should be allowed.
     client_context.bind_action = BIND_PERMIT;
-    FWP_ACTION_TYPE result = helper.test_bind_ipv4(); // TODO(issue #526): support IPv6.
+    FWP_ACTION_TYPE result = helper.test_bind_ipv4(&parameters); // TODO(issue #526): support IPv6.
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify a bind that should be redirected.
     client_context.bind_action = BIND_REDIRECT;
-    result = helper.test_bind_ipv4();
+    result = helper.test_bind_ipv4(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify a bind that should be blocked.
     client_context.bind_action = BIND_DENY;
-    result = helper.test_bind_ipv4();
+    result = helper.test_bind_ipv4(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
@@ -363,65 +366,113 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
 {
     ebpf_extension_data_t npi_specific_characteristics = {};
     test_sock_addr_client_context_t client_context = {};
+    fwp_classify_parameters_t parameters = {};
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)&client_context);
 
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
     // Classify operations that should be allowed.
     client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
 
-    FWP_ACTION_TYPE result = helper.test_cgroup_inet4_recv_accept();
+    FWP_ACTION_TYPE result = helper.test_cgroup_inet4_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_cgroup_inet6_recv_accept();
+    result = helper.test_cgroup_inet6_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_cgroup_inet4_connect();
+    result = helper.test_cgroup_inet4_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_cgroup_inet6_connect();
+    result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify operations that should be blocked.
     client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_BLOCK;
 
-    result = helper.test_cgroup_inet4_recv_accept();
+    result = helper.test_cgroup_inet4_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    result = helper.test_cgroup_inet6_recv_accept();
+    result = helper.test_cgroup_inet6_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    result = helper.test_cgroup_inet4_connect();
+    result = helper.test_cgroup_inet4_connect(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    result = helper.test_cgroup_inet6_connect();
+    result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
     // Classify operations for redirect.
     client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
 
-    result = helper.test_cgroup_inet4_connect();
+    result = helper.test_cgroup_inet4_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_cgroup_inet6_connect();
+    result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Test eBPF program invocation failure.
     client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_FAILURE;
 
-    result = helper.test_cgroup_inet4_recv_accept();
+    result = helper.test_cgroup_inet4_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    result = helper.test_cgroup_inet6_recv_accept();
+    result = helper.test_cgroup_inet6_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    result = helper.test_cgroup_inet4_connect();
+    result = helper.test_cgroup_inet4_connect(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    result = helper.test_cgroup_inet6_connect();
+    result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
+}
+
+void
+sock_addr_thread_function(
+    std::stop_token token, _In_ netebpf_ext_helper_t* helper, _In_ fwp_classify_parameters_t* parameters)
+{
+    while (!token.stop_requested()) {
+        helper->test_cgroup_inet4_connect(parameters);
+    }
+}
+
+TEST_CASE("sock_addr_invoke_concurrent", "[netebpfext_concurrent]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {};
+    test_sock_addr_client_context_t client_context = {};
+    fwp_classify_parameters_t parameters = {};
+    std::vector<std::jthread> threads;
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
+
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
+    // Classify operations that should be allowed.
+    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+
+    size_t thread_count = 2 * ebpf_get_cpu_count();
+    for (size_t i = 0; i < thread_count; i++) {
+        threads.emplace_back(sock_addr_thread_function, &helper, &parameters);
+    }
+
+    // Wait for 10 seconds.
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    // Stop all threads.
+    for (auto& thread : threads) {
+        thread.request_stop();
+    }
+
+    // Wait for all threads to stop.
+    for (auto& thread : threads) {
+        thread.join();
+    }
 }
 
 TEST_CASE("sock_addr_context", "[netebpfext]")
@@ -514,28 +565,31 @@ TEST_CASE("sock_ops_invoke", "[netebpfext]")
 {
     ebpf_extension_data_t npi_specific_characteristics = {};
     test_sock_ops_client_context_t client_context = {};
+    fwp_classify_parameters_t parameters = {};
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
         (netebpfext_helper_base_client_context_t*)&client_context);
 
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
     // Do some operations that return success.
     client_context.sock_ops_action = 0;
 
-    FWP_ACTION_TYPE result = helper.test_sock_ops_v4();
+    FWP_ACTION_TYPE result = helper.test_sock_ops_v4(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_sock_ops_v6();
+    result = helper.test_sock_ops_v6(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Do some operations that return failure.
     client_context.sock_ops_action = -1;
 
-    result = helper.test_sock_ops_v4();
+    result = helper.test_sock_ops_v4(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    result = helper.test_sock_ops_v6();
+    result = helper.test_sock_ops_v6(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 }
 

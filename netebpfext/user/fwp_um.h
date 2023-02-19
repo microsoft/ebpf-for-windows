@@ -10,6 +10,23 @@
 typedef std::unique_lock<std::shared_mutex> exclusive_lock_t;
 typedef std::shared_lock<std::shared_mutex> shared_lock_t;
 
+typedef struct _fwp_classify_parameters
+{
+    ADDRESS_FAMILY family;
+    uint32_t destination_ipv4_address;
+    FWP_BYTE_ARRAY16 destination_ipv6_address;
+    uint16_t destination_port;
+    uint32_t source_ipv4_address;
+    FWP_BYTE_ARRAY16 source_ipv6_address;
+    uint16_t source_port;
+    uint8_t protocol;
+    uint32_t compartment_id;
+    FWP_BYTE_BLOB app_id;
+    uint64_t interface_luid;
+    TOKEN_ACCESS_INFORMATION token_access_information;
+    FWP_BYTE_BLOB user_id;
+} fwp_classify_parameters_t;
+
 typedef class _fwp_engine
 {
   public:
@@ -178,25 +195,25 @@ typedef class _fwp_engine
     classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index);
 
     FWP_ACTION_TYPE
-    test_bind_ipv4();
+    test_bind_ipv4(_In_ fwp_classify_parameters_t* parameters);
 
     FWP_ACTION_TYPE
-    test_cgroup_inet4_recv_accept();
+    test_cgroup_inet4_recv_accept(_In_ fwp_classify_parameters_t* parameters);
 
     FWP_ACTION_TYPE
-    test_cgroup_inet6_recv_accept();
+    test_cgroup_inet6_recv_accept(_In_ fwp_classify_parameters_t* parameters);
 
     FWP_ACTION_TYPE
-    test_cgroup_inet4_connect();
+    test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameters);
 
     FWP_ACTION_TYPE
-    test_cgroup_inet6_connect();
+    test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameters);
 
     FWP_ACTION_TYPE
-    test_sock_ops_v4();
+    test_sock_ops_v4(_In_ fwp_classify_parameters_t* parameters);
 
     FWP_ACTION_TYPE
-    test_sock_ops_v6();
+    test_sock_ops_v6(_In_ fwp_classify_parameters_t* parameters);
 
     static _fwp_engine*
     get()
