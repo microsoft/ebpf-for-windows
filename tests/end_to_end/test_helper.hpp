@@ -32,6 +32,25 @@ class _test_helper_libbpf
     _single_instance_hook* cgroup_inet4_connect_hook;
 };
 
+class _test_handle_helper
+{
+  public:
+    _test_handle_helper() : handle(ebpf_handle_invalid){};
+    _test_handle_helper(ebpf_handle_t handle) : handle(handle){};
+    _test_handle_helper(const _test_handle_helper& object) = delete;
+    void
+    operator=(const _test_handle_helper& object) = delete;
+    ~_test_handle_helper();
+    ebpf_handle_t*
+    get_handle_pointer()
+    {
+        return &handle;
+    };
+
+  private:
+    ebpf_handle_t handle = ebpf_handle_invalid;
+};
+
 void
 set_native_module_failures(bool expected);
 
