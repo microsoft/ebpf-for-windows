@@ -97,7 +97,7 @@
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
-    <!-- Copy explicit unsafe object files (i.e. not to be verified) among the other generated .o files -->
+    <!-- Copy explicit unsafe object files (i.e., not to be verified) among the other generated .o files -->
     <CustomBuild Include="unsafe\*.o">
       <FileType>Document</FileType>
       <Command>
