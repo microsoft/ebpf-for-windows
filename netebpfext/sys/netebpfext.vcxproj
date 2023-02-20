@@ -115,6 +115,7 @@
     </DriverSign>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\libs\platform\kernel\registry_helper_km.c" />
     <ClCompile Include="..\guid.c" />
     <ClCompile Include="..\net_ebpf_ext.c" />
     <ClCompile Include="..\net_ebpf_ext_bind.c" />

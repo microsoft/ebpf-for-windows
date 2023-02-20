@@ -99,59 +99,11 @@ export_global_helper_information()
         ebpf_core_helper_function_prototype, ebpf_core_helper_functions_count);
 }
 
-static uint32_t
-_clear_ebpf_store(ebpf_registry_key_t root_key_path)
-{
-    ebpf_registry_key_t root_handle = {0};
-    ebpf_registry_key_t provider_handle = {0};
-    uint32_t status;
-
-    // Open root registry key.
-    status = open_registry_key(root_key_path, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_handle);
-    if (status != ERROR_SUCCESS) {
-        if (status == ERROR_FILE_NOT_FOUND) {
-            status = ERROR_SUCCESS;
-        }
-
-        goto Exit;
-    }
-
-    // Open "providers" registry key.
-    status = open_registry_key(root_handle, EBPF_PROVIDERS_REGISTRY_PATH, REG_CREATE_FLAGS, &provider_handle);
-    if (status != ERROR_SUCCESS) {
-        if (status == ERROR_FILE_NOT_FOUND) {
-            status = ERROR_SUCCESS;
-        }
-
-        goto Exit;
-    }
-
-    // Delete subtree of provider reg key.
-    status = delete_registry_tree(provider_handle, nullptr);
-    if (status != ERROR_SUCCESS) {
-        goto Exit;
-    }
-    close_registry_key(provider_handle);
-    provider_handle = nullptr;
-
-    status = delete_registry_key(root_handle, EBPF_PROVIDERS_REGISTRY_PATH);
-
-Exit:
-    if (provider_handle) {
-        close_registry_key(provider_handle);
-    }
-    if (root_handle) {
-        close_registry_key(root_handle);
-    }
-
-    return status;
-}
-
 uint32_t
 clear_all_ebpf_stores()
 {
     std::cout << "Clearing eBPF store HKEY_CURRENT_USER" << std::endl;
-    return _clear_ebpf_store(ebpf_root_registry_key);
+    return ebpf_store_clear(ebpf_root_registry_key);
 }
 
 void

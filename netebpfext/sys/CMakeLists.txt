@@ -3,6 +3,7 @@
 
 wdk_add_driver("NetEbpfExt" WINVER "${EBPFFORWINDOWS_WDK_WINVER}" KMDF "${EBPFFORWINDOWS_WDK_KMDF_VERSION}"
   ../guid.c
+  ../../libs/platform/kernel/registry_helper_km.c
 
   ../net_ebpf_ext.h
   ../net_ebpf_ext.c

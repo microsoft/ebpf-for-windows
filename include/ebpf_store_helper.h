@@ -6,6 +6,7 @@
 #include "ebpf_program_types.h"
 #include "ebpf_registry_helper.h"
 #include "ebpf_windows.h"
+#include "winerror.h"
 
 #ifdef USER_MODE
 extern ebpf_registry_key_t ebpf_root_registry_key;
@@ -345,6 +346,52 @@ Exit:
     }
     if (provider_key) {
         close_registry_key(provider_key);
+    }
+
+    return status;
+}
+
+static __return_type
+ebpf_store_clear(_In_ const ebpf_registry_key_t root_key_path)
+{
+    ebpf_registry_key_t root_handle = {0};
+    ebpf_registry_key_t provider_handle = {0};
+    __return_type status = _SUCCESS;
+
+    // Open root registry key.
+    status = open_registry_key(root_key_path, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_handle);
+    if (!IS_SUCCESS(status)) {
+        if (status == ERROR_FILE_NOT_FOUND) {
+            status = _SUCCESS;
+        }
+        goto Exit;
+    }
+
+    // Open "providers" registry key.
+    status = open_registry_key(root_handle, EBPF_PROVIDERS_REGISTRY_PATH, REG_CREATE_FLAGS, &provider_handle);
+    if (!IS_SUCCESS(status)) {
+        if (status == ERROR_FILE_NOT_FOUND) {
+            status = _SUCCESS;
+        }
+        goto Exit;
+    }
+
+    // Delete subtree of provider reg key.
+    status = delete_registry_tree(provider_handle, NULL);
+    if (!IS_SUCCESS(status)) {
+        goto Exit;
+    }
+    close_registry_key(provider_handle);
+    provider_handle = NULL;
+
+    status = delete_registry_key(root_handle, EBPF_PROVIDERS_REGISTRY_PATH);
+
+Exit:
+    if (provider_handle) {
+        close_registry_key(provider_handle);
+    }
+    if (root_handle) {
+        close_registry_key(root_handle);
     }
 
     return status;

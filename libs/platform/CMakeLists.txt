@@ -88,6 +88,7 @@ wdk_add_library("platform_kernel" STATIC WINVER "${EBPFFORWINDOWS_WDK_WINVER}"
   kernel/ebpf_handle_kernel.c
   kernel/ebpf_platform_kernel.c
   kernel/ebpf_native_kernel.c
+  kernel/registry_helper_km.c
 )
 
 target_include_directories("platform_kernel" PRIVATE
