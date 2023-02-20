@@ -86,7 +86,7 @@ static ebpf_extension_provider_t* _ebpf_native_provider = NULL;
 
 #define EBPF_CLIENT_TABLE_BUCKET_COUNT 64
 static ebpf_lock_t _ebpf_native_client_table_lock = {0};
-static _Guarded_by_(&_ebpf_native_client_table_lock) ebpf_hash_table_t* _ebpf_native_client_table = NULL;
+static _Guarded_by_(_ebpf_native_client_table_lock) ebpf_hash_table_t* _ebpf_native_client_table = NULL;
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name);

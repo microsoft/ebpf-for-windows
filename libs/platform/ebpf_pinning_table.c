@@ -22,7 +22,7 @@
 
 typedef struct _ebpf_pinning_table
 {
-    _Guarded_by_(&lock) ebpf_hash_table_t* hash_table;
+    _Guarded_by_(lock) ebpf_hash_table_t* hash_table;
     ebpf_lock_t lock;
 } ebpf_pinning_table_t;
 

@@ -1472,9 +1472,9 @@ _delete_ebpf_object(_In_opt_ _Post_invalid_ ebpf_object_t* object) noexcept
 _Requires_lock_not_held_(_ebpf_state_mutex) static void _remove_ebpf_object_from_globals(
     _In_ const ebpf_object_t* object) noexcept
 {
-    std::unique_lock lock(_ebpf_state_mutex);
     EBPF_LOG_ENTRY();
     ebpf_assert(object);
+    std::unique_lock lock(_ebpf_state_mutex);
     auto it = std::find(_ebpf_objects.begin(), _ebpf_objects.end(), object);
     ebpf_assert(it != _ebpf_objects.end());
     _ebpf_objects.erase(it);
@@ -1483,19 +1483,24 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static void _remove_ebpf_object_from
 _Requires_lock_not_held_(_ebpf_state_mutex) static void _clean_up_ebpf_objects() noexcept
 {
     EBPF_LOG_ENTRY();
-    std::unique_lock lock(_ebpf_state_mutex);
-    auto objects = std::move(_ebpf_objects);
-    _ebpf_objects.resize(0);
+    std::vector<ebpf_object_t*> objects;
 
-    lock.unlock();
+    // Intentional use of scope to limit lifetime of lock.
+    {
+        std::unique_lock lock(_ebpf_state_mutex);
+        objects = std::move(_ebpf_objects);
+    }
 
     for (auto& object : objects) {
         _delete_ebpf_object(object);
     }
 
-    lock.lock();
-    ebpf_assert(_ebpf_programs.size() == 0);
-    ebpf_assert(_ebpf_maps.size() == 0);
+    // Intentional use of scope to limit lifetime of lock.
+    {
+        std::unique_lock lock(_ebpf_state_mutex);
+        ebpf_assert(_ebpf_programs.size() == 0);
+        ebpf_assert(_ebpf_maps.size() == 0);
+    }
 }
 
 void
@@ -2775,7 +2780,6 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t
     }
     if (program->handle != ebpf_handle_invalid) {
         std::unique_lock lock(_ebpf_state_mutex);
-
         _ebpf_programs.erase(program->handle);
         program->handle = ebpf_handle_invalid;
     }

@@ -9,7 +9,7 @@ typedef ebpf_base_object_t* ebpf_handle_entry_t;
 // TODO: Replace this with the real Windows object manager handle table code.
 
 static ebpf_lock_t _ebpf_handle_table_lock = {0};
-static _Guarded_by_(&_ebpf_handle_table_lock) ebpf_handle_entry_t _ebpf_handle_table[1024];
+static _Guarded_by_(_ebpf_handle_table_lock) ebpf_handle_entry_t _ebpf_handle_table[1024];
 
 static bool _ebpf_handle_table_initiated = false;
 
