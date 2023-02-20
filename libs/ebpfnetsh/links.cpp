@@ -21,7 +21,13 @@
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
 unsigned long
 handle_ebpf_show_links(
-    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
+    IN LPCWSTR machine,
+    _Inout_updates_(argc) LPWSTR* argv,
+    IN DWORD current_index,
+    IN DWORD argc,
+    IN DWORD flags,
+    IN LPCVOID data,
+    OUT BOOL* done)
 {
     UNREFERENCED_PARAMETER(argv);
     UNREFERENCED_PARAMETER(current_index);
