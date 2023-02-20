@@ -633,6 +633,13 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     api_initialized = true;
 }
 
+_test_handle_helper::~_test_handle_helper()
+{
+    if (handle != ebpf_handle_invalid) {
+        GlueCloseHandle((HANDLE)handle);
+    }
+}
+
 static void
 _rundown_osfhandles()
 {
