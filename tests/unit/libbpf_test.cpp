@@ -2711,11 +2711,17 @@ TEST_CASE("libbpf_load_stress", "[libbpf]")
     _test_helper_libbpf test_helper;
 
     std::vector<std::jthread> threads;
-    for (size_t i = 0; i < ebpf_get_cpu_count(); i++) {
+    // Schedule 4 threads per CPU to force contention.
+    for (size_t i = 0; i < ebpf_get_cpu_count() * 4; i++) {
         // Initialize thread object with lambda plus stop token
         threads.emplace_back([i](std::stop_token stop_token) {
             while (!stop_token.stop_requested()) {
                 struct bpf_object* object = bpf_object__open("droppacket_um.dll");
+                // Enumerate maps and programs.
+                bpf_program* program;
+                bpf_object__for_each_program(program, object) {}
+                bpf_map* map;
+                bpf_object__for_each_map(map, object) {}
                 bpf_object__close(object);
             }
         });
