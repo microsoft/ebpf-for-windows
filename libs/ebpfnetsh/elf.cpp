@@ -18,7 +18,13 @@ TOKEN_VALUE g_LevelEnum[2] = {
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
 unsigned long
 handle_ebpf_show_disassembly(
-    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
+    IN LPCWSTR machine,
+    _Inout_updates_(argc) LPWSTR* argv,
+    IN DWORD current_index,
+    IN DWORD argc,
+    IN DWORD flags,
+    IN LPCVOID data,
+    OUT BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -83,7 +89,13 @@ _get_map_type_name(ebpf_map_type_t type)
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
 unsigned long
 handle_ebpf_show_sections(
-    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
+    IN LPCWSTR machine,
+    _Inout_updates_(argc) LPWSTR* argv,
+    IN DWORD current_index,
+    IN DWORD argc,
+    IN DWORD flags,
+    IN LPCVOID data,
+    OUT BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
@@ -205,7 +217,13 @@ handle_ebpf_show_sections(
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
 unsigned long
 handle_ebpf_show_verification(
-    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
+    IN LPCWSTR machine,
+    _Inout_updates_(argc) LPWSTR* argv,
+    IN DWORD current_index,
+    IN DWORD argc,
+    IN DWORD flags,
+    IN LPCVOID data,
+    OUT BOOL* done)
 {
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
