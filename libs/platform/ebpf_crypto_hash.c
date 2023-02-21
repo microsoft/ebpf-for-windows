@@ -70,7 +70,7 @@ ebpf_cryptographic_hash_append(
 {
     NTSTATUS nt_status;
 
-    nt_status = BCryptHashData(hash->hash_handle, (uint8_t*)buffer, (ULONG)length, 0);
+    nt_status = BCryptHashData(hash->hash_handle, (uint8_t*)buffer, (unsigned long)length, 0);
     if (!NT_SUCCESS(nt_status)) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -96,7 +96,7 @@ ebpf_cryptographic_hash_get_hash(
         return EBPF_INSUFFICIENT_BUFFER;
     }
 
-    nt_status = BCryptFinishHash(hash->hash_handle, buffer, (ULONG)*output_length, 0);
+    nt_status = BCryptFinishHash(hash->hash_handle, buffer, (unsigned long)*output_length, 0);
     if (!NT_SUCCESS(nt_status)) {
         return EBPF_INVALID_ARGUMENT;
     }

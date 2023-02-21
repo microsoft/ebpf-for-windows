@@ -95,7 +95,7 @@ NdisFreeGenericObject(_In_ PNDIS_GENERIC_OBJECT ndis_object)
 }
 
 _Must_inspect_result_ __drv_allocatesMem(mem) NET_BUFFER* NdisAllocateNetBuffer(
-    _In_ NDIS_HANDLE pool_handle, _In_opt_ MDL* mdl_chain, _In_ ULONG data_offset, _In_ SIZE_T data_length)
+    _In_ NDIS_HANDLE pool_handle, _In_opt_ MDL* mdl_chain, _In_ unsigned long data_offset, _In_ SIZE_T data_length)
 {
     UNREFERENCED_PARAMETER(pool_handle);
     UNREFERENCED_PARAMETER(data_offset);
@@ -125,7 +125,7 @@ NdisGetDataBuffer(
     UNREFERENCED_PARAMETER(storage);
     UNREFERENCED_PARAMETER(align_multiple);
     UNREFERENCED_PARAMETER(align_offset);
-    ULONG size = MmGetMdlByteCount(net_buffer->MdlChain);
+    unsigned long size = MmGetMdlByteCount(net_buffer->MdlChain);
     if (size >= bytes_needed) {
         return MmGetSystemAddressForMdlSafe(net_buffer->MdlChain, NormalPagePriority);
     }

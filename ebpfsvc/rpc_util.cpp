@@ -16,10 +16,10 @@
 #define EBPF_SERVICE_INTERFACE_HANDLE ebpf_server_ebpf_service_interface_v1_0_s_ifspec
 #define MAX_RPC_CALL_SIZE 1024 * 1024
 
-static const WCHAR* _protocol_sequence = L"ncalrpc";
+static const wchar_t* _protocol_sequence = L"ncalrpc";
 static bool _rpc_server_initialized = false;
 
-DWORD
+unsigned long
 initialize_rpc_server()
 {
     RPC_STATUS status;

@@ -512,14 +512,17 @@ Exit:
 }
 
 static void
-_net_ebpf_ext_l2_inject_send_complete(_In_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
+_net_ebpf_ext_l2_inject_send_complete(
+    _In_opt_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
 {
+    UNREFERENCED_PARAMETER(dispatch_level);
+
     if ((BOOLEAN)(uintptr_t)context == FALSE)
         // Free clone allocated using _net_ebpf_ext_allocate_cloned_nbl.
         _net_ebpf_ext_free_nbl(nbl, TRUE);
     else
         // Free clone allocated using FwpsAllocateCloneNetBufferList.
-        FwpsFreeCloneNetBufferList(nbl, dispatch_level);
+        FwpsFreeCloneNetBufferList(nbl, 0);
 }
 
 static void
@@ -528,7 +531,7 @@ _net_ebpf_ext_handle_xdp_tx(
 {
     NET_BUFFER_LIST* nbl = NULL;
     NTSTATUS status = STATUS_SUCCESS;
-    BOOL cloned_packet = FALSE;
+    bool cloned_packet = FALSE;
 
     uint32_t interface_index =
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
@@ -561,6 +564,8 @@ _net_ebpf_ext_handle_xdp_tx(
 
     if (status != STATUS_SUCCESS) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "FwpsInjectMacSendAsync", status);
+        _net_ebpf_ext_l2_inject_send_complete(
+            (void*)(uintptr_t)cloned_packet, nbl, KeGetCurrentIrql() == DISPATCH_LEVEL);
         goto Exit;
     }
 
@@ -767,7 +772,7 @@ _ebpf_xdp_context_create(
     memset(new_context, 0, sizeof(net_ebpf_xdp_md_t));
 
     // Create a MDL with the packet buffer.
-    mdl_chain = IoAllocateMdl((void*)data_in, (ULONG)data_size_in, FALSE, FALSE, NULL);
+    mdl_chain = IoAllocateMdl((void*)data_in, (unsigned long)data_size_in, FALSE, FALSE, NULL);
     if (mdl_chain == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;

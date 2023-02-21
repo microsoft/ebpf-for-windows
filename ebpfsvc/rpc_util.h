@@ -5,7 +5,7 @@
 
 #include "svc_common.h"
 
-DWORD
+unsigned long
 initialize_rpc_server();
 
 void
