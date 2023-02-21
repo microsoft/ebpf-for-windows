@@ -121,13 +121,13 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
-  netebpfext_unit_tests_leak_detection:
+  netebpfext_unit_leak_detection:
     # Always run this job.
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: netebpfext_unit_tests_leak_detection
+      name: netebpfext_unit_leak_detection
       test_command: .\netebpfext_unit.exe -d yes
       build_artifact: Build-x64
       environment: windows-2022

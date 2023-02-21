@@ -5,6 +5,8 @@
 #include "net_ebpf_ext_sock_addr.h"
 #include "netebpfext_platform.h"
 
+thread_local static FWPS_CONNECT_REQUEST0* _fwp_um_connect_request = nullptr;
+
 // 98849e12-b07d-11ec-9a30-18602489beee
 DEFINE_GUID(
     EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER, 0x98849e12, 0xb07d, 0x11ec, 0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee);
@@ -25,11 +27,11 @@ FWP_ACTION_TYPE
 _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
 {
     shared_lock_t l(lock);
-    const GUID* callout_key = get_callout_key_from_layer_guid(layer_guid);
+    const GUID* callout_key = get_callout_key_from_layer_guid_under_lock(layer_guid);
     if (callout_key == nullptr) {
         return FWP_ACTION_CALLOUT_UNKNOWN;
     }
-    const FWPS_CALLOUT3* callout = get_callout_from_key(callout_key);
+    const FWPS_CALLOUT3* callout = get_callout_from_key_under_lock(callout_key);
     if (callout == nullptr) {
         return FWP_ACTION_CALLOUT_UNKNOWN;
     }
@@ -38,7 +40,7 @@ _fwp_engine::classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_in
     FWPS_INCOMING_VALUES incoming_fixed_values = {.incomingValue = incoming_value};
     incoming_fixed_values.incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32 = if_index;
     FWPS_INCOMING_METADATA_VALUES incoming_metadata_values = {};
-    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context(*layer_guid);
+    const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context_under_lock(*layer_guid);
     if (!fwpm_filter) {
         return FWP_ACTION_CALLOUT_UNKNOWN;
     }
@@ -113,18 +115,18 @@ _Requires_lock_not_held_(this->lock) FWP_ACTION_TYPE _fwp_engine::test_callout(
 
     {
         shared_lock_t l(lock);
-        const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context(layer_guid, sublayer_guid);
+        const FWPM_FILTER* fwpm_filter = get_fwpm_filter_with_context_under_lock(layer_guid, sublayer_guid);
         if (!fwpm_filter) {
             return FWP_ACTION_CALLOUT_UNKNOWN;
         }
         fwps_filter.context = fwpm_filter->rawContext;
 
-        const GUID* callout_key = get_callout_key_from_layer_guid(&layer_guid);
+        const GUID* callout_key = get_callout_key_from_layer_guid_under_lock(&layer_guid);
         if (callout_key == nullptr) {
             return FWP_ACTION_CALLOUT_UNKNOWN;
         }
 
-        callout = get_callout_from_key(callout_key);
+        callout = get_callout_from_key_under_lock(callout_key);
         if (callout == nullptr) {
             return FWP_ACTION_CALLOUT_UNKNOWN;
         }
@@ -190,11 +192,65 @@ _fwp_engine::test_cgroup_inet6_recv_accept(_In_ fwp_classify_parameters_t* param
         FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V6, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6, EBPF_DEFAULT_SUBLAYER, incoming_value);
 }
 
+bool
+_is_connection_redirected(
+    _In_ const fwp_classify_parameters_t* parameters,
+    _In_ const FWPS_CONNECT_REQUEST0* request,
+    _Out_ uint16_t* redirected_port,
+    _Out_ uint8_t** redirected_address)
+{
+    // Test ebpf program modifies both port and IP address. Only check the port
+    // to know if redirection happened.
+    *redirected_port = INETADDR_PORT((PSOCKADDR)&request->remoteAddressAndPort);
+    *redirected_address = INETADDR_ADDRESS((PSOCKADDR)&request->remoteAddressAndPort);
+
+    if (parameters->destination_port == *redirected_port) {
+        return false;
+    }
+
+    if (request->remoteAddressAndPort.ss_family == AF_INET) {
+        if (parameters->destination_ipv4_address == *((uint32_t*)*redirected_address)) {
+            return false;
+        }
+    } else if (memcmp(*redirected_address, parameters->destination_ipv6_address.byteArray16, 16) == 0) {
+        return false;
+    }
+
+    return true;
+}
+
+// Allocate and initialize FWPS_CONNECT_REQUEST0.
+void static _allocate_and_initialize_connection_request(
+    ADDRESS_FAMILY family, _In_ const fwp_classify_parameters_t* parameters)
+{
+    ebpf_assert(_fwp_um_connect_request == nullptr);
+    _fwp_um_connect_request = (FWPS_CONNECT_REQUEST0*)ebpf_allocate(sizeof(FWPS_CONNECT_REQUEST0));
+    if (_fwp_um_connect_request == nullptr) {
+        // Most likely we are under low memory simulation. Return.
+        return;
+    }
+
+    _fwp_um_connect_request->remoteAddressAndPort.ss_family = family;
+    INETADDR_SET_PORT((PSOCKADDR)&_fwp_um_connect_request->remoteAddressAndPort, parameters->destination_port);
+    return;
+}
+
+void static _free_connection_request()
+{
+    ebpf_free(_fwp_um_connect_request);
+    _fwp_um_connect_request = nullptr;
+}
+
 // This is used to test the INET4_CONNECT hook.
 FWP_ACTION_TYPE
 _fwp_engine::test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameters)
 {
     FWP_ACTION_TYPE action;
+    bool redirected = false;
+    uint16_t redirected_port = 0;
+    uint8_t* redirected_address = nullptr;
+
+    _allocate_and_initialize_connection_request(AF_INET, parameters);
 
     // For CGROUP_CONNECT* attach type, first CONNECT_REDIRECT callout is invoked, followed by
     // AUTH_CONNECT.
@@ -213,6 +269,11 @@ _fwp_engine::test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameter
         FWPS_LAYER_ALE_CONNECT_REDIRECT_V4, FWPM_LAYER_ALE_CONNECT_REDIRECT_V4, EBPF_DEFAULT_SUBLAYER, incoming_value);
     ebpf_assert(action == FWP_ACTION_PERMIT);
 
+    if (_fwp_um_connect_request != nullptr) {
+        redirected =
+            _is_connection_redirected(parameters, _fwp_um_connect_request, &redirected_port, &redirected_address);
+    }
+
     FWPS_INCOMING_VALUE0 incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V4_MAX] = {};
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_ADDRESS].value.uint32 = parameters->source_ipv4_address;
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_PORT].value.uint16 = parameters->source_port;
@@ -225,8 +286,24 @@ _fwp_engine::test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameter
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V4_ALE_USER_ID].value.byteBlob = &parameters->user_id;
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_INTERFACE].value.uint64 = &parameters->interface_luid;
 
-    return test_callout(
+    action = test_callout(
         FWPS_LAYER_ALE_AUTH_CONNECT_V4, FWPM_LAYER_ALE_AUTH_CONNECT_V4, EBPF_DEFAULT_SUBLAYER, incoming_value2);
+
+    if (redirected) {
+        // In case the connection is redirected, AUTH_CONNECT callout will be invoked twice.
+        ebpf_assert(action == FWP_ACTION_PERMIT);
+
+        incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_REMOTE_PORT].value.uint16 = ntohs(redirected_port);
+        incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_REMOTE_ADDRESS].value.uint32 =
+            ntohl(*((uint32_t*)redirected_address));
+
+        action = test_callout(
+            FWPS_LAYER_ALE_AUTH_CONNECT_V4, FWPM_LAYER_ALE_AUTH_CONNECT_V4, EBPF_DEFAULT_SUBLAYER, incoming_value2);
+    }
+
+    _free_connection_request();
+
+    return action;
 }
 
 // This is used to test the INET6_CONNECT hook.
@@ -234,6 +311,11 @@ FWP_ACTION_TYPE
 _fwp_engine::test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameters)
 {
     FWP_ACTION_TYPE action;
+    bool redirected = false;
+    uint16_t redirected_port = 0;
+    uint8_t* redirected_address = nullptr;
+
+    _allocate_and_initialize_connection_request(AF_INET6, parameters);
 
     FWPS_INCOMING_VALUE0 incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_MAX] = {};
     incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS].value.byteArray16 =
@@ -254,6 +336,11 @@ _fwp_engine::test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameter
         incoming_value);
     ebpf_assert(action == FWP_ACTION_PERMIT);
 
+    if (_fwp_um_connect_request != nullptr) {
+        redirected =
+            _is_connection_redirected(parameters, _fwp_um_connect_request, &redirected_port, &redirected_address);
+    }
+
     FWPS_INCOMING_VALUE0 incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V6_MAX] = {};
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_ADDRESS].value.byteArray16 =
         &parameters->source_ipv6_address;
@@ -267,8 +354,26 @@ _fwp_engine::test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameter
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V6_ALE_USER_ID].value.byteBlob = &parameters->user_id;
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_INTERFACE].value.uint64 = &parameters->interface_luid;
 
-    return test_callout(
+    action = test_callout(
         FWPS_LAYER_ALE_AUTH_CONNECT_V6, FWPM_LAYER_ALE_AUTH_CONNECT_V6, EBPF_DEFAULT_SUBLAYER, incoming_value2);
+
+    if (redirected) {
+        // In case the connection is redirected, AUTH_CONNECT callout will be invoked twice.
+        ebpf_assert(action == FWP_ACTION_PERMIT);
+
+        FWP_BYTE_ARRAY16 destination_ip = {0};
+        memcpy(destination_ip.byteArray16, redirected_address, 16);
+
+        incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_REMOTE_PORT].value.uint16 = ntohs(redirected_port);
+        incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_REMOTE_ADDRESS].value.byteArray16 = &destination_ip;
+
+        action = test_callout(
+            FWPS_LAYER_ALE_AUTH_CONNECT_V6, FWPM_LAYER_ALE_AUTH_CONNECT_V6, EBPF_DEFAULT_SUBLAYER, incoming_value2);
+    }
+
+    _free_connection_request();
+
+    return action;
 }
 
 // This is used to test the SOCK_OPS hook for IPv4 traffic.
@@ -631,7 +736,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS NTAPI FwpsAcquireWritableLayerDataP
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(classifyOut);
 
-    *writableLayerData = ebpf_allocate(sizeof(FWPS_CONNECT_REQUEST0));
+    *writableLayerData = _fwp_um_connect_request;
     if (*writableLayerData == nullptr) {
         status = STATUS_INSUFFICIENT_RESOURCES;
     }
@@ -661,9 +766,9 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void NTAPI
 {
     UNREFERENCED_PARAMETER(classifyHandle);
     UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(modifiedLayerData);
 
     ebpf_assert(modifiedLayerData != nullptr);
-    ebpf_free(modifiedLayerData);
 }
 
 _IRQL_requires_(PASSIVE_LEVEL) NTSTATUS NTAPI
