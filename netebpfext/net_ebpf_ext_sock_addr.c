@@ -692,7 +692,7 @@ _net_ebpf_ext_connection_context_initialize_key(
 }
 
 static NTSTATUS
-_net_ebpf_ext_get_connection_context(
+_net_ebpf_ext_get_and_remove_connection_context(
     uint64_t transport_endpoint_handle,
     _In_ const bpf_sock_addr_t* sock_addr_ctx,
     _Outptr_ net_ebpf_extension_connection_context_t** connection_context)
@@ -710,12 +710,11 @@ _net_ebpf_ext_get_connection_context(
         net_ebpf_extension_connection_context_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_connection_context_t, list_entry);
         if (memcmp(&key, &entry->key, sizeof(net_ebpf_ext_connection_context_key_t)) == 0) {
-            // Found matching entry. Update timestamp and move to front of the queue.
-            entry->timestamp = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime());
+            // Found matching entry. Delete it from the list.
             RemoveEntryList(&entry->list_entry);
-            InsertHeadList(&_net_ebpf_ext_connect_context_list, &entry->list_entry);
 
             *connection_context = entry;
+            _net_ebpf_ext_connect_context_count--;
             status = STATUS_SUCCESS;
             break;
         }
@@ -725,18 +724,6 @@ _net_ebpf_ext_get_connection_context(
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
-}
-
-static void
-_net_ebpf_ext_delete_connection_context(_In_ _Post_invalid_ net_ebpf_extension_connection_context_t* context)
-{
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
-
-    RemoveEntryList(&context->list_entry);
-    ExFreePool(context);
-    _net_ebpf_ext_connect_context_count--;
-
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 }
 
 _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_lock) static void _net_ebpf_ext_purge_lru_contexts_under_lock(
@@ -1174,7 +1161,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     }
 
     // Get the connection context for this connection.
-    status = _net_ebpf_ext_get_connection_context(
+    status = _net_ebpf_ext_get_and_remove_connection_context(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, &connection_context);
     if (!NT_SUCCESS(status)) {
         // We did not find any connection context for this AUTH request. Block.
@@ -1183,7 +1170,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     }
     verdict = connection_context->value.verdict;
 
-    _net_ebpf_ext_delete_connection_context(connection_context);
+    ExFreePool(connection_context);
     connection_context = NULL;
 
 Exit:
