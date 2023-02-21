@@ -7,12 +7,24 @@
 
 #include <map>
 
+static int32_t redirect_count = 0;
+static int32_t block_count = 0;
+static int32_t allow_count = 0;
+static int32_t failure_count = 0;
+
+typedef enum _sock_addr_test_type
+{
+    SOCK_ADDR_TEST_TYPE_CONNECT,
+    SOCK_ADDR_TEST_TYPE_RECV_ACCEPT
+} sock_addr_test_type_t;
+
 typedef enum _sock_addr_test_action
 {
     SOCK_ADDR_TEST_ACTION_PERMIT,
     SOCK_ADDR_TEST_ACTION_BLOCK,
     SOCK_ADDR_TEST_ACTION_REDIRECT,
-    SOCK_ADDR_TEST_ACTION_FAILURE
+    SOCK_ADDR_TEST_ACTION_FAILURE,
+    SOCK_ADDR_TEST_ACTION_ROUND_ROBIN
 } sock_addr_test_action_t;
 
 typedef enum _xdp_test_action
@@ -314,6 +326,7 @@ typedef struct test_sock_addr_client_context_t
 {
     netebpfext_helper_base_client_context_t base;
     int sock_addr_action;
+    bool validate_sock_addr_entries = true;
 } test_sock_addr_client_context_t;
 
 _Must_inspect_result_ ebpf_result_t
@@ -323,26 +336,39 @@ netebpfext_unit_invoke_sock_addr_program(
     ebpf_result_t return_result = EBPF_SUCCESS;
     auto client_context = (test_sock_addr_client_context_t*)client_binding_context;
     auto sock_addr_context = (bpf_sock_addr_t*)context;
+    int action;
 
     // Verify context fields match what the netebpfext helper set.
     // Note that the helper sets the first four bytes of the address to the
     // same value regardless of whether it is IPv4 or IPv6, so we just look
     // at the first four bytes as if it were an IPv4 address.
-    REQUIRE((sock_addr_context->family == AF_INET || sock_addr_context->family == AF_INET6));
-    REQUIRE(sock_addr_context->user_ip4 == htonl(0x01020304));
-    REQUIRE(sock_addr_context->msg_src_ip4 == htonl(0x05060708));
-    REQUIRE(sock_addr_context->protocol == IPPROTO_TCP);
-    REQUIRE(sock_addr_context->user_port == htons(1234));
-    REQUIRE(sock_addr_context->msg_src_port == htons(5678));
+    if (client_context->validate_sock_addr_entries) {
+        REQUIRE((sock_addr_context->family == AF_INET || sock_addr_context->family == AF_INET6));
+        REQUIRE(sock_addr_context->user_ip4 == htonl(0x01020304));
+        REQUIRE(sock_addr_context->msg_src_ip4 == htonl(0x05060708));
+        REQUIRE(sock_addr_context->protocol == IPPROTO_TCP);
+        REQUIRE(sock_addr_context->user_port == htons(1234));
+        REQUIRE(sock_addr_context->msg_src_port == htons(5678));
+    }
 
-    switch (client_context->sock_addr_action) {
+    // If the action is round robin, decide the action based on the port number.
+    if (client_context->sock_addr_action == SOCK_ADDR_TEST_ACTION_ROUND_ROBIN) {
+        action = sock_addr_context->user_port % SOCK_ADDR_TEST_ACTION_ROUND_ROBIN;
+    } else {
+        action = client_context->sock_addr_action;
+    }
+
+    switch (action) {
     case SOCK_ADDR_TEST_ACTION_PERMIT:
+        ebpf_interlocked_increment_int32(&allow_count);
         *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
         break;
     case SOCK_ADDR_TEST_ACTION_BLOCK:
+        ebpf_interlocked_increment_int32(&block_count);
         *result = BPF_SOCK_ADDR_VERDICT_REJECT;
         break;
     case SOCK_ADDR_TEST_ACTION_REDIRECT:
+        ebpf_interlocked_increment_int32(&redirect_count);
         sock_addr_context->user_port++;
         if (sock_addr_context->family == AF_INET) {
             sock_addr_context->user_ip4++;
@@ -353,6 +379,7 @@ netebpfext_unit_invoke_sock_addr_program(
         *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
         break;
     case SOCK_ADDR_TEST_ACTION_FAILURE:
+        ebpf_interlocked_increment_int32(&failure_count);
         return_result = EBPF_FAILED;
         break;
     default:
@@ -377,6 +404,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
 
     // Classify operations that should be allowed.
     client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context.validate_sock_addr_entries = true;
 
     FWP_ACTION_TYPE result = helper.test_cgroup_inet4_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
@@ -432,14 +460,34 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
 
 void
 sock_addr_thread_function(
-    std::stop_token token, _In_ netebpf_ext_helper_t* helper, _In_ fwp_classify_parameters_t* parameters)
+    std::stop_token token,
+    _In_ netebpf_ext_helper_t* helper,
+    _In_ fwp_classify_parameters_t* parameters,
+    sock_addr_test_type_t type,
+    uint16_t start_port,
+    uint16_t end_port)
 {
     while (!token.stop_requested()) {
-        helper->test_cgroup_inet4_connect(parameters);
+        if (start_port != end_port) {
+            parameters->destination_port++;
+            if (parameters->destination_port > end_port) {
+                parameters->destination_port = start_port;
+            }
+        }
+        switch (type) {
+        case SOCK_ADDR_TEST_TYPE_RECV_ACCEPT:
+            helper->test_cgroup_inet4_recv_accept(parameters);
+            break;
+        case SOCK_ADDR_TEST_TYPE_CONNECT:
+        default:
+            helper->test_cgroup_inet4_connect(parameters);
+            break;
+        }
     }
 }
 
-TEST_CASE("sock_addr_invoke_concurrent", "[netebpfext_concurrent]")
+// Invoke SOCK_ADDR_CONNECT concurrently with same classify parameters.
+TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
 {
     ebpf_extension_data_t npi_specific_characteristics = {};
     test_sock_addr_client_context_t client_context = {};
@@ -452,13 +500,102 @@ TEST_CASE("sock_addr_invoke_concurrent", "[netebpfext_concurrent]")
         (netebpfext_helper_base_client_context_t*)&client_context);
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
+    client_context.validate_sock_addr_entries = true;
 
     // Classify operations that should be allowed.
     client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
 
     size_t thread_count = 2 * ebpf_get_cpu_count();
     for (size_t i = 0; i < thread_count; i++) {
-        threads.emplace_back(sock_addr_thread_function, &helper, &parameters);
+        threads.emplace_back(sock_addr_thread_function, &helper, &parameters, SOCK_ADDR_TEST_TYPE_CONNECT, 0, 0);
+    }
+
+    // Wait for 10 seconds.
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    // Stop all threads.
+    for (auto& thread : threads) {
+        thread.request_stop();
+    }
+
+    // Wait for all threads to stop.
+    for (auto& thread : threads) {
+        thread.join();
+    }
+}
+
+// Invoke SOCK_ADDR_CONNECT concurrently with different classify parameters.
+TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {};
+    test_sock_addr_client_context_t client_context = {};
+    std::vector<std::jthread> threads;
+    std::vector<fwp_classify_parameters_t> parameters;
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
+
+    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_ROUND_ROBIN;
+    client_context.validate_sock_addr_entries = false;
+
+    size_t thread_count = 2 * ebpf_get_cpu_count();
+    parameters.resize(thread_count);
+
+    for (size_t i = 0; i < thread_count; i++) {
+        netebpfext_initialize_fwp_classify_parameters(&parameters[i]);
+        threads.emplace_back(
+            sock_addr_thread_function,
+            &helper,
+            &parameters[i],
+            SOCK_ADDR_TEST_TYPE_CONNECT,
+            (uint16_t)(i * 1000),
+            (uint16_t)(i * 1000 + 1000));
+    }
+
+    // Wait for 10 seconds.
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    // Stop all threads.
+    for (auto& thread : threads) {
+        thread.request_stop();
+    }
+
+    // Wait for all threads to stop.
+    for (auto& thread : threads) {
+        thread.join();
+    }
+}
+
+// Invoke SOCK_ADDR_RECV_ACCEPT concurrently with different classify parameters.
+TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {};
+    test_sock_addr_client_context_t client_context = {};
+    std::vector<std::jthread> threads;
+    std::vector<fwp_classify_parameters_t> parameters;
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
+
+    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_ROUND_ROBIN;
+    client_context.validate_sock_addr_entries = false;
+
+    size_t thread_count = 2 * ebpf_get_cpu_count();
+    parameters.resize(thread_count);
+
+    for (size_t i = 0; i < thread_count; i++) {
+        netebpfext_initialize_fwp_classify_parameters(&parameters[i]);
+        threads.emplace_back(
+            sock_addr_thread_function,
+            &helper,
+            &parameters[i],
+            SOCK_ADDR_TEST_TYPE_RECV_ACCEPT,
+            (uint16_t)(i * 1000),
+            (uint16_t)(i * 1000 + 1000));
     }
 
     // Wait for 10 seconds.
