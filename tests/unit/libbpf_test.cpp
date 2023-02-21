@@ -2712,7 +2712,7 @@ TEST_CASE("libbpf_load_stress", "[libbpf]")
 
     std::vector<std::jthread> threads;
     // Schedule 4 threads per CPU to force contention.
-    for (size_t i = 0; i < ebpf_get_cpu_count() * 4; i++) {
+    for (size_t i = 0; i < static_cast<size_t>(ebpf_get_cpu_count()) * 4; i++) {
         // Initialize thread object with lambda plus stop token
         threads.emplace_back([i](std::stop_token stop_token) {
             while (!stop_token.stop_requested()) {
