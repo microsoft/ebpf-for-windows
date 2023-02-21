@@ -33,7 +33,7 @@ typedef class _fwp_engine
     _fwp_engine() = default;
 
     uint32_t
-    add_fwpm_callout(const FWPM_CALLOUT0* callout)
+    add_fwpm_callout(_In_ const FWPM_CALLOUT0* callout)
     {
         exclusive_lock_t l(lock);
         uint32_t id = next_id++;
@@ -49,7 +49,7 @@ typedef class _fwp_engine
     }
 
     uint32_t
-    register_fwps_callout(const FWPS_CALLOUT3* callout)
+    register_fwps_callout(_In_ const FWPS_CALLOUT3* callout)
     {
         exclusive_lock_t l(lock);
         uint32_t id = next_id++;
@@ -57,8 +57,7 @@ typedef class _fwp_engine
         return id;
     }
 
-    FWPS_CALLOUT3*
-    get_fwps_callout_under_lock(const GUID* callout_key)
+    _Requires_lock_held_(this->lock) FWPS_CALLOUT3* get_fwps_callout(_In_ const GUID* callout_key)
     {
         for (auto& it : fwps_callouts) {
             if (memcmp(&it.second.calloutKey, callout_key, sizeof(GUID)) == 0) {
@@ -69,8 +68,7 @@ typedef class _fwp_engine
         return nullptr;
     }
 
-    FWPS_CALLOUT3*
-    get_fwps_callout_under_lock(const uint32_t callout_id)
+    _Requires_lock_held_(this->lock) FWPS_CALLOUT3* get_fwps_callout(uint32_t callout_id)
     {
         for (auto& it : fwps_callouts) {
             if (it.first == callout_id) {
@@ -81,23 +79,22 @@ typedef class _fwp_engine
         return nullptr;
     }
 
-    bool
-    remove_fwps_callout(size_t id)
+    _Requires_lock_not_held_(this->lock) bool remove_fwps_callout(size_t id)
     {
         exclusive_lock_t l(lock);
         return fwps_callouts.erase(id) == 1;
     }
 
-    void
-    associate_flow_context(uint64_t flow_id, uint32_t callout_id, uint64_t flow_context)
+    _Requires_lock_not_held_(this->lock) void associate_flow_context(
+        uint64_t flow_id, uint32_t callout_id, uint64_t flow_context)
     {
         UNREFERENCED_PARAMETER(callout_id);
         exclusive_lock_t l(lock);
         fwpm_flow_contexts.insert({flow_id, flow_context});
     }
 
-    void
-    delete_flow_context(uint64_t flow_id, uint16_t layer_id, uint32_t callout_id)
+    _Requires_lock_not_held_(this->lock) void delete_flow_context(
+        uint64_t flow_id, uint16_t layer_id, uint32_t callout_id)
     {
         FWPS_CALLOUT3* callout = nullptr;
         FWPS_FILTER fwps_filter = {};
@@ -107,7 +104,7 @@ typedef class _fwp_engine
             exclusive_lock_t l(lock);
             for (auto& it : fwpm_flow_contexts) {
                 if (it.first == flow_id) {
-                    callout = get_fwps_callout_under_lock(callout_id);
+                    callout = get_fwps_callout(callout_id);
                     ebpf_assert(callout != nullptr);
                     flow_context = it.second;
                     break;
@@ -123,8 +120,7 @@ typedef class _fwp_engine
         callout->flowDeleteFn(layer_id, callout_id, flow_context);
     }
 
-    uint32_t
-    add_fwpm_filter(const FWPM_FILTER0* filter)
+    _Requires_lock_not_held_(this->lock) uint32_t add_fwpm_filter(_In_ const FWPM_FILTER0* filter)
     {
         FWPS_CALLOUT3* callout = nullptr;
         FWPS_FILTER fwps_filter = {};
@@ -135,7 +131,7 @@ typedef class _fwp_engine
             id = next_id++;
             fwpm_filters.insert({id, *filter});
 
-            callout = get_fwps_callout_under_lock(&filter->action.calloutKey);
+            callout = get_fwps_callout(&filter->action.calloutKey);
             ebpf_assert(callout != nullptr);
             fwps_filter.context = filter->rawContext;
         }
@@ -147,8 +143,7 @@ typedef class _fwp_engine
         return id;
     }
 
-    bool
-    remove_fwpm_filter(size_t id)
+    _Requires_lock_not_held_(this->lock) bool remove_fwpm_filter(size_t id)
     {
         FWPS_CALLOUT3* callout = nullptr;
         FWPS_FILTER fwps_filter = {};
@@ -157,7 +152,7 @@ typedef class _fwp_engine
             exclusive_lock_t l(lock);
             for (auto& it : fwpm_filters) {
                 if (it.first == id) {
-                    callout = get_fwps_callout_under_lock(&it.second.action.calloutKey);
+                    callout = get_fwps_callout(&it.second.action.calloutKey);
                     ebpf_assert(callout != nullptr);
                     fwps_filter.context = it.second.rawContext;
                     break;
@@ -175,8 +170,7 @@ typedef class _fwp_engine
         return return_value;
     }
 
-    uint32_t
-    add_fwpm_sub_layer(const FWPM_SUBLAYER0* sub_layer)
+    _Requires_lock_not_held_(this->lock) uint32_t add_fwpm_sub_layer(_In_ const FWPM_SUBLAYER0* sub_layer)
     {
         exclusive_lock_t l(lock);
         uint32_t id = next_id++;
@@ -184,8 +178,7 @@ typedef class _fwp_engine
         return id;
     }
 
-    bool
-    remove_fwpm_sub_layer(size_t id)
+    _Requires_lock_not_held_(this->lock) bool remove_fwpm_sub_layer(size_t id)
     {
         exclusive_lock_t l(lock);
         return fwpm_sub_layers.erase(id) == 1;
@@ -231,7 +224,7 @@ typedef class _fwp_engine
         _In_ FWPS_INCOMING_VALUE0* incoming_value);
 
     _Ret_maybenull_ const FWPM_FILTER*
-    get_fwpm_filter_with_context(_In_ const GUID& layer_guid)
+    get_fwpm_filter_with_context_under_lock(_In_ const GUID& layer_guid)
     {
         for (auto& [first, filter] : fwpm_filters) {
             if (memcmp(&filter.layerKey, &layer_guid, sizeof(GUID)) == 0 && filter.rawContext != 0) {
@@ -242,7 +235,7 @@ typedef class _fwp_engine
     }
 
     _Ret_maybenull_ const FWPM_FILTER*
-    get_fwpm_filter_with_context(_In_ const GUID& layer_guid, _In_ const GUID& sublayer_guid)
+    get_fwpm_filter_with_context_under_lock(_In_ const GUID& layer_guid, _In_ const GUID& sublayer_guid)
     {
         for (auto& [first, filter] : fwpm_filters) {
             if (memcmp(&filter.layerKey, &layer_guid, sizeof(GUID)) == 0 &&
@@ -254,7 +247,7 @@ typedef class _fwp_engine
     }
 
     _Ret_maybenull_ const GUID*
-    get_callout_key_from_layer_guid(_In_ const GUID* layer_guid)
+    get_callout_key_from_layer_guid_under_lock(_In_ const GUID* layer_guid)
     {
         for (auto& [first, callout] : fwpm_callouts) {
             if (callout.applicableLayer == *layer_guid) {
@@ -265,7 +258,7 @@ typedef class _fwp_engine
     }
 
     _Ret_maybenull_ const FWPS_CALLOUT3*
-    get_callout_from_key(_In_ const GUID* callout_key)
+    get_callout_from_key_under_lock(_In_ const GUID* callout_key)
     {
         for (auto& [first, callout] : fwps_callouts) {
             if (callout.calloutKey == *callout_key) {
