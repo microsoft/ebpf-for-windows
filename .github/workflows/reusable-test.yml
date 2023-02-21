@@ -127,6 +127,7 @@ jobs:
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
 
     - name: Create generated artifact folder
+      if: (steps.skip_check.outputs.should_skip != 'true')
       run: |
         mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
 
