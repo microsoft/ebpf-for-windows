@@ -2519,7 +2519,15 @@ TEST_CASE("load_native_program_negative7", "[end-to-end]")
     // Creating valid service with valid driver.
     _create_service_helper(L"empty_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
-    // We skip loading native module, so to pass an uninitialized module.
+    // Load native module incorrectly. It should artificially fail.
+    service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
+    REQUIRE(
+        test_ioctl_load_native_module_fail(
+            service_path,
+            &provider_module_id,
+            module_handle.get_handle_pointer(),
+            &count_of_maps,
+            &count_of_programs) == ERROR_OUTOFMEMORY);
 
     // Try to load the programs from the module with 0 programs.
     REQUIRE(

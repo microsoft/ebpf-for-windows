@@ -59,6 +59,52 @@ Done:
 }
 
 uint32_t
+test_ioctl_load_native_module_fail(
+    _In_ const std::wstring& service_path,
+    _In_ const GUID* module_id,
+    _Out_ ebpf_handle_t* module_handle,
+    _Out_ size_t* count_of_maps,
+    _Out_ size_t* count_of_programs)
+{
+    uint32_t error = ERROR_SUCCESS;
+    ebpf_protocol_buffer_t request_buffer;
+    ebpf_operation_load_native_module_request_t* request;
+    ebpf_operation_load_native_module_reply_t reply;
+    size_t service_path_size = service_path.size() * 2;
+
+    *count_of_maps = 0;
+    *count_of_programs = 0;
+    *module_handle = ebpf_handle_invalid;
+
+    size_t buffer_size = offsetof(ebpf_operation_load_native_module_request_t, data) + service_path_size;
+    request_buffer.resize(buffer_size);
+
+    request = reinterpret_cast<ebpf_operation_load_native_module_request_t*>(request_buffer.data());
+    request->header.id = EBPF_OPERATION_LOAD_NATIVE_MODULE;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->module_id = *module_id;
+    memcpy(
+        request_buffer.data() + offsetof(ebpf_operation_load_native_module_request_t, data),
+        (char*)service_path.c_str(),
+        service_path_size);
+
+    error = invoke_ioctl(request_buffer, reply);
+    if (error != ERROR_SUCCESS) {
+        goto Done;
+    }
+
+    // We simulate an out of memory error, as an artificial failure
+    error = ERROR_OUTOFMEMORY;
+
+    *count_of_maps = reply.count_of_maps;
+    *count_of_programs = reply.count_of_programs;
+    *module_handle = reply.native_module_handle;
+
+Done:
+    return error;
+}
+
+uint32_t
 test_ioctl_load_native_programs(
     _In_ const GUID* module_id,
     _In_opt_ const ebpf_program_type_t* program_type,
