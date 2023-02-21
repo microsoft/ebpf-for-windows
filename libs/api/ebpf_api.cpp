@@ -1477,8 +1477,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static void _remove_ebpf_object_from
     std::unique_lock lock(_ebpf_state_mutex);
     auto it = std::find(_ebpf_objects.begin(), _ebpf_objects.end(), object);
     if (it == _ebpf_objects.end()) {
-        ebpf_assert(!"object not found in global list");
-        throw std::runtime_error("object not found in global list");
+        return;
     }
     _ebpf_objects.erase(it);
 }
