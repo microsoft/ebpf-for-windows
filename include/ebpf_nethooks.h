@@ -161,11 +161,10 @@ typedef enum
 /**
  * @brief Get current pid and tgid (sock_addr specific only).
  *
- * @param[in] ctx pointer to bpf_sock_addr_t context.
+ * @param[in] ctx Pointer to bpf_sock_addr_t context.
  *
- *
- * @retval A 64-bit integer containing the current tgid and pid,
- *  and created as such:
+ * returns a 64-bit integer containing the current tgid
+ *  and pid, and created as such:
  *
  * 	*current_task*\ **->tgid << 32 \|**
  * 	*current_task*\ **->pid**.
