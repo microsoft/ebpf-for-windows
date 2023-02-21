@@ -424,10 +424,20 @@ function Invoke-ConnectRedirectTestsOnVM
     $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
 
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    # First remove the existing StandardUser account (if found). This can happen if the previous test run terminated
+    # abnormally before performing the requisite post-test-run clean-up.
+    $UserId = Invoke-Command -VMName $VM1.Name -Credential $TestCredential `
+           -ScriptBlock {param ($StandardUser) Get-LocalUser -Name "$StandardUser"} `
+           -Argumentlist $StandardUser -ErrorAction SilentlyContinue
+    if($UserId) {
+		Write-Host "Deleting existing standard user:" $StandardUser "on" $VM1.Name
+		Remove-StandardUserOnVM -VM $VM1.Name -UserName $StandardUser
+	}
+
     # Add a standard user on VM1.
     Add-StandardUserOnVM -VM $VM1.Name -UserName $StandardUser -Password $UnsecurePassword
-
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
     Invoke-Command -VMName $VM1.Name -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)][string] $VM,
