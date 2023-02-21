@@ -157,10 +157,10 @@ _Requires_lock_not_held_(_ebpf_state_mutex) inline static ebpf_map_t* _get_ebpf_
 {
     EBPF_LOG_ENTRY();
 
-    std::unique_lock lock(_ebpf_state_mutex);
     ebpf_assert(map_handle != ebpf_handle_invalid);
 
     ebpf_map_t* map = nullptr;
+    std::unique_lock lock(_ebpf_state_mutex);
     std::map<ebpf_handle_t, ebpf_map_t*>::iterator it = _ebpf_maps.find(map_handle);
     if (it != _ebpf_maps.end()) {
         map = it->second;
@@ -1476,7 +1476,10 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static void _remove_ebpf_object_from
     ebpf_assert(object);
     std::unique_lock lock(_ebpf_state_mutex);
     auto it = std::find(_ebpf_objects.begin(), _ebpf_objects.end(), object);
-    ebpf_assert(it != _ebpf_objects.end());
+    if (it == _ebpf_objects.end()) {
+        ebpf_assert(!"object not found in global list");
+        throw std::runtime_error("object not found in global list");
+    }
     _ebpf_objects.erase(it);
 }
 
@@ -1495,12 +1498,14 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static void _clean_up_ebpf_objects()
         _delete_ebpf_object(object);
     }
 
-    // Intentional use of scope to limit lifetime of lock.
+// Intentional use of scope to limit lifetime of lock.
+#if defined(_DEBUG)
     {
         std::unique_lock lock(_ebpf_state_mutex);
         ebpf_assert(_ebpf_programs.size() == 0);
         ebpf_assert(_ebpf_maps.size() == 0);
     }
+#endif
 }
 
 void
