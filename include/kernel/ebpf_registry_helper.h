@@ -13,6 +13,7 @@
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
 
 typedef _Return_type_success_(NT_SUCCESS(return )) uint32_t ebpf_registry_result_t;
+
 typedef HANDLE ebpf_registry_key_t;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -33,8 +34,8 @@ close_registry_key(ebpf_registry_key_t key)
     ZwClose(key);
 }
 
-static _Success_(return == STATUS_SUCCESS) NTSTATUS
-    convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size)
+_Success_(return == STATUS_SUCCESS) NTSTATUS static convert_guid_to_string(
+    _In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size)
 {
     UNICODE_STRING unicode_string = {0};
 
