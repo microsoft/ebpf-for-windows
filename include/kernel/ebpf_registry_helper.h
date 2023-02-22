@@ -44,15 +44,16 @@ _Success_(return == STATUS_SUCCESS) static NTSTATUS
         goto Exit;
     }
 
-    if (string_size < GUID_STRING_LENGTH + 1) {
+    if (string_size < (GUID_STRING_LENGTH * sizeof(wchar_t)) + sizeof(wchar_t)) {
         status = STATUS_BUFFER_TOO_SMALL;
         goto Exit;
     }
 
-    __analysis_assume(unicode_string.MaximumLength >= GUID_STRING_LENGTH * 2);
+    __analysis_assume(unicode_string.MaximumLength >= GUID_STRING_LENGTH * sizeof(wchar_t));
     __analysis_assume(unicode_string.Buffer != NULL);
+
     // Copy the buffer to the output string.
-    memcpy(string, unicode_string.Buffer, GUID_STRING_LENGTH * 2);
+    memcpy(string, unicode_string.Buffer, GUID_STRING_LENGTH * sizeof(wchar_t));
     string[GUID_STRING_LENGTH] = L'\0';
 
 Exit:
