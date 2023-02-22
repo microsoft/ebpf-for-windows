@@ -53,9 +53,6 @@
     <ClCompile Include="..\guid.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\libs\platform\kernel\registry_helper_km.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Inf Include="NetEbpfExt.inf">

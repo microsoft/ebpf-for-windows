@@ -41,7 +41,6 @@
     <ClCompile Include="ebpf_handle_kernel.c" />
     <ClCompile Include="ebpf_native_kernel.c" />
     <ClCompile Include="ebpf_platform_kernel.c" />
-    <ClCompile Include="registry_helper_km.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\external\ebpf-verifier\src\ebpf_base.h" />
