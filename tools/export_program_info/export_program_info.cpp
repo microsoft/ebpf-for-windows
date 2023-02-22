@@ -69,7 +69,7 @@ export_all_program_information()
             break;
         };
 
-        status = ebpf_store_update_program_information(program_information_array[i], 1);
+        status = _ebpf_store_update_program_information(program_information_array[i], 1);
         if (status != ERROR_SUCCESS) {
             break;
         }
@@ -83,7 +83,7 @@ export_all_section_information()
 {
     uint32_t status = ERROR_SUCCESS;
     for (const auto& section : _section_information) {
-        status = ebpf_store_update_section_information(section.section_info, (uint32_t)section.section_info_count);
+        status = _ebpf_store_update_section_information(section.section_info, (uint32_t)section.section_info_count);
         if (status != ERROR_SUCCESS) {
             break;
         }
@@ -95,7 +95,7 @@ export_all_section_information()
 int
 export_global_helper_information()
 {
-    return ebpf_store_update_global_helper_information(
+    return _ebpf_store_update_global_helper_information(
         ebpf_core_helper_function_prototype, ebpf_core_helper_functions_count);
 }
 
@@ -103,7 +103,7 @@ uint32_t
 clear_all_ebpf_stores()
 {
     std::cout << "Clearing eBPF store HKEY_CURRENT_USER" << std::endl;
-    return ebpf_store_clear(ebpf_root_registry_key);
+    return _ebpf_store_clear(ebpf_root_registry_key);
 }
 
 void

@@ -9,10 +9,11 @@ close_registry_key(ebpf_registry_key_t key)
     ZwClose(key);
 }
 
-_Success_(return == 0) NTSTATUS
+_Success_(return == STATUS_SUCCESS) NTSTATUS
     convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size)
 {
-    UNICODE_STRING unicode_string;
+    UNICODE_STRING unicode_string = {0};
+
     NTSTATUS status = RtlStringFromGUID(guid, &unicode_string);
     if (status != STATUS_SUCCESS) {
         goto Exit;
@@ -30,6 +31,9 @@ _Success_(return == 0) NTSTATUS
     string[GUID_STRING_LENGTH] = L'\0';
 
 Exit:
+    if (unicode_string.Buffer != NULL) {
+        RtlFreeUnicodeString(&unicode_string);
+    }
     return status;
 }
 
