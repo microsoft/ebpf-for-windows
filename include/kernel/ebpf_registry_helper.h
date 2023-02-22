@@ -33,7 +33,7 @@ close_registry_key(ebpf_registry_key_t key)
     ZwClose(key);
 }
 
-_Success_(return == STATUS_SUCCESS) static NTSTATUS
+static _Success_(return == STATUS_SUCCESS) NTSTATUS
     convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size)
 {
     UNICODE_STRING unicode_string = {0};
@@ -61,7 +61,7 @@ Exit:
     return status;
 }
 
-_Must_inspect_result_ static ebpf_registry_result_t
+static _Must_inspect_result_ ebpf_registry_result_t
 write_registry_value_binary(
     ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_reads_(value_size) uint8_t* value, size_t value_size)
 {
@@ -71,7 +71,7 @@ write_registry_value_binary(
     return ZwSetValueKey(key, &unicode_value_name, 0, REG_BINARY, value, (ULONG)value_size);
 }
 
-_Must_inspect_result_ static ebpf_registry_result_t
+static _Must_inspect_result_ ebpf_registry_result_t
 write_registry_value_ansi_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
 {
     NTSTATUS status;
@@ -94,7 +94,7 @@ Exit:
     return status;
 }
 
-_Must_inspect_result_ static ebpf_registry_result_t
+static _Must_inspect_result_ ebpf_registry_result_t
 write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, uint32_t value)
 {
     UNICODE_STRING unicode_name;
@@ -102,7 +102,7 @@ write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_
     return ZwSetValueKey(key, &unicode_name, 0, REG_DWORD, &value, sizeof(uint32_t));
 }
 
-_Must_inspect_result_ static ebpf_registry_result_t
+static _Must_inspect_result_ ebpf_registry_result_t
 create_registry_key(
     ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
@@ -121,7 +121,7 @@ create_registry_key(
     return status;
 }
 
-_Must_inspect_result_ static ebpf_registry_result_t
+static _Must_inspect_result_ ebpf_registry_result_t
 create_registry_key_ansi(
     ebpf_registry_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
