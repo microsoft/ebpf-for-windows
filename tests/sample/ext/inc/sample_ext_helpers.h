@@ -17,7 +17,6 @@ typedef struct _sample_program_context
     uint8_t* data_end;
     uint32_t uint32_data;
     uint16_t uint16_data;
-    uint64_t pid_tgid;
 } sample_program_context_t;
 
 #define SAMPLE_EXT_HELPER_FN_BASE 0xFFFF
