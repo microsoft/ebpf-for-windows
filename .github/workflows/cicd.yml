@@ -124,7 +124,7 @@ jobs:
   netebpfext_unit_leak_detection:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_unit_leak_detection
