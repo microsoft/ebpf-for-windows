@@ -13,6 +13,10 @@
 #include "program_helper.h"
 #include "test_helper.hpp"
 
+#include <chrono>
+#include <stop_token>
+#include <thread>
+
 // libbpf.h uses enum types and generates the
 // following warning whenever an enum type is used below:
 // "The enum type 'bpf_attach_type' is unscoped.
@@ -2701,3 +2705,38 @@ _test_nested_maps(bpf_map_type map_type)
 
 TEST_CASE("array_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
 TEST_CASE("hash_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
+
+TEST_CASE("libbpf_load_stress", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    std::vector<std::jthread> threads;
+    // Schedule 4 threads per CPU to force contention.
+    for (size_t i = 0; i < static_cast<size_t>(ebpf_get_cpu_count()) * 4; i++) {
+        // Initialize thread object with lambda plus stop token
+        threads.emplace_back([i](std::stop_token stop_token) {
+            while (!stop_token.stop_requested()) {
+                struct bpf_object* object = bpf_object__open("droppacket_um.dll");
+                // Enumerate maps and programs.
+                bpf_program* program;
+                bpf_object__for_each_program(program, object) {}
+                bpf_map* map;
+                bpf_object__for_each_map(map, object) {}
+                bpf_object__close(object);
+            }
+        });
+    }
+
+    // Wait for 10 seconds.
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    // Stop all threads.
+    for (auto& thread : threads) {
+        thread.request_stop();
+    }
+
+    // Wait for all threads to stop.
+    for (auto& thread : threads) {
+        thread.join();
+    }
+}
