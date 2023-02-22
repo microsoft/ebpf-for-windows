@@ -7,10 +7,7 @@
 
 #include <map>
 
-static int32_t redirect_count = 0;
-static int32_t block_count = 0;
-static int32_t allow_count = 0;
-static int32_t failure_count = 0;
+#define CONCURRENT_THREAD_RUN_TIME_IN_SECONDS 10
 
 typedef enum _sock_addr_test_type
 {
@@ -329,6 +326,23 @@ typedef struct test_sock_addr_client_context_t
     bool validate_sock_addr_entries = true;
 } test_sock_addr_client_context_t;
 
+static inline sock_addr_test_action_t
+_get_sock_addr_action(uint16_t destination_port)
+{
+    return (sock_addr_test_action_t)(destination_port % SOCK_ADDR_TEST_ACTION_ROUND_ROBIN);
+}
+
+static inline FWP_ACTION_TYPE
+_get_fwp_sock_addr_action(uint16_t destination_port)
+{
+    sock_addr_test_action_t action = _get_sock_addr_action(destination_port);
+    if (action == SOCK_ADDR_TEST_ACTION_PERMIT || action == SOCK_ADDR_TEST_ACTION_REDIRECT) {
+        return FWP_ACTION_PERMIT;
+    }
+
+    return FWP_ACTION_BLOCK;
+}
+
 _Must_inspect_result_ ebpf_result_t
 netebpfext_unit_invoke_sock_addr_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
@@ -353,22 +367,19 @@ netebpfext_unit_invoke_sock_addr_program(
 
     // If the action is round robin, decide the action based on the port number.
     if (client_context->sock_addr_action == SOCK_ADDR_TEST_ACTION_ROUND_ROBIN) {
-        action = sock_addr_context->user_port % SOCK_ADDR_TEST_ACTION_ROUND_ROBIN;
+        action = _get_sock_addr_action(sock_addr_context->user_port);
     } else {
         action = client_context->sock_addr_action;
     }
 
     switch (action) {
     case SOCK_ADDR_TEST_ACTION_PERMIT:
-        ebpf_interlocked_increment_int32(&allow_count);
         *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
         break;
     case SOCK_ADDR_TEST_ACTION_BLOCK:
-        ebpf_interlocked_increment_int32(&block_count);
         *result = BPF_SOCK_ADDR_VERDICT_REJECT;
         break;
     case SOCK_ADDR_TEST_ACTION_REDIRECT:
-        ebpf_interlocked_increment_int32(&redirect_count);
         sock_addr_context->user_port++;
         if (sock_addr_context->family == AF_INET) {
             sock_addr_context->user_ip4++;
@@ -379,7 +390,6 @@ netebpfext_unit_invoke_sock_addr_program(
         *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
         break;
     case SOCK_ADDR_TEST_ACTION_FAILURE:
-        ebpf_interlocked_increment_int32(&failure_count);
         return_result = EBPF_FAILED;
         break;
     default:
@@ -467,22 +477,37 @@ sock_addr_thread_function(
     uint16_t start_port,
     uint16_t end_port)
 {
+    FWP_ACTION_TYPE result;
+    uint16_t port_number;
+
+    if (start_port != end_port) {
+        port_number = start_port - 1;
+    } else {
+        port_number = htons(parameters->destination_port);
+    }
+
     while (!token.stop_requested()) {
+        // If start_port and end_port are same, then the port number for each
+        // invocation will remain the same.
         if (start_port != end_port) {
-            parameters->destination_port++;
-            if (parameters->destination_port > end_port) {
-                parameters->destination_port = start_port;
+            port_number++;
+            if (port_number > end_port) {
+                port_number = start_port;
             }
+            parameters->destination_port = htons(port_number);
         }
+
         switch (type) {
         case SOCK_ADDR_TEST_TYPE_RECV_ACCEPT:
-            helper->test_cgroup_inet4_recv_accept(parameters);
+            result = helper->test_cgroup_inet4_recv_accept(parameters);
             break;
         case SOCK_ADDR_TEST_TYPE_CONNECT:
         default:
-            helper->test_cgroup_inet4_connect(parameters);
+            result = helper->test_cgroup_inet4_connect(parameters);
             break;
         }
+
+        REQUIRE(result == _get_fwp_sock_addr_action(port_number));
     }
 }
 
@@ -507,11 +532,17 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
 
     uint32_t thread_count = 2 * ebpf_get_cpu_count();
     for (uint32_t i = 0; i < thread_count; i++) {
-        threads.emplace_back(sock_addr_thread_function, &helper, &parameters, SOCK_ADDR_TEST_TYPE_CONNECT, 0, 0);
+        threads.emplace_back(
+            sock_addr_thread_function,
+            &helper,
+            &parameters,
+            SOCK_ADDR_TEST_TYPE_CONNECT,
+            parameters.destination_port,
+            parameters.destination_port);
     }
 
     // Wait for 10 seconds.
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::this_thread::sleep_for(std::chrono::seconds(CONCURRENT_THREAD_RUN_TIME_IN_SECONDS));
 
     // Stop all threads.
     for (auto& thread : threads) {
@@ -555,7 +586,7 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
     }
 
     // Wait for 10 seconds.
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::this_thread::sleep_for(std::chrono::seconds(CONCURRENT_THREAD_RUN_TIME_IN_SECONDS));
 
     // Stop all threads.
     for (auto& thread : threads) {
@@ -599,7 +630,7 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
     }
 
     // Wait for 10 seconds.
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::this_thread::sleep_for(std::chrono::seconds(CONCURRENT_THREAD_RUN_TIME_IN_SECONDS));
 
     // Stop all threads.
     for (auto& thread : threads) {
