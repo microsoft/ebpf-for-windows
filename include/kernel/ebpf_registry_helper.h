@@ -44,7 +44,7 @@ convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wcha
         goto Exit;
     }
 
-    if (string_size < (GUID_STRING_LENGTH * sizeof(wchar_t)) + sizeof(wchar_t)) {
+    if (string_size < GUID_STRING_LENGTH + 1) {
         status = STATUS_BUFFER_TOO_SMALL;
         goto Exit;
     }
