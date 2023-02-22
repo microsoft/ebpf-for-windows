@@ -37,11 +37,13 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: "Checkout code"
+        if: github.ref_name == 'main'
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
         with:
           persist-credentials: false
 
       - name: "Run analysis"
+        if: github.ref_name == 'main'
         uses: ossf/scorecard-action@b614d455ee90608b5e36e3299cd50d457eb37d5f # Don't update this until they fix PR support
         with:
           results_file: results.sarif
@@ -57,6 +59,7 @@ jobs:
 
       # Upload the results as artifacts (optional).
       - name: "Upload artifact"
+        if: github.ref_name == 'main'
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
         with:
           name: SARIF file
@@ -65,6 +68,7 @@ jobs:
 
       # Upload the results to GitHub's code scanning dashboard.
       - name: "Upload to code-scanning"
+        if: github.ref_name == 'main'
         uses: github/codeql-action/upload-sarif@17573ee1cc1b9d061760f3a006fc4aac4f944fd5
         with:
           sarif_file: results.sarif
