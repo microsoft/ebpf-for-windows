@@ -150,6 +150,7 @@ var menudata={children:[
 {text:"o",url:"globals_defs.html#index_o"},
 {text:"p",url:"globals_defs.html#index_p"},
 {text:"r",url:"globals_defs.html#index_r"},
+{text:"s",url:"globals_defs.html#index_s"},
 {text:"u",url:"globals_defs.html#index_u"},
 {text:"w",url:"globals_defs.html#index_w"},
 {text:"x",url:"globals_defs.html#index_x"}]}]}]}]}
