@@ -766,7 +766,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void NTAPI
 {
     UNREFERENCED_PARAMETER(classifyHandle);
     UNREFERENCED_PARAMETER(flags);
-    UNREFERENCED_PARAMETER(modifiedLayerData);
 
     ebpf_assert(modifiedLayerData != nullptr);
 }

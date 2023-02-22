@@ -25,9 +25,9 @@ bool _ebpf_platform_code_integrity_enabled = false;
 // Permit the test to simulate non-preemptible execution.
 bool _ebpf_platform_is_preemptible = true;
 
-// Global variable to track the number to times ebpf_platform has been
+// Global variable to track the number of times ebpf_platform has been
 // initialized. In user mode it is possible for ebpf_platform_{initiate|terminate}
-// may be called multiple times.
+// to be called multiple times.
 int32_t _ebpf_platform_initiate_count = 0;
 
 extern "C" bool ebpf_fuzzing_enabled = false;
