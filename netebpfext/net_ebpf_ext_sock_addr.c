@@ -19,6 +19,7 @@ typedef struct _net_ebpf_bpf_sock_addr
     bpf_sock_addr_t base;
     TOKEN_ACCESS_INFORMATION* access_information;
     uint64_t process_id;
+    uint32_t flags;
 } net_ebpf_sock_addr_t;
 
 static ebpf_get_program_context_t _net_ebpf_sock_addr_get_program_context = NULL;
@@ -883,7 +884,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_INTERFACE,
-     FWPS_FIELD_ALE_AUTH_CONNECT_V4_ALE_USER_ID},
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_ALE_USER_ID,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_FLAGS},
 
     // EBPF_HOOK_ALE_AUTH_CONNECT_V6
     {FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_ADDRESS,
@@ -894,7 +896,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_INTERFACE,
-     FWPS_FIELD_ALE_AUTH_CONNECT_V6_ALE_USER_ID},
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_ALE_USER_ID,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_FLAGS},
 
     // EBPF_HOOK_ALE_CONNECT_REDIRECT_V4
     {FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_ADDRESS,
@@ -905,7 +908,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_COMPARTMENT_ID,
      0, // No interface luid in this layer.
-     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_USER_ID},
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_USER_ID,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_FLAGS},
 
     // EBPF_HOOK_ALE_CONNECT_REDIRECT_V6
     {FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS,
@@ -916,7 +920,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_COMPARTMENT_ID,
      0, // No interface luid in this layer.
-     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_USER_ID},
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_USER_ID,
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_FLAGS},
 
     // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS,
@@ -927,7 +932,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_INTERFACE,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_USER_ID},
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_USER_ID,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_FLAGS},
 
     // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_ADDRESS,
@@ -938,7 +944,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_INTERFACE,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_USER_ID}};
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_USER_ID,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_FLAGS}};
 
 static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
@@ -1006,6 +1013,9 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
 
         sock_addr_ctx->process_id = 0;
     }
+
+    // Store the FLAGS field.
+    sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
 }
 
 NTSTATUS
@@ -1077,6 +1087,10 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
+    // eBPF programs will not be invoked on connection re-authorization.
+    if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE)
+        goto Exit;
+
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
@@ -1146,6 +1160,13 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
+    if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
+        // This is a re-authorization of a connection that was previously authorized by the
+        // eBPF program. Permit it.
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        goto Exit;
+    }
+
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
@@ -1191,6 +1212,27 @@ Exit:
     return;
 }
 
+static BOOLEAN
+_net_ebpf_ext_sock_addr_is_connection_locally_redirected_by_others(
+    _In_ const FWPS_CONNECT_REQUEST* connect_request, uint64_t filter_id)
+{
+    FWPS_CONNECT_REQUEST* previous_connect_request = connect_request->previousVersion;
+    while (previous_connect_request != NULL) {
+        if ((previous_connect_request->modifierFilterId != filter_id) &&
+            (previous_connect_request->localRedirectHandle != NULL)) {
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "Connection previously locally redirected",
+                previous_connect_request->modifierFilterId);
+
+            return TRUE;
+        }
+        previous_connect_request = previous_connect_request->previousVersion;
+    }
+    return FALSE;
+}
+
 static NTSTATUS
 _net_ebpf_ext_process_redirect_verdict(
     uint32_t verdict,
@@ -1227,6 +1269,13 @@ _net_ebpf_ext_process_redirect_verdict(
                 goto Exit;
             }
             commit_layer_data = TRUE;
+
+            if (_net_ebpf_ext_sock_addr_is_connection_locally_redirected_by_others(connect_request, filter->filterId)) {
+                // Since this connection has been redirected to a local proxy, it should not be redirected once more.
+                // Once the local proxy sends out another outbound connection to the original destination,
+                // that connection will get intercepted again and the eBPF program will be invoked again.
+                goto Exit;
+            }
 
             InterlockedIncrement(&_net_ebpf_ext_statistics.redirect_connection_count);
 
