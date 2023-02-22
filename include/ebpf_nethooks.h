@@ -163,7 +163,7 @@ typedef enum
  *
  * @param[in] ctx Pointer to bpf_sock_addr_t context.
  *
- * returns a 64-bit integer containing the current tgid
+ * @returns a 64-bit integer containing the current tgid
  *  and pid, and created as such:
  *
  * 	*current_task*\ **->tgid << 32 \|**
