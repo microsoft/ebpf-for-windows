@@ -8,7 +8,7 @@ name: Reusable Test Workflow
 on:
   workflow_call:
     inputs:
-    name:
+      name:
         required: true
         type: string
       # The test command to invoke.
@@ -176,7 +176,7 @@ jobs:
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          powershell.exe .\Test-LowMemory.ps1 ${{env.TEST_COMMAND}} 16
+          pwsh.exe .\Test-LowMemory.ps1 ${{env.TEST_COMMAND}} 16
 
     - name: Run test with Code Coverage
       if: (inputs.code_coverage == true) && (inputs.vs_dev != true) && (inputs.low_memory != true)
