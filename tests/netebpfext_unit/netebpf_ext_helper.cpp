@@ -20,13 +20,6 @@ static TOKEN_ACCESS_INFORMATION _test_token_access_information = {0};
 static FWP_BYTE_BLOB _test_user_id = {
     .size = (sizeof(TOKEN_ACCESS_INFORMATION)), .data = (uint8_t*)&_test_token_access_information};
 
-static ebpf_result_t
-_get_program_context(_Outptr_ void** context)
-{
-    *context = nullptr;
-    return EBPF_KEY_NOT_FOUND;
-}
-
 void
 netebpfext_initialize_fwp_classify_parameters(_Out_ fwp_classify_parameters_t* parameters)
 {
@@ -43,8 +36,6 @@ netebpfext_initialize_fwp_classify_parameters(_Out_ fwp_classify_parameters_t* p
     parameters->token_access_information = _test_token_access_information;
     parameters->user_id = _test_user_id;
 }
-
-ebpf_extension_dispatch_table_t dispatch_table = {0, 1, {(_ebpf_extension_dispatch_function)_get_program_context}};
 
 _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ const void* npi_specific_characteristics,
@@ -160,7 +151,7 @@ _netebpf_ext_helper::_program_info_client_attach_provider(
     NTSTATUS status = NmrClientAttachProvider(
         nmr_binding_handle,
         client_binding_context.get(),
-        &dispatch_table,
+        &client_binding_context,
         &client_binding_context->context,
         &client_binding_context->dispatch);
 

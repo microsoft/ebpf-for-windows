@@ -24,9 +24,11 @@ This document discusses the steps to set up such a self-hosted actions-runner th
 8) Edit test configuration JSON files.
    1) Edit `test_execution.json` file. Add the name of the one of the VMs in `BasicTest` section. Add the names of both the VMs in `MultiVMTest` section along with the "Interfaces" section that must contain information about the network interfaces created in step 7.2 Above. This section must contain the interface alias, and IPv4 and IPv6 addresses. The CICD test automation would apply these IP addresses on the NICs of the test VM.
    2) Edit `vm_list.json` with the names of the two test VMs.
-9) Store the VM administrator credential:
+9) Store the VM administrator and standard user credentials:
    1) `Install-Module CredentialManager -force`
    2) `New-StoredCredential -Target `**`TEST_VM`**` -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine`
+   3) `New-StoredCredential -Target `**`TEST_VM_STANDARD`**` -Username <VM Standard User Name> -Password <VM Standard User account password> -Persist LocalMachine`
+
 10) Modify the environment of the VM as needed. Create new checkpoints using **Hyper-V**. Rename the new checkpoint as `baseline`, and remove the old baseline. 
 11) Set up Windows Error Reporting [Local Dump Collection](https://docs.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps) on the VMs with the following commands.
     ```New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue```

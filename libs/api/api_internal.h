@@ -8,6 +8,10 @@
 #include "ebpf_platform.h"
 #include "spec_type_descriptors.hpp"
 
+#if !defined(EBPF_API_LOCKING)
+#define EBPF_API_LOCKING
+#endif
+
 struct bpf_object;
 
 typedef struct _ebpf_ring_buffer_subscription ring_buffer_subscription_t;
@@ -95,7 +99,7 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program) noexcept;
 void
 clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs) noexcept;
 
-void
+EBPF_API_LOCKING void
 clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map) noexcept;
 
 void
@@ -107,6 +111,7 @@ clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps) noexcept;
  * @param[in] previous Pointer to previous eBPF object, or NULL to get the first one.
  * @return Pointer to the next object, or NULL if none.
  */
+EBPF_API_LOCKING
 _Ret_maybenull_ struct bpf_object*
 ebpf_object_next(_In_opt_ const struct bpf_object* previous) noexcept;
 
@@ -138,6 +143,7 @@ ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
+EBPF_API_LOCKING
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_unload(_Inout_ struct bpf_program* program) noexcept;
 
@@ -463,6 +469,7 @@ ebpf_object_get(_In_z_ const char* path) noexcept;
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
+EBPF_API_LOCKING
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_open(
     _In_z_ const char* path,
@@ -493,7 +500,7 @@ ebpf_object_load(_Inout_ struct bpf_object* object) noexcept;
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
-_Must_inspect_result_ ebpf_result_t
+EBPF_API_LOCKING _Must_inspect_result_ ebpf_result_t
 ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept;
 
 typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);

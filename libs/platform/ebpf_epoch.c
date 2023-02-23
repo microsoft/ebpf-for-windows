@@ -66,11 +66,11 @@ typedef struct _ebpf_epoch_state
 typedef struct _ebpf_epoch_cpu_entry
 {
     ebpf_lock_t lock;
-    _Requires_lock_held_(lock) ebpf_epoch_state_t epoch_state;                 // Per-CPU epoch state.
-    _Requires_lock_held_(lock) ebpf_list_entry_t free_list;                    // Per-CPU free list.
-    _Requires_lock_held_(lock) ebpf_hash_table_t* thread_table;                // Per-CPU thread table.
-    _Requires_lock_held_(lock) ebpf_non_preemptible_work_item_t* stale_worker; // Per-CPU stale worker DPC.
-    uint32_t padding; // Pad to multiple of EBPF_CACHE_LINE_SIZE.
+    _Guarded_by_(lock) ebpf_epoch_state_t epoch_state;                 // Per-CPU epoch state.
+    _Guarded_by_(lock) ebpf_list_entry_t free_list;                    // Per-CPU free list.
+    _Guarded_by_(lock) ebpf_hash_table_t* thread_table;                // Per-CPU thread table.
+    _Guarded_by_(lock) ebpf_non_preemptible_work_item_t* stale_worker; // Per-CPU stale worker DPC.
+    uint32_t padding;                                                  // Pad to multiple of EBPF_CACHE_LINE_SIZE.
 } ebpf_epoch_cpu_entry_t;
 
 typedef struct _ebpf_epoch_thread_entry
