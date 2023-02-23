@@ -224,8 +224,9 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 5;
+    version->minor = 6;
     version->revision = 0;
 }
 
-metadata_table_t tail_call_map_metadata_table = {_get_programs, _get_maps, _get_hash, _get_version};
+metadata_table_t tail_call_map_metadata_table = {
+    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version};

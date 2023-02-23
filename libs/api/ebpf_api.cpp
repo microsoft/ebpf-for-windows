@@ -2,12 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-#include "pch.h"
 
-#include <codecvt>
-#include <fcntl.h>
-#include <io.h>
-#include <mutex>
+#define EBPF_API_LOCKING _Requires_lock_not_held_(_ebpf_state_mutex)
 
 #include "api_internal.h"
 #include "bpf.h"
@@ -18,6 +14,7 @@
 #include "ebpf_protocol.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
+#include "framework.h"
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
 #include "libbpf.h"
@@ -25,15 +22,19 @@
 #include "map_descriptors.hpp"
 #define _PEPARSE_WINDOWS_CONFLICTS
 #include "pe-parse/parse.h"
-
 #include "rpc_client.h"
 extern "C"
 {
 #include "ubpf.h"
 }
-#include "utilities.hpp"
 #include "Verifier.h"
+#include "utilities.hpp"
 #include "windows_platform_common.hpp"
+
+#include <codecvt>
+#include <fcntl.h>
+#include <io.h>
+#include <mutex>
 
 using namespace peparse;
 using namespace Platform;
@@ -44,9 +45,10 @@ const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
-static std::map<ebpf_handle_t, ebpf_program_t*> _ebpf_programs;
-static std::map<ebpf_handle_t, ebpf_map_t*> _ebpf_maps;
-static std::vector<ebpf_object_t*> _ebpf_objects;
+static std::mutex _ebpf_state_mutex;
+_Guarded_by_(_ebpf_state_mutex) static std::map<ebpf_handle_t, ebpf_program_t*> _ebpf_programs;
+_Guarded_by_(_ebpf_state_mutex) static std::map<ebpf_handle_t, ebpf_map_t*> _ebpf_maps;
+_Guarded_by_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects;
 
 #define DEFAULT_PIN_ROOT_PATH "/ebpf/global"
 
@@ -55,8 +57,45 @@ static std::vector<ebpf_object_t*> _ebpf_objects;
 #define SERVICE_PARAMETERS L"Parameters"
 #define NPI_MODULE_ID L"NpiModuleId"
 
-static void
-_clean_up_ebpf_objects() noexcept;
+typedef class _ebpf_signal
+{
+  public:
+    _ebpf_signal()
+    {
+        _event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        if (_event == INVALID_HANDLE_VALUE) {
+            throw std::bad_alloc();
+        }
+    }
+
+    ~_ebpf_signal() noexcept { CloseHandle(_event); }
+
+    void
+    set() noexcept
+    {
+        SetEvent(_event);
+    }
+
+    void
+    reset() noexcept
+    {
+        ResetEvent(_event);
+    }
+
+    void
+    wait() noexcept
+    {
+        WaitForSingleObject(_event, INFINITE);
+    }
+
+    HANDLE
+    get() noexcept { return _event; }
+
+  private:
+    HANDLE _event;
+} ebpf_signal_t;
+
+_Requires_lock_not_held_(_ebpf_state_mutex) static void _clean_up_ebpf_objects() noexcept;
 
 static ebpf_result_t
 _ebpf_program_load_native(
@@ -96,7 +135,7 @@ inline static int
 _ebpf_update_registry_value(
     HKEY root_key,
     _In_z_ const wchar_t* sub_key,
-    DWORD type,
+    unsigned long type,
     _In_z_ const wchar_t* value_name,
     _In_reads_bytes_(value_size) const void* value,
     uint32_t value_size) noexcept
@@ -113,14 +152,15 @@ _get_wstring_from_string(std::string& text) noexcept(false)
     return wide;
 }
 
-inline static ebpf_map_t*
-_get_ebpf_map_from_handle(ebpf_handle_t map_handle) noexcept
+_Requires_lock_not_held_(_ebpf_state_mutex) inline static ebpf_map_t* _get_ebpf_map_from_handle(
+    ebpf_handle_t map_handle) noexcept
 {
     EBPF_LOG_ENTRY();
 
     ebpf_assert(map_handle != ebpf_handle_invalid);
 
     ebpf_map_t* map = nullptr;
+    std::unique_lock lock(_ebpf_state_mutex);
     std::map<ebpf_handle_t, ebpf_map_t*>::iterator it = _ebpf_maps.find(map_handle);
     if (it != _ebpf_maps.end()) {
         map = it->second;
@@ -129,12 +169,13 @@ _get_ebpf_map_from_handle(ebpf_handle_t map_handle) noexcept
     EBPF_RETURN_POINTER(ebpf_map_t*, map);
 }
 
-inline static ebpf_program_t*
-_get_ebpf_program_from_handle(ebpf_handle_t program_handle) noexcept
+_Requires_lock_not_held_(_ebpf_state_mutex) inline static ebpf_program_t* _get_ebpf_program_from_handle(
+    ebpf_handle_t program_handle) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program_handle != ebpf_handle_invalid);
 
+    std::unique_lock lock(_ebpf_state_mutex);
     ebpf_program_t* program = nullptr;
     std::map<ebpf_handle_t, ebpf_program_t*>::iterator it = _ebpf_programs.find(program_handle);
     if (it != _ebpf_programs.end()) {
@@ -757,7 +798,7 @@ Exit:
 }
 
 void
-ebpf_free_string(_In_opt_ _Post_invalid_ const char* error_message)
+ebpf_free_string(_In_opt_ _Post_invalid_ const char* error_message) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_free(const_cast<char*>(error_message));
@@ -795,7 +836,7 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) noexcept
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_object_unpin(_In_z_ const char* path)
+ebpf_object_unpin(_In_z_ const char* path) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(path);
@@ -923,7 +964,7 @@ ebpf_program_query_info(
     fd_t fd,
     _Out_ ebpf_execution_type_t* execution_type,
     _Outptr_result_z_ const char** file_name,
-    _Outptr_result_z_ const char** section_name)
+    _Outptr_result_z_ const char** section_name) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
@@ -1097,7 +1138,7 @@ ebpf_program_attach(
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
     size_t attach_params_size,
-    _Outptr_ struct bpf_link** link)
+    _Outptr_ struct bpf_link** link) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1134,7 +1175,7 @@ ebpf_program_attach_by_fd(
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
     size_t attach_parameters_size,
-    _Outptr_ struct bpf_link** link)
+    _Outptr_ struct bpf_link** link) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(attach_parameters || !attach_parameters_size);
@@ -1161,7 +1202,7 @@ ebpf_program_attach_by_fd(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_api_unlink_program(ebpf_handle_t link_handle)
+ebpf_api_unlink_program(ebpf_handle_t link_handle) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_operation_unlink_program_request_t request = {0};
@@ -1173,7 +1214,7 @@ ebpf_api_unlink_program(ebpf_handle_t link_handle)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_link_detach(_Inout_ struct bpf_link* link)
+ebpf_link_detach(_Inout_ struct bpf_link* link) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(link);
@@ -1223,7 +1264,7 @@ Exit:
 }
 
 void
-ebpf_link_close(_Frees_ptr_ struct bpf_link* link)
+ebpf_link_close(_Frees_ptr_ struct bpf_link* link) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(link);
@@ -1232,7 +1273,7 @@ ebpf_link_close(_Frees_ptr_ struct bpf_link* link)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_api_close_handle(ebpf_handle_t handle)
+ebpf_api_close_handle(ebpf_handle_t handle) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_operation_close_handle_request_t request = {
@@ -1243,7 +1284,7 @@ ebpf_api_close_handle(ebpf_handle_t handle)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_api_get_pinned_map_info(
-    _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info)
+    _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1339,7 +1380,8 @@ Exit:
 
 void
 ebpf_api_map_info_free(
-    const uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_info_t* map_info)
+    const uint16_t map_count,
+    _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_info_t* map_info) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_map_info_array_free(map_count, const_cast<ebpf_map_info_t*>(map_info));
@@ -1370,8 +1412,7 @@ clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs) noexcept
     programs.resize(0);
 }
 
-void
-clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map) noexcept
+_Requires_lock_not_held_(_ebpf_state_mutex) void clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(map);
@@ -1379,6 +1420,7 @@ clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map) noexcept
         Platform::_close(map->map_fd);
     }
     if (map->map_handle != ebpf_handle_invalid) {
+        std::unique_lock lock(_ebpf_state_mutex);
         _ebpf_maps.erase(map->map_handle);
     }
     ebpf_free(map->name);
@@ -1427,28 +1469,42 @@ _delete_ebpf_object(_In_opt_ _Post_invalid_ ebpf_object_t* object) noexcept
     }
 }
 
-static void
-_remove_ebpf_object_from_globals(_In_ const ebpf_object_t* object) noexcept
+_Requires_lock_not_held_(_ebpf_state_mutex) static void _remove_ebpf_object_from_globals(
+    _In_ const ebpf_object_t* object) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(object);
+    std::unique_lock lock(_ebpf_state_mutex);
     auto it = std::find(_ebpf_objects.begin(), _ebpf_objects.end(), object);
-    ebpf_assert(it != _ebpf_objects.end());
+    if (it == _ebpf_objects.end()) {
+        return;
+    }
     _ebpf_objects.erase(it);
 }
 
-static void
-_clean_up_ebpf_objects() noexcept
+_Requires_lock_not_held_(_ebpf_state_mutex) static void _clean_up_ebpf_objects() noexcept
 {
     EBPF_LOG_ENTRY();
-    for (auto& object : _ebpf_objects) {
+    std::vector<ebpf_object_t*> objects;
+
+    // Intentional use of scope to limit lifetime of lock.
+    {
+        std::unique_lock lock(_ebpf_state_mutex);
+        objects = std::move(_ebpf_objects);
+    }
+
+    for (auto& object : objects) {
         _delete_ebpf_object(object);
     }
 
-    _ebpf_objects.resize(0);
-
-    ebpf_assert(_ebpf_programs.size() == 0);
-    ebpf_assert(_ebpf_maps.size() == 0);
+// Intentional use of scope to limit lifetime of lock.
+#if defined(_DEBUG)
+    {
+        std::unique_lock lock(_ebpf_state_mutex);
+        ebpf_assert(_ebpf_programs.size() == 0);
+        ebpf_assert(_ebpf_maps.size() == 0);
+    }
+#endif
 }
 
 void
@@ -1618,7 +1674,9 @@ _initialize_ebpf_object_native(
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        _clean_up_ebpf_object(&object);
+        clean_up_ebpf_programs(object.programs);
+        clean_up_ebpf_maps(object.maps);
+        object.native_module_fd = ebpf_fd_invalid;
     }
     EBPF_RETURN_RESULT(result);
 }
@@ -1846,7 +1904,7 @@ _ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info) noexcept
 }
 
 void
-ebpf_free_sections(_In_opt_ _Post_invalid_ ebpf_section_info_t* infos)
+ebpf_free_sections(_In_opt_ _Post_invalid_ ebpf_section_info_t* infos) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     while (infos != nullptr) {
@@ -2169,36 +2227,40 @@ _ebpf_enumerate_native_sections(
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     EBPF_LOG_ENTRY();
-    *infos = nullptr;
-    *error_message = nullptr;
+    try {
+        *infos = nullptr;
+        *error_message = nullptr;
 
-    parsed_pe* pe = ParsePEFromFile(file);
-    if (pe == nullptr) {
-        EBPF_RETURN_RESULT(EBPF_FILE_NOT_FOUND);
-    }
-
-    ebpf_pe_context_t context = {
-        .result = EBPF_SUCCESS,
-        .object = object,
-        .pin_root_path = pin_root_path,
-        .image_base = pe->peHeader.nt.OptionalHeader64.ImageBase};
-    IterSec(pe, _ebpf_pe_get_map_definitions, &context);
-    IterSec(pe, _ebpf_pe_get_section_names, &context);
-    IterSec(pe, _ebpf_pe_add_section, &context);
-
-    DestructParsedPE(pe);
-
-    if (context.result != EBPF_SUCCESS) {
-        *error_message = ebpf_duplicate_string("Failed to parse PE file.");
-        while (context.infos) {
-            ebpf_section_info_t* next = context.infos->next;
-            _ebpf_free_section_info(context.infos);
-            context.infos = next;
+        parsed_pe* pe = ParsePEFromFile(file);
+        if (pe == nullptr) {
+            EBPF_RETURN_RESULT(EBPF_FILE_NOT_FOUND);
         }
-    } else {
-        *infos = context.infos;
+
+        ebpf_pe_context_t context = {
+            .result = EBPF_SUCCESS,
+            .object = object,
+            .pin_root_path = pin_root_path,
+            .image_base = pe->peHeader.nt.OptionalHeader64.ImageBase};
+        IterSec(pe, _ebpf_pe_get_map_definitions, &context);
+        IterSec(pe, _ebpf_pe_get_section_names, &context);
+        IterSec(pe, _ebpf_pe_add_section, &context);
+
+        DestructParsedPE(pe);
+
+        if (context.result != EBPF_SUCCESS) {
+            *error_message = ebpf_duplicate_string("Failed to parse PE file.");
+            while (context.infos) {
+                ebpf_section_info_t* next = context.infos->next;
+                _ebpf_free_section_info(context.infos);
+                context.infos = next;
+            }
+        } else {
+            *infos = context.infos;
+        }
+        EBPF_RETURN_RESULT(context.result);
+    } catch (const std::bad_alloc&) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
-    EBPF_RETURN_RESULT(context.result);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -2206,7 +2268,7 @@ ebpf_enumerate_sections(
     _In_z_ const char* file,
     bool verbose,
     _Outptr_result_maybenull_ ebpf_section_info_t** infos,
-    _Outptr_result_maybenull_z_ const char** error_message)
+    _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     std::string file_name_string(file);
@@ -2220,8 +2282,7 @@ ebpf_enumerate_sections(
     }
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_object_open(
+_Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t ebpf_object_open(
     _In_z_ const char* path,
     _In_opt_z_ const char* object_name,
     _In_opt_z_ const char* pin_root_path,
@@ -2250,7 +2311,10 @@ ebpf_object_open(
     }
 
     *object = new_object;
-    _ebpf_objects.emplace_back(*object);
+    {
+        std::unique_lock lock(_ebpf_state_mutex);
+        _ebpf_objects.emplace_back(*object);
+    }
 
 Done:
     clear_map_descriptors();
@@ -2274,7 +2338,7 @@ _ebpf_is_map_in_map(_In_ const ebpf_map_t* map) noexcept
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type)
+ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type) EBPF_NO_EXCEPT
 {
     if (Platform::_is_native_program(object->file_name)) {
         if (execution_type == EBPF_EXECUTION_INTERPRET || execution_type == EBPF_EXECUTION_JIT) {
@@ -2296,7 +2360,7 @@ ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution
 }
 
 ebpf_execution_type_t
-ebpf_object_get_execution_type(_In_ const struct bpf_object* object)
+ebpf_object_get_execution_type(_In_ const struct bpf_object* object) EBPF_NO_EXCEPT
 {
     return object->execution_type;
 }
@@ -2382,8 +2446,8 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-static ebpf_result_t
-_ebpf_object_create_maps(_Inout_ ebpf_object_t* object) noexcept(false)
+_Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
+    _ebpf_object_create_maps(_Inout_ ebpf_object_t* object) noexcept(false)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(object);
@@ -2430,6 +2494,7 @@ _ebpf_object_create_maps(_Inout_ ebpf_object_t* object) noexcept(false)
     try {
         if (result == EBPF_SUCCESS) {
             for (auto& map : object->maps) {
+                std::unique_lock lock(_ebpf_state_mutex);
                 _ebpf_maps.insert(std::pair<ebpf_handle_t, ebpf_map_t*>(map->map_handle, map));
             }
         }
@@ -2577,8 +2642,8 @@ ebpf_program_load_bytes(
     EBPF_RETURN_RESULT(result);
 }
 
-static ebpf_result_t
-_ebpf_object_load_programs(_Inout_ struct bpf_object* object) noexcept(false)
+_Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
+    _ebpf_object_load_programs(_Inout_ struct bpf_object* object) noexcept(false)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(object);
@@ -2624,6 +2689,7 @@ _ebpf_object_load_programs(_Inout_ struct bpf_object* object) noexcept(false)
     }
 
     if (result == EBPF_SUCCESS) {
+        std::unique_lock lock(_ebpf_state_mutex);
         for (auto& program : object->programs) {
             _ebpf_programs.insert(std::pair<ebpf_handle_t, ebpf_program_t*>(program->handle, program));
         }
@@ -2682,8 +2748,8 @@ Done:
 }
 
 // This function is intended to work like libbpf's bpf_object__unload().
-_Must_inspect_result_ ebpf_result_t
-ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept
+_Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t
+    ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(object);
@@ -2694,6 +2760,7 @@ ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept
             map->map_fd = ebpf_fd_invalid;
         }
         if (map->map_handle != ebpf_handle_invalid) {
+            std::unique_lock lock(_ebpf_state_mutex);
             _ebpf_maps.erase(map->map_handle);
             map->map_handle = ebpf_handle_invalid;
         }
@@ -2707,8 +2774,8 @@ ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept
 }
 
 // This function is intended to work like libbpf's bpf_program__unload().
-_Must_inspect_result_ ebpf_result_t
-ebpf_program_unload(_Inout_ struct bpf_program* program) noexcept
+_Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t
+    ebpf_program_unload(_Inout_ struct bpf_program* program) noexcept
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program);
@@ -2718,6 +2785,7 @@ ebpf_program_unload(_Inout_ struct bpf_program* program) noexcept
         program->fd = ebpf_fd_invalid;
     }
     if (program->handle != ebpf_handle_invalid) {
+        std::unique_lock lock(_ebpf_state_mutex);
         _ebpf_programs.erase(program->handle);
         program->handle = ebpf_handle_invalid;
     }
@@ -3102,10 +3170,11 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-_Ret_maybenull_ struct bpf_object*
-ebpf_object_next(_In_opt_ const struct bpf_object* previous) noexcept
+_Requires_lock_not_held_(_ebpf_state_mutex) _Ret_maybenull_
+    struct bpf_object* ebpf_object_next(_In_opt_ const struct bpf_object* previous) noexcept
 {
     EBPF_LOG_ENTRY();
+    std::unique_lock lock(_ebpf_state_mutex);
     if (previous == nullptr) {
         // Return first object.
         EBPF_RETURN_POINTER(struct bpf_object*, (!_ebpf_objects.empty()) ? _ebpf_objects[0] : nullptr);
@@ -3289,7 +3358,7 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_next_pinned_program_path(
-    _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path)
+    _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(start_path);
@@ -3388,7 +3457,9 @@ ebpf_object_get_info_by_fd(
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_program_type_by_name(
-    _In_z_ const char* name, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* expected_attach_type)
+    _In_z_ const char* name,
+    _Out_ ebpf_program_type_t* program_type,
+    _Out_ ebpf_attach_type_t* expected_attach_type) EBPF_NO_EXCEPT
 {
     ebpf_result_t result = EBPF_SUCCESS;
     EBPF_LOG_ENTRY();
@@ -3402,7 +3473,7 @@ ebpf_get_program_type_by_name(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info)
+ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info) EBPF_NO_EXCEPT
 {
     ebpf_result_t result = EBPF_SUCCESS;
     EBPF_LOG_ENTRY();
@@ -3423,7 +3494,7 @@ ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) noexcept
 }
 
 _Ret_maybenull_z_ const char*
-ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
+ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program_type);
@@ -3437,7 +3508,7 @@ ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
 }
 
 _Ret_maybenull_z_ const char*
-ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
+ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(attach_type);
@@ -3615,77 +3686,86 @@ ebpf_ring_buffer_map_subscribe(
     _Outptr_ ring_buffer_subscription_t** subscription) noexcept
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(sample_callback);
-    ebpf_assert(subscription);
-    EBPF_LOG_ENTRY();
+    try {
 
-    ebpf_result_t result = EBPF_SUCCESS;
+        ebpf_assert(sample_callback);
+        ebpf_assert(subscription);
+        EBPF_LOG_ENTRY();
 
-    *subscription = nullptr;
+        ebpf_result_t result = EBPF_SUCCESS;
 
-    ebpf_ring_buffer_subscription_ptr local_subscription = std::make_unique<ebpf_ring_buffer_subscription_t>();
+        *subscription = nullptr;
 
-    local_subscription->ring_buffer_map_handle = ebpf_handle_invalid;
+        ebpf_ring_buffer_subscription_ptr local_subscription = std::make_unique<ebpf_ring_buffer_subscription_t>();
 
-    // Get the handle to ring buffer map.
-    ebpf_handle_t ring_buffer_map_handle = _get_handle_from_file_descriptor(ring_buffer_map_fd);
-    if (ring_buffer_map_handle == ebpf_handle_invalid) {
-        result = EBPF_INVALID_FD;
+        local_subscription->ring_buffer_map_handle = ebpf_handle_invalid;
+
+        // Get the handle to ring buffer map.
+        ebpf_handle_t ring_buffer_map_handle = _get_handle_from_file_descriptor(ring_buffer_map_fd);
+        if (ring_buffer_map_handle == ebpf_handle_invalid) {
+            result = EBPF_INVALID_FD;
+            EBPF_RETURN_RESULT(result);
+        }
+
+        if (!Platform::DuplicateHandle(
+                reinterpret_cast<ebpf_handle_t>(GetCurrentProcess()),
+                ring_buffer_map_handle,
+                reinterpret_cast<ebpf_handle_t>(GetCurrentProcess()),
+                &local_subscription->ring_buffer_map_handle,
+                0,
+                FALSE,
+                DUPLICATE_SAME_ACCESS)) {
+            result = win32_error_code_to_ebpf_result(GetLastError());
+            _Analysis_assume_(result != EBPF_SUCCESS);
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, DuplicateHandle);
+            EBPF_RETURN_RESULT(result);
+        }
+
+        // Get user-mode address to ring buffer shared data.
+        ebpf_operation_ring_buffer_map_query_buffer_request_t query_buffer_request{
+            sizeof(query_buffer_request),
+            ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER,
+            local_subscription->ring_buffer_map_handle};
+        ebpf_operation_ring_buffer_map_query_buffer_reply_t query_buffer_reply{};
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(query_buffer_request, query_buffer_reply));
+        if (result != EBPF_SUCCESS)
+            EBPF_RETURN_RESULT(result);
+        ebpf_assert(query_buffer_reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER);
+        local_subscription->buffer =
+            reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(query_buffer_reply.buffer_address));
+
+        // Initialize the async IOCTL operation.
+        local_subscription->sample_callback_context = sample_callback_context;
+        local_subscription->sample_callback = sample_callback;
+        memset(&local_subscription->reply, 0, sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t));
+        result = initialize_async_ioctl_operation(
+            local_subscription.get(),
+            _ebpf_ring_buffer_map_async_query_completion,
+            &local_subscription->async_ioctl_completion);
+        if (result != EBPF_SUCCESS)
+            EBPF_RETURN_RESULT(result);
+
+        // Issue the async query IOCTL.
+        ebpf_operation_ring_buffer_map_async_query_request_t async_query_request{
+            sizeof(async_query_request),
+            ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
+            local_subscription->ring_buffer_map_handle};
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(
+            async_query_request,
+            local_subscription->reply,
+            get_async_ioctl_operation_overlapped(local_subscription->async_ioctl_completion)));
+        if (result == EBPF_PENDING)
+            result = EBPF_SUCCESS;
+
+        // If the async IOCTL failed, then free the subscription object.
+        if (result == EBPF_SUCCESS) {
+            *subscription = local_subscription.release();
+        }
+
         EBPF_RETURN_RESULT(result);
+    } catch (const std::bad_alloc&) {
+        return EBPF_NO_MEMORY;
     }
-
-    if (!Platform::DuplicateHandle(
-            reinterpret_cast<ebpf_handle_t>(GetCurrentProcess()),
-            ring_buffer_map_handle,
-            reinterpret_cast<ebpf_handle_t>(GetCurrentProcess()),
-            &local_subscription->ring_buffer_map_handle,
-            0,
-            FALSE,
-            DUPLICATE_SAME_ACCESS)) {
-        result = win32_error_code_to_ebpf_result(GetLastError());
-        _Analysis_assume_(result != EBPF_SUCCESS);
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, DuplicateHandle);
-        EBPF_RETURN_RESULT(result);
-    }
-
-    // Get user-mode address to ring buffer shared data.
-    ebpf_operation_ring_buffer_map_query_buffer_request_t query_buffer_request{
-        sizeof(query_buffer_request),
-        ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER,
-        local_subscription->ring_buffer_map_handle};
-    ebpf_operation_ring_buffer_map_query_buffer_reply_t query_buffer_reply{};
-    result = win32_error_code_to_ebpf_result(invoke_ioctl(query_buffer_request, query_buffer_reply));
-    if (result != EBPF_SUCCESS)
-        EBPF_RETURN_RESULT(result);
-    ebpf_assert(query_buffer_reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER);
-    local_subscription->buffer = reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(query_buffer_reply.buffer_address));
-
-    // Initialize the async IOCTL operation.
-    local_subscription->sample_callback_context = sample_callback_context;
-    local_subscription->sample_callback = sample_callback;
-    memset(&local_subscription->reply, 0, sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t));
-    result = initialize_async_ioctl_operation(
-        local_subscription.get(),
-        _ebpf_ring_buffer_map_async_query_completion,
-        &local_subscription->async_ioctl_completion);
-    if (result != EBPF_SUCCESS)
-        EBPF_RETURN_RESULT(result);
-
-    // Issue the async query IOCTL.
-    ebpf_operation_ring_buffer_map_async_query_request_t async_query_request{
-        sizeof(async_query_request),
-        ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
-        local_subscription->ring_buffer_map_handle};
-    result = win32_error_code_to_ebpf_result(invoke_ioctl(
-        async_query_request,
-        local_subscription->reply,
-        get_async_ioctl_operation_overlapped(local_subscription->async_ioctl_completion)));
-    if (result == EBPF_PENDING)
-        result = EBPF_SUCCESS;
-
-    *subscription = local_subscription.release();
-
-    EBPF_RETURN_RESULT(result);
 }
 
 bool
@@ -3730,7 +3810,7 @@ ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t*
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
+ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options) EBPF_NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
 
@@ -3738,6 +3818,10 @@ ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
 
     size_t input_buffer_size = EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data);
     size_t output_buffer_size = EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data);
+    ebpf_signal_t completion_event;
+    OVERLAPPED overlapped;
+    memset(&overlapped, 0, sizeof(overlapped));
+    overlapped.hEvent = completion_event.get();
 
     if ((options->context_size_in + options->data_size_in) >
         MAXUINT16 - EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data)) {
@@ -3786,7 +3870,18 @@ ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
     std::copy(
         options->context_in, options->context_in + options->context_size_in, request->data + options->data_size_in);
 
-    result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer, &overlapped));
+    if (result == EBPF_PENDING) {
+        unsigned long bytes_returned;
+        completion_event.wait();
+        if (GetOverlappedResult(reinterpret_cast<HANDLE>(get_device_handle()), &overlapped, &bytes_returned, FALSE)) {
+            result = EBPF_SUCCESS;
+        } else {
+            result = win32_error_code_to_ebpf_result(GetLastError());
+        }
+    }
+    // Note: Result can change from EBPF_PENDING to EBPF_SUCCESS or EBPF_ERROR_* based on the result of the
+    // GetOverlappedResult call above.
 
     if (result == EBPF_SUCCESS) {
         if (options->data_out) {

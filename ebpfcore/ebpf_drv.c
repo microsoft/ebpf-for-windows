@@ -1,27 +1,17 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-/*++
-
-Abstract:
-WDF based driver that does the following:
-1. Initializes the eBPF execution context.
-2. Opens an IOCTL surface that forwards commands to ebpf_core.
-
-Environment:
-
-    Kernel mode
-
---*/
-
-// ntddk.h needs to be included first due to inter header dependencies on Windows.
-#include <ntddk.h>
-
-#include <netiodef.h>
-#include <wdf.h>
+/**
+ * @file
+ * WDF based driver that does the following:
+ * 1. Initializes the eBPF execution context.
+ * 2. Opens an IOCTL surface that forwards commands to ebpf_core.
+ */
 
 #include "ebpf_core.h"
 #include "ebpf_object.h"
+
+#include <wdf.h>
 
 // Driver global variables
 static DEVICE_OBJECT* _ebpf_driver_device_object;
@@ -59,7 +49,7 @@ _ebpf_driver_io_device_control(
     _In_ WDFREQUEST request,
     size_t output_buffer_length,
     size_t input_buffer_length,
-    ULONG io_control_code);
+    unsigned long io_control_code);
 
 static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
     _IRQL_requires_max_(PASSIVE_LEVEL) void _ebpf_driver_unload(_In_ WDFDRIVER driver_object)
@@ -243,7 +233,7 @@ _ebpf_driver_io_device_control(
     _In_ WDFREQUEST request,
     size_t output_buffer_length,
     size_t input_buffer_length,
-    ULONG io_control_code)
+    unsigned long io_control_code)
 {
     NTSTATUS status = STATUS_SUCCESS;
     WDFDEVICE device;

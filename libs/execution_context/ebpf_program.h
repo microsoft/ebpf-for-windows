@@ -169,11 +169,16 @@ extern "C"
      * @brief Invoke an ebpf_program_t instance.
      *
      * @param[in] program Program to invoke.
-     * @param[in] context Pointer to eBPF context for this program.
+     * @param[in,out] context Pointer to eBPF context for this program.
      * @param[out] result Output from the program.
+     * @param[in] execution_state Execution context state.
      */
     void
-    ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _Out_ uint32_t* result);
+    ebpf_program_invoke(
+        _In_ const ebpf_program_t* program,
+        _Inout_ void* context,
+        _Out_ uint32_t* result,
+        _In_ const ebpf_execution_context_state_t* execution_state);
 
     /**
      * @brief Store the helper function IDs that are used by the eBPF program in an array
@@ -293,15 +298,35 @@ extern "C"
     } ebpf_program_test_run_options_t;
 
     /**
+     * @brief Function called when the program test run completes.
+     *
+     */
+    typedef void (*ebpf_program_test_run_complete_callback_t)(
+        _In_ ebpf_result_t result,
+        _In_ const ebpf_program_t* program,
+        _In_ const ebpf_program_test_run_options_t* options,
+        _Inout_ void* completion_context,
+        _Inout_ void* async_context);
+
+    /**
      * @brief Run the program with the given input and output buffers and measure the duration.
      *
      * @param[in] program Program to run.
+     * @param[in, out] options Options to control the test run.
+     * @param[in] async_context Async context to receive cancellation notifications on.
+     * @param[in] completion_context Context to pass to the completion callback.
+     * @param[in] callback Completion callback.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT Invalid argument.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this program.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options);
+    ebpf_program_execute_test_run(
+        _In_ const ebpf_program_t* program,
+        _Inout_ ebpf_program_test_run_options_t* options,
+        _In_ void* async_context,
+        _In_ void* completion_context,
+        _In_ ebpf_program_test_run_complete_callback_t callback);
 
     typedef ebpf_result_t (*ebpf_helper_function_addresses_changed_callback_t)(
         _Inout_ ebpf_program_t* program, _In_opt_ void* context);
@@ -320,6 +345,24 @@ extern "C"
         _Inout_ ebpf_program_t* program,
         _In_ ebpf_helper_function_addresses_changed_callback_t callback,
         _In_opt_ void* context);
+
+    /**
+     * @brief Acquire a reference to the program information provider.
+     *
+     * @param[in,out] program Program to acquire a reference to the provider for.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_EXTENSION_FAILED_TO_LOAD The provider failed to load.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_reference_providers(_Inout_ ebpf_program_t* program);
+
+    /**
+     * @brief Release a reference to the program information provider.
+     *
+     * @param[in,out] program Program to release a reference to the provider for.
+     */
+    void
+    ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program);
 
 #ifdef __cplusplus
 }

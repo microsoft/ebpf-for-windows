@@ -3,18 +3,11 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include <array>
-#include <chrono>
-#include <mutex>
-#include <thread>
-#include <WinSock2.h>
-#include <in6addr.h> // Must come after Winsock2.h
-
 #include "api_common.hpp"
 #include "api_internal.h"
-#include "bpf2c.h"
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
+#include "bpf2c.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
@@ -22,6 +15,11 @@
 #include "helpers.h"
 #include "ioctl_helper.h"
 #include "mock.h"
+namespace ebpf {
+#include "net/if_ether.h"
+#include "net/ip.h"
+#include "net/udp.h"
+}; // namespace ebpf
 #include "passed_test_log.h"
 #include "platform.h"
 #include "program_helper.h"
@@ -29,11 +27,14 @@
 #include "test_helper.hpp"
 #include "xdp_tests_common.h"
 
-namespace ebpf {
-#include "net/if_ether.h"
-#include "net/ip.h"
-#include "net/udp.h"
-}; // namespace ebpf
+#include <WinSock2.h>
+#include <in6addr.h>
+#include <array>
+#include <cguid.h>
+#include <chrono>
+#include <mutex>
+#include <ntsecapi.h>
+#include <thread>
 
 using namespace Platform;
 
@@ -411,7 +412,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     // Test that we drop the packet and increment the map
     xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_DROP);
 
@@ -446,12 +447,36 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 1);
 
+    // Reset the count of dropped packets.
+    REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
+
+    {
+        // Negative test: State is too small.
+        uint8_t state[sizeof(ebpf_execution_context_state_t) - 1] = {0};
+        REQUIRE(hook.batch_begin(sizeof(state), state) == EBPF_INVALID_ARGUMENT);
+    }
+
+    // Fire a 0-length UDP packet on the interface index in the map, using batch mode, which should be dropped.
+    uint8_t state[sizeof(ebpf_execution_context_state_t)] = {0};
+    REQUIRE(hook.batch_begin(sizeof(state), state) == EBPF_SUCCESS);
+    // Process 10 packets in batch mode.
+    for (int i = 0; i < 10; i++) {
+        REQUIRE(hook.batch_invoke(&ctx0, &hook_result, state) == EBPF_SUCCESS);
+        REQUIRE(hook_result == XDP_DROP);
+    }
+    REQUIRE(hook.batch_end(state) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 10);
+
+    // Reset the count of dropped packets.
+    REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
+
     // Fire a 0-length packet on any interface that is not in the map, which should be allowed.
     xdp_md_t ctx4{packet0.data(), packet0.data() + packet0.size(), 0, if_index + 1};
     REQUIRE(hook.fire(&ctx4, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_PASS);
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
-    REQUIRE(value == 1);
+    REQUIRE(value == 0);
 
     hook.detach_link(link);
     hook.close_link(link);
@@ -492,7 +517,7 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
 
     REQUIRE(hook_result == 0);
@@ -535,6 +560,12 @@ typedef struct _process_entry
     uint8_t name[64];
 } process_entry_t;
 
+typedef struct _audit_entry
+{
+    uint64_t logon_id;
+    int32_t is_admin;
+} audit_entry_t;
+
 uint32_t
 get_bind_count_for_pid(fd_t map_fd, uint64_t pid)
 {
@@ -544,10 +575,27 @@ get_bind_count_for_pid(fd_t map_fd, uint64_t pid)
     return entry.count;
 }
 
-bind_action_t
-emulate_bind(std::function<ebpf_result_t(void*, int*)>& invoke, uint64_t pid, const char* appid)
+static void
+_validate_bind_audit_entry(fd_t map_fd, uint64_t pid)
 {
-    int result;
+    audit_entry_t entry = {0};
+    int result = bpf_map_lookup_elem(map_fd, &pid, &entry);
+    REQUIRE(result == 0);
+
+    REQUIRE(entry.is_admin == -1);
+
+    REQUIRE(entry.logon_id != 0);
+    SECURITY_LOGON_SESSION_DATA* data = NULL;
+    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    LsaFreeReturnBuffer(data);
+}
+
+bind_action_t
+emulate_bind(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pid, const char* appid)
+{
+    uint32_t result;
     std::string app_id = appid;
     bind_md_t ctx{0};
     ctx.app_id_start = (uint8_t*)app_id.c_str();
@@ -559,9 +607,9 @@ emulate_bind(std::function<ebpf_result_t(void*, int*)>& invoke, uint64_t pid, co
 }
 
 void
-emulate_unbind(std::function<ebpf_result_t(void*, int*)>& invoke, uint64_t pid, const char* appid)
+emulate_unbind(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pid, const char* appid)
 {
-    int result;
+    uint32_t result;
     std::string app_id = appid;
     bind_md_t ctx{0};
     ctx.process_id = pid;
@@ -576,6 +624,12 @@ set_bind_limit(fd_t map_fd, uint32_t limit)
     REQUIRE(bpf_map_update_elem(map_fd, &limit_key, &limit, EBPF_ANY) == EBPF_SUCCESS);
 }
 
+static uint64_t
+_get_current_pid_tgid()
+{
+    return ((uint64_t)GetCurrentProcessId() << 32 | GetCurrentThreadId());
+}
+
 void
 bindmonitor_test(ebpf_execution_type_t execution_type)
 {
@@ -587,6 +641,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     bpf_object* object = nullptr;
     bpf_link* link = nullptr;
     fd_t program_fd;
+    uint64_t process_id = _get_current_pid_tgid();
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
@@ -606,6 +661,8 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     REQUIRE(limit_map_fd > 0);
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
     REQUIRE(process_map_fd > 0);
+    fd_t audit_map_fd = bpf_object__find_map_fd_by_name(object, "audit_map");
+    REQUIRE(audit_map_fd > 0);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
@@ -615,35 +672,42 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     // Apply policy of maximum 2 binds per process
     set_bind_limit(limit_map_fd, 2);
 
-    std::function<ebpf_result_t(void*, int*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
+    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
     // Bind first port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Bind second port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Bind third port - blocked
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_DENY);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Unbind second port
     emulate_unbind(invoke, fake_pid, "fake_app_1");
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Unbind first port
     emulate_unbind(invoke, fake_pid, "fake_app_1");
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 0);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Bind from two apps to test enumeration
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     fake_pid = 54321;
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+    _validate_bind_audit_entry(audit_map_fd, process_id);
 
     uint64_t pid;
     REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == 0);
@@ -730,8 +794,8 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     // Apply policy of maximum 2 binds per process
     set_bind_limit(limit_map_fd, 2);
 
-    std::function<ebpf_result_t(void*, int*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
+    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
     // Bind first port - success
     REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
@@ -820,8 +884,8 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
     }
 
     uint64_t fake_pid = 12345;
-    std::function<ebpf_result_t(void*, int*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ int* result) -> ebpf_result_t { return hook.fire(context, result); };
+    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
     ring_buffer_api_test_helper(process_map_fd, fake_app_ids, [&](int i) {
         // Emulate bind operation.
@@ -852,7 +916,7 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     // Dummy context (not used by the eBPF program).
     xdp_md_t ctx{};
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 0);
 
@@ -889,7 +953,7 @@ map_test(ebpf_execution_type_t execution_type)
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     // Program should return 0 if all the map tests pass.
     REQUIRE(hook_result >= 0);
@@ -1540,7 +1604,7 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
 
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_TX);
 
@@ -1582,7 +1646,7 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
     // Dummy context (not used by the eBPF program).
     xdp_md_helper_t ctx(packet.packet());
 
-    int hook_result;
+    uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_TX);
 
@@ -1630,7 +1694,7 @@ TEST_CASE("printk", "[end_to_end]")
 
     capture_helper_t capture;
     std::string output;
-    int hook_result = 0;
+    uint32_t hook_result = 0;
     errno_t error = capture.begin_capture();
     if (error == NO_ERROR) {
         ebpf_result_t hook_fire_result = hook.fire(&ctx, &hook_result);
@@ -1701,7 +1765,7 @@ _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRES
     uint8_t* inner_ip_header = packet.packet().data() + offset;
     std::vector<uint8_t> inner_ip_datagram(inner_ip_header, packet.packet().data() + packet.packet().size());
 
-    int hook_result;
+    uint32_t hook_result;
     xdp_md_helper_t ctx(packet.packet());
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_PASS);
@@ -1749,7 +1813,7 @@ TEST_CASE("link_tests", "[end_to_end]")
 
     // Dummy context (not used by the eBPF program).
     xdp_md_helper_t ctx(packet.packet());
-    int result;
+    uint32_t result;
 
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
     bpf_program* program = bpf_object__find_program_by_name(program_helper.get_object(), "func");
@@ -1817,7 +1881,7 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
-    int hook_result;
+    uint32_t hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -1921,7 +1985,7 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
-    int hook_result;
+    uint32_t hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -1983,7 +2047,7 @@ TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
-    int hook_result;
+    uint32_t hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -2091,7 +2155,7 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
-    int hook_result;
+    uint32_t hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -2166,7 +2230,7 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
-    int hook_result;
+    uint32_t hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -2334,7 +2398,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     std::wstring file_path(L"droppacket_um.dll");
-    ebpf_handle_t module_handle = ebpf_handle_invalid;
+    _test_handle_helper module_handle;
     ebpf_handle_t map_handles[INCORRECT_MAP_COUNT];
     ebpf_handle_t program_handles[PROGRAM_COUNT];
 
@@ -2353,7 +2417,11 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
     REQUIRE(
         test_ioctl_load_native_module(
-            service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) == ERROR_SUCCESS);
+            service_path,
+            &provider_module_id,
+            module_handle.get_handle_pointer(),
+            &count_of_maps,
+            &count_of_programs) == ERROR_SUCCESS);
 
     // Try to load the programs by passing wrong map and program handles size. This should fail.
     REQUIRE(
@@ -2363,9 +2431,6 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
-
-    // Close the module handle.
-    Platform::CloseHandle(module_handle);
 }
 
 // Try to load a .sys in user mode.
@@ -2397,8 +2462,8 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     SC_HANDLE service_handle2 = nullptr;
     std::wstring service_path(SERVICE_PATH_PREFIX);
     std::wstring service_path2(SERVICE_PATH_PREFIX);
-    ebpf_handle_t module_handle = ebpf_handle_invalid;
-    ebpf_handle_t module_handle2 = ebpf_handle_invalid;
+    _test_handle_helper module_handle;
+    _test_handle_helper module_handle2;
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     set_native_module_failures(true);
@@ -2412,7 +2477,11 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
     REQUIRE(
         test_ioctl_load_native_module(
-            service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) == ERROR_SUCCESS);
+            service_path,
+            &provider_module_id,
+            module_handle.get_handle_pointer(),
+            &count_of_maps,
+            &count_of_programs) == ERROR_SUCCESS);
 
     // Create a new service with same driver and same module id.
     _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME_2, &provider_module_id, &service_handle2);
@@ -2423,10 +2492,11 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     service_path2 = service_path2 + NATIVE_DRIVER_SERVICE_NAME_2;
     REQUIRE(
         test_ioctl_load_native_module(
-            service_path2, &provider_module_id, &module_handle2, &count_of_maps, &count_of_programs) ==
-        ERROR_OBJECT_ALREADY_EXISTS);
-
-    Platform::CloseHandle(module_handle);
+            service_path2,
+            &provider_module_id,
+            module_handle2.get_handle_pointer(),
+            &count_of_maps,
+            &count_of_programs) == ERROR_OBJECT_ALREADY_EXISTS);
 }
 
 // The below tests try to load native drivers for invalid programs (that will fail verification).
@@ -2445,9 +2515,9 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     std::wstring file_path(L"droppacket_um.dll");
-    ebpf_handle_t module_handle = ebpf_handle_invalid;
     ebpf_handle_t map_handles;
     ebpf_handle_t program_handles;
+    _test_handle_helper module_handle;
 
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
 
@@ -2458,14 +2528,16 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
     REQUIRE(
         test_ioctl_load_native_module(
-            service_path, &provider_module_id, &module_handle, &count_of_maps, &count_of_programs) == ERROR_SUCCESS);
+            service_path,
+            &provider_module_id,
+            module_handle.get_handle_pointer(),
+            &count_of_maps,
+            &count_of_programs) == ERROR_SUCCESS);
 
     // Try to load the programs from the module with 0 programs.
     REQUIRE(
         test_ioctl_load_native_programs(&provider_module_id, nullptr, 1, &map_handles, 1, &program_handles) ==
         ERROR_INVALID_PARAMETER);
-
-    Platform::CloseHandle(module_handle);
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
@@ -2684,4 +2756,276 @@ TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
     REQUIRE(ebpf_object_get_execution_type(jit_object) == EBPF_EXECUTION_INTERPRET);
 
     bpf_object__close(jit_object);
+}
+
+static void
+extension_reload_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    // Create a 0-byte UDP packet.
+    auto packet0 = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+
+    // Test that we drop the packet and increment the map.
+    xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
+
+    // Try loading without the extension loaded.
+    bpf_object* droppacket_object;
+    int program_fd = -1;
+    const char* error_message = nullptr;
+
+    // Should fail.
+    REQUIRE(
+        ebpf_program_load(
+            execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o",
+            BPF_PROG_TYPE_UNSPEC,
+            execution_type,
+            &droppacket_object,
+            &program_fd,
+            &error_message) != 0);
+
+    ebpf_free((void*)error_message);
+
+    // Load the program with the extension loaded.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+        REQUIRE(
+            ebpf_program_load(
+                execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o",
+                BPF_PROG_TYPE_UNSPEC,
+                execution_type,
+                &droppacket_object,
+                &program_fd,
+                &error_message) == 0);
+
+        uint32_t if_index = TEST_IFINDEX;
+        bpf_link* link = nullptr;
+        // Attach only to the single interface being tested.
+        REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
+        bpf_link__disconnect(link);
+        bpf_link__destroy(link);
+
+        // Program should run.
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == XDP_PASS);
+
+        // Unload the extension (xdp_program_info and hook will be destroyed).
+    }
+
+    // Reload the extension provider with unchanged data.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+        // Program should re-attach to the hook.
+
+        // Program should run.
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == XDP_PASS);
+    }
+
+    // Reload the extension provider with missing helper function.
+    {
+        ebpf_helper_function_addresses_t changed_helper_function_address_table =
+            _test_ebpf_xdp_helper_function_address_table;
+        ebpf_program_data_t changed_program_data = _ebpf_xdp_program_data;
+        changed_program_data.program_type_specific_helper_function_addresses = &changed_helper_function_address_table;
+        changed_helper_function_address_table.helper_function_count = 0;
+
+        ebpf_extension_data_t changed_provider_data = {
+            TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(changed_program_data), &changed_program_data};
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP, &changed_provider_data);
+
+        // Program should re-attach to the hook.
+
+        // Program should not run.
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(&ctx0, &hook_result) != EBPF_SUCCESS);
+        REQUIRE(hook_result != XDP_PASS);
+    }
+
+    // Reload the extension provider with changed helper function data.
+    {
+        ebpf_program_info_t changed_program_info = _ebpf_xdp_program_info;
+        ebpf_helper_function_prototype_t helper_function_prototypes[] = {
+            _xdp_ebpf_extension_helper_function_prototype[0]};
+        helper_function_prototypes[0].return_type = EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL;
+        changed_program_info.program_type_specific_helper_prototype = helper_function_prototypes;
+        ebpf_program_data_t changed_program_data = _ebpf_xdp_program_data;
+        changed_program_data.program_info = &changed_program_info;
+
+        ebpf_extension_data_t changed_provider_data = {
+            TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(changed_program_data), &changed_program_data};
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP, &changed_provider_data);
+
+        // Program should re-attach to the hook.
+
+        // Program should not run.
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(&ctx0, &hook_result) != EBPF_SUCCESS);
+        REQUIRE(hook_result != XDP_PASS);
+    }
+}
+
+DECLARE_ALL_TEST_CASES("extension_reload_test", "[end_to_end]", extension_reload_test);
+
+// This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.
+TEST_CASE("close_unload_test", "[close_cleanup]")
+{
+    _test_helper_end_to_end test_helper;
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object* object = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+
+    const char* file_name = "bindmonitor_tailcall_um.dll";
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    // Set up tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+
+    // These are needed to prevent the memory leak detector from flagging a memory leak.
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    // The block of commented code after this comment is for documentation purposes only.
+    //
+    // A well-behaved user mode application _should_ call these calls to correctly free the allocated objects. In case
+    // of careless applications that do not do so (or even well behaved applications, when they crash or terminate for
+    // some reason before getting to this point), the 'premature application close' event handling _should_ take care
+    // of reclaiming and free'ing such objects.
+    //
+    // In a user-mode unit test case such as this one, the 'premature application close' event is simulated/handled in
+    // the context of the bpf_object__close() api, so a call to that api is mandatory for such tests.  All unit tests
+    // belonging to the '[close_cleanup]' unit-test class will show this behavior.
+    //
+    // For an identical test meant for execution on the native (kernel mode ebpf-for-windows driver), this event will
+    // be handled by the kernel mode driver on test application termination.  Such a test application _should_ _not_
+    // call bpf_object__close() api either.
+    //
+
+    /*
+       --- DO NOT REMOVE OR UN-COMMENT ---
+    //
+    // index = 0;
+    // REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    //
+    // index = 1;
+    // REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    */
+
+    bpf_object__close(object);
+}
+
+// This test tests the case where a program is inserted multiple times with different keys into the same map.
+TEST_CASE("multiple_map_insert", "[close_cleanup]")
+{
+    _test_helper_end_to_end test_helper;
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object* object = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+
+    const char* file_name = "bindmonitor_tailcall_um.dll";
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    // Set up tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    // Insert the same program for multiple keys in the same map.
+    index = 2;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    index = 4;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    index = 7;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+
+    // These are needed to prevent the memory leak detector from flagging a memory leak.
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    /*
+       --- DO NOT REMOVE OR UN-COMMENT ---
+    // Please refer to the detailed comment in the 'close_unload_test' test for explanation.
+    //
+    // index = 0;
+    // REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    //
+    // index = 1;
+    // REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    */
+
+    bpf_object__close(object);
 }

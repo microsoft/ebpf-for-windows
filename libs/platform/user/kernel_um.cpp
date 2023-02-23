@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_platform.h"
+#include "kernel_um.h"
+
 #include <condition_variable>
 #include <map>
 #include <mutex>
 #include <tuple>
-
-#include "ebpf_platform.h"
-#include "kernel_um.h"
 
 /***
  * @brief This following class implements a mock of the Windows Kernel's rundown reference implementation.
@@ -55,6 +55,35 @@ typedef class _rundown_ref_table
         }
 
         _rundown_ref_counts[(uint64_t)context] = {false, 0};
+    }
+
+    /**
+     * @brief Reinitialize the rundown ref table entry for the given context.
+     *
+     * @param[in] context The address of a previously run down EX_RUNDOWN_REF structure.
+     */
+    void
+    reinitialize_rundown_ref(_In_ const void* context)
+    {
+        std::unique_lock lock(_lock);
+
+        // Fail if the entry is not initialized.
+        if (_rundown_ref_counts.find((uint64_t)context) == _rundown_ref_counts.end()) {
+            throw std::runtime_error("rundown ref table not initialized");
+        }
+
+        auto& [rundown, ref_count] = _rundown_ref_counts[(uint64_t)context];
+
+        // Check if the entry is not rundown.
+        if (!rundown) {
+            throw std::runtime_error("rundown ref table not rundown");
+        }
+
+        if (ref_count != 0) {
+            throw std::runtime_error("rundown ref table corruption");
+        }
+
+        rundown = false;
     }
 
     /**
@@ -152,16 +181,21 @@ typedef struct _IO_WORKITEM
     void* context;
 } IO_WORKITEM;
 
-typedef ULONG PFN_NUMBER;
+typedef unsigned long PFN_NUMBER;
 #define PAGE_SIZE 4096
 #define PAGE_SHIFT 12L
 
-#define PAGE_ALIGN(Va) ((PVOID)((ULONG_PTR)(Va) & ~(PAGE_SIZE - 1)))
-#define BYTE_OFFSET(Va) ((ULONG)((LONG_PTR)(Va) & (PAGE_SIZE - 1)))
+#define PAGE_ALIGN(Va) ((void*)((ULONG_PTR)(Va) & ~(PAGE_SIZE - 1)))
+#define BYTE_OFFSET(Va) ((unsigned long)((LONG_PTR)(Va) & (PAGE_SIZE - 1)))
 #define ADDRESS_AND_SIZE_TO_SPAN_PAGES(Va, size)                                                        \
     (((((size)-1) >> PAGE_SHIFT) +                                                                      \
-      (((((ULONG)(size - 1) & (PAGE_SIZE - 1)) + (PtrToUlong(Va) & (PAGE_SIZE - 1)))) >> PAGE_SHIFT)) + \
+      (((((unsigned long)(size - 1) & (PAGE_SIZE - 1)) + (PtrToUlong(Va) & (PAGE_SIZE - 1)))) >> PAGE_SHIFT)) + \
      1L)
+
+static GENERIC_MAPPING _mapping = {1, 1, 1};
+
+static SE_EXPORTS _SeExports = {0};
+PSE_EXPORTS SeExports = &_SeExports;
 
 unsigned long
 MmGetMdlByteCount(_In_ MDL* mdl)
@@ -171,14 +205,14 @@ MmGetMdlByteCount(_In_ MDL* mdl)
 
 #define MmGetMdlByteOffset(mdl) ((mdl)->byte_offset)
 #define MmGetMdlBaseVa(mdl) ((mdl)->start_va)
-#define MmGetMdlVirtualAddress(mdl) ((PVOID)((PCHAR)((mdl)->start_va) + (mdl)->byte_offset))
+#define MmGetMdlVirtualAddress(mdl) ((void*)((PCHAR)((mdl)->start_va) + (mdl)->byte_offset))
 #define MmInitializeMdl(mdl, base_va, length)                                                                     \
     {                                                                                                             \
         (mdl)->next = (PMDL)NULL;                                                                                 \
         (mdl)->size =                                                                                             \
             (uint16_t)(sizeof(MDL) + (sizeof(PFN_NUMBER) * ADDRESS_AND_SIZE_TO_SPAN_PAGES((base_va), (length)))); \
         (mdl)->flags = 0;                                                                                         \
-        (mdl)->start_va = (PVOID)PAGE_ALIGN((base_va));                                                           \
+        (mdl)->start_va = (void*)PAGE_ALIGN((base_va));                                                           \
         (mdl)->byte_offset = BYTE_OFFSET((base_va));                                                              \
         (mdl)->byte_count = (ULONG)(length);                                                                      \
     }
@@ -200,6 +234,12 @@ ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref)
                                  // dereferenced.
     rundown_ref_table_t::instance().initialize_rundown_ref(rundown_ref);
 #pragma warning(pop)
+}
+
+void
+ExReInitializeRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref)
+{
+    rundown_ref_table_t::instance().reinitialize_rundown_ref(rundown_ref);
 }
 
 void
@@ -352,7 +392,7 @@ IoAllocateMdl(
 }
 
 void NTAPI
-io_work_item_wrapper(_Inout_ PTP_CALLBACK_INSTANCE instance, _Inout_opt_ PVOID context, _Inout_ PTP_WORK work)
+io_work_item_wrapper(_Inout_ PTP_CALLBACK_INSTANCE instance, _Inout_opt_ void* context, _Inout_ PTP_WORK work)
 {
     UNREFERENCED_PARAMETER(instance);
     UNREFERENCED_PARAMETER(work);
@@ -450,7 +490,7 @@ MmGetSystemAddressForMdlSafe(
 )
 {
     UNREFERENCED_PARAMETER(page_priority);
-    return ((PVOID)((PUCHAR)(mdl)->start_va + (mdl)->byte_offset));
+    return ((void*)((PUCHAR)(mdl)->start_va + (mdl)->byte_offset));
 }
 
 NTSTATUS
@@ -463,11 +503,118 @@ RtlULongAdd(
     return STATUS_SUCCESS;
 }
 
-ULONGLONG
+unsigned long long
 QueryInterruptTimeEx()
 {
-    ULONGLONG time = 0;
+    unsigned long long time = 0;
     QueryInterruptTime(&time);
 
     return time;
 }
+
+PGENERIC_MAPPING
+IoGetFileObjectGenericMapping() { return &_mapping; }
+
+NTSTATUS
+RtlCreateAcl(_Out_ PACL Acl, unsigned long AclLength, unsigned long AclRevision)
+{
+    UNREFERENCED_PARAMETER(Acl);
+    UNREFERENCED_PARAMETER(AclRevision);
+
+    if (AclLength < sizeof(ACL)) {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    memset(Acl, 0, AclLength);
+
+    return STATUS_SUCCESS;
+}
+
+VOID
+RtlMapGenericMask(_Inout_ PACCESS_MASK AccessMask, _In_ const GENERIC_MAPPING* GenericMapping)
+{
+    UNREFERENCED_PARAMETER(AccessMask);
+    UNREFERENCED_PARAMETER(GenericMapping);
+}
+
+unsigned long
+RtlLengthSid(_In_ PSID Sid)
+{
+    UNREFERENCED_PARAMETER(Sid);
+    return (unsigned long)sizeof(SID);
+}
+
+NTSTATUS
+RtlAddAccessAllowedAce(_Inout_ PACL Acl, _In_ unsigned long AceRevision, _In_ ACCESS_MASK AccessMask, _In_ PSID Sid)
+{
+    UNREFERENCED_PARAMETER(Acl);
+    UNREFERENCED_PARAMETER(AceRevision);
+    UNREFERENCED_PARAMETER(AccessMask);
+    UNREFERENCED_PARAMETER(Sid);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+NTAPI
+RtlSetDaclSecurityDescriptor(
+    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ BOOLEAN DaclPresent,
+    _In_opt_ PACL Dacl,
+    _In_ BOOLEAN DaclDefaulted)
+{
+    UNREFERENCED_PARAMETER(SecurityDescriptor);
+    UNREFERENCED_PARAMETER(DaclPresent);
+    UNREFERENCED_PARAMETER(Dacl);
+    UNREFERENCED_PARAMETER(DaclDefaulted);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+NTAPI
+RtlCreateSecurityDescriptor(_Out_ PSECURITY_DESCRIPTOR SecurityDescriptor, _In_ unsigned long Revision)
+{
+    UNREFERENCED_PARAMETER(Revision);
+    memset(SecurityDescriptor, 0, sizeof(SECURITY_DESCRIPTOR));
+
+    return STATUS_SUCCESS;
+}
+
+BOOLEAN
+SeAccessCheckFromState(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ PTOKEN_ACCESS_INFORMATION PrimaryTokenInformation,
+    _In_opt_ PTOKEN_ACCESS_INFORMATION ClientTokenInformation,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ACCESS_MASK PreviouslyGrantedAccess,
+    _Outptr_opt_result_maybenull_ PPRIVILEGE_SET* Privileges,
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _Out_ PACCESS_MASK GrantedAccess,
+    _Out_ NTSTATUS* AccessStatus)
+{
+    UNREFERENCED_PARAMETER(SecurityDescriptor);
+    UNREFERENCED_PARAMETER(PrimaryTokenInformation);
+    UNREFERENCED_PARAMETER(ClientTokenInformation);
+    UNREFERENCED_PARAMETER(PreviouslyGrantedAccess);
+    UNREFERENCED_PARAMETER(GenericMapping);
+    UNREFERENCED_PARAMETER(AccessMode);
+
+    if (Privileges != NULL) {
+        *Privileges = NULL;
+    }
+    *GrantedAccess = DesiredAccess;
+    *AccessStatus = STATUS_SUCCESS;
+
+    return true;
+}
+
+KIRQL
+KeGetCurrentIrql() { return PASSIVE_LEVEL; }
+
+HANDLE
+PsGetCurrentProcessId() { return (HANDLE)(uintptr_t)GetCurrentProcessId(); }
+
+HANDLE
+PsGetCurrentThreadId() { return (HANDLE)(uintptr_t)GetCurrentThreadId(); }

@@ -1,28 +1,34 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-#include <chrono>
-#include <filesystem>
-#include <future>
-#include <map>
-#include <mutex>
-using namespace std::chrono_literals;
 
-#include "bpf/bpf.h"
-#include "catch_wrapper.hpp"
 #include "api_common.hpp"
 #include "api_internal.h"
+#include "bpf/bpf.h"
 #include "bpf2c.h"
+#include "catch_wrapper.hpp"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_platform.h"
+#include "hash.h"
 #include "helpers.h"
 #include "mock.h"
 #include "test_helper.hpp"
+
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <future>
+#include <map>
+#include <mutex>
+#include <sstream>
+using namespace std::chrono_literals;
 
 extern "C" bool ebpf_fuzzing_enabled;
 extern bool _ebpf_platform_is_preemptible;
 
 static bool _is_platform_preemptible = false;
+
+bool _ebpf_capture_corpus = false;
 
 extern "C" metadata_table_t*
 get_metadata_table();
@@ -147,6 +153,46 @@ class duplicate_handles_table_t
 
 static duplicate_handles_table_t _duplicate_handles;
 
+static std::string
+_get_environment_variable_as_string(const std::string& name)
+{
+    std::string value;
+    size_t required_size = 0;
+    getenv_s(&required_size, nullptr, 0, name.c_str());
+    if (required_size > 0) {
+        value.resize(required_size);
+        getenv_s(&required_size, &value[0], required_size, name.c_str());
+        value.resize(required_size - 1);
+    }
+    return value;
+}
+
+/**
+ * @brief Get an environment variable as a boolean.
+ *
+ * @param[in] name Environment variable name.
+ * @retval false Environment variable is set to "false", "0", or if it's not set.
+ * @retval true Environment variable is set to any other value.
+ */
+static bool
+_get_environment_variable_as_bool(const std::string& name)
+{
+    std::string value = _get_environment_variable_as_string(name);
+    if (value.empty()) {
+        return false;
+    }
+
+    // Convert value to lower case.
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+    if (value == "false") {
+        return false;
+    }
+    if (value == "0") {
+        return false;
+    }
+    return true;
+}
+
 HANDLE
 GlueCreateFileW(
     _In_z_ const wchar_t* file_name,
@@ -168,7 +214,7 @@ GlueCreateFileW(
     return (HANDLE)CREATE_FILE_HANDLE;
 }
 
-BOOL
+bool
 GlueCloseHandle(HANDLE object_handle)
 {
     if (object_handle == (HANDLE)CREATE_FILE_HANDLE) {
@@ -187,14 +233,14 @@ GlueCloseHandle(HANDLE object_handle)
     return TRUE;
 }
 
-BOOL
+bool
 GlueDuplicateHandle(
     HANDLE source_process_handle,
     HANDLE source_handle,
     HANDLE target_process_handle,
     _Out_ HANDLE* target_handle,
     unsigned long desired_access,
-    BOOL inherit_handle,
+    bool inherit_handle,
     unsigned long options)
 {
     UNREFERENCED_PARAMETER(source_process_handle);
@@ -212,15 +258,16 @@ _complete_overlapped(_Inout_ void* context, size_t output_buffer_length, ebpf_re
 {
     UNREFERENCED_PARAMETER(output_buffer_length);
     auto overlapped = reinterpret_cast<OVERLAPPED*>(context);
+    overlapped->InternalHigh = static_cast<ULONG_PTR>(output_buffer_length);
     overlapped->Internal = ebpf_result_to_ntstatus(result);
     SetEvent(overlapped->hEvent);
 }
 
-BOOL
+bool
 GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
 {
     UNREFERENCED_PARAMETER(file_handle);
-    BOOL return_value = FALSE;
+    bool return_value = FALSE;
     if (overlapped != nullptr)
         return_value = ebpf_core_cancel_protocol_handler(overlapped);
     return return_value;
@@ -330,7 +377,7 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
     }
 }
 
-BOOL
+bool
 GlueDeviceIoControl(
     HANDLE device_handle,
     unsigned long io_control_code,
@@ -522,7 +569,55 @@ Glue_delete_service(SC_HANDLE handle)
 
 _test_helper_end_to_end::_test_helper_end_to_end()
 {
-    device_io_control_handler = GlueDeviceIoControl;
+    if (_get_environment_variable_as_bool("EBPF_GENERATE_CORPUS")) {
+        device_io_control_handler = [](HANDLE hDevice,
+                                       unsigned long dwIoControlCode,
+                                       void* lpInBuffer,
+                                       unsigned long nInBufferSize,
+                                       void* lpOutBuffer,
+                                       unsigned long nOutBufferSize,
+                                       unsigned long* lpBytesReturned,
+                                       OVERLAPPED* lpOverlapped) -> bool {
+            UNREFERENCED_PARAMETER(hDevice);
+            UNREFERENCED_PARAMETER(dwIoControlCode);
+            UNREFERENCED_PARAMETER(lpOutBuffer);
+            UNREFERENCED_PARAMETER(nOutBufferSize);
+            UNREFERENCED_PARAMETER(lpBytesReturned);
+            UNREFERENCED_PARAMETER(lpOverlapped);
+
+            // Generate SHA1 of the input buffer and write it to an output file.
+            hash_t hash("SHA1");
+
+            auto sha1_hash = hash.hash_byte_ranges({{(uint8_t*)lpInBuffer, nInBufferSize}});
+
+            // Convert the hash to a string.
+            std::ostringstream hash_string;
+            hash_string << std::hex << std::setfill('0');
+            for (auto byte : sha1_hash) {
+                hash_string << std::setw(2) << (int)byte;
+            }
+
+            if (!std::filesystem::exists("corpus\\" + hash_string.str())) {
+
+                // Write the hash to a file.
+                std::ofstream output_file("corpus\\" + hash_string.str(), std::ios::binary);
+                output_file.write((char*)lpInBuffer, nInBufferSize);
+                output_file.close();
+            }
+
+            return GlueDeviceIoControl(
+                hDevice,
+                dwIoControlCode,
+                lpInBuffer,
+                nInBufferSize,
+                lpOutBuffer,
+                nOutBufferSize,
+                lpBytesReturned,
+                lpOverlapped);
+        };
+    } else {
+        device_io_control_handler = GlueDeviceIoControl;
+    }
     cancel_io_ex_handler = GlueCancelIoEx;
     create_file_handler = GlueCreateFileW;
     close_handle_handler = GlueCloseHandle;
@@ -536,6 +631,13 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     ec_initialized = true;
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
     api_initialized = true;
+}
+
+_test_handle_helper::~_test_handle_helper()
+{
+    if (handle != ebpf_handle_invalid) {
+        GlueCloseHandle((HANDLE)handle);
+    }
 }
 
 static void

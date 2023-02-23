@@ -1,14 +1,17 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// dllmain.cpp : Defines the entry point for the DLL application.
-#include "pch.h"
+/**
+ * @file
+ * @brief Defines the entry point for the DLL application.
+ */
 #include "api_internal.h"
+#include "framework.h"
 
 bool use_ebpf_store = true;
 
-BOOL APIENTRY
-DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+bool APIENTRY
+DllMain(HMODULE hModule, unsigned long ul_reason_for_call, void* lpReserved)
 {
     UNREFERENCED_PARAMETER(hModule);
     UNREFERENCED_PARAMETER(lpReserved);

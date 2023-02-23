@@ -43,12 +43,13 @@ extern "C"
      *
      * @param[in] index Assigned for storing state.
      * @param[in] value Value to be stored.
+     * @param[in] execution_context_state Execution context state.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_state_store(size_t index, uintptr_t value);
+    ebpf_state_store(size_t index, uintptr_t value, _In_ const ebpf_execution_context_state_t* execution_context_state);
 
     /**
      * @brief Load a value in the state tracker.

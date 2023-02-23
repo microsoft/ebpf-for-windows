@@ -1,12 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <netsh.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include "ebpf_api.h"
 #include "elf.h"
 #include "links.h"
@@ -15,14 +9,21 @@
 #include "programs.h"
 #include "resource.h"
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <netsh.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
 static const GUID g_EbpfHelperGuid = {/* 634d21b8-13f9-46a3-945f-885cbd661c13 */
                                       0x634d21b8,
                                       0x13f9,
                                       0x46a3,
                                       {0x94, 0x5f, 0x88, 0x5c, 0xbd, 0x66, 0x1c, 0x13}};
 
-BOOL WINAPI
-DllMain(HMODULE moduleHandle, DWORD reasonForCall, void* reserved)
+bool WINAPI
+DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
 {
     UNREFERENCED_PARAMETER(moduleHandle);
     UNREFERENCED_PARAMETER(reasonForCall);
@@ -76,11 +77,12 @@ CMD_ENTRY g_EbpfShowCommandTable[] = {
 #else
 typedef struct _CMD_ENTRY_ORIGINAL
 {
-    LPCWSTR pwszCmdToken;         // The token for the command
+    _Field_z_ const wchar_t* pwszCmdToken;          // The token for the command
     PFN_HANDLE_CMD pfnCmdHandler; // The function which handles this command
-    DWORD dwShortCmdHelpToken;    // The short help message
-    DWORD dwCmdHlpToken; // The message to display if the only thing after the command is a help token (HELP, /?, -?, ?)
-    DWORD dwFlags;       // Flags (see CMD_FLAGS_xxx above)
+    unsigned long dwShortCmdHelpToken;              // The short help message
+    unsigned long
+        dwCmdHlpToken; // The message to display if the only thing after the command is a help token (HELP, /?, -?, ?)
+    unsigned long dwFlags;               // Flags (see CMD_FLAGS_xxx above)
     PNS_OSVERSIONCHECK pOsVersionCheck; // Check for the version of the OS this command can run against
 } CMD_ENTRY_ORIGINAL, *PCMD_ENTRY_ORIGINAL;
 #define CREATE_CMD_ENTRY_ORIGINAL(t, f)                           \
@@ -90,13 +92,14 @@ typedef struct _CMD_ENTRY_ORIGINAL
 
 typedef struct _CMD_ENTRY_LONG
 {
-    LPCWSTR pwszCmdToken;         // The token for the command
+    _Field_z_ const wchar_t* pwszCmdToken;      // The token for the command
     PFN_HANDLE_CMD pfnCmdHandler; // The function which handles this command
-    DWORD dwShortCmdHelpToken;    // The short help message
-    DWORD dwCmdHlpToken; // The message to display if the only thing after the command is a help token (HELP, /?, -?, ?)
-    DWORD dwFlags;       // Flags (see CMD_FLAGS_xxx above)
+    unsigned long dwShortCmdHelpToken;          // The short help message
+    unsigned long
+        dwCmdHlpToken;                  // The message to display if the only thing after the command is a help token (HELP, /?, -?, ?)
+    unsigned long dwFlags;              // Flags (see CMD_FLAGS_xxx above)
     PNS_OSVERSIONCHECK pOsVersionCheck; // Check for the version of the OS this command can run against
-    PVOID pfnCustomHelpFn;
+    void* pfnCustomHelpFn;
 } CMD_ENTRY_LONG, *PCMD_ENTRY_LONG;
 #define CREATE_CMD_ENTRY_LONG(t, f)                                     \
     {                                                                   \
@@ -180,8 +183,8 @@ static CMD_GROUP_ENTRY g_EbpfGroupCommandsLong[] = {
 };
 #endif // WINDOWS_NETSH_BUG_WORKAROUND
 
-DWORD WINAPI
-EbpfStartHelper(const GUID* parentGuid, DWORD version)
+unsigned long WINAPI
+EbpfStartHelper(const GUID* parentGuid, unsigned long version)
 {
     NS_CONTEXT_ATTRIBUTES attributes = {0};
     UNREFERENCED_PARAMETER(parentGuid);
@@ -195,9 +198,9 @@ EbpfStartHelper(const GUID* parentGuid, DWORD version)
 #ifndef WINDOWS_NETSH_BUG_WORKAROUND
     attributes.ulNumGroups = _countof(g_EbpfGroupCommands);
     attributes.pCmdGroups = (CMD_GROUP_ENTRY(*)[]) & g_EbpfGroupCommands;
-    DWORD status = RegisterContext(&attributes);
+    unsigned long status = RegisterContext(&attributes);
 #else
-    DWORD status;
+    unsigned long status;
     __try {
         attributes.ulNumGroups = _countof(g_EbpfGroupCommandsOriginal);
         attributes.pCmdGroups = (CMD_GROUP_ENTRY(*)[]) & g_EbpfGroupCommandsOriginal;
@@ -216,7 +219,7 @@ EbpfStartHelper(const GUID* parentGuid, DWORD version)
     return status;
 }
 
-__declspec(dllexport) DWORD InitHelperDll(DWORD netshVersion, void* reserved)
+__declspec(dllexport) unsigned long InitHelperDll(unsigned long netshVersion, void* reserved)
 {
     NS_HELPER_ATTRIBUTES attributes = {0};
     UNREFERENCED_PARAMETER(netshVersion);
@@ -225,7 +228,7 @@ __declspec(dllexport) DWORD InitHelperDll(DWORD netshVersion, void* reserved)
     attributes.dwVersion = 1;
     attributes.pfnStart = EbpfStartHelper;
 
-    DWORD status = RegisterHelper(NULL, &attributes);
+    unsigned long status = RegisterHelper(NULL, &attributes);
     if (status != NO_ERROR) {
         // Print the error message here since just returning
         // it would instead print a generic message with the error

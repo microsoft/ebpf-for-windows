@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include <WinSock2.h>
-#include <iostream>
 #include <Windows.h>
+#include <iostream>
 
 int
 main()
@@ -33,14 +33,14 @@ main()
                 Sleep(10);
             }
         } else {
-            DWORD error_value = WSAGetLastError();
+            unsigned long error_value = WSAGetLastError();
             wchar_t* error_string = NULL;
             FormatMessageW(
                 FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                 NULL,
                 error_value,
                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPWSTR)&s,
+                (_Null_terminated_ wchar_t*)&s,
                 0,
                 NULL);
             printf("bind failed: %S\t%d\n", error_string, error_value);

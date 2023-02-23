@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-/**
- * @file This file implements the hook for the SOCK_OPS program type and associated attach types, on eBPF for
+/*
+ * @file
+ * @brief This file implements the hook for the SOCK_OPS program type and associated attach types, on eBPF for
  * Windows.
  *
  */
-
-#include "net_ebpf_ext.h"
 
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_ops.h"
@@ -302,7 +301,7 @@ net_ebpf_ext_sock_ops_register_providers()
     // Set the program type as the provider module id.
     _ebpf_sock_ops_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_SOCK_OPS;
     status = net_ebpf_extension_program_info_provider_register(
-        &program_info_provider_parameters, NULL, NULL, &_ebpf_sock_ops_program_info_provider_context);
+        &program_info_provider_parameters, &_ebpf_sock_ops_program_info_provider_context);
     if (status != STATUS_SUCCESS)
         goto Exit;
 

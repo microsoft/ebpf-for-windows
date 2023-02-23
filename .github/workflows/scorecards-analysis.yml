@@ -5,9 +5,11 @@ name: Scorecards
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'gh-readonly-queue/main/**' ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, 'gh-readonly-queue/main/**' ]
+  merge_group:
+    branches: [ main, 'gh-readonly-queue/main/**' ]
 
 concurrency:
   # Cancel any Scorecards workflow currently in progress for the same PR.
@@ -29,12 +31,19 @@ jobs:
       contents: read
 
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518 # v2.1.0
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
       - name: "Checkout code"
+        if: github.ref_name == 'main'
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
         with:
           persist-credentials: false
 
       - name: "Run analysis"
+        if: github.ref_name == 'main'
         uses: ossf/scorecard-action@b614d455ee90608b5e36e3299cd50d457eb37d5f # Don't update this until they fix PR support
         with:
           results_file: results.sarif
@@ -46,10 +55,11 @@ jobs:
           # https://github.com/ossf/scorecard-action#publishing-results.
           # For private repositories, `publish_results` will automatically be set to `false`,
           # regardless of the value entered here.
-          publish_results: ${{ github.event_name != 'pull_request' }}
+          publish_results: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group'}}
 
       # Upload the results as artifacts (optional).
       - name: "Upload artifact"
+        if: github.ref_name == 'main'
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
         with:
           name: SARIF file
@@ -58,6 +68,7 @@ jobs:
 
       # Upload the results to GitHub's code scanning dashboard.
       - name: "Upload to code-scanning"
-        uses: github/codeql-action/upload-sarif@a34ca99b4610d924e04c68db79e503e1f79f9f02
+        if: github.ref_name == 'main'
+        uses: github/codeql-action/upload-sarif@17573ee1cc1b9d061760f3a006fc4aac4f944fd5
         with:
           sarif_file: results.sarif

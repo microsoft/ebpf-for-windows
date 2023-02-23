@@ -1,14 +1,15 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
-#include <string>
-#include <Windows.h>
+#include "ebpf_api.h"
+
+#include <crtdbg.h> // For _CrtSetReportMode
+#include <cstdlib>
 #include <io.h>
 #include <stdint.h>
-#include <cstdlib>
-#include <crtdbg.h> // For _CrtSetReportMode
-#include "ebpf_api.h"
+#include <string>
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+#include <Windows.h>
 
 class _invalid_parameter_suppression
 {
@@ -53,7 +54,7 @@ DeviceIoControl(
         input_buffer_size,
         output_buffer,
         output_buffer_size,
-        (DWORD*)count_of_bytes_returned,
+        (unsigned long*)count_of_bytes_returned,
         overlapped);
 }
 
@@ -160,7 +161,7 @@ uint32_t
 _update_registry_value(
     HKEY root_key,
     _In_z_ const wchar_t* sub_key,
-    DWORD type,
+    unsigned long type,
     _In_z_ const wchar_t* value_name,
     _In_reads_bytes_(value_size) const void* value,
     uint32_t value_size)
@@ -177,7 +178,7 @@ _update_registry_value(
 }
 
 static bool
-_check_service_state(SC_HANDLE service_handle, DWORD expected_state, _Out_ DWORD* final_state)
+_check_service_state(SC_HANDLE service_handle, unsigned long expected_state, _Out_ unsigned long* final_state)
 {
 #define MAX_RETRY_COUNT 20
 #define WAIT_TIME_IN_MS 500
@@ -213,14 +214,14 @@ _create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_p
     int error = ERROR_SUCCESS;
     int count;
     *service_handle = nullptr;
-    DWORD service_type = SERVICE_KERNEL_DRIVER;
+    unsigned long service_type = SERVICE_KERNEL_DRIVER;
 
     scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
     if (scm_handle == nullptr) {
         return GetLastError();
     }
 
-    WCHAR full_file_path[MAX_PATH] = {0};
+    wchar_t full_file_path[MAX_PATH] = {0};
     count = GetFullPathName(file_path, MAX_PATH, full_file_path, nullptr);
     if (count == 0) {
         error = GetLastError();
@@ -283,7 +284,7 @@ _stop_service(SC_HANDLE service_handle)
 {
     SERVICE_STATUS status;
     bool service_stopped = false;
-    DWORD service_state;
+    unsigned long service_state;
     int error = ERROR_SUCCESS;
 
     if (service_handle == nullptr) {

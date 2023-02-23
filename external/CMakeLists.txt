@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 add_subdirectory("ebpf-verifier" EXCLUDE_FROM_ALL)
-add_subdirectory("Catch2" EXCLUDE_FROM_ALL)
 add_subdirectory("ubpf" EXCLUDE_FROM_ALL)
 
 # Special target that we can link to external dependencies
@@ -15,14 +14,6 @@ target_compile_options("ebpf_for_windows_external_settings" INTERFACE
 target_compile_definitions("ebpf_for_windows_external_settings" INTERFACE
   "_CRT_SECURE_NO_WARNINGS"
   "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS"
-)
-
-#
-# Catch2
-#
-
-target_link_libraries("Catch2" PRIVATE
-  "ebpf_for_windows_external_settings"
 )
 
 #

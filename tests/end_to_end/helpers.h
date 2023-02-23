@@ -1,8 +1,13 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 #pragma once
+
+#include "ebpf_api.h"
+#include "ebpf_nethooks.h"
+#include "ebpf_platform.h"
+#include "ebpf_program_types.h"
+#include "net_ebpf_ext_program_info.h"
+#include "sample_ext_program_info.h"
 
 // We need the NET_BUFFER typedefs without the other NT kernel defines that
 // ndis.h might pull in and conflict with user-mode headers.
@@ -11,13 +16,7 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #pragma warning(disable : 4324) // structure was padded due to alignment specifier
 #include <ndis/nbl.h>
 #endif
-
-#include "ebpf_api.h"
-#include "ebpf_nethooks.h"
-#include "ebpf_platform.h"
-#include "ebpf_program_types.h"
-#include "net_ebpf_ext_program_info.h"
-#include "sample_ext_program_info.h"
+#include <vector>
 
 bpf_attach_type_t
 get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
@@ -174,15 +173,60 @@ typedef class _single_instance_hook : public _hook_helper
     }
 
     _Must_inspect_result_ ebpf_result_t
-    fire(_Inout_ void* context, _Out_ int* result)
+    fire(_Inout_ void* context, _Out_ uint32_t* result)
     {
         if (client_binding_context == nullptr) {
             return EBPF_EXTENSION_FAILED_TO_LOAD;
         }
-        ebpf_result_t (*invoke_program)(_In_ const void* link, _Inout_ void* context, _Out_ int* result) =
+        ebpf_result_t (*invoke_program)(_In_ const void* link, _Inout_ void* context, _Out_ uint32_t* result) =
             reinterpret_cast<decltype(invoke_program)>(client_dispatch_table->function[0]);
 
         return invoke_program(client_binding_context, context, result);
+    }
+
+    _Must_inspect_result_ ebpf_result_t
+    batch_begin(size_t state_size, _Out_writes_(state_size) void* state)
+    {
+        if (client_binding_context == nullptr) {
+            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        }
+
+        ebpf_result (*batch_begin_function)(
+            _In_ const void* extension_client_binding_context,
+            size_t state_size,
+            _In_reads_bytes_(state_size) void* state);
+
+        batch_begin_function = reinterpret_cast<decltype(batch_begin_function)>(client_dispatch_table->function[1]);
+
+        return batch_begin_function(client_binding_context, state_size, state);
+    }
+
+    _Must_inspect_result_ ebpf_result_t
+    batch_invoke(_Inout_ void* program_context, _Out_ uint32_t* result, _In_ const void* state)
+    {
+        if (client_binding_context == nullptr) {
+            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        }
+
+        ebpf_result_t (*batch_invoke_function)(
+            _In_ const void* extension_client_binding_context,
+            _Inout_ void* program_context,
+            _Out_ uint32_t* result,
+            _In_ const void* state);
+        batch_invoke_function = reinterpret_cast<decltype(batch_invoke_function)>(client_dispatch_table->function[2]);
+        return batch_invoke_function(client_binding_context, program_context, result, state);
+    }
+
+    _Must_inspect_result_ ebpf_result_t
+    batch_end(_In_ const void* state)
+    {
+        if (client_binding_context == nullptr) {
+            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        }
+
+        ebpf_result_t (*batch_end_function)(_In_ const void* extension_client_binding_context, _In_ const void* state);
+        batch_end_function = reinterpret_cast<decltype(batch_end_function)>(client_dispatch_table->function[3]);
+        return batch_end_function(client_binding_context, state);
     }
 
   private:
@@ -247,9 +291,9 @@ typedef class xdp_md_helper : public xdp_md_t
     {
         original_nbl = &_original_nbl_storage;
         _original_nbl_storage.FirstNetBuffer = &_original_nb;
-        _original_nb.DataLength = (ULONG)packet.size();
+        _original_nb.DataLength = (unsigned long)packet.size();
         _original_nb.MdlChain = &_original_mdl;
-        _original_mdl.byte_count = (ULONG)packet.size();
+        _original_mdl.byte_count = (unsigned long)packet.size();
         _original_mdl.start_va = packet.data();
     }
 
@@ -434,10 +478,12 @@ static ebpf_extension_data_t _test_ebpf_sample_extension_program_info_provider_d
 typedef class _program_info_provider
 {
   public:
-    _program_info_provider(ebpf_program_type_t program_type)
+    _program_info_provider(ebpf_program_type_t program_type, ebpf_extension_data_t* custom_provider_data = nullptr)
         : program_type(program_type), provider(nullptr), provider_data(nullptr)
     {
-        if (program_type == EBPF_PROGRAM_TYPE_XDP) {
+        if (custom_provider_data != nullptr) {
+            provider_data = custom_provider_data;
+        } else if (program_type == EBPF_PROGRAM_TYPE_XDP) {
             provider_data = &_ebpf_xdp_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_BIND) {
             provider_data = &_ebpf_bind_program_info_provider_data;

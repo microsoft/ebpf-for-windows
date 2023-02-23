@@ -3,24 +3,27 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include <chrono>
-#include <mutex>
-#include <thread>
-#include <vector>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <mstcpip.h>
-
 #include "api_internal.h"
 #include "api_test.h"
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_structs.h"
-#include <io.h>
+#include "misc_helper.h"
 #include "program_helper.h"
 #include "service_helper.h"
 #include "socket_helper.h"
+
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <chrono>
+#include <io.h>
+#include <mstcpip.h>
+#include <mutex>
+#include <ntsecapi.h>
+#include <thread>
+#include <vector>
+
 #define SAMPLE_PATH ""
 
 #define EBPF_CORE_DRIVER_BINARY_NAME L"ebpfcore.sys"
@@ -36,9 +39,15 @@
 #define BIND_MONITOR_PROGRAM_COUNT 1
 
 #define DROP_PACKET_MAP_COUNT 2
-#define BIND_MONITOR_MAP_COUNT 2
+#define BIND_MONITOR_MAP_COUNT 3
 
 #define WAIT_TIME_IN_MS 5000
+
+typedef struct _audit_entry
+{
+    uint64_t logon_id;
+    int32_t is_admin;
+} audit_entry_t;
 
 static service_install_helper
     _ebpf_core_driver_helper(EBPF_CORE_DRIVER_NAME, EBPF_CORE_DRIVER_BINARY_NAME, SERVICE_KERNEL_DRIVER);
@@ -260,14 +269,20 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
         _test_program_load(file, program_type, execution_type, expected_result);                        \
     }
 
-#if defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if defined(CONFIG_BPF_JIT_DISABLED)
+#define JIT_LOAD_RESULT -EOTHER
+#else
+#define JIT_LOAD_RESULT 0
+#endif
+
+#if defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #define INTERPRET_LOAD_RESULT -EOTHER
 #else
 #define INTERPRET_LOAD_RESULT 0
 #endif
 
 // Load droppacket (JIT) without providing expected program type.
-DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, 0);
+DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 
 DECLARE_LOAD_TEST_CASE("droppacket.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, 0);
 
@@ -285,13 +300,13 @@ DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTE
 DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
 // Load bindmonitor (JIT) without providing expected program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, 0);
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 
 // Load bindmonitor (INTERPRET) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
 // Load bindmonitor with providing expected program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, 0);
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 
 // Try to load bindmonitor with providing wrong program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, -EACCES);
@@ -342,7 +357,8 @@ perform_socket_bind(const uint16_t test_port, bool expect_success = true)
     REQUIRE(_socket != INVALID_SOCKET);
     uint32_t ipv6_option = 0;
     REQUIRE(
-        setsockopt(_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(ULONG)) ==
+        setsockopt(
+            _socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(unsigned long)) ==
         0);
     SOCKADDR_STORAGE sock_addr;
     sock_addr.ss_family = AF_INET6;
@@ -399,10 +415,12 @@ divide_by_zero_test_km(ebpf_execution_type_t execution_type)
     // If we don't bug-check, the test passed.
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("ringbuf_api_jit", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("divide_by_zero_jit", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_JIT); }
+#endif
 
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("ringbuf_api_interpret", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("divide_by_zero_interpret", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_INTERPRET); }
 #endif
@@ -411,44 +429,69 @@ void
 _test_nested_maps(bpf_map_type type)
 {
     // Create first inner map.
-    fd_t inner1 = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
-    REQUIRE(inner1 > 0);
+    fd_t inner_map_fd1 =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map1", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd1 > 0);
 
     // Create outer map.
-    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner1};
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd1};
     fd_t outer_map_fd = bpf_map_create(type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 10, &opts);
-
     REQUIRE(outer_map_fd > 0);
 
     // Create second inner map.
-    fd_t inner2 = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
-    REQUIRE(inner2 > 0);
+    fd_t inner_map_fd2 =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map2", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd2 > 0);
 
     // Insert both inner maps in outer map.
     uint32_t key = 1;
-    uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner1, 0);
+    uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd1, 0);
     REQUIRE(result == ERROR_SUCCESS);
 
     key = 2;
-    result = bpf_map_update_elem(outer_map_fd, &key, &inner1, 0);
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
     REQUIRE(result == ERROR_SUCCESS);
 
-    // Remove the inner maps from outer map.
+    // Add inner map (1) multiple times.
+    key = 3;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd1, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 4;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd1, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    // Add inner map (2) multiple times.
+    key = 5;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 6;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 7;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    // Remove some inner maps from outer map.
     key = 1;
     result = bpf_map_delete_elem(outer_map_fd, &key);
     REQUIRE(result == ERROR_SUCCESS);
+
     key = 2;
     result = bpf_map_delete_elem(outer_map_fd, &key);
     REQUIRE(result == ERROR_SUCCESS);
 
-    _close(inner1);
-    _close(inner2);
+    // Leave the other instances of 'map inserts' as-is, the post-app-termination clean-up should take care of these.
+
+    _close(inner_map_fd1);
+    _close(inner_map_fd2);
     _close(outer_map_fd);
 }
 
-TEST_CASE("array_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
-
-TEST_CASE("hash_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
+TEST_CASE("array_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
+TEST_CASE("hash_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
 TEST_CASE("tailcall_load_test", "[tailcall_load_test]")
 {
@@ -638,8 +681,8 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
     REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
 
     // Verify PID/TID values.
-    DWORD pid = GetCurrentProcessId();
-    DWORD tid = GetCurrentThreadId();
+    unsigned long pid = GetCurrentProcessId();
+    unsigned long tid = GetCurrentThreadId();
     REQUIRE(pid == value.context_pid);
     REQUIRE(pid == value.current_pid);
     REQUIRE(tid == value.current_tid);
@@ -712,4 +755,134 @@ TEST_CASE("nomap_load_test", "[native_tests]")
         "printk.sys", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
     auto object = _helper.get_object();
     REQUIRE(object != nullptr);
+}
+
+// Tests the following helper functions:
+// 1. bpf_get_current_pid_tgid()
+// 2. bpf_get_current_logon_id()
+// 3. bpf_is_current_admin()
+void
+bpf_user_helpers_test(ebpf_execution_type_t execution_type)
+{
+    struct bpf_object* object = nullptr;
+    uint64_t process_thread_id = get_current_pid_tgid();
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "bindmonitor.sys" : "bindmonitor.o";
+    program_load_attach_helper_t _helper(
+        file_name, BPF_PROG_TYPE_BIND, "BindMonitor", execution_type, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    perform_socket_bind(0, true);
+
+    // Validate the contents of the audit map.
+    fd_t audit_map_fd = bpf_object__find_map_fd_by_name(object, "audit_map");
+    REQUIRE(audit_map_fd > 0);
+
+    audit_entry_t entry = {0};
+    int result = bpf_map_lookup_elem(audit_map_fd, &process_thread_id, &entry);
+    REQUIRE(result == 0);
+
+    REQUIRE(entry.is_admin == -1);
+
+    REQUIRE(entry.logon_id != 0);
+    SECURITY_LOGON_SESSION_DATA* data = NULL;
+    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    LsaFreeReturnBuffer(data);
+}
+
+TEST_CASE("bpf_user_helpers_test_jit", "[api_test]") { bpf_user_helpers_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("bpf_user_helpers_test_native", "[api_test]") { bpf_user_helpers_test(EBPF_EXECUTION_NATIVE); }
+
+// This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.
+TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "bindmonitor_tailcall.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    // Set up tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    // Now insert the same program for multiple keys in the same map.
+    index = 2;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    index = 4;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    index = 7;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    bindmonitor_test(object);
+
+    // The block of commented code after this comment is for documentation purposes only.
+    //
+    // A well-behaved user mode application _should_ call these calls to correctly free the allocated objects. In case
+    // of careless applications that do not do so (or even well behaved applications, when they crash or terminate for
+    // some reason before getting to this point), the 'premature application close' event handling _should_ take care
+    // of reclaiming and free'ing such objects. All unit tests belonging to the '[native_close_cleanup_tests]'
+    // unit-test class simulate this behavior by _not_ calling the clean-up api calls.
+    //
+    // For native tests (meant for execution on the kernel mode ebpf-for-windows driver), this event will be handled
+    // by the ebpf-core kernel mode driver on test application termination.
+    //
+    // The success/failure of the [native_close_cleanup_tests] tests can only be (indirectly) checked by attempting to
+    // stop the ebpf-core driver after executing this class of tests.  If the clean-up by the ebpf-core driver is not
+    // successful, it cannot be stopped/unloaded.  This step is performed automatically by the CI/CD test pass runs and
+    // will need to be perfomed as an explicit manual step after a manually initiated test-run.
+    //
+    // On a final note, each test in the [native_close_cleanup_tests] set _must_ load a .sys driver (if it needs one)
+    // that either has not been loaded yet, or was loaded but has since been unloaded (before start of the test). Given
+    // that we deliberately skip the clean-up API calls, the drivers stay loaded at the end of the individual test. An
+    // attempt to (re)load the same driver again (by the next test) will fail (as it should), but leads to spurious
+    // test failures (by way of an assert due to an error returned by bpf_object__load() in the
+    // program_load_attach_helper_t constructor).
+
+    /*
+        --- DO NOT REMOVE OR UN-COMMENT ---
+
+    auto cleanup = [prog_map_fd, &index]() {
+        index = 0;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+
+        index = 1;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+
+        index = 2;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+
+        index = 4;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+
+        index = 7;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    };
+
+    // Clean up tail calls.
+    cleanup();
+
+    // Free the program as well.
+    bpf_object__close(object);
+    */
 }

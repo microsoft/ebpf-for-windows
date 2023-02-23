@@ -1,10 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// ntifs.h needs to be included ahead of other headers to satisfy the Windows
-// build system.
-#include <ntifs.h>
-
 #include "ebpf_platform.h"
 #include "ebpf_store_helper.h"
 
@@ -32,11 +28,6 @@ struct _ebpf_ring_descriptor
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
-typedef enum _ebpf_pool_tag
-{
-    EBPF_POOL_TAG = 'fpbe'
-} ebpf_pool_tag_t;
-
 static KDEFERRED_ROUTINE _ebpf_deferred_routine;
 static KDEFERRED_ROUTINE _ebpf_timer_routine;
 
@@ -53,13 +44,19 @@ ebpf_platform_terminate()
     KeFlushQueuedDpcs();
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
+__drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag)
 {
     ebpf_assert(size);
-    void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size, EBPF_POOL_TAG);
+    void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size, tag);
     if (p)
         memset(p, 0, size);
     return p;
+}
+
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
+{
+    return ebpf_allocate_with_tag(size, EBPF_POOL_TAG_DEFAULT);
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
@@ -83,12 +80,18 @@ ebpf_free(_Frees_ptr_opt_ void* memory)
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned_with_tag(size_t size, uint32_t tag)
 {
-    void* p = ExAllocatePoolUninitialized(NonPagedPoolNxCacheAligned, size, EBPF_POOL_TAG);
+    void* p = ExAllocatePoolUninitialized(NonPagedPoolNxCacheAligned, size, tag);
     if (p)
         memset(p, 0, size);
     return p;
+}
+
+__drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
+{
+    return ebpf_allocate_cache_aligned_with_tag(size, EBPF_POOL_TAG_DEFAULT);
 }
 
 void
@@ -146,7 +149,7 @@ ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf
 {
     EBPF_LOG_ENTRY();
     NTSTATUS status;
-    ULONG mm_protection_state = 0;
+    unsigned long mm_protection_state = 0;
     switch (protection) {
     case EBPF_PAGE_PROTECT_READ_ONLY:
         mm_protection_state = PAGE_READONLY;
@@ -304,8 +307,8 @@ ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
 #define SystemCodeIntegrityInformation 103
 typedef struct _SYSTEM_CODEINTEGRITY_INFORMATION
 {
-    ULONG Length;
-    ULONG CodeIntegrityOptions;
+    unsigned long Length;
+    unsigned long CodeIntegrityOptions;
 } SYSTEM_CODEINTEGRITY_INFORMATION, *PSYSTEM_CODEINTEGRITY_INFORMATION;
 #define CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED 0x400
 NTSTATUS
@@ -437,7 +440,7 @@ typedef struct _ebpf_non_preemptible_work_item
 
 static void
 _ebpf_deferred_routine(
-    KDPC* deferred_procedure_call, PVOID deferred_context, PVOID system_argument_1, PVOID system_argument_2)
+    KDPC* deferred_procedure_call, void* deferred_context, void* system_argument_1, void* system_argument_2)
 {
     ebpf_non_preemptible_work_item_t* deferred_routine_context =
         (ebpf_non_preemptible_work_item_t*)deferred_procedure_call;
@@ -555,7 +558,7 @@ typedef struct _ebpf_timer_work_item
 
 static void
 _ebpf_timer_routine(
-    KDPC* deferred_procedure_call, PVOID deferred_context, PVOID system_argument_1, PVOID system_argument_2)
+    KDPC* deferred_procedure_call, void* deferred_context, void* system_argument_1, void* system_argument_2)
 {
     ebpf_timer_work_item_t* timer_work_item = (ebpf_timer_work_item_t*)deferred_procedure_call;
     UNREFERENCED_PARAMETER(system_argument_1);
@@ -634,7 +637,7 @@ ebpf_access_check(
     ebpf_result_t result;
     NTSTATUS status;
     SECURITY_SUBJECT_CONTEXT subject_context = {0};
-    DWORD granted_access;
+    unsigned long granted_access;
 
     SeCaptureSubjectContext(&subject_context);
     SeLockSubjectContext(&subject_context);
@@ -670,7 +673,7 @@ ebpf_validate_security_descriptor(
 
     if (!RtlValidRelativeSecurityDescriptor(
             (ebpf_security_descriptor_t*)security_descriptor,
-            (ULONG)security_descriptor_length,
+            (unsigned long)security_descriptor_length,
             DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -686,7 +689,7 @@ uint32_t
 ebpf_random_uint32()
 {
     LARGE_INTEGER p = KeQueryPerformanceCounter(NULL);
-    ULONG seed = p.LowPart ^ (DWORD)p.HighPart;
+    unsigned long seed = p.LowPart ^ (unsigned long)p.HighPart;
     return RtlRandomEx(&seed);
 }
 
@@ -761,56 +764,32 @@ ebpf_platform_thread_id()
     return (uint32_t)(uintptr_t)PsGetCurrentThreadId();
 }
 
-typedef struct _ebpf_signal
+_IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
+    ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
 {
-    KEVENT event;
-} ebpf_signal_t;
+    SECURITY_SUBJECT_CONTEXT context = {0};
+    SeCaptureSubjectContext(&context);
+    LUID local_authentication_id;
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_signal_create(_Outptr_ ebpf_signal_t** signal)
-{
-    *signal = (ebpf_signal_t*)ebpf_allocate(sizeof(ebpf_signal_t));
-    if (!*signal) {
-        return EBPF_NO_MEMORY;
-    }
+    PACCESS_TOKEN access_token = SeQuerySubjectContextToken(&context);
+    // SeQuerySubjectContextToken() is not expected to fail.
+    if (access_token == NULL) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "SeQuerySubjectContextToken failed");
 
-    KeInitializeEvent(&(*signal)->event, SynchronizationEvent, FALSE);
-
-    return EBPF_SUCCESS;
-}
-
-void
-ebpf_signal_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_signal_t* signal)
-{
-    ebpf_free(signal);
-}
-
-void
-ebpf_signal_set(_In_ ebpf_signal_t* signal)
-{
-    KeSetEvent(&signal->event, 0, FALSE);
-}
-
-void
-ebpf_signal_reset(_In_ ebpf_signal_t* signal)
-{
-    KeResetEvent(&signal->event);
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms)
-{
-    LARGE_INTEGER timeout;
-    timeout.QuadPart = -10000 * (uint64_t)timeout_ms;
-
-    NTSTATUS status = KeWaitForSingleObject(&signal->event, Executive, KernelMode, FALSE, timeout_ms ? &timeout : NULL);
-    if (status == STATUS_SUCCESS) {
-        return EBPF_SUCCESS;
-    } else if (status == STATUS_TIMEOUT) {
-        return EBPF_TIMEOUT;
-    } else {
         return EBPF_FAILED;
     }
+
+    NTSTATUS status = SeQueryAuthenticationIdToken(access_token, &local_authentication_id);
+    // SeQueryAuthenticationIdToken() is not expected to fail.
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, SeQueryAuthenticationIdToken, status);
+
+        return EBPF_FAILED;
+    }
+
+    *authentication_id = *(uint64_t*)&local_authentication_id;
+
+    return EBPF_SUCCESS;
 }
 
 _IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql)
@@ -834,4 +813,15 @@ ebpf_should_yield_processor()
 
     // KeShouldYieldProcessor returns TRUE if the current thread should yield the processor.
     return KeShouldYieldProcessor() != FALSE;
+}
+
+void
+ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state)
+{
+    state->current_irql = KeGetCurrentIrql();
+    if (state->current_irql == DISPATCH_LEVEL) {
+        state->id.cpu = ebpf_get_current_cpu();
+    } else {
+        state->id.thread = ebpf_get_current_thread_id();
+    }
 }

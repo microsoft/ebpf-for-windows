@@ -4,18 +4,16 @@
 // Do not alter this generated file.
 // This file was generated from map_in_map_v2.o
 
-#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
-// Windows Header Files
-#include <windows.h>
+#include "bpf2c.h"
 
 #include <stdio.h>
-
-#include "bpf2c.h"
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+#include <windows.h>
 
 #define metadata_table map_in_map_v2##_metadata_table
 extern metadata_table_t metadata_table;
 
-BOOL APIENTRY
+bool APIENTRY
 DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpReserved)
 {
     UNREFERENCED_PARAMETER(hModule);
@@ -28,12 +26,6 @@ DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpRese
         break;
     }
     return TRUE;
-}
-
-void
-division_by_zero(uint32_t address)
-{
-    fprintf(stderr, "Divide by zero at address %d\n", address);
 }
 
 __declspec(dllexport) metadata_table_t* get_metadata_table() { return &metadata_table; }
@@ -230,8 +222,9 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 5;
+    version->minor = 6;
     version->revision = 0;
 }
 
-metadata_table_t map_in_map_v2_metadata_table = {_get_programs, _get_maps, _get_hash, _get_version};
+metadata_table_t map_in_map_v2_metadata_table = {
+    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version};

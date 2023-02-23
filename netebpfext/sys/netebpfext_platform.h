@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
+
+#include <ntifs.h>
 #include <fwpmk.h>
 
 #pragma warning(push)

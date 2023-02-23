@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// Windows.h needs to be included before other headers.
-// It has a #define for WINAPI_FAMILY_PARTITION among others that control
-// the behavior of other Windows headers.
+#include "svc_common.h"
+
 #include <winsock2.h>
 #include <windows.h>
-
 #include <malloc.h>
 #include <sddl.h>
+
 #include "rpc_interface_s.c"
-#include "svc_common.h"
 
 #pragma comment(lib, "Rpcrt4.lib")
 
@@ -18,10 +16,10 @@
 #define EBPF_SERVICE_INTERFACE_HANDLE ebpf_server_ebpf_service_interface_v1_0_s_ifspec
 #define MAX_RPC_CALL_SIZE 1024 * 1024
 
-static const WCHAR* _protocol_sequence = L"ncalrpc";
+static const wchar_t* _protocol_sequence = L"ncalrpc";
 static bool _rpc_server_initialized = false;
 
-DWORD
+unsigned long
 initialize_rpc_server()
 {
     RPC_STATUS status;

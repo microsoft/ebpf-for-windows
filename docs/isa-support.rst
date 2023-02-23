@@ -69,28 +69,28 @@ opcode  src   imm   description                                          PREVAIL
 0x5d    any   0x00  if dst != src goto +offset                              Y      Y      Y    jne-reg
 0x5e    any   0x00  if (uint32_t)dst != (uint32_t)src goto +offset          Y      Y      Y    jne32-reg
 0x5f    any   0x00  dst &= src                                              Y      Y      Y    alu64-bit
-0x61    any   0x00  dst = \*(uint32_t \*)(src + offset)                    ???     Y      Y    ldxw
+0x61    any   0x00  dst = \*(uint32_t \*)(src + offset)                     Y      Y      Y    ldxw
 0x62    0x0   any   \*(uint32_t \*)(dst + offset) = imm                     Y      Y      Y    stw
 0x63    any   0x00  \*(uint32_t \*)(dst + offset) = src                     Y      Y      Y    stxw
 0x64    0x0   any   dst = (uint32_t)(dst << imm)                            Y      Y      Y    alu-bit
 0x65    0x0   any   if dst s> imm goto +offset                              Y      Y      Y    jsgt-imm
 0x66    0x0   any   if (int32_t)dst s> (int32_t)imm goto +offset            Y      Y      Y    jsgt32-imm
 0x67    0x0   any   dst <<= imm                                             Y      Y      Y    alu64-bit
-0x69    any   0x00  dst = \*(uint16_t \*)(src + offset)                    ???     Y      Y    ldxh
+0x69    any   0x00  dst = \*(uint16_t \*)(src + offset)                     Y      Y      Y    ldxh
 0x6a    0x0   any   \*(uint16_t \*)(dst + offset) = imm                     Y      Y      Y    sth
 0x6b    any   0x00  \*(uint16_t \*)(dst + offset) = src                     Y      Y      Y    stxh
 0x6c    any   0x00  dst = (uint32_t)(dst << src)                            Y      Y      Y    alu-bit
 0x6d    any   0x00  if dst s> src goto +offset                              Y      Y      Y    jsgt-reg
 0x6e    any   0x00  if (int32_t)dst s> (int32_t)src goto +offset            Y      Y      Y    jsgt32-reg
 0x6f    any   0x00  dst <<= src                                             Y      Y      Y    lsh-reg
-0x71    any   0x00  dst = \*(uint8_t \*)(src + offset)                     ???     Y      Y    ldxb
+0x71    any   0x00  dst = \*(uint8_t \*)(src + offset)                      Y      Y      Y    ldxb
 0x72    0x0   any   \*(uint8_t \*)(dst + offset) = imm                      Y      Y      Y    stb
 0x73    any   0x00  \*(uint8_t \*)(dst + offset) = src                      Y      Y      Y    stxb
 0x74    0x0   any   dst = (uint32_t)(dst >> imm)                            Y      Y      Y    rsh32
 0x75    0x0   any   if dst s>= imm goto +offset                             Y      Y      Y    jsge-imm
 0x76    0x0   any   if (int32_t)dst s>= (int32_t)imm goto +offset           Y      Y      Y    jsge32-imm
 0x77    0x0   any   dst >>= imm                                             Y      Y      Y    alu64-bit
-0x79    any   0x00  dst = \*(uint64_t \*)(src + offset)                    ???     Y      Y    ldxdw
+0x79    any   0x00  dst = \*(uint64_t \*)(src + offset)                     Y      Y      Y    ldxdw
 0x7a    0x0   any   \*(uint64_t \*)(dst + offset) = imm                     Y      Y      Y    stdw
 0x7b    any   0x00  \*(uint64_t \*)(dst + offset) = src                     Y      Y      Y    stxdw
 0x7c    any   0x00  dst = (uint32_t)(dst >> src)                            Y      Y      Y    alu-bit
@@ -123,32 +123,32 @@ opcode  src   imm   description                                          PREVAIL
 0xbd    any   0x00  if dst <= src goto +offset                              Y      Y      Y    jle-reg
 0xbe    any   0x00  if (uint32_t)dst <= (uint32_t)src goto +offset          Y      Y      Y    jle32-reg
 0xbf    any   0x00  dst = src                                               Y      Y      Y    ldxb-all
-0xc3    any   0x00  lock \*(uint32_t \*)(dst + offset) += src               no     no     no   lock_add32
-0xc3    any   0x01  lock::                                                  no     no     no   lock_fetch_add32
+0xc3    any   0x00  lock \*(uint32_t \*)(dst + offset) += src               no     no     Y    lock_add32
+0xc3    any   0x01  lock::                                                  no     no     Y    lock_fetch_add32
 
                        *(uint32_t *)(dst + offset) += src
                        src = *(uint32_t *)(dst + offset)
-0xc3    any   0x40  \*(uint32_t \*)(dst + offset) \|= src                   no     no     no   lock_or32
-0xc3    any   0x41  lock::                                                  no     no     no   lock_fetch_or32
+0xc3    any   0x40  \*(uint32_t \*)(dst + offset) \|= src                   no     no     Y    lock_or32
+0xc3    any   0x41  lock::                                                  no     no     Y    lock_fetch_or32
 
                        *(uint32_t *)(dst + offset) |= src
                        src = *(uint32_t *)(dst + offset)
-0xc3    any   0x50  \*(uint32_t \*)(dst + offset) &= src                    no     no     no   lock_and32
-0xc3    any   0x51  lock::                                                  no     no     no   lock_fetch_and32
+0xc3    any   0x50  \*(uint32_t \*)(dst + offset) &= src                    no     no     Y    lock_and32
+0xc3    any   0x51  lock::                                                  no     no     Y    lock_fetch_and32
 
                        *(uint32_t *)(dst + offset) &= src
                        src = *(uint32_t *)(dst + offset)
-0xc3    any   0xa0  \*(uint32_t \*)(dst + offset) ^= src                    no     no     no   lock_xor32
-0xc3    any   0xa1  lock::                                                  no     no     no   lock_fetch_xor32
+0xc3    any   0xa0  \*(uint32_t \*)(dst + offset) ^= src                    no     no     Y    lock_xor32
+0xc3    any   0xa1  lock::                                                  no     no     Y    lock_fetch_xor32
 
                        *(uint32_t *)(dst + offset) ^= src
                        src = *(uint32_t *)(dst + offset)
-0xc3    any   0xe1  lock::                                                  no     no     no   lock_xchg32
+0xc3    any   0xe1  lock::                                                  no     no     Y    lock_xchg32
 
                        temp = *(uint32_t *)(dst + offset)
                        *(uint32_t *)(dst + offset) = src
                        src = temp
-0xc3    any   0xf1  lock::                                                  no     no     no   lock_cmpxchg32
+0xc3    any   0xf1  lock::                                                  no     no     Y    lock_cmpxchg32
 
                        temp = *(uint32_t *)(dst + offset)
                        if *(uint32_t)(dst + offset) == R0
@@ -167,32 +167,32 @@ opcode  src   imm   description                                          PREVAIL
 0xd4    0x0   0x40  dst = htole64(dst)                                      Y      Y      Y    le64
 0xd5    0x0   any   if dst s<= imm goto +offset                             Y      Y      Y    jsle-imm
 0xd6    0x0   any   if (int32_t)dst s<= (int32_t)imm goto +offset           Y      Y      Y    jsle32-imm
-0xdb    any   0x00  lock \*(uint64_t \*)(dst + offset) += src               no     no     no   lock_add
-0xdb    any   0x01  lock::                                                  no     no     no   lock_fetch_add
+0xdb    any   0x00  lock \*(uint64_t \*)(dst + offset) += src               no     no     Y    lock_add
+0xdb    any   0x01  lock::                                                  no     no     Y    lock_fetch_add
 
                        *(uint64_t *)(dst + offset) += src
                        src = *(uint64_t *)(dst + offset)
-0xdb    any   0x40  \*(uint64_t \*)(dst + offset) \|= src                   no     no     no   lock_or
-0xdb    any   0x41  lock::                                                  no     no     no   lock_fetch_or
+0xdb    any   0x40  \*(uint64_t \*)(dst + offset) \|= src                   no     no     Y    lock_or
+0xdb    any   0x41  lock::                                                  no     no     Y    lock_fetch_or
 
                        *(uint64_t *)(dst + offset) |= src
                        lock src = *(uint64_t *)(dst + offset)
-0xdb    any   0x50  \*(uint64_t \*)(dst + offset) &= src                    no     no     no   lock_and
-0xdb    any   0x51  lock::                                                  no     no     no   lock_fetch_and
+0xdb    any   0x50  \*(uint64_t \*)(dst + offset) &= src                    no     no     Y    lock_and
+0xdb    any   0x51  lock::                                                  no     no     Y    lock_fetch_and
 
                        *(uint64_t *)(dst + offset) &= src
                        src = *(uint64_t *)(dst + offset)
-0xdb    any   0xa0  \*(uint64_t \*)(dst + offset) ^= src                    no     no     no   lock_xor
-0xdb    any   0xa1  lock::                                                  no     no     no   lock_fetch_xor
+0xdb    any   0xa0  \*(uint64_t \*)(dst + offset) ^= src                    no     no     Y    lock_xor
+0xdb    any   0xa1  lock::                                                  no     no     Y    lock_fetch_xor
 
                        *(uint64_t *)(dst + offset) ^= src
                        src = *(uint64_t *)(dst + offset)
-0xdb    any   0xe1  lock::                                                  no     no    no    lock_xchg
+0xdb    any   0xe1  lock::                                                  no     no     Y     lock_xchg
 
                        temp = *(uint64_t *)(dst + offset)
                        *(uint64_t *)(dst + offset) = src
                        src = temp
-0xdb    any   0xf1  lock::                                                  no     no    no    lock_cmpxchg
+0xdb    any   0xf1  lock::                                                  no     no     Y     lock_cmpxchg
 
                        temp = *(uint64_t *)(dst + offset)
                        if *(uint64_t)(dst + offset) == R0

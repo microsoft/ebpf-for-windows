@@ -19,5 +19,48 @@ BinPackParameters: false
 # Open brace goes on new line only when starting a new struct, enum, or func.
 BreakBeforeBraces: Mozilla
 #
-# Don't sort includes in alphabetical order because Windows headers are odd.
-SortIncludes: false
+# Special include file sort ordering rules.
+# Priority indicates the "group" (where groups are separated by a blank line).
+# SortPriority indicates the overall order when we need to override alphabetical
+# order due to Windows header dependencies.
+SortIncludes: 'true'
+IncludeBlocks: Regroup
+IncludeIsMainRegex: "UNUSED$"
+IncludeCategories:
+  # winsock2.h must be before in6addr.h or windows.h
+  - Regex: '^<[Ww]insock2.h>'
+    Priority: 2
+    SortPriority: 2
+  - Regex: '^<in6addr.h>'
+    Priority: 2
+    SortPriority: 3
+  # windows.h must be before ElfWrapper.h or netsh.h
+  - Regex: '^<[Ww]indows.h>'
+    Priority: 2
+    SortPriority: 3
+  # ws2def.h and ws2ipdef.h must be before iphlpapi.h
+  - Regex: '^<(ws2def|ws2ipdef).h>'
+    Priority: 2
+    SortPriority: 3
+  # ws2tcpip.h must be before mstcpip.h
+  - Regex: '^<ws2tcpip.h>'
+    Priority: 2
+    SortPriority: 3
+  - Regex: '^(<|")ElfWrapper.h'
+    Priority: 2
+    SortPriority: 4
+  # ntifs.h must be before ntddk.h
+  - Regex: '^<ntifs.h'
+    Priority: 2
+    SortPriority: 4
+  # ndis.h must be before fwpsk.h
+  - Regex: '^<ndis.h'
+    Priority: 2
+    SortPriority: 4
+  - Regex: '\.c"'
+    Priority: 6
+  - Regex: '^"'
+    Priority: 1
+  - Regex: '^<'
+    Priority: 2
+    SortPriority: 5

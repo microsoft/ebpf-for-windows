@@ -1,22 +1,17 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-/*++
+/**
+ * WDF based driver that does the following:
+ * 1. Registers a set of WFP callouts.
+ * 2. Registers as an eBPF program information provider and hook provider.
+ */
 
-Abstract:
-WDF based driver that does the following:
-1. Registers a set of WFP callouts.
-2. Registers as an eBPF program information provider and hook provider.
+#include "ebpf_platform.h"
+#include "ebpf_store_helper.h"
+#include "net_ebpf_ext.h"
 
-Environment:
-
-    Kernel mode
-
---*/
-
-// ntddk.h needs to be included first due to inter header dependencies on Windows.
 #include <ntddk.h>
-
 #pragma warning(push)
 #pragma warning(disable : 4201) // unnamed struct/union
 #include <fwpmk.h>
@@ -24,10 +19,6 @@ Environment:
 #pragma warning(pop)
 #include <netiodef.h>
 #include <wdf.h>
-
-#include "ebpf_platform.h"
-#include "ebpf_store_helper.h"
-#include "net_ebpf_ext.h"
 
 #define NET_EBPF_EXT_DEVICE_NAME L"\\Device\\NetEbpfExt"
 

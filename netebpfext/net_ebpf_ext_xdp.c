@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @file This file implements the XDP program type hook and helper functions on eBPF for Windows.
- *
+ * @file
+ * @brief This file implements the XDP program type hook and helper functions on eBPF for Windows.
  */
 
-#include "net_ebpf_ext.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_xdp.h"
 
@@ -258,7 +257,7 @@ net_ebpf_ext_xdp_register_providers()
     // Set the program type as the provider module id.
     _ebpf_xdp_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_XDP;
     status = net_ebpf_extension_program_info_provider_register(
-        &program_info_provider_parameters, NULL, NULL, &_ebpf_xdp_program_info_provider_context);
+        &program_info_provider_parameters, &_ebpf_xdp_program_info_provider_context);
     if (status != STATUS_SUCCESS)
         goto Exit;
 
@@ -513,14 +512,17 @@ Exit:
 }
 
 static void
-_net_ebpf_ext_l2_inject_send_complete(_In_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
+_net_ebpf_ext_l2_inject_send_complete(
+    _In_opt_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
 {
+    UNREFERENCED_PARAMETER(dispatch_level);
+
     if ((BOOLEAN)(uintptr_t)context == FALSE)
         // Free clone allocated using _net_ebpf_ext_allocate_cloned_nbl.
         _net_ebpf_ext_free_nbl(nbl, TRUE);
     else
         // Free clone allocated using FwpsAllocateCloneNetBufferList.
-        FwpsFreeCloneNetBufferList(nbl, dispatch_level);
+        FwpsFreeCloneNetBufferList(nbl, 0);
 }
 
 static void
@@ -529,7 +531,7 @@ _net_ebpf_ext_handle_xdp_tx(
 {
     NET_BUFFER_LIST* nbl = NULL;
     NTSTATUS status = STATUS_SUCCESS;
-    BOOL cloned_packet = FALSE;
+    bool cloned_packet = FALSE;
 
     uint32_t interface_index =
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
@@ -562,6 +564,8 @@ _net_ebpf_ext_handle_xdp_tx(
 
     if (status != STATUS_SUCCESS) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "FwpsInjectMacSendAsync", status);
+        _net_ebpf_ext_l2_inject_send_complete(
+            (void*)(uintptr_t)cloned_packet, nbl, KeGetCurrentIrql() == DISPATCH_LEVEL);
         goto Exit;
     }
 
@@ -667,42 +671,49 @@ net_ebpf_ext_layer_2_classify(
         net_xdp_ctx.base.data_end = packet_buffer + net_buffer->DataLength;
     }
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_ctx, &result) == EBPF_SUCCESS) {
-        switch (result) {
-        case XDP_PASS:
-            if (net_xdp_ctx.cloned_nbl != NULL) {
-                // Drop the original NBL.
-                classify_output->actionType = FWP_ACTION_BLOCK;
-                classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-
-                // Inject the cloned NBL in receive path.
-                status = _net_ebpf_ext_receive_inject_cloned_nbl(net_xdp_ctx.cloned_nbl, incoming_fixed_values);
-                if (NT_SUCCESS(status))
-                    // If cloned packet could be successfully injected, no need to audit for dropping the original.
-                    // So absorb the original packet.
-                    classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
-            }
-            // No special processing required in the non-clone case.
-            // The inbound original NBL will be allowed to proceed in the ingress path.
-            break;
-        case XDP_TX:
-            _net_ebpf_ext_handle_xdp_tx(&net_xdp_ctx, incoming_fixed_values);
-            // Absorb the original NBL.
-            classify_output->actionType = FWP_ACTION_BLOCK;
-            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-            classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
-            break;
-        case XDP_DROP:
-            classify_output->actionType = FWP_ACTION_BLOCK;
-            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-            // Do not audit XDP drops.
-            classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
-            // Free cloned NBL, if any.
-            if (net_xdp_ctx.cloned_nbl != NULL)
-                _net_ebpf_ext_free_nbl(net_xdp_ctx.cloned_nbl, TRUE);
-            break;
-        }
+    if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_ctx, &result) != EBPF_SUCCESS) {
+        // Perform a default action if the program fails.
+        result = XDP_DROP;
     }
+
+    switch (result) {
+    case XDP_PASS:
+        if (net_xdp_ctx.cloned_nbl != NULL) {
+            // Drop the original NBL.
+            classify_output->actionType = FWP_ACTION_BLOCK;
+            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+
+            // Inject the cloned NBL in receive path.
+            status = _net_ebpf_ext_receive_inject_cloned_nbl(net_xdp_ctx.cloned_nbl, incoming_fixed_values);
+            if (NT_SUCCESS(status))
+                // If cloned packet could be successfully injected, no need to audit for dropping the original.
+                // So absorb the original packet.
+                classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
+        }
+        // No special processing required in the non-clone case.
+        // The inbound original NBL will be allowed to proceed in the ingress path.
+        break;
+    case XDP_TX:
+        _net_ebpf_ext_handle_xdp_tx(&net_xdp_ctx, incoming_fixed_values);
+        // Absorb the original NBL.
+        classify_output->actionType = FWP_ACTION_BLOCK;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
+        break;
+    default:
+        ASSERT(FALSE);
+        __fallthrough;
+    case XDP_DROP:
+        classify_output->actionType = FWP_ACTION_BLOCK;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        // Do not audit XDP drops.
+        classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
+        // Free cloned NBL, if any.
+        if (net_xdp_ctx.cloned_nbl != NULL)
+            _net_ebpf_ext_free_nbl(net_xdp_ctx.cloned_nbl, TRUE);
+        break;
+    }
+
 Done:
 
     if (attached_client)
@@ -761,7 +772,7 @@ _ebpf_xdp_context_create(
     memset(new_context, 0, sizeof(net_ebpf_xdp_md_t));
 
     // Create a MDL with the packet buffer.
-    mdl_chain = IoAllocateMdl((void*)data_in, (ULONG)data_size_in, FALSE, FALSE, NULL);
+    mdl_chain = IoAllocateMdl((void*)data_in, (unsigned long)data_size_in, FALSE, FALSE, NULL);
     if (mdl_chain == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;

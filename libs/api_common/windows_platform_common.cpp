@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <cassert>
-#include <stdexcept>
-#include "api_internal.h"
 #include "api_common.hpp"
+#include "api_internal.h"
 #include "crab_verifier_wrapper.hpp"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
@@ -21,12 +19,16 @@
 #include "windows_platform.hpp"
 #include "windows_program_type.h"
 
+#include <cassert>
+#include <stdexcept>
+
 #define GET_PROGRAM_INFO_REPLY_BUFFER_SIZE 2048
 
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
 
 // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
-ebpf_registry_key_t root_registry_key = HKEY_CURRENT_USER;
+ebpf_registry_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
+ebpf_registry_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
 
 extern bool use_ebpf_store;
 

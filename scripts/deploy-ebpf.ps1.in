@@ -9,16 +9,23 @@ $source_directory="."
 # The following files should be installed on all platforms.
 [System.Collections.ArrayList]$built_runtime_files=@(
     "bpftool.exe",
+    "bpftool.pdb",
     "ebpf-all.guid",
     "ebpf-printk.guid",
     "EbpfApi.dll",
+    "EbpfApi.pdb",
     "EbpfCore.sys",
+    "EbpfCore.pdb",
     "ebpfforwindows.wprp",
     "ebpfnetsh.dll",
+    "ebpfnetsh.pdb",
     "ebpfsvc.exe",
+    "ebpfsvc.pdb",
     "export_program_info.exe",
+    "export_program_info.pdb",
     "MSVCP140D.dll",
     "NetEbpfExt.sys",
+    "NetEbpfExt.pdb",
     "net-ebpf-ext.guid",
     "ucrtbased.dll",
     "VCRUNTIME140_1D.dll",
@@ -56,7 +63,6 @@ $source_directory="."
     "bpf_um.dll",
     "bpf_um.pdb",
     "bpf.sys",
-    "bpftool.pdb",
     "bpftool_tests.exe",
     "bpftool_tests.pdb",
     "cgroup_sock_addr.o",
@@ -72,18 +78,19 @@ $source_directory="."
     "divide_by_zero_um.pdb",
     "divide_by_zero.sys",
     "droppacket.o",
+    "droppacket.sys",
     "droppacket_um.dll",
     "droppacket_um.pdb",
-    "droppacket.sys",
     "droppacket_unsafe.o",
-    "EbpfApi.pdb",
-    "ebpfnetsh.pdb",
-    "ebpfsvc.pdb",
+    "empty_um.dll",
     "encap_reflect_packet.o",
     "encap_reflect_packet_um.dll",
     "encap_reflect_packet_um.pdb",
     "encap_reflect_packet.sys",
-    "export_program_info.pdb",
+    "invalid_maps1_um.dll",
+    "invalid_maps2_um.dll",
+    "invalid_maps3_um.dll",
+    "invalid_helpers_um.dll",
     "map.o",
     "map_in_map.o",
     "map_in_map_um.dll",
@@ -110,9 +117,9 @@ $source_directory="."
     "port_quota.pdb",
     "printk.o",
     "printk_legacy.o",
+    "printk_legacy.sys",
     "printk_legacy_um.dll",
     "printk_legacy_um.pdb",
-    "printk_legacy.sys",
     "printk_um.dll",
     "printk_um.pdb",
     "printk.sys",
@@ -179,7 +186,7 @@ OVERVIEW:
 
 Copies eBPF framework files into a temp directory on the local machine or into a VM
 
-    $ deploy-ebpf [--dir="..."] [-h] [-l] [-m] [-t] [--vm="..."]
+    $ deploy-ebpf [--dir="..."] [-h] [-l[=path]] [-m] [-t] [--vm="..."]
 
 OPTIONS:
     --dir          Specifies the source directory path, which defaults to "."
@@ -202,8 +209,11 @@ OPTIONS:
             $vm=($arg -split "=")[1];
             break
         }
-    { @("-l", "--local") -contains $_ }
+    "^(?:-l|--list)(?:=(.+))?$"
         {
+            if ($matches[1]) {
+                $destination_directory = $matches[1]
+            }
             Clear-Variable -name vm
             break
         }
@@ -234,22 +244,24 @@ if ($vm -eq $null) {
    foreach ( $file in $built_files ) {
       $source_path = "$build_directory\$file"
       $destination_path = "$destination_directory\$file"
+      $destination_full_directory = Split-Path $destination_path
       Write-Host " $source_path -> $destination_path"
-      Copy-Item "$source_path" -Destination "$destination_path"
-      if (! $?) {
-         exit 1
+      if (! (Test-Path $destination_full_directory)) {
+         New-Item -Type Directory $destination_full_directory -ErrorAction Stop | Write-Verbose
       }
+      Copy-Item "$source_path" -Destination "$destination_path" -ErrorAction Stop
    }
 
    Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`""
    foreach ( $file in $source_files ) {
       $source_path = "$source_directory\$file"
       $destination_path = "$destination_directory\$file"
+      $destination_full_directory = Split-Path $destination_path
       Write-Host " $source_path -> $destination_path"
-      Copy-Item "$source_path" -Destination "$destination_path"
-      if (! $?) {
-         exit 1
+      if (! (Test-Path $destination_full_directory)) {
+         New-Item -Type Directory $destination_full_directory -ErrorAction Stop | Write-Verbose
       }
+      Copy-Item "$source_path" -Destination "$destination_path" -ErrorAction Stop
    }
    exit 0
 }

@@ -4,12 +4,12 @@
 // Do not alter this generated file.
 // This file was generated from bpf.o
 
+#define NO_CRT
+#include "bpf2c.h"
+
 #include <guiddef.h>
 #include <wdm.h>
 #include <wsk.h>
-
-#define NO_CRT
-#include "bpf2c.h"
 
 DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
@@ -165,12 +165,6 @@ _bpf2c_npi_client_detach_provider(_In_ void* client_binding_context)
     return STATUS_SUCCESS;
 }
 
-void
-division_by_zero(uint32_t address)
-{
-    UNREFERENCED_PARAMETER(address);
-}
-
 #include "bpf2c.h"
 
 static void
@@ -191,31 +185,31 @@ static GUID func_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x
 #pragma code_seg(push, ".text")
 static uint64_t
 func(void* context)
-#line 17 "sample/bpf.c"
+#line 17 "sample/custom_program_type/bpf.c"
 {
-#line 17 "sample/bpf.c"
+#line 17 "sample/custom_program_type/bpf.c"
     // Prologue
-#line 17 "sample/bpf.c"
+#line 17 "sample/custom_program_type/bpf.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 17 "sample/bpf.c"
+#line 17 "sample/custom_program_type/bpf.c"
     register uint64_t r0 = 0;
-#line 17 "sample/bpf.c"
+#line 17 "sample/custom_program_type/bpf.c"
     register uint64_t r1 = 0;
-#line 17 "sample/bpf.c"
+#line 17 "sample/custom_program_type/bpf.c"
     register uint64_t r10 = 0;
 
-#line 17 "sample/bpf.c"
+#line 17 "sample/custom_program_type/bpf.c"
     r1 = (uintptr_t)context;
-#line 17 "sample/bpf.c"
+#line 17 "sample/custom_program_type/bpf.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=42
-#line 17 "sample/bpf.c"
+#line 17 "sample/custom_program_type/bpf.c"
     r0 = IMMEDIATE(42);
     // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
-#line 17 "sample/bpf.c"
+#line 17 "sample/custom_program_type/bpf.c"
     return r0;
-#line 17 "sample/bpf.c"
+#line 17 "sample/custom_program_type/bpf.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -250,8 +244,8 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 5;
+    version->minor = 6;
     version->revision = 0;
 }
 
-metadata_table_t bpf_metadata_table = {_get_programs, _get_maps, _get_hash, _get_version};
+metadata_table_t bpf_metadata_table = {sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version};

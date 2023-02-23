@@ -1,11 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
 
-#include <errno.h>
-#include <map>
-#include <stdexcept>
 #include "ebpf_api.h"
 #include "ebpf_execution_context.h"
 #include "ebpf_platform.h"
@@ -13,6 +9,10 @@
 #undef VOID
 #include "platform.hpp"
 #include "windows_platform_common.hpp"
+
+#include <errno.h>
+#include <map>
+#include <stdexcept>
 
 typedef struct _map_cache
 {
@@ -97,6 +97,7 @@ ebpf_result_to_errno(ebpf_result_t result)
 
     case EBPF_ALREADY_INITIALIZED:
     case EBPF_INVALID_ARGUMENT:
+    case EBPF_EXTENSION_FAILED_TO_LOAD:
     case EBPF_INVALID_OBJECT:
         error = EINVAL;
         break;

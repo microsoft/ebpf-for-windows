@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <stdlib.h>
-
 #include "bpf_helpers.h"
+#include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
 #include "ebpf_handle.h"
@@ -14,8 +13,9 @@
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_program_types.h"
 #include "ebpf_state.h"
-
 #include "ubpf.h"
+
+#include <stdlib.h>
 
 static size_t _ebpf_program_state_index = MAXUINT64;
 #define EBPF_MAX_HASH_SIZE 128
@@ -83,15 +83,6 @@ typedef struct _ebpf_program
 } ebpf_program_t;
 
 static ebpf_result_t
-_ebpf_program_get_context(_Outptr_ void** context);
-
-static struct
-{
-    size_t size;
-    _ebpf_extension_dispatch_function function[1];
-} _ebpf_program_dispatch_table = {1, {_ebpf_program_get_context}};
-
-static ebpf_result_t
 _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program);
 
 static ebpf_result_t
@@ -99,6 +90,9 @@ _ebpf_program_update_interpret_helpers(_Inout_ ebpf_program_t* program, _Inout_ 
 
 static ebpf_result_t
 _ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context);
+
+static ebpf_result_t
+_ebpf_program_register_helpers(_In_ const ebpf_program_t* program);
 
 static ebpf_result_t
 _ebpf_program_get_helper_function_address(
@@ -127,13 +121,11 @@ _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
 }
 
 static ebpf_result_t
-_ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program);
+_ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program);
 
 static ebpf_result_t
 _ebpf_program_program_info_provider_changed(
-    _In_ const void* client_binding_context,
-    _In_ const void* provider_binding_context,
-    _In_opt_ const ebpf_extension_data_t* provider_data)
+    _In_ const void* client_binding_context, _In_opt_ const ebpf_extension_data_t* provider_data)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
@@ -142,13 +134,11 @@ _ebpf_program_program_info_provider_changed(
     if (provider_data == NULL) {
         // Detach
         // Extension is detaching. Program will get invalidated.
-        program->info_extension_provider_binding_context = NULL;
         program->info_extension_provider_data = NULL;
         return_value = EBPF_SUCCESS;
         goto Exit;
     } else {
         // Attach
-        program->info_extension_provider_binding_context = provider_binding_context;
         program->info_extension_provider_data = provider_data;
 
         ebpf_helper_function_addresses_t* helper_function_addresses = NULL;
@@ -206,17 +196,15 @@ _ebpf_program_program_info_provider_changed(
             goto Exit;
         }
 
-        if (program->parameters.program_info_hash != NULL) {
-            return_value = _ebpf_program_verify_program_info_hash(program);
-            if (return_value != EBPF_SUCCESS) {
-                EBPF_LOG_MESSAGE_GUID(
-                    EBPF_TRACELOG_LEVEL_ERROR,
-                    EBPF_TRACELOG_KEYWORD_PROGRAM,
-                    "The program info used to verify the program doesn't match the program info provided by the "
-                    "extension",
-                    program->parameters.program_type);
-                goto Exit;
-            }
+        return_value = _ebpf_program_initialize_or_verify_program_info_hash(program);
+        if (return_value != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "The program info used to verify the program doesn't match the program info provided by the "
+                "extension",
+                program->parameters.program_type);
+            goto Exit;
         }
 
         return_value = _ebpf_program_update_helpers(program);
@@ -238,7 +226,6 @@ Exit:
 
     if (return_value != EBPF_SUCCESS) {
         program->info_extension_provider_data = NULL;
-        program->info_extension_provider_binding_context = NULL;
     }
 
     EBPF_RETURN_RESULT(return_value);
@@ -304,7 +291,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
     case EBPF_CODE_JIT:
         ebpf_unmap_memory(program->code_or_vm.code.code_memory_descriptor);
         break;
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     case EBPF_CODE_EBPF:
         if (program->code_or_vm.vm) {
             ubpf_destroy(program->code_or_vm.vm);
@@ -409,7 +396,7 @@ ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
         &module_id,
         program,
         NULL,
-        (ebpf_extension_dispatch_table_t*)&_ebpf_program_dispatch_table,
+        NULL,
         (void**)&program->info_extension_provider_binding_context,
         &program->info_extension_provider_data,
         NULL,
@@ -435,7 +422,7 @@ ebpf_program_create(_Outptr_ ebpf_program_t** program)
     ebpf_result_t retval;
     ebpf_program_t* local_program;
 
-    local_program = (ebpf_program_t*)ebpf_allocate(sizeof(ebpf_program_t));
+    local_program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_PROGRAM);
     if (!local_program) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -490,6 +477,7 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
+
     if (program_parameters->program_name.length >= BPF_OBJ_NAME_LEN) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -513,7 +501,8 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
         goto Done;
 
     if (program_parameters->program_info_hash_length > 0) {
-        local_program_info_hash = ebpf_allocate(program_parameters->program_info_hash_length);
+        local_program_info_hash =
+            ebpf_allocate_with_tag(program_parameters->program_info_hash_length, EBPF_POOL_TAG_PROGRAM);
         if (!local_program_info_hash) {
             return_value = EBPF_NO_MEMORY;
             goto Done;
@@ -606,7 +595,7 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
 {
     EBPF_LOG_ENTRY();
     size_t index;
-    ebpf_map_t** program_maps = ebpf_allocate(maps_count * sizeof(ebpf_map_t*));
+    ebpf_map_t** program_maps = ebpf_allocate_with_tag(maps_count * sizeof(ebpf_map_t*), EBPF_POOL_TAG_PROGRAM);
     if (!program_maps)
         return EBPF_NO_MEMORY;
 
@@ -729,7 +718,7 @@ _ebpf_program_update_interpret_helpers(_Inout_ ebpf_program_t* program, _Inout_ 
         if (helper == NULL)
             continue;
 
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
         if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (void*)helper) < 0) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "ubpf_register failed", index);
@@ -879,7 +868,7 @@ Exit:
     return return_value;
 }
 
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static ebpf_result_t
 _ebpf_program_load_byte_code(
     _Inout_ ebpf_program_t* program, _In_ const ebpf_instruction_t* instructions, size_t instruction_count)
@@ -965,16 +954,24 @@ ebpf_program_load_code(
     ebpf_assert(
         (code_type == EBPF_CODE_NATIVE && code_context != NULL) ||
         (code_type != EBPF_CODE_NATIVE && code_context == NULL));
-    if (program->parameters.code_type == EBPF_CODE_JIT || program->parameters.code_type == EBPF_CODE_NATIVE)
+
+    switch (program->parameters.code_type) {
+
+    case EBPF_CODE_JIT:
+    case EBPF_CODE_NATIVE:
         result = _ebpf_program_load_machine_code(program, code_context, code, code_size);
-    else if (program->parameters.code_type == EBPF_CODE_EBPF)
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+        break;
+
+    case EBPF_CODE_EBPF:
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
         result = _ebpf_program_load_byte_code(
             program, (const ebpf_instruction_t*)code, code_size / sizeof(ebpf_instruction_t));
 #else
         result = EBPF_BLOCKED_BY_POLICY;
 #endif
-    else {
+        break;
+
+    default: {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
@@ -983,6 +980,8 @@ ebpf_program_load_code(
 
         result = EBPF_INVALID_ARGUMENT;
     }
+    }
+
     EBPF_RETURN_RESULT(result);
 }
 
@@ -990,7 +989,6 @@ typedef struct _ebpf_program_tail_call_state
 {
     const ebpf_program_t* next_program;
     uint32_t count;
-    void* context;
 } ebpf_program_tail_call_state_t;
 
 _Must_inspect_result_ ebpf_result_t
@@ -1015,25 +1013,35 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
     return EBPF_SUCCESS;
 }
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_reference_providers(_Inout_ ebpf_program_t* program)
+{
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
+    }
+    return EBPF_SUCCESS;
+}
+
 void
-ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _Out_ uint32_t* result)
+ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program)
+{
+    ebpf_extension_dereference_provider_data(program->info_extension_client);
+}
+
+void
+ebpf_program_invoke(
+    _In_ const ebpf_program_t* program,
+    _Inout_ void* context,
+    _Out_ uint32_t* result,
+    _In_ const ebpf_execution_context_state_t* execution_state)
 {
     // High volume call - Skip entry/exit logging.
     ebpf_program_tail_call_state_t state = {0};
     const ebpf_program_t* current_program = program;
 
-    bool provider_data_referenced = false;
     bool program_state_stored = false;
 
-    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
-        *result = 0;
-        return;
-    }
-
-    provider_data_referenced = true;
-
-    state.context = context;
-    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
+    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state, execution_state) == EBPF_SUCCESS) {
         *result = 0;
         goto Done;
     }
@@ -1041,13 +1049,14 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
     program_state_stored = true;
 
     for (state.count = 0; state.count < MAX_TAIL_CALL_CNT; state.count++) {
+
         if (current_program->parameters.code_type == EBPF_CODE_JIT ||
             current_program->parameters.code_type == EBPF_CODE_NATIVE) {
             ebpf_program_entry_point_t function_pointer;
             function_pointer = (ebpf_program_entry_point_t)(current_program->code_or_vm.code.code_pointer);
             *result = (function_pointer)(context);
         } else {
-#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
             uint64_t out_value;
             int ret = (uint32_t)(ubpf_exec(current_program->code_or_vm.vm, context, 1024, &out_value));
             if (ret < 0) {
@@ -1075,10 +1084,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _Inout_ void* context, _
 
 Done:
     if (program_state_stored) {
-        ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0));
-    }
-    if (provider_data_referenced) {
-        ebpf_extension_dereference_provider_data(program->info_extension_client);
+        ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0, execution_state));
     }
 }
 
@@ -1231,7 +1237,8 @@ ebpf_program_set_helper_function_ids(
         goto Exit;
 
     program->helper_function_count = helper_function_count;
-    program->helper_function_ids = ebpf_allocate(sizeof(uint32_t) * helper_function_count);
+    program->helper_function_ids =
+        ebpf_allocate_with_tag(sizeof(uint32_t) * helper_function_count, EBPF_POOL_TAG_PROGRAM);
     if (program->helper_function_ids == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -1291,7 +1298,8 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     }
 
     // Allocate buffer and make a shallow copy of the program info.
-    local_program_info = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
+    local_program_info =
+        (ebpf_program_info_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_info_t), EBPF_POOL_TAG_PROGRAM);
     if (local_program_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -1302,8 +1310,9 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     if (total_count_of_helpers > 0) {
         // Allocate buffer and make a shallow copy of the combined global and program-type specific helper function
         // prototypes.
-        local_program_info->program_type_specific_helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate(
-            total_count_of_helpers * sizeof(ebpf_helper_function_prototype_t));
+        local_program_info->program_type_specific_helper_prototype =
+            (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
+                total_count_of_helpers * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_PROGRAM);
         if (local_program_info->program_type_specific_helper_prototype == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -1478,7 +1487,19 @@ _ebpf_helper_id_to_index_compare(const void* lhs, const void* rhs)
 
 /**
  * @brief Compute the hash of the program info and compare it with the hash stored in the program. If the hash does not
- * match then the program was verified against the wrong program info.
+ * match then the program was verified against the wrong program info. If the hash is not present then store the hash
+ * in the program so it can be compared when the program information provider reattaches.
+ *
+ * Notes on why this works:
+ * 1) The user application creates an ebpf_program_t object and sets the program type.
+ * 2) During initialization, the program binds to the program information provider.
+ * 3) During the attach callback, the program information is hashed and stored.
+ * 4) The verifier then queries the program information from the ebpf_program_t object and uses it to verify the program
+ * safety.
+ * 5) If the program information provider is reattached, the program information is hashed and compared with the
+ * hash stored in the program and the program is rejected if the hash does not match. This ensures that the program
+ * information the verifier uses to verify the program safety is the same as the program information the program uses to
+ * execute.
  *
  * @param[in] program Program to validate.
  * @param[in] program_info Program info to validate against.
@@ -1486,21 +1507,22 @@ _ebpf_helper_id_to_index_compare(const void* lhs, const void* rhs)
  * @return EBPF_INVALID_ARGUMENT the program info hash does not match.
  */
 static ebpf_result_t
-_ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
+_ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
     ebpf_cryptographic_hash_t* cryptographic_hash = NULL;
     ebpf_helper_id_to_index_t* helper_id_to_index = NULL;
-    const ebpf_program_info_t* program_info = NULL;
+    ebpf_program_info_t* program_info = NULL;
 
     result = ebpf_program_get_program_info(program, &program_info);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    helper_id_to_index = (ebpf_helper_id_to_index_t*)ebpf_allocate(
-        program_info->count_of_program_type_specific_helpers * sizeof(ebpf_helper_id_to_index_t));
+    helper_id_to_index = (ebpf_helper_id_to_index_t*)ebpf_allocate_with_tag(
+        program_info->count_of_program_type_specific_helpers * sizeof(ebpf_helper_id_to_index_t),
+        EBPF_POOL_TAG_PROGRAM);
     if (helper_id_to_index == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -1614,14 +1636,26 @@ _ebpf_program_verify_program_info_hash(_In_ const ebpf_program_t* program)
         goto Exit;
     }
 
-    if (output_hash_length != program->parameters.program_info_hash_length) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
+    if (program->parameters.program_info_hash_length == 0) {
+        // This is the first time the program info hash is being computed.
+        uint8_t* new_hash = ebpf_allocate(output_hash_length);
+        if (new_hash == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        program->parameters.program_info_hash = new_hash;
+        program->parameters.program_info_hash_length = output_hash_length;
+        memcpy((uint8_t*)program->parameters.program_info_hash, hash, output_hash_length);
+    } else {
+        if (output_hash_length != program->parameters.program_info_hash_length) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
 
-    if (memcmp(hash, program->parameters.program_info_hash, output_hash_length) != 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
+        if (memcmp(hash, program->parameters.program_info_hash, output_hash_length) != 0) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
     }
 
     result = EBPF_SUCCESS;
@@ -1634,30 +1668,17 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-static ebpf_result_t
-_ebpf_program_get_context(_Outptr_ void** context)
-{
-    ebpf_result_t result;
-    ebpf_program_tail_call_state_t* state = NULL;
-    *context = NULL;
-    result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    *context = state->context;
-
-Exit:
-    return result;
-}
-
 typedef struct _ebpf_program_test_run_context
 {
     const ebpf_program_t* program;
+    ebpf_program_data_t* program_data;
     void* context;
     ebpf_program_test_run_options_t* options;
-    ebpf_signal_t* completion_event;
     uint8_t required_irql;
+    bool canceled;
+    void* async_context;
+    void* completion_context;
+    ebpf_program_test_run_complete_callback_t completion_callback;
 } ebpf_program_test_run_context_t;
 
 static void
@@ -1672,23 +1693,46 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     uint64_t cumulative_time = 0;
     ebpf_result_t result;
     uint32_t return_value = 0;
-    uint8_t old_irql;
+    uint8_t old_irql = 0;
     uintptr_t old_thread_affinity;
+    size_t batch_size = options->batch_size ? options->batch_size : 1024;
+    ebpf_execution_context_state_t execution_context_state = {0};
+    bool epoch_entered = false;
+    bool irql_raised = false;
+    bool thread_affinity_set = false;
 
     result = ebpf_set_current_thread_affinity((uintptr_t)1 << options->cpu, &old_thread_affinity);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
+    thread_affinity_set = true;
 
     old_irql = ebpf_raise_irql(context->required_irql);
+    irql_raised = true;
+
+    result = ebpf_epoch_enter();
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    epoch_entered = true;
+
+    ebpf_get_execution_context_state(&execution_context_state);
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
     for (size_t i = 0; i < options->repeat_count; i++) {
-        result = ebpf_epoch_enter();
-        if (result != EBPF_SUCCESS)
+        if (context->canceled) {
+            result = EBPF_CANCELED;
             break;
-        ebpf_program_invoke(context->program, context->context, &return_value);
-        ebpf_epoch_exit();
+        }
+        // Start a new epoch every batch_size iterations.
+        if ((i % batch_size == (batch_size - 1))) {
+            ebpf_epoch_exit();
+            result = ebpf_epoch_enter();
+            if (result != EBPF_SUCCESS) {
+                break;
+            }
+        }
+        ebpf_program_invoke(context->program, context->context, &return_value, &execution_context_state);
         if (ebpf_should_yield_processor()) {
             // Compute the elapsed time since the last yield.
             end_time = ebpf_query_time_since_boot(false);
@@ -1714,20 +1758,51 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     options->duration /= options->repeat_count;
     options->return_value = return_value;
 
-    ebpf_lower_irql(old_irql);
-    ebpf_restore_current_thread_affinity(old_thread_affinity);
-
 Done:
-    ebpf_signal_set(context->completion_event);
+    if (epoch_entered) {
+        ebpf_epoch_exit();
+    }
+
+    if (irql_raised) {
+        ebpf_lower_irql(old_irql);
+    }
+
+    if (thread_affinity_set) {
+        ebpf_restore_current_thread_affinity(old_thread_affinity);
+    }
+
+    if (context->program_data && context->program_data->context_destroy != NULL && context->context != NULL) {
+        context->program_data->context_destroy(
+            context->context,
+            options->data_out,
+            &options->data_size_out,
+            options->context_out,
+            &options->context_size_out);
+    }
+    context->completion_callback(
+        result, context->program, context->options, context->completion_context, context->async_context);
+    ebpf_extension_dereference_provider_data(context->program->info_extension_client);
+}
+
+static void
+_ebpf_program_test_run_cancel(_Inout_opt_ void* context)
+{
+    _Analysis_assume_(context != NULL);
+    ebpf_program_test_run_context_t* test_run_context = (ebpf_program_test_run_context_t*)context;
+    test_run_context->canceled = true;
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_program_test_run_options_t* options)
+ebpf_program_execute_test_run(
+    _In_ const ebpf_program_t* program,
+    _Inout_ ebpf_program_test_run_options_t* options,
+    _In_ void* async_context,
+    _In_ void* completion_context,
+    _In_ ebpf_program_test_run_complete_callback_t callback)
 {
     EBPF_LOG_ENTRY();
 
     ebpf_result_t return_value = EBPF_SUCCESS;
-    ebpf_signal_t* signal = NULL;
     ebpf_program_test_run_context_t* test_run_context = NULL;
     void* context = NULL;
     ebpf_preemptible_work_item_t* work_item = NULL;
@@ -1761,23 +1836,21 @@ ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_p
         goto Exit;
     }
 
-    test_run_context = (ebpf_program_test_run_context_t*)ebpf_allocate(sizeof(ebpf_program_test_run_context_t));
+    test_run_context = (ebpf_program_test_run_context_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_program_test_run_context_t), EBPF_POOL_TAG_PROGRAM);
     if (test_run_context == NULL) {
         return_value = EBPF_NO_MEMORY;
         goto Exit;
     }
 
-    return_value = ebpf_signal_create(&signal);
-    if (return_value != EBPF_SUCCESS) {
-        return_value = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-
     test_run_context->program = program;
+    test_run_context->program_data = program_data;
     test_run_context->required_irql = program_data->required_irql;
     test_run_context->context = context;
     test_run_context->options = options;
-    test_run_context->completion_event = signal;
+    test_run_context->async_context = async_context;
+    test_run_context->completion_context = completion_context;
+    test_run_context->completion_callback = callback;
 
     // Queue the work item so that it can be executed on the target CPU and at the target dispatch level.
     // The work item will signal the completion event when it is done.
@@ -1786,11 +1859,18 @@ ebpf_program_execute_test_run(_In_ const ebpf_program_t* program, _Inout_ ebpf_p
         goto Exit;
     }
 
+    ebpf_assert_success(ebpf_async_set_cancel_callback(async_context, test_run_context, _ebpf_program_test_run_cancel));
+
     // ebpf_queue_preemptible_work_item() will free both the work item and the context when it is done.
     ebpf_queue_preemptible_work_item(work_item);
-    test_run_context = NULL;
 
-    (void)ebpf_signal_wait(signal, MAXUINT32);
+    // This thread no longer owns the test run context.
+    test_run_context = NULL;
+    // This thread no longer owns the reference to the provider data.
+    provider_data_referenced = false;
+    // This thread no longer owns the BPF context.
+    context = NULL;
+    return_value = EBPF_PENDING;
 
 Exit:
     if (program_data && program_data->context_destroy != NULL && context != NULL) {
@@ -1798,7 +1878,6 @@ Exit:
             context, options->data_out, &options->data_size_out, options->context_out, &options->context_size_out);
     }
     ebpf_free(test_run_context);
-    ebpf_signal_destroy(signal);
 
     if (provider_data_referenced) {
         ebpf_extension_dereference_provider_data(program->info_extension_client);

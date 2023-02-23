@@ -3,6 +3,8 @@
 
 param ([Parameter(Mandatory=$True)] [string] $Admin,
        [Parameter(Mandatory=$True)] [SecureString] $AdminPassword,
+       [Parameter(Mandatory=$True)] [string] $StandardUser,
+       [Parameter(Mandatory=$True)] [SecureString] $StandardUserPassword,
        [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
@@ -154,6 +156,38 @@ function Stop-ProcessOnVM
         $ProgramName = [io.path]::GetFileNameWithoutExtension($ProgramName)
         Stop-Process -Name $ProgramName
     } -ArgumentList ($VM, $ProgramName) -ErrorAction Stop
+}
+
+function Add-StandardUserOnVM
+{
+    param ([parameter(Mandatory=$true)] [string] $VM,
+           [parameter(Mandatory=$true)] [string] $UserName,
+           [parameter(Mandatory=$true)] [string] $Password)
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    # Create standard user.
+    Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
+        param([parameter(Mandatory=$true)] [string] $UserName,
+              [parameter(Mandatory=$true)] [string] $Password)
+
+        $SecurePassword = ConvertTo-SecureString -String $Password -AsPlainText -Force
+        New-LocalUser -Name $UserName -Password $SecurePassword
+    } -ArgumentList ($UserName, $Password) -ErrorAction Stop
+}
+
+function Remove-StandardUserOnVM
+{
+    param ([parameter(Mandatory=$true)] [string] $VM,
+           [parameter(Mandatory=$true)] [string] $UserName)
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
+        param([parameter(Mandatory=$true)] [string] $UserName)
+
+        Remove-LocalUser -Name $UserName
+    } -ArgumentList ($UserName, $Password) -ErrorAction Stop
 }
 
 function Invoke-XDPTestOnVM
@@ -347,7 +381,8 @@ function Invoke-XDPTestsOnVM
 function Invoke-ConnectRedirectTestsOnVM
 {
     param([parameter(Mandatory=$true)] $MultiVMTestConfig,
-          [parameter(Mandatory=$true)] $ConnectRedirectTestConfig)
+          [parameter(Mandatory=$true)] $ConnectRedirectTestConfig,
+          [parameter(Mandatory=$false)][ValidateSet("Administrator", "StandardUser")] $UserType = "Administrator")
 
     $VM1 = $MultiVMTestConfig[0]
     $VM1Interface = $VM1.Interfaces[0]
@@ -385,7 +420,24 @@ function Invoke-ConnectRedirectTestsOnVM
         }
     }
 
+    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($StandardUserPassword)
+    $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    # First remove the existing StandardUser account (if found). This can happen if the previous test run terminated
+    # abnormally before performing the requisite post-test-run clean-up.
+    $UserId = Invoke-Command -VMName $VM1.Name -Credential $TestCredential `
+           -ScriptBlock {param ($StandardUser) Get-LocalUser -Name "$StandardUser"} `
+           -Argumentlist $StandardUser -ErrorAction SilentlyContinue
+    if($UserId) {
+		Write-Host "Deleting existing standard user:" $StandardUser "on" $VM1.Name
+		Remove-StandardUserOnVM -VM $VM1.Name -UserName $StandardUser
+	}
+
+    # Add a standard user on VM1.
+    Add-StandardUserOnVM -VM $VM1.Name -UserName $StandardUser -Password $UnsecurePassword
 
     Invoke-Command -VMName $VM1.Name -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)][string] $VM,
@@ -397,6 +449,9 @@ function Invoke-ConnectRedirectTestsOnVM
               [parameter(Mandatory=$true)][string] $VirtualIPv6Address,
               [parameter(Mandatory=$true)][int] $DestinationPort,
               [parameter(Mandatory=$true)][int] $ProxyPort,
+              [parameter(Mandatory=$true)][string] $StandardUserName,
+              [parameter(Mandatory=$true)][string] $StandardUserPassword,
+              [parameter(Mandatory=$true)][string] $UserType,
               [parameter(Mandatory=$true)][string] $WorkingDirectory,
               [Parameter(Mandatory=$true)][string] $LogFileName)
 
@@ -404,12 +459,27 @@ function Invoke-ConnectRedirectTestsOnVM
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Write-Log "Invoking connect redirect tests on $VM"
-        Invoke-ConnectRedirectTest -LocalIPv4Address $LocalIPv4Address -LocalIPv6Address $LocalIPv6Address -RemoteIPv4Address $RemoteIPv4Address -RemoteIPv6Address $RemoteIPv6Address -VirtualIPv4Address $VirtualIPv4Address -VirtualIPv6Address $VirtualIPv6Address -DestinationPort $DestinationPort -ProxyPort $ProxyPort -WorkingDirectory $WorkingDirectory
-    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, "eBPF", $LogFileName) -ErrorAction Stop
+        Write-Log "Invoking connect redirect tests [Mode=$UserType] on $VM"
+        Invoke-ConnectRedirectTest `
+            -LocalIPv4Address $LocalIPv4Address `
+            -LocalIPv6Address $LocalIPv6Address `
+            -RemoteIPv4Address $RemoteIPv4Address `
+            -RemoteIPv6Address $RemoteIPv6Address `
+            -VirtualIPv4Address $VirtualIPv4Address `
+            -VirtualIPv6Address $VirtualIPv6Address `
+            -DestinationPort $DestinationPort `
+            -ProxyPort $ProxyPort `
+            -StandardUserName $StandardUserName `
+            -StandardUserPassword $StandardUserPassword `
+            -UserType $UserType `
+            -WorkingDirectory $WorkingDirectory
+    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $StandardUser, $UnsecurePassword, $UserType, "eBPF", $LogFileName) -ErrorAction Stop
 
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
     Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName
+
+    # Remove standard user on VM1.
+    Remove-StandardUserOnVM -VM $VM1.Name -UserName $StandardUser
 }
 
 function Stop-eBPFComponentsOnVM

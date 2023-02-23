@@ -1,13 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// Include framework.h to capture the platform specific Windows headers.
-// Required by bcrypt.h.
-#include "framework.h"
+#include "ebpf_platform.h"
 
 #include <bcrypt.h>
 #pragma comment(lib, "bcrypt")
-#include "ebpf_platform.h"
 
 // This file contains the wrapper around the crypto API.
 
@@ -73,7 +70,7 @@ ebpf_cryptographic_hash_append(
 {
     NTSTATUS nt_status;
 
-    nt_status = BCryptHashData(hash->hash_handle, (uint8_t*)buffer, (ULONG)length, 0);
+    nt_status = BCryptHashData(hash->hash_handle, (uint8_t*)buffer, (unsigned long)length, 0);
     if (!NT_SUCCESS(nt_status)) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -99,7 +96,7 @@ ebpf_cryptographic_hash_get_hash(
         return EBPF_INSUFFICIENT_BUFFER;
     }
 
-    nt_status = BCryptFinishHash(hash->hash_handle, buffer, (ULONG)*output_length, 0);
+    nt_status = BCryptFinishHash(hash->hash_handle, buffer, (unsigned long)*output_length, 0);
     if (!NT_SUCCESS(nt_status)) {
         return EBPF_INVALID_ARGUMENT;
     }

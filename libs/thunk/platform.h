@@ -3,6 +3,9 @@
 
 #include "ebpf_core_structs.h"
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 #pragma once
 namespace Platform {
 bool
@@ -61,7 +64,7 @@ uint32_t
 _update_registry_value(
     HKEY root_key,
     _In_z_ const wchar_t* sub_key,
-    DWORD type,
+    unsigned long type,
     _In_z_ const wchar_t* value_name,
     _In_reads_bytes_(value_size) const void* value,
     uint32_t value_size);

@@ -2,12 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_low_memory_test.h"
+#include "ebpf_symbol_decoder.h"
 
 #include <DbgHelp.h>
 #include <sstream>
 #include <string>
-
-#include "ebpf_symbol_decoder.h"
 
 // Link with DbgHelp.lib
 #pragma comment(lib, "dbghelp.lib")
@@ -87,7 +86,7 @@ _ebpf_low_memory_test::is_new_stack()
     std::vector<uintptr_t> stack(EBPF_ALLOCATION_STACK_CAPTURE_FRAME_COUNT);
     std::vector<uintptr_t> canonical_stack(_stack_depth);
 
-    DWORD hash;
+    unsigned long hash;
     // Capture EBPF_ALLOCATION_STACK_CAPTURE_FRAME_COUNT_FOR_HASH frames of the current stack trace.
     if (CaptureStackBackTrace(
             1, static_cast<unsigned int>(stack.size()), reinterpret_cast<void**>(stack.data()), &hash) > 0) {

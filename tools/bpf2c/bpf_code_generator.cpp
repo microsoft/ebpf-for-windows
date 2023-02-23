@@ -11,18 +11,18 @@
 // Example:
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
+#include "bpf_code_generator.h"
+#include "btf_parser.h"
+#include "ebpf_version.h"
+
+#include <windows.h>
 #include <cassert>
 #include <format>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include <windows.h>
 #undef max
-
-#include "btf_parser.h"
-#include "bpf_code_generator.h"
-#include "ebpf_version.h"
 
 #if !defined(_countof)
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
@@ -31,6 +31,24 @@
 #define INDENT "    "
 #define LINE_BREAK_WIDTH 120
 
+#define EBPF_MODE_MASK 0xe0
+#define EBPF_MODE_ATOMIC 0xc0
+#define EBPF_MODE_MEM 0x60
+
+#define EBPF_ATOMIC_FETCH 0x01
+#define EBPF_ATOMIC_ADD 0x00
+#define EBPF_ATOMIC_ADD_FETCH (0x00 | EBPF_ATOMIC_FETCH)
+#define EBPF_ATOMIC_OR 0x40
+#define EBPF_ATOMIC_OR_FETCH (0x40 | EBPF_ATOMIC_FETCH)
+#define EBPF_ATOMIC_AND 0x50
+#define EBPF_ATOMIC_AND_FETCH (0x50 | EBPF_ATOMIC_FETCH)
+#define EBPF_ATOMIC_XOR 0xa0
+#define EBPF_ATOMIC_XOR_FETCH (0xa0 | EBPF_ATOMIC_FETCH)
+#define EBPF_ATOMIC_XCHG (0xe0 | EBPF_ATOMIC_FETCH)
+#define EBPF_ATOMIC_CMPXCHG (0xf0 | EBPF_ATOMIC_FETCH)
+
+#define EBPF_OP_ATOMIC64 (EBPF_CLS_STX | EBPF_MODE_ATOMIC | EBPF_SIZE_DW)
+#define EBPF_OP_ATOMIC (EBPF_CLS_STX | EBPF_MODE_ATOMIC | EBPF_SIZE_W)
 static const std::string _register_names[11] = {
     "r0",
     "r1",
@@ -84,6 +102,25 @@ static const std::string _predicate_format_string[] = {
     {                                            \
         static_cast<uint8_t>(X), std::string(#X) \
     }
+
+// remove EBPF_ATOMIC_ prefix
+#define ADD_ATOMIC_OPCODE(X)                                \
+    {                                                       \
+        static_cast<int32_t>(X), std::string(#X).substr(12) \
+    }
+
+static std::map<int32_t, std::string> _atomic_opcode_name_strings = {
+    ADD_ATOMIC_OPCODE(EBPF_ATOMIC_ADD),
+    ADD_ATOMIC_OPCODE(EBPF_ATOMIC_ADD_FETCH),
+    ADD_ATOMIC_OPCODE(EBPF_ATOMIC_OR),
+    ADD_ATOMIC_OPCODE(EBPF_ATOMIC_OR_FETCH),
+    ADD_ATOMIC_OPCODE(EBPF_ATOMIC_AND),
+    ADD_ATOMIC_OPCODE(EBPF_ATOMIC_AND_FETCH),
+    ADD_ATOMIC_OPCODE(EBPF_ATOMIC_XOR),
+    ADD_ATOMIC_OPCODE(EBPF_ATOMIC_XOR_FETCH),
+    ADD_ATOMIC_OPCODE(EBPF_ATOMIC_XCHG),
+    ADD_ATOMIC_OPCODE(EBPF_ATOMIC_CMPXCHG)};
+
 static std::map<uint8_t, std::string> _opcode_name_strings = {
     ADD_OPCODE(EBPF_OP_ADD_IMM),    ADD_OPCODE(EBPF_OP_ADD_REG),   ADD_OPCODE(EBPF_OP_SUB_IMM),
     ADD_OPCODE(EBPF_OP_SUB_REG),    ADD_OPCODE(EBPF_OP_MUL_IMM),   ADD_OPCODE(EBPF_OP_MUL_REG),
@@ -115,7 +152,10 @@ static std::map<uint8_t, std::string> _opcode_name_strings = {
     ADD_OPCODE(EBPF_OP_EXIT),       ADD_OPCODE(EBPF_OP_JLT_IMM),   ADD_OPCODE(EBPF_OP_JLT_REG),
     ADD_OPCODE(EBPF_OP_JLE_IMM),    ADD_OPCODE(EBPF_OP_JLE_REG),   ADD_OPCODE(EBPF_OP_JSLT_IMM),
     ADD_OPCODE(EBPF_OP_JSLT_REG),   ADD_OPCODE(EBPF_OP_JSLE_IMM),  ADD_OPCODE(EBPF_OP_JSLE_REG),
-};
+    ADD_OPCODE(EBPF_OP_ATOMIC64),   ADD_OPCODE(EBPF_OP_ATOMIC)};
+
+#define IS_ATOMIC_OPCODE(_opcode) \
+    (((_opcode)&EBPF_CLS_MASK) == EBPF_CLS_STX && ((_opcode)&EBPF_MODE_MASK) == EBPF_MODE_ATOMIC)
 
 #define IS_JMP_CLASS_OPCODE(_opcode) \
     (((_opcode)&EBPF_CLS_MASK) == EBPF_CLS_JMP || ((_opcode)&EBPF_CLS_MASK) == EBPF_CLS_JMP32)
@@ -690,8 +730,12 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
         case EBPF_CLS_ST:
         case EBPF_CLS_STX: {
             std::string size_type;
+            std::string lock_type;
+            std::string size_num;
             std::string destination = get_register_name(inst.dst);
             std::string source;
+            std::string raw_source;
+            bool is_complex = false;
             if ((inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ST) {
                 source = "IMMEDIATE(" + std::to_string(inst.imm) + ")";
             } else {
@@ -707,14 +751,94 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 break;
             case EBPF_SIZE_W:
                 size_type = "uint32_t";
+                lock_type = "volatile long";
                 break;
             case EBPF_SIZE_DW:
+                size_num = "64";
                 size_type = "uint64_t";
+                lock_type = "volatile int64_t";
                 break;
             }
+            raw_source = source;
             source = "(" + size_type + ")" + source;
-            output.lines.push_back(
-                std::format("*({}*)(uintptr_t)({} + {}) = {};", size_type, destination, offset, source));
+            if ((inst.opcode & EBPF_MODE_MASK) == EBPF_MODE_ATOMIC) { // MODE_ATOMIC
+                auto line = std::string("");
+                switch (inst.imm) {
+                case EBPF_ATOMIC_ADD:
+                case EBPF_ATOMIC_ADD_FETCH:
+                    line = std::format(
+                        "_InterlockedExchangeAdd{}(({}*)(uintptr_t)({} + {}), {});",
+                        size_num,
+                        lock_type,
+                        destination,
+                        offset,
+                        source);
+                    break;
+                case EBPF_ATOMIC_OR:
+                case EBPF_ATOMIC_OR_FETCH:
+                    line = std::format(
+                        "_InterlockedOr{}(({}*)(uintptr_t)({} + {}), {});",
+                        size_num,
+                        lock_type,
+                        destination,
+                        offset,
+                        source);
+                    break;
+                case EBPF_ATOMIC_AND:
+                case EBPF_ATOMIC_AND_FETCH:
+                    line = std::format(
+                        "_InterlockedAnd{}(({}*)(uintptr_t)({} + {}), {});",
+                        size_num,
+                        lock_type,
+                        destination,
+                        offset,
+                        source);
+                    break;
+                case EBPF_ATOMIC_XOR:
+                case EBPF_ATOMIC_XOR_FETCH:
+                    line = std::format(
+                        "_InterlockedXor{}(({}*)(uintptr_t)({} + {}), {});",
+                        size_num,
+                        lock_type,
+                        destination,
+                        offset,
+                        source);
+                    break;
+                case EBPF_ATOMIC_XCHG:
+                    is_complex = true;
+                    line = std::format(
+                        "_InterlockedExchange{}(({}*)(uintptr_t)({} + {}), {});",
+                        size_num,
+                        lock_type,
+                        destination,
+                        offset,
+                        source);
+                    break;
+                case EBPF_ATOMIC_CMPXCHG:
+                    is_complex = true;
+                    line = std::format(
+                        "r0 = ({})_InterlockedCompareExchange{}(({}*)(uintptr_t)({} + {}), {}, r0);",
+                        size_type,
+                        size_num,
+                        lock_type,
+                        destination,
+                        offset,
+                        source);
+                    break;
+                default:
+                    throw bpf_code_generator_exception("invalid atomic operation", inst.imm);
+                }
+                if ((inst.imm & EBPF_ATOMIC_FETCH) && (!is_complex)) {
+                    output.lines.push_back(std::format("{} = ({}){}", raw_source, size_type, line));
+                } else {
+                    output.lines.push_back(line);
+                }
+            } else if ((inst.opcode & EBPF_MODE_MASK) == EBPF_MODE_MEM) {
+                output.lines.push_back(
+                    std::format("*({}*)(uintptr_t)({} + {}) = {};", size_type, destination, offset, source));
+            } else {
+                throw bpf_code_generator_exception("invalid atomic mode", inst.opcode & EBPF_MODE_MASK);
+            }
         } break;
         case EBPF_CLS_JMP:
         case EBPF_CLS_JMP32: {
@@ -1033,11 +1157,15 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                     current_line->second.file_name.quoted_filename());
             }
 #if defined(_DEBUG) || defined(BPF2C_VERBOSE)
-            output_stream << INDENT "// " << _opcode_name_strings[output.instruction.opcode]
-                          << " pc=" << output.instruction_offset << " dst=r" << std::to_string(output.instruction.dst)
+            output_stream << INDENT "// " << _opcode_name_strings[output.instruction.opcode];
+            if (IS_ATOMIC_OPCODE(output.instruction.opcode)) {
+                output_stream << "_" << _atomic_opcode_name_strings[output.instruction.imm];
+            }
+            output_stream << " pc=" << output.instruction_offset << " dst=r" << std::to_string(output.instruction.dst)
                           << " src=r" << std::to_string(output.instruction.src)
                           << " offset=" << std::to_string(output.instruction.offset)
                           << " imm=" << std::to_string(output.instruction.imm) << std::endl;
+
 #endif
             for (const auto& line : output.lines) {
                 output_stream << prolog_line_info << INDENT "" << line << std::endl;
@@ -1115,8 +1243,14 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                   << "}" << std::endl
                   << std::endl;
 
-    output_stream << "metadata_table_t " << (c_name.c_identifier() + "_metadata_table")
-                  << " = {_get_programs, _get_maps, _get_hash, _get_version};\n";
+    std::string meta_data_table = "metadata_table_t " + c_name.c_identifier() + "_metadata_table = {";
+    meta_data_table += "sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version};\n";
+
+    if ((meta_data_table.size() - 1) > LINE_BREAK_WIDTH) {
+        meta_data_table.insert(meta_data_table.find_first_of("{") + 1, "\n" INDENT);
+    }
+
+    output_stream << meta_data_table;
 }
 
 std::string

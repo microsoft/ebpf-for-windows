@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
+# Download and copy release archive to local directory as ./ebpf-for-windows.msi before running this script.
+
 param ([parameter(Mandatory=$false)][string] $TEMPDir = "c:\temp",
     [parameter(Mandatory=$true)][string] $Repository = "",
     [parameter(Mandatory=$true)][string] $Tag = "",
@@ -13,7 +15,5 @@ if ($svc -EQ $null) {
 if ($svc.Status -NE 'Running') {
     throw "Docker service is not running."
 }
-
-Compress-Archive -Update -Path $TEMPDir -DestinationPath ebpf-for-windows-c-temp.zip
 
 docker build -t $Repository/ebpfwin-install:$Tag  -f .\Dockerfile.install --build-arg WINDOWS_VERSION=$OSVersion .

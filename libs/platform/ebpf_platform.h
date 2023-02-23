@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
+
 #include "ebpf_result.h"
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
@@ -66,6 +66,20 @@ extern "C"
         size_t length;
     } ebpf_utf8_string_t;
 
+    typedef enum _ebpf_pool_tag
+    {
+        EBPF_POOL_TAG_ASYNC = 'nsae',
+        EBPF_POOL_TAG_CORE = 'roce',
+        EBPF_POOL_TAG_DEFAULT = 'fpbe',
+        EBPF_POOL_TAG_EPOCH = 'cpee',
+        EBPF_POOL_TAG_LINK = 'knle',
+        EBPF_POOL_TAG_MAP = 'pame',
+        EBPF_POOL_TAG_NATIVE = 'vtne',
+        EBPF_POOL_TAG_PROGRAM = 'grpe',
+        EBPF_POOL_TAG_RING_BUFFER = 'fbre',
+        EBPF_POOL_TAG_STATE = 'atse',
+    } ebpf_pool_tag_t;
+
     typedef enum _ebpf_code_integrity_state
     {
         EBPF_CODE_INTEGRITY_DEFAULT = 0,
@@ -81,9 +95,9 @@ extern "C"
     typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
     typedef struct _ebpf_extension_dispatch_table
     {
-        uint16_t version;
-        uint16_t size;
-        _ebpf_extension_dispatch_function function[1];
+        uint16_t version; ///< Version of the dispatch table.
+        uint16_t count;   ///< Number of entries in the dispatch table.
+        _Field_size_(count) _ebpf_extension_dispatch_function function[1];
     } ebpf_extension_dispatch_table_t;
 
     typedef struct _ebpf_extension_data
@@ -99,6 +113,21 @@ extern "C"
         bpf_attach_type_t bpf_attach_type;
         enum bpf_link_type link_type;
     } ebpf_attach_provider_data_t;
+
+    /***
+     * The state of the execution context when the eBPF program was invoked.
+     * This is used to cache state that won't change during the execution of
+     * the eBPF program and is expensive to query.
+     */
+    typedef struct _ebpf_execution_context_state
+    {
+        union
+        {
+            uint64_t thread;
+            uint32_t cpu;
+        } id;
+        uint8_t current_irql;
+    } ebpf_execution_context_state_t;
 
 #define EBPF_ATTACH_CLIENT_DATA_VERSION 0
 #define EBPF_ATTACH_PROVIDER_DATA_VERSION 1
@@ -147,6 +176,15 @@ extern "C"
     __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size);
 
     /**
+     * @brief Allocate memory.
+     * @param[in] size Size of memory to allocate.
+     * @param[in] tag Pool tag to use.
+     * @returns Pointer to memory block allocated, or null on failure.
+     */
+    __drv_allocatesMem(Mem) _Must_inspect_result_
+        _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag);
+
+    /**
      * @brief Reallocate memory.
      * @param[in] memory Allocation to be reallocated.
      * @param[in] old_size Old size of memory to reallocate.
@@ -155,6 +193,17 @@ extern "C"
      */
     __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
         _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size);
+
+    /**
+     * @brief Reallocate memory with tag.
+     * @param[in] memory Allocation to be reallocated.
+     * @param[in] old_size Old size of memory to reallocate.
+     * @param[in] new_size New size of memory to reallocate.
+     * @param[in] tag Pool tag to use.
+     * @returns Pointer to memory block allocated, or null on failure.
+     */
+    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate_with_tag(
+        _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size, uint32_t tag);
 
     /**
      * @brief Free memory.
@@ -170,6 +219,15 @@ extern "C"
      */
     __drv_allocatesMem(Mem) _Must_inspect_result_
         _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size);
+
+    /**
+     * @brief Allocate memory that has a starting address that is cache aligned with tag.
+     * @param[in] size Size of memory to allocate
+     * @param[in] tag Pool tag to use.
+     * @returns Pointer to memory block allocated, or null on failure.
+     */
+    __drv_allocatesMem(Mem) _Must_inspect_result_
+        _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned_with_tag(size_t size, uint32_t tag);
 
     /**
      * @brief Free memory that has a starting address that is cache aligned.
@@ -834,9 +892,7 @@ extern "C"
     ebpf_interlocked_xor_int64(_Inout_ volatile int64_t* destination, int64_t mask);
 
     typedef ebpf_result_t (*ebpf_extension_change_callback_t)(
-        _In_ const void* client_binding_context,
-        _In_ const void* provider_binding_context,
-        _In_opt_ const ebpf_extension_data_t* provider_data);
+        _In_ const void* client_binding_context, _In_opt_ const ebpf_extension_data_t* provider_data);
 
     /**
      * @brief Load an extension and get its dispatch table.
@@ -1208,54 +1264,6 @@ extern "C"
         size_t input_length,
         _Out_ size_t* output_length);
 
-    typedef struct _ebpf_signal ebpf_signal_t;
-
-    /**
-     * @brief Create a signal object.
-     *
-     * @param[out] signal The signal object.
-     * @return EBPF_SUCCESS The signal object was created.
-     * @return EBPF_NO_MEMORY Unable to allocate memory for the signal object.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_signal_create(_Outptr_ ebpf_signal_t** signal);
-
-    /**
-     * @brief Destroy a signal object.
-     *
-     * @param[in] signal The signal object to destroy.
-     */
-    void
-    ebpf_signal_destroy(_In_opt_ _Frees_ptr_opt_ ebpf_signal_t* signal);
-
-    /**
-     * @brief Set the signal object.
-     *
-     * @param[in] signal The signal object to set.
-     */
-    void
-    ebpf_signal_set(_In_ ebpf_signal_t* signal);
-
-    /**
-     * @brief Reset the signal object.
-     *
-     * @param[in] signal The signal object to reset.
-     */
-    void
-    ebpf_signal_reset(_In_ ebpf_signal_t* signal);
-
-    /**
-     * @brief Wait for the signal object to be set.
-     *
-     * @param[in] signal The signal object to wait on.
-     * @param[in] timeout_ms Timeout in milliseconds.
-     * @return EBPF_SUCCESS The signal object was set.
-     * @return EBPF_OPERATION_ABORTED The wait was aborted.
-     * @return EBPF_TIMEOUT The wait timed out.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_signal_wait(_In_ ebpf_signal_t* signal, uint32_t timeout_ms);
-
     /**
      * @brief Should the current thread yield the processor?
      *
@@ -1280,6 +1288,24 @@ extern "C"
  */
 #define EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(hash, string) \
     ebpf_cryptographic_hash_append(hash, (const uint8_t*)(string), strlen(string))
+
+    /**
+     * @brief Get 64-bit Authentication ID for the current user.
+     *
+     * @param[out] authentication_id The authentication ID.
+     *
+     * @return result of the operation.
+     */
+    _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
+        ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id);
+
+    /**
+     * @brief Query the current execution context state.
+     *
+     * @param[out] state The captured execution context state.
+     */
+    void
+    ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state);
 
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"
@@ -1432,7 +1458,7 @@ extern "C"
         TraceLoggingLevel(trace_level),                                     \
         TraceLoggingKeyword((keyword)),                                     \
         TraceLoggingString(message, "Message"),                             \
-        TraceLoggingCountedUtf8String((const char*)(string).value, (ULONG)(string).length, #string));
+        TraceLoggingCountedUtf8String((const char*)(string).value, (unsigned long)(string).length, #string));
 
 #define EBPF_LOG_MESSAGE_UINT64(trace_level, keyword, message, value) \
     TraceLoggingWrite(                                                \
@@ -1513,7 +1539,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_API_FAILURE(keyword, api)          \
     do {                                                  \
-        DWORD last_error = GetLastError();                \
+        unsigned long last_error = GetLastError();                \
         TraceLoggingWrite(                                \
             ebpf_tracelog_provider,                       \
             EBPF_TRACELOG_EVENT_API_ERROR,                \
@@ -1525,7 +1551,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_STRING_API_FAILURE(keyword, message, api) \
     do {                                                         \
-        DWORD last_error = GetLastError();                       \
+        unsigned long last_error = GetLastError();                       \
         TraceLoggingWrite(                                       \
             ebpf_tracelog_provider,                              \
             EBPF_TRACELOG_EVENT_API_ERROR,                       \
@@ -1538,7 +1564,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_WSTRING_API_FAILURE(keyword, wstring, api) \
     do {                                                          \
-        DWORD last_error = GetLastError();                        \
+        unsigned long last_error = GetLastError();                        \
         TraceLoggingWrite(                                        \
             ebpf_tracelog_provider,                               \
             EBPF_TRACELOG_EVENT_API_ERROR,                        \
@@ -1551,7 +1577,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_GUID_API_FAILURE(keyword, guid, api) \
     do {                                                    \
-        DWORD last_error = GetLastError();                  \
+        unsigned long last_error = GetLastError();                  \
         TraceLoggingWrite(                                  \
             ebpf_tracelog_provider,                         \
             EBPF_TRACELOG_EVENT_API_ERROR,                  \

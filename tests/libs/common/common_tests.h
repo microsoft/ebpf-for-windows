@@ -1,16 +1,19 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
-// Common test functions used by end to end and component tests.
-
 #pragma once
-#include <future>
-#include <windows.h>
+
+/**
+ * @file
+ * @brief Common test functions used by end to end and component tests.
+ */
 
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "ebpf_api.h"
 #include "ebpf_result.h"
+
+#include <windows.h>
+#include <future>
 
 void
 ebpf_test_pinned_map_enum();

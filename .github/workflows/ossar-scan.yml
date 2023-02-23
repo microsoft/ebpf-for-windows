@@ -35,14 +35,21 @@ jobs:
       BUILD_PLATFORM: x64
 
     steps:
+    - id: skip_check
+      uses: fkirc/skip-duplicate-actions@12aca0a884f6137d619d6a8a09fcc3406ced5281 # v5.3.0
+      with:
+        cancel_others: 'false'
+        paths_ignore: '["**.md", "**/docs/**"]'
+
     # Checking out the branch is needed to correctly log security alerts.
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      if: steps.skip_check.outputs.should_skip != 'true'
       with:
         # Only check out main repo, not submodules.
         ref: ${{ github.event.workflow_run.head_branch }}
 
     - name: Download build artifact
-      if: success()
+      if: (steps.skip_check.outputs.should_skip != 'true') && success()
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       id: download_artifact
       with:
@@ -56,15 +63,18 @@ jobs:
         Expand-Archive .\build-${{ matrix.configurations }}.zip -DestinationPath .\${{env.BUILD_PLATFORM}}
 
     - name: Exclude external files
+      if: steps.skip_check.outputs.should_skip != 'true'
       run: |
         pushd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         Remove-Item @("clang_rt.*", "concrt*", "msvc*", "ucrt*", "vc*") -ErrorAction SilentlyContinue
 
     - name: Run OSSAR (Open Source Static Analysis Runner)
+      if: steps.skip_check.outputs.should_skip != 'true'
       uses: github/ossar-action@c757d32d66bea728bc64e67e7d6de9696f7f37d3
       id: ossar
 
     - name: Upload results to Security tab
-      uses: github/codeql-action/upload-sarif@a34ca99b4610d924e04c68db79e503e1f79f9f02
+      if: steps.skip_check.outputs.should_skip != 'true'
+      uses: github/codeql-action/upload-sarif@17573ee1cc1b9d061760f3a006fc4aac4f944fd5
       with:
         sarif_file: ${{ steps.ossar.outputs.sarifFile }}

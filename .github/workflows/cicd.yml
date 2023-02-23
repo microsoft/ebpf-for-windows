@@ -13,6 +13,7 @@ on:
     - cron: '00 21 * * *'
   # Run on pull request to validate code changes.
   pull_request:
+  merge_group:
   # Run on push so we can capture the baseline code coverage.
   push:
     branches: [ main ]
@@ -36,16 +37,28 @@ jobs:
   # Perform the regular build.
   regular:
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64
       generate_release_package: true
       build_nuget: true
+      build_options: /p:ReleaseJIT='True'
+
+  # Perform the native-only build.
+  regular_native-only:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build-x64-native-only
+      generate_release_package: true
+      build_nuget: true
+      build_options: /p:DisableJIT='True' /p:DisableInterpreter='True'
 
   cmake:
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-cmake-build.yml
     with:
       build_artifact: Build-x64-cmake
@@ -53,7 +66,7 @@ jobs:
   # Perform the libfuzzer build.
   libfuzzer:
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-fuzzer
@@ -65,10 +78,11 @@ jobs:
   unit_tests:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
+      pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       test_command: .\unit_tests.exe -d yes
       build_artifact: Build-x64
       environment: windows-2022
@@ -79,7 +93,7 @@ jobs:
   unit_tests_leak_detection:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests_with_leak_detection
@@ -95,10 +109,11 @@ jobs:
   netebpf_ext_unit_tests:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpf_ext_unit_tests
+      pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       test_command: .\netebpfext_unit.exe -d yes
       build_artifact: Build-x64
       environment: windows-2022
@@ -110,7 +125,7 @@ jobs:
   bpf2c:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       test_command: .\bpf2c_tests.exe -d yes
@@ -126,7 +141,7 @@ jobs:
   bpf2c_conformance:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.3/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
@@ -161,7 +176,7 @@ jobs:
   ossar:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/ossar-scan.yml
     with:
       build_artifact: Build-x64
@@ -171,7 +186,7 @@ jobs:
   # Build with C++ static analyzer.
   analyze:
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Analyze
@@ -181,7 +196,7 @@ jobs:
   # Build with C++ address sanitizer.
   sanitize:
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Sanitize
@@ -189,7 +204,7 @@ jobs:
 
   bpf2c_fuzzer:
     needs: libfuzzer
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -214,7 +229,7 @@ jobs:
   execution_context_fuzzer:
     needs: libfuzzer
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
@@ -228,7 +243,7 @@ jobs:
   verifier_fuzzer:
     needs: libfuzzer
     # Always run this job.
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -251,11 +266,10 @@ jobs:
       code_coverage: false
       gather_dumps: true
 
-
   core_helper_fuzzer:
     needs: libfuzzer
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
@@ -268,7 +282,7 @@ jobs:
   netebpfext_fuzzer:
     needs: libfuzzer
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fuzzer
@@ -282,7 +296,7 @@ jobs:
   cilium_tests:
     needs: regular
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: cilium_tests
@@ -296,7 +310,7 @@ jobs:
   stress:
     needs: regular
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: stress
@@ -311,7 +325,7 @@ jobs:
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     needs: sanitize
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -335,7 +349,7 @@ jobs:
       gather_dumps: true
       low_memory: true
 
-  # Additional jobs to on a schedule only (skip push and pull request).
+  # Additional jobs to run on a schedule only (skip push and pull request).
   # ---------------------------------------------------------------------------
   codeql:
     # Only run during daily scheduled run
@@ -344,3 +358,19 @@ jobs:
     with:
       build_artifact: Build-x64-CodeQl
       build_codeql: true
+
+
+  # Run the complete low memory simulator in GitHub.
+  # Runs on a schedule as this takes a long time to run.
+  low_memory_full:
+    needs: regular
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: low_memory_full
+      test_command: .\unit_tests.exe
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
+      low_memory: true

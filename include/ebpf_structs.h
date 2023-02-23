@@ -1,16 +1,23 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
-// This file contains eBPF definitions common to eBPF programs, core execution engine
-// as well as eBPF API library.
-
 #pragma once
+
+/**
+ * @file
+ * @brief This file contains eBPF definitions common to eBPF programs, core execution engine
+ * as well as eBPF API library.
+ */
+
+#include "ebpf_windows.h"
 
 #if !defined(NO_CRT)
 #include <stdbool.h>
 #include <stdint.h>
+#else
+typedef unsigned char uint8_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
 #endif
-#include "ebpf_windows.h"
 
 #define BPF_ENUM_TO_STRING(X) #X
 
@@ -154,6 +161,8 @@ typedef enum
     BPF_FUNC_map_pop_elem = 17,              ///< \ref bpf_map_pop_elem
     BPF_FUNC_map_peek_elem = 18,             ///< \ref bpf_map_peek_elem
     BPF_FUNC_get_current_pid_tgid = 19,      ///< \ref bpf_get_current_pid_tgid
+    BPF_FUNC_get_current_logon_id = 20,      ///< \ref bpf_get_current_logon_id
+    BPF_FUNC_is_current_admin = 21,          ///< \ref bpf_is_current_admin
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.

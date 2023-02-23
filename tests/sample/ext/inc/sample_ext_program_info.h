@@ -1,15 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#pragma once
 
 /**
+ * @file
  * @brief Sample eBPF Extension program types.
  */
 
-#include <stdint.h>
-
 #include "ebpf_platform.h"
 #include "ebpf_structs.h"
-
 #include "sample_ext_helpers.h"
 
 #define SAMPLE_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION

@@ -9,7 +9,7 @@ typedef ebpf_base_object_t* ebpf_handle_entry_t;
 // TODO: Replace this with the real Windows object manager handle table code.
 
 static ebpf_lock_t _ebpf_handle_table_lock = {0};
-static _Requires_lock_held_(&_ebpf_handle_table_lock) ebpf_handle_entry_t _ebpf_handle_table[1024];
+static _Guarded_by_(_ebpf_handle_table_lock) ebpf_handle_entry_t _ebpf_handle_table[1024];
 
 static bool _ebpf_handle_table_initiated = false;
 
@@ -40,7 +40,7 @@ ebpf_handle_table_terminate()
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_  ebpf_base_object_t* object)
+ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ ebpf_base_object_t* object)
 {
     EBPF_LOG_ENTRY();
     ebpf_handle_t new_handle;

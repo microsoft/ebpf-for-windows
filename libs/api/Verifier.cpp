@@ -1,11 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <filesystem>
-#include <iostream>
-#include <sstream>
-#include <sys/stat.h>
-#include <vector>
+#include "Verifier.h"
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "ebpf_api.h"
@@ -13,11 +9,16 @@
 #include "ebpf_program_types.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "elfio_wrapper.hpp"
-#include "ElfWrapper.h"
 #include "platform.hpp"
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"
-#include "Verifier.h"
+
+#include <ElfWrapper.h>
+#include <filesystem>
+#include <iostream>
+#include <sstream>
+#include <sys/stat.h>
+#include <vector>
 
 #define elf_everparse_error ElfEverParseError
 #define elf_everparse_verify ElfCheckElf
@@ -448,7 +449,7 @@ ebpf_api_elf_disassemble_section(
     _In_z_ const char* file,
     _In_z_ const char* section,
     _Outptr_result_maybenull_z_ const char** disassembly,
-    _Outptr_result_maybenull_z_ const char** error_message)
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
@@ -612,7 +613,7 @@ _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_file(
     bool verbose,
     _Outptr_result_maybenull_z_ const char** report,
     _Outptr_result_maybenull_z_ const char** error_message,
-    _Out_opt_ ebpf_api_verifier_stats_t* stats)
+    _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
 {
     *error_message = nullptr;
     *report = nullptr;
@@ -632,7 +633,7 @@ _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_memory(
     bool verbose,
     _Outptr_result_maybenull_z_ const char** report,
     _Outptr_result_maybenull_z_ const char** error_message,
-    _Out_opt_ ebpf_api_verifier_stats_t* stats)
+    _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
 {
     return _verify_section_from_string(
         std::string(data, data_length), "memory", section, program_type, verbose, report, error_message, stats);

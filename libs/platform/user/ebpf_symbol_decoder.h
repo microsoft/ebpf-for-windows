@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#pragma once
+
+#include "ebpf_platform.h"
 
 #include <DbgHelp.h>
 #include <optional>
-
-#include "ebpf_platform.h"
 
 inline ebpf_result_t
 _ebpf_symbol_decoder_initialize()
@@ -44,7 +45,7 @@ _ebpf_decode_symbol(
         }
 
         name = symbol->Name;
-        DWORD displacement32 = (DWORD)displacement;
+        unsigned long displacement32 = (unsigned long)displacement;
 
         if (!SymGetLineFromAddr64(GetCurrentProcess(), address, &displacement32, &line)) {
             line_number = std::nullopt;

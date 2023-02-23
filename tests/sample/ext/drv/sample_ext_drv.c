@@ -2,23 +2,20 @@
 // SPDX-License-Identifier: MIT
 
 /**
+ * @file
  * @brief WDF based driver that does the following:
  * Registers as an eBPF extension program information provider and hook provider.
  */
 
-#include <ntddk.h>
-#include <wdf.h>
-
 #include "ebpf_platform.h"
-
 #include "sample_ext.h"
 #include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"
 
+#include <wdf.h>
+
 #define SAMPLE_EBPF_EXT_DEVICE_NAME L"\\Device\\" SAMPLE_EBPF_EXT_NAME_W
 #define SAMPLE_EBPF_EXT_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\" SAMPLE_EBPF_EXT_DEVICE_BASE_NAME
-
-#define SAMPLE_PID_TGID_VALUE 9999
 
 // Driver global variables
 static DEVICE_OBJECT* _sample_ebpf_ext_driver_device_object;
@@ -42,7 +39,7 @@ _sample_ebpf_ext_driver_io_device_control(
     _In_ const WDFREQUEST request,
     size_t output_buffer_length,
     size_t input_buffer_length,
-    ULONG io_control_code);
+    unsigned long io_control_code);
 
 static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
     _IRQL_requires_max_(PASSIVE_LEVEL) void _sample_ebpf_ext_driver_unload(_In_ const WDFDRIVER driver_object)
@@ -210,7 +207,7 @@ _sample_ebpf_ext_driver_io_device_control(
     _In_ const WDFREQUEST request,
     size_t output_buffer_length,
     size_t input_buffer_length,
-    ULONG io_control_code)
+    unsigned long io_control_code)
 {
     NTSTATUS status = STATUS_SUCCESS;
     WDFDEVICE device;
@@ -287,7 +284,6 @@ _sample_ebpf_ext_driver_io_device_control(
                 // Invoke the eBPF program. Pass the output buffer as program context data.
                 program_context.data_start = output_buffer;
                 program_context.data_end = (uint8_t*)output_buffer + output_buffer_length;
-                program_context.pid_tgid = SAMPLE_PID_TGID_VALUE;
                 result = sample_ebpf_extension_invoke_program(&program_context, &program_result);
             }
         } else {

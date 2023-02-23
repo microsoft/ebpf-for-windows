@@ -5,13 +5,13 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include <optional>
-#include <string>
-#include <vector>
-
 #include "bpf_code_generator.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
+
+#include <optional>
+#include <string>
+#include <vector>
 
 #define main test_main
 #define ENABLE_SKIP_VERIFY
@@ -128,6 +128,17 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
             auto actual_output = read_contents<std::istringstream>(
                 out, {transform_line_directives<'\\'>, transform_line_directives<'/'>});
 
+            // Find the first line that differs.
+            if (actual_output.size() != expected_output.size()) {
+                for (size_t i = 0; i < min(actual_output.size(), expected_output.size()); i++) {
+                    if (actual_output[i] != expected_output[i]) {
+                        std::cout << "First difference at line " << i << std::endl;
+                        std::cout << "Expected: " << expected_output[i] << std::endl;
+                        std::cout << "Actual: " << actual_output[i] << std::endl;
+                        break;
+                    }
+                }
+            }
             REQUIRE(actual_output.size() == expected_output.size());
             for (size_t i = 0; i < actual_output.size(); i++) {
                 REQUIRE(expected_output[i] == actual_output[i]);
@@ -158,6 +169,9 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
 #define DECLARE_TEST_CUSTOM_PROGRAM_TYPE(FILE, MODE, TYPE) \
     TEST_CASE(FILE "-custom-" #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, TYPE); }
 
+DECLARE_TEST("atomic_instruction_fetch_add", _test_mode::Verify)
+DECLARE_TEST("atomic_instruction_others", _test_mode::NoVerify)
+DECLARE_TEST("bad_map_name", _test_mode::Verify)
 DECLARE_TEST("bindmonitor", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_ringbuf", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_tailcall", _test_mode::Verify)
@@ -168,26 +182,31 @@ DECLARE_TEST("cgroup_sock_addr2", _test_mode::Verify)
 DECLARE_TEST("decap_permit_packet", _test_mode::Verify)
 DECLARE_TEST("divide_by_zero", _test_mode::Verify)
 DECLARE_TEST("droppacket", _test_mode::Verify)
+DECLARE_TEST("droppacket_unsafe", _test_mode::NoVerify)
+DECLARE_TEST("empty", _test_mode::NoVerify)
 DECLARE_TEST("encap_reflect_packet", _test_mode::Verify)
+DECLARE_TEST("invalid_helpers", _test_mode::NoVerify);
+DECLARE_TEST("invalid_maps1", _test_mode::NoVerify);
+DECLARE_TEST("invalid_maps2", _test_mode::NoVerify);
+DECLARE_TEST("invalid_maps3", _test_mode::NoVerify);
 DECLARE_TEST("map", _test_mode::NoVerify)
 DECLARE_TEST("map_in_map", _test_mode::Verify)
 DECLARE_TEST("map_in_map_v2", _test_mode::Verify)
 DECLARE_TEST("map_reuse", _test_mode::Verify)
 DECLARE_TEST("map_reuse_2", _test_mode::Verify)
+DECLARE_TEST("pidtgid", _test_mode::Verify)
 DECLARE_TEST("printk", _test_mode::Verify)
 DECLARE_TEST("printk_legacy", _test_mode::Verify)
+DECLARE_TEST("printk_unsafe", _test_mode::NoVerify)
 DECLARE_TEST("reflect_packet", _test_mode::Verify)
+DECLARE_TEST("sockops", _test_mode::Verify)
 DECLARE_TEST("tail_call", _test_mode::Verify)
 DECLARE_TEST("tail_call_bad", _test_mode::Verify)
 DECLARE_TEST("tail_call_map", _test_mode::Verify)
 DECLARE_TEST("tail_call_multiple", _test_mode::Verify)
 DECLARE_TEST("test_sample_ebpf", _test_mode::Verify)
 DECLARE_TEST("test_utility_helpers", _test_mode::Verify)
-DECLARE_TEST("sockops", _test_mode::Verify)
 
-DECLARE_TEST("empty", _test_mode::NoVerify)
-DECLARE_TEST("droppacket_unsafe", _test_mode::VerifyFail)
-DECLARE_TEST("printk_unsafe", _test_mode::VerifyFail)
 DECLARE_TEST("no_such_file", _test_mode::FileNotFound)
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::UseHash, std::string("xdp"))
 

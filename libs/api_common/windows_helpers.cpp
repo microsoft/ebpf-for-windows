@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <map>
-#include <stdexcept>
-#include <vector>
 #include "api_common.hpp"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
@@ -11,6 +8,10 @@
 #include "platform.h"
 #include "platform.hpp"
 #include "windows_platform_common.hpp"
+
+#include <map>
+#include <stdexcept>
+#include <vector>
 
 static ebpf_helper_function_prototype_t*
 _get_helper_function_prototype(const ebpf_program_info_t* info, unsigned int n)

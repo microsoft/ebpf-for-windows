@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @file This file implements the BIND program type hook on eBPF for Windows.
- *
+ * @file
+ * @brief This file implements the BIND program type hook on eBPF for Windows.
  */
 
-#include "net_ebpf_ext.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_bind.h"
 
@@ -186,7 +185,7 @@ net_ebpf_ext_bind_register_providers()
     // Set the program type as the provider module id.
     _ebpf_bind_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_BIND;
     status = net_ebpf_extension_program_info_provider_register(
-        &program_info_provider_parameters, NULL, NULL, &_ebpf_bind_program_info_provider_context);
+        &program_info_provider_parameters, &_ebpf_bind_program_info_provider_context);
     if (status != STATUS_SUCCESS)
         goto Exit;
 

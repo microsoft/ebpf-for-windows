@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
-#include <iostream>
-#include <vector>
 
 #include "catch_wrapper.hpp"
 
@@ -18,8 +15,10 @@
 
 #include "ebpf_extension_uuids.h"
 #include "ebpf_registry_helper.h"
-#include "net_ebpf_ext.h"
 #include "fwp_um.h"
+
+#include <iostream>
+#include <vector>
 
 typedef struct _netebpfext_helper_base_client_context
 {

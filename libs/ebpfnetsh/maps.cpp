@@ -1,25 +1,30 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
-#include <iostream>
-#include <iomanip>
-#include <netsh.h>
-#include <string>
-#include <vector>
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "ebpf_api.h"
 #include "ebpf_windows.h"
-#include "platform.h"
 #include "maps.h"
+#include "platform.h"
 #include "tokens.h"
 
-DWORD
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <vector>
+
+// The following function uses windows specific type as an input to match
+// definition of "FN_HANDLE_CMD" in public file of NetSh.h
+unsigned long
 handle_ebpf_show_maps(
-    LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
+    IN LPCWSTR machine,
+    _Inout_updates_(argc) LPWSTR* argv,
+    IN DWORD current_index,
+    IN DWORD argc,
+    IN DWORD flags,
+    IN LPCVOID data,
+    OUT BOOL* done)
 {
     UNREFERENCED_PARAMETER(argv);
     UNREFERENCED_PARAMETER(current_index);

@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
 #pragma once
+
+#include "ebpf_windows.h"
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "ebpf_windows.h"
 
 #ifdef __cplusplus
 extern "C"

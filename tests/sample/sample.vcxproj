@@ -82,8 +82,8 @@
   <ItemGroup>
     <ClInclude Include="ebpf.h" />
   </ItemGroup>
-  <!-- Build BPF programs that pass verification and build native images for them. -->
   <ItemGroup Condition="'$(Analysis)'==''">
+    <!-- Build BPF programs that pass verification and build native images for them. -->
     <CustomBuild Include="*.c">
       <FileType>CppCode</FileType>
       <Command>
@@ -96,6 +96,15 @@
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+    </CustomBuild>
+    <!-- Copy explicit unsafe object files (i.e., not to be verified) among the other generated .o files -->
+    <CustomBuild Include="unsafe\*.o">
+      <FileType>Document</FileType>
+      <Command>
+        xcopy unsafe\%(Filename).o $(OutputPath) /Y
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->

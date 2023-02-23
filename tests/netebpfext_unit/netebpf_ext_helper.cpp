@@ -6,15 +6,6 @@
 ebpf_registry_key_t ebpf_root_registry_key = HKEY_CURRENT_USER;
 DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
 
-static ebpf_result_t
-_get_program_context(_Outptr_ void** context)
-{
-    *context = nullptr;
-    return EBPF_KEY_NOT_FOUND;
-}
-
-ebpf_extension_dispatch_table_t dispatch_table = {0, 1, {(_ebpf_extension_dispatch_function)_get_program_context}};
-
 _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ const void* npi_specific_characteristics,
     _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
@@ -122,7 +113,7 @@ _netebpf_ext_helper::_program_info_client_attach_provider(
     NTSTATUS status = NmrClientAttachProvider(
         nmr_binding_handle,
         client_binding_context.get(),
-        &dispatch_table,
+        &client_binding_context,
         &client_binding_context->context,
         &client_binding_context->dispatch);
 
@@ -155,12 +146,12 @@ _netebpf_ext_helper::_hook_client_attach_provider(
 {
     UNREFERENCED_PARAMETER(provider_registration_instance);
     const void* provider_dispatch_table;
-    ebpf_extension_dispatch_table_t client_dispatch_table = {.size = 1};
     auto base_client_context = reinterpret_cast<netebpfext_helper_base_client_context_t*>(client_context);
     if (base_client_context == nullptr) {
         return STATUS_INVALID_PARAMETER;
     }
-    client_dispatch_table.function[0] = base_client_context->helper->hook_invoke_function;
+    const ebpf_extension_dispatch_table_t client_dispatch_table = {
+        .version = 1, .count = 1, .function = base_client_context->helper->hook_invoke_function};
     auto provider_characteristics =
         (const ebpf_extension_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
     auto provider_data = (const ebpf_attach_provider_data_t*)provider_characteristics->data;

@@ -61,9 +61,7 @@ _ebpf_extension_client_notify_change(
     EBPF_LOG_ENTRY();
     if (client_context->extension_change_callback) {
         result = client_context->extension_change_callback(
-            client_context->extension_client_context,
-            client_binding_context->provider_binding_context,
-            client_binding_context->provider_data);
+            client_context->extension_client_context, client_binding_context->provider_data);
     }
     EBPF_RETURN_RESULT(result);
 }
@@ -78,8 +76,7 @@ _ebpf_extension_client_attach_provider(
     NTSTATUS status;
     ebpf_extension_client_t* local_client_context = (ebpf_extension_client_t*)client_context;
     ebpf_extension_client_binding_context_t* local_client_binding_context = NULL;
-
-    ExInitializeRundownProtection(&local_client_context->nmr_rundown_ref);
+    bool rundown_ref_initialized = false;
 
     // Check that the provider module Id matches the client's expected provider module Id.
     ebpf_assert(provider_registration_instance->ModuleId != NULL);
@@ -110,6 +107,10 @@ _ebpf_extension_client_attach_provider(
         goto Done;
     }
 
+    // Only initialize the rundown reference after we know we are going to try to attach.
+    ExInitializeRundownProtection(&local_client_context->nmr_rundown_ref);
+    rundown_ref_initialized = true;
+
     local_client_binding_context =
         (ebpf_extension_client_binding_context_t*)ebpf_allocate(sizeof(ebpf_extension_client_binding_context_t));
 
@@ -125,6 +126,15 @@ _ebpf_extension_client_attach_provider(
 
     local_client_context->client_binding_context = local_client_binding_context;
 
+    ebpf_result_t result = _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_BASE, "Client notify change failed with error");
+
+        status = STATUS_UNSUCCESSFUL;
+        goto Done;
+    }
+
     status = NmrClientAttachProvider(
         nmr_binding_handle,
         local_client_context->client_binding_context,
@@ -134,20 +144,16 @@ _ebpf_extension_client_attach_provider(
 
     local_client_binding_context->provider_is_attached = NT_SUCCESS(status);
 
-    if (NT_SUCCESS(status)) {
-        ebpf_result_t result = _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
-        if (result != EBPF_SUCCESS) {
-            EBPF_LOG_MESSAGE(
-                EBPF_TRACELOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_BASE, "Client notify change failed with error");
-
-            status = STATUS_UNSUCCESSFUL;
-            goto Done;
-        }
-    } else {
+    if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrClientAttachProvider, status);
+        goto Done;
     }
 
 Done:
+    if (!NT_SUCCESS(status) && rundown_ref_initialized) {
+        // Mark the nmr_rundown_ref as rundown if the attach fails.
+        ExWaitForRundownProtectionRelease(&local_client_context->nmr_rundown_ref);
+    }
     EBPF_RETURN_NTSTATUS(status);
 }
 
@@ -341,7 +347,7 @@ ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context)
 void*
 ebpf_extension_get_client_context(_In_ const void* extension_client_binding_context)
 {
-    EBPF_LOG_ENTRY();
+    // No function entry/exit logging here because this is called with every eBPF program invocation.
     void* local_extension_client_context = NULL;
     ebpf_extension_client_binding_context_t* local_client_binding_context =
         (ebpf_extension_client_binding_context_t*)extension_client_binding_context;
@@ -349,7 +355,7 @@ ebpf_extension_get_client_context(_In_ const void* extension_client_binding_cont
     if (local_client_context != NULL)
         local_extension_client_context = local_client_context->extension_client_context;
 
-    EBPF_RETURN_POINTER(void*, local_extension_client_context);
+    return local_extension_client_context;
 }
 
 GUID

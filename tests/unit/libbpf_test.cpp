@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-#include <io.h>
-#include <WinSock2.h>
 
 #include "bpf/bpf.h"
 #pragma warning(push)
@@ -14,6 +12,10 @@
 #include "platform.h"
 #include "program_helper.h"
 #include "test_helper.hpp"
+
+#include <chrono>
+#include <stop_token>
+#include <thread>
 
 // libbpf.h uses enum types and generates the
 // following warning whenever an enum type is used below:
@@ -1165,7 +1167,7 @@ TEST_CASE("libbpf obj pinning", "[libbpf]")
 }
 
 static void
-_ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
+_ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -1228,7 +1230,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    int result;
+    uint32_t result;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == expected_result);
 
@@ -1239,7 +1241,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
 
     // Is bpf_tail_call expected to work?
     // Verify stack unwind occured.
-    if (expected_result >= 0) {
+    if ((int)expected_result >= 0) {
         REQUIRE(value == 0);
     } else {
         REQUIRE(value != 0);
@@ -1262,9 +1264,15 @@ TEST_CASE("good_tail_call-native", "[libbpf]")
     _ebpf_test_tail_call("tail_call_um.dll", 42);
 }
 
-TEST_CASE("bad_tail_call-jit", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.o", -EBPF_INVALID_ARGUMENT); }
+TEST_CASE("bad_tail_call-jit", "[libbpf]")
+{
+    _ebpf_test_tail_call("tail_call_bad.o", (uint32_t)(-EBPF_INVALID_ARGUMENT));
+}
 
-TEST_CASE("bad_tail_call-native", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad_um.dll", -EBPF_INVALID_ARGUMENT); }
+TEST_CASE("bad_tail_call-native", "[libbpf]")
+{
+    _ebpf_test_tail_call("tail_call_bad_um.dll", (uint32_t)(-EBPF_INVALID_ARGUMENT));
+}
 
 static void
 _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
@@ -1338,7 +1346,7 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    int result;
+    uint32_t result;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == 3);
 
@@ -1504,20 +1512,21 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     _test_helper_end_to_end test_helper;
 
     // Create an inner map that we'll use both as a template and as an actual entry.
-    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map", sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
     // Verify that we cannot simply create an outer map without a template.
-    REQUIRE(bpf_map_create(type, nullptr, sizeof(__u32), sizeof(__u32), 2, nullptr) < 0);
+    REQUIRE(bpf_map_create(type, "array_map_of_maps", sizeof(__u32), sizeof(__u32), 2, nullptr) < 0);
     REQUIRE(errno == EBADF);
 
+    // Verify that we cannot create an outer map with an invalid fd for the inner map.
     bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)ebpf_fd_invalid};
-    REQUIRE(bpf_map_create(type, nullptr, sizeof(__u32), sizeof(fd_t), 2, &opts) < 0);
+    REQUIRE(bpf_map_create(type, "array_map_of_maps", sizeof(__u32), sizeof(fd_t), 2, &opts) < 0);
     REQUIRE(errno == EBADF);
 
     // Verify we can create an outer map with a template.
     opts.inner_map_fd = inner_map_fd;
-    int outer_map_fd = bpf_map_create(type, nullptr, sizeof(__u32), sizeof(fd_t), 2, &opts);
+    int outer_map_fd = bpf_map_create(type, "array_map_of_maps", sizeof(__u32), sizeof(fd_t), 2, &opts);
     REQUIRE(outer_map_fd > 0);
 
     // Verify we can insert the inner map into the outer map.
@@ -1598,7 +1607,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     REQUIRE(inner_map_fd > 0);
 
     // Add a value to the inner map.
-    int inner_value = 42;
+    uint32_t inner_value = 42;
     uint32_t inner_key = 0;
     int error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
     REQUIRE(error == 0);
@@ -1614,7 +1623,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     // Now run the ebpf program.
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    int result;
+    uint32_t result;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
 
     // Verify the return value is what we saved in the inner map.
@@ -1657,7 +1666,7 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     REQUIRE(inner_map_fd > 0);
 
     // Add a value to the inner map.
-    int inner_value = 42;
+    uint32_t inner_value = 42;
     uint32_t inner_key = 0;
     int error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
     REQUIRE(error == 0);
@@ -1673,7 +1682,7 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     // Now run the ebpf program.
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    int result;
+    uint32_t result;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
 
     // Verify the return value is what we saved in the inner map.
@@ -2649,4 +2658,85 @@ TEST_CASE("libbpf_num_possible_cpus", "[libbpf]")
 {
     int cpu_count = libbpf_num_possible_cpus();
     REQUIRE(cpu_count > 0);
+}
+
+void
+_test_nested_maps(bpf_map_type map_type)
+{
+    _test_helper_end_to_end test_helper;
+
+    // First, create an inner map.
+    fd_t inner_map_fd1 =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map1", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd1 > 0);
+
+    // Create outer map with the inner map handle in options.
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd1};
+    fd_t outer_map_fd = bpf_map_create(map_type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 10, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Create second inner map.
+    fd_t inner_map_fd2 =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map2", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd2 > 0);
+
+    // Insert both inner maps in outer map.
+    uint32_t key = 1;
+    uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd1, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 2;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    // Remove the inner maps from outer map.
+    key = 1;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 2;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    Platform::_close(inner_map_fd2);
+    Platform::_close(inner_map_fd1);
+    Platform::_close(outer_map_fd);
+}
+
+TEST_CASE("array_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
+TEST_CASE("hash_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
+
+TEST_CASE("libbpf_load_stress", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    std::vector<std::jthread> threads;
+    // Schedule 4 threads per CPU to force contention.
+    for (size_t i = 0; i < static_cast<size_t>(ebpf_get_cpu_count()) * 4; i++) {
+        // Initialize thread object with lambda plus stop token
+        threads.emplace_back([i](std::stop_token stop_token) {
+            while (!stop_token.stop_requested()) {
+                struct bpf_object* object = bpf_object__open("droppacket_um.dll");
+                // Enumerate maps and programs.
+                bpf_program* program;
+                bpf_object__for_each_program(program, object) {}
+                bpf_map* map;
+                bpf_object__for_each_map(map, object) {}
+                bpf_object__close(object);
+            }
+        });
+    }
+
+    // Wait for 10 seconds.
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    // Stop all threads.
+    for (auto& thread : threads) {
+        thread.request_stop();
+    }
+
+    // Wait for all threads to stop.
+    for (auto& thread : threads) {
+        thread.join();
+    }
 }
