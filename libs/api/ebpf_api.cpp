@@ -1674,7 +1674,9 @@ _initialize_ebpf_object_native(
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        _clean_up_ebpf_object(&object);
+        clean_up_ebpf_programs(object.programs);
+        clean_up_ebpf_maps(object.maps);
+        object.native_module_fd = ebpf_fd_invalid;
     }
     EBPF_RETURN_RESULT(result);
 }
