@@ -46,8 +46,14 @@ jobs:
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       id: download_artifact
       with:
-        name: ${{inputs.build_artifact}} ${{matrix.configurations}}
-        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        name: ${{inputs.build_artifact}}-${{matrix.configurations}}
+        path: ${{github.workspace}}
+
+    - name: Extract build artifact
+      working-directory: ${{github.workspace}}
+      run: |
+        mkdir ${{env.BUILD_PLATFORM}}
+        Expand-Archive .\build-${{ matrix.configurations }}.zip -DestinationPath .\${{env.BUILD_PLATFORM}}
 
     - name: Exclude external files
       run: |
