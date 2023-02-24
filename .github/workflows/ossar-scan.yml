@@ -57,6 +57,7 @@ jobs:
         path: ${{github.workspace}}
 
     - name: Extract build artifact
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{github.workspace}}
       run: |
         mkdir ${{env.BUILD_PLATFORM}}
