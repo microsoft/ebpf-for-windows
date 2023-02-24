@@ -185,7 +185,7 @@ jobs:
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          pwsh.exe .\Test-LowMemory.ps1 ${{env.TEST_COMMAND}} 16
+          powershell.exe .\Test-LowMemory.ps1 ${{env.TEST_COMMAND}} 16
 
     - name: Run test with Code Coverage
       if: (inputs.code_coverage == true) && (inputs.vs_dev != true) && (inputs.low_memory != true) && (steps.skip_check.outputs.should_skip != 'true')
