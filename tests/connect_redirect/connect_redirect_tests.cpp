@@ -88,8 +88,7 @@ _get_current_thread_authentication_id()
     privileges = (TOKEN_GROUPS_AND_PRIVILEGES*)malloc(size);
     REQUIRE(privileges != nullptr);
 
-    result =
-        GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (unsigned long*)&size);
+    result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (unsigned long*)&size);
     REQUIRE(result == true);
 
     authentication_id = *(uint64_t*)&privileges->AuthenticationId;
@@ -101,7 +100,7 @@ _get_current_thread_authentication_id()
 static void
 _revert_to_self()
 {
-    printf("Reverting to self!\n");
+    printf("Reverting to self.\n");
     RevertToSelf();
 }
 
