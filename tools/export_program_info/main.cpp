@@ -10,6 +10,7 @@ int
 main(int argc, char** argv)
 {
     bool clear = false;
+
     if (argc != 1 && argc != 2) {
         print_help(argv[0]);
         return 1;
@@ -24,8 +25,8 @@ main(int argc, char** argv)
         }
     }
 
+    uint32_t status;
     if (!clear) {
-        uint32_t status;
 
         std::cout << "Exporting program information." << std::endl;
         status = export_all_program_information();
@@ -45,7 +46,11 @@ main(int argc, char** argv)
             std::cout << "Failed export_global_helper_information() - ERROR #" << status << std::endl;
         }
     } else {
-        clear_all_ebpf_stores();
+        std::cout << "Clearing eBPF store." << std::endl;
+        status = clear_all_ebpf_stores();
+        if (status != EBPF_SUCCESS) {
+            std::cout << "Failed clear_all_ebpf_stores() - ERROR #" << status << std::endl;
+        }
     }
 
     return 0;
