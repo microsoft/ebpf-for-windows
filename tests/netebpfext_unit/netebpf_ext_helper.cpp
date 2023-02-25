@@ -3,6 +3,7 @@
 
 #include "netebpf_ext_helper.h"
 
+// TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
 ebpf_registry_key_t ebpf_root_registry_key = HKEY_CURRENT_USER;
 DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
 

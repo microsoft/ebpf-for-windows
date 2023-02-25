@@ -8,6 +8,7 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_store_helper.h"
 #include "export_program_info.h"
+#include "store_helper_internal.h"
 #include "windows_program_type.h"
 
 #include <codecvt>
@@ -17,8 +18,7 @@
 #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
-// TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
-ebpf_registry_key_t ebpf_root_registry_key = HKEY_CURRENT_USER;
+extern ebpf_registry_key_t ebpf_root_registry_key;
 
 typedef struct _ebpf_program_section_info_with_count
 {
@@ -102,8 +102,9 @@ export_global_helper_information()
 uint32_t
 clear_all_ebpf_stores()
 {
+    // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
     std::cout << "Clearing eBPF store HKEY_CURRENT_USER" << std::endl;
-    return _ebpf_store_clear(ebpf_root_registry_key);
+    return ebpf_store_clear(ebpf_root_registry_key);
 }
 
 void

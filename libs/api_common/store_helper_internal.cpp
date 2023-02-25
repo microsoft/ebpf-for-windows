@@ -7,8 +7,10 @@
 #include "store_helper_internal.h"
 #include "utilities.hpp"
 
-extern ebpf_registry_key_t root_registry_key_current_user;
-extern ebpf_registry_key_t root_registry_key_local_machine;
+ebpf_registry_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
+ebpf_registry_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
+// TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
+ebpf_registry_key_t ebpf_root_registry_key = HKEY_CURRENT_USER;
 
 static uint32_t
 _open_ebpf_store_key(_Out_ ebpf_registry_key_t* store_key)
@@ -689,5 +691,57 @@ Exit:
         }
     }
     ebpf_free(helper_name);
+    return result;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_store_clear(_In_ const ebpf_registry_key_t root_key_path)
+{
+    ebpf_registry_key_t root_handle = {0};
+    ebpf_registry_key_t provider_handle = {0};
+    uint32_t status;
+    ebpf_result_t result = EBPF_FAILED;
+
+    // Open root registry key.
+    status = open_registry_key(root_key_path, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_handle);
+    if (status != ERROR_SUCCESS) {
+        if (status == ERROR_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
+        }
+        goto Exit;
+    }
+
+    // Open "providers" registry key.
+    status = open_registry_key(root_handle, EBPF_PROVIDERS_REGISTRY_PATH, REG_CREATE_FLAGS, &provider_handle);
+    if (status != ERROR_SUCCESS) {
+        if (status == ERROR_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
+        }
+        goto Exit;
+    }
+
+    // Delete subtree of provider reg key.
+    status = delete_registry_tree(provider_handle, NULL);
+    if (status != ERROR_SUCCESS) {
+        goto Exit;
+    }
+    close_registry_key(provider_handle);
+    provider_handle = nullptr;
+
+    status = delete_registry_key(root_handle, EBPF_PROVIDERS_REGISTRY_PATH);
+    if (status != ERROR_SUCCESS) {
+        goto Exit;
+    }
+
+    result = EBPF_SUCCESS;
+
+Exit:
+    if (provider_handle) {
+        close_registry_key(provider_handle);
+    }
+    if (root_handle) {
+        close_registry_key(root_handle);
+    }
+
     return result;
 }

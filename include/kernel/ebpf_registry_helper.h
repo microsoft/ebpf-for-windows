@@ -16,18 +16,6 @@ typedef _Return_type_success_(NT_SUCCESS(return )) uint32_t ebpf_registry_result
 
 typedef HANDLE ebpf_registry_key_t;
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Mocks for building platform_kernel & netebpfext when including the common ebpf_store_helper.h in kernel mode.
-// Currently these prototypes only need (existing) implementations in user mode, as they are not referenced in kernel
-// binaries.
-_Success_(return == STATUS_SUCCESS) uint32_t open_registry_key(
-    ebpf_registry_key_t root_key, _In_opt_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key);
-_Must_inspect_result_ ebpf_registry_result_t
-delete_registry_key(ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key);
-_Must_inspect_result_ ebpf_registry_result_t
-delete_registry_tree(ebpf_registry_key_t root_key, _In_opt_z_ const wchar_t* sub_key);
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 static void
 close_registry_key(ebpf_registry_key_t key)
 {
