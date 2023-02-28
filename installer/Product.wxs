@@ -59,10 +59,6 @@ SPDX-License-Identifier: MIT
 				<ComponentGroupRef Id="eBPF_Development_include_libbpf_include_uapi" />
 				<ComponentGroupRef Id="eBPF_Development_include_libbpf_include_uapi_linux" />
 				<ComponentGroupRef Id="eBPF_Development_include_libbpf_src" />
-				<ComponentGroupRef Id="eBPF_Development_include_libbpf_src_kernel" />
-				<ComponentGroupRef Id="eBPF_Development_include_libbpf_src_kernel_bpf" />
-				<ComponentGroupRef Id="eBPF_Development_include_libbpf_src_skeleton" />
-				<ComponentGroupRef Id="eBPF_Development_include_libbpf_src_windows" />
 				<ComponentGroupRef Id="eBPF_Development_include_linux" />
 				<ComponentGroupRef Id="eBPF_Development_include_net" />
 				<ComponentGroupRef Id="eBPF_Development_include_uapi" />
@@ -155,13 +151,7 @@ SPDX-License-Identifier: MIT
 									<Directory Id="dir_include_libbpf_include_uapi_linux" Name="linux" />
 								</Directory>
 							</Directory>
-							<Directory Id="dir_include_libbpf_src" Name="src">
-								<Directory Id="dir_include_libbpf_src_kernel" Name="kernel">
-									<Directory Id="dir_include_libbpf_src_kernel_bpf" Name="bpf" />
-								</Directory>
-								<Directory Id="dir_include_libbpf_src_skeleton" Name="skeleton" />
-								<Directory Id="dir_include_libbpf_src_windows" Name="windows" />
-							</Directory>
+							<Directory Id="dir_include_libbpf_src" Name="src" />
 						</Directory>
 						<Directory Id="dir_include_linux" Name="linux" />
 						<Directory Id="dir_include_net" Name="net" />
@@ -394,7 +384,7 @@ SPDX-License-Identifier: MIT
 				<File Id="GIT_COMMIT_ID.H" Name="git_commit_id.h" Source="$(var.SolutionDir)include\git_commit_id.h" />
 			</Component>
 			<Component Id="EBPF_BASE.H" DiskId="1" Guid="{FC47A44E-7747-4E98-AD55-09D9671C01C1}">
-				<File Id="EBPF_BASE.H" Name="git_commit_id.h" Source="$(var.SolutionDir)external\ebpf-verifier\src\ebpf_base.h" />
+				<File Id="EBPF_BASE.H" Name="ebpf_base.h" Source="$(var.SolutionDir)external\ebpf-verifier\src\ebpf_base.h" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_asm" Directory="dir_include_asm">
@@ -517,36 +507,65 @@ SPDX-License-Identifier: MIT
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_libbpf_src" Directory="dir_include_libbpf_src">
-			<Component Id="CFG.H" DiskId="1" Guid="{EC69B227-F8C9-4178-AEFB-8744A1C08D7F}">
-				<File Id="CFG.H" Name="cfg.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\src\cfg.h" />
+			<Component Id="BPF_1.H" DiskId="1" Guid="{F08F4178-620F-4919-8F97-0A988EE22E6A}">
+				<File Id="BPF_1.H" Name="bpf.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf.h" />
 			</Component>
-			<Component Id="JSON_WRITER.H" DiskId="1" Guid="{1475A491-ADEB-468C-8B3D-4EF2FA70C859}">
-				<File Id="JSON_WRITER.H" Name="json_writer.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\src\json_writer.h" />
+			<Component Id="BPF_CORE_READ.H" DiskId="1" Guid="{421BC497-8EB2-460C-ACC0-39510D66C8B1}">
+				<File Id="BPF_CORE_READ.H" Name="bpf_core_read.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_core_read.h" />
 			</Component>
-			<Component Id="MAIN.H" DiskId="1" Guid="{403E5308-CCEA-47BC-A310-AB94C2600FC3}">
-				<File Id="MAIN.H" Name="main.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\src\main.h" />
+			<Component Id="BPF_ENDIAN_1.H" DiskId="1" Guid="{2C17136B-4451-4412-9764-E903B8AC1F06}">
+				<File Id="BPF_ENDIAN_1.H" Name="bpf_endian.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_endian.h" />
 			</Component>
-			<Component Id="NETLINK_DUMPER.H" DiskId="1" Guid="{463A308F-02FA-4D6A-9E61-D1493CD32D45}">
-				<File Id="NETLINK_DUMPER.H" Name="netlink_dumper.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\src\netlink_dumper.h" />
+			<Component Id="BPF_GEN_INTERNAL.H" DiskId="1" Guid="{C0F686E9-F086-41FD-9D3D-E23B84B942F9}">
+				<File Id="BPF_GEN_INTERNAL.H" Name="bpf_gen_internal.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_gen_internal.h" />
 			</Component>
-			<Component Id="XLATED_DUMPER.H" DiskId="1" Guid="{EF8C3AB4-76BD-4C18-9F8E-8F7DCC2E9841}">
-				<File Id="XLATED_DUMPER.H" Name="xlated_dumper.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\src\xlated_dumper.h" />
+			<Component Id="BPF_HELPERS_1.H" DiskId="1" Guid="{FF2CDD1A-BB03-4580-AC2B-5EC477E32ACE}">
+				<File Id="BPF_HELPERS_1.H" Name="bpf_helpers.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_helpers.h" />
 			</Component>
-		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_include_libbpf_src_kernel" Directory="dir_include_libbpf_src_kernel" />
-		<ComponentGroup Id="eBPF_Development_include_libbpf_src_kernel_bpf" Directory="dir_include_libbpf_src_kernel_bpf">
-			<Component Id="DISASM.H" DiskId="1" Guid="{5ABA3B9C-8F62-4009-B6DC-710327011BD3}">
-				<File Id="DISASM.H" Name="disasm.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\src\kernel\bpf\disasm.h" />
+			<Component Id="BPF_HELPER_DEFS_1.H" DiskId="1" Guid="{9FD016D9-D5D3-4A11-BAC7-64BD68F1F61C}">
+				<File Id="BPF_HELPER_DEFS_1.H" Name="bpf_helper_defs.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_helper_defs.h" />
 			</Component>
-		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_include_libbpf_src_skeleton" Directory="dir_include_libbpf_src_skeleton">
-			<Component Id="PID_ITER.H" DiskId="1" Guid="{2F0497D2-9D2A-4788-B188-DA27CDA94D98}">
-				<File Id="PID_ITER.H" Name="pid_iter.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\src\skeleton\pid_iter.h" />
+			<Component Id="BPF_TRACING.H" DiskId="1" Guid="{DD88A4DF-C36D-4D48-B191-9C2E3C8768E8}">
+				<File Id="BPF_TRACING.H" Name="bpf_tracing.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_tracing.h" />
 			</Component>
-		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_include_libbpf_src_windows" Directory="dir_include_libbpf_src_windows">
-			<Component Id="PLATFORM.H" DiskId="1" Guid="{594B90B0-BFF4-470A-B706-EA76CEC6F4DA}">
-				<File Id="PLATFORM.H" Name="platform.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\src\windows\platform.h" />
+			<Component Id="BTF_1.H" DiskId="1" Guid="{1D54C166-3E43-41A0-ABAC-941237C12A7E}">
+				<File Id="BTF_1.H" Name="btf.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\btf.h" />
+			</Component>
+			<Component Id="HASHMAP_1.H" DiskId="1" Guid="{C51AD9E3-9DF4-483B-844F-05B5F723330C}">
+				<File Id="HASHMAP_1.H" Name="hashmap.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\hashmap.h" />
+			</Component>
+			<Component Id="LIBBPF_1.H" DiskId="1" Guid="{77100F8C-A601-45B8-AD07-3C2B0F31FCF4}">
+				<File Id="LIBBPF_1.H" Name="libbpf.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\libbpf.h" />
+			</Component>
+			<Component Id="LIBBPF_COMMON.H" DiskId="1" Guid="{46E4A472-4975-40F4-B825-1C26D5D71A15}">
+				<File Id="LIBBPF_COMMON.H" Name="libbpf_common.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\libbpf_common.h" />
+			</Component>
+			<Component Id="LIBBPF_INTERNAL.H" DiskId="1" Guid="{EE258EDC-DDF9-44DB-92D1-93D33B45CF4D}">
+				<File Id="LIBBPF_INTERNAL.H" Name="libbpf_internal.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\libbpf_internal.h" />
+			</Component>
+			<Component Id="LIBBPF_LEGACY_1.H" DiskId="1" Guid="{4C687F08-30C6-4298-9632-2CD91566669B}">
+				<File Id="LIBBPF_LEGACY_1.H" Name="libbpf_legacy.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\libbpf_legacy.h" />
+			</Component>
+			<Component Id="LIBBPF_VERSION.H" DiskId="1" Guid="{763C6514-9295-436B-87DF-54789F444685}">
+				<File Id="LIBBPF_VERSION.H" Name="libbpf_version.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\libbpf_version.h" />
+			</Component>
+			<Component Id="NLATTR.H" DiskId="1" Guid="{1624501C-4523-4E99-A594-274FDE8C1128}">
+				<File Id="NLATTR.H" Name="nlattr.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\nlattr.h" />
+			</Component>
+			<Component Id="RELO_CORE.H" DiskId="1" Guid="{B911127B-3702-49F2-A97F-15268F905EE3}">
+				<File Id="RELO_CORE.H" Name="relo_core.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\relo_core.h" />
+			</Component>
+			<Component Id="SKEL_INTERNAL.H" DiskId="1" Guid="{674B4B4C-968B-4593-948D-4BD623EC4E13}">
+				<File Id="SKEL_INTERNAL.H" Name="skel_internal.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\skel_internal.h" />
+			</Component>
+			<Component Id="STRSET.H" DiskId="1" Guid="{00A310E8-6886-4C45-8BEA-F5121B2AAD0A}">
+				<File Id="STRSET.H" Name="strset.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\strset.h" />
+			</Component>
+			<Component Id="STR_ERROR.H" DiskId="1" Guid="{E9AC241C-5A14-4C3B-96F4-AB79211DB9F4}">
+				<File Id="STR_ERROR.H" Name="str_error.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\str_error.h" />
+			</Component>
+			<Component Id="USDT.BPF.H" DiskId="1" Guid="{7E29208F-3B05-4F1E-A425-1BD8759CD659}">
+				<File Id="USDT.BPF.H" Name="usdt.bpf.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\usdt.bpf.h" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_uapi_linux" Directory="dir_include_uapi_linux">
