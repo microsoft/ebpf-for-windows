@@ -2717,6 +2717,9 @@ TEST_CASE("libbpf_load_stress", "[libbpf]")
         threads.emplace_back([i](std::stop_token stop_token) {
             while (!stop_token.stop_requested()) {
                 struct bpf_object* object = bpf_object__open("droppacket_um.dll");
+                if (!object) {
+                    break;
+                }
                 // Enumerate maps and programs.
                 bpf_program* program;
                 bpf_object__for_each_program(program, object) {}
