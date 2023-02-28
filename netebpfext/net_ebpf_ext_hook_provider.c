@@ -171,10 +171,10 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
     // Wait for any in progress callbacks to complete.
     _ebpf_ext_attach_wait_for_rundown(&hook_client->rundown);
 
+    IoFreeWorkItem(work_item);
+
     // Note: This frees the provider binding context (hook_client).
     NmrProviderDetachClientComplete(hook_client->nmr_binding_handle);
-
-    IoFreeWorkItem(work_item);
 
     NET_EBPF_EXT_LOG_EXIT();
 }

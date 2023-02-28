@@ -49,31 +49,53 @@ typedef class _netebpf_ext_helper
     }
 
     FWP_ACTION_TYPE
-    test_bind_ipv4() { return _fwp_engine::get()->test_bind_ipv4(); }
+    test_bind_ipv4(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return _fwp_engine::get()->test_bind_ipv4(parameters);
+    }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet4_recv_accept() { return _fwp_engine::get()->test_cgroup_inet4_recv_accept(); }
+    test_cgroup_inet4_recv_accept(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return _fwp_engine::get()->test_cgroup_inet4_recv_accept(parameters);
+    }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet6_recv_accept() { return _fwp_engine::get()->test_cgroup_inet6_recv_accept(); }
+    test_cgroup_inet6_recv_accept(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return _fwp_engine::get()->test_cgroup_inet6_recv_accept(parameters);
+    }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet4_connect() { return _fwp_engine::get()->test_cgroup_inet4_connect(); }
+    test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return _fwp_engine::get()->test_cgroup_inet4_connect(parameters);
+    }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet6_connect() { return _fwp_engine::get()->test_cgroup_inet6_connect(); }
+    test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return _fwp_engine::get()->test_cgroup_inet6_connect(parameters);
+    }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v4() { return _fwp_engine::get()->test_sock_ops_v4(); }
+    test_sock_ops_v4(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return _fwp_engine::get()->test_sock_ops_v4(parameters);
+    }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v6() { return _fwp_engine::get()->test_sock_ops_v6(); }
+    test_sock_ops_v6(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return _fwp_engine::get()->test_sock_ops_v6(parameters);
+    }
 
   private:
     bool trace_initiated = false;
     bool ndis_handle_initialized = false;
     bool provider_registered = false;
     bool wfp_initialized = false;
+    bool platform_initialized = false;
     DRIVER_OBJECT* driver_object = reinterpret_cast<DRIVER_OBJECT*>(this);
     DEVICE_OBJECT* device_object = reinterpret_cast<DEVICE_OBJECT*>(this);
 
@@ -165,3 +187,6 @@ typedef class _netebpf_ext_helper
     HANDLE nmr_hook_client_handle;
 
 } netebpf_ext_helper_t;
+
+void
+netebpfext_initialize_fwp_classify_parameters(_Out_ fwp_classify_parameters_t* parameters);
