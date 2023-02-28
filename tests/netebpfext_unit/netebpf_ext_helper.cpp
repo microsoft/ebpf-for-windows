@@ -6,6 +6,37 @@
 ebpf_registry_key_t ebpf_root_registry_key = HKEY_CURRENT_USER;
 DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
 
+constexpr uint32_t _test_destination_ipv4_address = 0x01020304;
+static FWP_BYTE_ARRAY16 _test_destination_ipv6_address = {1, 2, 3, 4};
+constexpr uint16_t _test_destination_port = 1234;
+constexpr uint32_t _test_source_ipv4_address = 0x05060708;
+static FWP_BYTE_ARRAY16 _test_source_ipv6_address = {5, 6, 7, 8};
+constexpr uint16_t _test_source_port = 5678;
+constexpr uint8_t _test_protocol = IPPROTO_TCP;
+constexpr uint32_t _test_compartment_id = 1;
+static FWP_BYTE_BLOB _test_app_id = {.size = 2, .data = (uint8_t*)"\\"};
+static uint64_t _test_interface_luid = 1;
+static TOKEN_ACCESS_INFORMATION _test_token_access_information = {0};
+static FWP_BYTE_BLOB _test_user_id = {
+    .size = (sizeof(TOKEN_ACCESS_INFORMATION)), .data = (uint8_t*)&_test_token_access_information};
+
+void
+netebpfext_initialize_fwp_classify_parameters(_Out_ fwp_classify_parameters_t* parameters)
+{
+    parameters->destination_ipv4_address = _test_destination_ipv4_address;
+    parameters->destination_ipv6_address = _test_destination_ipv6_address;
+    parameters->source_ipv4_address = _test_source_ipv4_address;
+    parameters->source_ipv6_address = _test_source_ipv6_address;
+    parameters->source_port = _test_source_port;
+    parameters->destination_port = _test_destination_port;
+    parameters->protocol = _test_protocol;
+    parameters->compartment_id = _test_compartment_id;
+    parameters->app_id = _test_app_id;
+    parameters->interface_luid = _test_interface_luid;
+    parameters->token_access_information = _test_token_access_information;
+    parameters->user_id = _test_user_id;
+}
+
 _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ const void* npi_specific_characteristics,
     _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
@@ -15,6 +46,9 @@ _netebpf_ext_helper::_netebpf_ext_helper(
     status = net_ebpf_ext_trace_initiate();
     REQUIRE(NT_SUCCESS(status));
     trace_initiated = true;
+
+    REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
+    platform_initialized = true;
 
     status = net_ebpf_ext_initialize_ndis_handles(driver_object);
     REQUIRE(NT_SUCCESS(status));
@@ -69,6 +103,10 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
 
     if (ndis_handle_initialized) {
         net_ebpf_ext_uninitialize_ndis_handles();
+    }
+
+    if (platform_initialized) {
+        ebpf_platform_terminate();
     }
 
     if (trace_initiated) {

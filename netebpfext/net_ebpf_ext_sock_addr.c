@@ -1067,8 +1067,11 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &result) != EBPF_SUCCESS)
+    if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &result) != EBPF_SUCCESS) {
+        // Block the request if we failed to invoke the eBPF program.
+        classify_output->actionType = FWP_ACTION_BLOCK;
         goto Exit;
+    }
 
     classify_output->actionType = (result == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
     if (classify_output->actionType == FWP_ACTION_BLOCK)
@@ -1304,7 +1307,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     net_ebpf_extension_connection_context_t* connection_context_original = NULL;
     net_ebpf_extension_connection_context_t* connection_context_redirected = NULL;
     BOOLEAN redirected = FALSE;
-    FWP_ACTION_TYPE action = FWP_ACTION_BLOCK;
+    FWP_ACTION_TYPE action = FWP_ACTION_PERMIT;
     BOOLEAN classify_handle_acquired = FALSE;
     BOOLEAN v4_mapped = FALSE;
     BOOLEAN is_original_connection;
