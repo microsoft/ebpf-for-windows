@@ -594,9 +594,6 @@ SPDX-License-Identifier: MIT
 			<Component Id="eBPFApi_lib" Guid="{A164197B-3C57-4ECA-B138-CBF558DA4401}">
 				<File Id="EbpfApi.lib" Name="EbpfApi.lib" DiskId="1" Source="$(var.api.TargetDir)EbpfApi.lib" />
 			</Component>
-			<Component Id="eBPFApi_lib_pdb" Guid="{197589BB-4A27-4313-9A70-BB455A58C987}">
-				<File Id="eBPFApi_lib.pdb" Name="EbpfApi.pdb" DiskId="1" Source="$(var.api.TargetDir)EbpfApi.pdb" />
-			</Component>
 		</ComponentGroup>
 	</Fragment>
 
