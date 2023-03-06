@@ -707,6 +707,8 @@ ebpf_store_clear(_In_ const ebpf_registry_key_t root_key_path)
     if (status != ERROR_SUCCESS) {
         if (status == ERROR_FILE_NOT_FOUND) {
             result = EBPF_SUCCESS;
+        } else {
+            result = win32_error_code_to_ebpf_result(status);
         }
         goto Exit;
     }
@@ -716,6 +718,8 @@ ebpf_store_clear(_In_ const ebpf_registry_key_t root_key_path)
     if (status != ERROR_SUCCESS) {
         if (status == ERROR_FILE_NOT_FOUND) {
             result = EBPF_SUCCESS;
+        } else {
+            result = win32_error_code_to_ebpf_result(status);
         }
         goto Exit;
     }
@@ -723,6 +727,7 @@ ebpf_store_clear(_In_ const ebpf_registry_key_t root_key_path)
     // Delete subtree of provider reg key.
     status = delete_registry_tree(provider_handle, NULL);
     if (status != ERROR_SUCCESS) {
+        result = win32_error_code_to_ebpf_result(status);
         goto Exit;
     }
     close_registry_key(provider_handle);
@@ -730,6 +735,7 @@ ebpf_store_clear(_In_ const ebpf_registry_key_t root_key_path)
 
     status = delete_registry_key(root_handle, EBPF_PROVIDERS_REGISTRY_PATH);
     if (status != ERROR_SUCCESS) {
+        result = win32_error_code_to_ebpf_result(status);
         goto Exit;
     }
 
