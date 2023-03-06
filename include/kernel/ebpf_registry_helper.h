@@ -22,27 +22,32 @@ close_registry_key(ebpf_registry_key_t key)
     ZwClose(key);
 }
 
-_Success_(return == 0) static NTSTATUS
-    convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size)
+static NTSTATUS
+convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_length) wchar_t* string, size_t string_length)
 {
-    UNICODE_STRING unicode_string;
+    UNICODE_STRING unicode_string = {0};
+
     NTSTATUS status = RtlStringFromGUID(guid, &unicode_string);
     if (status != STATUS_SUCCESS) {
         goto Exit;
     }
 
-    if (string_size < GUID_STRING_LENGTH + 1) {
+    if (string_length < GUID_STRING_LENGTH + 1) {
         status = STATUS_BUFFER_TOO_SMALL;
         goto Exit;
     }
 
-    __analysis_assume(unicode_string.MaximumLength >= GUID_STRING_LENGTH * 2);
+    __analysis_assume(unicode_string.MaximumLength >= GUID_STRING_LENGTH * sizeof(wchar_t));
     __analysis_assume(unicode_string.Buffer != NULL);
+
     // Copy the buffer to the output string.
-    memcpy(string, unicode_string.Buffer, GUID_STRING_LENGTH * 2);
+    memcpy(string, unicode_string.Buffer, GUID_STRING_LENGTH * sizeof(wchar_t));
     string[GUID_STRING_LENGTH] = L'\0';
 
 Exit:
+    if (unicode_string.Buffer != NULL) {
+        RtlFreeUnicodeString(&unicode_string);
+    }
     return status;
 }
 
