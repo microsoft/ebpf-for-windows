@@ -166,7 +166,7 @@ _fwp_engine::test_cgroup_inet4_recv_accept(_In_ fwp_classify_parameters_t* param
         const_cast<FWP_BYTE_BLOB*>(&parameters->app_id);
     incoming_value[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_USER_ID].value.byteBlob =
         const_cast<FWP_BYTE_BLOB*>(&parameters->user_id);
-        incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_FLAGS].value.uint32=  FWP_CONDITION_FLAG_IS_REAUTHORIZE;
+        incoming_value[FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_FLAGS].value.uint32 =  FWP_CONDITION_FLAG_IS_REAUTHORIZE;
 
     return test_callout(
         FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4, FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4, EBPF_DEFAULT_SUBLAYER, incoming_value);
