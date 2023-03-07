@@ -46,6 +46,7 @@ const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
+static std::mutex _ebpf_state_mutex;
 _Guarded_by_(_ebpf_state_mutex) static crab::lazy_allocator<std::map<ebpf_handle_t, ebpf_program_t*>> _ebpf_programs;
 _Guarded_by_(_ebpf_state_mutex) static crab::lazy_allocator<std::map<ebpf_handle_t, ebpf_map_t*>> _ebpf_maps;
 _Guarded_by_(_ebpf_state_mutex) static crab::lazy_allocator<std::vector<ebpf_object_t*>> _ebpf_objects;
@@ -1496,13 +1497,16 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static void _clean_up_ebpf_objects()
     }
 
 // Intentional use of scope to limit lifetime of lock.
-#if defined(_DEBUG)
     {
         std::unique_lock lock(_ebpf_state_mutex);
-        ebpf_assert(_ebpf_programs.size() == 0);
-        ebpf_assert(_ebpf_maps.size() == 0);
+        ebpf_assert(_ebpf_programs->size() == 0);
+        ebpf_assert(_ebpf_maps->size() == 0);
+        _ebpf_programs.clear();
+        _ebpf_maps.clear();
+        _ebpf_objects.clear();
     }
-#endif
+
+    EBPF_LOG_EXIT();
 }
 
 void

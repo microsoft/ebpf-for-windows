@@ -243,7 +243,6 @@ TEST_CASE("hash_table_stress_test", "[platform]")
             for (auto& key : keys)
                 run_in_epoch([&]() { (void)ebpf_hash_table_delete(table, reinterpret_cast<const uint8_t*>(&key)); });
         }
-        ebpf_enable_memory_tests = false;
     };
 
     std::vector<std::jthread> threads;

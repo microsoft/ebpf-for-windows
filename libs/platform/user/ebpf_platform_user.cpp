@@ -380,7 +380,6 @@ ebpf_platform_terminate()
     }
     ebpf_enable_memory_tests = false;
 
-    _clean_up_thread_pool();
     _ebpf_emulated_dpcs.resize(0);
 }
 

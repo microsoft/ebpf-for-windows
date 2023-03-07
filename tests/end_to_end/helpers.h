@@ -65,6 +65,9 @@ typedef class _emulate_dpc
 
 } emulate_dpc_t;
 
+void
+clear_ebpf_provider_data();
+
 typedef class _hook_helper
 {
   public:
@@ -114,6 +117,7 @@ typedef class _single_instance_hook : public _hook_helper
     {
         detach();
         ebpf_provider_unload(provider);
+        clear_ebpf_provider_data();
     }
 
     uint32_t

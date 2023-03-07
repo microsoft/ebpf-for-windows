@@ -36,6 +36,7 @@
     TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
 
 const int nonexistent_fd = 12345678;
+extern thread_local bool ebpf_enable_memory_tests;
 
 TEST_CASE("libbpf load program", "[libbpf][deprecated]")
 {
@@ -2715,6 +2716,7 @@ TEST_CASE("libbpf_load_stress", "[libbpf]")
     for (size_t i = 0; i < static_cast<size_t>(ebpf_get_cpu_count()) * 4; i++) {
         // Initialize thread object with lambda plus stop token
         threads.emplace_back([i](std::stop_token stop_token) {
+            ebpf_enable_memory_tests = true;
             while (!stop_token.stop_requested()) {
                 struct bpf_object* object = bpf_object__open("droppacket_um.dll");
                 if (!object) {
