@@ -185,6 +185,16 @@ _nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& p
 
         // Clean up the binding on a failure.
         if (!NT_SUCCESS(status)) {
+            if (binding_ptr->client_binding_status != binding_status::Ready ||
+                binding_ptr->provider_binding_status != binding_status::Ready) {
+                
+                // Unbind already started.
+                status = STATUS_SUCCESS;
+            }
+
+            status = (binding_ptr->provider_binding_context)
+                     ? binding_ptr->provider.characteristics.ProviderDetachClient(const_cast<void*>(binding_ptr->provider_binding_context))
+                     : STATUS_SUCCESS;
             unbind_complete(*binding_ptr);
         } else {
             std::unique_lock l(lock);
