@@ -7,6 +7,7 @@ Note: Currently releases are not production signed.
 
 1. Update the version number, making sure to follow [Semantic Versioning 2.0](https://semver.org), in the following files:
     * resource\ebpf_version.h
+    * installer\Product.wxs (in the XML attribute `<Wix... <Product... Version="x.y.z" ...>...>`)
     * docs\tutorial.md
 2. Regenerate the expected bpf2c output:
     ``` .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\```
