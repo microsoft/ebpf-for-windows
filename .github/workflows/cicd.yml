@@ -364,6 +364,19 @@ jobs:
       gather_dumps: true
       low_memory: true
 
+  # Run the low memory simulator for netebpfext_unit tests.
+  low_memory_netebpfext_unit:
+    needs: regular
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: low_memory
+      test_command: .\netebpfext_unit.exe
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: true
+      gather_dumps: true
+      low_memory: true
+
   # Additional jobs to run on a schedule only (skip push and pull request).
   # ---------------------------------------------------------------------------
   codeql:
