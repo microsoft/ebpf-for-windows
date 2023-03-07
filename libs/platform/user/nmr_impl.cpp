@@ -172,26 +172,33 @@ _nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& p
     _InterlockedIncrement64(&client.binding_count);
     _InterlockedIncrement64(&provider.binding_count);
 
-    _nmr::binding binding = {provider, client};
-    auto binding_ptr = std::make_shared<_nmr::binding>(std::move(binding));
+    try {
+        _nmr::binding binding = {provider, client};
+        auto binding_ptr = std::make_shared<_nmr::binding>(std::move(binding));
 
-    bindings.insert({binding_ptr.get(), binding_ptr});
+        bindings.insert({binding_ptr.get(), binding_ptr});
 
-    return {[&client, &provider, binding_ptr, this]() {
-        NTSTATUS status = client.characteristics.ClientAttachProvider(
-            reinterpret_cast<HANDLE>(binding_ptr.get()),
-            const_cast<void*>(client.context),
-            &provider.characteristics.ProviderRegistrationInstance);
+        return {[&client, &provider, binding_ptr, this]() {
+            NTSTATUS status = client.characteristics.ClientAttachProvider(
+                reinterpret_cast<HANDLE>(binding_ptr.get()),
+                const_cast<void*>(client.context),
+                &provider.characteristics.ProviderRegistrationInstance);
 
-        // Clean up the binding on a failure.
-        if (!NT_SUCCESS(status)) {
-            unbind_complete(*binding_ptr);
-        } else {
-            std::unique_lock l(lock);
-            binding_ptr->client_binding_status = binding_status::Ready;
-            binding_ptr->provider_binding_status = binding_status::Ready;
-        }
-    }};
+            // Clean up the binding on a failure.
+            if (!NT_SUCCESS(status)) {
+                unbind_complete(*binding_ptr);
+            } else {
+                std::unique_lock l(lock);
+                binding_ptr->client_binding_status = binding_status::Ready;
+                binding_ptr->provider_binding_status = binding_status::Ready;
+            }
+        }};
+    } catch (std::bad_alloc&) {
+        // If we fail to allocate the binding, release the references on the client and provider.
+        _InterlockedDecrement64(&client.binding_count);
+        _InterlockedDecrement64(&provider.binding_count);
+        throw;
+    }
 }
 
 void

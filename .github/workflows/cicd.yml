@@ -74,6 +74,16 @@ jobs:
       ld_flags: '"clang_rt.fuzzer_MD-x86_64.lib" "libsancov.lib"'
       build_options: /p:Fuzzer='True' /t:tests\libfuzzer\execution_context_fuzzer /t:tests\libfuzzer\bpf2c_fuzzer /t:tests\libfuzzer\verifier_fuzzer /t:tests\libfuzzer\core_helper_fuzzer /t:tests\libfuzzer\netebpfext_fuzzer
 
+  # Perform the low memory build with iterator debugging disabled
+  no_iterator_debug_build:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build-x64-no-iterator-debug
+      build_options: /p:ReleaseJIT='True'
+      cxx_flags: /D_ITERATOR_DEBUG_LEVEL=0
+
   # Run the unit tests in GitHub.
   unit_tests:
     # Always run this job.
@@ -92,13 +102,13 @@ jobs:
 
   unit_tests_leak_detection:
     # Always run this job.
-    needs: regular
+    needs: no_iterator_debug_build
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests_with_leak_detection
       test_command: .\unit_tests.exe -d yes
-      build_artifact: Build-x64
+      build_artifact: Build-x64-no-iterator-debug
       environment: windows-2022
       code_coverage: true
       gather_dumps: true
@@ -353,12 +363,12 @@ jobs:
 
   # Run the low memory simulator in GitHub.
   low_memory:
-    needs: regular
+    needs: no_iterator_debug_build
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: low_memory
       test_command: .\unit_tests.exe
-      build_artifact: Build-x64
+      build_artifact: Build-x64-no-iterator-debug
       environment: windows-2022
       code_coverage: true
       gather_dumps: true
@@ -378,13 +388,13 @@ jobs:
   # Run the complete low memory simulator in GitHub.
   # Runs on a schedule as this takes a long time to run.
   low_memory_full:
-    needs: regular
+    needs: no_iterator_debug_build
     if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: low_memory_full
       test_command: .\unit_tests.exe
-      build_artifact: Build-x64
+      build_artifact: Build-x64-no-iterator-debug
       environment: windows-2019
       code_coverage: false
       gather_dumps: true

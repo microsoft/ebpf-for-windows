@@ -1496,7 +1496,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static void _clean_up_ebpf_objects()
         _delete_ebpf_object(object);
     }
 
-// Intentional use of scope to limit lifetime of lock.
+    // Intentional use of scope to limit lifetime of lock.
     {
         std::unique_lock lock(_ebpf_state_mutex);
         ebpf_assert(_ebpf_programs->size() == 0);
