@@ -179,6 +179,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "installer", "installer", "{8CA48236-9B24-4841-B3E2-496C31ABBB23}"
 EndProject
 Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "ebpf-for-windows", "installer\ebpf-for-windows.wixproj", "{FE9B26CD-E885-4881-90D7-A096131C5C4A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{07DC6181-84A2-4A14-A806-5E9AF6C929C2} = {07DC6181-84A2-4A14-A806-5E9AF6C929C2}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

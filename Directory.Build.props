@@ -46,7 +46,6 @@
     <Link>
       <CETCompat>true</CETCompat>
       <AdditionalLibraryDirectories>$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>$(LDFLAGS) %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(DisableJIT)'=='Release|True'">

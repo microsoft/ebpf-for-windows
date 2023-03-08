@@ -81,7 +81,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-no-iterator-debug
-      build_options: /p:ReleaseJIT='True'
+      build_options: /p:ReleaseJIT='True' /t:tests\unit_tests
       cxx_flags: /D_ITERATOR_DEBUG_LEVEL=0
 
   # Run the unit tests in GitHub.
