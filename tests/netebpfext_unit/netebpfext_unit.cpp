@@ -9,6 +9,9 @@
 
 #define CONCURRENT_THREAD_RUN_TIME_IN_SECONDS 10
 
+extern bool
+ebpf_low_memory_test_in_progress();
+
 typedef enum _sock_addr_test_type
 {
     SOCK_ADDR_TEST_TYPE_CONNECT,
@@ -480,6 +483,8 @@ sock_addr_thread_function(
     FWP_ACTION_TYPE result;
     uint16_t port_number;
 
+    bool low_memory_test = ebpf_low_memory_test_in_progress();
+
     if (start_port != end_port) {
         port_number = start_port - 1;
     } else {
@@ -507,7 +512,7 @@ sock_addr_thread_function(
             break;
         }
 
-        REQUIRE(result == _get_fwp_sock_addr_action(port_number));
+        REQUIRE((result == _get_fwp_sock_addr_action(port_number) || low_memory_test));
     }
 }
 

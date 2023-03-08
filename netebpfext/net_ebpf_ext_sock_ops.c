@@ -90,6 +90,7 @@ static ebpf_extension_data_t _ebpf_sock_ops_program_info_provider_data = {
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_ops_program_info_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_program_info_provider_t* _ebpf_sock_ops_program_info_provider_context = NULL;
+static bool _ebpf_sock_ops_program_info_provider_registered = false;
 
 //
 // SOCK_OPS Hook NPI Provider.
@@ -105,6 +106,7 @@ ebpf_extension_data_t _net_ebpf_extension_sock_ops_hook_provider_data = {
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_ops_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_hook_provider_t* _ebpf_sock_ops_hook_provider_context = NULL;
+static bool _ebp_sock_ops_hook_provider_registered = false;
 
 //
 // NMR Registration Helper Routines.
@@ -302,8 +304,10 @@ net_ebpf_ext_sock_ops_register_providers()
     _ebpf_sock_ops_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_SOCK_OPS;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_sock_ops_program_info_provider_context);
-    if (status != STATUS_SUCCESS)
+    if (status != STATUS_SUCCESS) {
         goto Exit;
+    }
+    _ebpf_sock_ops_program_info_provider_registered = true;
 
     _net_ebpf_sock_ops_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_SOCK_OPS;
     _net_ebpf_sock_ops_hook_provider_data.bpf_attach_type = BPF_CGROUP_SOCK_OPS;
@@ -320,18 +324,29 @@ net_ebpf_ext_sock_ops_register_providers()
         NULL,
         &_ebpf_sock_ops_hook_provider_context);
 
-    if (status != EBPF_SUCCESS)
+    if (status != EBPF_SUCCESS) {
         goto Exit;
+    }
+    _ebp_sock_ops_hook_provider_registered = true;
 
 Exit:
+    if (!NT_SUCCESS(status)) {
+        net_ebpf_ext_sock_ops_unregister_providers();
+    }
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
 net_ebpf_ext_sock_ops_unregister_providers()
 {
-    net_ebpf_extension_hook_provider_unregister(_ebpf_sock_ops_hook_provider_context);
-    net_ebpf_extension_program_info_provider_unregister(_ebpf_sock_ops_program_info_provider_context);
+    if (_ebp_sock_ops_hook_provider_registered) {
+        net_ebpf_extension_hook_provider_unregister(_ebpf_sock_ops_hook_provider_context);
+        _ebp_sock_ops_hook_provider_registered = false;
+    }
+    if (_ebpf_sock_ops_program_info_provider_registered) {
+        net_ebpf_extension_program_info_provider_unregister(_ebpf_sock_ops_program_info_provider_context);
+        _ebpf_sock_ops_program_info_provider_registered = false;
+    }
 }
 
 wfp_ale_layer_fields_t wfp_flow_established_fields[] = {

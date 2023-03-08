@@ -69,6 +69,7 @@ static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_program_info_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_program_info_provider_t* _ebpf_bind_program_info_provider_context = NULL;
+static bool _ebpf_bind_program_info_provider_registered = false;
 
 //
 // Bind Hook NPI Provider.
@@ -81,6 +82,7 @@ ebpf_extension_data_t _net_ebpf_extension_bind_hook_provider_data = {
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_hook_provider_t* _ebpf_bind_hook_provider_context = NULL;
+static bool _ebpf_bind_hook_info_provider_registered = false;
 
 //
 // Client attach/detach handler routines.
@@ -186,8 +188,10 @@ net_ebpf_ext_bind_register_providers()
     _ebpf_bind_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_BIND;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_bind_program_info_provider_context);
-    if (status != STATUS_SUCCESS)
+    if (status != STATUS_SUCCESS) {
         goto Exit;
+    }
+    _ebpf_bind_program_info_provider_registered = true;
 
     _net_ebpf_bind_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_BIND;
     // Set the attach type as the provider module id.
@@ -203,16 +207,26 @@ net_ebpf_ext_bind_register_providers()
     if (status != EBPF_SUCCESS) {
         goto Exit;
     }
+    _ebpf_bind_hook_info_provider_registered = true;
 
 Exit:
+    if (!NT_SUCCESS(status)) {
+        net_ebpf_ext_bind_unregister_providers();
+    }
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
 net_ebpf_ext_bind_unregister_providers()
 {
-    net_ebpf_extension_hook_provider_unregister(_ebpf_bind_hook_provider_context);
-    net_ebpf_extension_program_info_provider_unregister(_ebpf_bind_program_info_provider_context);
+    if (_ebpf_bind_hook_info_provider_registered) {
+        net_ebpf_extension_hook_provider_unregister(_ebpf_bind_hook_provider_context);
+        _ebpf_bind_hook_info_provider_registered = false;
+    }
+    if (_ebpf_bind_program_info_provider_registered) {
+        net_ebpf_extension_program_info_provider_unregister(_ebpf_bind_program_info_provider_context);
+        _ebpf_bind_program_info_provider_registered = false;
+    }
 }
 
 //
