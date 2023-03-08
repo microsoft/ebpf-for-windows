@@ -27,42 +27,48 @@ eBPF for Windows:
     - `atomic_instruction_others_raw.c`
     - `atomic_instruction_others_sys.c`
 
-    ```c
-    static void
-    _get_version(_Out_ bpf2c_version_t* version)
-    {
-        version->major = 0;    // <-- Update with X, from your release X.Y.Z version number
-        version->minor = 6;    // <-- Update with Y, from your release X.Y.Z version number
-        version->revision = 0; // <-- Update with Z, from your release X.Y.Z version number
-    }
-    ```
+        For each of the above files, modify the version numbers as follows:
+
+        ```c
+        static void
+        _get_version(_Out_ bpf2c_version_t* version)
+        {
+            version->major = 0;    // <-- Update with X, from your release X.Y.Z version number
+            version->minor = 6;    // <-- Update with Y, from your release X.Y.Z version number
+            version->revision = 0; // <-- Update with Z, from your release X.Y.Z version number
+        }
+        ```
 
 1. Commit all the changes in the release branch into your forked repo.
 1. Create a **Draft** pull-request for the release branch into the main `ebpf-for-windows` repo, and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Once the CI/CD pipeline for the PR completes, download the
    "`ebpf-for-windows MSI installer (Release)`" and "`ebpf-for-windows nuget`" build artifacts
    (accessible via the "`Actions`" tab on GitHub).
-1. Extract the `*.msi` and `*.nupkg`, respectively, out of them.
+1. Extract the `*.msi` and `*.nupkg` files, respectively, out of them, and rename them in the following format (replace "`X.Y.Z`" with the version number being released):
+
+    - `eBPF-for-Windows.X.Y.Z.msi`
+    - `eBPF-for-Windows.X.Y.Z.nupkg`
+
 1. Test the MSI manually (since not yet tested in CI/CD):
     1. Copy the MSI into a VM.
         >**Note**: currently only test-signed VMs are supported.
     1. Install the MSI by *enabling all its features* from the GUI.
-    1. Open a **new** *Admin Command Prompt*, and run some commands to make sure the eBPF platform is correctly installed, e.g.:
+    1. **After** the MSI has successfully installed, open a **new** *Admin Command Prompt*, and run the following commands to make sure the eBPF platform is correctly installed and working, e.g.:
 
         ```bash
         # Verify that the eBPF drivers are running:
-        sc.exe qc eBPFCore
-        sc.exe qc NetEbpfExt
+        sc.exe query eBPFCore
+        sc.exe query NetEbpfExt
 
         # Verify that the netsh extension is operational:
         netsh ebpf show prog
 
-        # Test some commands, e.g.:
-        bpftool prog show
-
         # Run the unit tests, and expect a full pass:
         cd <eBPF install folder>\testing
         unit_tests.exe -d yes
+
+        # Test some additional commands, e.g.:
+        bpftool prog show
         ```
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into `main`.
 1. Go to the repo on GitHub and click on "`<Code>`" and click on right the "`Create a new release`" link.
