@@ -468,46 +468,13 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     REQUIRE(result == FWP_ACTION_BLOCK);
 
     // Test reauth flags.
-    //  Classify operations that should be allowed.
+    // Classify operations that should be allowed.
     client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
     client_context.validate_sock_addr_entries = true;
     
     parameters.reauth_flag = FWP_CONDITION_FLAG_IS_REAUTHORIZE;
     
     result = helper.test_cgroup_inet4_recv_accept(&parameters);
-    REQUIRE(result == FWP_ACTION_PERMIT);
-
-    result = helper.test_cgroup_inet6_recv_accept(&parameters);
-    REQUIRE(result == FWP_ACTION_PERMIT);
-
-    result = helper.test_cgroup_inet4_connect(&parameters);
-    REQUIRE(result == FWP_ACTION_PERMIT);
-
-    result = helper.test_cgroup_inet6_connect(&parameters);
-    REQUIRE(result == FWP_ACTION_PERMIT);
-
-}
-
-
-TEST_CASE("reauth_invoke", "[netebpfext]")
-{
-    ebpf_extension_data_t npi_specific_characteristics = {};
-    test_sock_addr_client_context_t client_context = {};
-    fwp_classify_parameters_t parameters = {};
-
-    netebpf_ext_helper_t helper(
-        &npi_specific_characteristics,
-        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
-        (netebpfext_helper_base_client_context_t*)&client_context);
-
-    netebpfext_initialize_fwp_classify_parameters(&parameters);
-
-    // Classify operations that should be allowed.
-    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
-    client_context.validate_sock_addr_entries = true;
-    parameters.reauth_flag = FWP_CONDITION_FLAG_IS_REAUTHORIZE;
-    FWP_ACTION_TYPE result = helper.test_cgroup_inet4_recv_accept(&parameters);
-    
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     result = helper.test_cgroup_inet6_recv_accept(&parameters);
