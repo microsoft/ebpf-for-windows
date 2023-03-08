@@ -520,9 +520,11 @@ _net_ebpf_sock_addr_clean_up_security_descriptor()
 {
     if (_net_ebpf_ext_dacl_admin != NULL) {
         ExFreePool(_net_ebpf_ext_dacl_admin);
+        _net_ebpf_ext_dacl_admin = NULL;
     }
     if (_net_ebpf_ext_security_descriptor_admin != NULL) {
         ExFreePool(_net_ebpf_ext_security_descriptor_admin);
+        _net_ebpf_ext_security_descriptor_admin = NULL;
     }
 }
 
