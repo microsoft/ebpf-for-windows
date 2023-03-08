@@ -104,6 +104,8 @@ $(OutputPath)export_program_info.exe</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\libs\api_common\registry_helper.cpp" />
+    <ClCompile Include="..\..\libs\api_common\store_helper_internal.cpp" />
+    <ClCompile Include="..\..\libs\api_common\utilities.cpp" />
     <ClCompile Include="export_program_info.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>

@@ -5,6 +5,8 @@ add_executable("export_program_info"
   export_program_info.cpp
   main.cpp
   ${CMAKE_SOURCE_DIR}/libs/api_common/registry_helper.cpp
+  ${CMAKE_SOURCE_DIR}/libs/api_common/store_helper_internal.cpp
+  ${CMAKE_SOURCE_DIR}/libs/api_common/utilities.cpp
 )
 
 target_include_directories("export_program_info" PRIVATE
