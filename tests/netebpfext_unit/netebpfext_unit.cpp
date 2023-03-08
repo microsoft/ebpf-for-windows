@@ -472,7 +472,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
     client_context.validate_sock_addr_entries = true;
     
-    parameters.reauth_flag = FWP_CONDITION_FLAG_IS_REAUTHORIZE;
+    parameters.flag_reauthorize = FWP_CONDITION_FLAG_IS_REAUTHORIZE;
     
     result = helper.test_cgroup_inet4_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
