@@ -1,33 +1,60 @@
 # Release Process
 
 This file details the steps for creating a versioned release of
-eBPF for Windows.
+eBPF for Windows:
 
-Note: Currently releases are not production signed.
+>**Note**: Currently releases are *not* production signed.
 
-1. Update the version number, making sure to follow [Semantic Versioning 2.0](https://semver.org), in the following files:
-    * resource\ebpf_version.h
-    * installer\Product.wxs (in the XML attribute `<Wix... <Product... Version="x.y.z" ...>...>`)
-    * docs\tutorial.md
-2. Regenerate the expected bpf2c output:
-    ``` .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\```
-   and (until issue #2026 is fixed) manually update:
-    * .\tests\bpf2c_tests\expected\bpf_{dll,raw,sys}.c
-    * .\tests\bpf2c_tests\expected\empty_{dll,raw,sys}.c
-3. Create a pull request with the version number changes
-4. Once the build completes on the PR, download the
-   "ebpf-for-windows.msi" and "ebpf-for-windows nuget" build artifacts
-   (accessible via the Actions tab on github)
-5. Extract the .msi and .nupkg, respectively, out of them
-6. Test the MSI manually (since not yet tested in CI/CD):
-    1. Copy the MSI into a VM (if not already there)
-    2. Install it, and run a command or two (bpftool prog show, netsh eb sh prog) to make sure it's installed
-7. Add a tag to the commit with the version number changes
-   (e.g., "git tag v0.3.0", "git push --tags")
-8. Go to the repo on github and click on "tags" (a bit to the right of the branch combo box)
-9. Find the tag you created, and click "..." on the right and "Create release"
-10. Start uploading the .msi and .nupkg files
-11. Manually enter release notes or click "Generate release notes"
-12. Click "This is a pre-release" unless the release is production-signed
-13. Once the uploads are complete (it may take a while), click "Publish release"
-14. Upload the .nupkg file to nuget.org
+1. On your private repo fork, create a new release branch from `main`, i.e., "`user/release-vX.Y.Z`".
+1. Update the version number, making sure to follow [Semantic Versioning 2.0](https://semver.org) ("`x.y.z`"), in the following files:
+    * `resource\ebpf_version.h`
+    * `installer\Product.wxs`, within the following XML attribute:
+
+        ```xml
+        <Wix... <Product... Version="x.y.z" ...>...>
+        ```
+    * `docs\tutorial.md`
+1. Open Visual Studio and *Rebuild* `ebpf-for-windows.sln` in "`x64/Debug`" mode.
+1. Regenerate the expected `bpf2c` output (i.e. the corresponding "`.c`" files for all the solution's test/demo "`.o`" files), by running the following script:
+
+    ```ps
+    .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
+    ```
+
+1. Commit all the changes in the release branch into your forked repo.
+1. Create a **Draft** pull-request for the release branch into the main `ebpf-for-windows` repo, and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
+1. Once the CI/CD pipeline for the PR completes, download the
+   "`ebpf-for-windows MSI installer (Release)`" and "`ebpf-for-windows nuget`" build artifacts
+   (accessible via the "`Actions`" tab on GitHub).
+1. Extract the `*.msi` and `*.nupkg`, respectively, out of them.
+1. Test the MSI manually (since not yet tested in CI/CD):
+    1. Copy the MSI into a VM.
+        >**Note**: currently only test-signed VMs are supported.
+    1. Install the MSI by *enabling all its features* from the GUI.
+    1. Open a **new** *Admin Command Prompt*, and run some commands to make sure the eBPF platform is correctly installed, e.g.:
+
+        ```bash
+        # Verify that the eBPF drivers are running:
+        sc.exe qc eBPFCore
+        sc.exe qc NetEbpfExt
+
+        # Verify that the netsh extension is operational:
+        netsh ebpf show prog
+
+        # Test some commands, e.g.:
+        bpftool prog show
+
+        # Run the unit tests, and expect a full pass:
+        cd <eBPF install folder>\testing
+        unit_tests.exe -d yes
+        ```
+1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into `main`.
+1. Go to the repo on GitHub and click on "`<Code>`" and click on right the "`Create a new release`" link.
+1. Click on the "`Choose a tag`" combo box and input the new version number as "`vX.Y.Z`", then click on "`Create new tag: X.Y.Z on publish`".
+1. Click on the "`Target`" combo box, select the "`Recent commits`" tab and search for the commit checksum for the release PR just merged into `main`.
+1. Fill in the release title as "`vX.Y.Z`" (replace "`X.Y.Z`" with the version number being released).
+1. Manually enter release notes or click "`Generate release notes`".
+1. Attach the `.msi` and `.nupkg` files by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area.
+1. Check the "`Set as a pre-release`" checkbox, unless the release is production-signed.
+1. Once the uploads are complete (it may take a while), click "`Publish release`".
+1. Upload the `.nupkg` file to [nuget.org](nuget.org), and put a markup link to "`.\README.md`" as the description for the package (the metadata inside the `.nuget` package itself will automatically populate all the other form fields).
