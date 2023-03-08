@@ -467,7 +467,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    // Test reauth flags.
+    // Test reauth flag.
     // Classify operations that should be allowed.
     client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
     client_context.validate_sock_addr_entries = true;
