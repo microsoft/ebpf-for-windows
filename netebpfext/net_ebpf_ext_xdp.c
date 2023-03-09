@@ -101,7 +101,6 @@ static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_program_info_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_program_info_provider_t* _ebpf_xdp_program_info_provider_context = NULL;
-static bool _ebpf_xdp_program_info_provider_registered = false;
 
 //
 // XDP Hook NPI Provider.
@@ -115,7 +114,6 @@ ebpf_extension_data_t _net_ebpf_extension_xdp_hook_provider_data = {
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_hook_provider_t* _ebpf_xdp_hook_provider_context = NULL;
-static bool _ebpf_xdp_hook_info_provider_registered = false;
 
 //
 // NMR Registration Helper Routines.
@@ -263,7 +261,6 @@ net_ebpf_ext_xdp_register_providers()
     if (status != STATUS_SUCCESS) {
         goto Exit;
     }
-    _ebpf_xdp_program_info_provider_registered = true;
 
     _net_ebpf_xdp_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_XDP;
     // Set the attach type as the provider module id.
@@ -280,7 +277,6 @@ net_ebpf_ext_xdp_register_providers()
     if (status != EBPF_SUCCESS) {
         goto Exit;
     }
-    _ebpf_xdp_hook_info_provider_registered = true;
 
 Exit:
     if (!NT_SUCCESS(status)) {
@@ -292,13 +288,13 @@ Exit:
 void
 net_ebpf_ext_xdp_unregister_providers()
 {
-    if (_ebpf_xdp_hook_info_provider_registered) {
+    if (_ebpf_xdp_hook_provider_context) {
         net_ebpf_extension_hook_provider_unregister(_ebpf_xdp_hook_provider_context);
-        _ebpf_xdp_hook_info_provider_registered = false;
+        _ebpf_xdp_hook_provider_context = NULL;
     }
-    if (_ebpf_xdp_program_info_provider_registered) {
+    if (_ebpf_xdp_program_info_provider_context) {
         net_ebpf_extension_program_info_provider_unregister(_ebpf_xdp_program_info_provider_context);
-        _ebpf_xdp_program_info_provider_registered = false;
+        _ebpf_xdp_program_info_provider_context = NULL;
     }
 }
 

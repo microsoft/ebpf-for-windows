@@ -290,7 +290,6 @@ static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_addr_program_info_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_program_info_provider_t* _ebpf_sock_addr_program_info_provider_context = NULL;
-static bool _ebpf_sock_addr_program_info_provider_registered = false;
 
 //
 // SOCK_ADDR Hook NPI Provider.
@@ -302,8 +301,6 @@ NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_addr_hook_provider_moduleid[NET_EBPF_
 
 static net_ebpf_extension_hook_provider_t*
     _ebpf_sock_addr_hook_provider_context[NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT] = {0};
-
-static bool _ebpf_sock_addr_hook_provider_registered[NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT] = {0};
 
 //
 // NMR Registration Helper Routines.
@@ -783,7 +780,6 @@ net_ebpf_ext_sock_addr_register_providers()
     if (status != STATUS_SUCCESS) {
         goto Exit;
     }
-    _ebpf_sock_addr_program_info_provider_registered = true;
 
     for (int i = 0; i < NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT; i++) {
         const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
@@ -812,7 +808,6 @@ net_ebpf_ext_sock_addr_register_providers()
         if (!NT_SUCCESS(status)) {
             goto Exit;
         }
-        _ebpf_sock_addr_hook_provider_registered[i] = true;
     }
 
 Exit:
@@ -827,14 +822,14 @@ void
 net_ebpf_ext_sock_addr_unregister_providers()
 {
     for (int i = 0; i < NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT; i++) {
-        if (_ebpf_sock_addr_hook_provider_registered[i]) {
+        if (_ebpf_sock_addr_hook_provider_context[i]) {
             net_ebpf_extension_hook_provider_unregister(_ebpf_sock_addr_hook_provider_context[i]);
-            _ebpf_sock_addr_hook_provider_registered[i] = false;
+            _ebpf_sock_addr_hook_provider_context[i] = NULL;
         }
     }
-    if (_ebpf_sock_addr_program_info_provider_registered) {
+    if (_ebpf_sock_addr_program_info_provider_context) {
         net_ebpf_extension_program_info_provider_unregister(_ebpf_sock_addr_program_info_provider_context);
-        _ebpf_sock_addr_program_info_provider_registered = false;
+        _ebpf_sock_addr_program_info_provider_context = NULL;
     }
 
     _net_ebpf_ext_purge_lru_contexts(TRUE);
