@@ -386,6 +386,9 @@ SPDX-License-Identifier: MIT
 			<Component Id="EBPF_BASE.H" DiskId="1" Guid="{FC47A44E-7747-4E98-AD55-09D9671C01C1}">
 				<File Id="EBPF_BASE.H" Name="ebpf_base.h" Source="$(var.SolutionDir)external\ebpf-verifier\src\ebpf_base.h" />
 			</Component>
+			<Component Id="EBPF_EXTENSION.H" DiskId="1" Guid="{F5F5F5F5-7747-4E98-AD55-09D9671C01C1}">
+				<File Id="EBPF_EXTENSION.H" Name="ebpf_extension.h" Source="$(var.SolutionDir)include\ebpf_extension.h" />
+			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_asm" Directory="dir_include_asm">
 			<Component Id="ERRNO.H" DiskId="1" Guid="{DF63C9C1-FA9C-44E3-94EB-F77B7072E4BE}">
