@@ -405,7 +405,7 @@ jobs:
 
   # Run the complete low memory simulator for netebpfext in GitHub.
   # Runs on a schedule as this takes a long time to run.
-  low_memory_full:
+  netebpfext_low_memory_full:
     needs: regular
     if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
