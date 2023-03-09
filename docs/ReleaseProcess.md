@@ -20,25 +20,6 @@ eBPF for Windows:
     ```ps
     .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
     ```
-
-    As of now, since `atomic_instruction_others.o` is not produced by a corresponding `.c` file, it has a hard-coded version number (i.e., `0.6.0`). Therefore, the `bpftoc` output must be tweaked inside the output `.c` code, and update the version numbers within the `_get_version()` function, for all the following files:
-
-    - `atomic_instruction_others_dll.c`
-    - `atomic_instruction_others_raw.c`
-    - `atomic_instruction_others_sys.c`
-
-        For each of the above files, modify the version numbers as follows:
-
-        ```c
-        static void
-        _get_version(_Out_ bpf2c_version_t* version)
-        {
-            version->major = 0;    // <-- Update with X, from your release X.Y.Z version number
-            version->minor = 6;    // <-- Update with Y, from your release X.Y.Z version number
-            version->revision = 0; // <-- Update with Z, from your release X.Y.Z version number
-        }
-        ```
-
 1. Commit all the changes in the release branch into your forked repo.
 1. Create a **Draft** pull-request for the release branch into the main `ebpf-for-windows` repo, and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Once the CI/CD pipeline for the PR completes, download the
