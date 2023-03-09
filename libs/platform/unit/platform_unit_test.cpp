@@ -441,6 +441,70 @@ test_provider_attach_client(
 };
 
 static NTSTATUS
+test_denied_client_attach_provider(
+    HANDLE nmr_binding_handle,
+    _Inout_ void* client_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance,
+    _In_ const void* provider_binding_context,
+    _In_ const void* provider_dispatch,
+    _Out_ void** client_binding_context,
+    _Out_ const void** client_dispatch)
+{
+    ebpf_extension_client_t* client = (ebpf_extension_client_t*)client_context;
+    UNREFERENCED_PARAMETER(nmr_binding_handle);
+    UNREFERENCED_PARAMETER(client);
+    provider_registration_instance = NULL;
+    UNREFERENCED_PARAMETER(provider_binding_context);
+    UNREFERENCED_PARAMETER(provider_dispatch);
+    *client_binding_context = nullptr;
+    *client_dispatch = &test_provider_dispatch_table;
+    return STATUS_ACCESS_DENIED;
+};
+
+static NTSTATUS
+test_failed_provider_attach_client(
+    HANDLE nmr_binding_handle,
+    _Inout_ void* provider_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Out_ void** provider_binding_context,
+    _Out_ const void** provider_dispatch)
+{
+    ebpf_extension_provider_t* provider = (ebpf_extension_provider_t*)provider_context;
+    UNREFERENCED_PARAMETER(nmr_binding_handle);
+    UNREFERENCED_PARAMETER(provider);
+    UNREFERENCED_PARAMETER(client_registration_instance);
+    UNREFERENCED_PARAMETER(client_binding_context);
+    UNREFERENCED_PARAMETER(client_dispatch);
+    *provider_binding_context = nullptr;
+    *provider_dispatch = &test_provider_dispatch_table;
+    return STATUS_ACCESS_DENIED;
+};
+
+static NTSTATUS
+test_failed_provider_register_client(
+    HANDLE nmr_binding_handle,
+    _Inout_ void* provider_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Out_ void** provider_binding_context,
+    _Out_ const void** provider_dispatch)
+{
+    ebpf_extension_provider_t* provider = (ebpf_extension_provider_t*)provider_context;
+    UNREFERENCED_PARAMETER(nmr_binding_handle);
+    UNREFERENCED_PARAMETER(provider);
+    client_registration_instance=nullptr;
+    UNREFERENCED_PARAMETER(client_binding_context);
+    UNREFERENCED_PARAMETER(client_dispatch);
+    *provider_binding_context = nullptr;
+    *provider_dispatch = &test_provider_dispatch_table;
+    return STATUS_ACCESS_DENIED;
+};
+
+
+static NTSTATUS
 test_provider_detach_client(_In_ const void* provider_binding_context)
 {
     UNREFERENCED_PARAMETER(provider_binding_context);
@@ -472,6 +536,43 @@ TEST_CASE("extension_test", "[platform]")
     GUID provider_module_id = {};
     REQUIRE(ebpf_guid_create(&client_module_id) == EBPF_SUCCESS);
     REQUIRE(ebpf_guid_create(&provider_module_id) == EBPF_SUCCESS);
+
+    REQUIRE(
+        ebpf_provider_load(
+            &provider_context,
+            &interface_id,
+            &provider_module_id,
+            nullptr,
+            &provider_data,
+            &test_provider_dispatch_table,
+            &callback_context,
+            (NPI_PROVIDER_ATTACH_CLIENT_FN*)test_denied_client_attach_provider,
+            (NPI_PROVIDER_DETACH_CLIENT_FN*)test_provider_detach_client,
+            nullptr) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_provider_load(
+            &provider_context,
+            &interface_id,
+            &provider_module_id,
+            nullptr,
+            &provider_data,
+            &test_provider_dispatch_table,
+            &callback_context,
+            (NPI_PROVIDER_ATTACH_CLIENT_FN*)test_failed_provider_attach_client,
+            (NPI_PROVIDER_DETACH_CLIENT_FN*)test_provider_detach_client,
+            nullptr) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_provider_load(
+            &provider_context,
+            &interface_id,
+            &provider_module_id,
+            nullptr,
+            &provider_data,
+            &test_provider_dispatch_table,
+            &callback_context,
+            (NPI_PROVIDER_ATTACH_CLIENT_FN*)test_failed_provider_register_client,
+            (NPI_PROVIDER_DETACH_CLIENT_FN*)test_provider_detach_client,
+            nullptr) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_provider_load(
             &provider_context,
