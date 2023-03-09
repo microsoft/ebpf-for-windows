@@ -466,6 +466,25 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
 
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
+
+    // Test reauthorization flag.
+    // Classify operations that should be allowed.
+    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context.validate_sock_addr_entries = true;
+    
+    parameters.reauthorization_flag = FWP_CONDITION_FLAG_IS_REAUTHORIZE;
+    
+    result = helper.test_cgroup_inet4_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet4_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
 }
 
 void
