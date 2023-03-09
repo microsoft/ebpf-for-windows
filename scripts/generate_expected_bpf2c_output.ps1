@@ -85,7 +85,7 @@ function Update-ExpectedOutput
         }
 
         $ext = [System.IO.Path]::GetExtension($file.Name)
-        if (($ext -ne ".c") -and ($ext -ne ".C"))
+        if (($ext -ne ".c") -and ($ext -ne ".C") -and ($ext -ne ".o") -and ($ext -ne ".O"))
         {
             continue
         }
