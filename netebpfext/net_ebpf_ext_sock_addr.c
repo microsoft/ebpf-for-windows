@@ -384,8 +384,9 @@ _net_ebpf_extension_sock_addr_on_client_attach(
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        if (filter_context != NULL)
+        if (filter_context != NULL) {
             ExFreePool(filter_context);
+        }
     }
 
     NET_EBPF_EXT_RETURN_RESULT(result);
@@ -436,10 +437,7 @@ _net_ebpf_sock_addr_create_security_descriptor()
 
     admin_security_descriptor = (SECURITY_DESCRIPTOR*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(SECURITY_DESCRIPTOR), NET_EBPF_EXTENSION_POOL_TAG);
-    if (admin_security_descriptor == NULL) {
-        status = STATUS_NO_MEMORY;
-        NET_EBPF_EXT_RETURN_NTSTATUS(status);
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(admin_security_descriptor, "admin_sd", status);
 
     status = RtlCreateSecurityDescriptor(admin_security_descriptor, SECURITY_DESCRIPTOR_REVISION);
     if (!NT_SUCCESS(status)) {
@@ -454,14 +452,7 @@ _net_ebpf_sock_addr_create_security_descriptor()
     acl_length += RtlLengthSid(SeExports->SeLocalSystemSid) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart);
 
     dacl = (ACL*)ExAllocatePoolUninitialized(NonPagedPoolNx, acl_length, NET_EBPF_EXTENSION_POOL_TAG);
-    if (dacl == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "DACL memory allocation failed");
-        status = STATUS_NO_MEMORY;
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(dacl, "dacl", status);
 
     RtlCreateAcl(dacl, acl_length, ACL_REVISION);
 
@@ -531,10 +522,8 @@ _net_ebpf_ext_sock_addr_update_redirect_handle(uint64_t filter_id, HANDLE redire
     net_ebpf_extension_redirect_handle_entry_t* entry =
         (net_ebpf_extension_redirect_handle_entry_t*)ExAllocatePoolUninitialized(
             NonPagedPoolNx, sizeof(net_ebpf_extension_redirect_handle_entry_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (entry == NULL) {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(entry, "redirect_handle", status);
+
     memset(entry, 0, sizeof(net_ebpf_extension_redirect_handle_entry_t));
     entry->filter_id = filter_id;
     entry->redirect_handle = redirect_handle;
@@ -613,13 +602,16 @@ _net_ebpf_ext_compare_destination_address(_In_ const bpf_sock_addr_t* addr1, _In
     return INET_ADDR_EQUAL((ADDRESS_FAMILY)addr1->family, &addr1->user_ip4, &addr2->user_ip4);
 }
 
+#define CONNECTION_CONTEXT_INITIALIZATION_SET_TIMESTAMP 0x1
+
 static void
 _net_ebpf_extension_connection_context_initialize(
     _In_ const bpf_sock_addr_t* sock_addr_ctx,
     uint64_t transport_endpoint_handle,
-    bool set_timestamp,
+    uint32_t flags,
     _Out_ net_ebpf_extension_connection_context_t* connection_context)
 {
+    bool set_timestamp = flags & CONNECTION_CONTEXT_INITIALIZATION_SET_TIMESTAMP;
     RtlCopyMemory(
         connection_context->address_info.destination_ip.ipv6,
         sock_addr_ctx->user_ip6,
@@ -631,21 +623,21 @@ _net_ebpf_extension_connection_context_initialize(
     connection_context->transport_endpoint_handle = transport_endpoint_handle;
     connection_context->protocol = (uint16_t)sock_addr_ctx->protocol;
     connection_context->compartment_id = sock_addr_ctx->compartment_id;
-    if (set_timestamp)
+    if (set_timestamp) {
         connection_context->timestamp = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime());
+    }
 }
 
 static net_ebpf_extension_connection_context_t*
 _net_ebpf_ext_get_and_remove_connection_context(
     uint64_t transport_endpoint_handle, _In_ const bpf_sock_addr_t* sock_addr_ctx)
 {
-    NTSTATUS status = STATUS_NOT_FOUND;
     KIRQL old_irql;
     net_ebpf_extension_connection_context_t local_connection_context = {0};
     net_ebpf_extension_connection_context_t* connection_context = NULL;
 
     _net_ebpf_extension_connection_context_initialize(
-        sock_addr_ctx, transport_endpoint_handle, FALSE /*do not set timestamp*/, &local_connection_context);
+        sock_addr_ctx, transport_endpoint_handle, 0, &local_connection_context);
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
 
     LIST_ENTRY* list_entry = _net_ebpf_ext_connect_context_list.Flink;
@@ -659,7 +651,6 @@ _net_ebpf_ext_get_and_remove_connection_context(
             RemoveEntryList(&entry->list_entry);
             _net_ebpf_ext_connect_context_count--;
             connection_context = entry;
-            status = STATUS_SUCCESS;
             break;
         }
         list_entry = list_entry->Flink;
@@ -1029,8 +1020,9 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (attached_client == NULL)
+    if (attached_client == NULL) {
         goto Exit;
+    }
 
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         attached_client = NULL;
@@ -1041,8 +1033,9 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
     // eBPF programs will not be invoked on connection re-authorization.
-    if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE)
+    if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
         goto Exit;
+    }
 
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
@@ -1064,8 +1057,9 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     }
 
     classify_output->actionType = (result == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
-    if (classify_output->actionType == FWP_ACTION_BLOCK)
+    if (classify_output->actionType == FWP_ACTION_BLOCK) {
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+    }
 
     NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
         NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
@@ -1076,8 +1070,9 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         result);
 
 Exit:
-    if (attached_client)
+    if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
+    }
 }
 
 /*
@@ -1140,7 +1135,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     connection_context = _net_ebpf_ext_get_and_remove_connection_context(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
     if (connection_context == NULL) {
-        // No blocked connection context was found for this AUTH request. Se the connection is allowed.
+        // No blocked connection context was found for this AUTH request. So the connection is allowed.
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
     }
@@ -1151,8 +1146,9 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 Exit:
     classify_output->actionType = (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
     // Clear FWPS_RIGHT_ACTION_WRITE for block action.
-    if (classify_output->actionType == FWP_ACTION_BLOCK)
+    if (classify_output->actionType == FWP_ACTION_BLOCK) {
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+    }
 
     NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
         NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
@@ -1186,7 +1182,7 @@ _net_ebpf_ext_sock_addr_is_connection_locally_redirected_by_others(
     return FALSE;
 }
 
-static NTSTATUS
+static _Must_inspect_result_ NTSTATUS
 _net_ebpf_ext_process_redirect_verdict(
     _In_ const bpf_sock_addr_t* original_context,
     _In_ const bpf_sock_addr_t* redirected_context,
@@ -1264,7 +1260,7 @@ Exit:
  * @returns True if eBPF program should be invoked, False otherwise.
  */
 
-bool
+_Must_inspect_result_ bool
 _net_ebpf_extension_sock_addr_should_invoke_ebpf_program(
     _In_ const net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context,
     _In_ const bpf_sock_addr_t* sock_addr_ctx,
@@ -1273,8 +1269,9 @@ _net_ebpf_extension_sock_addr_should_invoke_ebpf_program(
     bool process_classify = TRUE;
 
     //  If the callout is invoked for v4, then it is safe to invoke the eBPF program.
-    if (sock_addr_ctx->family == AF_INET)
+    if (sock_addr_ctx->family == AF_INET) {
         goto Exit;
+    }
 
     //  If the callout is invoked for v6:
     //  1. Check if the destination is v4-mapped v6 address or pure v6 address.
@@ -1317,6 +1314,7 @@ Exit:
  * If the program modifies the destination IP of the connection, connection redirection will be performed by this
  * callout. If the If on the other hand, the program returns a REJECT verdict, that decision will be cached and enforced
  * later by a corresponding callout at WFP AUTH_CONNECT layer.
+ * By default, the local variable for verdict is set to REJECT.
  */
 void
 net_ebpf_extension_sock_addr_redirect_connection_classify(
@@ -1328,8 +1326,9 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
-    uint32_t verdict;
+    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     NTSTATUS status = STATUS_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
@@ -1349,13 +1348,22 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
         // A callout with higher weight has revoked the write permission. Bail out.
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "No \"write\" right; exiting.");
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         return;
     }
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
     if (filter_context == NULL) {
-        status = STATUS_INVALID_PARAMETER;
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "filter_context is NULL.",
+            STATUS_INVALID_PARAMETER);
         goto Exit;
     }
 
@@ -1366,20 +1374,27 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         NET_EBPF_EXT_LOG_MESSAGE_UINT32(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
+            "The cgroup_sock_addr eBPF program is not interested in this compartment ID.",
             sock_addr_ctx->compartment_id);
-
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     if (attached_client == NULL) {
-        status = STATUS_INVALID_PARAMETER;
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "attached_client is NULL.",
+            STATUS_INVALID_PARAMETER);
         goto Exit;
     }
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         attached_client = NULL;
         // Client is detaching.
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Client is detaching.");
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
     }
 
@@ -1389,7 +1404,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "Failed to get redirect handle",
+            "Failed to get redirect handle.",
             filter->filterId,
             (uint64_t)sock_addr_ctx->compartment_id);
         goto Exit;
@@ -1402,11 +1417,12 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "Connection redirected by self, ignoring",
+            "Connection redirected by self, ignoring.",
             filter->filterId,
             (uint64_t)sock_addr_ctx->compartment_id);
 
         // This connection was previously redirected.
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
     }
 
@@ -1418,10 +1434,13 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     v4_mapped = (sock_addr_ctx->family == AF_INET6) && IN6_IS_ADDR_V4MAPPED((IN6_ADDR*)sock_addr_ctx->user_ip6);
 
     // Check if the eBPF program should be invoked based on the IP address family and the hook attach type.
-    if (!_net_ebpf_extension_sock_addr_should_invoke_ebpf_program(filter_context, sock_addr_ctx, v4_mapped))
+    if (!_net_ebpf_extension_sock_addr_should_invoke_ebpf_program(filter_context, sock_addr_ctx, v4_mapped)) {
         goto Exit;
+    }
 
 #pragma warning(push)
+// SAL annotation for FwpsAcquireClassifyHandle for classify_context is _In_ whereas,
+// the SAL for the same parameter in classifyFn callback _In_opt_ which causes a SAL error.
 #pragma warning(suppress : 6387)
     // Acquire classify handle.
     status = FwpsAcquireClassifyHandle((void*)classify_context, 0, &classify_handle);
@@ -1447,35 +1466,18 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         sock_addr_ctx->user_ip4 = local_v4_ip;
     }
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &verdict) != EBPF_SUCCESS) {
-        status = STATUS_UNSUCCESSFUL;
+    result = net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &verdict);
+    NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
+
+    if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_WARNING,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "cgroup_sock_addr eBPF program returned REJECT verdict.");
         goto Exit;
     }
 
-    if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
-        // Create a blocked connection context and add it to list for the AUTH_CONNECT layer callout to enforce the
-        // verdict of the program.
-        // Since the eBPF program turned in a REJECT verdict, there is no need to process
-        // connection redirection, even if the program modified the destination.
-
-        blocked_connection_context = (net_ebpf_extension_connection_context_t*)ExAllocatePoolUninitialized(
-            NonPagedPoolNx, sizeof(net_ebpf_extension_connection_context_t), NET_EBPF_EXTENSION_POOL_TAG);
-        if (blocked_connection_context == NULL) {
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            goto Exit;
-        }
-        memset(blocked_connection_context, 0, sizeof(net_ebpf_extension_connection_context_t));
-
-        _net_ebpf_extension_connection_context_initialize(
-            sock_addr_ctx,
-            incoming_metadata_values->transportEndpointHandle,
-            TRUE, /*set timestamp*/
-            blocked_connection_context);
-
-        _net_ebpf_ext_insert_connection_context_to_list(blocked_connection_context);
-
-        InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
-    } else {
+    if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
         if (v4_mapped) {
             // Revert back the sock_addr_ctx to v4-mapped v6 address for conenction-redirection processing.
             sock_addr_ctx->family = AF_INET6;
@@ -1506,17 +1508,40 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         verdict);
 
 Exit:
+    if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
+        // Create a blocked connection context and add it to list for the AUTH_CONNECT layer callout to enforce the
+        // verdict of the program.
+        // Since the eBPF program turned in a REJECT verdict, there is no need to process
+        // connection redirection, even if the program modified the destination.
+
+        blocked_connection_context = (net_ebpf_extension_connection_context_t*)ExAllocatePoolUninitialized(
+            NonPagedPoolNx, sizeof(net_ebpf_extension_connection_context_t), NET_EBPF_EXTENSION_POOL_TAG);
+        NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(blocked_connection_context, "blocked_connection", status);
+        memset(blocked_connection_context, 0, sizeof(net_ebpf_extension_connection_context_t));
+
+        _net_ebpf_extension_connection_context_initialize(
+            sock_addr_ctx,
+            incoming_metadata_values->transportEndpointHandle,
+            CONNECTION_CONTEXT_INITIALIZATION_SET_TIMESTAMP,
+            blocked_connection_context);
+
+        _net_ebpf_ext_insert_connection_context_to_list(blocked_connection_context);
+
+        InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
+    }
     // Callout at CONNECT_REDIRECT layer always returns WFP action PERMIT.
     // If the eBPF program was invoked and it returned a REJECT verdict, it would be enforced by the callout at
     // AUTH_CONNECT layer further downstream.
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
-    if (classify_handle_acquired)
+    if (classify_handle_acquired) {
         FwpsReleaseClassifyHandle(classify_handle);
+    }
 
-    if (attached_client)
+    if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
+    }
 }
 
 static ebpf_result_t
@@ -1537,25 +1562,22 @@ _ebpf_sock_addr_context_create(
     // This does not use the data_in parameters.
     if (data_size_in != 0 || data_in != NULL) {
         NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Data is not supported");
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Data is not supported");
         result = EBPF_INVALID_ARGUMENT;
-        goto Done;
+        goto Exit;
     }
 
     // This requires context_in parameters.
     if (context_size_in < sizeof(bpf_sock_addr_t) || context_in == NULL) {
         NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Context is required");
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Context is required");
         result = EBPF_INVALID_ARGUMENT;
-        goto Done;
+        goto Exit;
     }
 
     sock_addr_ctx = (bpf_sock_addr_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(bpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (sock_addr_ctx == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(sock_addr_ctx, "sock_addr_ctx", result);
 
     memcpy(sock_addr_ctx, context_in, sizeof(bpf_sock_addr_t));
 
@@ -1564,7 +1586,7 @@ _ebpf_sock_addr_context_create(
 
     sock_addr_ctx = NULL;
 
-Done:
+Exit:
     if (sock_addr_ctx) {
         ExFreePool(sock_addr_ctx);
     }
