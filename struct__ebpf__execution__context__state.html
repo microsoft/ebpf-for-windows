@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>eBPF for Windows: _ETHERNET_HEADER Struct Reference</title>
+<title>eBPF for Windows: _ebpf_execution_context_state Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -64,91 +64,75 @@ $(function() {
   <div class="summary">
 <a href="#pub-attribs">Data Fields</a>  </div>
   <div class="headertitle">
-<div class="title">_ETHERNET_HEADER Struct Reference</div>  </div>
+<div class="title">_ebpf_execution_context_state Struct Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p><code>#include &lt;<a class="el" href="net_2if__ether_8h_source.html">if_ether.h</a>&gt;</code></p>
+<p><code>#include &lt;<a class="el" href="ebpf__extension_8h_source.html">ebpf_extension.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a86a29bdb64ac5ceb5097a05742cb68d8"><td class="memItemLeft" align="right" valign="top">uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#a86a29bdb64ac5ceb5097a05742cb68d8">Destination</a> [6]</td></tr>
-<tr class="separator:a86a29bdb64ac5ceb5097a05742cb68d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a09a294715c845ec74323de381df6afe7"><td class="memItemLeft" align="right" valign="top">uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#a09a294715c845ec74323de381df6afe7">Source</a> [6]</td></tr>
-<tr class="separator:a09a294715c845ec74323de381df6afe7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af3b01dfdaa78fa68350d249250d24c95"><td class="memItemLeft" >union {</td></tr>
-<tr class="memitem:a26663949e79bfd1a436803c3814c0505"><td class="memItemLeft" >&#160;&#160;&#160;uint16_t&#160;&#160;&#160;<a class="el" href="struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#abe35d2b08d00984010d7648f5a2975b7">Type</a></td></tr>
-<tr class="separator:a26663949e79bfd1a436803c3814c0505"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a53599265aabd00140e4d15b5960d0cf1"><td class="memItemLeft" >&#160;&#160;&#160;uint16_t&#160;&#160;&#160;<a class="el" href="struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#ac94ccf3ae4ad72f8487adabdd260af36">Length</a></td></tr>
-<tr class="separator:a53599265aabd00140e4d15b5960d0cf1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af3b01dfdaa78fa68350d249250d24c95"><td class="memItemLeft" valign="top">};&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:af3b01dfdaa78fa68350d249250d24c95"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a07487ea7144439c7c3dd15325d7ee8c5"><td class="memItemLeft" >union {</td></tr>
+<tr class="memitem:a96ef6f06590d70eb4ac4e553dad943f8"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="struct__ebpf__execution__context__state.html#a9d382b2d201d3fe7b4403a3b307d63e9">thread</a></td></tr>
+<tr class="separator:a96ef6f06590d70eb4ac4e553dad943f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a65d9553eea38f94c420ed0896f99dd6a"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="struct__ebpf__execution__context__state.html#ad823d3311d507be84d54ff13d1a62492">cpu</a></td></tr>
+<tr class="separator:a65d9553eea38f94c420ed0896f99dd6a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a07487ea7144439c7c3dd15325d7ee8c5"><td class="memItemLeft" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__execution__context__state.html#a07487ea7144439c7c3dd15325d7ee8c5">id</a></td></tr>
+<tr class="separator:a07487ea7144439c7c3dd15325d7ee8c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a14ff4e0633ba01f3a0d1901f479301f6"><td class="memItemLeft" align="right" valign="top">uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__execution__context__state.html#a14ff4e0633ba01f3a0d1901f479301f6">current_irql</a></td></tr>
+<tr class="separator:a14ff4e0633ba01f3a0d1901f479301f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Field Documentation</h2>
-<a id="af3b01dfdaa78fa68350d249250d24c95"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af3b01dfdaa78fa68350d249250d24c95">&#9670;&nbsp;</a></span></h2>
+<a id="ad823d3311d507be84d54ff13d1a62492"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad823d3311d507be84d54ff13d1a62492">&#9670;&nbsp;</a></span>cpu</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">union { ... } </td>
+          <td class="memname">uint32_t _ebpf_execution_context_state::cpu</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="a86a29bdb64ac5ceb5097a05742cb68d8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a86a29bdb64ac5ceb5097a05742cb68d8">&#9670;&nbsp;</a></span>Destination</h2>
+<a id="a14ff4e0633ba01f3a0d1901f479301f6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a14ff4e0633ba01f3a0d1901f479301f6">&#9670;&nbsp;</a></span>current_irql</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint8_t _ETHERNET_HEADER::Destination[6]</td>
+          <td class="memname">uint8_t _ebpf_execution_context_state::current_irql</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="ac94ccf3ae4ad72f8487adabdd260af36"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac94ccf3ae4ad72f8487adabdd260af36">&#9670;&nbsp;</a></span>Length</h2>
+<a id="a07487ea7144439c7c3dd15325d7ee8c5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a07487ea7144439c7c3dd15325d7ee8c5">&#9670;&nbsp;</a></span></h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint16_t _ETHERNET_HEADER::Length</td>
+          <td class="memname">union { ... }  _ebpf_execution_context_state::id</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="a09a294715c845ec74323de381df6afe7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a09a294715c845ec74323de381df6afe7">&#9670;&nbsp;</a></span>Source</h2>
+<a id="a9d382b2d201d3fe7b4403a3b307d63e9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9d382b2d201d3fe7b4403a3b307d63e9">&#9670;&nbsp;</a></span>thread</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint8_t _ETHERNET_HEADER::Source[6]</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="abe35d2b08d00984010d7648f5a2975b7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abe35d2b08d00984010d7648f5a2975b7">&#9670;&nbsp;</a></span>Type</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint16_t _ETHERNET_HEADER::Type</td>
+          <td class="memname">uint64_t _ebpf_execution_context_state::thread</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -156,7 +140,7 @@ Data Fields</h2></td></tr>
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>include/net/<a class="el" href="net_2if__ether_8h_source.html">if_ether.h</a></li>
+<li>include/<a class="el" href="ebpf__extension_8h_source.html">ebpf_extension.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
