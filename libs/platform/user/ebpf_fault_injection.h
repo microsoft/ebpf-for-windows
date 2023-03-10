@@ -15,8 +15,8 @@ extern "C"
      *
      * @param[in] stack_depth Number of stack frames to capture when a fault is
      * injected.
-     * @retval ebpf_result_t EBPF_SUCCESS if successful.
-     * @retval EBPF_NO_MEMORY if memory allocation fails.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Operation failed due to memory allocation failure.
      */
     ebpf_result_t
     ebpf_fault_injection_initialize(size_t stack_depth) noexcept;
@@ -31,8 +31,8 @@ extern "C"
     /**
      * @brief Enable fault injection. This function is thread safe.
      *
-     * @return true Fault should be injected.
-     * @return false Fault should not be injected.
+     * @retval true Fault should be injected.
+     * @retval false Fault should not be injected.
      */
     bool
     ebpf_fault_injection_inject_fault() noexcept;
@@ -40,8 +40,8 @@ extern "C"
     /**
      * @brief Test if fault injection is enabled. This function is thread safe.
      *
-     * @return true Fault injection is enabled.
-     * @return false Fault injection is disabled.
+     * @retval true Fault injection is enabled.
+     * @retval false Fault injection is disabled.
      */
     bool
     ebpf_fault_injection_is_enabled() noexcept;

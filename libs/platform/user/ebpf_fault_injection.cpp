@@ -30,7 +30,6 @@ typedef class _ebpf_fault_injection
 
     /**
      * @brief Destroy the ebpf fault injection object.
-     *
      */
     ~_ebpf_fault_injection();
 
@@ -111,7 +110,6 @@ static std::unique_ptr<ebpf_fault_injection_t> _ebpf_fault_injection_singleton;
 
 /**
  * @brief Approximate size in bytes of the image being tested.
- *
  */
 #define EBPF_MODULE_SIZE_IN_BYTES (10 * 1024 * 1024)
 
@@ -122,7 +120,6 @@ static std::unique_ptr<ebpf_fault_injection_t> _ebpf_fault_injection_singleton;
 
 /**
  * @brief The number of stack frames to capture to uniquely identify an fault path.
- *
  */
 #define EBPF_FAULT_STACK_CAPTURE_FRAME_COUNT_FOR_HASH 4
 
@@ -145,8 +142,8 @@ class ebpf_fault_injection_recursion_guard
     ~ebpf_fault_injection_recursion_guard() { _ebpf_fault_injection_recursion--; }
     /**
      * @brief Return true if the current thread is recursing from the fault injection callback.
-     * @retval true
-     * @retval false
+     * @retval true The current thread is recursing from the fault injection callback.
+     * @retval false The current thread is not recursing from the fault injection callback.
      */
     bool
     is_recursing()
@@ -195,7 +192,7 @@ _ebpf_fault_injection::is_new_stack()
             static_cast<unsigned int>(stack.size()),
             reinterpret_cast<void**>(stack.data()),
             &hash) > 0) {
-        // Form the canonical stack
+        // Form the canonical stack.
         for (size_t i = 0; i < _stack_depth; i++) {
             uintptr_t frame = stack[i];
             if (frame < _base_address || frame > (_base_address + EBPF_MODULE_SIZE_IN_BYTES)) {
