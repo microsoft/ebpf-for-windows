@@ -56,7 +56,7 @@ add_library("platform_user" STATIC
   user/framework.h
   user/ebpf_handle_user.c
   user/ebpf_leak_detector.cpp
-  user/ebpf_low_memory_test.cpp
+  user/ebpf_fault_injection.cpp
   user/ebpf_platform_user.cpp
   user/ebpf_native_user.c
   user/kernel_um.cpp
