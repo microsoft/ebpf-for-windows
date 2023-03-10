@@ -128,6 +128,8 @@ static std::unique_ptr<ebpf_fault_injection_t> _ebpf_fault_injection_singleton;
 
 #define EBPF_MODULE_SIZE_IN_BYTES (10 * 1024 * 1024)
 
+#define EBPF_FAULT_STACK_CAPTURE_FRAMES_TO_SKIP 3
+
 /**
  * @brief Thread local storage to track recursing from the fault injection callback.
  */
@@ -186,8 +188,13 @@ _ebpf_fault_injection::is_new_stack()
 
     unsigned long hash;
     // Capture EBPF_FAULT_STACK_CAPTURE_FRAME_COUNT_FOR_HASH frames of the current stack trace.
+    // The first EBPF_FAULT_STACK_CAPTURE_FRAMES_TO_SKIP frames are skipped to avoid
+    // capturing the fault injection code.
     if (CaptureStackBackTrace(
-            1, static_cast<unsigned int>(stack.size()), reinterpret_cast<void**>(stack.data()), &hash) > 0) {
+            EBPF_FAULT_STACK_CAPTURE_FRAMES_TO_SKIP,
+            static_cast<unsigned int>(stack.size()),
+            reinterpret_cast<void**>(stack.data()),
+            &hash) > 0) {
         // Form the canonical stack
         for (size_t i = 0; i < _stack_depth; i++) {
             uintptr_t frame = stack[i];
