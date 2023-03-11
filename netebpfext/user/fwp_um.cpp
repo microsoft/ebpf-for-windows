@@ -228,7 +228,7 @@ void static _allocate_and_initialize_connection_request(
     ebpf_assert(_fwp_um_connect_request == nullptr);
     _fwp_um_connect_request = (FWPS_CONNECT_REQUEST0*)ebpf_allocate(sizeof(FWPS_CONNECT_REQUEST0));
     if (_fwp_um_connect_request == nullptr) {
-        // Most likely we are under low memory simulation. Return.
+        // Most likely we are under fault injection simulation. Return.
         return;
     }
 
@@ -357,7 +357,7 @@ _fwp_engine::test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameter
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V6_ALE_USER_ID].value.byteBlob = &parameters->user_id;
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_INTERFACE].value.uint64 = &parameters->interface_luid;
     incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V6_FLAGS].value.uint32 = parameters->reauthorization_flag;
-    
+
     action = test_callout(
         FWPS_LAYER_ALE_AUTH_CONNECT_V6, FWPM_LAYER_ALE_AUTH_CONNECT_V6, EBPF_DEFAULT_SUBLAYER, incoming_value2);
 
