@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 # This script is used as part of the systematic testing of the
-# low memory handling.
+# failure handling.
 # First it will create a list of all the tests in the test binary.
 # Second it will execute each test in the test binary.
 # Third it will check the output of each test to see if it passed or failed.
@@ -14,7 +14,7 @@ param ($TestProgram, $StackDepth)
 # Gather list of all possible tests
 $tests = & $TestProgram "--list-tests" "--verbosity=quiet"
 
-$env:EBPF_LOW_MEMORY_SIMULATION = $StackDepth
+$env:EBPF_FAULT_INJECTION_SIMULATION = $StackDepth
 $env:EBPF_ENABLE_WER_REPORT = "yes"
 
 Set-Content -Path ($TestProgram +".passed.log") ""

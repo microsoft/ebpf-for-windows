@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_fault_injection.h"
 #include "ebpf_leak_detector.h"
-#include "ebpf_low_memory_test.h"
 #include "ebpf_symbol_decoder.h"
 #include "ebpf_utilities.h"
 
@@ -33,14 +33,13 @@ int32_t _ebpf_platform_initiate_count = 0;
 extern "C" bool ebpf_fuzzing_enabled = false;
 extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
-std::unique_ptr<ebpf_low_memory_test_t> _ebpf_low_memory_test_ptr;
 ebpf_leak_detector_ptr _ebpf_leak_detector_ptr;
 
 /**
- * @brief Environment variable to enable low memory testing.
+ * @brief Environment variable to enable fault injection testing.
  *
  */
-#define EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME "EBPF_LOW_MEMORY_SIMULATION"
+#define EBPF_FAULT_INJECTION_SIMULATION_ENVIRONMENT_VARIABLE_NAME "EBPF_FAULT_INJECTION_SIMULATION"
 #define EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME "EBPF_MEMORY_LEAK_DETECTION"
 
 // Thread pool related globals.
@@ -310,14 +309,16 @@ ebpf_platform_initiate()
     try {
         _ebpf_platform_maximum_group_count = GetMaximumProcessorGroupCount();
         _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
-        auto low_memory_stack_depth =
-            _get_environment_variable_as_size_t(EBPF_LOW_MEMORY_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
+        auto fault_injection_stack_depth =
+            _get_environment_variable_as_size_t(EBPF_FAULT_INJECTION_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
         auto leak_detector = _get_environment_variable_as_bool(EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME);
-        if (low_memory_stack_depth || leak_detector) {
+        if (fault_injection_stack_depth || leak_detector) {
             _ebpf_symbol_decoder_initialize();
         }
-        if (low_memory_stack_depth && !_ebpf_low_memory_test_ptr) {
-            _ebpf_low_memory_test_ptr = std::make_unique<ebpf_low_memory_test_t>(low_memory_stack_depth);
+        if (fault_injection_stack_depth && !ebpf_fault_injection_is_enabled()) {
+            if (ebpf_fault_injection_initialize(fault_injection_stack_depth) != EBPF_SUCCESS) {
+                return EBPF_NO_MEMORY;
+            }
             // Set flag to remove some asserts that fire from incorrect client behavior.
             ebpf_fuzzing_enabled = true;
         }
@@ -373,12 +374,6 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-bool
-ebpf_low_memory_test_in_progress()
-{
-    return _ebpf_low_memory_test_ptr != nullptr;
-}
-
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
 {
     ebpf_assert(size);
@@ -386,9 +381,8 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void*
         return nullptr;
     }
 
-    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
+    if (ebpf_fault_injection_inject_fault())
         return nullptr;
-    }
 
     void* memory;
     memory = calloc(size, 1);
@@ -418,9 +412,8 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) v
         return nullptr;
     }
 
-    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
+    if (ebpf_fault_injection_inject_fault())
         return nullptr;
-    }
 
     void* p = realloc(memory, new_size);
     if (p && (new_size > old_size))
@@ -458,9 +451,8 @@ __drv_allocatesMem(Mem) _Must_inspect_result_
         return nullptr;
     }
 
-    if (_ebpf_low_memory_test_ptr && _ebpf_low_memory_test_ptr->fail_stack_allocation()) {
+    if (ebpf_fault_injection_inject_fault())
         return nullptr;
-    }
 
     void* memory = _aligned_malloc(size, EBPF_CACHE_LINE_SIZE);
     if (memory) {
