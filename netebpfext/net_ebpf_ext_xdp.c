@@ -258,8 +258,9 @@ net_ebpf_ext_xdp_register_providers()
     _ebpf_xdp_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_XDP;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_xdp_program_info_provider_context);
-    if (status != STATUS_SUCCESS)
+    if (!NT_SUCCESS(status)) {
         goto Exit;
+    }
 
     _net_ebpf_xdp_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_XDP;
     // Set the attach type as the provider module id.
@@ -273,18 +274,28 @@ net_ebpf_ext_xdp_register_providers()
         NULL,
         &_ebpf_xdp_hook_provider_context);
 
-    if (status != EBPF_SUCCESS)
+    if (status != EBPF_SUCCESS) {
         goto Exit;
+    }
 
 Exit:
+    if (!NT_SUCCESS(status)) {
+        net_ebpf_ext_xdp_unregister_providers();
+    }
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
 net_ebpf_ext_xdp_unregister_providers()
 {
-    net_ebpf_extension_hook_provider_unregister(_ebpf_xdp_hook_provider_context);
-    net_ebpf_extension_program_info_provider_unregister(_ebpf_xdp_program_info_provider_context);
+    if (_ebpf_xdp_hook_provider_context) {
+        net_ebpf_extension_hook_provider_unregister(_ebpf_xdp_hook_provider_context);
+        _ebpf_xdp_hook_provider_context = NULL;
+    }
+    if (_ebpf_xdp_program_info_provider_context) {
+        net_ebpf_extension_program_info_provider_unregister(_ebpf_xdp_program_info_provider_context);
+        _ebpf_xdp_program_info_provider_context = NULL;
+    }
 }
 
 /**

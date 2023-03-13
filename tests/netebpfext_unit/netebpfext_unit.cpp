@@ -3,6 +3,7 @@
 
 #define CATCH_CONFIG_MAIN
 #include "catch_wrapper.hpp"
+#include "ebpf_fault_injection.h"
 #include "netebpf_ext_helper.h"
 
 #include <map>
@@ -499,6 +500,8 @@ sock_addr_thread_function(
     FWP_ACTION_TYPE result;
     uint16_t port_number;
 
+    bool fault_injection_enabled = ebpf_fault_injection_is_enabled();
+
     if (start_port != end_port) {
         port_number = start_port - 1;
     } else {
@@ -526,7 +529,7 @@ sock_addr_thread_function(
             break;
         }
 
-        REQUIRE(result == _get_fwp_sock_addr_action(port_number));
+        REQUIRE((result == _get_fwp_sock_addr_action(port_number) || fault_injection_enabled));
     }
 }
 
