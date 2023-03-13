@@ -398,7 +398,7 @@ jobs:
       name: fault_injection_full
       test_command: .\unit_tests.exe
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
       fault_injection: true
@@ -413,7 +413,7 @@ jobs:
       name: netebpfext_fault_injection_full
       test_command: .\netebpfext_unit.exe
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
       fault_injection: true
