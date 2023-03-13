@@ -302,7 +302,7 @@ net_ebpf_ext_sock_ops_register_providers()
     _ebpf_sock_ops_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_SOCK_OPS;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_sock_ops_program_info_provider_context);
-    if (status != STATUS_SUCCESS) {
+    if (!NT_SUCCESS(status)) {
         goto Exit;
     }
 

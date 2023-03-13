@@ -777,7 +777,7 @@ net_ebpf_ext_sock_addr_register_providers()
     _ebpf_sock_addr_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_sock_addr_program_info_provider_context);
-    if (status != STATUS_SUCCESS) {
+    if (!NT_SUCCESS(status)) {
         goto Exit;
     }
 

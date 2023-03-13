@@ -186,7 +186,7 @@ net_ebpf_ext_bind_register_providers()
     _ebpf_bind_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_BIND;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_bind_program_info_provider_context);
-    if (status != STATUS_SUCCESS) {
+    if (!NT_SUCCESS(status)) {
         goto Exit;
     }
 
