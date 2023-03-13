@@ -143,13 +143,13 @@
     <ClCompile Include="wer_report_test_wrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="..\sample\bad1.o">
+    <CopyFileToFolders Include="..\sample\bad\bad1.o">
       <FileType>Document</FileType>
       <DeploymentContent>true</DeploymentContent>
       <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)bad</DestinationFolders>
       <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)bad</DestinationFolders>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="..\sample\bad2.o">
+    <CopyFileToFolders Include="..\sample\bad\bad2.o">
       <FileType>Document</FileType>
       <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)bad</DestinationFolders>
       <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)bad</DestinationFolders>

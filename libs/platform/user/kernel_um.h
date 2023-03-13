@@ -487,7 +487,7 @@ extern "C"
     VOID
     RtlMapGenericMask(_Inout_ PACCESS_MASK AccessMask, _In_ const GENERIC_MAPPING* GenericMapping);
 
-    unsigned long 
+    unsigned long
     RtlLengthSid(_In_ PSID Sid);
 
     NTSTATUS
