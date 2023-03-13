@@ -3,14 +3,12 @@
 
 #define CATCH_CONFIG_MAIN
 #include "catch_wrapper.hpp"
+#include "ebpf_fault_injection.h"
 #include "netebpf_ext_helper.h"
 
 #include <map>
 
 #define CONCURRENT_THREAD_RUN_TIME_IN_SECONDS 10
-
-extern bool
-ebpf_low_memory_test_in_progress();
 
 typedef enum _sock_addr_test_type
 {
@@ -502,7 +500,7 @@ sock_addr_thread_function(
     FWP_ACTION_TYPE result;
     uint16_t port_number;
 
-    bool low_memory_test = ebpf_low_memory_test_in_progress();
+    bool fault_injection_enabled = ebpf_fault_injection_is_enabled();
 
     if (start_port != end_port) {
         port_number = start_port - 1;
@@ -531,7 +529,7 @@ sock_addr_thread_function(
             break;
         }
 
-        REQUIRE((result == _get_fwp_sock_addr_action(port_number) || low_memory_test));
+        REQUIRE((result == _get_fwp_sock_addr_action(port_number) || fault_injection_enabled));
     }
 }
 
