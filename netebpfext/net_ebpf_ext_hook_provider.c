@@ -368,8 +368,10 @@ Exit:
         *provider_binding_context = hook_client;
         hook_client = NULL;
     } else {
-        if (hook_client)
+        if (hook_client) {
+            IoFreeWorkItem(hook_client->detach_work_item);
             ExFreePool(hook_client);
+        }
     }
 
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
