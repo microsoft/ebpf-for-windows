@@ -3,31 +3,71 @@
      SPDX-License-Identifier: MIT
   -->
 <package>
-  <metadata>
-    <title>eBPF for Windows SDK</title>
-    <id>eBPF-for-Windows</id>
-    <version>{version}</version>
-    <authors>eBPF for Windows Contributors</authors>
-    <owners>eBPF for Windows Contributors</owners>
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <license type="expression">MIT</license>
-    <projectUrl>https://github.com/Microsoft/ebpf-for-windows</projectUrl>
-    <repository type="git" url="https://github.com/microsoft/ebpf-for-windows.git"/>
-    <tags>native ebpf</tags>
-    <description>eBPF for Windows SDK</description>
-  </metadata>
+	<metadata>
+		<title>eBPF for Windows SDK</title>
+		<id>eBPF-for-Windows</id>
+		<version>{version}</version>
+		<authors>eBPF for Windows Contributors</authors>
+		<owners>eBPF for Windows Contributors</owners>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<license type="expression">MIT</license>
+		<projectUrl>https://github.com/Microsoft/ebpf-for-windows</projectUrl>
+		<repository type="git" url="https://github.com/microsoft/ebpf-for-windows.git"/>
+		<tags>native ebpf</tags>
+		<description>eBPF for Windows SDK</description>
+	</metadata>
+	<files>
+		<file src="..\..\tools\nuget\README.md" target="."/>
+		<file src="..\..\tools\nuget\ebpf-for-windows.props" target="build\native"/>
+		<file src="Convert-BpfToNative.ps1" target="build\native\bin"/>
+		<file src="bpf2c.exe" target="build\native\bin"/>
+		<file src="bpf2c.pdb" target="build\native\bin"/>
+		<file src="export_program_info.exe" target="build\native\bin"/>
+		<file src="export_program_info.pdb" target="build\native\bin"/>
+		<file src="ebpfapi.dll" target="build\native\bin"/>
+		<file src="ebpfapi.pdb" target="build\native\bin"/>
+		<file src="ebpfapi.lib" target="build\native\lib"/>
+		<file src="..\..\include\**\*.*" target="build\native\include" />
 
-  <files>
-    <file src="Convert-BpfToNative.ps1"                       target="build\native\bin"                    />
-    <file src="bpf2c.exe"                                     target="build\native\bin"                    />
-    <file src="export_program_info.exe"                       target="build\native\bin"                    />
-    <file src="ebpfapi.dll"                                   target="build\native\bin"                    />
-    <file src="ebpfapi.lib"                                   target="build\native\lib"                    />
-    <file src="..\..\include\**\*.*"                          target="build\native\include"                />
-    <file src="..\..\external\bpftool\libbpf\include\**\*.*"  target="build\native\include\libbpf\include" />
-    <file src="..\..\external\bpftool\libbpf\src\**\*.h"      target="build\native\include\libbpf\src"     />
-    <file src="..\..\external\ebpf-verifier\src\ebpf_base.h"  target="build\native\include"                />
-    <file src="..\..\tools\nuget\README.md"                   target="."                                   />
-    <file src="..\..\tools\nuget\ebpf-for-windows.props"      target="build\native"                        />
-  </files>
+		<!--Cherry-pick files from external projects-->
+		<file src="..\..\external\bpftool\libbpf\include\asm\barrier.h" target="build\native\include\libbpf\include\asm"/>
+		<file src="..\..\external\bpftool\libbpf\include\linux\compiler.h" target="build\native\include\libbpf\include\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\linux\err.h" target="build\native\include\libbpf\include\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\linux\filter.h" target="build\native\include\libbpf\include\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\linux\kernel.h" target="build\native\include\libbpf\include\linux\ "/>
+		<file src="..\..\external\bpftool\libbpf\include\linux\list.h" target="build\native\include\libbpf\include\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\linux\overflow.h" target="build\native\include\libbpf\include\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\linux\ring_buffer.h" target="build\native\include\libbpf\include\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\linux\types.h" target="build\native\include\libbpf\include\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\uapi\linux\bpf.h" target="build\native\include\libbpf\include\uapi\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\uapi\linux\bpf_common.h" target="build\native\include\libbpf\include\uapi\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\uapi\linux\btf.h" target="build\native\include\libbpf\include\uapi\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\uapi\linux\if_link.h" target="build\native\include\libbpf\include\uapi\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\uapi\linux\if_xdp.h" target="build\native\include\libbpf\include\uapi\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\uapi\linux\netlink.h" target="build\native\include\libbpf\include\uapi\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\uapi\linux\perf_event.h" target="build\native\include\libbpf\include\uapi\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\uapi\linux\pkt_cls.h" target="build\native\include\libbpf\include\uapi\linux"/>
+		<file src="..\..\external\bpftool\libbpf\include\uapi\linux\pkt_sched.h" target="build\native\include\libbpf\include\uapi\linux"/>
+		<file src="..\..\external\bpftool\libbpf\src\bpf.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\bpf_core_read.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\bpf_endian.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\bpf_gen_internal.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\bpf_helpers.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\bpf_helper_defs.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\bpf_tracing.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\btf.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\hashmap.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\libbpf.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\libbpf_common.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\libbpf_internal.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\libbpf_legacy.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\libbpf_version.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\nlattr.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\relo_core.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\skel_internal.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\str_error.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\strset.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\bpftool\libbpf\src\usdt.bpf.h" target="build\native\include\libbpf\src"/>
+		<file src="..\..\external\ebpf-verifier\src\ebpf_base.h" target="build\native\include"/>
+	</files>
 </package>
