@@ -29,7 +29,7 @@
 		<file src="ebpfapi.lib" target="build\native\lib"/>
 		<file src="..\..\include\**\*.*" target="build\native\include" />
 
-		<!--Cherry-pick files from external project files-->
+		<!--Cherry-pick files from external projects-->
 		<file src="..\..\external\bpftool\libbpf\include\asm\barrier.h" target="build\native\include\libbpf\include\asm"/>
 		<file src="..\..\external\bpftool\libbpf\include\linux\compiler.h" target="build\native\include\libbpf\include\linux"/>
 		<file src="..\..\external\bpftool\libbpf\include\linux\err.h" target="build\native\include\libbpf\include\linux"/>
