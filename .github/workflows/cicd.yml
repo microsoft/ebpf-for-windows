@@ -363,6 +363,7 @@ jobs:
       code_coverage: true
       gather_dumps: true
       fault_injection: true
+      leak_detection: true
 
   # Run the low memory simulator for netebpfext_unit tests.
   fault_injection_netebpfext_unit:
@@ -402,6 +403,7 @@ jobs:
       code_coverage: false
       gather_dumps: true
       fault_injection: true
+      leak_detection: true
 
   # Run the complete fault injection simulator for netebpfext in GitHub.
   # Runs on a schedule as this takes a long time to run.
