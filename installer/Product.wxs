@@ -692,6 +692,18 @@ SPDX-License-Identifier: MIT
 			<Component Id="CGROUP_SOCK_ADDR_UM.PDB" DiskId="1" Guid="{40BC9394-DE30-468D-ABA9-8DAC8C76D492}">
 				<File Id="CGROUP_SOCK_ADDR_UM.PDB" Name="cgroup_sock_addr_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr_um.pdb" />
 			</Component>
+			<Component Id="CGROUP_SOCK_ADDR2.O" DiskId="1" Guid="{EC56B373-152C-4ECB-9491-266AE910FFEC}">
+				<File Id="CGROUP_SOCK_ADDR2.O" Name="cgroup_sock_addr2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr2.o" />
+			</Component>
+			<Component Id="CGROUP_SOCK_ADDR2.SYS" DiskId="1" Guid="{3AEDA230-16DB-40D5-AE53-3312460BC741}">
+				<File Id="CGROUP_SOCK_ADDR2.SYS" Name="cgroup_sock_addr2.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr2.sys" />
+			</Component>
+			<Component Id="CGROUP_SOCK_ADDR2_UM.DLL" DiskId="1" Guid="{6CEFE90B-B8C4-4610-B295-302586D45704}">
+				<File Id="CGROUP_SOCK_ADDR2_UM.DLL" Name="cgroup_sock_addr2_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr2_um.dll" />
+			</Component>
+			<Component Id="CGROUP_SOCK_ADDR2_UM.PDB" DiskId="1" Guid="{AF48035A-42DE-4383-AE5B-1645FF293F6F}">
+				<File Id="CGROUP_SOCK_ADDR2_UM.PDB" Name="cgroup_sock_addr2_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr2_um.pdb" />
+			</Component>
 			<Component Id="DECAP_PERMIT_PACKET.O" DiskId="1" Guid="{EAD33B50-0E47-464B-A919-1A24B64C686A}">
 				<File Id="DECAP_PERMIT_PACKET.O" Name="decap_permit_packet.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\decap_permit_packet.o" />
 			</Component>
