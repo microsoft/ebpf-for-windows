@@ -32,6 +32,22 @@ typedef struct _ebpf_free_memory
 
 typedef std::unique_ptr<uint8_t, ebpf_free_memory_t> ebpf_memory_t;
 
+typedef struct _close_bpf_link
+{
+    void
+    operator()(bpf_link* link)
+    {
+        if (link != nullptr) {
+            if (ebpf_link_detach(link) != EBPF_SUCCESS) {
+                throw std::runtime_error("ebpf_link_detach failed");
+            }
+            ebpf_link_close(link);
+        }
+    }
+} close_bpf_link_t;
+
+typedef std::unique_ptr<bpf_link, close_bpf_link_t> bpf_link_ptr;
+
 extern bool _ebpf_platform_is_preemptible;
 
 #ifdef __cplusplus
@@ -69,6 +85,24 @@ typedef class _hook_helper
 {
   public:
     _hook_helper(ebpf_attach_type_t attach_type) : _attach_type(attach_type) {}
+
+    _Must_inspect_result_ ebpf_result_t
+    attach_link(
+        fd_t program_fd,
+        _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
+        size_t attach_parameters_size,
+        _Out_ bpf_link_ptr* unique_link)
+    {
+        bpf_link* link = nullptr;
+        ebpf_result_t result;
+
+        result = ebpf_program_attach_by_fd(program_fd, &_attach_type, attach_parameters, attach_parameters_size, &link);
+        if (result == EBPF_SUCCESS) {
+            unique_link->reset(link);
+        }
+
+        return result;
+    }
 
     _Must_inspect_result_ ebpf_result_t
     attach_link(
@@ -170,6 +204,14 @@ typedef class _single_instance_hook : public _hook_helper
 #pragma warning(disable : 6001) // Using uninitialized memory '*link'.
         ebpf_link_close(link);
 #pragma warning(pop)
+    }
+
+    void
+    detach_and_close_link(_Inout_ bpf_link_ptr* unique_link)
+    {
+        bpf_link* link = unique_link->release();
+        detach_link(link);
+        close_link(link);
     }
 
     _Must_inspect_result_ ebpf_result_t

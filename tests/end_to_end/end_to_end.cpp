@@ -64,6 +64,19 @@ CATCH_REGISTER_LISTENER(_passed_test_log)
 
 extern thread_local bool ebpf_non_preemptible;
 
+typedef struct _close_bpf_object
+{
+    void
+    operator()(bpf_object* object)
+    {
+        if (object != nullptr) {
+            bpf_object__close(object);
+        }
+    }
+} close_bpf_object_t;
+
+typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
+
 std::vector<uint8_t>
 prepare_ip_packet(uint16_t ethernet_type)
 {
@@ -330,11 +343,10 @@ ebpf_program_load(
     _In_z_ const char* file_name,
     bpf_prog_type prog_type,
     ebpf_execution_type_t execution_type,
-    _Outptr_result_maybenull_ struct bpf_object** object,
+    _Out_ bpf_object_ptr* unique_object,
     _Out_ fd_t* program_fd,
     _Outptr_opt_result_maybenull_z_ const char** log_buffer)
 {
-    *object = nullptr;
     *program_fd = ebpf_fd_invalid;
     if (log_buffer) {
         *log_buffer = nullptr;
@@ -365,7 +377,7 @@ ebpf_program_load(
     }
 
     *program_fd = bpf_program__fd(program);
-    *object = new_object;
+    unique_object->reset(new_object);
     return 0;
 }
 
@@ -376,26 +388,26 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     int result;
     const char* error_message = nullptr;
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
-    bpf_link* link;
+    bpf_link_ptr link;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o");
-
-    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
-    fd_t dropped_packet_map_fd = bpf_object__find_map_fd_by_name(object, "dropped_packet_map");
+    fd_t dropped_packet_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "dropped_packet_map");
 
     // Tell the program which interface to filter on.
-    fd_t interface_index_map_fd = bpf_object__find_map_fd_by_name(object, "interface_index_map");
+    fd_t interface_index_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "interface_index_map");
     uint32_t key = 0;
     uint32_t if_index = TEST_IFINDEX;
     REQUIRE(bpf_map_update_elem(interface_index_map_fd, &key, &if_index, EBPF_ANY) == EBPF_SUCCESS);
@@ -436,8 +448,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(value == 0);
 
     // Reattach to all interfaces so we can test the ingress_ifindex field passed to the program.
-    hook.detach_link(link);
-    hook.close_link(link);
+    hook.detach_and_close_link(&link);
     if_index = 0;
     REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
 
@@ -478,10 +489,9 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
 
-    hook.detach_link(link);
-    hook.close_link(link);
+    hook.detach_and_close_link(&link);
 
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 }
 
 // See also divide_by_zero_test_km in api_test.cpp for the kernel-mode equivalent.
@@ -492,17 +502,16 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 
     int result;
     const char* error_message = nullptr;
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
-    bpf_link* link;
+    bpf_link_ptr link;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "divide_by_zero_um.dll" : "divide_by_zero.o");
-
-    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
-
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free((void*)error_message);
@@ -522,10 +531,7 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 
     REQUIRE(hook_result == 0);
 
-    hook.detach_link(link);
-    hook.close_link(link);
-
-    bpf_object__close(object);
+    hook.detach_and_close_link(&link);
 }
 
 void
@@ -535,7 +541,7 @@ bad_map_name_um(ebpf_execution_type_t execution_type)
 
     int result;
     const char* error_message = nullptr;
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -543,7 +549,8 @@ bad_map_name_um(ebpf_execution_type_t execution_type)
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bad_map_name_um.dll" : "bad_map_name.o");
 
-    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -551,7 +558,7 @@ bad_map_name_um(ebpf_execution_type_t execution_type)
     }
     REQUIRE(result == -EINVAL);
 
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 }
 
 typedef struct _process_entry
@@ -638,8 +645,8 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     const char* error_message = nullptr;
     uint64_t fake_pid = 12345;
     int result;
-    bpf_object* object = nullptr;
-    bpf_link* link = nullptr;
+    bpf_object_ptr unique_object;
+    bpf_link_ptr link;
     fd_t program_fd;
     uint64_t process_id = _get_current_pid_tgid();
 
@@ -650,18 +657,19 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     // bpf2c.exe tool.
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
 
-    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
-    fd_t limit_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
+    fd_t limit_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "limits_map");
     REQUIRE(limit_map_fd > 0);
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "process_map");
     REQUIRE(process_map_fd > 0);
-    fd_t audit_map_fd = bpf_object__find_map_fd_by_name(object, "audit_map");
+    fd_t audit_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "audit_map");
     REQUIRE(audit_map_fd > 0);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
@@ -717,10 +725,9 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) < 0);
     REQUIRE(errno == ENOENT);
 
-    hook.detach_link(link);
-    hook.close_link(link);
+    hook.detach_and_close_link(&link);
 
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 }
 
 void
@@ -731,38 +738,39 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     const char* error_message = nullptr;
     uint64_t fake_pid = 12345;
     int result;
-    bpf_object* object = nullptr;
-    bpf_link* link = nullptr;
+    bpf_object_ptr unique_object;
+    bpf_link_ptr link;
     fd_t program_fd;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
     const char* file_name =
         (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall_um.dll" : "bindmonitor_tailcall.o");
-    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free((void*)error_message);
     }
     REQUIRE(result == 0);
-    fd_t limit_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
+    fd_t limit_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "limits_map");
     REQUIRE(limit_map_fd > 0);
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "process_map");
     REQUIRE(process_map_fd > 0);
 
     // Set up tail calls.
-    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee0");
     REQUIRE(callee0 != nullptr);
     fd_t callee0_fd = bpf_program__fd(callee0);
     REQUIRE(callee0_fd > 0);
 
-    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee1");
     REQUIRE(callee1 != nullptr);
     fd_t callee1_fd = bpf_program__fd(callee1);
     REQUIRE(callee1_fd > 0);
 
-    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "prog_array_map");
     REQUIRE(prog_map_fd > 0);
 
     uint32_t index = 0;
@@ -773,14 +781,14 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     // Validate various maps.
 
     // Validate map-in-maps with "inner_id".
-    struct bpf_map* outer_map = bpf_object__find_map_by_name(object, "dummy_outer_map");
+    struct bpf_map* outer_map = bpf_object__find_map_by_name(unique_object.get(), "dummy_outer_map");
     REQUIRE(outer_map != nullptr);
 
     int outer_map_fd = bpf_map__fd(outer_map);
     REQUIRE(outer_map_fd > 0);
 
     // Validate map-in-maps with "inner_idx".
-    struct bpf_map* outer_idx_map = bpf_object__find_map_by_name(object, "dummy_outer_idx_map");
+    struct bpf_map* outer_idx_map = bpf_object__find_map_by_name(unique_object.get(), "dummy_outer_idx_map");
     REQUIRE(outer_idx_map != nullptr);
 
     int outer_idx_map_fd = bpf_map__fd(outer_idx_map);
@@ -832,15 +840,14 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) < 0);
     REQUIRE(errno == ENOENT);
 
-    hook.detach_link(link);
-    hook.close_link(link);
+    hook.detach_and_close_link(&link);
 
     index = 0;
     REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
     index = 1;
     REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
 
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 }
 
 void
@@ -850,8 +857,8 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
 
     const char* error_message = nullptr;
     int result;
-    bpf_object* object = nullptr;
-    bpf_link* link = nullptr;
+    bpf_object_ptr unique_object;
+    bpf_link_ptr link;
     fd_t program_fd;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
@@ -860,7 +867,8 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
         (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_ringbuf_um.dll" : "bindmonitor_ringbuf.o");
 
     // Load and attach a bind eBPF program that uses a ring buffer map to notify about bind operations.
-    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -868,7 +876,7 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
     }
     REQUIRE(result == 0);
 
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "process_map");
     REQUIRE(process_map_fd > 0);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
@@ -894,10 +902,9 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
         REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT);
     });
 
-    hook.detach_link(link);
-    hook.close_link(link);
+    hook.detach_and_close_link(&link);
 
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 }
 
 static void
@@ -930,16 +937,17 @@ map_test(ebpf_execution_type_t execution_type)
 
     int result;
     const char* error_message = nullptr;
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
-    bpf_link* link;
+    bpf_link_ptr link;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_um.dll" : "map.o");
 
-    result = ebpf_program_load(file_name, BPF_PROG_TYPE_XDP, execution_type, &object, &program_fd, &error_message);
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_XDP, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -958,10 +966,9 @@ map_test(ebpf_execution_type_t execution_type)
     // Program should return 0 if all the map tests pass.
     REQUIRE(hook_result >= 0);
 
-    hook.detach_link(link);
-    hook.close_link(link);
+    hook.detach_and_close_link(&link);
 
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 }
 
 DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
@@ -1074,14 +1081,14 @@ _cgroup_load_test(
 {
     int result;
     const char* error_message = nullptr;
-    bpf_object* object = nullptr;
     fd_t program_fd;
 
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(program_type, attach_type);
     program_info_provider_t program_info(program_type);
+    bpf_object_ptr unique_object;
 
-    result = ebpf_program_load(file, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
+    result = ebpf_program_load(file, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -1090,7 +1097,7 @@ _cgroup_load_test(
 
     REQUIRE(result == 0);
 
-    bpf_program* program = bpf_object__find_program_by_name(object, name);
+    bpf_program* program = bpf_object__find_program_by_name(unique_object.get(), name);
     REQUIRE(program != nullptr);
 
     uint32_t compartment_id = 0;
@@ -1101,7 +1108,7 @@ _cgroup_load_test(
     REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
     REQUIRE(hook.detach(program_fd, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
 
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 }
 static void
 _cgroup_sock_addr_load_test(
@@ -1197,7 +1204,7 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
 
     const char* error_message = nullptr;
     int result;
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
@@ -1206,7 +1213,7 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
         SAMPLE_PATH "bindmonitor.o",
         BPF_PROG_TYPE_UNSPEC,
         EBPF_EXECUTION_INTERPRET,
-        &object,
+        &unique_object,
         &program_fd,
         &error_message);
 
@@ -1221,11 +1228,14 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
     std::string process_maps_name = "bindmonitor::process_map";
     std::string limit_maps_name = "bindmonitor::limits_map";
 
-    REQUIRE(bpf_object__find_map_by_name(object, "process_map") != nullptr);
-    REQUIRE(bpf_object__find_map_by_name(object, "limits_map") != nullptr);
+    REQUIRE(bpf_object__find_map_by_name(unique_object.get(), "process_map") != nullptr);
+    REQUIRE(bpf_object__find_map_by_name(unique_object.get(), "limits_map") != nullptr);
     REQUIRE(
-        bpf_map__pin(bpf_object__find_map_by_name(object, "process_map"), process_maps_name.c_str()) == EBPF_SUCCESS);
-    REQUIRE(bpf_map__pin(bpf_object__find_map_by_name(object, "limits_map"), limit_maps_name.c_str()) == EBPF_SUCCESS);
+        bpf_map__pin(bpf_object__find_map_by_name(unique_object.get(), "process_map"), process_maps_name.c_str()) ==
+        EBPF_SUCCESS);
+    REQUIRE(
+        bpf_map__pin(bpf_object__find_map_by_name(unique_object.get(), "limits_map"), limit_maps_name.c_str()) ==
+        EBPF_SUCCESS);
 
     fd_t fd = bpf_obj_get(process_maps_name.c_str());
     REQUIRE(fd != ebpf_fd_invalid);
@@ -1236,15 +1246,17 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
     Platform::_close(fd);
 
     REQUIRE(
-        bpf_map__unpin(bpf_object__find_map_by_name(object, "process_map"), process_maps_name.c_str()) == EBPF_SUCCESS);
+        bpf_map__unpin(bpf_object__find_map_by_name(unique_object.get(), "process_map"), process_maps_name.c_str()) ==
+        EBPF_SUCCESS);
     REQUIRE(
-        bpf_map__unpin(bpf_object__find_map_by_name(object, "limits_map"), limit_maps_name.c_str()) == EBPF_SUCCESS);
+        bpf_map__unpin(bpf_object__find_map_by_name(unique_object.get(), "limits_map"), limit_maps_name.c_str()) ==
+        EBPF_SUCCESS);
 
     REQUIRE(bpf_obj_get(limit_maps_name.c_str()) == ebpf_fd_invalid);
 
     REQUIRE(bpf_obj_get(process_maps_name.c_str()) == ebpf_fd_invalid);
 
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 }
 
 TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
@@ -1257,7 +1269,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     int result;
     const char* file_name = nullptr;
     const char* section_name = nullptr;
-    bpf_object* object[2] = {0};
+    bpf_object_ptr unique_object[2];
     fd_t program_fds[2] = {0};
 
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
@@ -1266,7 +1278,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
         SAMPLE_PATH "droppacket.o",
         BPF_PROG_TYPE_UNSPEC,
         EBPF_EXECUTION_JIT,
-        &object[0],
+        &unique_object[0],
         &program_fds[0],
         &error_message);
 
@@ -1280,7 +1292,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
         SAMPLE_PATH "droppacket.o",
         BPF_PROG_TYPE_UNSPEC,
         EBPF_EXECUTION_INTERPRET,
-        &object[1],
+        &unique_object[1],
         &program_fds[1],
         &error_message);
 
@@ -1322,8 +1334,8 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 
     REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == -ENOENT);
 
-    for (int i = 0; i < _countof(object); i++) {
-        bpf_object__close(object[i]);
+    for (int i = 0; i < _countof(unique_object); i++) {
+        bpf_object__close(unique_object[i].release());
     }
 }
 
@@ -1345,7 +1357,7 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     _test_helper_end_to_end test_helper;
 
     int result = 0;
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
     const char* error_message = nullptr;
     bpf_link* link = nullptr;
@@ -1354,7 +1366,12 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     result = ebpf_program_load(
-        SAMPLE_PATH "droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, &object, &program_fd, &error_message);
+        SAMPLE_PATH "droppacket.o",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_JIT,
+        &unique_object,
+        &program_fd,
+        &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -1367,7 +1384,7 @@ TEST_CASE("implicit_detach", "[end_to_end]")
 
     // Call bpf_object__close() which will close the program fd. That should
     // detach the program from the hook and unload the program.
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 
     uint32_t program_id;
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
@@ -1390,7 +1407,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     _test_helper_end_to_end test_helper;
 
     int result = 0;
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
     const char* error_message = nullptr;
     bpf_link* link = nullptr;
@@ -1399,7 +1416,12 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     result = ebpf_program_load(
-        SAMPLE_PATH "droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, &object, &program_fd, &error_message);
+        SAMPLE_PATH "droppacket.o",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_JIT,
+        &unique_object,
+        &program_fd,
+        &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -1412,7 +1434,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
 
     // Call bpf_object__close() which will close the program fd. That should
     // detach the program from the hook and unload the program.
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 
     uint32_t program_id;
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
@@ -1433,9 +1455,9 @@ TEST_CASE("explicit_detach", "[end_to_end]")
 
     _test_helper_end_to_end test_helper;
 
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
-    bpf_link* link = nullptr;
+    bpf_link_ptr link;
     int result;
     const char* error_message = nullptr;
 
@@ -1446,7 +1468,7 @@ TEST_CASE("explicit_detach", "[end_to_end]")
         SAMPLE_PATH "droppacket.o",
         BPF_PROG_TYPE_UNSPEC,
         EBPF_EXECUTION_INTERPRET,
-        &object,
+        &unique_object,
         &program_fd,
         &error_message);
 
@@ -1462,11 +1484,10 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
-    hook.detach_link(link);
-    hook.close_link(link);
+    hook.detach_and_close_link(&link);
 
     // Close program handle.
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
     uint32_t program_id;
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 }
@@ -1480,9 +1501,9 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
 
     _test_helper_end_to_end test_helper;
 
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
-    bpf_link* link = nullptr;
+    bpf_link_ptr link;
     int result;
     const char* error_message = nullptr;
 
@@ -1493,7 +1514,7 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
         SAMPLE_PATH "droppacket.o",
         BPF_PROG_TYPE_UNSPEC,
         EBPF_EXECUTION_INTERPRET,
-        &object,
+        &unique_object,
         &program_fd,
         &error_message);
 
@@ -1508,15 +1529,14 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
 
     // Close program handle. That should detach the program from the hook
     // and unload the program.
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
     uint32_t program_id;
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
-    hook.detach_link(link);
-    hook.close_link(link);
+    hook.detach_and_close_link(&link);
 }
 
 TEST_CASE("create_map", "[end_to_end]")
@@ -2094,10 +2114,11 @@ _map_reuse_invalid_test(ebpf_execution_type_t execution_type)
 
     // Load BPF object from ELF file. Loading the program should fail as the
     // map type for map pinned at "/ebpf/global/outer_map" does not match.
-    struct bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
-    int result = ebpf_program_load(file_name, BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, &object, &program_fd, nullptr);
+    int result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, &unique_object, &program_fd, nullptr);
 
     REQUIRE(result == -EINVAL);
 
@@ -2339,7 +2360,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     size_t count_of_programs = 0;
     int error;
     const char* error_message = nullptr;
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
     std::wstring file_path(L"droppacket_um.dll");
     const wchar_t* service_name = nullptr;
@@ -2351,7 +2372,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
 
     // Load a valid native module.
     error = ebpf_program_load(
-        "droppacket_um.dll", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+        "droppacket_um.dll", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &unique_object, &program_fd, &error_message);
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free((void*)error_message);
@@ -2376,7 +2397,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
             &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
         ERROR_OBJECT_ALREADY_EXISTS);
 
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 
     // Now that we have closed the object, try to load programs from the same module again. This should
     // fail as the module should now be marked as "unloading".
@@ -2440,15 +2461,15 @@ TEST_CASE("load_native_program_negative5", "[end_to_end]")
 
     int result;
     const char* error_message = nullptr;
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     set_native_module_failures(true);
-    result =
-        ebpf_program_load("map.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd, &error_message);
+    result = ebpf_program_load(
+        "map.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &unique_object, &program_fd, &error_message);
     REQUIRE(result == -ENOENT);
 }
 
@@ -2549,12 +2570,12 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
     _test_helper_end_to_end test_helper;
 
     int result;
-    bpf_object* object = nullptr;
+    bpf_object_ptr unique_object;
     fd_t program_fd;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
-    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, nullptr);
+    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, nullptr);
     REQUIRE(result == expected_result);
 }
 
@@ -2769,7 +2790,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
 
     // Try loading without the extension loaded.
-    bpf_object* droppacket_object;
+    bpf_object_ptr unique_droppacket_object;
     int program_fd = -1;
     const char* error_message = nullptr;
 
@@ -2779,7 +2800,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
             execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o",
             BPF_PROG_TYPE_UNSPEC,
             execution_type,
-            &droppacket_object,
+            &unique_droppacket_object,
             &program_fd,
             &error_message) != 0);
 
@@ -2795,7 +2816,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
                 execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o",
                 BPF_PROG_TYPE_UNSPEC,
                 execution_type,
-                &droppacket_object,
+                &unique_droppacket_object,
                 &program_fd,
                 &error_message) == 0);
 
@@ -2883,15 +2904,15 @@ TEST_CASE("close_unload_test", "[close_cleanup]")
 
     const char* error_message = nullptr;
     int result;
-    bpf_object* object = nullptr;
-    bpf_link* link = nullptr;
+    bpf_object_ptr unique_object;
+    bpf_link_ptr link;
     fd_t program_fd;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
     const char* file_name = "bindmonitor_tailcall_um.dll";
-    result =
-        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+    result = ebpf_program_load(
+        file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -2900,17 +2921,17 @@ TEST_CASE("close_unload_test", "[close_cleanup]")
     REQUIRE(result == 0);
 
     // Set up tail calls.
-    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee0");
     REQUIRE(callee0 != nullptr);
     fd_t callee0_fd = bpf_program__fd(callee0);
     REQUIRE(callee0_fd > 0);
 
-    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee1");
     REQUIRE(callee1 != nullptr);
     fd_t callee1_fd = bpf_program__fd(callee1);
     REQUIRE(callee1_fd > 0);
 
-    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "prog_array_map");
     REQUIRE(prog_map_fd > 0);
 
     uint32_t index = 0;
@@ -2923,8 +2944,7 @@ TEST_CASE("close_unload_test", "[close_cleanup]")
     REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
 
     // These are needed to prevent the memory leak detector from flagging a memory leak.
-    hook.detach_link(link);
-    hook.close_link(link);
+    hook.detach_and_close_link(&link);
 
     // The block of commented code after this comment is for documentation purposes only.
     //
@@ -2952,7 +2972,7 @@ TEST_CASE("close_unload_test", "[close_cleanup]")
     // REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
     */
 
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 }
 
 // This test tests the case where a program is inserted multiple times with different keys into the same map.
@@ -2962,15 +2982,15 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
 
     const char* error_message = nullptr;
     int result;
-    bpf_object* object = nullptr;
-    bpf_link* link = nullptr;
+    bpf_object_ptr unique_object;
+    bpf_link_ptr link;
     fd_t program_fd;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
     const char* file_name = "bindmonitor_tailcall_um.dll";
-    result =
-        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+    result = ebpf_program_load(
+        file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -2979,17 +2999,17 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
     REQUIRE(result == 0);
 
     // Set up tail calls.
-    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee0");
     REQUIRE(callee0 != nullptr);
     fd_t callee0_fd = bpf_program__fd(callee0);
     REQUIRE(callee0_fd > 0);
 
-    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee1");
     REQUIRE(callee1 != nullptr);
     fd_t callee1_fd = bpf_program__fd(callee1);
     REQUIRE(callee1_fd > 0);
 
-    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "prog_array_map");
     REQUIRE(prog_map_fd > 0);
 
     uint32_t index = 0;
@@ -3013,8 +3033,7 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
     REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
 
     // These are needed to prevent the memory leak detector from flagging a memory leak.
-    hook.detach_link(link);
-    hook.close_link(link);
+    hook.detach_and_close_link(&link);
 
     /*
        --- DO NOT REMOVE OR UN-COMMENT ---
@@ -3027,5 +3046,5 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
     // REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
     */
 
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 }
