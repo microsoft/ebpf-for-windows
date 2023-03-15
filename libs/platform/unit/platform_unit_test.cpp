@@ -26,6 +26,19 @@
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;
 
+typedef struct _close_ebpf_pinning_table
+{
+    void
+    operator()(ebpf_pinning_table_t* table)
+    {
+        if (table != nullptr) {
+            ebpf_pinning_table_free(table);
+        }
+    }
+} close_ebpf_pinning_table_t;
+
+typedef std::unique_ptr<ebpf_pinning_table_t, close_ebpf_pinning_table_t> ebpf_pinning_table_ptr;
+
 class _test_helper
 {
   public:
@@ -277,21 +290,25 @@ TEST_CASE("pinning_test", "[platform]")
         ebpf_object_initialize(
             &another_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
 
-    ebpf_pinning_table_t* pinning_table = nullptr;
-    REQUIRE(ebpf_pinning_table_allocate(&pinning_table) == EBPF_SUCCESS);
+    ebpf_pinning_table_ptr pinning_table;
+    {
+        ebpf_pinning_table_t* local_pinning_table = nullptr;
+        REQUIRE(ebpf_pinning_table_allocate(&local_pinning_table) == EBPF_SUCCESS);
+        pinning_table.reset(local_pinning_table);
+    }
 
-    REQUIRE(ebpf_pinning_table_insert(pinning_table, &foo, &an_object.object) == EBPF_SUCCESS);
+    REQUIRE(ebpf_pinning_table_insert(pinning_table.get(), &foo, &an_object.object) == EBPF_SUCCESS);
     REQUIRE(an_object.object.base.reference_count == 2);
-    REQUIRE(ebpf_pinning_table_insert(pinning_table, &bar, &another_object.object) == EBPF_SUCCESS);
+    REQUIRE(ebpf_pinning_table_insert(pinning_table.get(), &bar, &another_object.object) == EBPF_SUCCESS);
     REQUIRE(another_object.object.base.reference_count == 2);
-    REQUIRE(ebpf_pinning_table_find(pinning_table, &foo, (ebpf_core_object_t**)&some_object) == EBPF_SUCCESS);
+    REQUIRE(ebpf_pinning_table_find(pinning_table.get(), &foo, (ebpf_core_object_t**)&some_object) == EBPF_SUCCESS);
     REQUIRE(an_object.object.base.reference_count == 3);
     REQUIRE(some_object == &an_object);
     ebpf_object_release_reference(&some_object->object);
-    REQUIRE(ebpf_pinning_table_delete(pinning_table, &foo) == EBPF_SUCCESS);
+    REQUIRE(ebpf_pinning_table_delete(pinning_table.get(), &foo) == EBPF_SUCCESS);
     REQUIRE(another_object.object.base.reference_count == 2);
 
-    ebpf_pinning_table_free(pinning_table);
+    ebpf_pinning_table_free(pinning_table.release());
     REQUIRE(an_object.object.base.reference_count == 1);
     REQUIRE(another_object.object.base.reference_count == 1);
 
