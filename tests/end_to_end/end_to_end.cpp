@@ -534,6 +534,8 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
     REQUIRE(hook_result == 0);
 
     hook.detach_and_close_link(&link);
+
+    bpf_object__close(unique_object.release());
 }
 
 void

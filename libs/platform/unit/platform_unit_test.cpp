@@ -26,7 +26,7 @@
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;
 
-typedef struct _close_ebpf_pinning_table
+typedef struct _free_ebpf_pinning_table
 {
     void
     operator()(ebpf_pinning_table_t* table)
@@ -35,9 +35,9 @@ typedef struct _close_ebpf_pinning_table
             ebpf_pinning_table_free(table);
         }
     }
-} close_ebpf_pinning_table_t;
+} free_ebpf_pinning_table_t;
 
-typedef std::unique_ptr<ebpf_pinning_table_t, close_ebpf_pinning_table_t> ebpf_pinning_table_ptr;
+typedef std::unique_ptr<ebpf_pinning_table_t, free_ebpf_pinning_table_t> ebpf_pinning_table_ptr;
 
 class _test_helper
 {
