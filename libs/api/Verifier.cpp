@@ -419,12 +419,18 @@ ebpf_api_elf_enumerate_sections(
             }
 
             info->section_name = ebpf_duplicate_string(raw_program.section.c_str());
+            if (info->section_name == nullptr) {
+                throw std::runtime_error("Out of memory");
+            }
             info->program_type_name = ebpf_duplicate_string(raw_program.info.type.name.c_str());
+            if (info->program_type_name == nullptr) {
+                throw std::runtime_error("Out of memory");
+            }
 
             std::vector<uint8_t> raw_data = convert_ebpf_program_to_bytes(raw_program.prog);
             info->raw_data_size = raw_data.size();
             info->raw_data = (char*)ebpf_allocate(info->raw_data_size);
-            if (info->raw_data == nullptr || info->section_name == nullptr || info->program_type_name == nullptr) {
+            if (info->raw_data == nullptr) {
                 throw std::runtime_error("Out of memory");
             }
             memcpy(info->raw_data, raw_data.data(), info->raw_data_size);

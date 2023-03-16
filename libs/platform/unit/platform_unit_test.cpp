@@ -525,7 +525,10 @@ TEST_CASE("extension_test", "[platform]")
     REQUIRE(returned_provider_dispatch_table == &test_provider_dispatch_table);
 
     ebpf_extension_unload(client_context);
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory 'provider_context'.
     ebpf_provider_unload(provider_context);
+#pragma warning(pop)
 }
 
 TEST_CASE("trampoline_test", "[platform]")
@@ -670,7 +673,9 @@ TEST_CASE("serialize_map_test", "[platform]")
 
     {
         uint8_t* buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
-        REQUIRE(buffer != nullptr);
+        if (buffer == nullptr) {
+            REQUIRE(false);
+        }
         unique_buffer.reset(buffer);
     }
     buffer_length = required_length;
@@ -736,7 +741,9 @@ TEST_CASE("serialize_program_info_test", "[platform]")
 
     {
         uint8_t* buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
-        REQUIRE(buffer != nullptr);
+        if (buffer == nullptr) {
+            REQUIRE(false);
+        }
         unique_buffer.reset(buffer);
     }
     buffer_length = required_length;

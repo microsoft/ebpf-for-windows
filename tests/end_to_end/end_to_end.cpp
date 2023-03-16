@@ -352,6 +352,8 @@ ebpf_program_load(
         *log_buffer = nullptr;
     }
 
+    unique_object->reset(nullptr);
+
     bpf_object* new_object = bpf_object__open(file_name);
     if (new_object == nullptr) {
         return -errno;
