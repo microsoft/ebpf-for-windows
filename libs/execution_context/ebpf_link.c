@@ -387,10 +387,7 @@ _ebpf_link_instance_invoke_batch_begin(
         goto Done;
     }
 
-    return_value = ebpf_epoch_enter();
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
+    ebpf_epoch_enter();
     epoch_entered = true;
 
     return_value = ebpf_program_reference_providers(link->program);

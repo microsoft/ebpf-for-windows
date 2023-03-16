@@ -390,7 +390,7 @@ _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVE
 _Must_inspect_result_ ebpf_result_t
 ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
 {
-    if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
+    if (KeGetCurrentIrql() >= DISPATCH_LEVEL) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
@@ -824,4 +824,38 @@ ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state)
     } else {
         state->id.thread = ebpf_get_current_thread_id();
     }
+}
+
+typedef struct _ebpf_semaphore
+{
+    KSEMAPHORE semaphore;
+} ebpf_semaphore_t;
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, int maximum_count)
+{
+    *semaphore = ebpf_allocate(sizeof(KSEMAPHORE));
+    if (*semaphore == NULL)
+        return EBPF_NO_MEMORY;
+
+    KeInitializeSemaphore(&(*semaphore)->semaphore, initial_count, maximum_count);
+    return EBPF_SUCCESS;
+}
+
+void
+ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore)
+{
+    ebpf_free(semaphore);
+}
+
+void
+ebpf_semaphore_wait(_In_ ebpf_semaphore_t* semaphore)
+{
+    KeWaitForSingleObject(&semaphore->semaphore, Executive, KernelMode, FALSE, NULL);
+}
+
+void
+ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore)
+{
+    KeReleaseSemaphore(&semaphore->semaphore, 0, 1, FALSE);
 }

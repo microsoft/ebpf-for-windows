@@ -179,10 +179,9 @@ TEST_CASE("hash_table_test", "[platform]")
 void
 run_in_epoch(std::function<void()> function)
 {
-    if (ebpf_epoch_enter() == EBPF_SUCCESS) {
-        function();
-        ebpf_epoch_exit();
-    }
+    ebpf_epoch_enter();
+    function();
+    ebpf_epoch_exit();
 }
 
 TEST_CASE("hash_table_stress_test", "[platform]")
@@ -302,7 +301,7 @@ TEST_CASE("epoch_test_single_epoch", "[platform]")
 {
     _test_helper test_helper;
 
-    REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
+    ebpf_epoch_enter();
     void* memory = ebpf_epoch_allocate(10);
     ebpf_epoch_free(memory);
     ebpf_epoch_exit();
@@ -314,8 +313,7 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     _test_helper test_helper;
 
     auto epoch = []() {
-        if (ebpf_epoch_enter() != EBPF_SUCCESS)
-            return;
+        ebpf_epoch_enter();
         void* memory = ebpf_epoch_allocate(10);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -378,23 +376,21 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         auto t1 = [&]() {
             uintptr_t old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_affinity(1, &old_thread_affinity));
-            bool _in_epoch = (ebpf_epoch_enter() == EBPF_SUCCESS);
-            void* memory = _in_epoch ? ebpf_epoch_allocate(10) : nullptr;
+            ebpf_epoch_enter();
+            void* memory = ebpf_epoch_allocate(10);
             signal_2.signal();
             signal_1.wait();
             ebpf_epoch_free(memory);
-            if (_in_epoch)
-                ebpf_epoch_exit();
+            ebpf_epoch_exit();
         };
         auto t2 = [&]() {
             uintptr_t old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_affinity(2, &old_thread_affinity));
             signal_2.wait();
-            if (ebpf_epoch_enter() == EBPF_SUCCESS) {
-                void* memory = ebpf_epoch_allocate(10);
-                ebpf_epoch_free(memory);
-                ebpf_epoch_exit();
-            }
+            ebpf_epoch_enter();
+            void* memory = ebpf_epoch_allocate(10);
+            ebpf_epoch_free(memory);
+            ebpf_epoch_exit();
             signal_1.signal();
         };
 
@@ -834,7 +830,7 @@ TEST_CASE("async", "[platform]")
     _test_helper test_helper;
 
     auto test = [](bool complete) {
-        REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
+        ebpf_epoch_enter();
         struct _async_context
         {
             ebpf_result_t result;
