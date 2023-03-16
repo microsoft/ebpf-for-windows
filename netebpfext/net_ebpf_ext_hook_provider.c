@@ -284,6 +284,18 @@ Exit:
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
+void
+_net_ebpf_extension_hook_client_cleanup(_Frees_ptr_opt_ net_ebpf_extension_hook_client_t* hook_client)
+{
+    if (hook_client != NULL) {
+        if (hook_client->detach_work_item) {
+            IoFreeWorkItem(hook_client->detach_work_item);
+        }
+        ExFreePool(hook_client);
+        ;
+    }
+}
+
 /**
  * @brief Callback invoked when an eBPF hook NPI client (a.k.a eBPF link object) attaches.
  *
@@ -368,10 +380,7 @@ Exit:
         *provider_binding_context = hook_client;
         hook_client = NULL;
     } else {
-        if (hook_client) {
-            IoFreeWorkItem(hook_client->detach_work_item);
-            ExFreePool(hook_client);
-        }
+        _net_ebpf_extension_hook_client_cleanup(hook_client);
     }
 
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
