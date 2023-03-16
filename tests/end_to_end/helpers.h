@@ -35,7 +35,7 @@ typedef std::unique_ptr<uint8_t, ebpf_free_memory_t> ebpf_memory_t;
 typedef struct _close_bpf_link
 {
     void
-    operator()(bpf_link* link)
+    operator()(_In_opt_ _Post_invalid_ bpf_link* link)
     {
         if (link != nullptr) {
             if (ebpf_link_detach(link) != EBPF_SUCCESS) {

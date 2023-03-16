@@ -29,7 +29,7 @@ extern uint32_t ebpf_core_helper_functions_count;
 typedef struct _free_ebpf_pinning_table
 {
     void
-    operator()(ebpf_pinning_table_t* table)
+    operator()(_In_opt_ _Post_invalid_ ebpf_pinning_table_t* table)
     {
         if (table != nullptr) {
             ebpf_pinning_table_free(table);

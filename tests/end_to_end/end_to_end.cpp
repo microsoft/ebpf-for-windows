@@ -67,7 +67,7 @@ extern thread_local bool ebpf_non_preemptible;
 typedef struct _close_bpf_object
 {
     void
-    operator()(bpf_object* object)
+    operator()(_In_opt_ _Post_invalid_ bpf_object* object)
     {
         if (object != nullptr) {
             bpf_object__close(object);

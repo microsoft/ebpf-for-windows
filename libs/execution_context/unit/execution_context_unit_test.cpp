@@ -18,7 +18,7 @@
 typedef struct _free_trampoline_table
 {
     void
-    operator()(ebpf_trampoline_table_t* table)
+    operator()(_In_opt_ _Post_invalid_ ebpf_trampoline_table_t* table)
     {
         if (table != nullptr) {
             ebpf_free_trampoline_table(table);
