@@ -285,17 +285,14 @@ Exit:
 }
 
 void
-_net_ebpf_extension_hook_client_cleanup(_Frees_ptr_opt_ net_ebpf_extension_hook_client_t* hook_client)
+_net_ebpf_extension_hook_client_cleanup(_In_opt_ _Frees_ptr_opt_ net_ebpf_extension_hook_client_t* hook_client)
 {
-#pragma warning(push)
-#pragma warning(disable : 6001) // Using uninitialized memory '*hook_client'.
     if (hook_client != NULL) {
         if (hook_client->detach_work_item != NULL) {
             IoFreeWorkItem(hook_client->detach_work_item);
         }
         ExFreePool(hook_client);
     }
-#pragma warning(pop)
 }
 
 /**
