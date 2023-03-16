@@ -488,6 +488,7 @@ void
 native_load_unload_thread(
     std::stop_token token,
     uint32_t thread_no,
+    std::atomic_uint32_t& completed,
     _In_ const std::string& file_name,
     _In_ const std::string& map_name,
     ebpf_program_type_t prog_type,
@@ -500,7 +501,9 @@ native_load_unload_thread(
         const char* error_message = nullptr;
         bpf_object* object = nullptr;
         bpf_link* link = nullptr;
-        fd_t program_fd;
+        fd_t program_fd = 0;
+        fd_t program_map_fd = 0;
+        uint32_t if_index = TEST_IFINDEX;
 
         iteration++;
 
@@ -519,8 +522,8 @@ native_load_unload_thread(
                 result,
                 error_message ? error_message : "(null)");
             ebpf_free((void*)error_message);
+            goto Exit;
         }
-        REQUIRE(result == 0);
 
         // Once loaded, we do the least amount of activity in order to maximize the jitter
 
@@ -528,23 +531,32 @@ native_load_unload_thread(
         if (map_name.length() > 0) {
             uint32_t key = 0;
             uint64_t value = 0;
-            fd_t program_map_fd = bpf_object__find_map_fd_by_name(object, map_name.c_str());
-            REQUIRE(bpf_map_lookup_elem(program_map_fd, &key, &value) == EBPF_SUCCESS);
-            REQUIRE(value == 0);
-            Platform::_close(program_map_fd);
+            program_map_fd = bpf_object__find_map_fd_by_name(object, map_name.c_str());
+            result = bpf_map_lookup_elem(program_map_fd, &key, &value);
+            if (program_map_fd) {
+                Platform::_close(program_map_fd);
+            }
+            if (result != EBPF_SUCCESS || value != 0) {
+                goto Exit;
+            }
         }
 
         // Attach to the test interface
-        uint32_t if_index = TEST_IFINDEX;
-        REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
+        if (hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) != EBPF_SUCCESS) {
+            goto Exit;
+        }
 
+        completed++;
+
+    Exit:
         // Close up all
-        hook.detach_link(link);
-        hook.close_link(link);
-        bpf_object__close(object);
-
-        // Temp-debug trace - REMOVE on final PR
-        printf("\nnative_load_unload_thread[%u/%llu] for '%s' complete.\n", thread_no, iteration, file_name.c_str());
+        if (link) {
+            hook.detach_link(link);
+            hook.close_link(link);
+        }
+        if (object) {
+            bpf_object__close(object);
+        }
     }
     printf(
         "native_load_unload_thread[%u] for '%s' successfully completed with %llu iterations.\n",
@@ -575,10 +587,13 @@ TEST_CASE("native_load_unload_concurrent", "[end_to_end]")
         std::vector<std::jthread> threads;
 
         // Attempt to saturate all core threads with contention
-        for (uint32_t i = 0; i < ebpf_get_cpu_count() * 4; i++) {
+        uint32_t thread_no = ebpf_get_cpu_count() * 4;
+        std::atomic_uint32_t completed = 0;
+        for (uint32_t i = 0; i < thread_no; i++) {
             threads.emplace_back(
                 native_load_unload_thread,
                 i,
+                std::ref(completed),
                 std::ref(module.file_name),
                 std::ref(module.map_name),
                 module.prog_type,
@@ -597,6 +612,8 @@ TEST_CASE("native_load_unload_concurrent", "[end_to_end]")
         for (auto& thread : threads) {
             thread.join();
         }
+
+        REQUIRE(completed == thread_no);
     }
 }
 
