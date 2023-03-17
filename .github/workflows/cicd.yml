@@ -89,20 +89,6 @@ jobs:
       code_coverage: true
       gather_dumps: true
       capture_etw: true
-
-  unit_tests_leak_detection:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests_with_leak_detection
-      test_command: .\unit_tests.exe -d yes
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
       leak_detection: true
 
   # Run the netebpfext unit tests in GitHub.
@@ -114,20 +100,6 @@ jobs:
     with:
       name: netebpf_ext_unit_tests
       pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
-      test_command: .\netebpfext_unit.exe -d yes
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-
-  netebpfext_unit_leak_detection:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: netebpfext_unit_leak_detection
       test_command: .\netebpfext_unit.exe -d yes
       build_artifact: Build-x64
       environment: windows-2022
@@ -377,6 +349,7 @@ jobs:
       code_coverage: true
       gather_dumps: true
       fault_injection: true
+      leak_detection: true
 
   # Additional jobs to run on a schedule only (skip push and pull request).
   # ---------------------------------------------------------------------------
