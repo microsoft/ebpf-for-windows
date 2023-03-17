@@ -63,11 +63,14 @@ typedef struct _service_context
     bool delete_pending = false;
 } service_context_t;
 
+static std::mutex _fd_to_handle_mutex;
 static uint64_t _ebpf_file_descriptor_counter = 0;
-static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
+_Guarded_by_(_fd_to_handle_mutex) static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
 
+static std::mutex _service_path_to_context_mutex;
 static uint32_t _ebpf_service_handle_counter = 0;
-static std::map<std::wstring, service_context_t*> _service_path_to_context_map;
+_Guarded_by_(
+    _service_path_to_context_mutex) static std::map<std::wstring, service_context_t*> _service_path_to_context_map;
 
 class duplicate_handles_table_t
 {
@@ -471,12 +474,12 @@ Fail:
     return FALSE;
 }
 
-int
-Glue_open_osfhandle(intptr_t os_file_handle, int flags)
+_Requires_lock_not_held_(_fd_to_handle_mutex) int Glue_open_osfhandle(intptr_t os_file_handle, int flags)
 {
     UNREFERENCED_PARAMETER(flags);
     try {
         fd_t fd = static_cast<fd_t>(InterlockedIncrement(&_ebpf_file_descriptor_counter));
+        std::unique_lock lock(_fd_to_handle_mutex);
         _fd_to_handle_map.insert(std::pair<fd_t, ebpf_handle_t>(fd, os_file_handle));
         return fd;
     } catch (...) {
@@ -501,14 +504,14 @@ Glue_get_osfhandle(int file_descriptor)
     return ebpf_handle_invalid;
 }
 
-int
-Glue_close(int file_descriptor)
+_Requires_lock_not_held_(_fd_to_handle_mutex) int Glue_close(int file_descriptor)
 {
     if (file_descriptor == ebpf_fd_invalid) {
         errno = EINVAL;
         return ebpf_handle_invalid;
     }
 
+    std::unique_lock lock(_fd_to_handle_mutex);
     std::map<fd_t, ebpf_handle_t>::iterator it = _fd_to_handle_map.find(file_descriptor);
     if (it == _fd_to_handle_map.end()) {
         errno = EINVAL;
@@ -520,8 +523,7 @@ Glue_close(int file_descriptor)
     }
 }
 
-uint32_t
-Glue_create_service(
+_Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_create_service(
     _In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
     *service_handle = (SC_HANDLE)0;
@@ -537,6 +539,7 @@ Glue_create_service(
         context->name.assign(service_name);
         context->file_path.assign(file_path);
 
+        std::unique_lock lock(_service_path_to_context_mutex);
         _service_path_to_context_map.insert(std::pair<std::wstring, service_context_t*>(service_path, context));
         context->handle = InterlockedIncrement64((int64_t*)&_ebpf_service_handle_counter);
 
@@ -548,8 +551,7 @@ Glue_create_service(
     return ERROR_SUCCESS;
 }
 
-uint32_t
-Glue_delete_service(SC_HANDLE handle)
+_Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_delete_service(SC_HANDLE handle)
 {
     for (auto& [path, context] : _service_path_to_context_map) {
         if (context->handle == (intptr_t)handle) {
@@ -557,6 +559,7 @@ Glue_delete_service(SC_HANDLE handle)
             // mark it pending for delete.
             if (!context->loaded) {
                 ebpf_free(context);
+                std::unique_lock lock(_service_path_to_context_mutex);
                 _service_path_to_context_map.erase(path);
             } else {
                 context->delete_pending = true;

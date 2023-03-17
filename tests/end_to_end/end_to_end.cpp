@@ -516,7 +516,7 @@ native_load_unload_thread(
             file_name.c_str(), BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
         if (result != 0) {
             printf(
-                "native_load_unload_thread[%u/%llu]: ebpf_program_load() failed to load '%s' with error (%i)-'%s'\n",
+                "native_load_unload_thread[%u/%llu] for '%s' - ebpf_program_load() failed with error (%i)-'%s'\n",
                 thread_no,
                 iteration,
                 file_name.c_str(),
@@ -540,7 +540,7 @@ native_load_unload_thread(
             }
             if (result != EBPF_SUCCESS || value != 0) {
                 printf(
-                    "native_load_unload_thread[%u/%llu]: '%s' - bpf_map_lookup_elem() failed with error "
+                    "native_load_unload_thread[%u/%llu] for '%s' - bpf_map_lookup_elem() failed with error "
                     "(%i)\n",
                     thread_no,
                     iteration,
@@ -555,8 +555,7 @@ native_load_unload_thread(
         res = hook.attach_link(program_fd, &if_index, sizeof(if_index), &link);
         if (res != EBPF_SUCCESS) {
             printf(
-                "native_load_unload_thread[%u/%llu]: '%s' - hook.attach_link() failed with error "
-                "(%i)\n",
+                "native_load_unload_thread[%u/%llu] for '%s' - hook.attach_link() failed with error (%i)\n",
                 thread_no,
                 iteration,
                 file_name.c_str(),
@@ -578,12 +577,18 @@ native_load_unload_thread(
 
     if (no_failure) {
         completed++;
+        printf(
+            "native_load_unload_thread[%u] for '%s' successfully completed with %llu iterations.\n",
+            thread_no,
+            file_name.c_str(),
+            iteration);
+    } else {
+        printf(
+            "native_load_unload_thread[%u] for '%s' completed WITH ERRORS over %llu iterations.\n",
+            thread_no,
+            file_name.c_str(),
+            iteration);
     }
-    printf(
-        "native_load_unload_thread[%u] for '%s' successfully completed with %llu iterations.\n",
-        thread_no,
-        file_name.c_str(),
-        iteration);
 }
 
 TEST_CASE("native_load_unload_concurrent", "[end_to_end]")
