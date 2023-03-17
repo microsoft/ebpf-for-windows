@@ -553,13 +553,13 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_create_se
 
 _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_delete_service(SC_HANDLE handle)
 {
+    std::unique_lock lock(_service_path_to_context_mutex);
     for (auto& [path, context] : _service_path_to_context_map) {
         if (context->handle == (intptr_t)handle) {
             // Delete the service if it has not been loaded yet. Otherwise
             // mark it pending for delete.
             if (!context->loaded) {
                 ebpf_free(context);
-                std::unique_lock lock(_service_path_to_context_mutex);
                 _service_path_to_context_map.erase(path);
             } else {
                 context->delete_pending = true;
