@@ -1435,6 +1435,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     // Check if the eBPF program should be invoked based on the IP address family and the hook attach type.
     if (!_net_ebpf_extension_sock_addr_should_invoke_ebpf_program(filter_context, sock_addr_ctx, v4_mapped)) {
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
     }
 
