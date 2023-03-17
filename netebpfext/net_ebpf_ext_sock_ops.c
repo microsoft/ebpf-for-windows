@@ -203,42 +203,35 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
     net_ebpf_extension_sock_ops_wfp_filter_context_t* filter_context =
         (net_ebpf_extension_sock_ops_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
             detaching_client);
-    net_ebpf_extension_flow_context_parameters_t* flow_parameters_array = NULL;
-    uint32_t flow_count = 0;
-    uint32_t flow_index = 0;
     KIRQL irql;
-    bool lock_held = FALSE;
+    LIST_ENTRY local_list_head;
+
     ASSERT(filter_context != NULL);
+    InitializeListHead(&local_list_head);
     net_ebpf_extension_delete_wfp_filters(filter_context->base.filter_ids_count, filter_context->base.filter_ids);
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
-    lock_held = TRUE;
-    flow_count = filter_context->flow_context_list.count;
-    if (flow_count > 0) {
-        flow_parameters_array = (net_ebpf_extension_flow_context_parameters_t*)ExAllocatePoolUninitialized(
-            NonPagedPoolNx,
-            sizeof(net_ebpf_extension_flow_context_parameters_t) * flow_count,
-            NET_EBPF_EXTENSION_POOL_TAG);
-        if (flow_parameters_array == NULL)
-            goto Exit;
-        // Remove any remaining flow contexts and copy their flow parameters.
-        while (!IsListEmpty(&filter_context->flow_context_list.list_head)) {
-            LIST_ENTRY* entry = RemoveHeadList(&filter_context->flow_context_list.list_head);
-            InitializeListHead(entry);
-            net_ebpf_extension_sock_ops_wfp_flow_context_t* flow_context =
-                CONTAINING_RECORD(entry, net_ebpf_extension_sock_ops_wfp_flow_context_t, link);
-            flow_context->client_detached = TRUE;
-            _Analysis_assume_(flow_index < flow_count);
-            flow_parameters_array[flow_index++] = flow_context->parameters;
-        }
+    if (filter_context->flow_context_list.count > 0) {
+
+        LIST_ENTRY* entry = filter_context->flow_context_list.list_head.Flink;
+        RemoveEntryList(&filter_context->flow_context_list.list_head);
+        InitializeListHead(&filter_context->flow_context_list.list_head);
+        AppendTailList(&local_list_head, entry);
+
         filter_context->flow_context_list.count = 0;
     }
     KeReleaseSpinLock(&filter_context->lock, irql);
-    lock_held = FALSE;
 
     // Remove the flow context associated with the WFP flows.
-    for (flow_index = 0; flow_index < flow_count; flow_index++) {
-        net_ebpf_extension_flow_context_parameters_t* flow_parameters = &flow_parameters_array[flow_index];
+    while (!IsListEmpty(&local_list_head)) {
+        LIST_ENTRY* entry = RemoveHeadList(&local_list_head);
+        InitializeListHead(entry);
+        net_ebpf_extension_sock_ops_wfp_flow_context_t* flow_context =
+            CONTAINING_RECORD(entry, net_ebpf_extension_sock_ops_wfp_flow_context_t, link);
+        flow_context->client_detached = TRUE;
+
+        net_ebpf_extension_flow_context_parameters_t* flow_parameters = &flow_context->parameters;
+
         // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/fwpsk/nf-fwpsk-fwpsflowremovecontext0
         // Calling FwpsFlowRemoveContext may cause the flowDeleteFn callback on the callout to be invoked synchronously.
         // The net_ebpf_extension_sock_ops_flow_delete function frees the flow context memory and
@@ -250,13 +243,6 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
         ASSERT(status == STATUS_SUCCESS);
 #pragma warning(pop)
     }
-
-Exit:
-    if (lock_held)
-        KeReleaseSpinLock(&filter_context->lock, irql);
-
-    if (flow_parameters_array != NULL)
-        ExFreePool(flow_parameters_array);
 
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }

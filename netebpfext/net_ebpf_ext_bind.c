@@ -126,6 +126,11 @@ _net_ebpf_extension_bind_on_client_attach(
         (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
 
 Exit:
+    if (result != EBPF_SUCCESS) {
+        if (filter_context != NULL) {
+            ExFreePool(filter_context);
+        }
+    }
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
