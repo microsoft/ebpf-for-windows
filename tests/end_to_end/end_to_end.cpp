@@ -502,11 +502,8 @@ native_load_unload_thread(
 
         const char* error_message = nullptr;
         bpf_object* object = nullptr;
-        // bpf_link* link = nullptr;
         fd_t program_fd = 0;
         fd_t program_map_fd = 0;
-        // uint32_t if_index = TEST_IFINDEX;
-        // ebpf_result_t res = EBPF_SUCCESS;
         single_instance_hook_t hook(prog_type, attach_type);
 
         iteration++;
@@ -551,25 +548,7 @@ native_load_unload_thread(
             }
         }
 
-        // Attach to the test interface
-        // res = hook.attach_link(program_fd, &if_index, sizeof(if_index), &link);
-        // if (res != EBPF_SUCCESS) {
-        //    printf(
-        //        "native_load_unload_thread[%u/%llu] for '%s' - hook.attach_link() failed with error (%i)\n",
-        //        thread_no,
-        //        iteration,
-        //        file_name.c_str(),
-        //        res);
-        //    no_failure = false;
-        //    goto Exit;
-        //}
-
     Exit:
-        // Close up all
-        // if (link) {
-        //    hook.detach_link(link);
-        //    hook.close_link(link);
-        //}
         if (object) {
             bpf_object__close(object);
         }
