@@ -494,7 +494,9 @@ native_load_unload_thread(
     ebpf_program_type_t prog_type,
     ebpf_attach_type_t attach_type)
 {
+    bool no_failure = true;
     uint64_t iteration = 0;
+
     printf("native_load_unload_thread[%u] for '%s' started...\n", thread_no, file_name.c_str());
     while (!token.stop_requested()) {
 
@@ -504,11 +506,10 @@ native_load_unload_thread(
         fd_t program_fd = 0;
         fd_t program_map_fd = 0;
         uint32_t if_index = TEST_IFINDEX;
+        ebpf_result_t res = EBPF_SUCCESS;
+        single_instance_hook_t hook(prog_type, attach_type);
 
         iteration++;
-
-        single_instance_hook_t hook(prog_type, attach_type);
-        program_info_provider_t program_info(prog_type);
 
         // Load the given program
         int result = ebpf_program_load(
@@ -522,6 +523,7 @@ native_load_unload_thread(
                 result,
                 error_message ? error_message : "(null)");
             ebpf_free((void*)error_message);
+            no_failure = false;
             goto Exit;
         }
 
@@ -537,16 +539,31 @@ native_load_unload_thread(
                 Platform::_close(program_map_fd);
             }
             if (result != EBPF_SUCCESS || value != 0) {
+                printf(
+                    "native_load_unload_thread[%u/%llu]: '%s' - bpf_map_lookup_elem() failed with error "
+                    "(%i)\n",
+                    thread_no,
+                    iteration,
+                    file_name.c_str(),
+                    result);
+                no_failure = false;
                 goto Exit;
             }
         }
 
         // Attach to the test interface
-        if (hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) != EBPF_SUCCESS) {
+        res = hook.attach_link(program_fd, &if_index, sizeof(if_index), &link);
+        if (res != EBPF_SUCCESS) {
+            printf(
+                "native_load_unload_thread[%u/%llu]: '%s' - hook.attach_link() failed with error "
+                "(%i)\n",
+                thread_no,
+                iteration,
+                file_name.c_str(),
+                res);
+            no_failure = false;
             goto Exit;
         }
-
-        completed++;
 
     Exit:
         // Close up all
@@ -557,6 +574,10 @@ native_load_unload_thread(
         if (object) {
             bpf_object__close(object);
         }
+    }
+
+    if (no_failure) {
+        completed++;
     }
     printf(
         "native_load_unload_thread[%u] for '%s' successfully completed with %llu iterations.\n",
@@ -585,6 +606,7 @@ TEST_CASE("native_load_unload_concurrent", "[end_to_end]")
     // Test all the defined native modules (simulated in user mode)
     for (auto module : native_modues) {
         std::vector<std::jthread> threads;
+        program_info_provider_t program_info(module.prog_type);
 
         // Attempt to saturate all core threads with contention
         uint32_t thread_no = ebpf_get_cpu_count() * 4;
