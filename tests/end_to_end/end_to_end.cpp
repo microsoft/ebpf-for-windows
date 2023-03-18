@@ -581,7 +581,7 @@ TEST_CASE("native_load_unload_concurrent", "[end_to_end]")
     } native_module_data_t;
     std::vector<native_module_data_t> native_modues{
         {"droppacket_um.dll", "dropped_packet_map", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC},
-        {"divide_by_zero_um.dll", "", EBPF_PROGRAM_TYPE_XDP}};
+        {"divide_by_zero_um.dll", "", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC}};
     const int CONCURRENT_THREAD_RUN_TIME_IN_SECONDS = 10;
 
     // Test all the defined native modules (simulated in user mode)
