@@ -22,6 +22,9 @@ on:
       build_codeql:
         required: false
         type: boolean
+      build_msi:
+        required: false
+        type: boolean
       build_nuget:
         required: false
         type: boolean
@@ -189,29 +192,29 @@ jobs:
         retention-days: 5
 
     - name: Upload the MSI package (Debug)
-      if: inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug'
+      if: inputs.build_msi == true && matrix.configurations == 'Debug'
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ebpf-for-windows MSI installer (Debug)
+        name: ebpf-for-windows - MSI installer (Debug)
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows.msi
 
     - name: Upload the MSI package (Release)
-      if: inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release'
+      if: inputs.build_msi == true && matrix.configurations == 'Release'
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ebpf-for-windows MSI installer (Release)
+        name: ebpf-for-windows - MSI installer (Release)
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows.msi
 
-    - name: Build nuget package
-      if: matrix.configurations == 'Release' && inputs.build_nuget == true && steps.skip_check.outputs.should_skip != 'true'
+    - name: Build the NuGet package
+      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\nuget
 
-    - name: Upload the nuget package
-      if: matrix.configurations == 'Release' && inputs.build_nuget == true && steps.skip_check.outputs.should_skip != 'true'
+    - name: Upload the NuGet package
+      if: minputs.build_nuget == true && atrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ebpf-for-windows nuget
+        name: ebpf-for-windows - NuGet package (Release)
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.nupkg
 
     - name: Perform CodeQL Analysis

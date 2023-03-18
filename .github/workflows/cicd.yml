@@ -42,6 +42,7 @@ jobs:
     with:
       build_artifact: Build-x64
       generate_release_package: true
+      build_msi: true
       build_nuget: true
       build_options: /p:ReleaseJIT='True'
 
@@ -52,8 +53,6 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-native-only
-      generate_release_package: true
-      build_nuget: true
       build_options: /p:DisableJIT='True' /p:DisableInterpreter='True'
 
   cmake:
