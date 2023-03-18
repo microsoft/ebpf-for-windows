@@ -56,7 +56,7 @@ jobs:
         nuget update -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
 
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@2b011faafdcbc9ceb11414d64d0573f37c774b04
+      uses: peter-evans/create-pull-request@38e0b6e68b4c852a5500a94740f0e535e0d7ba54
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: Update NuGet packages
