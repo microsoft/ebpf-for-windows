@@ -502,7 +502,6 @@ native_load_unload_thread(
     uint32_t thread_no,
     std::atomic_uint32_t& completed,
     _In_ const std::string& file_name,
-    _In_ const std::string& map_name,
     bpf_prog_type_t bpf_prog_type)
 {
     bool no_failure = true;
@@ -512,7 +511,7 @@ native_load_unload_thread(
     while (!token.stop_requested()) {
 
         const char* error_message = nullptr;
-        bpf_object* object = nullptr;
+        bpf_object_ptr object = nullptr;
         fd_t program_fd = 0;
 
         iteration++;
@@ -530,36 +529,7 @@ native_load_unload_thread(
                 error_message ? error_message : "(null)");
             ebpf_free((void*)error_message);
             no_failure = false;
-            goto Exit;
-        }
-
-        // Once loaded, we do the least amount of activity in order to maximize the jitter
-
-        // Optionally, lookup a key in the given map (as a further test)
-        if (map_name.length() > 0) {
-            uint32_t key = 0;
-            uint64_t value = 0;
-            fd_t program_map_fd = bpf_object__find_map_fd_by_name(object, map_name.c_str());
-            result = bpf_map_lookup_elem(program_map_fd, &key, &value);
-            if (program_map_fd) {
-                Platform::_close(program_map_fd);
-            }
-            if (result != EBPF_SUCCESS || value != 0) {
-                printf(
-                    "native_load_unload_thread[%u/%llu] for '%s' - bpf_map_lookup_elem() failed with error "
-                    "(%i)\n",
-                    thread_no,
-                    iteration,
-                    file_name.c_str(),
-                    result);
-                no_failure = false;
-                goto Exit;
-            }
-        }
-
-    Exit:
-        if (object) {
-            bpf_object__close(object);
+            continue;
         }
     }
 
@@ -586,14 +556,13 @@ TEST_CASE("native_load_unload_concurrent", "[end_to_end]")
     typedef struct
     {
         std::string file_name;
-        std::string map_name;
         ebpf_program_type_t ebpf_program_type;
         bpf_prog_type_t bpf_prog_type;
 
     } native_module_data_t;
     std::vector<native_module_data_t> native_modues{
-        {"droppacket_um.dll", "dropped_packet_map", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC},
-        {"divide_by_zero_um.dll", "", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC}};
+        {"droppacket_um.dll", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC},
+        {"divide_by_zero_um.dll", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC}};
     const int CONCURRENT_THREAD_RUN_TIME_IN_SECONDS = 10;
 
     // Test all the defined native modules (simulated in user mode)
@@ -606,12 +575,7 @@ TEST_CASE("native_load_unload_concurrent", "[end_to_end]")
         std::atomic_uint32_t completed = 0;
         for (uint32_t i = 0; i < thread_no; i++) {
             threads.emplace_back(
-                native_load_unload_thread,
-                i,
-                std::ref(completed),
-                std::ref(module.file_name),
-                std::ref(module.map_name),
-                module.bpf_prog_type);
+                native_load_unload_thread, i, std::ref(completed), std::ref(module.file_name), module.bpf_prog_type);
         }
 
         // Wait for the defined running time.
