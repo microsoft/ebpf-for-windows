@@ -491,8 +491,7 @@ native_load_unload_thread(
     std::atomic_uint32_t& completed,
     _In_ const std::string& file_name,
     _In_ const std::string& map_name,
-    ebpf_program_type_t prog_type,
-    ebpf_attach_type_t attach_type)
+    bpf_prog_type_t prog_type)
 {
     bool no_failure = true;
     uint64_t iteration = 0;
@@ -503,14 +502,12 @@ native_load_unload_thread(
         const char* error_message = nullptr;
         bpf_object* object = nullptr;
         fd_t program_fd = 0;
-        fd_t program_map_fd = 0;
-        single_instance_hook_t hook(prog_type, attach_type);
 
         iteration++;
 
         // Load the given program
         int result = ebpf_program_load(
-            file_name.c_str(), BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+            file_name.c_str(), prog_type, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
         if (result != 0) {
             printf(
                 "native_load_unload_thread[%u/%llu] for '%s' - ebpf_program_load() failed with error (%i)-'%s'\n",
@@ -530,7 +527,7 @@ native_load_unload_thread(
         if (map_name.length() > 0) {
             uint32_t key = 0;
             uint64_t value = 0;
-            program_map_fd = bpf_object__find_map_fd_by_name(object, map_name.c_str());
+            fd_t program_map_fd = bpf_object__find_map_fd_by_name(object, map_name.c_str());
             result = bpf_map_lookup_elem(program_map_fd, &key, &value);
             if (program_map_fd) {
                 Platform::_close(program_map_fd);
@@ -578,19 +575,19 @@ TEST_CASE("native_load_unload_concurrent", "[end_to_end]")
     {
         std::string file_name;
         std::string map_name;
-        ebpf_program_type_t prog_type;
-        ebpf_attach_type_t attach_type;
+        ebpf_program_type_t ebpf_program_type;
+        bpf_prog_type_t prog_type;
 
     } native_module_data_t;
     std::vector<native_module_data_t> native_modues{
-        {"droppacket_um.dll", "dropped_packet_map", EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP},
-        {"divide_by_zero_um.dll", "", EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP}};
+        {"droppacket_um.dll", "dropped_packet_map", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC},
+        {"divide_by_zero_um.dll", "", EBPF_PROGRAM_TYPE_XDP}};
     const int CONCURRENT_THREAD_RUN_TIME_IN_SECONDS = 10;
 
     // Test all the defined native modules (simulated in user mode)
     for (auto module : native_modues) {
         std::vector<std::jthread> threads;
-        program_info_provider_t program_info(module.prog_type);
+        program_info_provider_t program_info(module.ebpf_program_type);
 
         // Attempt to saturate all core threads with contention
         uint32_t thread_no = ebpf_get_cpu_count() * 4;
@@ -602,8 +599,7 @@ TEST_CASE("native_load_unload_concurrent", "[end_to_end]")
                 std::ref(completed),
                 std::ref(module.file_name),
                 std::ref(module.map_name),
-                module.prog_type,
-                module.attach_type);
+                module.prog_type);
         }
 
         // Wait for the defined running time.
