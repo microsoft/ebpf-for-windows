@@ -13,6 +13,7 @@
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
+#include "helpers.h"
 
 #include <winsock2.h>
 #include <Windows.h>
@@ -24,6 +25,19 @@
 
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;
+
+typedef struct _free_ebpf_pinning_table
+{
+    void
+    operator()(_In_opt_ _Post_invalid_ ebpf_pinning_table_t* table)
+    {
+        if (table != nullptr) {
+            ebpf_pinning_table_free(table);
+        }
+    }
+} free_ebpf_pinning_table_t;
+
+typedef std::unique_ptr<ebpf_pinning_table_t, free_ebpf_pinning_table_t> ebpf_pinning_table_ptr;
 
 class _test_helper
 {
@@ -276,21 +290,25 @@ TEST_CASE("pinning_test", "[platform]")
         ebpf_object_initialize(
             &another_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
 
-    ebpf_pinning_table_t* pinning_table = nullptr;
-    REQUIRE(ebpf_pinning_table_allocate(&pinning_table) == EBPF_SUCCESS);
+    ebpf_pinning_table_ptr pinning_table;
+    {
+        ebpf_pinning_table_t* local_pinning_table = nullptr;
+        REQUIRE(ebpf_pinning_table_allocate(&local_pinning_table) == EBPF_SUCCESS);
+        pinning_table.reset(local_pinning_table);
+    }
 
-    REQUIRE(ebpf_pinning_table_insert(pinning_table, &foo, &an_object.object) == EBPF_SUCCESS);
+    REQUIRE(ebpf_pinning_table_insert(pinning_table.get(), &foo, &an_object.object) == EBPF_SUCCESS);
     REQUIRE(an_object.object.base.reference_count == 2);
-    REQUIRE(ebpf_pinning_table_insert(pinning_table, &bar, &another_object.object) == EBPF_SUCCESS);
+    REQUIRE(ebpf_pinning_table_insert(pinning_table.get(), &bar, &another_object.object) == EBPF_SUCCESS);
     REQUIRE(another_object.object.base.reference_count == 2);
-    REQUIRE(ebpf_pinning_table_find(pinning_table, &foo, (ebpf_core_object_t**)&some_object) == EBPF_SUCCESS);
+    REQUIRE(ebpf_pinning_table_find(pinning_table.get(), &foo, (ebpf_core_object_t**)&some_object) == EBPF_SUCCESS);
     REQUIRE(an_object.object.base.reference_count == 3);
     REQUIRE(some_object == &an_object);
     ebpf_object_release_reference(&some_object->object);
-    REQUIRE(ebpf_pinning_table_delete(pinning_table, &foo) == EBPF_SUCCESS);
+    REQUIRE(ebpf_pinning_table_delete(pinning_table.get(), &foo) == EBPF_SUCCESS);
     REQUIRE(another_object.object.base.reference_count == 2);
 
-    ebpf_pinning_table_free(pinning_table);
+    ebpf_pinning_table_free(pinning_table.release());
     REQUIRE(an_object.object.base.reference_count == 1);
     REQUIRE(another_object.object.base.reference_count == 1);
 
@@ -457,6 +475,7 @@ TEST_CASE("extension_test", "[platform]")
     ebpf_extension_data_t client_data{};
     ebpf_extension_data_t provider_data{};
     GUID interface_id;
+    ebpf_result_t result;
 
     const ebpf_extension_dispatch_table_t* returned_provider_dispatch_table;
     const ebpf_extension_data_t* returned_provider_data;
@@ -485,25 +504,31 @@ TEST_CASE("extension_test", "[platform]")
             (NPI_PROVIDER_DETACH_CLIENT_FN*)test_provider_detach_client,
             nullptr) == EBPF_SUCCESS);
 
-    REQUIRE(
-        ebpf_extension_load(
-            &client_context,
-            &interface_id,
-            &provider_module_id,
-            &client_module_id,
-            &client_binding_context,
-            &client_data,
-            &client_dispatch_table,
-            &provider_binding_context,
-            &returned_provider_data,
-            &returned_provider_dispatch_table,
-            nullptr) == EBPF_SUCCESS);
+    result = ebpf_extension_load(
+        &client_context,
+        &interface_id,
+        &provider_module_id,
+        &client_module_id,
+        &client_binding_context,
+        &client_data,
+        &client_dispatch_table,
+        &provider_binding_context,
+        &returned_provider_data,
+        &returned_provider_dispatch_table,
+        nullptr);
+    if (result != EBPF_SUCCESS) {
+        ebpf_provider_unload(provider_context);
+    }
+    REQUIRE(result == EBPF_SUCCESS);
 
     REQUIRE(returned_provider_data == &provider_data);
     REQUIRE(returned_provider_dispatch_table == &test_provider_dispatch_table);
 
     ebpf_extension_unload(client_context);
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory 'provider_context'.
     ebpf_provider_unload(provider_context);
+#pragma warning(pop)
 }
 
 TEST_CASE("trampoline_test", "[platform]")
@@ -619,10 +644,10 @@ TEST_CASE("serialize_map_test", "[platform]")
     std::string pin_path_prefix = "\\ebpf\\map\\";
     std::vector<std::string> pin_paths;
     size_t buffer_length = 0;
-    uint8_t* buffer = nullptr;
     size_t required_length;
     size_t serialized_length;
     ebpf_map_info_t* map_info_array;
+    ebpf_memory_t unique_buffer;
 
     // Construct the array of ebpf_map_info_internal_t to be serialized.
     for (int i = 0; i < map_count; i++) {
@@ -643,24 +668,31 @@ TEST_CASE("serialize_map_test", "[platform]")
     // Serialize.
     REQUIRE(
         ebpf_serialize_internal_map_info_array(
-            map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length) ==
+            map_count, internal_map_info_array, nullptr, buffer_length, &serialized_length, &required_length) ==
         EBPF_INSUFFICIENT_BUFFER);
 
-    buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
-    // Required to deal with code analysis warning about buffer not being checked for null.
-    if (buffer == nullptr) {
-        REQUIRE(false);
-        return;
+    {
+        uint8_t* buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
+        if (buffer == nullptr) {
+            REQUIRE(false);
+        }
+        unique_buffer.reset(buffer);
     }
     buffer_length = required_length;
 
     REQUIRE(
         ebpf_serialize_internal_map_info_array(
-            map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length) ==
-        EBPF_SUCCESS);
+            map_count,
+            internal_map_info_array,
+            unique_buffer.get(),
+            buffer_length,
+            &serialized_length,
+            &required_length) == EBPF_SUCCESS);
 
     // Deserialize.
-    REQUIRE(ebpf_deserialize_map_info_array(serialized_length, buffer, map_count, &map_info_array) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_deserialize_map_info_array(serialized_length, unique_buffer.get(), map_count, &map_info_array) ==
+        EBPF_SUCCESS);
     _Analysis_assume_(map_info_array != nullptr);
     // Verify de-serialized map info array matches input.
     for (int i = 0; i < map_count; i++) {
@@ -674,8 +706,6 @@ TEST_CASE("serialize_map_test", "[platform]")
 
     // Free de-serialized map info array.
     ebpf_map_info_array_free(map_count, map_info_array);
-
-    ebpf_free(buffer);
 }
 
 TEST_CASE("serialize_program_info_test", "[platform]")
@@ -699,29 +729,32 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     ebpf_program_info_t in_program_info = {program_type, EBPF_COUNT_OF(helper_prototype), helper_prototype};
 
     size_t buffer_length = 0;
-    uint8_t* buffer = nullptr;
     size_t required_length;
     size_t serialized_length;
+    ebpf_memory_t unique_buffer;
 
     ebpf_program_info_t* out_program_info;
 
     // Serialize.
-    REQUIRE(ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length));
+    REQUIRE(
+        ebpf_serialize_program_info(&in_program_info, nullptr, buffer_length, &serialized_length, &required_length));
 
-    buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
-    // Work around code analysis warning about buffer not being checked for null.
-    if (buffer == nullptr) {
-        REQUIRE(false);
-        return;
+    {
+        uint8_t* buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
+        if (buffer == nullptr) {
+            REQUIRE(false);
+        }
+        unique_buffer.reset(buffer);
     }
     buffer_length = required_length;
 
     REQUIRE(
-        ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length) ==
+        ebpf_serialize_program_info(
+            &in_program_info, unique_buffer.get(), buffer_length, &serialized_length, &required_length) ==
         EBPF_SUCCESS);
 
     // Deserialize.
-    REQUIRE(ebpf_deserialize_program_info(serialized_length, buffer, &out_program_info) == EBPF_SUCCESS);
+    REQUIRE(ebpf_deserialize_program_info(serialized_length, unique_buffer.get(), &out_program_info) == EBPF_SUCCESS);
 
     // Verify de-serialized program info matches input.
     REQUIRE(
@@ -757,8 +790,6 @@ TEST_CASE("serialize_program_info_test", "[platform]")
 
     // Free de-serialized program info.
     ebpf_program_info_free(out_program_info);
-
-    ebpf_free(buffer);
 }
 
 TEST_CASE("state_test", "[state]")
