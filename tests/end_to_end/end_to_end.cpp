@@ -503,7 +503,7 @@ native_load_unload_thread(
     std::atomic_uint32_t& completed,
     _In_ const std::string& file_name,
     _In_ const std::string& map_name,
-    bpf_prog_type_t prog_type)
+    bpf_prog_type_t bpf_prog_type)
 {
     bool no_failure = true;
     uint64_t iteration = 0;
@@ -519,7 +519,7 @@ native_load_unload_thread(
 
         // Load the given program
         int result = ebpf_program_load(
-            file_name.c_str(), prog_type, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+            file_name.c_str(), bpf_prog_type, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
         if (result != 0) {
             printf(
                 "native_load_unload_thread[%u/%llu] for '%s' - ebpf_program_load() failed with error (%i)-'%s'\n",
@@ -588,7 +588,7 @@ TEST_CASE("native_load_unload_concurrent", "[end_to_end]")
         std::string file_name;
         std::string map_name;
         ebpf_program_type_t ebpf_program_type;
-        bpf_prog_type_t prog_type;
+        bpf_prog_type_t bpf_prog_type;
 
     } native_module_data_t;
     std::vector<native_module_data_t> native_modues{
@@ -611,7 +611,7 @@ TEST_CASE("native_load_unload_concurrent", "[end_to_end]")
                 std::ref(completed),
                 std::ref(module.file_name),
                 std::ref(module.map_name),
-                module.prog_type);
+                module.bpf_prog_type);
         }
 
         // Wait for the defined running time.
