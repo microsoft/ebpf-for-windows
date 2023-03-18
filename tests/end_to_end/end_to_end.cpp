@@ -511,14 +511,14 @@ native_load_unload_thread(
     while (!token.stop_requested()) {
 
         const char* error_message = nullptr;
-        bpf_object_ptr object = nullptr;
+        bpf_object_ptr bpf_object;
         fd_t program_fd = 0;
 
         iteration++;
 
         // Load the given program
         int result = ebpf_program_load(
-            file_name.c_str(), bpf_prog_type, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+            file_name.c_str(), bpf_prog_type, EBPF_EXECUTION_NATIVE, &bpf_object, &program_fd, &error_message);
         if (result != 0) {
             printf(
                 "native_load_unload_thread[%u/%llu] for '%s' - ebpf_program_load() failed with error (%i)-'%s'\n",
@@ -531,6 +531,8 @@ native_load_unload_thread(
             no_failure = false;
             continue;
         }
+
+        bpf_object__close(bpf_object.release());
     }
 
     if (no_failure) {
