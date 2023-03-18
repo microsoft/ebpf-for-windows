@@ -195,14 +195,14 @@ jobs:
       if: inputs.build_msi == true && matrix.configurations == 'Debug'
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ebpf-for-windows - MSI installer (Debug)
+        name: ebpf-for-windows - MSI installer (${{inputs.build_artifact}}/Debug)
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows.msi
 
     - name: Upload the MSI package (Release)
       if: inputs.build_msi == true && matrix.configurations == 'Release'
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ebpf-for-windows - MSI installer (Release)
+        name: ebpf-for-windows - MSI installer (${{inputs.build_artifact}}/Release)
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows.msi
 
     - name: Build the NuGet package
@@ -211,10 +211,10 @@ jobs:
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\nuget
 
     - name: Upload the NuGet package
-      if: minputs.build_nuget == true && atrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
+      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ebpf-for-windows - NuGet package (Release)
+        name: ebpf-for-windows - NuGet package (${{inputs.build_artifact}}/Release)
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.nupkg
 
     - name: Perform CodeQL Analysis
