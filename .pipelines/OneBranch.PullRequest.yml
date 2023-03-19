@@ -68,6 +68,17 @@ jobs:
       build_nuget: true
       build_options: /p:ReleaseJIT=True
 
+# regular_native_only
+# Always run this job.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
+  - template: ./ob-reusable-build.yml
+    parameters:
+      name: regular_native_only
+      build_artifact: Build-x64-native-only
+      generate_release_package: true
+      build_nuget: true
+      build_options: /p:ReleaseJIT=True /p:DisableInterpreter=True
+
 # cmake
 # Always run this job.
 - ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
@@ -92,20 +103,7 @@ jobs:
   - template: ./ob-reusable-test.yml
     parameters:
       name: unit_tests
-      test_command: '.\unit_tests.exe -d yes'
-      dependency: regular
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-
-# unit_tests_leak_detection
-# Always run this job.
-- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
-  - template: ./ob-reusable-test.yml
-    parameters:
-      name: unit_tests_with_leak_detection
+      pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       test_command: '.\unit_tests.exe -d yes'
       dependency: regular
       build_artifact: Build-x64
@@ -115,12 +113,13 @@ jobs:
       capture_etw: true
       leak_detection: true
 
-# netebpf_ext_unit_tests
+# netebpfext_unit_tests
 # Always run this job.
 - ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
   - template: ./ob-reusable-test.yml
     parameters:
-      name: netebpf_ext_unit_tests
+      name: netebpfext_unit_tests
+      pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for netebpfext_unit.exe
       test_command: '.\netebpfext_unit.exe -d yes'
       dependency: regular
       build_artifact: Build-x64
@@ -128,6 +127,7 @@ jobs:
       code_coverage: true
       gather_dumps: true
       capture_etw: true
+      leak_detection: true
 
 # bpf2c
 # Always run this job.
@@ -160,19 +160,35 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
-# Run the low memory simulator.
+# Run the fault injection simulator.
 # Always run this job.
 - ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
   - template: ./ob-reusable-test.yml
     parameters:
-      name: low_memory
+      name: fault_injection
       test_command: '.\unit_tests.exe'
       dependency: regular
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: true
       gather_dumps: true
-      low_memory: true
+      fault_injection: true
+      leak_detection: true
+
+# Run the fault injection simulator for netebpfext_unit tests.
+# Always run this job.
+- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: netebpfext_fault_injection
+      test_command: '.\netebpfext_unit.exe'
+      dependency: regular
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: true
+      gather_dumps: true
+      fault_injection: true
+      leak_detection: true
 
 # Additional jobs to run on pull and schedule only (skip push).
 # ---------------------------------------------------------------------------
@@ -325,3 +341,31 @@ jobs:
       environment: windows-2022
       gather_dumps: true
       capture_etw: true
+
+# Run the complete fault injection simulator.
+# Runs on a schedule as this takes a long time to run.
+- ${{ if in(variables['Build.Reason'], 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: fault_injection_full
+      test_command: '.\unit_tests.exe -d yes'
+      dependency: regular
+      build_artifact: Build-x64
+      environment: windows-2022
+      gather_dumps: true
+      fault_injection: true
+      leak_detection: true
+
+# Run the complete fault injection simulator for netebpfext.
+# Runs on a schedule as this takes a long time to run.
+- ${{ if in(variables['Build.Reason'], 'Schedule') }}:
+  - template: ./ob-reusable-test.yml
+    parameters:
+      name: netebpfext_fault_injection_full
+      test_command: '.\netebpfext_unit.exe -d yes'
+      dependency: regular
+      build_artifact: Build-x64
+      environment: windows-2022
+      gather_dumps: true
+      fault_injection: true
+      leak_detection: true

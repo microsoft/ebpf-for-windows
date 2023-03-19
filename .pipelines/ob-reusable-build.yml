@@ -156,5 +156,10 @@ jobs:
 
       - publish: $(nuget_packages.REL_NUGET_PACKAGE_PATH)
         artifact: 'ebpf-for-windows nuget'
-        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'))
+        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'), eq('${{parameters.build_artifact}}', 'Build-x64'))
+        displayName: 'Upload the nuget package'
+
+      - publish: $(nuget_packages.REL_NUGET_PACKAGE_PATH)
+        artifact: 'ebpf-for-windows-native nuget'
+        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'), eq('${{parameters.build_artifact}}', 'Build-x64-native-only'))
         displayName: 'Upload the nuget package'
