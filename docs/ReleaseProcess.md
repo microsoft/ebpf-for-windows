@@ -23,7 +23,7 @@ eBPF for Windows:
 1. Commit all the changes in the release branch into your forked repo.
 1. Create a **Draft** pull-request for the release branch into the main `ebpf-for-windows` repo, and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Once the CI/CD pipeline for the PR completes, download the
-   "`ebpf-for-windows MSI installer (Release)`" and "`ebpf-for-windows nuget`" build artifacts
+   "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build artifacts
    (accessible via the "`Actions`" tab on GitHub).
 1. Extract the `*.msi` and `*.nupkg` files, respectively, out of them, and rename them in the following format (replace "`X.Y.Z`" with the version number being released):
 
