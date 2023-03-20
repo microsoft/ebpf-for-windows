@@ -27,9 +27,9 @@ $start_time = Get-Date
 while ($true) {
     $current_time = Get-Date
     $time_difference = $current_time - $start_time
-    if ($time_difference.Minute -eq 100)
+    if ($time_difference.TotalMinutes -ge 60)
     {
-        Write-Host "TEST RUNNING for 100 MINUTES, iteration=$iteration, EXITING"
+        Write-Host "TEST RUNNING for 60+ MINUTES, iteration=$iteration, EXITING"
         break
     }
     $iteration++
