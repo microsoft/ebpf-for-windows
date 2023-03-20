@@ -42,7 +42,7 @@ typedef struct _close_bpf_link
     {
         if (link != nullptr) {
             ebpf_result_t result;
-            while (int i = 0; i < EBPF_API_RETRY_COUNT; i++) {
+            for (uint32_t i = 0; i < EBPF_API_RETRY_COUNT; i++) {
                 result = ebpf_link_detach(link);
                 if (result == EBPF_SUCCESS) {
                     break;
