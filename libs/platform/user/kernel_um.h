@@ -478,6 +478,17 @@ extern "C"
         return entry;
     }
 
+    FORCEINLINE
+    void
+    AppendTailList(_Inout_ LIST_ENTRY* list_head, _Inout_ LIST_ENTRY* list_to_append)
+    {
+        LIST_ENTRY* list_end = list_head->Blink;
+        list_head->Blink->Flink = list_to_append;
+        list_head->Blink = list_to_append->Blink;
+        list_to_append->Blink->Flink = list_head;
+        list_to_append->Blink = list_end;
+    }
+
     PGENERIC_MAPPING
     IoGetFileObjectGenericMapping();
 
@@ -487,7 +498,7 @@ extern "C"
     VOID
     RtlMapGenericMask(_Inout_ PACCESS_MASK AccessMask, _In_ const GENERIC_MAPPING* GenericMapping);
 
-    unsigned long 
+    unsigned long
     RtlLengthSid(_In_ PSID Sid);
 
     NTSTATUS

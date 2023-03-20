@@ -14,7 +14,7 @@
  * @brief A Catch2 reporter that logs the name of each test that passes.
  * This is used to generate a list of tests that passed in the last run in a
  * file that can be used to filter the set of tests that are run in the next
- * run. This is consumed by the Test-LowMemory.ps1 script.
+ * run. This is consumed by the Test-FaultInjection.ps1 script.
  */
 class _passed_test_log : public Catch::EventListenerBase
 {

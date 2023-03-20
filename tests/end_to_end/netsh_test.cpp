@@ -7,6 +7,7 @@
 #include "bpf/libbpf.h"
 #pragma warning(pop)
 #include "ebpf_epoch.h"
+#include "ebpf_fault_injection.h"
 #include "netsh_test_helper.h"
 #include "platform.h"
 #include "test_helper.hpp"
@@ -32,12 +33,9 @@ class _test_helper_netsh
 
 _test_helper_netsh::_test_helper_netsh() { _ebpf_netsh_objects.clear(); }
 
-extern bool
-ebpf_low_memory_test_in_progress();
-
 _test_helper_netsh::~_test_helper_netsh()
 {
-    if (ebpf_low_memory_test_in_progress()) {
+    if (ebpf_fault_injection_is_enabled()) {
         for (auto& object : _ebpf_netsh_objects) {
             bpf_object__close(object);
         }

@@ -6,6 +6,8 @@
 
 #include <DbgHelp.h>
 #include <optional>
+#include <string>
+#include <vector>
 
 inline ebpf_result_t
 _ebpf_symbol_decoder_initialize()

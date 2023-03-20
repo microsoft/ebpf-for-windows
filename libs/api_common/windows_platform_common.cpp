@@ -26,10 +26,6 @@
 
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
 
-// TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
-ebpf_registry_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
-ebpf_registry_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
-
 extern bool use_ebpf_store;
 
 struct guid_compare
@@ -730,7 +726,7 @@ _get_static_program_info(_In_ const ebpf_program_type_t* program_type)
 
 _Success_(return == EBPF_SUCCESS) ebpf_result_t get_program_type_info(_Outptr_ const ebpf_program_info_t** info)
 {
-    const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info.type.platform_specific_data);
+    const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info->type.platform_specific_data);
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_info_t* program_info;
     bool fall_back = false;

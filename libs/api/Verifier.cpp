@@ -391,11 +391,12 @@ ebpf_api_elf_enumerate_sections(
 
     *infos = nullptr;
     *error_message = nullptr;
+    ebpf_section_info_t* info = nullptr;
 
     try {
         auto raw_programs = read_elf(file, section ? std::string(section) : std::string(), &verifier_options, platform);
         for (const auto& raw_program : raw_programs) {
-            ebpf_section_info_t* info = (ebpf_section_info_t*)ebpf_allocate(sizeof(*info));
+            info = (ebpf_section_info_t*)ebpf_allocate(sizeof(*info));
             if (info == nullptr) {
                 throw std::runtime_error("Out of memory");
             }
@@ -418,24 +419,29 @@ ebpf_api_elf_enumerate_sections(
             }
 
             info->section_name = ebpf_duplicate_string(raw_program.section.c_str());
+            if (info->section_name == nullptr) {
+                throw std::runtime_error("Out of memory");
+            }
             info->program_type_name = ebpf_duplicate_string(raw_program.info.type.name.c_str());
+            if (info->program_type_name == nullptr) {
+                throw std::runtime_error("Out of memory");
+            }
 
             std::vector<uint8_t> raw_data = convert_ebpf_program_to_bytes(raw_program.prog);
             info->raw_data_size = raw_data.size();
             info->raw_data = (char*)ebpf_allocate(info->raw_data_size);
-            if (info->raw_data == nullptr || info->section_name == nullptr || info->program_type_name == nullptr) {
-                ebpf_free((void*)info->section_name);
-                ebpf_free((void*)info->program_type_name);
-                ebpf_free((void*)info->raw_data);
-                ebpf_free(info);
+            if (info->raw_data == nullptr) {
                 throw std::runtime_error("Out of memory");
             }
             memcpy(info->raw_data, raw_data.data(), info->raw_data_size);
 
             info->next = *infos;
             *infos = info;
+            info = nullptr;
         }
     } catch (std::runtime_error e) {
+        ebpf_free_sections(*infos);
+        ebpf_free_sections(info);
         str << "error: " << e.what();
         *error_message = allocate_string(str.str());
         return 1;

@@ -8,6 +8,7 @@
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
+#include "ebpf_fault_injection.h"
 #include "ebpf_platform.h"
 #include "hash.h"
 #include "helpers.h"
@@ -729,13 +730,10 @@ set_native_module_failures(bool expected)
     _expect_native_module_load_failures = expected;
 }
 
-extern bool
-ebpf_low_memory_test_in_progress();
-
 bool
 get_native_module_failures()
 {
-    return _expect_native_module_load_failures || ebpf_low_memory_test_in_progress();
+    return _expect_native_module_load_failures || ebpf_fault_injection_is_enabled();
 }
 
 _Must_inspect_result_ ebpf_result_t

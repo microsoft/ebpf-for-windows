@@ -63,12 +63,11 @@ Tests in this category currently include:
 * bpftool_tests.exe: This tests app compat for scripts (and users) that invoke bpftool commands.
 * cilium_tests.exe: This tests that the Cilium L4LB eBPF programs can be verified.
 
-## Low memory tests
-Low memory tests use error injection to fail memory allocations in order to test behavior under low
-memory conditions.
+## Fault injection tests
+Fault injection tests inject faults in order to test behavior under fault conditions.
 
 Tests in this category currently include:
-* unit_tests.exe: The unit test discussed above, but run under low memory conditions.
+* unit_tests.exe: The unit test discussed above, but run under fault injection conditions.
 
 ## Performance tests
 Performance tests check for performance regressions across builds.
