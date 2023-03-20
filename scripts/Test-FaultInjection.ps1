@@ -19,8 +19,12 @@ $env:EBPF_ENABLE_WER_REPORT = "yes"
 
 Set-Content -Path ($TestProgram +".passed.log") ""
 
+$iteration = 0
+
 # Rerun failing tests until they pass
 while ($true) {
+    $iteration++
+    Write-Host "Iteration [$iteration] ..."
     $previous_passed_tests = $passed_tests
     $passed_tests = Get-Content -Path ($TestProgram +".passed.log")
 

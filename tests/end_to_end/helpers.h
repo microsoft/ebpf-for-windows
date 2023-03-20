@@ -18,6 +18,9 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #endif
 #include <vector>
 
+// This retry count is needed for the scenarios when low resource simulation is enabled.
+#define EBPF_API_RETRY_COUNT 2
+
 bpf_attach_type_t
 get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
 
@@ -38,7 +41,14 @@ typedef struct _close_bpf_link
     operator()(_In_opt_ _Post_invalid_ bpf_link* link)
     {
         if (link != nullptr) {
-            if (ebpf_link_detach(link) != EBPF_SUCCESS) {
+            ebpf_result_t result;
+            while (int i = 0; i < EBPF_API_RETRY_COUNT; i++) {
+                result = ebpf_link_detach(link);
+                if (result == EBPF_SUCCESS) {
+                    break;
+                }
+            }
+            if (result != EBPF_SUCCESS) {
                 throw std::runtime_error("ebpf_link_detach failed");
             }
             ebpf_link_close(link);
