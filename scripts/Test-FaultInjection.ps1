@@ -21,8 +21,17 @@ Set-Content -Path ($TestProgram +".passed.log") ""
 
 $iteration = 0
 
+$start_time = Get-Date
+
 # Rerun failing tests until they pass
 while ($true) {
+    $current_time = Get-Date
+    $time_difference = $current_time - $start_time
+    if ($time_difference.Minute -eq 50)
+    {
+        Write-Host "TEST RUNNING for 50 MINUTES, iteration=$iteration, EXITING"
+        break
+    }
     $iteration++
     Write-Host "Iteration [$iteration] ..."
     $previous_passed_tests = $passed_tests

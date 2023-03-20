@@ -175,6 +175,7 @@ jobs:
       if: (inputs.code_coverage == true) && (inputs.fault_injection == true) && (steps.skip_check.outputs.should_skip != 'true')
       id: run_test_with_code_coverage_in_fault_injection
       shell: cmd
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
           .\Test-FaultInjection.ps1 ${{env.TEST_COMMAND}} 4
