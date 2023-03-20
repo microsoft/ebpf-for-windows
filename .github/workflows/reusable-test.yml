@@ -59,7 +59,7 @@ permissions:
 
 jobs:
   run_test:
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     strategy:
       matrix:
