@@ -24,6 +24,7 @@
 
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;
+bool test_denied_attach_called;
 
 class _test_helper
 {
@@ -458,6 +459,7 @@ test_denied_client_attach_provider(
     UNREFERENCED_PARAMETER(provider_dispatch);
     *client_binding_context = nullptr;
     *client_dispatch = &test_provider_dispatch_table;
+    test_denied_attach_called = true;
     return STATUS_ACCESS_DENIED;
 };
 
@@ -479,6 +481,7 @@ test_failed_provider_attach_client(
     UNREFERENCED_PARAMETER(client_dispatch);
     *provider_binding_context = nullptr;
     *provider_dispatch = &test_provider_dispatch_table;
+    test_denied_attach_called = true;
     return STATUS_ACCESS_DENIED;
 };
 
@@ -500,6 +503,7 @@ test_failed_provider_register_client(
     UNREFERENCED_PARAMETER(client_dispatch);
     *provider_binding_context = nullptr;
     *provider_dispatch = &test_provider_dispatch_table;
+    test_denied_attach_called = true;
     return STATUS_ACCESS_DENIED;
 };
 
@@ -537,6 +541,7 @@ TEST_CASE("extension_test", "[platform]")
     REQUIRE(ebpf_guid_create(&client_module_id) == EBPF_SUCCESS);
     REQUIRE(ebpf_guid_create(&provider_module_id) == EBPF_SUCCESS);
 
+    test_denied_attach_called = false;
     REQUIRE(
         ebpf_provider_load(
             &provider_context,
@@ -549,6 +554,9 @@ TEST_CASE("extension_test", "[platform]")
             (NPI_PROVIDER_ATTACH_CLIENT_FN*)test_denied_client_attach_provider,
             (NPI_PROVIDER_DETACH_CLIENT_FN*)test_provider_detach_client,
             nullptr) == EBPF_SUCCESS);
+    REQUIRE(test_denied_attach_called == true);
+    
+    test_denied_attach_called = false;
     REQUIRE(
         ebpf_provider_load(
             &provider_context,
@@ -561,6 +569,9 @@ TEST_CASE("extension_test", "[platform]")
             (NPI_PROVIDER_ATTACH_CLIENT_FN*)test_failed_provider_attach_client,
             (NPI_PROVIDER_DETACH_CLIENT_FN*)test_provider_detach_client,
             nullptr) == EBPF_SUCCESS);
+    REQUIRE(test_denied_attach_called == true);
+
+    test_denied_attach_called = false;
     REQUIRE(
         ebpf_provider_load(
             &provider_context,
@@ -573,6 +584,8 @@ TEST_CASE("extension_test", "[platform]")
             (NPI_PROVIDER_ATTACH_CLIENT_FN*)test_failed_provider_register_client,
             (NPI_PROVIDER_DETACH_CLIENT_FN*)test_provider_detach_client,
             nullptr) == EBPF_SUCCESS);
+    REQUIRE(test_denied_attach_called == true);
+
     REQUIRE(
         ebpf_provider_load(
             &provider_context,
