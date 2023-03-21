@@ -17,7 +17,9 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <chrono>
+#include <fstream>
 #include <io.h>
+#include <iostream>
 #include <mstcpip.h>
 #include <mutex>
 #include <ntsecapi.h>
@@ -885,4 +887,131 @@ TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
     // Free the program as well.
     bpf_object__close(object);
     */
+}
+
+void
+native_load_unload_thread(
+    std::stop_token token,
+    uint32_t thread_no,
+    std::atomic_uint32_t& completed,
+    _In_ const std::string& file_name,
+    bpf_prog_type_t bpf_prog_type)
+{
+    bool no_failure = true;
+    uint64_t iteration = 0;
+
+    // Only one program can be load from a specific file, so we crate a worker copy.
+    std::size_t pos = file_name.find_last_of(".");
+    std::string file_name_copy = file_name.substr(0, pos - 1) + std::to_string(thread_no) + file_name.substr(pos);
+    std::ifstream source(file_name.c_str(), std::ios::binary);
+    std::ofstream dest(file_name_copy.c_str(), std::ios::binary);
+    dest << source.rdbuf();
+    source.close();
+    dest.close();
+
+    printf("native_load_unload_thread[%u] for '%s' started...\n", thread_no, file_name_copy.c_str());
+    while (!token.stop_requested()) {
+
+        int error = 0;
+        fd_t program_fd = 0;
+        bool loop_failed = false;
+        struct bpf_program* program = nullptr;
+        struct bpf_object* bpf_object = nullptr;
+
+        iteration++;
+
+        bpf_object = bpf_object__open(file_name_copy.c_str());
+        if (bpf_object == nullptr) {
+            no_failure = false;
+            loop_failed = true;
+            goto Exit;
+        }
+        REQUIRE(ebpf_object_set_execution_type(bpf_object, EBPF_EXECUTION_NATIVE) == EBPF_SUCCESS);
+
+        program = bpf_object__next_program(bpf_object, nullptr);
+        if (bpf_prog_type != BPF_PROG_TYPE_UNSPEC) {
+            bpf_program__set_type(program, bpf_prog_type);
+        }
+
+        error = bpf_object__load(bpf_object);
+        if (error < 0) {
+            no_failure = false;
+            loop_failed = true;
+            goto Exit;
+        }
+
+        program_fd = bpf_program__fd(program);
+
+    Exit:
+        if (bpf_object) {
+            bpf_object__close(bpf_object);
+        }
+
+        if (error < 0) {
+            printf(
+                "native_load_unload_thread[%u/%llu] for '%s' - ebpf_program_load() failed with error (%i)\n",
+                thread_no,
+                iteration,
+                file_name_copy.c_str(),
+                error);
+        }
+    }
+
+    // Remove the working copy.
+    std::remove(file_name_copy.c_str());
+
+    if (no_failure) {
+        completed++;
+    }
+
+    printf(
+        "native_load_unload_thread[%u] for '%s' completed '%s' over %llu iterations.\n",
+        thread_no,
+        file_name_copy.c_str(),
+        no_failure ? "successfully" : "WITH ERRORS",
+        iteration);
+}
+
+TEST_CASE("native_load_unload_concurrent", "[native_tests]")
+{
+
+    typedef struct
+    {
+        std::string file_name;
+        ebpf_program_type_t ebpf_program_type;
+        bpf_prog_type_t bpf_prog_type;
+
+    } native_module_data_t;
+    std::vector<native_module_data_t> native_modues{
+        {"droppacket.sys", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC},
+        {"reflect_packet.sys", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC}};
+    const int CONCURRENT_THREAD_RUN_TIME_IN_SECONDS = 10;
+
+    // Test all the defined native modules (simulated in user mode)
+    for (auto module : native_modues) {
+        std::vector<std::jthread> threads;
+
+        // Attempt to saturate all core threads with contention
+        uint32_t thread_no = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS) * 4;
+        std::atomic_uint32_t completed = 0;
+        for (uint32_t i = 0; i < thread_no; i++) {
+            threads.emplace_back(
+                native_load_unload_thread, i, std::ref(completed), std::ref(module.file_name), module.bpf_prog_type);
+        }
+
+        // Wait for the defined running time.
+        std::this_thread::sleep_for(std::chrono::seconds(CONCURRENT_THREAD_RUN_TIME_IN_SECONDS));
+
+        // Stop all threads.
+        for (auto& thread : threads) {
+            thread.request_stop();
+        }
+
+        // Wait for all threads to stop.
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        REQUIRE(completed == thread_no);
+    }
 }
