@@ -261,8 +261,9 @@ bpf_code_generator::program_sections()
             continue;
         }
         bpf_code_generator::unsafe_string name = section->get_name();
-        if (name.empty() || (section->get_size() == 0) || name == ".text")
+        if (name.empty() || (section->get_size() == 0) || name == ".text") {
             continue;
+        }
         if ((section->get_type() == 1) && (section->get_flags() == 6)) {
             section_names.push_back(section->get_name());
         }
@@ -413,8 +414,9 @@ bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsaf
     ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
 
     auto relocations = get_optional_section(".rel" + section_name);
-    if (!relocations)
+    if (!relocations) {
         relocations = get_optional_section(".rela" + section_name);
+    }
 
     if (relocations) {
         ELFIO::const_relocation_section_accessor relocation_reader{reader, relocations};
@@ -555,10 +557,11 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
         case EBPF_CLS_ALU64: {
             std::string destination = get_register_name(inst.dst);
             std::string source;
-            if (inst.opcode & EBPF_SRC_REG)
+            if (inst.opcode & EBPF_SRC_REG) {
                 source = get_register_name(inst.src);
-            else
+            } else {
                 source = "IMMEDIATE(" + std::to_string(inst.imm) + ")";
+            }
             bool is64bit = (inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU64;
             AluOperations operation = static_cast<AluOperations>(inst.opcode >> 4);
             std::string swap_function;
@@ -573,16 +576,17 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(std::format("{} *= {};", destination, source));
                 break;
             case AluOperations::Div:
-                if (is64bit)
+                if (is64bit) {
                     output.lines.push_back(
                         std::format("{} = {} ? ({} / {}) : 0;", destination, source, destination, source));
-                else
+                } else {
                     output.lines.push_back(std::format(
                         "{} = (uint32_t){} ? (uint32_t){} / (uint32_t){} : 0;",
                         destination,
                         source,
                         destination,
                         source));
+                }
                 break;
             case AluOperations::Or:
                 output.lines.push_back(std::format("{} |= {};", destination, source));
@@ -594,19 +598,20 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(std::format("{} <<= {};", destination, source));
                 break;
             case AluOperations::Rsh:
-                if (is64bit)
+                if (is64bit) {
                     output.lines.push_back(std::format("{} >>= {};", destination, source));
-                else
+                } else {
                     output.lines.push_back(std::format("{} = (uint32_t){} >> {};", destination, destination, source));
+                }
                 break;
             case AluOperations::Neg:
                 output.lines.push_back(std::format("{} = -(int64_t){};", destination, destination));
                 break;
             case AluOperations::Mod:
-                if (is64bit)
+                if (is64bit) {
                     output.lines.push_back(std::format(
                         "{} = {} ? ({} % {}): {} ;", destination, source, destination, source, destination));
-                else
+                } else {
                     output.lines.push_back(std::format(
                         "{} = (uint32_t){} ? ((uint32_t){} % (uint32_t){}) : (uint32_t){};",
                         destination,
@@ -614,6 +619,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                         destination,
                         source,
                         destination));
+                }
                 break;
             case AluOperations::Xor:
                 output.lines.push_back(std::format("{} ^= {};", destination, source));
@@ -622,11 +628,12 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(std::format("{} = {};", destination, source));
                 break;
             case AluOperations::Ashr:
-                if (is64bit)
+                if (is64bit) {
                     output.lines.push_back(
                         std::format("{} = (int64_t){} >> (uint32_t){};", destination, destination, source));
-                else
+                } else {
                     output.lines.push_back(std::format("{} = (int32_t){} >> {};", destination, destination, source));
+                }
                 break;
             case AluOperations::ByteOrder: {
                 std::string size_type = "";
@@ -673,8 +680,9 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             default:
                 throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
-            if (!is64bit)
+            if (!is64bit) {
                 output.lines.push_back(std::format("{} &= UINT32_MAX;", destination));
+            }
 
         } break;
         case EBPF_CLS_LD: {
@@ -1146,8 +1154,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             if (output.lines.empty()) {
                 continue;
             }
-            if (!output.label.empty())
+            if (!output.label.empty()) {
                 output_stream << output.label << ":" << std::endl;
+            }
             auto current_line = line_info.find(output.instruction_offset);
             if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
                 current_line->second.line_number != 0) {

@@ -18,8 +18,9 @@ NTSTATUS
 net_ebpf_ext_trace_initiate()
 {
     NTSTATUS status = STATUS_SUCCESS;
-    if (_net_ebpf_ext_trace_initiated)
+    if (_net_ebpf_ext_trace_initiated) {
         goto Exit;
+    }
 
     status = TraceLoggingRegister(net_ebpf_ext_tracelog_provider);
     if (status != STATUS_SUCCESS) {

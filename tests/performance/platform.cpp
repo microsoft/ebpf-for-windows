@@ -102,10 +102,12 @@ typedef class _ebpf_hash_table_test_state
     {
         ebpf_hash_table_destroy(table);
 
-        if (epoch_initiated)
+        if (epoch_initiated) {
             ebpf_epoch_terminate();
-        if (platform_initiated)
+        }
+        if (platform_initiated) {
             ebpf_platform_terminate();
+        }
     }
 
     void

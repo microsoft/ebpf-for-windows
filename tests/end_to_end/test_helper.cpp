@@ -134,9 +134,10 @@ class duplicate_handles_table_t
             _rundown_in_progress = true;
         }
         lock.unlock();
-        if (duplicates_pending)
+        if (duplicates_pending) {
             // Wait for at most 1 second for all duplicate handles to be closed.
             REQUIRE(all_duplicate_handles_closed_callback.wait_for(1s) == std::future_status::ready);
+        }
 
         lock.lock();
         _rundown_in_progress = false;
@@ -269,8 +270,9 @@ GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
 {
     UNREFERENCED_PARAMETER(file_handle);
     bool return_value = FALSE;
-    if (overlapped != nullptr)
+    if (overlapped != nullptr) {
         return_value = ebpf_core_cancel_protocol_handler(overlapped);
+    }
     return return_value;
 }
 
@@ -406,8 +408,9 @@ GlueDeviceIoControl(
     void* local_output_buffer = nullptr;
 
     result = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size, &async);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Fail;
+    }
 
     if (user_request->length < minimum_request_size) {
         result = EBPF_INVALID_ARGUMENT;
@@ -455,8 +458,9 @@ GlueDeviceIoControl(
         memcpy(user_reply, sharedBuffer.data(), output_buffer_size);
     }
 
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Fail;
+    }
 
     if (user_reply) {
         *bytes_returned = user_reply->length;
@@ -678,10 +682,12 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
     _unload_all_native_modules();
 
     clear_program_info_cache();
-    if (api_initialized)
+    if (api_initialized) {
         ebpf_api_terminate();
-    if (ec_initialized)
+    }
+    if (ec_initialized) {
         ebpf_core_terminate();
+    }
 
     device_io_control_handler = nullptr;
     cancel_io_ex_handler = nullptr;

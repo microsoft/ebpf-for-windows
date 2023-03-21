@@ -231,8 +231,9 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
         result = EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
+    }
 
     ebpf_assert(link != nullptr);
     bpf_link__disconnect(link);
@@ -256,8 +257,9 @@ bpf_prog_detach2(int prog_fd, int attachable_fd, enum bpf_attach_type type)
         result = EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
+    }
     return 0;
 }
 
@@ -301,8 +303,9 @@ bpf_program__unpin(struct bpf_program* prog, const char* path)
     }
 
     result = ebpf_object_unpin(path);
-    if (result)
+    if (result) {
         return libbpf_result_err(result);
+    }
 
     return 0;
 }
@@ -330,8 +333,9 @@ __bpf_program__pin_name(struct bpf_program* prog)
     char *name, *p;
 
     name = p = strdup(prog->section_name);
-    while ((p = strchr(p, '/')) != NULL)
+    while ((p = strchr(p, '/')) != NULL) {
         *p = '_';
+    }
 
     return name;
 }
@@ -342,8 +346,9 @@ bpf_object__pin_programs(struct bpf_object* obj, const char* path)
     struct bpf_program* prog;
     int err;
 
-    if (!obj)
+    if (!obj) {
         return libbpf_err(-ENOENT);
+    }
 
     bpf_object__for_each_program(prog, obj)
     {
@@ -373,10 +378,11 @@ err_unpin_programs:
         int len;
 
         len = snprintf(buf, PATH_MAX, "%s/%s", path, __bpf_program__pin_name(prog));
-        if (len < 0)
+        if (len < 0) {
             continue;
-        else if (len >= PATH_MAX)
+        } else if (len >= PATH_MAX) {
             continue;
+        }
 
         bpf_program__unpin(prog, path);
     }
@@ -389,8 +395,9 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
     struct bpf_program* prog;
     int err;
 
-    if (!obj)
+    if (!obj) {
         return libbpf_err(-ENOENT);
+    }
 
     bpf_object__for_each_program(prog, obj)
     {
@@ -398,14 +405,16 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
         int len;
 
         len = snprintf(buf, PATH_MAX, "%s/%s", path, __bpf_program__pin_name(prog));
-        if (len < 0)
+        if (len < 0) {
             return libbpf_err(-EINVAL);
-        else if (len >= PATH_MAX)
+        } else if (len >= PATH_MAX) {
             return libbpf_err(-ENAMETOOLONG);
+        }
 
         err = bpf_program__unpin(prog, buf);
-        if (err)
+        if (err) {
             return libbpf_err(err);
+        }
     }
 
     return 0;
@@ -420,8 +429,9 @@ bpf_program__get_expected_attach_type(const struct bpf_program* program)
 int
 bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_attach_type type)
 {
-    if (program->object->loaded)
+    if (program->object->loaded) {
         return libbpf_err(-EBUSY);
+    }
     const ebpf_attach_type_t* attach_type = get_ebpf_attach_type(type);
     if (attach_type != nullptr) {
         program->attach_type = *attach_type;
@@ -439,8 +449,9 @@ bpf_program__type(const struct bpf_program* program)
 int
 bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type)
 {
-    if (program->object->loaded)
+    if (program->object->loaded) {
         return libbpf_err(-EBUSY);
+    }
     const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(type);
     program->program_type = (program_type != nullptr) ? *program_type : EBPF_PROGRAM_TYPE_UNSPECIFIED;
     return 0;

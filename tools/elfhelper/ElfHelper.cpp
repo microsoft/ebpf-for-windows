@@ -17,8 +17,9 @@ using std::vector;
 static BpfProgType
 section_to_progtype(const std::string& section)
 {
-    if (section.find("xdp") != std::string::npos)
+    if (section.find("xdp") != std::string::npos) {
         return BpfProgType::XDP;
+    }
     return BpfProgType::UNSPEC;
 }
 
@@ -26,8 +27,9 @@ section_to_progtype(const std::string& section)
 static vector<char>
 vector_of(ELFIO::section* sec)
 {
-    if (!sec)
+    if (!sec) {
         return {};
+    }
     auto data = sec->get_data();
     auto size = sec->get_size();
     // assert(size % sizeof(T) == 0);
@@ -51,17 +53,20 @@ read_elf(const std::string& path, const std::string& desired_section)
         const string name = section->get_name();
         std::cout << "section " << name << endl;
 
-        if (!desired_section.empty() && name != desired_section)
+        if (!desired_section.empty() && name != desired_section) {
             continue;
-        if (name == "license" || name == "version" || name == "maps")
+        }
+        if (name == "license" || name == "version" || name == "maps") {
             continue;
+        }
         if (name != ".text" && name.find('.') == 0) {
             continue;
         }
         info.program_type = section_to_progtype(name);
 
-        if (section->get_size() == 0)
+        if (section->get_size() == 0) {
             continue;
+        }
         raw_program prog{path, name, vector_of(section), info};
 
         res.push_back(prog);

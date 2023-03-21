@@ -85,8 +85,9 @@ connection_monitor(bpf_sock_ops_t* ctx)
     default:
         result = -1;
     }
-    if (result == 0)
+    if (result == 0) {
         result = (ctx->family == AF_INET) ? handle_v4(ctx, outbound, connected) : handle_v6(ctx, outbound, connected);
+    }
 
     return result;
 }

@@ -174,9 +174,9 @@ label_1:
     r0 = IMMEDIATE(2);
 label_2:
     // EBPF_OP_EXIT pc=19 dst=r0 src=r0 offset=0 imm=0
-#line 46 "sample/unsafe/droppacket_unsafe.c"
+#line 47 "sample/unsafe/droppacket_unsafe.c"
     return r0;
-#line 46 "sample/unsafe/droppacket_unsafe.c"
+#line 47 "sample/unsafe/droppacket_unsafe.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

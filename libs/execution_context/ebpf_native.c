@@ -257,8 +257,9 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
     int32_t new_ref_count;
     ebpf_lock_state_t module_lock_state = 0;
 
-    if (!module)
+    if (!module) {
         EBPF_RETURN_VOID();
+    }
 
     ebpf_assert(module->base.marker == _ebpf_native_marker);
 

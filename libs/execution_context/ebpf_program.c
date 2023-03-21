@@ -243,15 +243,17 @@ _ebpf_program_free(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
     EBPF_LOG_ENTRY();
     size_t index;
     ebpf_program_t* program = (ebpf_program_t*)object;
-    if (!program)
+    if (!program) {
         EBPF_RETURN_VOID();
+    }
 
     // Detach from all the attach points.
     _ebpf_program_detach_links(program);
     ebpf_assert(ebpf_list_is_empty(&program->links));
 
-    for (index = 0; index < program->count_of_maps; index++)
+    for (index = 0; index < program->count_of_maps; index++) {
         ebpf_object_release_reference((ebpf_core_object_t*)program->maps[index]);
+    }
 
     ebpf_epoch_schedule_work_item(program->cleanup_work_item);
     EBPF_RETURN_VOID();
@@ -452,8 +454,9 @@ ebpf_program_create(_Outptr_ ebpf_program_t** program)
     retval = EBPF_SUCCESS;
 
 Done:
-    if (local_program)
+    if (local_program) {
         _ebpf_program_epoch_free(local_program);
+    }
 
     EBPF_RETURN_RESULT(retval);
 }
@@ -489,16 +492,19 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
     }
 
     return_value = ebpf_duplicate_utf8_string(&local_program_name, &program_parameters->program_name);
-    if (return_value != EBPF_SUCCESS)
+    if (return_value != EBPF_SUCCESS) {
         goto Done;
+    }
 
     return_value = ebpf_duplicate_utf8_string(&local_section_name, &program_parameters->section_name);
-    if (return_value != EBPF_SUCCESS)
+    if (return_value != EBPF_SUCCESS) {
         goto Done;
+    }
 
     return_value = ebpf_duplicate_utf8_string(&local_file_name, &program_parameters->file_name);
-    if (return_value != EBPF_SUCCESS)
+    if (return_value != EBPF_SUCCESS) {
         goto Done;
+    }
 
     if (program_parameters->program_info_hash_length > 0) {
         local_program_info_hash =
@@ -596,8 +602,9 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     EBPF_LOG_ENTRY();
     size_t index;
     ebpf_map_t** program_maps = ebpf_allocate_with_tag(maps_count * sizeof(ebpf_map_t*), EBPF_POOL_TAG_PROGRAM);
-    if (!program_maps)
+    if (!program_maps) {
         return EBPF_NO_MEMORY;
+    }
 
     memcpy(program_maps, maps, sizeof(ebpf_map_t*) * maps_count);
 
@@ -715,8 +722,9 @@ _ebpf_program_update_interpret_helpers(_Inout_ ebpf_program_t* program, _Inout_ 
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
-        if (helper == NULL)
+        if (helper == NULL) {
             continue;
+        }
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
         if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (void*)helper) < 0) {
@@ -789,8 +797,9 @@ _ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* 
         if (!program->trampoline_table) {
             // Program info provider is being loaded for the first time. Allocate trampoline table.
             return_value = ebpf_allocate_trampoline_table(total_helper_count, &program->trampoline_table);
-            if (return_value != EBPF_SUCCESS)
+            if (return_value != EBPF_SUCCESS) {
                 goto Exit;
+            }
         }
 
         __analysis_assume(total_helper_count > 0);
@@ -852,8 +861,9 @@ _ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* 
             (uint32_t)total_helper_count,
             total_helper_function_ids,
             total_helper_function_addresses);
-        if (return_value != EBPF_SUCCESS)
+        if (return_value != EBPF_SUCCESS) {
             goto Exit;
+        }
     }
 
     return_value = EBPF_SUCCESS;
@@ -931,8 +941,9 @@ _ebpf_program_load_byte_code(
 
 Done:
     if (return_value != EBPF_SUCCESS) {
-        if (program->code_or_vm.vm)
+        if (program->code_or_vm.vm) {
             ubpf_destroy(program->code_or_vm.vm);
+        }
         program->code_or_vm.vm = NULL;
     }
 
@@ -998,11 +1009,13 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
     ebpf_result_t result;
     ebpf_program_tail_call_state_t* state = NULL;
     result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         return result;
+    }
 
-    if (state == NULL)
+    if (state == NULL) {
         return EBPF_INVALID_ARGUMENT;
+    }
 
     if (state->count == MAX_TAIL_CALL_CNT) {
         return EBPF_NO_MORE_TAIL_CALLS;
@@ -1205,8 +1218,9 @@ ebpf_program_get_helper_function_addresses(
     for (uint32_t index = 0; index < program->helper_function_count; index++) {
         result =
             _ebpf_program_get_helper_function_address(program, program->helper_function_ids[index], &addresses[index]);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             break;
+        }
     }
 
 Exit:
@@ -1233,8 +1247,9 @@ ebpf_program_set_helper_function_ids(
         goto Exit;
     }
 
-    if (helper_function_count == 0)
+    if (helper_function_count == 0) {
         goto Exit;
+    }
 
     program->helper_function_count = helper_function_count;
     program->helper_function_ids =
@@ -1244,8 +1259,9 @@ ebpf_program_set_helper_function_ids(
         goto Exit;
     }
 
-    for (size_t index = 0; index < helper_function_count; index++)
+    for (size_t index = 0; index < helper_function_count; index++) {
         program->helper_function_ids[index] = helper_function_ids[index];
+    }
 
 Exit:
     EBPF_RETURN_RESULT(result);
@@ -1455,16 +1471,19 @@ ebpf_program_create_and_initialize(
     ebpf_program_t* program = NULL;
 
     retval = ebpf_program_create(&program);
-    if (retval != EBPF_SUCCESS)
+    if (retval != EBPF_SUCCESS) {
         goto Done;
+    }
 
     retval = ebpf_program_initialize(program, parameters);
-    if (retval != EBPF_SUCCESS)
+    if (retval != EBPF_SUCCESS) {
         goto Done;
+    }
 
     retval = ebpf_handle_create(program_handle, (ebpf_base_object_t*)program);
-    if (retval != EBPF_SUCCESS)
+    if (retval != EBPF_SUCCESS) {
         goto Done;
+    }
 
 Done:
     ebpf_object_release_reference((ebpf_core_object_t*)program);

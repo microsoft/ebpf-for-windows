@@ -26,19 +26,22 @@ reflect_packet(xdp_md_t* ctx)
 
     ETHERNET_HEADER* ethernet_header = NULL;
     char* next_header = (char*)ctx->data;
-    if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end)
+    if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {
         goto Done;
+    }
     ethernet_header = (ETHERNET_HEADER*)next_header;
     next_header = (char*)(ethernet_header + 1);
     if (ethernet_header->Type == ntohs(ETHERNET_TYPE_IPV4)) {
-        if (next_header + sizeof(IPV4_HEADER) > (char*)ctx->data_end)
+        if (next_header + sizeof(IPV4_HEADER) > (char*)ctx->data_end) {
             goto Done;
+        }
         // IPv4.
         IPV4_HEADER* ipv4_header = (IPV4_HEADER*)next_header;
         next_header = (char*)ipv4_header + sizeof(uint32_t) * ipv4_header->HeaderLength;
         if (ipv4_header->Protocol == IPPROTO_UDP) {
-            if (next_header + sizeof(UDP_HEADER) > (char*)ctx->data_end)
+            if (next_header + sizeof(UDP_HEADER) > (char*)ctx->data_end) {
                 goto Done;
+            }
             // UDP.
             UDP_HEADER* udp_header = (UDP_HEADER*)next_header;
             if (udp_header->destPort == ntohs(REFLECTION_TEST_PORT)) {
@@ -49,14 +52,16 @@ reflect_packet(xdp_md_t* ctx)
             }
         }
     } else if (ethernet_header->Type == ntohs(ETHERNET_TYPE_IPV6)) {
-        if (next_header + sizeof(IPV6_HEADER) > (char*)ctx->data_end)
+        if (next_header + sizeof(IPV6_HEADER) > (char*)ctx->data_end) {
             goto Done;
+        }
         // IPv6.
         IPV6_HEADER* ipv6_header = (IPV6_HEADER*)next_header;
         next_header = (char*)(ipv6_header + 1);
         if (ipv6_header->NextHeader == IPPROTO_UDP) {
-            if (next_header + sizeof(UDP_HEADER) > (char*)ctx->data_end)
+            if (next_header + sizeof(UDP_HEADER) > (char*)ctx->data_end) {
                 goto Done;
+            }
             // UDP.
             UDP_HEADER* udp_header = (UDP_HEADER*)next_header;
             if (udp_header->destPort == ntohs(REFLECTION_TEST_PORT)) {

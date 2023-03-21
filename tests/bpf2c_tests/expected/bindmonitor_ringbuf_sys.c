@@ -277,12 +277,12 @@ bind_monitor(void* context)
         return 0;
 label_1:
     // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=0
-#line 32 "sample/bindmonitor_ringbuf.c"
+#line 33 "sample/bindmonitor_ringbuf.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=11 dst=r0 src=r0 offset=0 imm=0
-#line 32 "sample/bindmonitor_ringbuf.c"
+#line 33 "sample/bindmonitor_ringbuf.c"
     return r0;
-#line 32 "sample/bindmonitor_ringbuf.c"
+#line 33 "sample/bindmonitor_ringbuf.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

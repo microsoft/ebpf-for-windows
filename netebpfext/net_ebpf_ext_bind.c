@@ -118,8 +118,9 @@ _net_ebpf_extension_bind_on_client_attach(
         NULL,
         filter_context,
         &filter_context->filter_ids);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
 
     // Set the filter context as the client context's provider data.
     net_ebpf_extension_hook_client_set_provider_data(
@@ -273,12 +274,14 @@ net_ebpf_ext_resource_allocation_classify(
 
     filter_context = (net_ebpf_extension_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
-    if (filter_context == NULL)
+    if (filter_context == NULL) {
         goto Exit;
+    }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
-    if (attached_client == NULL)
+    if (attached_client == NULL) {
         goto Exit;
+    }
 
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         attached_client = NULL;
@@ -317,8 +320,9 @@ net_ebpf_ext_resource_allocation_classify(
     }
 
 Exit:
-    if (attached_client)
+    if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
+    }
     return;
 }
 
@@ -346,12 +350,14 @@ net_ebpf_ext_resource_release_classify(
 
     filter_context = (net_ebpf_extension_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
-    if (filter_context == NULL)
+    if (filter_context == NULL) {
         goto Exit;
+    }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
-    if (attached_client == NULL)
+    if (attached_client == NULL) {
         goto Exit;
+    }
 
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         attached_client = NULL;
@@ -382,8 +388,9 @@ net_ebpf_ext_resource_release_classify(
     classify_output->actionType = FWP_ACTION_PERMIT;
 
 Exit:
-    if (attached_client)
+    if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
+    }
     return;
 }
 
