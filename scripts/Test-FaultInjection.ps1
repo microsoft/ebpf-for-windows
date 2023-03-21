@@ -23,13 +23,17 @@ $iteration = 0
 
 $start_time = Get-Date
 
+$max_time_in_minutes = 60
+
 # Rerun failing tests until they pass
 while ($true) {
     $current_time = Get-Date
     $time_difference = $current_time - $start_time
-    if ($time_difference.TotalMinutes -ge 60)
+    $total_minutes = $time_difference.TotalMinutes
+    Write-Host "TotalMinutes = $total_minutes"
+    if ($total_minutes -ge $max_time_in_minutes)
     {
-        Write-Host "TEST RUNNING for 60+ MINUTES, iteration=$iteration, EXITING"
+        Write-Host "TEST RUNNING for $max_time_in_minutes MINUTES, iteration=$iteration, EXITING"
         break
     }
     $iteration++
@@ -47,6 +51,9 @@ while ($true) {
     if ($remaining_tests.Count -eq 0) {
         break
     }
+
+    $count = $remaining_tests.Count
+    Write-Host "Remaining test count = $count"
 
     # Write the list of tests that haven't passed yet to a file.
     Set-Content -Path "remaining_tests.txt" -Value $remaining_tests
