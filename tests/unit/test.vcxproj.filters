@@ -62,10 +62,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="..\sample\bad1.o">
+    <CopyFileToFolders Include="..\sample\bad\bad1.o">
       <Filter>Bad Object Files</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="..\sample\bad2.o">
+    <CopyFileToFolders Include="..\sample\bad\bad2.o">
       <Filter>Bad Object Files</Filter>
     </CopyFileToFolders>
   </ItemGroup>

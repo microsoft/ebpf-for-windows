@@ -25,6 +25,7 @@ typedef struct _fwp_classify_parameters
     uint64_t interface_luid;
     TOKEN_ACCESS_INFORMATION token_access_information;
     FWP_BYTE_BLOB user_id;
+    uint32_t reauthorization_flag;
 } fwp_classify_parameters_t;
 
 typedef class _fwp_engine

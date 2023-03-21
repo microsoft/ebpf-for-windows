@@ -45,7 +45,7 @@ on:
       vs_dev:
         required: false
         type: boolean
-      low_memory:
+      fault_injection:
         required: false
         type: boolean
       leak_detection:
@@ -84,7 +84,7 @@ jobs:
         cancel_others: 'false'
         paths_ignore: '["**.md", "**/docs/**"]'
 
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+    - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
       # Only check out source code if code coverage is being gathered.
       if: (inputs.code_coverage == true) && (steps.skip_check.outputs.should_skip != 'true')
       with:
@@ -92,7 +92,7 @@ jobs:
         ref: ${{ github.event.workflow_run.head_branch }}
 
     # Perform shallow checkout for self-hosted runner.
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+    - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
       if: (inputs.environment == 'ebpf_cicd_tests') && (steps.skip_check.outputs.should_skip != 'true')
       with:
         ref: ${{ github.event.workflow_run.head_branch }}
@@ -172,24 +172,24 @@ jobs:
           OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
 
     - name: Run test with Code Coverage and low resource simulation
-      if: (inputs.code_coverage == true) && (inputs.low_memory == true) && (steps.skip_check.outputs.should_skip != 'true')
-      id: run_test_with_code_coverage_in_low_memory
+      if: (inputs.code_coverage == true) && (inputs.fault_injection == true) && (steps.skip_check.outputs.should_skip != 'true')
+      id: run_test_with_code_coverage_in_fault_injection
       shell: cmd
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-LowMemory.ps1 ${{env.TEST_COMMAND}} 4
+          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-FaultInjection.ps1 ${{env.TEST_COMMAND}} 4
 
     - name: Run test with low resource simulation
-      if: (inputs.code_coverage != true) && (inputs.low_memory == true) && (steps.skip_check.outputs.should_skip != 'true')
-      id: run_test_with_low_memory
+      if: (inputs.code_coverage != true) && (inputs.fault_injection == true) && (steps.skip_check.outputs.should_skip != 'true')
+      id: run_test_with_fault_injection
       shell: cmd
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          powershell.exe .\Test-LowMemory.ps1 ${{env.TEST_COMMAND}} 16
+          powershell.exe .\Test-FaultInjection.ps1 ${{env.TEST_COMMAND}} 16
 
     - name: Run test with Code Coverage
-      if: (inputs.code_coverage == true) && (inputs.vs_dev != true) && (inputs.low_memory != true) && (steps.skip_check.outputs.should_skip != 'true')
+      if: (inputs.code_coverage == true) && (inputs.vs_dev != true) && (inputs.fault_injection != true) && (steps.skip_check.outputs.should_skip != 'true')
       id: run_test_with_code_coverage
       shell: cmd
       run: |
@@ -352,7 +352,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@c8454efe5d0bdefd25384362fe217428ca277d57 # v2.2.0
+        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776 # v2.2.1
         with:
           disable-sudo: true
           egress-policy: block
