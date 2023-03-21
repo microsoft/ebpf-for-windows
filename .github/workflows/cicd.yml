@@ -396,6 +396,7 @@ jobs:
   # Run multi-threaded stress tests against the user mode 'mock' framework.
   user_mode_multi_threaded_stress_test:
     needs: regular
+    if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
