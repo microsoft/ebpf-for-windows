@@ -78,7 +78,7 @@ struct _program_unloader
     ~_program_unloader() { bpf_object__close(object); }
 };
 
-// The following function uses windows specific input type to match 
+// The following function uses windows specific input type to match
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
 unsigned long
 handle_ebpf_add_program(
@@ -310,7 +310,7 @@ _find_object_with_program(ebpf_id_t id)
     return _ebpf_netsh_objects.end();
 }
 
-// The following function uses windows specific type to match 
+// The following function uses windows specific type to match
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
 unsigned long
 handle_ebpf_delete_program(
@@ -440,7 +440,7 @@ _ebpf_program_detach_by_id(ebpf_id_t program_id)
     return ERROR_NOT_FOUND;
 }
 
-// The following function uses windows specific type as an input to match 
+// The following function uses windows specific type as an input to match
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
 unsigned long
 handle_ebpf_set_program(
@@ -552,7 +552,7 @@ handle_ebpf_set_program(
     return ERROR_OKAY;
 }
 
-// The following function uses windows specific type as an input to match 
+// The following function uses windows specific type as an input to match
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
 unsigned long
 handle_ebpf_show_programs(

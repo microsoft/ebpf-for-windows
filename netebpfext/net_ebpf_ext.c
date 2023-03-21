@@ -28,6 +28,11 @@ NDIS_HANDLE _net_ebpf_ext_ndis_handle = NULL;
 NDIS_HANDLE _net_ebpf_ext_nbl_pool_handle = NULL;
 HANDLE _net_ebpf_ext_l2_injection_handle = NULL;
 
+static bool _net_ebpf_xdp_providers_registered = false;
+static bool _net_ebpf_bind_providers_registered = false;
+static bool _net_ebpf_sock_addr_providers_registered = false;
+static bool _net_ebpf_sock_ops_providers_registered = false;
+
 static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
     {
         &EBPF_DEFAULT_SUBLAYER,
@@ -720,30 +725,53 @@ net_ebpf_ext_register_providers()
     NET_EBPF_EXT_LOG_ENTRY();
 
     status = net_ebpf_ext_xdp_register_providers();
-    if (status != STATUS_SUCCESS)
+    if (!NT_SUCCESS(status)) {
         goto Exit;
+    }
+    _net_ebpf_xdp_providers_registered = true;
 
     status = net_ebpf_ext_bind_register_providers();
-    if (status != STATUS_SUCCESS)
+    if (!NT_SUCCESS(status)) {
         goto Exit;
+    }
+    _net_ebpf_bind_providers_registered = true;
 
     status = net_ebpf_ext_sock_addr_register_providers();
-    if (status != STATUS_SUCCESS)
+    if (!NT_SUCCESS(status)) {
         goto Exit;
+    }
+    _net_ebpf_sock_addr_providers_registered = true;
 
     status = net_ebpf_ext_sock_ops_register_providers();
-    if (status != STATUS_SUCCESS)
+    if (!NT_SUCCESS(status)) {
         goto Exit;
+    }
+    _net_ebpf_sock_ops_providers_registered = true;
 
 Exit:
+    if (!NT_SUCCESS(status)) {
+        net_ebpf_ext_unregister_providers();
+    }
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
 net_ebpf_ext_unregister_providers()
 {
-    net_ebpf_ext_xdp_unregister_providers();
-    net_ebpf_ext_bind_unregister_providers();
-    net_ebpf_ext_sock_addr_unregister_providers();
-    net_ebpf_ext_sock_ops_unregister_providers();
+    if (_net_ebpf_xdp_providers_registered) {
+        net_ebpf_ext_xdp_unregister_providers();
+        _net_ebpf_xdp_providers_registered = false;
+    }
+    if (_net_ebpf_bind_providers_registered) {
+        net_ebpf_ext_bind_unregister_providers();
+        _net_ebpf_bind_providers_registered = false;
+    }
+    if (_net_ebpf_sock_addr_providers_registered) {
+        net_ebpf_ext_sock_addr_unregister_providers();
+        _net_ebpf_sock_addr_providers_registered = false;
+    }
+    if (_net_ebpf_sock_ops_providers_registered) {
+        net_ebpf_ext_sock_ops_unregister_providers();
+        _net_ebpf_sock_ops_providers_registered = false;
+    }
 }

@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 <?define ProductVersion="022C44B5-8969-4B75-8DB0-73F98B1BD7DC"?>
 <?define UpgradeCode="B6BCACB1-C872-4159-ABCB-43A50668056C"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:ui="http://schemas.microsoft.com/wix/UIExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
-	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="0.6.0" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
+	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="0.7.0" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
 		<Package Description="eBPF for Windows" InstallerVersion="301" Compressed="yes" InstallScope="perMachine" Manufacturer="Microsoft" Platform="x64" />
 		<MajorUpgrade AllowSameVersionUpgrades="yes"
 					  Disallow="yes" DisallowUpgradeErrorMessage="An older version of [ProductName] is already installed. Please remove it first."
@@ -53,10 +53,12 @@ SPDX-License-Identifier: MIT
 				<ComponentGroupRef Id="eBPF_Development_include_bpf" />
 				<ComponentGroupRef Id="eBPF_Development_include_kernel" />
 				<ComponentGroupRef Id="eBPF_Development_include_libbpf" />
-				<ComponentGroupRef Id="eBPF_Development_include_libbpf_asm" />
-				<ComponentGroupRef Id="eBPF_Development_include_libbpf_linux" />
-				<ComponentGroupRef Id="eBPF_Development_include_libbpf_uapi" />
-				<ComponentGroupRef Id="eBPF_Development_include_libbpf_uapi_linux" />
+				<ComponentGroupRef Id="eBPF_Development_include_libbpf_include" />
+				<ComponentGroupRef Id="eBPF_Development_include_libbpf_include_asm" />
+				<ComponentGroupRef Id="eBPF_Development_include_libbpf_include_linux" />
+				<ComponentGroupRef Id="eBPF_Development_include_libbpf_include_uapi" />
+				<ComponentGroupRef Id="eBPF_Development_include_libbpf_include_uapi_linux" />
+				<ComponentGroupRef Id="eBPF_Development_include_libbpf_src" />
 				<ComponentGroupRef Id="eBPF_Development_include_linux" />
 				<ComponentGroupRef Id="eBPF_Development_include_net" />
 				<ComponentGroupRef Id="eBPF_Development_include_uapi" />
@@ -142,11 +144,14 @@ SPDX-License-Identifier: MIT
 						<Directory Id="dir_include_bpf" Name="bpf" />
 						<Directory Id="dir_include_kernel" Name="kernel" />
 						<Directory Id="dir_include_libbpf" Name="libbpf">
-							<Directory Id="dir_include_libbpf_asm" Name="asm" />
-							<Directory Id="dir_include_libbpf_linux" Name="linux" />
-							<Directory Id="dir_include_libbpf_uapi" Name="uapi">
-								<Directory Id="dir_include_libbpf_uapi_linux" Name="linux" />
+							<Directory Id="dir_include_libbpf_include" Name="include">
+								<Directory Id="dir_include_libbpf_include_asm" Name="asm" />
+								<Directory Id="dir_include_libbpf_include_linux" Name="linux" />
+								<Directory Id="dir_include_libbpf_include_uapi" Name="uapi">
+									<Directory Id="dir_include_libbpf_include_uapi_linux" Name="linux" />
+								</Directory>
 							</Directory>
+							<Directory Id="dir_include_libbpf_src" Name="src" />
 						</Directory>
 						<Directory Id="dir_include_linux" Name="linux" />
 						<Directory Id="dir_include_net" Name="net" />
@@ -378,6 +383,12 @@ SPDX-License-Identifier: MIT
 			<Component Id="GIT_COMMIT_ID.H" DiskId="1" Guid="{0AB71C9D-68E6-4892-A45D-306BA921CC07}">
 				<File Id="GIT_COMMIT_ID.H" Name="git_commit_id.h" Source="$(var.SolutionDir)include\git_commit_id.h" />
 			</Component>
+			<Component Id="EBPF_BASE.H" DiskId="1" Guid="{FC47A44E-7747-4E98-AD55-09D9671C01C1}">
+				<File Id="EBPF_BASE.H" Name="ebpf_base.h" Source="$(var.SolutionDir)external\ebpf-verifier\src\ebpf_base.h" />
+			</Component>
+			<Component Id="EBPF_EXTENSION.H" DiskId="1" Guid="{F5F5F5F5-7747-4E98-AD55-09D9671C01C1}">
+				<File Id="EBPF_EXTENSION.H" Name="ebpf_extension.h" Source="$(var.SolutionDir)include\ebpf_extension.h" />
+			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_asm" Directory="dir_include_asm">
 			<Component Id="ERRNO.H" DiskId="1" Guid="{DF63C9C1-FA9C-44E3-94EB-F77B7072E4BE}">
@@ -436,12 +447,13 @@ SPDX-License-Identifier: MIT
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_uapi" Directory="dir_include_uapi" />
 		<ComponentGroup Id="eBPF_Development_include_libbpf" Directory="dir_include_libbpf" />
-		<ComponentGroup Id="eBPF_Development_include_libbpf_asm" Directory="dir_include_libbpf_asm">
-			<Component Id="BARRIER.H" DiskId="1" Guid="{BE2698A4-4865-4F24-BA81-9A23555D99F4}">
+		<ComponentGroup Id="eBPF_Development_include_libbpf_include" Directory="dir_include_libbpf_include" />
+		<ComponentGroup Id="eBPF_Development_include_libbpf_include_asm" Directory="dir_include_libbpf_include_asm">
+			<Component Id="BARRIER.H" DiskId="1" Guid="{999F024F-ECC5-4CD1-AAAA-39E185AFAB08}">
 				<File Id="BARRIER.H" Name="barrier.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\asm\barrier.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_include_libbpf_linux" Directory="dir_include_libbpf_linux">
+		<ComponentGroup Id="eBPF_Development_include_libbpf_include_linux" Directory="dir_include_libbpf_include_linux">
 			<Component Id="COMPILER.H" DiskId="1" Guid="{417DA64B-E685-4EF6-8D96-18E9A41B003F}">
 				<File Id="COMPILER.H" Name="compiler.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\linux\compiler.h" />
 			</Component>
@@ -467,8 +479,8 @@ SPDX-License-Identifier: MIT
 				<File Id="TYPES_1.H" Name="types.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\linux\types.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_include_libbpf_uapi" Directory="dir_include_libbpf_uapi"/>
-		<ComponentGroup Id="eBPF_Development_include_libbpf_uapi_linux" Directory="dir_include_libbpf_uapi_linux">
+		<ComponentGroup Id="eBPF_Development_include_libbpf_include_uapi" Directory="dir_include_libbpf_include_uapi" />
+		<ComponentGroup Id="eBPF_Development_include_libbpf_include_uapi_linux" Directory="dir_include_libbpf_include_uapi_linux">
 			<Component Id="BPF.H_3" DiskId="1" Guid="{CBACC6D2-C5DC-4F47-9A10-873CFCE5900C}">
 				<File Id="BPF.H_3" Name="bpf.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\uapi\linux\bpf.h" />
 			</Component>
@@ -497,6 +509,68 @@ SPDX-License-Identifier: MIT
 				<File Id="PKT_SCHED.H" Name="pkt_sched.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\include\uapi\linux\pkt_sched.h" />
 			</Component>
 		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_include_libbpf_src" Directory="dir_include_libbpf_src">
+			<Component Id="BPF_1.H" DiskId="1" Guid="{F08F4178-620F-4919-8F97-0A988EE22E6A}">
+				<File Id="BPF_1.H" Name="bpf.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf.h" />
+			</Component>
+			<Component Id="BPF_CORE_READ.H" DiskId="1" Guid="{421BC497-8EB2-460C-ACC0-39510D66C8B1}">
+				<File Id="BPF_CORE_READ.H" Name="bpf_core_read.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_core_read.h" />
+			</Component>
+			<Component Id="BPF_ENDIAN_1.H" DiskId="1" Guid="{2C17136B-4451-4412-9764-E903B8AC1F06}">
+				<File Id="BPF_ENDIAN_1.H" Name="bpf_endian.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_endian.h" />
+			</Component>
+			<Component Id="BPF_GEN_INTERNAL.H" DiskId="1" Guid="{C0F686E9-F086-41FD-9D3D-E23B84B942F9}">
+				<File Id="BPF_GEN_INTERNAL.H" Name="bpf_gen_internal.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_gen_internal.h" />
+			</Component>
+			<Component Id="BPF_HELPERS_1.H" DiskId="1" Guid="{FF2CDD1A-BB03-4580-AC2B-5EC477E32ACE}">
+				<File Id="BPF_HELPERS_1.H" Name="bpf_helpers.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_helpers.h" />
+			</Component>
+			<Component Id="BPF_HELPER_DEFS_1.H" DiskId="1" Guid="{9FD016D9-D5D3-4A11-BAC7-64BD68F1F61C}">
+				<File Id="BPF_HELPER_DEFS_1.H" Name="bpf_helper_defs.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_helper_defs.h" />
+			</Component>
+			<Component Id="BPF_TRACING.H" DiskId="1" Guid="{DD88A4DF-C36D-4D48-B191-9C2E3C8768E8}">
+				<File Id="BPF_TRACING.H" Name="bpf_tracing.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\bpf_tracing.h" />
+			</Component>
+			<Component Id="BTF_1.H" DiskId="1" Guid="{1D54C166-3E43-41A0-ABAC-941237C12A7E}">
+				<File Id="BTF_1.H" Name="btf.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\btf.h" />
+			</Component>
+			<Component Id="HASHMAP_1.H" DiskId="1" Guid="{C51AD9E3-9DF4-483B-844F-05B5F723330C}">
+				<File Id="HASHMAP_1.H" Name="hashmap.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\hashmap.h" />
+			</Component>
+			<Component Id="LIBBPF_1.H" DiskId="1" Guid="{77100F8C-A601-45B8-AD07-3C2B0F31FCF4}">
+				<File Id="LIBBPF_1.H" Name="libbpf.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\libbpf.h" />
+			</Component>
+			<Component Id="LIBBPF_COMMON.H" DiskId="1" Guid="{46E4A472-4975-40F4-B825-1C26D5D71A15}">
+				<File Id="LIBBPF_COMMON.H" Name="libbpf_common.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\libbpf_common.h" />
+			</Component>
+			<Component Id="LIBBPF_INTERNAL.H" DiskId="1" Guid="{EE258EDC-DDF9-44DB-92D1-93D33B45CF4D}">
+				<File Id="LIBBPF_INTERNAL.H" Name="libbpf_internal.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\libbpf_internal.h" />
+			</Component>
+			<Component Id="LIBBPF_LEGACY_1.H" DiskId="1" Guid="{4C687F08-30C6-4298-9632-2CD91566669B}">
+				<File Id="LIBBPF_LEGACY_1.H" Name="libbpf_legacy.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\libbpf_legacy.h" />
+			</Component>
+			<Component Id="LIBBPF_VERSION.H" DiskId="1" Guid="{763C6514-9295-436B-87DF-54789F444685}">
+				<File Id="LIBBPF_VERSION.H" Name="libbpf_version.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\libbpf_version.h" />
+			</Component>
+			<Component Id="NLATTR.H" DiskId="1" Guid="{1624501C-4523-4E99-A594-274FDE8C1128}">
+				<File Id="NLATTR.H" Name="nlattr.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\nlattr.h" />
+			</Component>
+			<Component Id="RELO_CORE.H" DiskId="1" Guid="{B911127B-3702-49F2-A97F-15268F905EE3}">
+				<File Id="RELO_CORE.H" Name="relo_core.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\relo_core.h" />
+			</Component>
+			<Component Id="SKEL_INTERNAL.H" DiskId="1" Guid="{674B4B4C-968B-4593-948D-4BD623EC4E13}">
+				<File Id="SKEL_INTERNAL.H" Name="skel_internal.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\skel_internal.h" />
+			</Component>
+			<Component Id="STRSET.H" DiskId="1" Guid="{00A310E8-6886-4C45-8BEA-F5121B2AAD0A}">
+				<File Id="STRSET.H" Name="strset.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\strset.h" />
+			</Component>
+			<Component Id="STR_ERROR.H" DiskId="1" Guid="{E9AC241C-5A14-4C3B-96F4-AB79211DB9F4}">
+				<File Id="STR_ERROR.H" Name="str_error.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\str_error.h" />
+			</Component>
+			<Component Id="USDT.BPF.H" DiskId="1" Guid="{7E29208F-3B05-4F1E-A425-1BD8759CD659}">
+				<File Id="USDT.BPF.H" Name="usdt.bpf.h" KeyPath="yes" Source="$(var.SolutionDir)external\bpftool\libbpf\src\usdt.bpf.h" />
+			</Component>
+		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_uapi_linux" Directory="dir_include_uapi_linux">
 			<Component Id="BPF.H_4" DiskId="1" Guid="{CEF66B1A-8225-4B84-8239-C5238DA41BF2}">
 				<File Id="BPF.H_4" Name="bpf.h" Source="$(var.SolutionDir)include\uapi\linux\bpf.h" />
@@ -522,9 +596,6 @@ SPDX-License-Identifier: MIT
 		<ComponentGroup Id="eBPF_Development_libs" Directory="dir_lib">
 			<Component Id="eBPFApi_lib" Guid="{A164197B-3C57-4ECA-B138-CBF558DA4401}">
 				<File Id="EbpfApi.lib" Name="EbpfApi.lib" DiskId="1" Source="$(var.api.TargetDir)EbpfApi.lib" />
-			</Component>
-			<Component Id="eBPFApi_lib_pdb" Guid="{197589BB-4A27-4313-9A70-BB455A58C987}">
-				<File Id="eBPFApi_lib.pdb" Name="EbpfApi.pdb" DiskId="1" Source="$(var.api.TargetDir)EbpfApi.pdb" />
 			</Component>
 		</ComponentGroup>
 	</Fragment>
@@ -620,6 +691,18 @@ SPDX-License-Identifier: MIT
 			</Component>
 			<Component Id="CGROUP_SOCK_ADDR_UM.PDB" DiskId="1" Guid="{40BC9394-DE30-468D-ABA9-8DAC8C76D492}">
 				<File Id="CGROUP_SOCK_ADDR_UM.PDB" Name="cgroup_sock_addr_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr_um.pdb" />
+			</Component>
+			<Component Id="CGROUP_SOCK_ADDR2.O" DiskId="1" Guid="{EC56B373-152C-4ECB-9491-266AE910FFEC}">
+				<File Id="CGROUP_SOCK_ADDR2.O" Name="cgroup_sock_addr2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr2.o" />
+			</Component>
+			<Component Id="CGROUP_SOCK_ADDR2.SYS" DiskId="1" Guid="{3AEDA230-16DB-40D5-AE53-3312460BC741}">
+				<File Id="CGROUP_SOCK_ADDR2.SYS" Name="cgroup_sock_addr2.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr2.sys" />
+			</Component>
+			<Component Id="CGROUP_SOCK_ADDR2_UM.DLL" DiskId="1" Guid="{6CEFE90B-B8C4-4610-B295-302586D45704}">
+				<File Id="CGROUP_SOCK_ADDR2_UM.DLL" Name="cgroup_sock_addr2_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr2_um.dll" />
+			</Component>
+			<Component Id="CGROUP_SOCK_ADDR2_UM.PDB" DiskId="1" Guid="{AF48035A-42DE-4383-AE5B-1645FF293F6F}">
+				<File Id="CGROUP_SOCK_ADDR2_UM.PDB" Name="cgroup_sock_addr2_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr2_um.pdb" />
 			</Component>
 			<Component Id="DECAP_PERMIT_PACKET.O" DiskId="1" Guid="{EAD33B50-0E47-464B-A919-1A24B64C686A}">
 				<File Id="DECAP_PERMIT_PACKET.O" Name="decap_permit_packet.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\decap_permit_packet.o" />

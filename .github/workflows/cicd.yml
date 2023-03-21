@@ -42,6 +42,7 @@ jobs:
     with:
       build_artifact: Build-x64
       generate_release_package: true
+      build_msi: true
       build_nuget: true
       build_options: /p:ReleaseJIT='True'
 
@@ -52,8 +53,6 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-native-only
-      generate_release_package: true
-      build_nuget: true
       build_options: /p:DisableJIT='True' /p:DisableInterpreter='True'
 
   cmake:
@@ -89,20 +88,6 @@ jobs:
       code_coverage: true
       gather_dumps: true
       capture_etw: true
-
-  unit_tests_leak_detection:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests_with_leak_detection
-      test_command: .\unit_tests.exe -d yes
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
       leak_detection: true
 
   # Run the netebpfext unit tests in GitHub.
@@ -114,20 +99,6 @@ jobs:
     with:
       name: netebpf_ext_unit_tests
       pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
-      test_command: .\netebpfext_unit.exe -d yes
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-
-  netebpfext_unit_leak_detection:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: netebpfext_unit_leak_detection
       test_command: .\netebpfext_unit.exe -d yes
       build_artifact: Build-x64
       environment: windows-2022
@@ -351,18 +322,33 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
-  # Run the low memory simulator in GitHub.
-  low_memory:
+  # Run the fault injection simulator in GitHub.
+  fault_injection:
     needs: regular
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: low_memory
+      name: fault_injection
       test_command: .\unit_tests.exe
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: true
       gather_dumps: true
-      low_memory: true
+      fault_injection: true
+      leak_detection: true
+
+  # Run the low memory simulator for netebpfext_unit tests.
+  fault_injection_netebpfext_unit:
+    needs: regular
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: netebpfext_fault_injection
+      test_command: .\netebpfext_unit.exe
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: true
+      gather_dumps: true
+      fault_injection: true
+      leak_detection: true
 
   # Additional jobs to run on a schedule only (skip push and pull request).
   # ---------------------------------------------------------------------------
@@ -375,17 +361,33 @@ jobs:
       build_codeql: true
 
 
-  # Run the complete low memory simulator in GitHub.
+  # Run the complete fault injection simulator in GitHub.
   # Runs on a schedule as this takes a long time to run.
-  low_memory_full:
+  fault_injection_full:
     needs: regular
     if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: low_memory_full
+      name: fault_injection_full
       test_command: .\unit_tests.exe
       build_artifact: Build-x64
-      environment: windows-2019
+      environment: windows-2022
       code_coverage: false
       gather_dumps: true
-      low_memory: true
+      fault_injection: true
+      leak_detection: true
+
+  # Run the complete fault injection simulator for netebpfext in GitHub.
+  # Runs on a schedule as this takes a long time to run.
+  netebpfext_fault_injection_full:
+    needs: regular
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: netebpfext_fault_injection_full
+      test_command: .\netebpfext_unit.exe
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+      fault_injection: true

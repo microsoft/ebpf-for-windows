@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include "ebpf_extension.h"
 #include "ebpf_result.h"
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
@@ -24,8 +25,6 @@ extern "C"
 #define EBPF_DEVICE_NAME L"\\Device\\EbpfIoDevice"
 #define EBPF_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\EbpfIoDevice"
 #define EBPF_DEVICE_WIN32_NAME L"\\\\.\\EbpfIoDevice"
-
-#define EBPF_MAX_GENERAL_HELPER_FUNCTION 0xFFFF
 
 #define EBPF_UTF8_STRING_FROM_CONST_STRING(x) \
     {                                         \
@@ -92,45 +91,6 @@ extern "C"
     typedef struct _ebpf_extension_client ebpf_extension_client_t;
     typedef struct _ebpf_extension_provider ebpf_extension_provider_t;
     typedef struct _ebpf_helper_function_prototype ebpf_helper_function_prototype_t;
-    typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
-    typedef struct _ebpf_extension_dispatch_table
-    {
-        uint16_t version; ///< Version of the dispatch table.
-        uint16_t count;   ///< Number of entries in the dispatch table.
-        _Field_size_(count) _ebpf_extension_dispatch_function function[1];
-    } ebpf_extension_dispatch_table_t;
-
-    typedef struct _ebpf_extension_data
-    {
-        uint16_t version;
-        size_t size;
-        void* data;
-    } ebpf_extension_data_t;
-
-    typedef struct _ebpf_attach_provider_data
-    {
-        ebpf_program_type_t supported_program_type;
-        bpf_attach_type_t bpf_attach_type;
-        enum bpf_link_type link_type;
-    } ebpf_attach_provider_data_t;
-
-    /***
-     * The state of the execution context when the eBPF program was invoked.
-     * This is used to cache state that won't change during the execution of
-     * the eBPF program and is expensive to query.
-     */
-    typedef struct _ebpf_execution_context_state
-    {
-        union
-        {
-            uint64_t thread;
-            uint32_t cpu;
-        } id;
-        uint8_t current_irql;
-    } ebpf_execution_context_state_t;
-
-#define EBPF_ATTACH_CLIENT_DATA_VERSION 0
-#define EBPF_ATTACH_PROVIDER_DATA_VERSION 1
 
     typedef struct _ebpf_trampoline_table ebpf_trampoline_table_t;
 
@@ -1539,7 +1499,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_API_FAILURE(keyword, api)          \
     do {                                                  \
-        unsigned long last_error = GetLastError();                \
+        unsigned long last_error = GetLastError();        \
         TraceLoggingWrite(                                \
             ebpf_tracelog_provider,                       \
             EBPF_TRACELOG_EVENT_API_ERROR,                \
@@ -1551,7 +1511,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_STRING_API_FAILURE(keyword, message, api) \
     do {                                                         \
-        unsigned long last_error = GetLastError();                       \
+        unsigned long last_error = GetLastError();               \
         TraceLoggingWrite(                                       \
             ebpf_tracelog_provider,                              \
             EBPF_TRACELOG_EVENT_API_ERROR,                       \
@@ -1564,7 +1524,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_WSTRING_API_FAILURE(keyword, wstring, api) \
     do {                                                          \
-        unsigned long last_error = GetLastError();                        \
+        unsigned long last_error = GetLastError();                \
         TraceLoggingWrite(                                        \
             ebpf_tracelog_provider,                               \
             EBPF_TRACELOG_EVENT_API_ERROR,                        \
@@ -1577,7 +1537,7 @@ extern "C"
 
 #define EBPF_LOG_WIN32_GUID_API_FAILURE(keyword, guid, api) \
     do {                                                    \
-        unsigned long last_error = GetLastError();                  \
+        unsigned long last_error = GetLastError();          \
         TraceLoggingWrite(                                  \
             ebpf_tracelog_provider,                         \
             EBPF_TRACELOG_EVENT_API_ERROR,                  \

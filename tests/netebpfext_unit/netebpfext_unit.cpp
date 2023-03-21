@@ -3,6 +3,7 @@
 
 #define CATCH_CONFIG_MAIN
 #include "catch_wrapper.hpp"
+#include "ebpf_fault_injection.h"
 #include "netebpf_ext_helper.h"
 
 #include <map>
@@ -466,6 +467,25 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
 
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
+
+    // Test reauthorization flag.
+    // Classify operations that should be allowed.
+    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context.validate_sock_addr_entries = true;
+
+    parameters.reauthorization_flag = FWP_CONDITION_FLAG_IS_REAUTHORIZE;
+
+    result = helper.test_cgroup_inet4_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet4_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
 }
 
 void
@@ -479,6 +499,8 @@ sock_addr_thread_function(
 {
     FWP_ACTION_TYPE result;
     uint16_t port_number;
+
+    bool fault_injection_enabled = ebpf_fault_injection_is_enabled();
 
     if (start_port != end_port) {
         port_number = start_port - 1;
@@ -507,7 +529,7 @@ sock_addr_thread_function(
             break;
         }
 
-        REQUIRE(result == _get_fwp_sock_addr_action(port_number));
+        REQUIRE((result == _get_fwp_sock_addr_action(port_number) || fault_injection_enabled));
     }
 }
 
