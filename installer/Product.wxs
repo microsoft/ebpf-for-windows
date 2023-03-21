@@ -860,10 +860,10 @@ SPDX-License-Identifier: MIT
 				<File Id="UNIT_TESTS.PDB" Name="unit_tests.pdb" Source="$(var.unit_tests.TargetDir)unit_tests.pdb" />
 			</Component>
 			<Component Id="XDP_TESTS.EXE" DiskId="1" Guid="{6A98B162-1DC5-4145-A91B-9DF757766119}">
-				<File Id="XDP_TESTS.EXE" Name="xdp_tests.exe" Source="$(var.unit_tests.TargetDir)xdp_tests.exe" />
+				<File Id="XDP_TESTS.EXE" Name="xdp_tests.exe" Source="$(var.xdp_tests.TargetDir)xdp_tests.exe" />
 			</Component>
 			<Component Id="XDP_TESTS.PDB" DiskId="1" Guid="{5540AA7D-73F0-418B-995B-8A9C163C3939}">
-				<File Id="XDP_TESTS.PDB" Name="xdp_tests.pdb" Source="$(var.unit_tests.TargetDir)xdp_tests.pdb" />
+				<File Id="XDP_TESTS.PDB" Name="xdp_tests.pdb" Source="$(var.xdp_tests.TargetDir)xdp_tests.pdb" />
 			</Component>
 		</ComponentGroup>
 
