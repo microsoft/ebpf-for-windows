@@ -36,6 +36,19 @@ static std::string _user_name;
 static std::string _password;
 static std::string _user_type_string;
 
+typedef struct _close_bpf_object
+{
+    void
+    operator()(_In_opt_ _Post_invalid_ bpf_object* object)
+    {
+        if (object != nullptr) {
+            bpf_object__close(object);
+        }
+    }
+} close_bpf_object_t;
+
+typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
+
 typedef enum _user_type
 {
     ADMINISTRATOR,
@@ -88,7 +101,8 @@ _get_current_thread_authentication_id()
     privileges = (TOKEN_GROUPS_AND_PRIVILEGES*)malloc(size);
     REQUIRE(privileges != nullptr);
 
-    result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (unsigned long*)&size);
+    result =
+        GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (unsigned long*)&size);
     REQUIRE(result == true);
 
     authentication_id = *(uint64_t*)&privileges->AuthenticationId;
@@ -278,15 +292,20 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object, uint64_t authent
 static void
 _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 {
+    bpf_object_ptr unique_object;
+    unique_object.reset(nullptr);
+
     int result;
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
     REQUIRE(object != nullptr);
 
     REQUIRE(bpf_object__load(object) == 0);
 
+    unique_object.reset(object);
+
     if (_globals.attach_v4_program) {
         printf("Attaching v4 program\n");
-        bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object, "connect_redirect4");
+        bpf_program* connect_program_v4 = bpf_object__find_program_by_name(unique_object.get(), "connect_redirect4");
         REQUIRE(connect_program_v4 != nullptr);
 
         result = bpf_prog_attach(
@@ -296,7 +315,7 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 
     if (_globals.attach_v6_program) {
         printf("Attaching v6 program\n");
-        bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object, "connect_redirect6");
+        bpf_program* connect_program_v6 = bpf_object__find_program_by_name(unique_object.get(), "connect_redirect6");
         REQUIRE(connect_program_v6 != nullptr);
 
         result = bpf_prog_attach(
@@ -304,7 +323,7 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
         REQUIRE(result == 0);
     }
 
-    *return_object = object;
+    *return_object = unique_object.get();
 }
 
 static void
@@ -536,21 +555,26 @@ connect_redirect_tests_common(_In_ const struct bpf_object* object, bool dual_st
 void
 test_common(ADDRESS_FAMILY family, IPPROTO protocol)
 {
+    bpf_object_ptr unique_object;
+    unique_object.reset(nullptr);
+
     _initialize_test_globals();
 
     struct bpf_object* object = nullptr;
     _load_and_attach_ebpf_programs(&object);
+
+    unique_object.reset(object);
 
     _globals.family = family;
     _globals.protocol = protocol;
     socket_family_t socket_family = (family == AF_INET) ? socket_family_t::IPv4 : socket_family_t::IPv6;
     socket_family_t dual_stack_socket_family = (family == AF_INET) ? socket_family_t::Dual : socket_family_t::IPv6;
 
-    connect_redirect_tests_common(object, false, _globals.addresses[socket_family]);
-    connect_redirect_tests_common(object, true, _globals.addresses[dual_stack_socket_family]);
+    connect_redirect_tests_common(unique_object.get(), false, _globals.addresses[socket_family]);
+    connect_redirect_tests_common(unique_object.get(), true, _globals.addresses[dual_stack_socket_family]);
 
     // This should also detach the programs as they are not pinned.
-    bpf_object__close(object);
+    bpf_object__close(unique_object.release());
 }
 
 TEST_CASE("connect_redirect_tcp_v4", "[connect_redirect_tests_v4]") { test_common(AF_INET, IPPROTO_TCP); }
