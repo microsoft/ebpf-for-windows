@@ -157,15 +157,18 @@ typedef struct _ebpf_epoch_work_item
  * @return 8bit bucket key.
  */
 static size_t
-_ebpf_epoch_hash_thread_id(uintptr_t thread_id)
-{
-    // Collapse top 32bits into lower 32bits.
-    size_t v1 = (thread_id >> 32) ^ (thread_id & 0xFFFFFFFF);
-    // Collapse top 16bits into lower 16bits.
-    size_t v2 = (v1 >> 16) ^ (v1 & 0xFFFF);
-    // Collapse top 8bits into lower 8bits and return it.
-    return (v2 >> 8) ^ (v2 & 0xFF);
-}
+_ebpf_epoch_hash_thread_id(uintptr_t thread_id);
+
+/**
+ * @brief Get the thread entry for the current thread or find the first unused entry. Uses the thread ID as a hash key
+ * and searches the thread entry table for a matching entry starting at the hash key. Unused entries are found by
+ * searching the table for an entry with a thread ID of 0.
+ *
+ * @param[in,out] thread_id Thread ID to find or 0 to find the first unused entry.
+ * @return Pointer to the thread entry to use.
+ */
+_Requires_lock_held_(cpu_entry->lock) static ebpf_epoch_thread_entry_t* _ebpf_epoch_get_thread_entry(
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, uintptr_t thread_id);
 
 /**
  * @brief Remove all entries from the per-CPU free list that have an epoch that is before released_epoch.
@@ -332,24 +335,12 @@ ebpf_epoch_enter()
     // If this thread is preemptible, then find or create the per thread epoch state.
     if (is_preemptible) {
         // Find the first available thread entry.
-        ebpf_epoch_thread_entry_t* thread_entry = NULL;
-        uintptr_t thread_id = ebpf_get_current_thread_id();
-        // Search all entries in the thread entry table, but start the search for the thread entry at a index derived
-        // from the thread id.
-        // The semaphore guarantees that there is at least 1 available thread entry.
-        for (size_t index = 0; index < EBPF_EPOCH_THREAD_ENTRY_TABLE_SIZE; index++) {
-            size_t i = (index + _ebpf_epoch_hash_thread_id(thread_id)) % EBPF_EPOCH_THREAD_ENTRY_TABLE_SIZE;
-            thread_entry = &_ebpf_epoch_cpu_table[current_cpu].thread_entry_table[i];
-            if (thread_entry->thread_id == 0) {
-                break;
-            }
-            thread_entry = NULL;
-        }
+        ebpf_epoch_thread_entry_t* thread_entry = _ebpf_epoch_get_thread_entry(&_ebpf_epoch_cpu_table[current_cpu], 0);
         ebpf_assert(thread_entry != NULL);
+        ebpf_assert(thread_entry->thread_id == 0);
 
         // Mark thread entry as in use.
-        thread_entry->thread_id = thread_id;
-
+        thread_entry->thread_id = ebpf_get_current_thread_id();
         thread_entry->old_thread_affinity_mask = old_thread_affinity;
 
         // Update the thread entry's last used time.
@@ -362,6 +353,7 @@ ebpf_epoch_enter()
     // Capture the current epoch.
     epoch_state->epoch = _ebpf_current_epoch;
 
+    ebpf_assert(!epoch_state->active);
     // Mark the epoch state as active.
     epoch_state->active = true;
 
@@ -385,21 +377,13 @@ ebpf_epoch_exit()
     // If this thread is preemptible, then find the per thread epoch state.
     if (is_preemptible) {
         // Get the thread entry for the current thread.
-        ebpf_epoch_thread_entry_t* thread_entry = NULL;
         uintptr_t thread_id = ebpf_get_current_thread_id();
-        // Search all entries in the thread entry table, but start the search for the thread entry at a index derived
-        // from the thread id.
-        for (size_t index = 0; index < EBPF_EPOCH_THREAD_ENTRY_TABLE_SIZE; index++) {
-            size_t i = (index + _ebpf_epoch_hash_thread_id(thread_id)) % EBPF_EPOCH_THREAD_ENTRY_TABLE_SIZE;
-            thread_entry = &_ebpf_epoch_cpu_table[current_cpu].thread_entry_table[i];
-            if (thread_entry->thread_id == thread_id) {
-                break;
-            }
-            thread_entry = NULL;
-        }
+        ebpf_epoch_thread_entry_t* thread_entry =
+            _ebpf_epoch_get_thread_entry(&_ebpf_epoch_cpu_table[current_cpu], thread_id);
 
         // Having a thread entry is a precondition for calling ebpf_epoch_exit().
         ebpf_assert(thread_entry != NULL);
+        ebpf_assert(thread_entry->thread_id == thread_id);
 
         // Mark thread entry as free.
         thread_entry->thread_id = 0;
@@ -413,6 +397,7 @@ ebpf_epoch_exit()
 
     // Capture the current epoch.
     epoch_state->epoch = _ebpf_current_epoch;
+    ebpf_assert(epoch_state->active);
     // Mark the epoch state as inactive.
     epoch_state->active = false;
     // Mark the epoch state as not stale.
@@ -710,4 +695,38 @@ _ebpf_epoch_stale_worker(_In_ const void* work_item_context, _In_ const void* pa
     UNREFERENCED_PARAMETER(parameter_1);
     ebpf_epoch_enter();
     ebpf_epoch_exit();
+}
+
+/**
+ * @brief Hash a thread ID into an 8bit number.
+ *
+ * @param[in] thread_id Thread ID to hash.
+ * @return 8bit bucket key.
+ */
+static size_t
+_ebpf_epoch_hash_thread_id(uintptr_t thread_id)
+{
+    // Collapse top 32bits into lower 32bits.
+    size_t v1 = (thread_id >> 32) ^ (thread_id & 0xFFFFFFFF);
+    // Collapse top 16bits into lower 16bits.
+    size_t v2 = (v1 >> 16) ^ (v1 & 0xFFFF);
+    // Collapse top 8bits into lower 8bits and return it.
+    return (v2 >> 8) ^ (v2 & 0xFF);
+}
+
+_Requires_lock_held_(cpu_entry->lock) static ebpf_epoch_thread_entry_t* _ebpf_epoch_get_thread_entry(
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, uintptr_t thread_id)
+{
+    // Find the ideal bucket for this thread_id.
+    size_t bucket = _ebpf_epoch_hash_thread_id(ebpf_get_current_thread_id()) % EBPF_EPOCH_THREAD_ENTRY_TABLE_SIZE;
+    // Search for the thread_id in the table starting at the ideal bucket.
+    for (size_t i = 0; i < EBPF_EPOCH_THREAD_ENTRY_TABLE_SIZE; i++) {
+        ebpf_epoch_thread_entry_t* thread_entry = &cpu_entry->thread_entry_table[bucket];
+        if (thread_entry->thread_id == thread_id) {
+            return thread_entry;
+        }
+        bucket = (bucket + 1) % EBPF_EPOCH_THREAD_ENTRY_TABLE_SIZE;
+    }
+    ebpf_assert(!"Thread entry not found");
+    return NULL;
 }

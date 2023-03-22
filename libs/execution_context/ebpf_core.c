@@ -2391,8 +2391,9 @@ ebpf_core_cancel_protocol_handler(_Inout_ void* async_context)
 void
 ebpf_core_close_context(_In_opt_ void* context)
 {
-    if (!context)
+    if (!context) {
         return;
+    }
 
     ebpf_epoch_enter();
 

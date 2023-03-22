@@ -835,8 +835,9 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, int maximum_count)
 {
     *semaphore = ebpf_allocate(sizeof(KSEMAPHORE));
-    if (*semaphore == NULL)
+    if (*semaphore == NULL) {
         return EBPF_NO_MEMORY;
+    }
 
     KeInitializeSemaphore(&(*semaphore)->semaphore, initial_count, maximum_count);
     return EBPF_SUCCESS;
