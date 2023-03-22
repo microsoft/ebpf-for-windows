@@ -42,7 +42,7 @@
 // If the stale flag is already set, then the per-CPU stale_worker is scheduled.
 //
 // Thread entry table:
-// The thread entry is a fixed size per-CPU hash table for tracking per-thread ebpf_epoch_state_t. The hash is
+// The thread entry table is a fixed size per-CPU hash table for tracking per-thread ebpf_epoch_state_t. The hash is
 // based on the thread ID. The thread entry table is protected by a semaphore that limits the number of threads
 // that can be active in the epoch at any one time. If a thread attempts to enter the epoch and the semaphore
 // count is 0, then the thread blocks until a thread exits the epoch, which ensures that the thread entry table
@@ -58,8 +58,6 @@
 #define EBPF_EPOCH_THREAD_TABLE_TIMEOUT_IN_NANO_SECONDS 1000000000 // 1 second
 
 #define EBPF_NANO_SECONDS_PER_FILETIME_TICK 100
-
-#define EBPF_EPOCH_RESERVED_THREAD_ENTRY_COUNT 1
 
 typedef struct _ebpf_epoch_state
 {
