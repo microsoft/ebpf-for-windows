@@ -1250,3 +1250,46 @@ ebpf_get_current_irql()
 {
     return ebpf_non_preemptible ? DISPATCH_LEVEL : PASSIVE_LEVEL;
 }
+
+typedef struct _ebpf_semaphore
+{
+    HANDLE semaphore;
+} ebpf_semaphore_t;
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, int maximum_count)
+{
+    *semaphore = (ebpf_semaphore_t*)ebpf_allocate(sizeof(ebpf_semaphore_t));
+    if (*semaphore == nullptr) {
+        return EBPF_NO_MEMORY;
+    }
+
+    (*semaphore)->semaphore = CreateSemaphore(nullptr, initial_count, maximum_count, nullptr);
+    if ((*semaphore)->semaphore == INVALID_HANDLE_VALUE) {
+        ebpf_free(*semaphore);
+        *semaphore = nullptr;
+        return EBPF_NO_MEMORY;
+    }
+    return EBPF_SUCCESS;
+}
+
+void
+ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore)
+{
+    if (semaphore) {
+        ::CloseHandle(semaphore->semaphore);
+        ebpf_free(semaphore);
+    }
+}
+
+void
+ebpf_semaphore_wait(_In_ ebpf_semaphore_t* semaphore)
+{
+    WaitForSingleObject(semaphore->semaphore, INFINITE);
+}
+
+void
+ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore)
+{
+    ReleaseSemaphore(semaphore->semaphore, 1, nullptr);
+}
