@@ -336,7 +336,7 @@ ebpf_epoch_enter()
     if (is_preemptible) {
         // Find the first available thread entry.
         ebpf_epoch_thread_entry_t* thread_entry = _ebpf_epoch_get_thread_entry(&_ebpf_epoch_cpu_table[current_cpu], 0);
-        ebpf_assert(thread_entry != NULL);
+        _Analysis_assume_(thread_entry != NULL);
         ebpf_assert(thread_entry->thread_id == 0);
 
         // Mark thread entry as in use.
@@ -382,7 +382,7 @@ ebpf_epoch_exit()
             _ebpf_epoch_get_thread_entry(&_ebpf_epoch_cpu_table[current_cpu], thread_id);
 
         // Having a thread entry is a precondition for calling ebpf_epoch_exit().
-        ebpf_assert(thread_entry != NULL);
+        _Analysis_assume_(thread_entry != NULL);
         ebpf_assert(thread_entry->thread_id == thread_id);
 
         // Mark thread entry as free.

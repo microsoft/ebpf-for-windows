@@ -2578,13 +2578,29 @@ TEST_CASE("load_native_program_invalid5", "[end-to-end]")
 {
     _load_invalid_program("invalid_maps3_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
+
+typedef struct _ebpf_scoped_non_preemptible
+{
+    _ebpf_scoped_non_preemptible()
+    {
+        ebpf_assert_success(
+            ebpf_set_current_thread_affinity((uintptr_t)1 << ebpf_get_current_cpu(), &old_thread_affinity));
+        ebpf_non_preemptible = true;
+    }
+    ~_ebpf_scoped_non_preemptible()
+    {
+        ebpf_non_preemptible = false;
+        ebpf_restore_current_thread_affinity(old_thread_affinity);
+    }
+    uintptr_t old_thread_affinity = 0;
+} ebpf_scoped_non_preemptible_t;
+
 TEST_CASE("load_native_program_invalid5-non-preemptible", "[end-to-end]")
 {
     // Setting ebpf_non_preemptible to true will ensure ebpf_native_load queues
     // a workitem and that code path is executed.
-    ebpf_non_preemptible = true;
+    ebpf_scoped_non_preemptible_t non_preemptible;
     _load_invalid_program("invalid_maps3_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
-    ebpf_non_preemptible = false;
 }
 #endif
 
