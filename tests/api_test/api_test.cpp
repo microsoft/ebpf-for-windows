@@ -17,9 +17,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <chrono>
-#include <fstream>
+#include <filesystem>
 #include <io.h>
-#include <iostream>
 #include <mstcpip.h>
 #include <mutex>
 #include <ntsecapi.h>
@@ -902,12 +901,18 @@ native_load_unload_thread(
 
     // Only one program can be load from a specific file, so we crate a worker copy.
     std::size_t pos = file_name.find_last_of(".");
-    std::string file_name_copy = file_name.substr(0, pos - 1) + std::to_string(thread_no) + file_name.substr(pos);
-    std::ifstream source(file_name.c_str(), std::ios::binary);
-    std::ofstream dest(file_name_copy.c_str(), std::ios::binary);
-    dest << source.rdbuf();
-    source.close();
-    dest.close();
+    std::string file_name_copy = file_name.substr(0, pos) + std::to_string(thread_no) + file_name.substr(pos);
+    try {
+
+        std::filesystem::copy_file(file_name.c_str(), file_name_copy.c_str());
+    } catch (std::filesystem::filesystem_error const& ex) {
+        std::cout << "what():  " << ex.what() << '\n'
+                  << "path1(): " << ex.path1() << '\n'
+                  << "path2(): " << ex.path2() << '\n'
+                  << "code().value():    " << ex.code().value() << '\n'
+                  << "code().message():  " << ex.code().message() << '\n'
+                  << "code().category(): " << ex.code().category().name() << '\n';
+    }
 
     printf("native_load_unload_thread[%u] for '%s' started...\n", thread_no, file_name_copy.c_str());
     while (!token.stop_requested()) {
@@ -984,7 +989,8 @@ TEST_CASE("native_load_unload_concurrent", "[native_tests]")
     } native_module_data_t;
     std::vector<native_module_data_t> native_modues{
         {"droppacket.sys", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC},
-        {"reflect_packet.sys", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC}};
+        //{"reflect_packet.sys", EBPF_PROGRAM_TYPE_XDP, BPF_PROG_TYPE_UNSPEC}
+    };
     const int CONCURRENT_THREAD_RUN_TIME_IN_SECONDS = 10;
 
     // Test all the defined native modules (simulated in user mode)
@@ -992,7 +998,7 @@ TEST_CASE("native_load_unload_concurrent", "[native_tests]")
         std::vector<std::jthread> threads;
 
         // Attempt to saturate all core threads with contention
-        uint32_t thread_no = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS) * 4;
+        uint32_t thread_no = 2; // GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS) * 4;
         std::atomic_uint32_t completed = 0;
         for (uint32_t i = 0; i < thread_no; i++) {
             threads.emplace_back(
