@@ -384,6 +384,51 @@ ebpf_program_load(
 }
 
 void
+crash_thread_function(std::stop_token token, uint32_t time_in_seconds)
+{
+    uint32_t total_iterations = time_in_seconds / 30;
+    printf("CRASH_HELPER: total_iterations=%u\n", total_iterations);
+
+    std::this_thread::sleep_for(std::chrono::seconds(time_in_seconds));
+
+    uint32_t count = 0;
+    while (!token.stop_requested() && count < total_iterations) {
+        printf("CRASH_HELPER [%u]: Sleeping for 30 seconds\n", count);
+        std::this_thread::sleep_for(std::chrono::seconds(30));
+        count++;
+    }
+
+    if (!token.stop_requested()) {
+        printf("CRASH_HELPER: CRASHING THE PROCESS\n");
+        ebpf_assert(false);
+    }
+}
+
+class _crash_helper_end_to_end
+{
+  public:
+    _crash_helper_end_to_end() { threads.emplace_back(crash_thread_function, 60 * 45 /* 45 minutes in seconds*/); }
+    ~_crash_helper_end_to_end()
+    {
+        // Stop all threads.
+        for (auto& thread : threads) {
+            thread.request_stop();
+        }
+
+        // Wait for all threads to stop.
+        for (auto& thread : threads) {
+            thread.join();
+        }
+    }
+
+  private:
+    std::vector<std::jthread> threads;
+    bool api_initialized = false;
+};
+
+_crash_helper_end_to_end crash_helper;
+
+void
 droppacket_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
