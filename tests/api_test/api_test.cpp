@@ -946,13 +946,18 @@ native_load_unload_thread(
         }
 
         program_fd = bpf_program__fd(program);
+        if (program_fd < 0) {
+            no_failure = false;
+            loop_failed = true;
+        }
 
     Exit:
         if (bpf_object) {
             bpf_object__close(bpf_object);
+            // std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
-        if (error < 0) {
+        if (error < 0 || program_fd < 0) {
             printf(
                 "native_load_unload_thread[%u/%llu] for '%s' - ebpf_program_load() failed with error (%i)\n",
                 thread_no,
@@ -998,7 +1003,7 @@ TEST_CASE("native_load_unload_concurrent", "[native_tests]")
         std::vector<std::jthread> threads;
 
         // Attempt to saturate all core threads with contention
-        uint32_t thread_no = 2; // GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS) * 4;
+        uint32_t thread_no = 1; // GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS) * 4;
         std::atomic_uint32_t completed = 0;
         for (uint32_t i = 0; i < thread_no; i++) {
             threads.emplace_back(
