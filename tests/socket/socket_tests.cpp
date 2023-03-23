@@ -25,19 +25,6 @@
 using namespace std::chrono_literals;
 #include <mstcpip.h>
 
-typedef struct _close_bpf_object
-{
-    void
-    operator()(_In_opt_ _Post_invalid_ bpf_object* object)
-    {
-        if (object != nullptr) {
-            bpf_object__close(object);
-        }
-    }
-} close_bpf_object_t;
-
-typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
-
 void
 connection_test(
     ADDRESS_FAMILY address_family,
@@ -46,15 +33,15 @@ connection_test(
     uint32_t protocol)
 {
     bpf_object_ptr unique_object;
-    unique_object.reset(nullptr);
 
     struct bpf_object* new_object = bpf_object__open("cgroup_sock_addr.o");
 
     REQUIRE(new_object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(new_object) == 0);
-
     unique_object.reset(new_object);
+
+    new_object = nullptr;
 
     const char* connect_program_name = (address_family == AF_INET) ? "authorize_connect4" : "authorize_connect6";
     bpf_program* connect_program = bpf_object__find_program_by_name(unique_object.get(), connect_program_name);
@@ -139,8 +126,6 @@ connection_test(
     // destination.
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
     receiver_socket.complete_async_receive();
-
-    bpf_object__close(unique_object.release());
 }
 
 TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]")
@@ -176,7 +161,6 @@ TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
     bpf_object_ptr unique_object;
-    unique_object.reset(nullptr);
 
     bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
@@ -187,6 +171,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     REQUIRE(bpf_object__load(new_object) == 0);
 
     unique_object.reset(new_object);
+    new_object = nullptr;
 
     bpf_program* connect4_program = bpf_object__find_program_by_name(unique_object.get(), "authorize_connect4");
     REQUIRE(connect4_program != nullptr);
@@ -262,8 +247,6 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         BPF_CGROUP_INET6_RECV_ACCEPT,
         0);
     REQUIRE(result == 0);
-
-    bpf_object__close(unique_object.release());
 }
 
 void
@@ -275,7 +258,6 @@ connection_monitor_test(
     bool disconnect)
 {
     bpf_object_ptr unique_object;
-    unique_object.reset(nullptr);
 
     struct bpf_object* new_object = bpf_object__open("sockops.o");
     REQUIRE(new_object != nullptr);
@@ -283,6 +265,7 @@ connection_monitor_test(
     REQUIRE(bpf_object__load(new_object) == 0);
 
     unique_object.reset(new_object);
+    new_object = nullptr;
 
     // Ring buffer event callback context.
     std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
@@ -388,8 +371,6 @@ connection_monitor_test(
 
     // Unsubscribe.
     raw_context->unsubscribe();
-
-    bpf_object__close(unique_object.release());
 }
 
 TEST_CASE("connection_monitor_test_udp_v4", "[sock_ops_tests]")
@@ -455,7 +436,6 @@ TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
 TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 {
     bpf_object_ptr unique_object;
-    unique_object.reset(nullptr);
 
     struct bpf_object* new_object = bpf_object__open("sockops.o");
     REQUIRE(new_object != nullptr);
@@ -463,14 +443,13 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
     REQUIRE(bpf_object__load(new_object) == 0);
 
     unique_object.reset(new_object);
+    new_object = nullptr;
 
     bpf_program* _program = bpf_object__find_program_by_name(unique_object.get(), "connection_monitor");
     REQUIRE(_program != nullptr);
 
     int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
     REQUIRE(result == 0);
-
-    bpf_object__close(unique_object.release());
 }
 
 int
