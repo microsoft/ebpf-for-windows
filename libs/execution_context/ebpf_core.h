@@ -239,6 +239,14 @@ extern "C"
         _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
         _Out_writes_(count_of_helpers) uint64_t* helper_function_addresses);
 
+    /**
+     * @brief Close the FsContext2 from a file object.
+     *
+     * @param[in] context The FsContext2 from a fileobject to close.
+     */
+    void
+    ebpf_core_close_context(_In_opt_ void* context);
+
 #ifdef __cplusplus
 }
 #endif

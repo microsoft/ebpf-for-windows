@@ -31,11 +31,8 @@ extern "C"
 
     /**
      * @brief Called prior to touching memory with lifetime under epoch control.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate per-thread
-     *   tracking state.
      */
-    _Must_inspect_result_ ebpf_result_t
+    void
     ebpf_epoch_enter();
 
     /**
