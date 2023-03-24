@@ -19,7 +19,7 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #include <vector>
 
 // This retry count is needed for the scenarios when low resource simulation is enabled.
-#define EBPF_API_RETRY_COUNT 1
+#define EBPF_API_RETRY_COUNT 10
 
 bpf_attach_type_t
 get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
