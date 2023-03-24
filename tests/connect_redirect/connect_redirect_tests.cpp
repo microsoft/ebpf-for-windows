@@ -279,21 +279,15 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object, uint64_t authent
 static void
 _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 {
-    bpf_object_ptr unique_object;
-
     int result;
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
     REQUIRE(object != nullptr);
 
-    unique_object.reset(object);
-
-    object = nullptr;
-
-    REQUIRE(bpf_object__load(unique_object.get()) == 0);
+    REQUIRE(bpf_object__load(object) == 0);
 
     if (_globals.attach_v4_program) {
         printf("Attaching v4 program\n");
-        bpf_program* connect_program_v4 = bpf_object__find_program_by_name(unique_object.get(), "connect_redirect4");
+        bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object, "connect_redirect4");
         REQUIRE(connect_program_v4 != nullptr);
 
         result = bpf_prog_attach(
@@ -303,7 +297,7 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 
     if (_globals.attach_v6_program) {
         printf("Attaching v6 program\n");
-        bpf_program* connect_program_v6 = bpf_object__find_program_by_name(unique_object.get(), "connect_redirect6");
+        bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object, "connect_redirect6");
         REQUIRE(connect_program_v6 != nullptr);
 
         result = bpf_prog_attach(
@@ -311,8 +305,7 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
         REQUIRE(result == 0);
     }
 
-    unique_object.reset(nullptr);
-    *return_object = unique_object.get();
+    *return_object = object;
 }
 
 static void
