@@ -389,8 +389,6 @@ crash_thread_function(std::stop_token token, uint32_t time_in_seconds)
     uint32_t total_iterations = time_in_seconds / 30;
     printf("CRASH_HELPER: total_iterations=%u\n", total_iterations);
 
-    std::this_thread::sleep_for(std::chrono::seconds(time_in_seconds));
-
     uint32_t count = 0;
     while (!token.stop_requested() && count < total_iterations) {
         printf("CRASH_HELPER [%u]: Sleeping for 30 seconds\n", count);
