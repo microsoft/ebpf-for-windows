@@ -1267,6 +1267,44 @@ extern "C"
     void
     ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state);
 
+    typedef struct _ebpf_semaphore ebpf_semaphore_t;
+
+    /**
+     * @brief Create a semaphore.
+     *
+     * @param[out] semaphore Pointer to the memory that contains the semaphore.
+     * @param[in] initial_count Initial count of the semaphore.
+     * @param[in] maximum_count Maximum count of the semaphore.
+     * @retval EBPF_SUCCESS The hash object was created.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for the semaphore.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, int maximum_count);
+
+    /**
+     * @brief Destroy a semaphore.
+     *
+     * @param[in] semaphore Semaphore to destroy.
+     */
+    void
+    ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore);
+
+    /**
+     * @brief Wait on a semaphore.
+     *
+     * @param[in] semaphore Semaphore to wait on.
+     */
+    void
+    ebpf_semaphore_wait(_In_ ebpf_semaphore_t* semaphore);
+
+    /**
+     * @brief Release a semaphore.
+     *
+     * @param[in] semaphore Semaphore to release.
+     */
+    void
+    ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore);
+
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"
 #define EBPF_TRACELOG_EVENT_GENERIC_ERROR "EbpfGenericError"
