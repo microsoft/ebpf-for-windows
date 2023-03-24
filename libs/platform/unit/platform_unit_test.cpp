@@ -42,13 +42,17 @@ typedef std::unique_ptr<ebpf_pinning_table_t, free_ebpf_pinning_table_t> ebpf_pi
 class _test_helper
 {
   public:
-    _test_helper()
+    _test_helper(bool enter_epoch = true)
     {
         ebpf_object_tracking_initiate();
         REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
         platform_initiated = true;
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
         epoch_initiated = true;
+        if (enter_epoch) {
+            ebpf_epoch_enter();
+            epoch_entered = true;
+        }
         REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
         async_initiated = true;
         REQUIRE(ebpf_state_initiate() == EBPF_SUCCESS);
@@ -56,6 +60,9 @@ class _test_helper
     }
     ~_test_helper()
     {
+        if (!epoch_entered) {
+            ebpf_epoch_enter();
+        }
         if (state_initiated) {
             ebpf_state_terminate();
         }
@@ -63,6 +70,9 @@ class _test_helper
             ebpf_async_terminate();
         }
         if (epoch_initiated) {
+            if (epoch_entered) {
+                ebpf_epoch_exit();
+            }
             ebpf_epoch_flush();
             ebpf_epoch_terminate();
         }
@@ -77,6 +87,7 @@ class _test_helper
     bool epoch_initiated = false;
     bool async_initiated = false;
     bool state_initiated = false;
+    bool epoch_entered = false;
 };
 
 TEST_CASE("hash_table_test", "[platform]")
@@ -323,7 +334,7 @@ TEST_CASE("pinning_test", "[platform]")
 
 TEST_CASE("epoch_test_single_epoch", "[platform]")
 {
-    _test_helper test_helper;
+    _test_helper test_helper(false);
 
     ebpf_epoch_enter();
     void* memory = ebpf_epoch_allocate(10);
@@ -387,7 +398,7 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
 {
     _ebpf_platform_is_preemptible = false;
 
-    _test_helper test_helper;
+    _test_helper test_helper(false);
     _signal signal_1;
     _signal signal_2;
 

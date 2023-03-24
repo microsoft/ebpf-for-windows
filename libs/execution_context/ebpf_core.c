@@ -237,6 +237,7 @@ ebpf_core_terminate()
     ebpf_provider_unload(_ebpf_global_helper_function_provider_context);
     _ebpf_global_helper_function_provider_context = NULL;
 
+    ebpf_epoch_enter();
     ebpf_program_terminate();
 
     ebpf_handle_table_terminate();
@@ -247,6 +248,7 @@ ebpf_core_terminate()
     _ebpf_core_map_pinning_table = NULL;
 
     ebpf_state_terminate();
+    ebpf_epoch_exit();
 
     // Shut down the epoch tracker and free any remaining memory or work items.
     // Note: Some objects may only be released on epoch termination.
@@ -927,6 +929,7 @@ _ebpf_core_protocol_program_test_run_complete(
     _Inout_ void* completion_context,
     _Inout_ void* async_context)
 {
+    ebpf_epoch_enter();
     ebpf_operation_program_test_run_reply_t* reply = (ebpf_operation_program_test_run_reply_t*)completion_context;
     if (result == EBPF_SUCCESS) {
         reply->header.length = (uint16_t)(
@@ -940,6 +943,7 @@ _ebpf_core_protocol_program_test_run_complete(
     ebpf_async_complete(async_context, reply->header.length, result);
     ebpf_object_release_reference((ebpf_core_object_t*)program);
     ebpf_free((void*)options);
+    ebpf_epoch_exit();
 }
 
 static ebpf_result_t

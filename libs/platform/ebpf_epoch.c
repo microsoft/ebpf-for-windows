@@ -210,6 +210,15 @@ _ebpf_epoch_stale_worker(_In_ const void* work_item_context, _In_ const void* pa
  */
 static _Requires_lock_held_(cpu_entry->lock) void _ebpf_epoch_arm_timer_if_needed(ebpf_epoch_cpu_entry_t* cpu_entry);
 
+/**
+ * @brief Determine if the current thread or DPC is in an epoch.
+ *
+ * @return true If the current thread or DPC is in an epoch.
+ * @return false If the current thread or DPC is not in an epoch.
+ */
+static bool
+_ebpf_epoch_is_in_epoch();
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_epoch_initiate()
 {
@@ -454,6 +463,8 @@ _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(siz
 void
 ebpf_epoch_free(_Frees_ptr_opt_ void* memory)
 {
+    ebpf_assert(_ebpf_epoch_is_in_epoch());
+
     ebpf_epoch_allocation_header_t* header = (ebpf_epoch_allocation_header_t*)memory;
     ebpf_lock_state_t lock_state;
     uint32_t current_cpu;
@@ -502,6 +513,8 @@ ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ const void (*cal
 void
 ebpf_epoch_schedule_work_item(_Inout_ ebpf_epoch_work_item_t* work_item)
 {
+    ebpf_assert(_ebpf_epoch_is_in_epoch());
+
     ebpf_lock_state_t lock_state;
     uint32_t current_cpu;
     current_cpu = ebpf_get_current_cpu();
@@ -526,6 +539,8 @@ ebpf_epoch_schedule_work_item(_Inout_ ebpf_epoch_work_item_t* work_item)
 void
 ebpf_epoch_free_work_item(_Frees_ptr_opt_ ebpf_epoch_work_item_t* work_item)
 {
+    ebpf_assert(_ebpf_epoch_is_in_epoch());
+
     ebpf_lock_state_t lock_state;
     uint32_t current_cpu;
     current_cpu = ebpf_get_current_cpu();
@@ -729,4 +744,26 @@ _Requires_lock_held_(cpu_entry->lock) static ebpf_epoch_thread_entry_t* _ebpf_ep
     }
     ebpf_assert(!"Thread entry not found");
     return NULL;
+}
+
+bool
+_ebpf_epoch_is_in_epoch()
+{
+    bool is_in_epoch;
+    ebpf_lock_state_t lock_state;
+    ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[ebpf_get_current_cpu()];
+    lock_state = ebpf_lock_lock(&cpu_entry->lock);
+    // Note:
+    // The thread can enter the epoch at passive and then raise IRQL to DPC.
+    // As a result it is necessary to check both the CPU entry and the thread entry.
+
+    // First check the CPU entry. If it's active, then we're in an epoch.
+    is_in_epoch = cpu_entry->epoch_state.active;
+    if (!is_in_epoch) {
+        // If the CPU entry is not active, then check the thread entry.
+        ebpf_epoch_thread_entry_t* thread_entry = _ebpf_epoch_get_thread_entry(cpu_entry, ebpf_get_current_thread_id());
+        is_in_epoch = thread_entry->epoch_state.active;
+    }
+    ebpf_lock_unlock(&cpu_entry->lock, lock_state);
+    return is_in_epoch;
 }

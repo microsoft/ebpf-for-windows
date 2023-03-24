@@ -187,6 +187,7 @@ ebpf_object_acquire_reference(ebpf_core_object_t* object)
 {
     ebpf_assert(object->base.marker == _ebpf_object_marker);
     int32_t new_ref_count = ebpf_interlocked_increment_int32(&object->base.reference_count);
+    UNREFERENCED_PARAMETER(new_ref_count);
     ebpf_assert(new_ref_count != 1);
 }
 

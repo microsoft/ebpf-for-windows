@@ -113,6 +113,7 @@ static void
 _test_crud_operations(ebpf_map_type_t map_type)
 {
     _ebpf_core_initializer core;
+    ebpf_epoch_scope_t epoch_scope;
     bool is_array;
     bool supports_find_and_delete;
     bool replace_on_full;
@@ -322,6 +323,7 @@ MAP_TEST(BPF_MAP_TYPE_LRU_PERCPU_HASH);
 TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    _ebpf_epoch_scope epoch_scope;
     const size_t max_string = 16;
     typedef struct _lpm_trie_key
     {
@@ -404,6 +406,7 @@ generate_prefix(size_t length, uint8_t value, uint8_t prefix[16])
 TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    _ebpf_epoch_scope epoch_scope;
 
     const size_t max_string = 20;
     typedef struct _lpm_trie_key
@@ -507,6 +510,7 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
 TEST_CASE("map_crud_operations_queue", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    _ebpf_epoch_scope epoch_scope;
     ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_QUEUE, 0, sizeof(uint32_t), 10};
     map_ptr map;
     {
@@ -591,6 +595,7 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
 TEST_CASE("map_crud_operations_stack", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    _ebpf_epoch_scope epoch_scope;
     ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_STACK, 0, sizeof(uint32_t), 10};
     map_ptr map;
     {
@@ -651,6 +656,7 @@ test_function()
 TEST_CASE("program", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    _ebpf_epoch_scope epoch_scope;
 
     program_ptr program;
     {
@@ -751,10 +757,14 @@ TEST_CASE("program", "[execution_context]")
                _In_ const ebpf_program_test_run_options_t* options,
                _Inout_ void* completion_context,
                _Inout_ void* async_context) {
+                UNREFERENCED_PARAMETER(program);
+                UNREFERENCED_PARAMETER(options);
+                UNREFERENCED_PARAMETER(completion_context);
                 ebpf_assert(program != nullptr);
                 ebpf_assert(options != nullptr);
                 ebpf_assert(completion_context != nullptr);
                 ebpf_assert(async_context != nullptr);
+                _ebpf_epoch_scope epoch_scope;
                 ebpf_async_complete(async_context, options->data_size_out, result);
             }) == EBPF_PENDING);
 
@@ -825,6 +835,7 @@ TEST_CASE("program", "[execution_context]")
 TEST_CASE("name size", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    _ebpf_epoch_scope epoch_scope;
     program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_BIND);
 
     program_ptr program;
@@ -873,6 +884,7 @@ TEST_CASE("test-csum-diff", "[execution_context]")
 TEST_CASE("ring_buffer_async_query", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    _ebpf_epoch_scope epoch_scope;
     ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
     map_ptr map;
     {

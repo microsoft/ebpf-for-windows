@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ebpf_api.h"
+#include "ebpf_epoch.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
@@ -599,3 +600,9 @@ typedef class _program_info_provider
 #define ETHERNET_TYPE_IPV4 0x0800
 std::vector<uint8_t>
 prepare_udp_packet(uint16_t udp_length, uint16_t ethertype);
+
+typedef struct _ebpf_epoch_scope
+{
+    _ebpf_epoch_scope() { ebpf_epoch_enter(); }
+    ~_ebpf_epoch_scope() { ebpf_epoch_exit(); }
+} ebpf_epoch_scope_t;

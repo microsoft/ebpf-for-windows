@@ -807,6 +807,7 @@ ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintp
     if (old_mask == 0) {
         unsigned long error = GetLastError();
         ebpf_assert(error != ERROR_SUCCESS);
+        UNREFERENCED_PARAMETER(error);
         return EBPF_OPERATION_NOT_SUPPORTED;
     } else {
         *old_thread_affinity_mask = old_mask;

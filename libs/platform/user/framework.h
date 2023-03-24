@@ -21,11 +21,7 @@ typedef _Return_type_success_(return >= 0) long NTSTATUS;
 
 #pragma comment(lib, "rpcrt4")
 
-#ifdef _DEBUG
 #define ebpf_assert(x) assert(x)
-#else
-#define ebpf_assert(x) (void)(x)
-#endif //!_DEBUG
 
 #if !defined(UNREFERENCED_PARAMETER)
 #define UNREFERENCED_PARAMETER(X) (X)

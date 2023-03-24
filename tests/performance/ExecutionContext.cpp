@@ -32,8 +32,10 @@ typedef class _ebpf_program_test_state
     }
     ~_ebpf_program_test_state()
     {
+        ebpf_epoch_enter();
         ebpf_object_release_reference(reinterpret_cast<ebpf_core_object_t*>(program));
         delete program_info_provider;
+        ebpf_epoch_exit();
         ebpf_core_terminate();
     }
 
@@ -98,6 +100,7 @@ typedef class _ebpf_map_test_state
         ebpf_map_definition_in_memory_t definition{
             type, sizeof(uint32_t), sizeof(uint64_t), map_size.has_value() ? map_size.value() : ebpf_get_cpu_count()};
 
+        _ebpf_epoch_scope epoch_scope;
         REQUIRE(ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map) == EBPF_SUCCESS);
 
         for (uint32_t i = 0; i < definition.max_entries; i++) {
@@ -111,7 +114,10 @@ typedef class _ebpf_map_test_state
     }
     ~_ebpf_map_test_state()
     {
-        ebpf_object_release_reference((ebpf_core_object_t*)map);
+        {
+            _ebpf_epoch_scope epoch_scope;
+            ebpf_object_release_reference((ebpf_core_object_t*)map);
+        }
         ebpf_core_terminate();
     }
 
@@ -257,7 +263,10 @@ typedef class _ebpf_map_lpm_trie_test_state
 
     ~_ebpf_map_lpm_trie_test_state()
     {
-        ebpf_object_release_reference((ebpf_core_object_t*)map);
+        {
+            _ebpf_epoch_scope epoch_scope;
+            ebpf_object_release_reference((ebpf_core_object_t*)map);
+        }
         ebpf_core_terminate();
     }
 
