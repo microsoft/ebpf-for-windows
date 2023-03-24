@@ -280,6 +280,7 @@ static void
 _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 {
     bpf_object_ptr unique_object;
+
     int result;
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
     REQUIRE(object != nullptr);
