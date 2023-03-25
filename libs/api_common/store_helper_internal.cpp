@@ -342,7 +342,6 @@ ebpf_store_load_program_information(
                 // Ignore this entry and continue.
                 continue;
             } else if (status != ERROR_SUCCESS) {
-                printf("Sharmi:status is error in  ebpf_store_load_program_information\n");
                 result = EBPF_FAILED;
                 break;
             }
