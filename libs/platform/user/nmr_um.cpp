@@ -45,10 +45,6 @@ NmrDeregisterProvider(_In_ HANDLE nmr_provider_handle)
 void
 NmrProviderDetachClientComplete(_In_ HANDLE nmr_binding_handle)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return;
-    }
-
     try {
         _nmr::get().binding_detach_client_complete(nmr_binding_handle);
     } catch (std::bad_alloc) {
@@ -92,10 +88,6 @@ NmrRegisterClient(
 NTSTATUS
 NmrDeregisterClient(_In_ HANDLE nmr_client_handle)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_NO_MEMORY;
-    }
-
     try {
         if (_nmr::get().deregister_client(nmr_client_handle)) {
             return STATUS_PENDING;
@@ -110,10 +102,6 @@ NmrDeregisterClient(_In_ HANDLE nmr_client_handle)
 void
 NmrClientDetachProviderComplete(_In_ HANDLE nmr_binding_handle)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return;
-    }
-
     try {
         _nmr::get().binding_detach_provider_complete(nmr_binding_handle);
     } catch (std::bad_alloc) {
@@ -124,10 +112,6 @@ NmrClientDetachProviderComplete(_In_ HANDLE nmr_binding_handle)
 NTSTATUS
 NmrWaitForClientDeregisterComplete(_In_ HANDLE nmr_client_handle)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_NO_MEMORY;
-    }
-
     try {
         _nmr::get().wait_for_deregister_client(nmr_client_handle);
         return STATUS_SUCCESS;

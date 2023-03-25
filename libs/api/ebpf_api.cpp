@@ -1746,11 +1746,20 @@ _initialize_ebpf_object_from_native_file(
     }
 
 Exit:
-    ebpf_free(program);
     if (result != EBPF_SUCCESS) {
+        if (program && object.programs.size() == 0) {
+            // If there are 1 or more programs/maps, then the
+            // clean_up_ebpf_programs/clean_up_ebpf_maps function will deallocate
+            // the programs/maps. Otherwise, we need to deallocate them here.
+            ebpf_free(program->section_name);
+            ebpf_free(program->program_name);
+        }
+
         clean_up_ebpf_programs(object.programs);
         clean_up_ebpf_maps(object.maps);
     }
+
+    ebpf_free(program);
     ebpf_free_sections(infos);
     EBPF_RETURN_RESULT(result);
 }
