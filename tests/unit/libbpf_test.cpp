@@ -560,10 +560,10 @@ TEST_CASE("libbpf program attach", "[libbpf]")
     int result = bpf_object__load(object);
     REQUIRE(result == 0);
 
-    bpf_link* link = bpf_program__attach(program);
+    bpf_link_ptr link(bpf_program__attach(program));
     REQUIRE(link != nullptr);
 
-    int link_fd = bpf_link__fd(link);
+    int link_fd = bpf_link__fd(link.get());
     REQUIRE(link_fd >= 0);
 
     result = bpf_link_detach(link_fd);
@@ -577,7 +577,7 @@ TEST_CASE("libbpf program attach", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
-    result = bpf_link__destroy(link);
+    result = bpf_link__destroy(link.release());
     REQUIRE(result == 0);
 
     bpf_object__close(object);
@@ -1225,7 +1225,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
     REQUIRE(callee_fd2 > 0);
     Platform::_close(callee_fd2);
 
-    bpf_link* link = bpf_program__attach_xdp(caller, 1);
+    bpf_link_ptr link(bpf_program__attach_xdp(caller, 1));
     REQUIRE(link != nullptr);
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
@@ -1247,7 +1247,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
         REQUIRE(value != 0);
     }
 
-    result = bpf_link__destroy(link);
+    result = bpf_link__destroy(link.release());
     REQUIRE(result == 0);
     bpf_object__close(object);
 }
@@ -1341,7 +1341,7 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
     REQUIRE(callee1_fd2 > 0);
     Platform::_close(callee1_fd2);
 
-    bpf_link* link = bpf_program__attach_xdp(caller, 1);
+    bpf_link_ptr link(bpf_program__attach_xdp(caller, 1));
     REQUIRE(link != nullptr);
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
@@ -1360,7 +1360,7 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&ebpf_fd_invalid, 0) == 0);
     REQUIRE(error == 0);
 
-    result = bpf_link__destroy(link);
+    result = bpf_link__destroy(link.release());
     REQUIRE(result == 0);
     bpf_object__close(object);
 }
@@ -1617,7 +1617,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error == 0);
 
-    bpf_link* link = bpf_program__attach_xdp(caller, 1);
+    bpf_link_ptr link(bpf_program__attach_xdp(caller, 1));
     REQUIRE(link != nullptr);
 
     // Now run the ebpf program.
@@ -1630,7 +1630,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     REQUIRE(result == inner_value);
 
     Platform::_close(inner_map_fd);
-    result = bpf_link__destroy(link);
+    result = bpf_link__destroy(link.release());
     REQUIRE(result == 0);
     bpf_object__close(xdp_object);
 }
@@ -1676,7 +1676,7 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error == 0);
 
-    bpf_link* link = bpf_program__attach_xdp(caller, 1);
+    bpf_link_ptr link(bpf_program__attach_xdp(caller, 1));
     REQUIRE(link != nullptr);
 
     // Now run the ebpf program.
@@ -1689,7 +1689,7 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     REQUIRE(result == inner_value);
 
     Platform::_close(inner_map_fd);
-    result = bpf_link__destroy(link);
+    result = bpf_link__destroy(link.release());
     REQUIRE(result == 0);
     bpf_object__close(xdp_object);
 }
@@ -2018,24 +2018,24 @@ TEST_CASE("bpf_link__pin", "[libbpf]")
     REQUIRE(bpf_prog_attach(program_fd, 0, BPF_CGROUP_INET4_CONNECT, 0) == -EINVAL);
 
     // Attach the program so we get a link object.
-    bpf_link* link = bpf_program__attach(program);
+    bpf_link_ptr link(bpf_program__attach(program));
     REQUIRE(link != nullptr);
 
     // Verify that unpinning an unpinned link fails.
-    REQUIRE(bpf_link__unpin(link) == -ENOENT);
+    REQUIRE(bpf_link__unpin(link.get()) == -ENOENT);
 
     // Verify that pinning a link to an already-in-use path fails.
-    REQUIRE(bpf_link__pin(link, program_pin_name) == -EEXIST);
+    REQUIRE(bpf_link__pin(link.get(), program_pin_name) == -EEXIST);
 
     // Verify that pinning a link to a new path works.
-    REQUIRE(bpf_link__pin(link, "MyPath") == 0);
+    REQUIRE(bpf_link__pin(link.get(), "MyPath") == 0);
 
     // Verify that pinning an already-pinned link fails.
-    REQUIRE(bpf_link__pin(link, "MyPath2") == -EBUSY);
+    REQUIRE(bpf_link__pin(link.get(), "MyPath2") == -EBUSY);
 
-    REQUIRE(bpf_link__unpin(link) == 0);
+    REQUIRE(bpf_link__unpin(link.get()) == 0);
 
-    REQUIRE(bpf_link__destroy(link) == 0);
+    REQUIRE(bpf_link__destroy(link.release()) == 0);
     REQUIRE(bpf_program__unpin(program, program_pin_name) == 0);
 
     bpf_program__unload(program);
@@ -2296,18 +2296,18 @@ TEST_CASE("bpf_object__open with .dll", "[libbpf]")
     REQUIRE(bpf_object__next_program(object, program) == nullptr);
 
     // Trying to attach the program should fail since it's not loaded yet.
-    bpf_link* link = bpf_program__attach(program);
+    bpf_link_ptr link(bpf_program__attach(program));
     REQUIRE(link == nullptr);
-    REQUIRE(libbpf_get_error(link) == -EINVAL);
+    REQUIRE(libbpf_get_error(link.get()) == -EINVAL);
 
     // Load the program.
     REQUIRE(bpf_object__load(object) == 0);
 
     // Attach should now succeed.
-    link = bpf_program__attach(program);
+    link.reset(bpf_program__attach(program));
     REQUIRE(link != nullptr);
 
-    REQUIRE(bpf_link__destroy(link) == 0);
+    REQUIRE(bpf_link__destroy(link.release()) == 0);
 
     bpf_object__close(object);
 }
@@ -2342,9 +2342,9 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
     REQUIRE(map == nullptr);
 
     // Trying to attach the program should fail since it's not loaded yet.
-    bpf_link* link = bpf_program__attach(program);
+    bpf_link_ptr link(bpf_program__attach(program));
     REQUIRE(link == nullptr);
-    REQUIRE(libbpf_get_error(link) == -EINVAL);
+    REQUIRE(libbpf_get_error(link.get()) == -EINVAL);
 
     // Load the program.
     REQUIRE(bpf_object__load(object) == 0);
@@ -2361,10 +2361,10 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
     REQUIRE(map == nullptr);
 
     // Attach should now succeed.
-    link = bpf_program__attach(program);
+    link.reset(bpf_program__attach(program));
     REQUIRE(link != nullptr);
 
-    REQUIRE(bpf_link__destroy(link) == 0);
+    REQUIRE(bpf_link__destroy(link.release()) == 0);
 
     bpf_object__close(object);
 }
@@ -2404,15 +2404,15 @@ TEST_CASE("bpf_object__load with .o", "[libbpf]")
     REQUIRE(map == nullptr);
 
     // Trying to attach the program should fail since it's not loaded yet.
-    bpf_link* link = bpf_program__attach(program);
+    bpf_link_ptr link(bpf_program__attach(program));
     REQUIRE(link == nullptr);
-    REQUIRE(libbpf_get_error(link) == -EINVAL);
+    REQUIRE(libbpf_get_error(link.get()) == -EINVAL);
 
     // Load the program.
     REQUIRE(bpf_object__load(object) == 0);
 
     // Attach should now succeed.
-    link = bpf_program__attach(program);
+    link.reset(bpf_program__attach(program));
     REQUIRE(link != nullptr);
 
     // The maps should now have FDs.
@@ -2426,7 +2426,7 @@ TEST_CASE("bpf_object__load with .o", "[libbpf]")
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
 
-    REQUIRE(bpf_link__destroy(link) == 0);
+    REQUIRE(bpf_link__destroy(link.release()) == 0);
     bpf_object__close(object);
 }
 
