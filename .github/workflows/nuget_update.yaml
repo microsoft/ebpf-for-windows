@@ -32,14 +32,14 @@ jobs:
 
     steps:
     # Check out the main repo.
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+    - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
       with:
         # Only check out main repo, not submodules.
         ref: ${{ github.event.workflow_run.head_branch }}
 
 
     - name: Cache nuget packages
-      uses: actions/cache@940f3d7cf195ba83374c77632d1e2cbb2f24ae68
+      uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8
       env:
         cache-name: cache-nuget-modules
       with:
@@ -56,7 +56,7 @@ jobs:
         nuget update -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
 
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@2b011faafdcbc9ceb11414d64d0573f37c774b04
+      uses: peter-evans/create-pull-request@38e0b6e68b4c852a5500a94740f0e535e0d7ba54
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: Update NuGet packages

@@ -1710,10 +1710,7 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     old_irql = ebpf_raise_irql(context->required_irql);
     irql_raised = true;
 
-    result = ebpf_epoch_enter();
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
+    ebpf_epoch_enter();
     epoch_entered = true;
 
     ebpf_get_execution_context_state(&execution_context_state);
@@ -1727,10 +1724,7 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
         // Start a new epoch every batch_size iterations.
         if ((i % batch_size == (batch_size - 1))) {
             ebpf_epoch_exit();
-            result = ebpf_epoch_enter();
-            if (result != EBPF_SUCCESS) {
-                break;
-            }
+            ebpf_epoch_enter();
         }
         ebpf_program_invoke(context->program, context->context, &return_value, &execution_context_state);
         if (ebpf_should_yield_processor()) {

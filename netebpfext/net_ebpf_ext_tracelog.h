@@ -10,6 +10,7 @@ void
 net_ebpf_ext_trace_terminate();
 
 #define NET_EBPF_EXT_TRACELOG_EVENT_SUCCESS "NetEbpfExtSuccess"
+#define NET_EBPF_EXT_TRACELOG_EVENT_RETURN "NetEbpfExtReturn"
 #define NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_ERROR "NetEbpfExtGenericError"
 #define NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE "NetEbpfExtGenericMessage"
 #define NET_EBPF_EXT_TRACELOG_EVENT_API_ERROR "NetEbpfExtApiError"
@@ -17,12 +18,10 @@ net_ebpf_ext_trace_terminate();
 #define NET_EBPF_EXT_TRACELOG_KEYWORD_FUNCTION_ENTRY_EXIT 0x1
 #define NET_EBPF_EXT_TRACELOG_KEYWORD_BASE 0x2
 #define NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR 0x4
-#define NET_EBPF_EXT_TRACELOG_KEYWORD_EPOCH 0x8
-#define NET_EBPF_EXT_TRACELOG_KEYWORD_CORE 0x10
-#define NET_EBPF_EXT_TRACELOG_KEYWORD_XDP 0x20
-#define NET_EBPF_EXT_TRACELOG_KEYWORD_BIND 0x40
-#define NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR 0x80
-#define NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS 0x100
+#define NET_EBPF_EXT_TRACELOG_KEYWORD_XDP 0x8
+#define NET_EBPF_EXT_TRACELOG_KEYWORD_BIND 0x10
+#define NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR 0x20
+#define NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS 0x40
 
 #define NET_EBPF_EXT_TRACELOG_LEVEL_LOG_ALWAYS WINEVENT_LEVEL_LOG_ALWAYS
 #define NET_EBPF_EXT_TRACELOG_LEVEL_CRITICAL WINEVENT_LEVEL_CRITICAL
@@ -70,7 +69,7 @@ net_ebpf_ext_trace_terminate();
     TraceLoggingWrite(                                              \
         net_ebpf_ext_tracelog_provider,                             \
         NET_EBPF_EXT_TRACELOG_EVENT_API_ERROR,                      \
-        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),               \
+        TraceLoggingLevel(WINEVENT_LEVEL_ERROR),                    \
         TraceLoggingKeyword((keyword)),                             \
         TraceLoggingString(#api, "api"),                            \
         TraceLoggingNTStatus(status));
@@ -79,7 +78,7 @@ net_ebpf_ext_trace_terminate();
     TraceLoggingWrite(                                                                             \
         net_ebpf_ext_tracelog_provider,                                                            \
         NET_EBPF_EXT_TRACELOG_EVENT_API_ERROR,                                                     \
-        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                              \
+        TraceLoggingLevel(WINEVENT_LEVEL_ERROR),                                                   \
         TraceLoggingKeyword((keyword)),                                                            \
         TraceLoggingString(#api, "api"),                                                           \
         TraceLoggingNTStatus(status),                                                              \
@@ -152,11 +151,37 @@ net_ebpf_ext_trace_terminate();
         return local_result;                               \
     } while (false);
 
+#define NET_EBPF_EXT_RETURN_POINTER(type, pointer)                   \
+    do {                                                             \
+        type local_result = (type)(pointer);                         \
+        TraceLoggingWrite(                                           \
+            net_ebpf_ext_tracelog_provider,                          \
+            NET_EBPF_EXT_TRACELOG_EVENT_RETURN,                      \
+            TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),               \
+            TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE), \
+            TraceLoggingString(__FUNCTION__ " returned"),            \
+            TraceLoggingPointer(local_result, #pointer));            \
+        return local_result;                                         \
+    } while (false);
+
+#define NET_EBPF_EXT_RETURN_BOOL(flag)                               \
+    do {                                                             \
+        bool local_result = (flag);                                  \
+        TraceLoggingWrite(                                           \
+            net_ebpf_ext_tracelog_provider,                          \
+            NET_EBPF_EXT_TRACELOG_EVENT_RETURN,                      \
+            TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),               \
+            TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE), \
+            TraceLoggingString(__FUNCTION__ " returned"),            \
+            TraceLoggingBool(!!local_result, #flag));                \
+        return local_result;                                         \
+    } while (false);
+
 #define NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(keyword, api, status, value1, value2) \
     TraceLoggingWrite(                                                                            \
         net_ebpf_ext_tracelog_provider,                                                           \
         NET_EBPF_EXT_TRACELOG_EVENT_API_ERROR,                                                    \
-        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                             \
+        TraceLoggingLevel(WINEVENT_LEVEL_ERROR),                                                  \
         TraceLoggingKeyword((keyword)),                                                           \
         TraceLoggingString(#api, "api"),                                                          \
         TraceLoggingNTStatus(status),                                                             \
@@ -196,18 +221,44 @@ net_ebpf_ext_trace_terminate();
         TraceLoggingUInt64((redirect), "Redirected"),                                                           \
         TraceLoggingUInt64((verdict), "Verdict"));
 
-#define NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result) \
-    do {                                          \
-        ebpf_result_t local_result = (result);    \
-        if (local_result != EBPF_SUCCESS) {       \
-            goto Exit;                            \
-        }                                         \
+#define NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result)          \
+    do {                                                   \
+        ebpf_result_t local_result = (result);             \
+        if (local_result != EBPF_SUCCESS) {                \
+            NET_EBPF_EXT_LOG_FUNCTION_ERROR(local_result); \
+            goto Exit;                                     \
+        }                                                  \
     } while (false);
 
-#define NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status) \
-    do {                                          \
-        NTSTATUS local_status = (status);         \
-        if (!NT_SUCCESS(local_status)) {          \
-            goto Exit;                            \
-        }                                         \
+#define NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status)          \
+    do {                                                   \
+        NTSTATUS local_status = (status);                  \
+        if (!NT_SUCCESS(local_status)) {                   \
+            NET_EBPF_EXT_LOG_FUNCTION_ERROR(local_status); \
+            goto Exit;                                     \
+        }                                                  \
+    } while (false);
+
+#define NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(ptr, ptr_name, result) \
+    do {                                                                 \
+        if ((ptr) == NULL) {                                             \
+            NET_EBPF_EXT_LOG_MESSAGE(                                    \
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,                       \
+                NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,                     \
+                "Failed to allocate " #ptr_name " in " __FUNCTION__);    \
+            (result) = EBPF_NO_MEMORY;                                   \
+            goto Exit;                                                   \
+        }                                                                \
+    } while (false);
+
+#define NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(ptr, ptr_name, result) \
+    do {                                                                 \
+        if ((ptr) == NULL) {                                             \
+            NET_EBPF_EXT_LOG_MESSAGE(                                    \
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,                       \
+                NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR,                     \
+                "Failed to allocate " #ptr_name " in " __FUNCTION__);    \
+            (result) = STATUS_INSUFFICIENT_RESOURCES;                    \
+            goto Exit;                                                   \
+        }                                                                \
     } while (false);

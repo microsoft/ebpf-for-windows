@@ -92,7 +92,7 @@ _ebpf_state_get_entry(
     // High frequency call, don't log entry/exit.
     ebpf_state_entry_t* local_entry = NULL;
 
-    if (execution_context_state->current_irql == PASSIVE_LEVEL) {
+    if (execution_context_state->current_irql < DISPATCH_LEVEL) {
         ebpf_result_t return_value;
         uint64_t current_thread_id = execution_context_state->id.thread;
 
