@@ -5,6 +5,7 @@
 #include "ebpf_symbol_decoder.h"
 
 #include <iostream>
+#include <sstream>
 
 void
 _ebpf_leak_detector::register_allocation(uintptr_t address, size_t size)
@@ -37,22 +38,31 @@ _ebpf_leak_detector::dump_leaks()
 {
     std::unique_lock<std::mutex> lock(_mutex);
     for (auto& allocation : _allocations) {
+        std::ostringstream output;
         std::vector<uintptr_t> stack = _stack_hashes[allocation.second.stack_hash];
-        std::cout << "Leak of " << allocation.second.size << " bytes at " << allocation.second.address << std::endl;
+        output << "Leak of " << allocation.second.size << " bytes at " << allocation.second.address << std::endl;
+        _in_memory_log.push_back(output.str());
+        std::cout << output.str();
+        output.str("");
         std::string name;
         uint64_t displacement;
         std::optional<uint32_t> line_number;
         std::optional<std::string> file_name;
         for (auto address : stack) {
             if (_ebpf_decode_symbol(address, name, displacement, line_number, file_name) == EBPF_SUCCESS) {
-                std::cout << "    " << name << " + " << displacement;
+                output << "    " << name << " + " << displacement;
                 if (line_number.has_value() && file_name.has_value()) {
-                    std::cout << " (" << file_name.value() << ":" << line_number.value() << ")";
+                    output << " (" << file_name.value() << ":" << line_number.value() << ")";
                 }
-                std::cout << std::endl;
+                output << std::endl;
             }
+            _in_memory_log.push_back(output.str());
+            std::cout << output.str();
+            output.str("");
         }
-        std::cout << std::endl;
+        _in_memory_log.push_back(output.str());
+        std::cout << output.str();
+        output.str("");
     }
 
     // assert to make sure that a leaking test throws an exception thereby failing the test.
