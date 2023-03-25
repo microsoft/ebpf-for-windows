@@ -584,7 +584,7 @@ Exit:
             for (auto section_data : section_info_array) {
                 ebpf_free(section_data->program_type);
                 ebpf_free(section_data->attach_type);
-                ebpf_free(const_cast<char *>(section_data->section_prefix));
+                ebpf_free(const_cast<char*>(section_data->section_prefix));
                 ebpf_free(section_data);
             }
         }
