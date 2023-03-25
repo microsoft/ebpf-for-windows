@@ -64,7 +64,7 @@ jobs:
         cancel_others: 'false'
         paths_ignore: '["**.md", "**/docs/**"]'
 
-    - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
+    - uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
       if: steps.skip_check.outputs.should_skip != 'true'
       with:
         submodules: 'recursive'
