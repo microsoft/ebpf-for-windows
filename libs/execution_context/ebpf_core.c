@@ -2310,10 +2310,8 @@ ebpf_core_invoke_protocol_handler(
         goto Done;
     }
 
-    retval = ebpf_epoch_enter();
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
+    ebpf_epoch_enter();
+    retval = EBPF_SUCCESS;
     epoch_entered = true;
 
     switch (handler->call_type) {
@@ -2384,5 +2382,23 @@ Done:
 bool
 ebpf_core_cancel_protocol_handler(_Inout_ void* async_context)
 {
-    return ebpf_async_cancel(async_context);
+    ebpf_epoch_enter();
+    bool return_value = ebpf_async_cancel(async_context);
+    ebpf_epoch_exit();
+    return return_value;
+}
+
+void
+ebpf_core_close_context(_In_opt_ void* context)
+{
+    if (!context) {
+        return;
+    }
+
+    ebpf_epoch_enter();
+
+    ebpf_core_object_t* object = (ebpf_core_object_t*)context;
+    object->base.release_reference(object);
+
+    ebpf_epoch_exit();
 }

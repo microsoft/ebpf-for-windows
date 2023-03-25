@@ -42,6 +42,7 @@ jobs:
     with:
       build_artifact: Build-x64
       generate_release_package: true
+      build_msi: true
       build_nuget: true
       build_options: /p:ReleaseJIT='True'
 
@@ -52,8 +53,6 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-native-only
-      generate_release_package: true
-      build_nuget: true
       build_options: /p:DisableJIT='True' /p:DisableInterpreter='True'
 
   cmake:
@@ -392,3 +391,18 @@ jobs:
       code_coverage: false
       gather_dumps: true
       fault_injection: true
+
+  # Run multi-threaded stress tests against the user mode 'mock' framework.
+  user_mode_multi_threaded_stress_test:
+    needs: regular
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: user_mode_multi_threaded_stress
+      test_command: .\ebpf_stress_tests_um -jtt=32 -jtd=300
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      leak_detection: false
+      gather_dumps: true
+      capture_etw: true

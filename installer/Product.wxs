@@ -29,25 +29,25 @@ SPDX-License-Identifier: MIT
 		</Condition>
 
 		<!-- Define the Product features and installation steps -->
-		<Feature Id="ProductFeature" Title="eBPF for Windows Installer" ConfigurableDirectory="INSTALLFOLDER" Display="expand" Level="1" Absent="disallow">
-			<Feature Id="eBPF_Runtime_Components" Level="1" Title="Runtime Components" Absent="disallow" Display="expand">
+		<Feature Id="ProductFeature" Title="eBPF for Windows Installer" ConfigurableDirectory="INSTALLFOLDER" Display="expand" Level="1" Absent="disallow" AllowAdvertise="no" InstallDefault="local" TypicalDefault="install" >
+			<Feature Id="eBPF_Runtime_Components" Level="1" Title="Runtime Components" Absent="disallow" Display="expand" AllowAdvertise="no" >
 				<ComponentGroupRef Id="eBPF_Runtime_Components" />
 				<ComponentGroupRef Id="eBPFCore_Driver" />
 				<ComponentGroupRef Id="NetEbpfExt_Driver" />
 				<?if $(var.IncludeJIT) = True ?>
 				<?if $(var.Configuration) = Debug ?>
-				<Feature Id="eBPF_Runtime_Components_JIT" Level="1" Title="JIT" Absent="allow">
+				<Feature Id="eBPF_Runtime_Components_JIT" Level="11" Title="JIT" Absent="allow" AllowAdvertise="no" >
 					<ComponentGroupRef Id="eBPF_Service" />
 				</Feature>
 				<?endif?>
 				<?if $(var.Configuration) = Release ?>
-				<Feature Id="eBPF_Runtime_Components_JIT" Level="11" Title="JIT" Absent="allow" >
+				<Feature Id="eBPF_Runtime_Components_JIT" Level="11" Title="JIT" Absent="allow" AllowAdvertise="no" >
 					<ComponentGroupRef Id="eBPF_Service" />
 				</Feature>
 				<?endif?>
 				<?endif?>
 			</Feature>
-			<Feature Id="eBPF_Development" Level="2" Title="Development components">
+			<Feature Id="eBPF_Development" Level="2" Title="Development components" Absent="allow" AllowAdvertise="no" >
 				<ComponentGroupRef Id="eBPF_Development_include" />
 				<ComponentGroupRef Id="eBPF_Development_include_asm" />
 				<ComponentGroupRef Id="eBPF_Development_include_bpf" />
@@ -67,7 +67,7 @@ SPDX-License-Identifier: MIT
 				<ComponentGroupRef Id="eBPF_Development_libs" />
 				<ComponentGroupRef Id="eBPF_Development_scripts" />
 			</Feature>
-			<Feature Id="eBPF_Testing" Level="2" Title="Testing components">
+			<Feature Id="eBPF_Testing" Level="2" Title="Testing components" Absent="allow" AllowAdvertise="no">
 				<ComponentGroupRef Id="eBPF_Testing_Components" />
 				<ComponentGroupRef Id="eBPF_Testing_Components_bad" />
 				<ComponentGroupRef Id="sample_ebpf_ext_Driver" />
@@ -943,10 +943,10 @@ SPDX-License-Identifier: MIT
 				<File Id="UNIT_TESTS.PDB" Name="unit_tests.pdb" Source="$(var.unit_tests.TargetDir)unit_tests.pdb" />
 			</Component>
 			<Component Id="XDP_TESTS.EXE" DiskId="1" Guid="{6A98B162-1DC5-4145-A91B-9DF757766119}">
-				<File Id="XDP_TESTS.EXE" Name="xdp_tests.exe" Source="$(var.unit_tests.TargetDir)xdp_tests.exe" />
+				<File Id="XDP_TESTS.EXE" Name="xdp_tests.exe" Source="$(var.xdp_tests.TargetDir)xdp_tests.exe" />
 			</Component>
 			<Component Id="XDP_TESTS.PDB" DiskId="1" Guid="{5540AA7D-73F0-418B-995B-8A9C163C3939}">
-				<File Id="XDP_TESTS.PDB" Name="xdp_tests.pdb" Source="$(var.unit_tests.TargetDir)xdp_tests.pdb" />
+				<File Id="XDP_TESTS.PDB" Name="xdp_tests.pdb" Source="$(var.xdp_tests.TargetDir)xdp_tests.pdb" />
 			</Component>
 		</ComponentGroup>
 

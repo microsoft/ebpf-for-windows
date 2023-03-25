@@ -137,6 +137,14 @@ SPDX-License-Identifier: MIT
       <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
       <RefTargetDir>INSTALLFOLDER</RefTargetDir>
     </ProjectReference>
+    <ProjectReference Include="..\tests\xdp\xdp_tests.vcxproj">
+      <Name>xdp_tests</Name>
+      <Project>{07dc6181-84a2-4a14-a806-5e9af6c929c2}</Project>
+      <Private>True</Private>
+      <DoNotHarvest>True</DoNotHarvest>
+      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
+      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
+    </ProjectReference>
     <ProjectReference Include="..\tools\bpf2c\bpf2c.vcxproj">
       <Name>bpf2c</Name>
       <Project>{69b97e52-18dc-434e-a6e4-4c0f3e88c44a}</Project>
