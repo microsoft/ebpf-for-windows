@@ -313,6 +313,7 @@ ebpf_native_terminate()
     // ebpf_provider_unload is blocking call until all the
     // native modules have been detached.
     ebpf_provider_unload(_ebpf_native_provider);
+    _ebpf_native_provider = NULL;
 
     // All native modules should be cleaned up by now.
     ebpf_assert(!_ebpf_native_client_table || ebpf_hash_table_key_count(_ebpf_native_client_table) == 0);
