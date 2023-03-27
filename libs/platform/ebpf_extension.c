@@ -299,20 +299,24 @@ ebpf_extension_load(
         goto Done;
     }
 
-    if (provider_binding_context)
+    if (provider_binding_context) {
         *provider_binding_context = local_client_binding_context->provider_binding_context;
+    }
 
-    if (provider_data != NULL)
+    if (provider_data != NULL) {
         *provider_data = local_client_binding_context->provider_data;
-    if (provider_dispatch_table != NULL)
+    }
+    if (provider_dispatch_table != NULL) {
         *provider_dispatch_table = local_client_binding_context->provider_dispatch_table;
+    }
     *client_context = local_client_context;
     local_client_context = NULL;
     return_value = EBPF_SUCCESS;
 
 Done:
-    if (local_client_context != NULL)
+    if (local_client_context != NULL) {
         ebpf_free(local_client_context->client_binding_context);
+    }
     ebpf_free(local_client_context);
     local_client_context = NULL;
 
@@ -352,8 +356,9 @@ ebpf_extension_get_client_context(_In_ const void* extension_client_binding_cont
     ebpf_extension_client_binding_context_t* local_client_binding_context =
         (ebpf_extension_client_binding_context_t*)extension_client_binding_context;
     ebpf_extension_client_t* local_client_context = local_client_binding_context->extension_client;
-    if (local_client_context != NULL)
+    if (local_client_context != NULL) {
         local_extension_client_context = local_client_context->extension_client_context;
+    }
 
     return local_extension_client_context;
 }
@@ -445,10 +450,12 @@ ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context
         status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
         if (status == STATUS_PENDING) {
             status = NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
-            if (!NT_SUCCESS(status))
+            if (!NT_SUCCESS(status)) {
                 EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrWaitForProviderDeregisterComplete, status);
-        } else
+            }
+        } else {
             EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrDeregisterProvider, status);
+        }
     }
 
     ebpf_free(provider_context);

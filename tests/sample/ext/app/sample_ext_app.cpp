@@ -54,8 +54,9 @@ struct _sample_extension_helper
 
     ~_sample_extension_helper()
     {
-        if (device_handle != INVALID_HANDLE_VALUE)
+        if (device_handle != INVALID_HANDLE_VALUE) {
             ::CloseHandle(device_handle);
+        }
     }
 
     void

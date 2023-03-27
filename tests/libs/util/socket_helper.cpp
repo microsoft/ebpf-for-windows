@@ -26,8 +26,9 @@ get_address_from_string(
     ADDRINFO* address_info = nullptr;
     // Try converting address string to IP address.
     error = getaddrinfo(address_string.data(), nullptr, nullptr, &address_info);
-    if (error != 0)
+    if (error != 0) {
         FAIL("getaddrinfo for" << address_string << " failed with " << WSAGetLastError());
+    }
     if (address_info->ai_family == AF_INET) {
         if (dual_stack) {
             IN6ADDR_SETV4MAPPED(
@@ -41,8 +42,9 @@ get_address_from_string(
         address.ss_family = AF_INET6;
         INETADDR_SET_ADDRESS((PSOCKADDR)&address, INETADDR_ADDRESS(address_info->ai_addr));
     }
-    if (address_family != nullptr)
+    if (address_family != nullptr) {
         *address_family = static_cast<ADDRESS_FAMILY>(address_info->ai_family);
+    }
     freeaddrinfo(address_info);
 }
 
@@ -73,15 +75,17 @@ _base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port, socket
 
     ADDRESS_FAMILY address_family = (family == IPv4) ? AF_INET : AF_INET6;
     socket = WSASocket(address_family, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
-    if (socket == INVALID_SOCKET)
+    if (socket == INVALID_SOCKET) {
         FAIL("Failed to create socket with error: " << WSAGetLastError());
+    }
 
     if (family == Dual) {
         uint32_t ipv6_option = 0;
         error = setsockopt(
             socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(unsigned long));
-        if (error != 0)
+        if (error != 0) {
             FAIL("Could not enable dual family endpoint: " << WSAGetLastError());
+        }
     }
 
     // Bind it to the wildcard address and supplied port.
@@ -91,18 +95,21 @@ _base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port, socket
     INETADDR_SET_PORT((PSOCKADDR)&local_addr, htons(port));
 
     error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
-    if (error != 0)
+    if (error != 0) {
         FAIL("Failed to bind socket with error: " << WSAGetLastError());
+    }
 
     error = getsockname(socket, (PSOCKADDR)&local_address, &local_address_size);
-    if (error != 0)
+    if (error != 0) {
         FAIL("Failed to query local address of socket with error: " << WSAGetLastError());
+    }
 }
 
 _base_socket::~_base_socket()
 {
-    if (socket != INVALID_SOCKET)
+    if (socket != INVALID_SOCKET) {
         closesocket(socket);
+    }
 }
 
 void
@@ -126,8 +133,9 @@ _client_socket::_client_socket(int _sock_type, int _protocol, uint16_t _port, so
 void
 _client_socket::close()
 {
-    if (socket != INVALID_SOCKET)
+    if (socket != INVALID_SOCKET) {
         closesocket(socket);
+    }
 }
 
 void
@@ -140,13 +148,13 @@ _client_socket::post_async_receive(bool error_expected)
     int error = 0;
     int wsaerr = 0;
 
-    WSABUF wsa_recv_buffer{
-        static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+    WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
-    if (overlapped.hEvent == NULL)
+    if (overlapped.hEvent == NULL) {
         FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
+    }
 
     // Post an asynchronous receive on the socket.
     error = WSARecv(
@@ -160,8 +168,9 @@ _client_socket::post_async_receive(bool error_expected)
 
     if (error != 0) {
         wsaerr = WSAGetLastError();
-        if (!error_expected && wsaerr != WSA_IO_PENDING)
+        if (!error_expected && wsaerr != WSA_IO_PENDING) {
             FAIL("_client_socket::post_async_receive: WSARecv failed with " << wsaerr);
+        }
     }
     if (error == 0 || wsaerr == WSA_IO_PENDING) {
         receive_posted = true;
@@ -180,8 +189,9 @@ _client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
     // Wait for the receiver socket to receive the message.
     error = WSAWaitForMultipleEvents(1, &overlapped.hEvent, TRUE, timeout_in_ms, TRUE);
     if (error == WSA_WAIT_EVENT_0) {
-        if (timeout_or_error_expected)
+        if (timeout_or_error_expected) {
             FAIL("Receiver socket received a message when timeout was expected.");
+        }
 
         bool result = WSAGetOverlappedResult(
             socket,
@@ -197,8 +207,9 @@ _client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
         receive_posted = false;
     } else {
         if (error == WSA_WAIT_TIMEOUT) {
-            if (!timeout_or_error_expected)
+            if (!timeout_or_error_expected) {
                 FAIL("Receiver socket did not receive any message in 1 second.");
+            }
         } else {
             FAIL("Waiting on receiver socket failed with " << error);
         }
@@ -237,8 +248,9 @@ _datagram_client_socket::send_message_to_remote_host(
         nullptr,
         nullptr);
 
-    if (error != 0)
+    if (error != 0) {
         FAIL("Sending message to remote host failed with " << WSAGetLastError());
+    }
 }
 
 void
@@ -255,8 +267,9 @@ _datagram_client_socket::complete_async_send(int timeout_in_ms, expected_result_
 _stream_client_socket::_stream_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
     : _client_socket{_sock_type, _protocol, _port, _family}, connectex(nullptr)
 {
-    if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP))
+    if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
+    }
 
     GUID guid = WSAID_CONNECTEX;
     uint32_t bytes;
@@ -271,8 +284,9 @@ _stream_client_socket::_stream_client_socket(int _sock_type, int _protocol, uint
         NULL,
         NULL);
 
-    if (error != 0)
+    if (error != 0) {
         FAIL("Obtaining ConnectEx function pointer failed with " << WSAGetLastError());
+    }
 }
 
 void
@@ -293,8 +307,9 @@ _stream_client_socket::send_message_to_remote_host(
             reinterpret_cast<unsigned long*>(&bytes_sent),
             &overlapped)) {
         int wsaerr = WSAGetLastError();
-        if (wsaerr != WSA_IO_PENDING)
+        if (wsaerr != WSA_IO_PENDING) {
             FAIL("ConnectEx failed with " << wsaerr);
+        }
     } else {
         // The operation completed synchronously. Close overlapped handle.
         WSACloseEvent(overlapped.hEvent);
@@ -367,14 +382,16 @@ _server_socket::_server_socket(int _sock_type, int _protocol, uint16_t _port)
         NULL,
         NULL);
 
-    if (error != 0)
+    if (error != 0) {
         FAIL("Obtaining ReceiveMsg function pointer failed with " << WSAGetLastError());
+    }
 }
 
 _server_socket::~_server_socket()
 {
-    if (overlapped.hEvent != INVALID_HANDLE_VALUE)
+    if (overlapped.hEvent != INVALID_HANDLE_VALUE) {
         WSACloseEvent(overlapped.hEvent);
+    }
 }
 
 void
@@ -384,8 +401,9 @@ _server_socket::complete_async_receive(int timeout_in_ms, bool timeout_expected)
     // Wait for the receiver socket to receive the message.
     error = WSAWaitForMultipleEvents(1, &overlapped.hEvent, TRUE, timeout_in_ms, TRUE);
     if (error == WSA_WAIT_EVENT_0) {
-        if (timeout_expected)
+        if (timeout_expected) {
             FAIL("Receiver socket received a message when timeout was expected.");
+        }
 
         if (!WSAGetOverlappedResult(
                 socket,
@@ -398,8 +416,9 @@ _server_socket::complete_async_receive(int timeout_in_ms, bool timeout_expected)
         overlapped.hEvent = INVALID_HANDLE_VALUE;
     } else {
         if (error == WSA_WAIT_TIMEOUT) {
-            if (!timeout_expected)
+            if (!timeout_expected) {
                 FAIL("Receiver socket did not receive any message in 1 second.");
+            }
         } else {
             FAIL("Waiting on receiver socket failed with " << error);
         }
@@ -430,8 +449,9 @@ _datagram_server_socket::post_async_receive()
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
-    if (overlapped.hEvent == NULL)
+    if (overlapped.hEvent == NULL) {
         FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
+    }
 
     // Post an asynchronous receive on the socket.
     error = WSARecvFrom(
@@ -446,8 +466,9 @@ _datagram_server_socket::post_async_receive()
         nullptr);
     if (error != 0) {
         int wsaerr = WSAGetLastError();
-        if (wsaerr != WSA_IO_PENDING)
+        if (wsaerr != WSA_IO_PENDING) {
             FAIL("WSARecvFrom failed with " << wsaerr);
+        }
     }
 }
 
@@ -479,8 +500,9 @@ _datagram_server_socket::send_async_response(_In_z_ const char* message)
         nullptr,
         nullptr);
 
-    if (error != 0)
+    if (error != 0) {
         FAIL("send_async_response failed with " << WSAGetLastError());
+    }
 }
 
 void
@@ -492,16 +514,18 @@ _datagram_server_socket::complete_async_send(int timeout_in_ms)
 void
 _datagram_server_socket::close()
 {
-    if (socket != INVALID_SOCKET)
+    if (socket != INVALID_SOCKET) {
         closesocket(socket);
+    }
 }
 
 _stream_server_socket::_stream_server_socket(int _sock_type, int _protocol, uint16_t _port)
     : _server_socket{_sock_type, _protocol, _port}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
       message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
 {
-    if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP))
+    if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
+    }
 
     GUID guid = WSAID_ACCEPTEX;
     uint32_t bytes;
@@ -516,8 +540,9 @@ _stream_server_socket::_stream_server_socket(int _sock_type, int _protocol, uint
         NULL,
         NULL);
 
-    if (error != 0)
+    if (error != 0) {
         FAIL("Obtaining AcceptEx function pointer failed with " << WSAGetLastError());
+    }
 
     // Post listen.
     listen(socket, SOMAXCONN);
@@ -540,14 +565,16 @@ _stream_server_socket::initialize_accept_socket()
     uint32_t ipv6_option = 0;
     int error = setsockopt(
         accept_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(unsigned long));
-    if (error != 0)
+    if (error != 0) {
         FAIL("Could not enable dual family endpoint on accept socket: " << WSAGetLastError());
+    }
 }
 
 _stream_server_socket::~_stream_server_socket()
 {
-    if (accept_socket != INVALID_SOCKET)
+    if (accept_socket != INVALID_SOCKET) {
         closesocket(accept_socket);
+    }
 }
 
 void
@@ -559,8 +586,9 @@ _stream_server_socket::post_async_receive()
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
-    if (overlapped.hEvent == NULL)
+    if (overlapped.hEvent == NULL) {
         FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
+    }
 
     // Post an asynchronous receive on the socket.
     if (!acceptex(
@@ -573,8 +601,9 @@ _stream_server_socket::post_async_receive()
             reinterpret_cast<unsigned long*>(&bytes_received),
             &overlapped)) {
         int wsaerr = WSAGetLastError();
-        if (wsaerr != WSA_IO_PENDING)
+        if (wsaerr != WSA_IO_PENDING) {
             FAIL("AcceptEx failed with " << wsaerr);
+        }
     }
 }
 
@@ -628,6 +657,7 @@ _stream_server_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from
 void
 _stream_server_socket::close()
 {
-    if (accept_socket != INVALID_SOCKET)
+    if (accept_socket != INVALID_SOCKET) {
         closesocket(accept_socket);
+    }
 }

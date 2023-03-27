@@ -283,8 +283,9 @@ Exit:
     if (NT_SUCCESS(status)) {
         *provider_binding_context = program_info_client;
         program_info_client = NULL;
-    } else
+    } else {
         ebpf_free(program_info_client);
+    }
     return status;
 }
 
@@ -310,8 +311,9 @@ sample_ebpf_extension_program_info_provider_unregister()
     sample_ebpf_extension_program_info_provider_t* provider_context =
         &_sample_ebpf_extension_program_info_provider_context;
     NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
-    if (status == STATUS_PENDING)
+    if (status == STATUS_PENDING) {
         NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+    }
 }
 
 static NTSTATUS
@@ -370,12 +372,14 @@ sample_ebpf_extension_program_info_provider_register()
         &_sample_ebpf_extension_program_info_provider_characteristics,
         local_provider_context,
         &local_provider_context->nmr_provider_handle);
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status)) {
         goto Exit;
+    }
 
 Exit:
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status)) {
         sample_ebpf_extension_program_info_provider_unregister();
+    }
 
     return status;
 }
@@ -439,8 +443,9 @@ Exit:
     if (NT_SUCCESS(status)) {
         *provider_binding_context = hook_client;
         hook_client = NULL;
-    } else
+    } else {
         ebpf_free(hook_client);
+    }
 
     return status;
 }
@@ -478,9 +483,10 @@ sample_ebpf_extension_hook_provider_unregister()
     sample_ebpf_extension_hook_provider_t* provider_context = &_sample_ebpf_extension_hook_provider_context;
 
     NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
-    if (status == STATUS_PENDING)
+    if (status == STATUS_PENDING) {
         // Wait for clients to detach.
         NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+    }
 }
 
 NTSTATUS
@@ -499,12 +505,14 @@ sample_ebpf_extension_hook_provider_register()
         &_sample_ebpf_extension_hook_provider_characteristics,
         local_provider_context,
         &local_provider_context->nmr_provider_handle);
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status)) {
         goto Exit;
+    }
 
 Exit:
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status)) {
         sample_ebpf_extension_hook_provider_unregister();
+    }
 
     return status;
 }
@@ -623,8 +631,9 @@ _sample_ebpf_extension_replace(
 
     dest = (char*)buffer + position;
     while (dest != end) {
-        if (*source == '\0')
+        if (*source == '\0') {
             break;
+        }
         *dest++ = *source++;
     }
 
