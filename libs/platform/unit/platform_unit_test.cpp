@@ -442,7 +442,7 @@ test_provider_attach_client(
 };
 
 static NTSTATUS
-test_denied_client_attach_provider(
+test_denied_provider_attach_client(
     HANDLE nmr_binding_handle,
     _Inout_ void* client_context,
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance,
@@ -551,7 +551,7 @@ TEST_CASE("extension_test", "[platform]")
             &provider_data,
             &test_provider_dispatch_table,
             &callback_context,
-            (NPI_PROVIDER_ATTACH_CLIENT_FN*)test_denied_client_attach_provider,
+            (NPI_PROVIDER_ATTACH_CLIENT_FN*)test_denied_provider_attach_client,
             (NPI_PROVIDER_DETACH_CLIENT_FN*)test_provider_detach_client,
             nullptr) == EBPF_SUCCESS);
     REQUIRE(test_denied_attach_called == true);
