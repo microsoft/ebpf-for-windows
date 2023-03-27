@@ -37,6 +37,19 @@ typedef struct _ring_buffer_test_event_context
     int test_event_count;
 } ring_buffer_test_event_context_t;
 
+typedef struct _close_bpf_object
+{
+    void
+    operator()(_In_opt_ _Post_invalid_ bpf_object* object)
+    {
+        if (object != nullptr) {
+            bpf_object__close(object);
+        }
+    }
+} close_bpf_object_t;
+
+typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
+
 int
 ring_buffer_test_event_handler(_Inout_ void* ctx, _In_opt_ const void* data, size_t size);
 
