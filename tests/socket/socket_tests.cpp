@@ -32,24 +32,24 @@ connection_test(
     _Inout_ receiver_socket_t& receiver_socket,
     uint32_t protocol)
 {
-    bpf_object_ptr unique_object;
+    bpf_object_ptr object;
 
-    struct bpf_object* new_object = bpf_object__open("cgroup_sock_addr.o");
+    struct bpf_object* raw_object = bpf_object__open("cgroup_sock_addr.o");
 
-    REQUIRE(new_object != nullptr);
+    REQUIRE(raw_object != nullptr);
     // Load the programs.
-    REQUIRE(bpf_object__load(new_object) == 0);
-    unique_object.reset(new_object);
+    REQUIRE(bpf_object__load(raw_object) == 0);
+    object.reset(raw_object);
 
-    new_object = nullptr;
+    raw_object = nullptr;
 
     const char* connect_program_name = (address_family == AF_INET) ? "authorize_connect4" : "authorize_connect6";
-    bpf_program* connect_program = bpf_object__find_program_by_name(unique_object.get(), connect_program_name);
+    bpf_program* connect_program = bpf_object__find_program_by_name(object.get(), connect_program_name);
     REQUIRE(connect_program != nullptr);
 
     const char* recv_accept_program_name =
         (address_family == AF_INET) ? "authorize_recv_accept4" : "authorize_recv_accept6";
-    bpf_program* recv_accept_program = bpf_object__find_program_by_name(unique_object.get(), recv_accept_program_name);
+    bpf_program* recv_accept_program = bpf_object__find_program_by_name(object.get(), recv_accept_program_name);
     REQUIRE(recv_accept_program != nullptr);
 
     PSOCKADDR local_address = nullptr;
@@ -67,9 +67,9 @@ connection_test(
     printf("tuple.dst_port = %x\n", tuple.dst_port);
     tuple.protocol = protocol;
 
-    bpf_map* ingress_connection_policy_map = bpf_object__find_map_by_name(unique_object.get(), "ingress_connection_policy_map");
+    bpf_map* ingress_connection_policy_map = bpf_object__find_map_by_name(object.get(), "ingress_connection_policy_map");
     REQUIRE(ingress_connection_policy_map != nullptr);
-    bpf_map* egress_connection_policy_map = bpf_object__find_map_by_name(unique_object.get(), "egress_connection_policy_map");
+    bpf_map* egress_connection_policy_map = bpf_object__find_map_by_name(object.get(), "egress_connection_policy_map");
     REQUIRE(egress_connection_policy_map != nullptr);
 
     // Update ingress and egress policy to block loopback packet on test port.
@@ -160,20 +160,20 @@ TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
-    bpf_object_ptr unique_object;
+    bpf_object_ptr object;
 
     bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
 
-    struct bpf_object* new_object = bpf_object__open("cgroup_sock_addr.o");
-    REQUIRE(new_object != nullptr);
+    struct bpf_object* raw_object = bpf_object__open("cgroup_sock_addr.o");
+    REQUIRE(raw_object != nullptr);
     // Load the programs.
-    REQUIRE(bpf_object__load(new_object) == 0);
+    REQUIRE(bpf_object__load(raw_object) == 0);
 
-    unique_object.reset(new_object);
-    new_object = nullptr;
+    object.reset(raw_object);
+    raw_object = nullptr;
 
-    bpf_program* connect4_program = bpf_object__find_program_by_name(unique_object.get(), "authorize_connect4");
+    bpf_program* connect4_program = bpf_object__find_program_by_name(object.get(), "authorize_connect4");
     REQUIRE(connect4_program != nullptr);
 
     int result = bpf_prog_attach(
@@ -199,7 +199,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
             bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), &program_info, &program_info_size) == 0);
     REQUIRE(program_info.link_count == 0);
 
-    bpf_program* recv_accept4_program = bpf_object__find_program_by_name(unique_object.get(), "authorize_recv_accept4");
+    bpf_program* recv_accept4_program = bpf_object__find_program_by_name(object.get(), "authorize_recv_accept4");
     REQUIRE(recv_accept4_program != nullptr);
 
     result = bpf_prog_attach(
@@ -228,7 +228,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         0);
     REQUIRE(program_info.link_count == 0);
 
-    bpf_program* connect6_program = bpf_object__find_program_by_name(unique_object.get(), "authorize_connect6");
+    bpf_program* connect6_program = bpf_object__find_program_by_name(object.get(), "authorize_connect6");
     REQUIRE(connect6_program != nullptr);
 
     result = bpf_prog_attach(
@@ -238,7 +238,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         0);
     REQUIRE(result == 0);
 
-    bpf_program* recv_accept6_program = bpf_object__find_program_by_name(unique_object.get(), "authorize_recv_accept6");
+    bpf_program* recv_accept6_program = bpf_object__find_program_by_name(object.get(), "authorize_recv_accept6");
     REQUIRE(recv_accept6_program != nullptr);
 
     result = bpf_prog_attach(
@@ -257,21 +257,21 @@ connection_monitor_test(
     uint32_t protocol,
     bool disconnect)
 {
-    bpf_object_ptr unique_object;
+    bpf_object_ptr object;
 
-    struct bpf_object* new_object = bpf_object__open("sockops.o");
-    REQUIRE(new_object != nullptr);
+    struct bpf_object* raw_object = bpf_object__open("sockops.o");
+    REQUIRE(raw_object != nullptr);
     // Load the programs.
-    REQUIRE(bpf_object__load(new_object) == 0);
+    REQUIRE(bpf_object__load(raw_object) == 0);
 
-    unique_object.reset(new_object);
-    new_object = nullptr;
+    object.reset(raw_object);
+    raw_object = nullptr;
 
     // Ring buffer event callback context.
     std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
     context->test_event_count = disconnect ? 4 : 2;
 
-    bpf_program* _program = bpf_object__find_program_by_name(unique_object.get(), "connection_monitor");
+    bpf_program* _program = bpf_object__find_program_by_name(object.get(), "connection_monitor");
     REQUIRE(_program != nullptr);
 
     PSOCKADDR local_address = nullptr;
@@ -324,13 +324,13 @@ connection_monitor_test(
     auto ring_buffer_event_callback = context->ring_buffer_event_promise.get_future();
 
     // Create a new ring buffer manager and subscribe to ring buffer events.
-    bpf_map* ring_buffer_map = bpf_object__find_map_by_name(unique_object.get(), "audit_map");
+    bpf_map* ring_buffer_map = bpf_object__find_map_by_name(object.get(), "audit_map");
     REQUIRE(ring_buffer_map != nullptr);
     context->ring_buffer = ring_buffer__new(
         bpf_map__fd(ring_buffer_map), (ring_buffer_sample_fn)ring_buffer_test_event_handler, context.get(), nullptr);
     REQUIRE(context->ring_buffer != nullptr);
 
-    bpf_map* connection_map = bpf_object__find_map_by_name(unique_object.get(), "connection_map");
+    bpf_map* connection_map = bpf_object__find_map_by_name(object.get(), "connection_map");
     REQUIRE(connection_map != nullptr);
 
     // Update connection map with loopback packet tuple.
@@ -435,17 +435,17 @@ TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
 
 TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 {
-    bpf_object_ptr unique_object;
+    bpf_object_ptr object;
 
-    struct bpf_object* new_object = bpf_object__open("sockops.o");
-    REQUIRE(new_object != nullptr);
+    struct bpf_object* raw_object = bpf_object__open("sockops.o");
+    REQUIRE(raw_object != nullptr);
     // Load the programs.
-    REQUIRE(bpf_object__load(new_object) == 0);
+    REQUIRE(bpf_object__load(raw_object) == 0);
 
-    unique_object.reset(new_object);
-    new_object = nullptr;
+    object.reset(raw_object);
+    raw_object = nullptr;
 
-    bpf_program* _program = bpf_object__find_program_by_name(unique_object.get(), "connection_monitor");
+    bpf_program* _program = bpf_object__find_program_by_name(object.get(), "connection_monitor");
     REQUIRE(_program != nullptr);
 
     int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
