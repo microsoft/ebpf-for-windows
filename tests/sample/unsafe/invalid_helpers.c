@@ -85,27 +85,33 @@ find_or_create_process_entry(bind_md_t* ctx)
     int index;
 
     entry = bpf_map_lookup_elem(&process_map, &key);
-    if (entry)
+    if (entry) {
         return entry;
+    }
 
     entry = invalid_helper_function(&process_map, &key);
-    if (entry)
+    if (entry) {
         return entry;
+    }
 
-    if (ctx->operation != BIND_OPERATION_BIND)
+    if (ctx->operation != BIND_OPERATION_BIND) {
         return entry;
+    }
 
-    if (!ctx->app_id_start || !ctx->app_id_end)
+    if (!ctx->app_id_start || !ctx->app_id_end) {
         return entry;
+    }
 
     bpf_map_update_elem(&process_map, &key, &value, 0);
     entry = bpf_map_lookup_elem(&process_map, &key);
-    if (!entry)
+    if (!entry) {
         return entry;
+    }
 
     for (index = 0; index < 64; index++) {
-        if ((ctx->app_id_start + index) >= ctx->app_id_end)
+        if ((ctx->app_id_start + index) >= ctx->app_id_end) {
             break;
+        }
 
         entry->name[index] = ctx->app_id_start[index];
     }
@@ -156,8 +162,9 @@ BindMonitor_Callee1(bind_md_t* ctx)
     uint32_t limit_key = 0;
     process_entry_t* entry;
     uint32_t* limit = bpf_map_lookup_elem(&limits_map, &limit_key);
-    if (!limit || *limit == 0)
+    if (!limit || *limit == 0) {
         return BIND_PERMIT;
+    }
 
     entry = find_or_create_process_entry(ctx);
 
@@ -174,8 +181,9 @@ BindMonitor_Callee1(bind_md_t* ctx)
         entry->count++;
         break;
     case BIND_OPERATION_UNBIND:
-        if (entry->count > 0)
+        if (entry->count > 0) {
             entry->count--;
+        }
         break;
     default:
         break;

@@ -197,15 +197,17 @@ report_service_status(unsigned long current_state, unsigned long win32_exit_code
     ebpf_service_status.dwWin32ExitCode = win32_exit_code;
     ebpf_service_status.dwWaitHint = wait_hint;
 
-    if (current_state == SERVICE_START_PENDING)
+    if (current_state == SERVICE_START_PENDING) {
         ebpf_service_status.dwControlsAccepted = 0;
-    else
+    } else {
         ebpf_service_status.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+    }
 
-    if ((current_state == SERVICE_RUNNING) || (current_state == SERVICE_STOPPED))
+    if ((current_state == SERVICE_RUNNING) || (current_state == SERVICE_STOPPED)) {
         ebpf_service_status.dwCheckPoint = 0;
-    else
+    } else {
         ebpf_service_status.dwCheckPoint = _checkpoint++;
+    }
 
     // Report the status of the service to the SCM.
     SetServiceStatus(ebpf_service_status_handle, &ebpf_service_status);

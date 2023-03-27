@@ -36,11 +36,13 @@ parse_if_index(_In_z_ const wchar_t* arg, _Out_ uint32_t* if_index)
     if ((local_if_index <= 0) || (*end_ptr != L'\0')) {
         // Check if the input string is an interface alias.
         error = ConvertInterfaceAliasToLuid(arg, &if_luid);
-        if (error != ERROR_SUCCESS)
+        if (error != ERROR_SUCCESS) {
             // Check if the input string is an interface name.
             error = ConvertInterfaceNameToLuidW(arg, &if_luid);
-        if (error == ERROR_SUCCESS)
+        }
+        if (error == ERROR_SUCCESS) {
             error = ConvertInterfaceLuidToIndex((const NET_LUID*)&if_luid, &local_if_index);
+        }
     }
 
     if (error == ERROR_SUCCESS) {

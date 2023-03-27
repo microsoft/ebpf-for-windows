@@ -99,67 +99,67 @@ reflect_packet(void* context)
 #line 29 "sample/reflect_packet.c"
         goto label_3;
         // EBPF_OP_LDXH pc=6 dst=r4 src=r1 offset=12 imm=0
-#line 33 "sample/reflect_packet.c"
+#line 34 "sample/reflect_packet.c"
     r4 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(12));
     // EBPF_OP_JEQ_IMM pc=7 dst=r4 src=r0 offset=56 imm=56710
-#line 33 "sample/reflect_packet.c"
+#line 34 "sample/reflect_packet.c"
     if (r4 == IMMEDIATE(56710))
-#line 33 "sample/reflect_packet.c"
+#line 34 "sample/reflect_packet.c"
         goto label_1;
         // EBPF_OP_JNE_IMM pc=8 dst=r4 src=r0 offset=200 imm=8
-#line 33 "sample/reflect_packet.c"
+#line 34 "sample/reflect_packet.c"
     if (r4 != IMMEDIATE(8))
-#line 33 "sample/reflect_packet.c"
+#line 34 "sample/reflect_packet.c"
         goto label_3;
         // EBPF_OP_MOV64_REG pc=9 dst=r4 src=r1 offset=0 imm=0
-#line 34 "sample/reflect_packet.c"
+#line 35 "sample/reflect_packet.c"
     r4 = r1;
     // EBPF_OP_ADD64_IMM pc=10 dst=r4 src=r0 offset=0 imm=34
-#line 34 "sample/reflect_packet.c"
+#line 35 "sample/reflect_packet.c"
     r4 += IMMEDIATE(34);
     // EBPF_OP_JGT_REG pc=11 dst=r4 src=r2 offset=197 imm=0
-#line 34 "sample/reflect_packet.c"
+#line 35 "sample/reflect_packet.c"
     if (r4 > r2)
-#line 34 "sample/reflect_packet.c"
+#line 35 "sample/reflect_packet.c"
         goto label_3;
         // EBPF_OP_LDXB pc=12 dst=r4 src=r1 offset=23 imm=0
-#line 39 "sample/reflect_packet.c"
+#line 41 "sample/reflect_packet.c"
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(23));
     // EBPF_OP_JNE_IMM pc=13 dst=r4 src=r0 offset=195 imm=17
-#line 39 "sample/reflect_packet.c"
+#line 41 "sample/reflect_packet.c"
     if (r4 != IMMEDIATE(17))
-#line 39 "sample/reflect_packet.c"
+#line 41 "sample/reflect_packet.c"
         goto label_3;
         // EBPF_OP_LDXB pc=14 dst=r4 src=r1 offset=14 imm=0
-#line 39 "sample/reflect_packet.c"
+#line 41 "sample/reflect_packet.c"
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(14));
     // EBPF_OP_LSH64_IMM pc=15 dst=r4 src=r0 offset=0 imm=2
-#line 39 "sample/reflect_packet.c"
+#line 41 "sample/reflect_packet.c"
     r4 <<= IMMEDIATE(2);
     // EBPF_OP_AND64_IMM pc=16 dst=r4 src=r0 offset=0 imm=60
-#line 39 "sample/reflect_packet.c"
+#line 41 "sample/reflect_packet.c"
     r4 &= IMMEDIATE(60);
     // EBPF_OP_ADD64_REG pc=17 dst=r3 src=r4 offset=0 imm=0
-#line 39 "sample/reflect_packet.c"
+#line 41 "sample/reflect_packet.c"
     r3 += r4;
     // EBPF_OP_MOV64_REG pc=18 dst=r4 src=r3 offset=0 imm=0
-#line 39 "sample/reflect_packet.c"
+#line 41 "sample/reflect_packet.c"
     r4 = r3;
     // EBPF_OP_ADD64_IMM pc=19 dst=r4 src=r0 offset=0 imm=8
-#line 39 "sample/reflect_packet.c"
+#line 41 "sample/reflect_packet.c"
     r4 += IMMEDIATE(8);
     // EBPF_OP_JGT_REG pc=20 dst=r4 src=r2 offset=188 imm=0
-#line 39 "sample/reflect_packet.c"
+#line 41 "sample/reflect_packet.c"
     if (r4 > r2)
-#line 39 "sample/reflect_packet.c"
+#line 41 "sample/reflect_packet.c"
         goto label_3;
         // EBPF_OP_LDXH pc=21 dst=r2 src=r3 offset=2 imm=0
-#line 44 "sample/reflect_packet.c"
+#line 47 "sample/reflect_packet.c"
     r2 = *(uint16_t*)(uintptr_t)(r3 + OFFSET(2));
     // EBPF_OP_JNE_IMM pc=22 dst=r2 src=r0 offset=186 imm=7459
-#line 44 "sample/reflect_packet.c"
+#line 47 "sample/reflect_packet.c"
     if (r2 != IMMEDIATE(7459))
-#line 44 "sample/reflect_packet.c"
+#line 47 "sample/reflect_packet.c"
         goto label_3;
         // EBPF_OP_LDXB pc=23 dst=r2 src=r1 offset=5 imm=0
 #line 15 "sample/./xdp_common.h"
@@ -286,42 +286,42 @@ reflect_packet(void* context)
     goto label_2;
 label_1:
     // EBPF_OP_MOV64_REG pc=64 dst=r3 src=r1 offset=0 imm=0
-#line 52 "sample/reflect_packet.c"
+#line 55 "sample/reflect_packet.c"
     r3 = r1;
     // EBPF_OP_ADD64_IMM pc=65 dst=r3 src=r0 offset=0 imm=54
-#line 52 "sample/reflect_packet.c"
+#line 55 "sample/reflect_packet.c"
     r3 += IMMEDIATE(54);
     // EBPF_OP_JGT_REG pc=66 dst=r3 src=r2 offset=142 imm=0
-#line 52 "sample/reflect_packet.c"
+#line 55 "sample/reflect_packet.c"
     if (r3 > r2)
-#line 52 "sample/reflect_packet.c"
+#line 55 "sample/reflect_packet.c"
         goto label_3;
         // EBPF_OP_MOV64_REG pc=67 dst=r3 src=r1 offset=0 imm=0
-#line 52 "sample/reflect_packet.c"
+#line 55 "sample/reflect_packet.c"
     r3 = r1;
     // EBPF_OP_ADD64_IMM pc=68 dst=r3 src=r0 offset=0 imm=62
-#line 52 "sample/reflect_packet.c"
+#line 55 "sample/reflect_packet.c"
     r3 += IMMEDIATE(62);
     // EBPF_OP_JGT_REG pc=69 dst=r3 src=r2 offset=139 imm=0
-#line 57 "sample/reflect_packet.c"
+#line 61 "sample/reflect_packet.c"
     if (r3 > r2)
-#line 57 "sample/reflect_packet.c"
+#line 61 "sample/reflect_packet.c"
         goto label_3;
         // EBPF_OP_LDXB pc=70 dst=r2 src=r1 offset=20 imm=0
-#line 57 "sample/reflect_packet.c"
+#line 61 "sample/reflect_packet.c"
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(20));
     // EBPF_OP_JNE_IMM pc=71 dst=r2 src=r0 offset=137 imm=17
-#line 57 "sample/reflect_packet.c"
+#line 61 "sample/reflect_packet.c"
     if (r2 != IMMEDIATE(17))
-#line 57 "sample/reflect_packet.c"
+#line 61 "sample/reflect_packet.c"
         goto label_3;
         // EBPF_OP_LDXH pc=72 dst=r2 src=r1 offset=56 imm=0
-#line 62 "sample/reflect_packet.c"
+#line 67 "sample/reflect_packet.c"
     r2 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(56));
     // EBPF_OP_JNE_IMM pc=73 dst=r2 src=r0 offset=135 imm=7459
-#line 62 "sample/reflect_packet.c"
+#line 67 "sample/reflect_packet.c"
     if (r2 != IMMEDIATE(7459))
-#line 62 "sample/reflect_packet.c"
+#line 67 "sample/reflect_packet.c"
         goto label_3;
         // EBPF_OP_LDXB pc=74 dst=r2 src=r1 offset=5 imm=0
 #line 15 "sample/./xdp_common.h"

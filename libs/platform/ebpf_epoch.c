@@ -439,8 +439,9 @@ _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_wit
 
     size += sizeof(ebpf_epoch_allocation_header_t);
     header = (ebpf_epoch_allocation_header_t*)ebpf_allocate_with_tag(size, tag);
-    if (header)
+    if (header) {
         header++;
+    }
 
     return header;
 }
@@ -461,8 +462,9 @@ ebpf_epoch_free(_Frees_ptr_opt_ void* memory)
         return;
     }
 
-    if (!memory)
+    if (!memory) {
         return;
+    }
 
     header--;
 

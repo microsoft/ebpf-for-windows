@@ -335,8 +335,9 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         (net_ebpf_extension_hook_provider_t*)provider_context);
     NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
-    if (client_data->data != NULL)
+    if (client_data->data != NULL) {
         compartment_id = *(uint32_t*)client_data->data;
+    }
 
     // Set compartment id (if not UNSPECIFIED_COMPARTMENT_ID) as WFP filter condition.
     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID) {
@@ -1016,8 +1017,9 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
-    if (filter_context == NULL)
+    if (filter_context == NULL) {
         goto Exit;
+    }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     if (attached_client == NULL) {
@@ -1104,8 +1106,9 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
-    if (filter_context == NULL)
+    if (filter_context == NULL) {
         goto Exit;
+    }
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -1539,7 +1542,7 @@ Exit:
     if (classify_handle_acquired) {
         FwpsReleaseClassifyHandle(classify_handle);
     }
-
+    
     if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }

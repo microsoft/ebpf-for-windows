@@ -88,8 +88,9 @@ main(int argc, char* argv[])
     session.cli(cli);
 
     int returnCode = session.applyCommandLine(argc, argv);
-    if (returnCode != 0)
+    if (returnCode != 0) {
         return returnCode;
+    }
 
     WSAData data;
 

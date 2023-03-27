@@ -382,13 +382,15 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void*
         return nullptr;
     }
 
-    if (ebpf_fault_injection_inject_fault())
+    if (ebpf_fault_injection_inject_fault()) {
         return nullptr;
+    }
 
     void* memory;
     memory = calloc(size, 1);
-    if (memory != nullptr)
+    if (memory != nullptr) {
         memset(memory, 0, size);
+    }
 
     if (memory && _ebpf_leak_detector_ptr) {
         _ebpf_leak_detector_ptr->register_allocation(reinterpret_cast<uintptr_t>(memory), size);
@@ -413,12 +415,14 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) v
         return nullptr;
     }
 
-    if (ebpf_fault_injection_inject_fault())
+    if (ebpf_fault_injection_inject_fault()) {
         return nullptr;
+    }
 
     void* p = realloc(memory, new_size);
-    if (p && (new_size > old_size))
+    if (p && (new_size > old_size)) {
         memset(((char*)p) + old_size, 0, new_size - old_size);
+    }
 
     if (_ebpf_leak_detector_ptr) {
         _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
@@ -452,8 +456,9 @@ __drv_allocatesMem(Mem) _Must_inspect_result_
         return nullptr;
     }
 
-    if (ebpf_fault_injection_inject_fault())
+    if (ebpf_fault_injection_inject_fault()) {
         return nullptr;
+    }
 
     void* memory = _aligned_malloc(size, EBPF_CACHE_LINE_SIZE);
     if (memory) {
@@ -960,8 +965,9 @@ _ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* c
     ebpf_timer_work_item_t* timer_work_item = reinterpret_cast<ebpf_timer_work_item_t*>(context);
     UNREFERENCED_PARAMETER(instance);
     UNREFERENCED_PARAMETER(timer);
-    if (timer_work_item)
+    if (timer_work_item) {
         timer_work_item->work_item_routine(timer_work_item->work_item_context);
+    }
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -972,12 +978,14 @@ ebpf_allocate_timer_work_item(
 {
     *work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t));
 
-    if (*work_item == nullptr)
+    if (*work_item == nullptr) {
         goto Error;
+    }
 
     (*work_item)->threadpool_timer = CreateThreadpoolTimer(_ebpf_timer_callback, *work_item, nullptr);
-    if ((*work_item)->threadpool_timer == nullptr)
+    if ((*work_item)->threadpool_timer == nullptr) {
         goto Error;
+    }
 
     (*work_item)->work_item_routine = work_item_routine;
     (*work_item)->work_item_context = work_item_context;
@@ -986,8 +994,9 @@ ebpf_allocate_timer_work_item(
 
 Error:
     if (*work_item != nullptr) {
-        if ((*work_item)->threadpool_timer != nullptr)
+        if ((*work_item)->threadpool_timer != nullptr) {
             CloseThreadpoolTimer((*work_item)->threadpool_timer);
+        }
 
         ebpf_free(*work_item);
     }
@@ -1013,8 +1022,9 @@ ebpf_schedule_timer_work_item(_Inout_ ebpf_timer_work_item_t* timer, uint32_t el
 void
 ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 {
-    if (!work_item)
+    if (!work_item) {
         return;
+    }
 
     WaitForThreadpoolTimerCallbacks(work_item->threadpool_timer, true);
     CloseThreadpoolTimer(work_item->threadpool_timer);
@@ -1027,10 +1037,11 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 _Must_inspect_result_ ebpf_result_t
 ebpf_guid_create(_Out_ GUID* new_guid)
 {
-    if (UuidCreate(new_guid) == RPC_S_OK)
+    if (UuidCreate(new_guid) == RPC_S_OK) {
         return EBPF_SUCCESS;
-    else
+    } else {
         return EBPF_OPERATION_NOT_SUPPORTED;
+    }
 }
 
 int32_t
@@ -1090,11 +1101,13 @@ ebpf_access_check(
     }
 
 Done:
-    if (token != INVALID_HANDLE_VALUE)
+    if (token != INVALID_HANDLE_VALUE) {
         CloseHandle(token);
+    }
 
-    if (is_impersonating)
+    if (is_impersonating) {
         RevertToSelf();
+    }
     return result;
 }
 
