@@ -56,16 +56,19 @@ class _test_helper
     }
     ~_test_helper()
     {
-        if (state_initiated)
+        if (state_initiated) {
             ebpf_state_terminate();
-        if (async_initiated)
+        }
+        if (async_initiated) {
             ebpf_async_terminate();
+        }
         if (epoch_initiated) {
             ebpf_epoch_flush();
             ebpf_epoch_terminate();
         }
-        if (platform_initiated)
+        if (platform_initiated) {
             ebpf_platform_terminate();
+        }
         ebpf_object_tracking_terminate();
     }
 
@@ -238,19 +241,22 @@ TEST_CASE("hash_table_stress_test", "[platform]")
                         EBPF_HASH_TABLE_OPERATION_ANY);
                 });
             }
-            for (auto& key : keys)
+            for (auto& key : keys) {
                 run_in_epoch([&]() {
                     (void)ebpf_hash_table_find(
                         table, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<uint8_t**>(&returned_value));
                 });
-            for (auto& key : keys)
+            }
+            for (auto& key : keys) {
                 run_in_epoch([&]() {
                     (void)ebpf_hash_table_next_key(
                         table, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<uint8_t*>(&next_key));
                 });
+            }
 
-            for (auto& key : keys)
+            for (auto& key : keys) {
                 run_in_epoch([&]() { (void)ebpf_hash_table_delete(table, reinterpret_cast<const uint8_t*>(&key)); });
+            }
         }
     };
 
@@ -778,8 +784,9 @@ TEST_CASE("serialize_program_info_test", "[platform]")
         ebpf_helper_function_prototype_t* out_prototype = &out_program_info->program_type_specific_helper_prototype[i];
         REQUIRE(in_prototype->helper_id == out_prototype->helper_id);
         REQUIRE(in_prototype->return_type == out_prototype->return_type);
-        for (int j = 0; j < _countof(in_prototype->arguments); j++)
+        for (int j = 0; j < _countof(in_prototype->arguments); j++) {
             REQUIRE(in_prototype->arguments[j] == out_prototype->arguments[j]);
+        }
         REQUIRE(out_prototype->name != nullptr);
         REQUIRE(strncmp(in_prototype->name, out_prototype->name, EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH) == 0);
     }

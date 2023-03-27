@@ -23,8 +23,9 @@ bpf_object__pin(struct bpf_object* obj, const char* path)
     int err;
 
     err = bpf_object__pin_maps(obj, path);
-    if (err)
+    if (err) {
         return libbpf_err(err);
+    }
 
     err = bpf_object__pin_programs(obj, path);
     if (err) {
@@ -48,8 +49,9 @@ bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name)
 
     bpf_object__for_each_program(prog, obj)
     {
-        if (!strcmp(prog->program_name, name))
+        if (!strcmp(prog->program_name, name)) {
             return prog;
+        }
     }
     return (struct bpf_program*)libbpf_err_ptr(-ENOENT);
 }

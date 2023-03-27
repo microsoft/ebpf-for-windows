@@ -70,14 +70,16 @@ ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
 
     return_value = ebpf_hash_table_create(&(*pinning_table)->hash_table, &options);
 
-    if (return_value != EBPF_SUCCESS)
+    if (return_value != EBPF_SUCCESS) {
         goto Done;
+    }
 
     return_value = EBPF_SUCCESS;
 Done:
     if (return_value != EBPF_SUCCESS) {
-        if ((*pinning_table))
+        if ((*pinning_table)) {
             ebpf_hash_table_destroy((*pinning_table)->hash_table);
+        }
 
         ebpf_free(*pinning_table);
         *pinning_table = NULL;
@@ -136,8 +138,9 @@ ebpf_pinning_table_insert(
     }
 
     return_value = ebpf_duplicate_utf8_string(&new_pinning_entry->path, path);
-    if (return_value != EBPF_SUCCESS)
+    if (return_value != EBPF_SUCCESS) {
         goto Done;
+    }
 
     new_pinning_entry->object = object;
     ebpf_object_acquire_reference(object);
@@ -216,8 +219,9 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
     ebpf_lock_unlock(&pinning_table->lock, state);
 
     // Log the free of the path before freeing the entry (which may contain the path).
-    if (return_value == EBPF_SUCCESS)
+    if (return_value == EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Unpinned object", *path);
+    }
 
     if (entry != NULL) {
         ebpf_interlocked_decrement_int32(&entry->object->pinned_path_count);
@@ -254,8 +258,9 @@ ebpf_pinning_table_enumerate_entries(
     entries_array_length = (uint16_t)ebpf_hash_table_key_count(pinning_table->hash_table);
 
     // Exit if there are no entries.
-    if (entries_array_length == 0)
+    if (entries_array_length == 0) {
         goto Exit;
+    }
 
     // Allocate the output array for storing the pinning entries.
     local_pinning_entries = (ebpf_pinning_entry_t*)ebpf_allocate(sizeof(ebpf_pinning_entry_t) * entries_array_length);
@@ -282,8 +287,9 @@ ebpf_pinning_table_enumerate_entries(
             break;
         }
 
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
 
         // Skip entries that don't match the input object type.
         if (object_type != ebpf_object_get_type((*next_pinning_entry)->object)) {
@@ -302,14 +308,16 @@ ebpf_pinning_table_enumerate_entries(
 
         // Duplicate pinning object path.
         result = ebpf_duplicate_utf8_string(&new_entry->path, &(*next_pinning_entry)->path);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
     }
 
 Exit:
     // Release lock if held.
-    if (lock_held)
+    if (lock_held) {
         ebpf_lock_unlock(&pinning_table->lock, state);
+    }
 
     if (result != EBPF_SUCCESS) {
         ebpf_pinning_entries_release(local_entry_count, local_pinning_entries);
@@ -375,8 +383,9 @@ ebpf_pinning_entries_release(uint16_t entry_count, _In_opt_count_(entry_count) e
 {
     EBPF_LOG_ENTRY();
     uint16_t index;
-    if (!pinning_entries)
+    if (!pinning_entries) {
         EBPF_RETURN_VOID();
+    }
 
     for (index = 0; index < entry_count; index++) {
         ebpf_pinning_entry_t* entry = &pinning_entries[index];

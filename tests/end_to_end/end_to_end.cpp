@@ -176,16 +176,17 @@ typedef class _ip_packet
     {
         _packet = prepare_ip_packet((address_family == AF_INET) ? ETHERNET_TYPE_IPV4 : ETHERNET_TYPE_IPV6);
         set_mac_addresses(source_mac, destination_mac);
-        if (_address_family == AF_INET)
+        if (_address_family == AF_INET) {
             (ip_addresses == nullptr) ? set_ipv4_addresses(&_test_ipv4_addrs.source, &_test_ipv4_addrs.destination)
                                       : set_ipv4_addresses(
                                             &(reinterpret_cast<const _ipv4_address_pair*>(ip_addresses))->source,
                                             &(reinterpret_cast<const _ipv4_address_pair*>(ip_addresses))->destination);
-        else
+        } else {
             (ip_addresses == nullptr) ? set_ipv6_addresses(&_test_ipv6_addrs.source, &_test_ipv6_addrs.destination)
                                       : set_ipv6_addresses(
                                             &(reinterpret_cast<const _ipv6_address_pair*>(ip_addresses))->source,
                                             &(reinterpret_cast<const _ipv6_address_pair*>(ip_addresses))->destination);
+        }
     }
     uint8_t*
     data()

@@ -225,33 +225,33 @@ test_program_entry(void* context)
         goto label_2;
 label_1:
     // EBPF_OP_MOV64_REG pc=34 dst=r1 src=r6 offset=0 imm=0
-#line 53 "sample/test_sample_ebpf.c"
+#line 54 "sample/test_sample_ebpf.c"
     r1 = r6;
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=65536
-#line 53 "sample/test_sample_ebpf.c"
+#line 54 "sample/test_sample_ebpf.c"
     r0 = test_program_entry_helpers[3].address
-#line 53 "sample/test_sample_ebpf.c"
+#line 54 "sample/test_sample_ebpf.c"
          (r1, r2, r3, r4, r5);
-#line 53 "sample/test_sample_ebpf.c"
+#line 54 "sample/test_sample_ebpf.c"
     if ((test_program_entry_helpers[3].tail_call) && (r0 == 0))
-#line 53 "sample/test_sample_ebpf.c"
+#line 54 "sample/test_sample_ebpf.c"
         return 0;
         // EBPF_OP_MOV64_IMM pc=36 dst=r1 src=r0 offset=0 imm=0
-#line 53 "sample/test_sample_ebpf.c"
+#line 54 "sample/test_sample_ebpf.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_JSGT_REG pc=37 dst=r1 src=r0 offset=1 imm=0
-#line 54 "sample/test_sample_ebpf.c"
+#line 55 "sample/test_sample_ebpf.c"
     if ((int64_t)r1 > (int64_t)r0)
-#line 54 "sample/test_sample_ebpf.c"
+#line 55 "sample/test_sample_ebpf.c"
         goto label_2;
         // EBPF_OP_MOV64_IMM pc=38 dst=r0 src=r0 offset=0 imm=42
-#line 54 "sample/test_sample_ebpf.c"
+#line 55 "sample/test_sample_ebpf.c"
     r0 = IMMEDIATE(42);
 label_2:
     // EBPF_OP_EXIT pc=39 dst=r0 src=r0 offset=0 imm=0
-#line 62 "sample/test_sample_ebpf.c"
+#line 64 "sample/test_sample_ebpf.c"
     return r0;
-#line 62 "sample/test_sample_ebpf.c"
+#line 64 "sample/test_sample_ebpf.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -276,36 +276,36 @@ static uint16_t test_utility_helpers_maps[] = {
 #pragma code_seg(push, "sample~2")
 static uint64_t
 test_utility_helpers(void* context)
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
 {
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     // Prologue
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     register uint64_t r0 = 0;
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     register uint64_t r1 = 0;
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     register uint64_t r2 = 0;
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     register uint64_t r3 = 0;
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     register uint64_t r4 = 0;
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     register uint64_t r5 = 0;
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     register uint64_t r6 = 0;
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     register uint64_t r10 = 0;
 
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     r1 = (uintptr_t)context;
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_LDDW pc=0 dst=r1 src=r0 offset=0 imm=0
-#line 73 "sample/test_sample_ebpf.c"
+#line 75 "sample/test_sample_ebpf.c"
     r1 = (uint64_t)4294967296;
     // EBPF_OP_STXDW pc=2 dst=r10 src=r1 offset=-8 imm=0
 #line 12 "sample/./sample_common_routines.h"
@@ -488,12 +488,12 @@ test_utility_helpers(void* context)
 #line 51 "sample/./sample_common_routines.h"
         return 0;
         // EBPF_OP_MOV64_IMM pc=42 dst=r0 src=r0 offset=0 imm=0
-#line 75 "sample/test_sample_ebpf.c"
+#line 77 "sample/test_sample_ebpf.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=43 dst=r0 src=r0 offset=0 imm=0
-#line 75 "sample/test_sample_ebpf.c"
+#line 77 "sample/test_sample_ebpf.c"
     return r0;
-#line 75 "sample/test_sample_ebpf.c"
+#line 77 "sample/test_sample_ebpf.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

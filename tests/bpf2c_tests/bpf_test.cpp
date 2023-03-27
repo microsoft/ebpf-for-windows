@@ -33,8 +33,9 @@ main(int argc, char** argv)
         std::string byte;
         std::stringstream data_string(argv[2]);
         while (std::getline(data_string, byte, ' ')) {
-            if (byte.empty())
+            if (byte.empty()) {
                 continue;
+            }
             mem.push_back(static_cast<uint8_t>(std::strtoul(byte.c_str(), NULL, 16)));
         }
     }

@@ -266,8 +266,9 @@ net_ebpf_extension_wfp_filter_context_create(
     *filter_context = local_filter_context;
     local_filter_context = NULL;
 Exit:
-    if (local_filter_context != NULL)
+    if (local_filter_context != NULL) {
         ExFreePool(local_filter_context);
+    }
 
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
@@ -346,8 +347,9 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 {
     uint32_t callout_id = 0;
 
-    if (hook_id < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states))
+    if (hook_id < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states)) {
         callout_id = _net_ebpf_ext_wfp_callout_states[hook_id].assigned_callout_id;
+    }
 
     return callout_id;
 }
@@ -355,8 +357,9 @@ void
 net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) uint64_t* filter_ids)
 {
     NET_EBPF_EXT_LOG_ENTRY();
-    for (uint32_t index = 0; index < filter_count; index++)
+    for (uint32_t index = 0; index < filter_count; index++) {
         FwpmFilterDeleteById(_fwp_engine_handle, filter_ids[index]);
+    }
     ExFreePool(filter_ids);
     NET_EBPF_EXT_LOG_EXIT();
 }
@@ -444,10 +447,12 @@ net_ebpf_extension_add_wfp_filters(
 
 Exit:
     if (!NT_SUCCESS(status)) {
-        if (local_filter_ids != NULL)
+        if (local_filter_ids != NULL) {
             ExFreePool(local_filter_ids);
-        if (is_in_transaction)
+        }
+        if (is_in_transaction) {
             FwpmTransactionAbort(_fwp_engine_handle);
+        }
     }
 
     NET_EBPF_EXT_RETURN_RESULT(result);
@@ -562,11 +567,13 @@ Exit:
 void
 net_ebpf_ext_uninitialize_ndis_handles()
 {
-    if (_net_ebpf_ext_nbl_pool_handle != NULL)
+    if (_net_ebpf_ext_nbl_pool_handle != NULL) {
         NdisFreeNetBufferListPool(_net_ebpf_ext_nbl_pool_handle);
+    }
 
-    if (_net_ebpf_ext_ndis_handle != NULL)
+    if (_net_ebpf_ext_ndis_handle != NULL) {
         NdisFreeGenericObject((NDIS_GENERIC_OBJECT*)_net_ebpf_ext_ndis_handle);
+    }
 }
 
 NTSTATUS

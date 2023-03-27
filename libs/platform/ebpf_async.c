@@ -89,13 +89,15 @@ ebpf_async_cancel(_Inout_ void* context)
 {
     EBPF_LOG_ENTRY();
     ebpf_async_tracker_t* tracker = _tracker_from_context(context);
-    if (!tracker)
+    if (!tracker) {
         EBPF_RETURN_BOOL(false);
+    }
 
     void* cancellation_context = tracker->cancellation_context;
     void (*on_cancellation)(_Inout_ void* context) = tracker->on_cancel;
-    if (on_cancellation)
+    if (on_cancellation) {
         on_cancellation(cancellation_context);
+    }
 
     EBPF_RETURN_BOOL(true);
 }
@@ -115,8 +117,9 @@ ebpf_async_complete(_Inout_ void* context, size_t output_buffer_length, ebpf_res
         EBPF_RETURN_VOID();
         return;
     }
-    if (on_complete)
+    if (on_complete) {
         on_complete(context, output_buffer_length, result);
+    }
     EBPF_RETURN_VOID();
 }
 
