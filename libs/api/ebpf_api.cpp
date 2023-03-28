@@ -1755,9 +1755,6 @@ _initialize_ebpf_object_from_native_file(
 Exit:
     if (result != EBPF_SUCCESS) {
         if (program && object.programs.size() == 0) {
-            // If there are 1 or more programs/maps, then the
-            // clean_up_ebpf_programs/clean_up_ebpf_maps function will deallocate
-            // the programs/maps. Otherwise, we need to deallocate them here.
             ebpf_free(program->section_name);
             ebpf_free(program->program_name);
         }
