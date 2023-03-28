@@ -73,10 +73,6 @@ NmrRegisterClient(
     _In_opt_ __drv_aliasesMem void* client_context,
     _Out_ HANDLE* nmr_client_handle)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_NO_MEMORY;
-    }
-
     try {
         *nmr_client_handle = _nmr::get().register_client(*client_characteristics, client_context);
         return STATUS_SUCCESS;
