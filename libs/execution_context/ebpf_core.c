@@ -1160,10 +1160,17 @@ _ebpf_core_protocol_link_program(
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
     ebpf_link_t* link = NULL;
+    const ebpf_program_parameters_t* parameters = NULL;
 
     retval =
         ebpf_object_reference_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
     if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    parameters = ebpf_program_get_parameters(program);
+    if (parameters->code_type == EBPF_CODE_NONE) {
+        retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 

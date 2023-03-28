@@ -1654,7 +1654,7 @@ TEST_CASE("EBPF_OPERATION_LINK_PROGRAM", "[execution_context][negative]")
 
     // No provider.
     link_program_request->program_handle = program_handles[0];
-    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_EXTENSION_FAILED_TO_LOAD);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")

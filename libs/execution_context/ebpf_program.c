@@ -92,9 +92,6 @@ static ebpf_result_t
 _ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context);
 
 static ebpf_result_t
-_ebpf_program_register_helpers(_In_ const ebpf_program_t* program);
-
-static ebpf_result_t
 _ebpf_program_get_helper_function_address(
     _In_ const ebpf_program_t* program, const uint32_t helper_function_id, uint64_t* address);
 
@@ -324,7 +321,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
 }
 
 static ebpf_result_t
-ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
+_ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
@@ -471,6 +468,9 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
     ebpf_utf8_string_t local_file_name = {NULL, 0};
     uint8_t* local_program_info_hash = NULL;
 
+    ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+    bool lock_held = true;
+
     if (program->parameters.code_type != EBPF_CODE_NONE) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -532,7 +532,10 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
     program->parameters.program_info_hash = local_program_info_hash;
     local_program_info_hash = NULL;
 
-    return_value = ebpf_program_load_providers(program);
+    ebpf_lock_unlock(&program->lock, state);
+    lock_held = false;
+
+    return_value = _ebpf_program_load_providers(program);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
@@ -544,13 +547,19 @@ Done:
     ebpf_free(local_program_name.value);
     ebpf_free(local_section_name.value);
     ebpf_free(local_file_name.value);
+    if (lock_held) {
+        ebpf_lock_unlock(&program->lock, state);
+    }
     EBPF_RETURN_RESULT(return_value);
 }
 
 _Ret_notnull_ const ebpf_program_parameters_t*
 ebpf_program_get_parameters(_In_ const ebpf_program_t* program)
 {
-    return &program->parameters;
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    const ebpf_program_parameters_t* parameters = &program->parameters;
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return parameters;
 }
 
 _Ret_notnull_ const ebpf_program_type_t*
@@ -599,35 +608,42 @@ Done:
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t maps_count)
 {
+    ebpf_result_t result = EBPF_SUCCESS;
     EBPF_LOG_ENTRY();
+
     size_t index;
     ebpf_map_t** program_maps = ebpf_allocate_with_tag(maps_count * sizeof(ebpf_map_t*), EBPF_POOL_TAG_PROGRAM);
     if (!program_maps) {
-        return EBPF_NO_MEMORY;
+        result = EBPF_NO_MEMORY;
+        goto Done;
     }
 
     memcpy(program_maps, maps, sizeof(ebpf_map_t*) * maps_count);
 
     // Before we acquire any references, make sure
     // all maps can be associated.
-    ebpf_result_t result = EBPF_SUCCESS;
     for (index = 0; index < maps_count; index++) {
         ebpf_map_t* map = program_maps[index];
         result = ebpf_map_associate_program(map, program);
         if (result != EBPF_SUCCESS) {
-            ebpf_free(program_maps);
-            EBPF_RETURN_RESULT(result);
+            goto Done;
         }
     }
 
+    ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
     // Now go through again and acquire references.
     program->maps = program_maps;
+    program_maps = NULL;
     program->count_of_maps = maps_count;
     for (index = 0; index < maps_count; index++) {
-        ebpf_object_acquire_reference((ebpf_core_object_t*)program_maps[index]);
+        ebpf_object_acquire_reference((ebpf_core_object_t*)program->maps[index]);
     }
+    ebpf_lock_unlock(&program->lock, state);
 
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+Done:
+    ebpf_free(program_maps);
+
+    EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
