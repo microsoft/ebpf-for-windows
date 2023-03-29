@@ -310,8 +310,8 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
         REQUIRE(result == 0);
     }
 
-    //unique_object.reset(nullptr);
     *return_object = object.get();
+    object.reset(nullptr);
 }
 
 static void
