@@ -19,7 +19,6 @@
 
 static size_t _ebpf_program_state_index = MAXUINT64;
 #define EBPF_MAX_HASH_SIZE 128
-#define EBPF_HASH_ALGORITHM L"SHA256"
 
 typedef struct _ebpf_program
 {
@@ -311,6 +310,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
     ebpf_free(program->parameters.section_name.value);
     ebpf_free(program->parameters.file_name.value);
     ebpf_free((void*)program->parameters.program_info_hash);
+    ebpf_free(program->parameters.program_info_hash_type.value);
 
     ebpf_free(program->maps);
 
@@ -469,6 +469,7 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
     ebpf_utf8_string_t local_program_name = {NULL, 0};
     ebpf_utf8_string_t local_section_name = {NULL, 0};
     ebpf_utf8_string_t local_file_name = {NULL, 0};
+    ebpf_utf8_string_t local_hash_type_name = {NULL, 0};
     uint8_t* local_program_info_hash = NULL;
 
     if (program->parameters.code_type != EBPF_CODE_NONE) {
@@ -519,6 +520,11 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
             program_parameters->program_info_hash_length);
     }
 
+    return_value = ebpf_duplicate_utf8_string(&local_hash_type_name, &program_parameters->program_info_hash_type);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     program->parameters = *program_parameters;
 
     program->parameters.program_name = local_program_name;
@@ -531,6 +537,8 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
     program->parameters.code_type = EBPF_CODE_NONE;
     program->parameters.program_info_hash = local_program_info_hash;
     local_program_info_hash = NULL;
+    program->parameters.program_info_hash_type = local_hash_type_name;
+    local_hash_type_name.value = NULL;
 
     return_value = ebpf_program_load_providers(program);
     if (return_value != EBPF_SUCCESS) {
@@ -544,6 +552,7 @@ Done:
     ebpf_free(local_program_name.value);
     ebpf_free(local_section_name.value);
     ebpf_free(local_file_name.value);
+    ebpf_free(local_hash_type_name.value);
     EBPF_RETURN_RESULT(return_value);
 }
 
@@ -1493,6 +1502,7 @@ Done:
 typedef struct _ebpf_helper_id_to_index
 {
     uint32_t helper_id;
+
     uint32_t index;
 } ebpf_helper_id_to_index_t;
 
@@ -1559,7 +1569,8 @@ _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* pro
         sizeof(ebpf_helper_id_to_index_t),
         _ebpf_helper_id_to_index_compare);
 
-    result = ebpf_cryptographic_hash_create(EBPF_HASH_ALGORITHM, &cryptographic_hash);
+    result = ebpf_cryptographic_hash_create(
+        (const wchar_t*)program->parameters.program_info_hash_type.value, &cryptographic_hash);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }

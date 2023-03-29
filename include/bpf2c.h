@@ -96,6 +96,7 @@ extern "C"
         ebpf_attach_type_t* expected_attach_type; ///< Expected attach type of the program.
         const uint8_t* program_info_hash;         ///< Hash of the program info.
         size_t program_info_hash_length;          ///< Length of the program info hash.
+        const char* program_info_hash_type;       ///< Type of the program info hash
     } program_entry_t;
 
     /**

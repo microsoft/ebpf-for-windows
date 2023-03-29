@@ -30,6 +30,7 @@ typedef struct bpf_program
     bool pinned;
     const char* log_buffer;
     uint32_t log_buffer_size;
+    char* hash_type;
 } ebpf_program_t;
 
 typedef struct bpf_map

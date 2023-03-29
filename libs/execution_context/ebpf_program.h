@@ -34,6 +34,7 @@ extern "C"
         ebpf_code_type_t code_type;
         const uint8_t* program_info_hash;
         size_t program_info_hash_length;
+        ebpf_utf8_string_t program_info_hash_type;
     } ebpf_program_parameters_t;
 
     typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);
