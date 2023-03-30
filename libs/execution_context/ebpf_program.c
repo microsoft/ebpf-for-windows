@@ -73,13 +73,13 @@ typedef struct _ebpf_program
     // Lock protecting the fields below.
     ebpf_lock_t lock;
 
-    ebpf_list_entry_t links;
-    uint32_t link_count;
-    ebpf_map_t** maps;
-    uint32_t count_of_maps;
+    _Guarded_by_(lock) ebpf_list_entry_t links;
+    _Guarded_by_(lock) uint32_t link_count;
+    _Guarded_by_(lock) ebpf_map_t** maps;
+    _Guarded_by_(lock) uint32_t count_of_maps;
 
-    ebpf_helper_function_addresses_changed_callback_t helper_function_addresses_changed_callback;
-    void* helper_function_addresses_changed_context;
+    _Guarded_by_(lock) ebpf_helper_function_addresses_changed_callback_t helper_function_addresses_changed_callback;
+    _Guarded_by_(lock) void* helper_function_addresses_changed_context;
 } ebpf_program_t;
 
 static ebpf_result_t
@@ -745,13 +745,28 @@ _ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* 
 {
     ebpf_result_t return_value;
     UNREFERENCED_PARAMETER(context);
-    ebpf_program_data_t* program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
-    ebpf_helper_function_addresses_t* helper_function_addresses =
-        program_data->program_type_specific_helper_function_addresses;
-    ebpf_helper_function_addresses_t* global_helper_function_addresses = program_data->global_helper_function_addresses;
+    ebpf_program_data_t* program_data = NULL;
+    ebpf_helper_function_addresses_t* helper_function_addresses = NULL;
+    ebpf_helper_function_addresses_t* global_helper_function_addresses = NULL;
+
     size_t total_helper_count = 0;
     ebpf_helper_function_addresses_t* total_helper_function_addresses = NULL;
     uint32_t* total_helper_function_ids = NULL;
+    bool provider_data_referenced = false;
+
+    if (!program->info_extension_client || !ebpf_extension_reference_provider_data(program->info_extension_client)) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "The extension is not loaded for program type",
+            program->parameters.program_type);
+        return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
+        goto Exit;
+    }
+    provider_data_referenced = true;
+    program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
+    helper_function_addresses = program_data->program_type_specific_helper_function_addresses;
+    global_helper_function_addresses = program_data->global_helper_function_addresses;
 
     if (helper_function_addresses != NULL || global_helper_function_addresses != NULL) {
         ebpf_program_info_t* program_info = program_data->program_info;
@@ -873,6 +888,10 @@ Exit:
     if (total_helper_function_addresses != NULL) {
         ebpf_free(total_helper_function_addresses->helper_function_address);
         ebpf_free(total_helper_function_addresses);
+    }
+
+    if (provider_data_referenced) {
+        ebpf_extension_dereference_provider_data(program->info_extension_client);
     }
 
     return return_value;
@@ -1107,8 +1126,8 @@ _ebpf_program_get_helper_function_address(
 {
     ebpf_result_t return_value;
     uint64_t* function_address = NULL;
-    ebpf_program_data_t* program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
-    ebpf_program_data_t* general_program_data = (ebpf_program_data_t*)program->general_helper_provider_data->data;
+    ebpf_program_data_t* program_data = NULL;
+    ebpf_program_data_t* general_program_data = NULL;
 
     EBPF_LOG_ENTRY();
 
@@ -1126,6 +1145,9 @@ _ebpf_program_get_helper_function_address(
         goto Done;
     }
     provider_data_referenced = true;
+
+    program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
+    general_program_data = (ebpf_program_data_t*)program->general_helper_provider_data->data;
 
     use_trampoline = program->parameters.code_type == EBPF_CODE_JIT;
     if (use_trampoline && !program->trampoline_table) {
@@ -1292,14 +1314,14 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
         goto Exit;
     }
     provider_data_referenced = true;
-
-    if (!program->info_extension_provider_data) {
-        result = EBPF_EXTENSION_FAILED_TO_LOAD;
-        goto Exit;
-    }
     program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
 
     if (!program->general_helper_provider_data) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "General helper provider not loaded",
+            program->parameters.program_type);
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Exit;
     }
