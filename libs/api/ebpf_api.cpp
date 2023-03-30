@@ -1753,11 +1753,17 @@ _initialize_ebpf_object_from_native_file(
     }
 
 Exit:
-    ebpf_free(program);
     if (result != EBPF_SUCCESS) {
+        if (program && object.programs.size() == 0) {
+            ebpf_free(program->section_name);
+            ebpf_free(program->program_name);
+        }
+
         clean_up_ebpf_programs(object.programs);
         clean_up_ebpf_maps(object.maps);
     }
+
+    ebpf_free(program);
     ebpf_free_sections(infos);
     EBPF_RETURN_RESULT(result);
 }

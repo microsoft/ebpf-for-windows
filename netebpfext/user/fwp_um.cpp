@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_fault_injection.h"
 #include "fwp_um.h"
 #include "net_ebpf_ext_sock_addr.h"
 #include "netebpfext_platform.h"
@@ -20,6 +21,8 @@ DEFINE_GUID(
 DEFINE_GUID(EBPF_DEFAULT_SUBLAYER, 0x7c7b3fb9, 0x3331, 0x436a, 0x98, 0xe1, 0xb9, 0x01, 0xdf, 0x45, 0x7f, 0xff);
 
 std::unique_ptr<_fwp_engine> _fwp_engine::_engine;
+
+static bool fault_injection_enabled = ebpf_fault_injection_is_enabled();
 
 // Attempt to classify a test packet at a given WFP layer on a given interface index.
 // This is used to test the xdp hook.
@@ -269,7 +272,7 @@ _fwp_engine::test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameter
 
     action = test_callout(
         FWPS_LAYER_ALE_CONNECT_REDIRECT_V4, FWPM_LAYER_ALE_CONNECT_REDIRECT_V4, EBPF_DEFAULT_SUBLAYER, incoming_value);
-    ebpf_assert(action == FWP_ACTION_PERMIT);
+    ebpf_assert(action == FWP_ACTION_PERMIT || !fault_injection_enabled);
 
     if (_fwp_um_connect_request != nullptr) {
         redirected =
