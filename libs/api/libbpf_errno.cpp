@@ -9,8 +9,9 @@
 int
 libbpf_strerror(int err, char* buf, size_t size)
 {
-    if (!buf || !size)
+    if (!buf || !size) {
         return libbpf_err(-EINVAL);
+    }
 
     err = err > 0 ? err : -err;
 

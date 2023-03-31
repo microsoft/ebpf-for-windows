@@ -810,8 +810,9 @@ ebpf_hash_table_next_key_pointer_and_value(
 
     result = EBPF_SUCCESS;
 
-    if (value)
+    if (value) {
         *value = next_entry->data;
+    }
 
     *next_key_pointer = next_entry->key;
 

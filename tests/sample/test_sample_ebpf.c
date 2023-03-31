@@ -44,15 +44,17 @@ test_program_entry(sample_program_context_t* context)
             if (values[1]) {
                 result = sample_ebpf_extension_replace(
                     context->data_start, context->data_end - context->data_start, position, values[1], VALUE_SIZE);
-                if (result < 0)
+                if (result < 0) {
                     goto Exit;
+                }
             }
         }
     }
 
     result = sample_ebpf_extension_helper_function1(context);
-    if (result < 0)
+    if (result < 0) {
         goto Exit;
+    }
 
     // "The answer to the question of life, the universe and everything".
     //          - Douglas Adams (The Hitchhiker’s Guide to the Galaxy).

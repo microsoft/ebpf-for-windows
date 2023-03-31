@@ -140,8 +140,9 @@ TEST_CASE("wer_report_started_shutdown", "[wer_report]")
         REQUIRE(SetThreadStackGuarantee_test_stack_size_in_bytes == 32 * 1024);
     }
 
-    if (old_buffer)
+    if (old_buffer) {
         _putenv_s("EBPF_ENABLE_WER_REPORT", old_buffer);
+    }
 }
 
 TEST_CASE("wer_report_fatal_exception", "[wer_report]")

@@ -28,8 +28,9 @@ ebpf_handle_table_terminate()
 {
     EBPF_LOG_ENTRY();
     ebpf_handle_t handle;
-    if (!_ebpf_handle_table_initiated)
+    if (!_ebpf_handle_table_initiated) {
         EBPF_RETURN_VOID();
+    }
 
     for (handle = 0; handle < EBPF_COUNT_OF(_ebpf_handle_table); handle++) {
         // Ignore invalid handle close.
@@ -48,8 +49,9 @@ ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ ebpf_base_object_t* obje
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     for (new_handle = 1; new_handle < EBPF_COUNT_OF(_ebpf_handle_table); new_handle++) {
-        if (_ebpf_handle_table[new_handle] == NULL)
+        if (_ebpf_handle_table[new_handle] == NULL) {
             break;
+        }
     }
     if (new_handle == EBPF_COUNT_OF(_ebpf_handle_table)) {
         return_value = EBPF_NO_MEMORY;
@@ -80,8 +82,9 @@ ebpf_handle_close(ebpf_handle_t handle)
         (_ebpf_handle_table[handle])->release_reference(_ebpf_handle_table[handle]);
         _ebpf_handle_table[handle] = NULL;
         return_value = EBPF_SUCCESS;
-    } else
+    } else {
         return_value = EBPF_INVALID_OBJECT;
+    }
     ebpf_lock_unlock(&_ebpf_handle_table_lock, state);
     return return_value;
 }
@@ -106,8 +109,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_h
         _ebpf_handle_table[handle]->acquire_reference(_ebpf_handle_table[handle]);
         *object = _ebpf_handle_table[handle];
         return_value = EBPF_SUCCESS;
-    } else
+    } else {
         return_value = EBPF_INVALID_OBJECT;
+    }
 
     ebpf_lock_unlock(&_ebpf_handle_table_lock, state);
     return return_value;

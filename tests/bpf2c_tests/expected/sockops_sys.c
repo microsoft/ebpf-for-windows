@@ -983,12 +983,12 @@ label_12:
     r6 = r0;
 label_13:
     // EBPF_OP_MOV64_REG pc=225 dst=r0 src=r6 offset=0 imm=0
-#line 91 "sample/sockops.c"
+#line 92 "sample/sockops.c"
     r0 = r6;
     // EBPF_OP_EXIT pc=226 dst=r0 src=r0 offset=0 imm=0
-#line 91 "sample/sockops.c"
+#line 92 "sample/sockops.c"
     return r0;
-#line 91 "sample/sockops.c"
+#line 92 "sample/sockops.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

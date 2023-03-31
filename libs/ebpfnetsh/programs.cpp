@@ -63,8 +63,9 @@ _process_interface_parameter(
     ebpf_result_t result = EBPF_SUCCESS;
     if (_prog_type_supports_interface(prog_type)) {
         result = parse_if_index(interface_parameter, if_index);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             std::cerr << "Interface parameter is invalid." << std::endl;
+        }
     } else {
         std::cerr << "Interface parameter is not allowed for program types that don't support interfaces." << std::endl;
         result = EBPF_INVALID_ARGUMENT;
@@ -405,8 +406,9 @@ _ebpf_program_attach_by_id(
     if (result == EBPF_SUCCESS) {
         ebpf_result_t local_result =
             ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, &link);
-        if (local_result == EBPF_SUCCESS)
+        if (local_result == EBPF_SUCCESS) {
             ebpf_link_close(link);
+        }
     }
 
     Platform::_close(program_fd);

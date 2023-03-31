@@ -45,12 +45,14 @@ _build_helper_id_to_address_map(
         helper_id_mapping[instruction.imm] = 0;
     }
 
-    if (helper_id_mapping.size() == 0)
+    if (helper_id_mapping.size() == 0) {
         return EBPF_SUCCESS;
+    }
 
     // uBPF jitter supports a maximum of 64 helper functions
-    if (helper_id_mapping.size() > 64)
+    if (helper_id_mapping.size() > 64) {
         return EBPF_OPERATION_NOT_SUPPORTED;
+    }
 
     ebpf_protocol_buffer_t request_buffer(
         offsetof(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t) * helper_id_mapping.size());
@@ -94,8 +96,10 @@ _build_helper_id_to_address_map(
         instruction.imm = helper_id_mapping[instruction.imm];
     }
     for (auto& [old_helper_id, new_helper_id] : helper_id_mapping) {
-        if (get_helper_prototype_windows(old_helper_id).return_type != EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED)
+        if (get_helper_prototype_windows(old_helper_id).return_type !=
+            EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED) {
             continue;
+        }
         unwind_index = new_helper_id;
         break;
     }
@@ -295,8 +299,9 @@ ebpf_verify_and_load_program(
         uint32_t unwind_index;
         result = _build_helper_id_to_address_map(
             program_handle, instructions, instruction_count, helper_id_address, unwind_index);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
 
         ebpf_code_buffer_t machine_code(MAX_NATIVE_CODE_SIZE_IN_BYTES);
         uint8_t* byte_code_data = (uint8_t*)instructions;
@@ -319,8 +324,9 @@ ebpf_verify_and_load_program(
                 }
             }
 
-            if (unwind_index != MAXUINT32)
+            if (unwind_index != MAXUINT32) {
                 ubpf_set_unwind_function_index(vm, unwind_index);
+            }
 
             ubpf_set_error_print(
                 vm, reinterpret_cast<int (*)(FILE * stream, const char* format, ...)>(log_function_address));

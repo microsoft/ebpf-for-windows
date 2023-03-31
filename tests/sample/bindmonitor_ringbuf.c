@@ -22,8 +22,9 @@ bind_monitor(bind_md_t* ctx)
 {
     switch (ctx->operation) {
     case BIND_OPERATION_BIND:
-        if (ctx->app_id_end > ctx->app_id_start)
+        if (ctx->app_id_end > ctx->app_id_start) {
             (void)bpf_ringbuf_output(&process_map, ctx->app_id_start, ctx->app_id_end - ctx->app_id_start, 0);
+        }
         break;
     default:
         break;
