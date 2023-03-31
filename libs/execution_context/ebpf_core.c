@@ -1017,17 +1017,28 @@ _ebpf_core_protocol_query_program_info(
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
     size_t required_reply_length;
-    const ebpf_program_parameters_t* parameters;
+    ebpf_utf8_string_t file_name = {0};
+    ebpf_utf8_string_t section_name = {0};
+    ebpf_code_type_t code_type;
 
     retval = ebpf_object_reference_by_handle(request->handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
 
-    parameters = ebpf_program_get_parameters(program);
+    retval = ebpf_program_get_program_file_name(program, &file_name);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
 
-    retval =
-        ebpf_safe_size_t_add(parameters->section_name.length, parameters->file_name.length, &required_reply_length);
+    retval = ebpf_program_get_program_section_name(program, &section_name);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    code_type = ebpf_program_get_code_type(program);
+
+    retval = ebpf_safe_size_t_add(section_name.length, file_name.length, &required_reply_length);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1045,15 +1056,18 @@ _ebpf_core_protocol_query_program_info(
     }
 
     reply->file_name_offset = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data);
-    reply->section_name_offset = reply->file_name_offset + (uint16_t)parameters->file_name.length;
+    reply->section_name_offset = reply->file_name_offset + (uint16_t)file_name.length;
 
-    memcpy(reply->data, parameters->file_name.value, parameters->file_name.length);
-    memcpy(reply->data + parameters->file_name.length, parameters->section_name.value, parameters->section_name.length);
-    reply->code_type = parameters->code_type;
+    memcpy(reply->data, file_name.value, file_name.length);
+    memcpy(reply->data + file_name.length, section_name.value, section_name.length);
+    reply->code_type = code_type;
 
     reply->header.length = (uint16_t)required_reply_length;
 
 Done:
+    ebpf_utf8_string_free(&file_name);
+    ebpf_utf8_string_free(&section_name);
+
     ebpf_object_release_reference((ebpf_core_object_t*)program);
 
     EBPF_RETURN_RESULT(retval);
@@ -1160,7 +1174,7 @@ _ebpf_core_protocol_link_program(
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
     ebpf_link_t* link = NULL;
-    const ebpf_program_parameters_t* parameters = NULL;
+    ebpf_code_type_t code_type;
 
     retval =
         ebpf_object_reference_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
@@ -1168,8 +1182,8 @@ _ebpf_core_protocol_link_program(
         goto Done;
     }
 
-    parameters = ebpf_program_get_parameters(program);
-    if (parameters->code_type == EBPF_CODE_NONE) {
+    code_type = ebpf_program_get_code_type(program);
+    if (code_type == EBPF_CODE_NONE) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }

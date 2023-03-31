@@ -304,6 +304,14 @@ extern "C"
     ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source);
 
     /**
+     * @brief Free a UTF-8 string allocated by ebpf_duplicate_utf8_string.
+     *
+     * @param[in,out] string The string to free.
+     */
+    void
+    ebpf_utf8_string_free(_Inout_ ebpf_utf8_string_t* string);
+
+    /**
      * @brief Duplicate a null-terminated string.
      *
      * @param[in] source String to duplicate.
@@ -379,7 +387,7 @@ extern "C"
      * @returns The previous lock_state required for unlock.
      */
     _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-        _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock);
+        _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ const ebpf_lock_t* lock);
 
     /**
      * @brief Release exclusive access to the lock.
@@ -387,7 +395,7 @@ extern "C"
      * @param[in] state The state returned from ebpf_lock_lock.
      */
     _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
-        _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state);
+        _Inout_ const ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state);
 
     /**
      * @brief Raise the IRQL to new_irql.

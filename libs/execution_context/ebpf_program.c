@@ -1928,3 +1928,30 @@ ebpf_program_register_for_helper_changes(
     program->helper_function_addresses_changed_context = context;
     return EBPF_SUCCESS;
 }
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_get_program_file_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* file_name)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    ebpf_result_t return_value = ebpf_duplicate_utf8_string(file_name, &program->parameters.file_name);
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return return_value;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_get_program_section_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* section_name)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    ebpf_result_t return_value = ebpf_duplicate_utf8_string(section_name, &program->parameters.section_name);
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return return_value;
+}
+
+ebpf_code_type_t
+ebpf_program_get_code_type(_In_ const ebpf_program_t* program)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+    ebpf_code_type_t code_type = program->parameters.code_type;
+    ebpf_lock_unlock(&program->lock, state);
+    return code_type;
+}

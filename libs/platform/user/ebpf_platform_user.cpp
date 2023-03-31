@@ -758,17 +758,17 @@ ebpf_lock_destroy(_In_ _Post_invalid_ ebpf_lock_t* lock)
 }
 
 _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
+    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ const ebpf_lock_t* lock)
 {
-    AcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
+    AcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(const_cast<ebpf_lock_t*>(lock)));
     return 0;
 }
 
 _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
-    _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
+    _Inout_ const ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
     UNREFERENCED_PARAMETER(state);
-    ReleaseSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
+    ReleaseSRWLockExclusive(reinterpret_cast<PSRWLOCK>(const_cast<ebpf_lock_t*>(lock)));
 }
 
 uint32_t
