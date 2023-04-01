@@ -559,6 +559,7 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
 
     uint32_t thread_count = 2 * ebpf_get_cpu_count();
     for (uint32_t i = 0; i < thread_count; i++) {
+        printf("sock_addr_invoke_concurrent1: Starting thread %d\n", i);
         threads.emplace_back(
             sock_addr_thread_function,
             &helper,

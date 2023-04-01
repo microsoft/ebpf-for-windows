@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_fault_injection.h"
 #include "nmr_impl.h"
 
 nmr_t _nmr::singleton;
@@ -11,6 +12,10 @@ NmrRegisterProvider(
     _In_opt_ __drv_aliasesMem void* provider_context,
     _Out_ HANDLE* nmr_provider_handle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     try {
         *nmr_provider_handle = nmr_t::get().register_provider(*provider_characteristics, provider_context);
         return STATUS_SUCCESS;
@@ -22,6 +27,10 @@ NmrRegisterProvider(
 NTSTATUS
 NmrDeregisterProvider(_In_ HANDLE nmr_provider_handle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     try {
         if (_nmr::get().deregister_provider(nmr_provider_handle)) {
             return STATUS_PENDING;
@@ -46,6 +55,10 @@ NmrProviderDetachClientComplete(_In_ HANDLE nmr_binding_handle)
 NTSTATUS
 NmrWaitForProviderDeregisterComplete(_In_ HANDLE nmr_provider_handle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     try {
         _nmr::get().wait_for_deregister_provider(nmr_provider_handle);
         return STATUS_SUCCESS;

@@ -119,6 +119,32 @@ typedef class _netebpf_ext_helper
     } program_info_provider_t;
     std::map<GUID, std::unique_ptr<program_info_provider_t>, NPI_MODULEID_LESS> program_info_providers;
 
+    typedef struct _nmr_client_registration
+    {
+        // Wrapper for NmrRegisterClient
+        _nmr_client_registration(
+            _In_ const NPI_CLIENT_CHARACTERISTICS* characteristics, _In_opt_ __drv_aliasesMem void* client_context)
+        {
+            nmr_client_handle = INVALID_HANDLE_VALUE;
+            REQUIRE(NmrRegisterClient(characteristics, client_context, &nmr_client_handle) == STATUS_SUCCESS);
+        }
+
+        ~_nmr_client_registration()
+        {
+            if (nmr_client_handle != INVALID_HANDLE_VALUE) {
+                printf("Entering _nmr_client_registration destructor...\n");
+                NTSTATUS status = NmrDeregisterClient(nmr_client_handle);
+                if (status == STATUS_PENDING) {
+                    status = NmrWaitForClientDeregisterComplete(nmr_client_handle);
+                }
+                printf("Exiting _nmr_client_registration destructor. status = %08x\n", status);
+                REQUIRE(status == STATUS_SUCCESS);
+            }
+        }
+
+        HANDLE nmr_client_handle;
+    } nmr_client_registration_t;
+
     static NTSTATUS
     _program_info_client_attach_provider(
         _In_ HANDLE nmr_binding_handle,
@@ -183,8 +209,8 @@ typedef class _netebpf_ext_helper
 
     _ebpf_extension_dispatch_function hook_invoke_function;
 
-    HANDLE nmr_program_info_client_handle;
-    HANDLE nmr_hook_client_handle;
+    std::unique_ptr<nmr_client_registration_t> nmr_program_info_client_handle;
+    std::unique_ptr<nmr_client_registration_t> nmr_hook_client_handle;
 
 } netebpf_ext_helper_t;
 
