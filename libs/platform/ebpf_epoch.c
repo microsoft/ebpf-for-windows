@@ -331,6 +331,7 @@ ebpf_epoch_enter()
     // Get the next available epoch entry.
     epoch_entry = _ebpf_epoch_next_available_epoch_entry(&_ebpf_epoch_cpu_table[current_cpu]);
     ebpf_assert(epoch_entry != NULL);
+    _Analysis_assume_(epoch_entry != NULL);
     ebpf_assert(epoch_entry->epoch == 0);
 
     // Capture the current epoch.
