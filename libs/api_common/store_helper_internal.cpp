@@ -374,7 +374,15 @@ ebpf_store_load_program_information(
 Exit:
     if (result != EBPF_SUCCESS) {
         ebpf_free(*program_info);
+
+        // Deallocate the dynamic memory in the program_info_array vector.
+        if (program_info_array.size() > 0) {
+            for (auto program_data : program_info_array) {
+                ebpf_program_info_free(program_data);
+            }
+        }
     }
+
     if (program_data_key) {
         close_registry_key(program_data_key);
     }
@@ -569,6 +577,15 @@ ebpf_store_load_section_information(
 Exit:
     if (result != EBPF_SUCCESS) {
         ebpf_free(*section_info);
+        // Deallocate the dynamic memory in the section_info_array vector.
+        if (section_info_array.size() > 0) {
+            for (auto section_data : section_info_array) {
+                ebpf_free(section_data->program_type);
+                ebpf_free(section_data->attach_type);
+                ebpf_free(const_cast<char*>(section_data->section_prefix));
+                ebpf_free(section_data);
+            }
+        }
     }
     if (section_data_key) {
         close_registry_key(section_data_key);
