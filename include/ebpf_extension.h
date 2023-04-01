@@ -50,6 +50,7 @@ typedef struct _ebpf_attach_provider_data
  */
 typedef struct _ebpf_execution_context_state
 {
+    struct _ebpf_epoch_state* epoch_state;
     union
     {
         uint64_t thread;

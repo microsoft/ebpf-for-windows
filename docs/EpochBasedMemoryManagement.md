@@ -50,23 +50,17 @@ Each execution context maintains its own state in the form of:
 typedef struct _ebpf_epoch_state
 {
     int64_t epoch; // The highest epoch seen by this epoch state.
-    bool active : 1; // Currently within an entry/exit block.
-    bool timer_armed : 1; // This state has requested the global timer.
-    bool stale : 1; // This state has entries that haven't been freed.
-    bool timer_disabled : 1; // Prevent re-arming the timer during shutdown.
 } ebpf_epoch_state_t;
 ```
 
-The epoch state is then embedded into both a per-CPU and per-thread
-state, each of which maintains additional metadata that is specific to
-that execution context type. In addition, the per-CPU state maintains a
-table of per-thread states for each thread affinitized to this CPU.
-
-Each execution context then must first call ebpf_epoch_enter prior to
-accessing any memory that is under epoch protection and then call
-ebpf_epoch_exit once it is done. As a simplification of the epoch memory
-management, the ebpf_epoch_enter affinitizes threads to their current
-CPU (so a thread won't switch CPU's during an epoch bounded execution).
+Each execution context must first call ebpf_epoch_enter prior to accessing any
+memory that is under epoch protection and then call ebpf_epoch_exit once it is
+done. The call to ebpf_epoch_enter returns a pointer to an ebpf_epoch_state_t
+object that must be passed to ebpf_epoch_exit. The epoch module maintains a
+table of per-CPU epoch states, with an epoch state being assigned to an
+execution context on ebpf_epoch_enter and returned on a call to ebpf_epoch_exit.
+Threads running at passive IRQL will block if there are no available epoch
+states and a thread running at dispatch IRQL will use a reserved epoch state.
 
 Memory is then allocated via calls to ebpf_epoch_allocate which returns
 memory with a private header and memory is freed via calls to
