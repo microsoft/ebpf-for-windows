@@ -57,6 +57,11 @@ static std::vector<uint32_t> _ebpf_platform_group_to_index_map;
 static ebpf_result_t
 _initialize_thread_pool()
 {
+    // CreateThreadpoolCleanupGroup can return nullptr
+    if (ebpf_fault_injection_is_enabled() && ebpf_fault_injection_inject_fault()) {
+        return EBPF_NO_MEMORY;
+    }
+
     ebpf_result_t result = EBPF_SUCCESS;
     bool cleanup_group_created = false;
     bool return_value;
@@ -148,7 +153,11 @@ class _ebpf_emulated_dpc
             ebpf_non_preemptible = true;
             std::unique_lock<std::mutex> l(mutex);
             uintptr_t old_thread_affinity;
-            ebpf_assert_success(ebpf_set_current_thread_affinity(1ull << i, &old_thread_affinity));
+            bool ebpf_fault_injection_enabled = ebpf_fault_injection_is_enabled();
+
+            ebpf_assert(
+                ebpf_set_current_thread_affinity(1ull << i, &old_thread_affinity) == EBPF_SUCCESS ||
+                ebpf_fault_injection_enabled);
             SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
             for (;;) {
                 if (terminate) {
@@ -311,7 +320,9 @@ ebpf_platform_initiate()
         _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
         auto fault_injection_stack_depth =
             _get_environment_variable_as_size_t(EBPF_FAULT_INJECTION_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
+        // fault_injection_stack_depth = 4;
         auto leak_detector = _get_environment_variable_as_bool(EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME);
+        // leak_detector = true;
         if (fault_injection_stack_depth || leak_detector) {
             _ebpf_symbol_decoder_initialize();
         }
@@ -498,6 +509,11 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 ebpf_memory_descriptor_t*
 ebpf_map_memory(size_t length)
 {
+    // VirtualAlloc OS api can return NULL
+    if (ebpf_fault_injection_inject_fault()) {
+        return nullptr;
+    }
+
     ebpf_memory_descriptor_t* descriptor = (ebpf_memory_descriptor_t*)ebpf_allocate(sizeof(ebpf_memory_descriptor_t));
     if (!descriptor) {
         return nullptr;
@@ -539,6 +555,11 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     uint8_t* placeholder2 = nullptr;
     void* view1 = nullptr;
     void* view2 = nullptr;
+
+    // VirtualAlloc2 OS api can return NULL
+    if (ebpf_fault_injection_inject_fault()) {
+        return nullptr;
+    }
 
     GetSystemInfo(&sysInfo);
 
@@ -693,6 +714,11 @@ ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
 _Must_inspect_result_ ebpf_result_t
 ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
+    // VirtualProtect OS api can return NULL
+    if (ebpf_fault_injection_inject_fault()) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+    }
+
     EBPF_LOG_ENTRY();
     unsigned long mm_protection_state = 0;
     unsigned long old_mm_protection_state = 0;
@@ -803,6 +829,10 @@ ebpf_query_time_since_boot(bool include_suspended_time)
 _Must_inspect_result_ ebpf_result_t
 ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
 {
+    if (ebpf_fault_injection_is_enabled() && ebpf_fault_injection_inject_fault()) {
+        return EBPF_NO_MEMORY;
+    }
+
     uintptr_t old_mask = SetThreadAffinityMask(GetCurrentThread(), new_thread_affinity_mask);
     if (old_mask == 0) {
         unsigned long error = GetLastError();
@@ -1036,6 +1066,10 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 _Must_inspect_result_ ebpf_result_t
 ebpf_guid_create(_Out_ GUID* new_guid)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
     if (UuidCreate(new_guid) == RPC_S_OK) {
         return EBPF_SUCCESS;
     } else {
@@ -1063,6 +1097,10 @@ ebpf_access_check(
     ebpf_security_access_mask_t request_access,
     _In_ const ebpf_security_generic_mapping_t* generic_mapping)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_ACCESS_DENIED;
+    }
+
     ebpf_result_t result;
     HANDLE token = INVALID_HANDLE_VALUE;
 
@@ -1114,6 +1152,10 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_validate_security_descriptor(
     _In_ const ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_NO_MEMORY;
+    }
+
     ebpf_result_t result;
     SECURITY_DESCRIPTOR_CONTROL security_descriptor_control;
     unsigned long version;
@@ -1196,6 +1238,10 @@ ebpf_platform_thread_id()
 _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_NO_MEMORY;
+    }
+
     ebpf_result_t return_value = EBPF_SUCCESS;
     uint32_t error;
     TOKEN_GROUPS_AND_PRIVILEGES* privileges = nullptr;

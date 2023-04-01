@@ -12,6 +12,7 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_core.h"
+#include "ebpf_fault_injection.h"
 #include "helpers.h"
 #include "ioctl_helper.h"
 #include "mock.h"
@@ -2609,8 +2610,12 @@ typedef struct _ebpf_scoped_non_preemptible
 {
     _ebpf_scoped_non_preemptible()
     {
-        ebpf_assert_success(
-            ebpf_set_current_thread_affinity((uintptr_t)1 << ebpf_get_current_cpu(), &old_thread_affinity));
+        bool ebpf_fault_injection_enabled = ebpf_fault_injection_is_enabled();
+
+        ebpf_assert(
+            ebpf_set_current_thread_affinity((uintptr_t)1 << ebpf_get_current_cpu(), &old_thread_affinity) ==
+                EBPF_SUCCESS ||
+            ebpf_fault_injection_enabled);
         ebpf_non_preemptible = true;
     }
     ~_ebpf_scoped_non_preemptible()
@@ -2623,6 +2628,8 @@ typedef struct _ebpf_scoped_non_preemptible
 
 TEST_CASE("load_native_program_invalid5-non-preemptible", "[end-to-end]")
 {
+    _test_helper_end_to_end test_helper;
+
     // Setting ebpf_non_preemptible to true will ensure ebpf_native_load queues
     // a workitem and that code path is executed.
     ebpf_scoped_non_preemptible_t non_preemptible;
