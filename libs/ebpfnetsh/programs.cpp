@@ -257,7 +257,6 @@ handle_ebpf_add_program(
     std::cout << "Loaded with ID " << info.id << std::endl;
     unloader.object = nullptr;
 
-    // ebpf_link_close(link);
     _ebpf_netsh_objects.push_back(object);
 
     return ERROR_SUCCESS;
