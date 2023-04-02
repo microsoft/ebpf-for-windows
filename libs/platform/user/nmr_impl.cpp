@@ -160,6 +160,7 @@ _nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& p
     PNPIID client_pnpi = client.characteristics.ClientRegistrationInstance.NpiId;
     PNPIID provider_pnpi = provider.characteristics.ProviderRegistrationInstance.NpiId;
 
+    // Null check before dereferencing.
     // Match on NPI ID.
     if (!client_pnpi || !provider_pnpi || *client_pnpi != *provider_pnpi) {
         return std::nullopt;
