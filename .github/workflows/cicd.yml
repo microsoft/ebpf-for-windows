@@ -365,7 +365,7 @@ jobs:
   # Runs on a schedule as this takes a long time to run.
   fault_injection_full:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection_full
