@@ -48,6 +48,7 @@ jobs:
       build_msi: true
       build_nuget: true
       build_options: /p:ReleaseJIT='True'
+      configurations: '["Debug", "FuzzerDebug", "Release"]'
 
   # Perform the native-only build.
   regular_native-only:
@@ -64,17 +65,6 @@ jobs:
     uses: ./.github/workflows/reusable-cmake-build.yml
     with:
       build_artifact: Build-x64-cmake
-
-  # Perform the libfuzzer build.
-  libfuzzer:
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      build_artifact: Build-x64-fuzzer
-      cxx_flags: /fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /ZH:SHA_256
-      ld_flags: '"clang_rt.fuzzer_MD-x86_64.lib" "libsancov.lib"'
-      build_options: /p:Fuzzer='True' /t:tests\libfuzzer\execution_context_fuzzer /t:tests\libfuzzer\bpf2c_fuzzer /t:tests\libfuzzer\verifier_fuzzer /t:tests\libfuzzer\core_helper_fuzzer /t:tests\libfuzzer\netebpfext_fuzzer
 
   # Run the unit tests in GitHub.
   unit_tests:
@@ -192,7 +182,7 @@ jobs:
       build_options: /p:AddressSanitizer='True'
 
   bpf2c_fuzzer:
-    needs: libfuzzer
+    needs: regular
     if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -202,9 +192,10 @@ jobs:
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
+      configurations: '["FuzzerDebug"]'
 
   bpf2c_fuzzer_scheduled:
-    needs: libfuzzer
+    needs: regular
     if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -214,9 +205,10 @@ jobs:
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
+      configurations: '["FuzzerDebug"]'
 
   execution_context_fuzzer:
-    needs: libfuzzer
+    needs: regular
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
@@ -227,10 +219,11 @@ jobs:
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
+      configurations: '["FuzzerDebug"]'
 
   # Run the verifier fuzzer.
   verifier_fuzzer:
-    needs: libfuzzer
+    needs: regular
     # Always run this job.
     if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
@@ -241,9 +234,10 @@ jobs:
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
+      configurations: '["FuzzerDebug"]'
 
   verifier_fuzzer_scheduled:
-    needs: libfuzzer
+    needs: regular
     # Always run this job.
     if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
@@ -254,9 +248,10 @@ jobs:
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
+      configurations: '["FuzzerDebug"]'
 
   core_helper_fuzzer:
-    needs: libfuzzer
+    needs: regular
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
@@ -267,9 +262,10 @@ jobs:
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
+      configurations: '["FuzzerDebug"]'
 
   netebpfext_fuzzer:
-    needs: libfuzzer
+    needs: regular
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
@@ -280,6 +276,7 @@ jobs:
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
+      configurations: '["FuzzerDebug"]'
 
   # Run Cilium regression tests in GitHub.
   cilium_tests:

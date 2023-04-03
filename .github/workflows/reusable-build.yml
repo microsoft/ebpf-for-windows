@@ -34,6 +34,10 @@ on:
       ld_flags:
         required: false
         type: string
+      configurations:
+        required: false
+        type: string
+        default: '["Debug", "Release"]'
 
 permissions:
   contents: read
@@ -45,7 +49,7 @@ jobs:
 
     strategy:
       matrix:
-        configurations: [Debug, FuzzerDebug, Release]
+        configurations: ${{ fromJSON(inputs.configurations) }}
     runs-on: windows-2022
     env:
       # Path to the solution file relative to the root of the project.
