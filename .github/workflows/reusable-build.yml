@@ -45,7 +45,7 @@ jobs:
 
     strategy:
       matrix:
-        configurations: [Debug, Release]
+        configurations: [Debug, FuzzerDebug, Release]
     runs-on: windows-2022
     env:
       # Path to the solution file relative to the root of the project.

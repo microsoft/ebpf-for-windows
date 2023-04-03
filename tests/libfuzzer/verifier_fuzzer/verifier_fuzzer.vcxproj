@@ -81,7 +81,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>mincore.lib;;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -117,6 +117,9 @@
     <ProjectReference Include="..\..\..\libs\api_common\api_common.vcxproj">
       <Project>{e79382b2-fed9-4cd4-9498-dbddd6c46c91}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\libs\elf_spec\elf_spec.vcxproj">
+      <Project>{c3d2cd73-bf4c-47df-8808-2a9996124d5b}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\libs\pe-parse\pe-parse.vcxproj">
       <Project>{fe4fea79-bfbb-4822-abcb-0d3beea240a7}</Project>
     </ProjectReference>
@@ -125,9 +128,6 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\libs\service\service.vcxproj">
       <Project>{af85c549-57cc-40a5-bdfc-dcf1998de80f}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\libs\spec\spec.vcxproj">
-      <Project>{c3d2cd73-bf4c-47df-8808-2a9996124d5b}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\libs\ubpf\user\ubpf_user.vcxproj">
       <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>
