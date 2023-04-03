@@ -373,7 +373,8 @@ ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
     }
 
     general_helper_program_data = (ebpf_program_data_t*)program->general_helper_provider_data->data;
-    if (general_helper_program_data->program_type_specific_helper_function_addresses == NULL) {
+    if (!general_helper_program_data ||
+        general_helper_program_data->program_type_specific_helper_function_addresses == NULL) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,

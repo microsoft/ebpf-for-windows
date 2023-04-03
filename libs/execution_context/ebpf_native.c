@@ -361,7 +361,7 @@ _ebpf_native_provider_attach_client_callback(
         goto Done;
     }
     table = (metadata_table_t*)client_registration_instance->NpiSpecificCharacteristics;
-    if (!table->programs || !table->maps) {
+    if (!table || !table->programs || !table->maps) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
