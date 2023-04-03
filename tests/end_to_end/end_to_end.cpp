@@ -1968,8 +1968,6 @@ _wrong_map_reuse_test(ebpf_execution_type_t execution_type)
     // Try to load the program.  This should fail because the maps can't be reused.
     REQUIRE(bpf_object__load(object.get()) == -EINVAL);
 
-    bpf_object__close(object.release());
-
     Platform::_close(outer_map_fd);
     Platform::_close(inner_map_fd);
     Platform::_close(port_map_fd);
