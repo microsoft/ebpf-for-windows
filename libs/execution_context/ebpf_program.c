@@ -256,7 +256,7 @@ _ebpf_program_free(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
     EBPF_RETURN_VOID();
 }
 
-static const ebpf_program_type_t*
+static ebpf_program_type_t
 _ebpf_program_get_program_type(_In_ const ebpf_core_object_t* object)
 {
     return ebpf_program_type_uuid((const ebpf_program_t*)object);
@@ -553,25 +553,22 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-_Ret_notnull_ const ebpf_program_parameters_t*
-ebpf_program_get_parameters(_In_ const ebpf_program_t* program)
-{
-    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
-    const ebpf_program_parameters_t* parameters = &program->parameters;
-    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
-    return parameters;
-}
-
-_Ret_notnull_ const ebpf_program_type_t*
+_Ret_notnull_ const ebpf_program_type_t
 ebpf_program_type_uuid(_In_ const ebpf_program_t* program)
 {
-    return &ebpf_program_get_parameters(program)->program_type;
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    ebpf_program_type_t return_value = program->parameters.program_type;
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return return_value;
 }
 
-_Ret_notnull_ const ebpf_attach_type_t*
+_Ret_notnull_ const ebpf_attach_type_t
 ebpf_expected_attach_type(_In_ const ebpf_program_t* program)
 {
-    return &ebpf_program_get_parameters(program)->expected_attach_type;
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    ebpf_attach_type_t return_value = program->parameters.expected_attach_type;
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return return_value;
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -1470,8 +1467,8 @@ ebpf_program_get_info(
     output_info->nr_map_ids = program->count_of_maps;
     output_info->map_ids = (uintptr_t)map_ids;
     output_info->type = _ebpf_program_get_bpf_prog_type(program);
-    output_info->type_uuid = *ebpf_program_type_uuid(program);
-    output_info->attach_type_uuid = *ebpf_expected_attach_type(program);
+    output_info->type_uuid = ebpf_program_type_uuid(program);
+    output_info->attach_type_uuid = ebpf_expected_attach_type(program);
     output_info->pinned_path_count = program->object.pinned_path_count;
     output_info->link_count = program->link_count;
 

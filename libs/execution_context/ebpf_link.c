@@ -166,18 +166,18 @@ _ebpf_link_extension_changed_callback(
         goto Done;
     }
 
-    const ebpf_program_type_t* program_type = ebpf_program_type_uuid(link->program);
+    ebpf_program_type_t program_type = ebpf_program_type_uuid(link->program);
     ebpf_attach_provider_data_t* attach_provider_data = (ebpf_attach_provider_data_t*)provider_data->data;
 
     if (memcmp(
-            program_type,
+            &program_type,
             &attach_provider_data->supported_program_type,
             sizeof(attach_provider_data->supported_program_type)) != 0) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_LINK,
             "Attach failed due to incorrect program type",
-            *program_type);
+            program_type);
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
