@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+// Include winsock2.h to avoid including ws2def.h.
+// This needs to be before any header that pulls in windows.h.
+#include "winsock2.h"
+
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "libfuzzer.h"
@@ -69,6 +73,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
+    ebpf_watchdog_timer_t watchdog_timer;
+
     if (size < sizeof(netebpfext_fuzzer_metadata_t)) {
         return 0;
     }

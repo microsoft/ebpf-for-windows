@@ -25,6 +25,7 @@ namespace ebpf {
 #include "program_helper.h"
 #include "sample_test_common.h"
 #include "test_helper.hpp"
+#include "watchdog.h"
 #include "xdp_tests_common.h"
 
 #include <WinSock2.h>
@@ -39,6 +40,7 @@ namespace ebpf {
 using namespace Platform;
 
 CATCH_REGISTER_LISTENER(_passed_test_log)
+CATCH_REGISTER_LISTENER(_watchdog)
 
 #define NATIVE_DRIVER_SERVICE_NAME L"test_service"
 #define NATIVE_DRIVER_SERVICE_NAME_2 L"test_service2"
