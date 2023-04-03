@@ -71,8 +71,7 @@ typedef struct _ebpf_epoch_state
 
 // Number of reserved entries in the thread table.
 // One for the current thread running at DISPATCH_LEVEL.
-// One for the current thread running at APC_LEVEL.
-#define EBPF_EPOCH_THREAD_TABLE_RESERVED_COUNT 2
+#define EBPF_EPOCH_THREAD_TABLE_RESERVED_COUNT 1
 
 // Table to track per CPU state.
 // This table must fit into a multiple of EBPF_CACHE_LINE_SIZE.
@@ -90,7 +89,8 @@ typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
     _Guarded_by_(lock) int timer_disabled : 1;
 } ebpf_epoch_cpu_entry_t;
 
-C_ASSERT(sizeof(ebpf_epoch_cpu_entry_t) % EBPF_CACHE_LINE_SIZE == 0); // Verify alignment.
+C_ASSERT(sizeof(ebpf_epoch_cpu_entry_t) % EBPF_CACHE_LINE_SIZE == 0);            // Verify alignment.
+C_ASSERT(EBPF_EPOCH_THREAD_TABLE_SIZE > EBPF_EPOCH_THREAD_TABLE_RESERVED_COUNT); // Verify that the reserved count fits.
 
 static _Writable_elements_(_ebpf_epoch_cpu_count) ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;
 static uint32_t _ebpf_epoch_cpu_count = 0;
