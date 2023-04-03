@@ -553,7 +553,7 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-_Ret_notnull_ const ebpf_program_type_t
+ebpf_program_type_t
 ebpf_program_type_uuid(_In_ const ebpf_program_t* program)
 {
     ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
@@ -562,7 +562,7 @@ ebpf_program_type_uuid(_In_ const ebpf_program_t* program)
     return return_value;
 }
 
-_Ret_notnull_ const ebpf_attach_type_t
+ebpf_attach_type_t
 ebpf_expected_attach_type(_In_ const ebpf_program_t* program)
 {
     ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);

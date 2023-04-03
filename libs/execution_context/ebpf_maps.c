@@ -241,7 +241,7 @@ Done:
     return return_value;
 }
 
-_Ret_notnull_ static const ebpf_program_type_t
+static ebpf_program_type_t
 _get_map_program_type(_In_ const ebpf_core_object_t* object)
 {
     const ebpf_core_object_map_t* map = (const ebpf_core_object_map_t*)object;
