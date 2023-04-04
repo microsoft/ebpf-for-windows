@@ -188,7 +188,7 @@ jobs:
     with:
       name: bpf2c_fuzzer
       test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=300 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64-fuzzer
+      build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
@@ -201,7 +201,7 @@ jobs:
     with:
       name: bpf2c_fuzzer
       test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64-fuzzer
+      build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
@@ -215,7 +215,7 @@ jobs:
     with:
       name: execution_context_fuzzer
       test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64-fuzzer
+      build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
@@ -230,7 +230,7 @@ jobs:
     with:
       name: verifier_fuzzer
       test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=300 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64-fuzzer
+      build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
@@ -244,7 +244,7 @@ jobs:
     with:
       name: verifier_fuzzer
       test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64-fuzzer
+      build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
@@ -258,7 +258,7 @@ jobs:
     with:
       name: core_helper_fuzzer
       test_command: .\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64-fuzzer
+      build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
@@ -272,7 +272,7 @@ jobs:
     with:
       name: netebpfext_fuzzer
       test_command: .\netebpfext_fuzzer netebpfext_corpus -max_len=12 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64-fuzzer
+      build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
       gather_dumps: true
