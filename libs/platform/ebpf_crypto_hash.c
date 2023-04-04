@@ -69,6 +69,7 @@ ebpf_cryptographic_hash_append(
     _Inout_ ebpf_cryptographic_hash_t* hash, _In_reads_bytes_(length) const uint8_t* buffer, size_t length)
 {
     NTSTATUS nt_status;
+
     nt_status = BCryptHashData(hash->hash_handle, (uint8_t*)buffer, (unsigned long)length, 0);
     if (!NT_SUCCESS(nt_status)) {
         return EBPF_INVALID_ARGUMENT;
