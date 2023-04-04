@@ -157,9 +157,11 @@ _nmr::client_attach_provider(
 std::optional<_nmr::pending_action_t>
 _nmr::bind(_Inout_ client_registration& client, _Inout_ provider_registration& provider)
 {
+    PNPIID client_pnpi = client.characteristics.ClientRegistrationInstance.NpiId;
+    PNPIID provider_pnpi = provider.characteristics.ProviderRegistrationInstance.NpiId;
+
     // Match on NPI ID.
-    if (*client.characteristics.ClientRegistrationInstance.NpiId !=
-        *provider.characteristics.ProviderRegistrationInstance.NpiId) {
+    if (!client_pnpi || !provider_pnpi || *client_pnpi != *provider_pnpi) {
         return std::nullopt;
     }
 
