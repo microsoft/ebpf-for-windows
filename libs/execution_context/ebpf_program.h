@@ -95,7 +95,7 @@ extern "C"
      * @brief Get the original section name of the program.
      *
      * @param[in] program The program instance.
-     * @param section_name The section name of the program. Caller must free this.
+     * @param[out] section_name The section name of the program. Caller must free this.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources.
      */
