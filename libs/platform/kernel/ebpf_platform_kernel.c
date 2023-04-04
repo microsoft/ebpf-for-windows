@@ -384,13 +384,13 @@ ebpf_lock_destroy(_In_ _Post_invalid_ ebpf_lock_t* lock)
 _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
     _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
 {
-    return KeAcquireSpinLockRaiseToDpc((KSPIN_LOCK*)lock);
+    return KeAcquireSpinLockRaiseToDpc(lock);
 }
 
 _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
     _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
-    KeReleaseSpinLock((KSPIN_LOCK*)lock, state);
+    KeReleaseSpinLock(lock, state);
 }
 
 _Must_inspect_result_ ebpf_result_t
