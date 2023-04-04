@@ -2316,7 +2316,7 @@ ebpf_core_invoke_protocol_handler(
     _In_opt_ void (*on_complete)(_Inout_ void*, size_t, ebpf_result_t))
 {
     ebpf_result_t retval;
-    bool epoch_entered = false;
+    ebpf_epoch_state_t* epoch_state = NULL;
     ebpf_protocol_handler_t* handler = &_ebpf_protocol_handlers[operation_id];
     ebpf_operation_header_t* request = (ebpf_operation_header_t*)input_buffer;
     ebpf_operation_header_t* reply = (ebpf_operation_header_t*)output_buffer;
@@ -2393,9 +2393,8 @@ ebpf_core_invoke_protocol_handler(
         goto Done;
     }
 
-    ebpf_epoch_enter();
+    epoch_state = ebpf_epoch_enter();
     retval = EBPF_SUCCESS;
-    epoch_entered = true;
 
     switch (handler->call_type) {
     case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY:
@@ -2457,8 +2456,8 @@ ebpf_core_invoke_protocol_handler(
     }
 
 Done:
-    if (epoch_entered) {
-        ebpf_epoch_exit();
+    if (epoch_state) {
+        ebpf_epoch_exit(epoch_state);
     }
     return retval;
 }
@@ -2466,9 +2465,9 @@ Done:
 bool
 ebpf_core_cancel_protocol_handler(_Inout_ void* async_context)
 {
-    ebpf_epoch_enter();
+    ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
     bool return_value = ebpf_async_cancel(async_context);
-    ebpf_epoch_exit();
+    ebpf_epoch_exit(epoch_state);
     return return_value;
 }
 
@@ -2479,10 +2478,10 @@ ebpf_core_close_context(_In_opt_ void* context)
         return;
     }
 
-    ebpf_epoch_enter();
+    ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
 
     ebpf_core_object_t* object = (ebpf_core_object_t*)context;
     object->base.release_reference(object);
 
-    ebpf_epoch_exit();
+    ebpf_epoch_exit(epoch_state);
 }

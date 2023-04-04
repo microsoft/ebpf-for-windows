@@ -1738,7 +1738,7 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     uintptr_t old_thread_affinity;
     size_t batch_size = options->batch_size ? options->batch_size : 1024;
     ebpf_execution_context_state_t execution_context_state = {0};
-    bool epoch_entered = false;
+    ebpf_epoch_state_t* epoch_state = NULL;
     bool irql_raised = false;
     bool thread_affinity_set = false;
 
@@ -1751,8 +1751,7 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     old_irql = ebpf_raise_irql(context->required_irql);
     irql_raised = true;
 
-    ebpf_epoch_enter();
-    epoch_entered = true;
+    epoch_state = ebpf_epoch_enter();
 
     ebpf_get_execution_context_state(&execution_context_state);
 
@@ -1764,8 +1763,8 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
         }
         // Start a new epoch every batch_size iterations.
         if ((i % batch_size == (batch_size - 1))) {
-            ebpf_epoch_exit();
-            ebpf_epoch_enter();
+            ebpf_epoch_exit(epoch_state);
+            epoch_state = ebpf_epoch_enter();
         }
         ebpf_program_invoke(context->program, context->context, &return_value, &execution_context_state);
         if (ebpf_should_yield_processor()) {
@@ -1794,8 +1793,8 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     options->return_value = return_value;
 
 Done:
-    if (epoch_entered) {
-        ebpf_epoch_exit();
+    if (epoch_state) {
+        ebpf_epoch_exit(epoch_state);
     }
 
     if (irql_raised) {
