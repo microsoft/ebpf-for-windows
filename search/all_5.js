@@ -176,11 +176,12 @@ var searchData=
   ['ece_561',['ece',['../structtcphdr.html#a44a015cc627ec83e9421d4f0c9ccc624',1,'tcphdr']]],
   ['ecnfield_562',['EcnField',['../struct___i_p_v4___h_e_a_d_e_r.html#a8fc4885230de61f6732bb0e6ebbb6fd3',1,'_IPV4_HEADER']]],
   ['elfio_5fwrapper_2ehpp_563',['elfio_wrapper.hpp',['../elfio__wrapper_8hpp.html',1,'']]],
-  ['errno_2eh_564',['errno.h',['../errno_8h.html',1,'']]],
-  ['eth_5fp_5fip_565',['ETH_P_IP',['../net_2if__ether_8h.html#ae69e06f5a06069aa0d783064c6f85a2b',1,'if_ether.h']]],
-  ['ethernet_5fheader_566',['ETHERNET_HEADER',['../net_2if__ether_8h.html#a1fde3e40112a3b51e40754a129d6447a',1,'if_ether.h']]],
-  ['ethernet_5ftype_5fipv4_567',['ETHERNET_TYPE_IPV4',['../net_2if__ether_8h.html#a70a0def48ee0a3cb7717425a27eddec2',1,'if_ether.h']]],
-  ['ethernet_5ftype_5fipv6_568',['ETHERNET_TYPE_IPV6',['../net_2if__ether_8h.html#aa875742ef8f9160fd0ce0cccbcc5905a',1,'if_ether.h']]],
-  ['ethhdr_569',['ethhdr',['../net_2if__ether_8h.html#a4282cf4a78f4312984092cb422fa453f',1,'if_ether.h']]],
-  ['expected_5fattach_5ftype_570',['expected_attach_type',['../struct__ebpf__section__info.html#a87a09840155032d1b71a9c9b35cb9c89',1,'_ebpf_section_info::expected_attach_type()'],['../struct__program__entry.html#a8bec8c2bc3d2b71f16ca3bfe06dd24ef',1,'_program_entry::expected_attach_type()'],['../structbpf__load__program__attr.html#a51fa3bedac316d17bdbfd4039ecf41c2',1,'bpf_load_program_attr::expected_attach_type()']]]
+  ['epoch_5fstate_564',['epoch_state',['../struct__ebpf__execution__context__state.html#a46f2763caf6d9ac58f8252f820681157',1,'_ebpf_execution_context_state']]],
+  ['errno_2eh_565',['errno.h',['../errno_8h.html',1,'']]],
+  ['eth_5fp_5fip_566',['ETH_P_IP',['../net_2if__ether_8h.html#ae69e06f5a06069aa0d783064c6f85a2b',1,'if_ether.h']]],
+  ['ethernet_5fheader_567',['ETHERNET_HEADER',['../net_2if__ether_8h.html#a1fde3e40112a3b51e40754a129d6447a',1,'if_ether.h']]],
+  ['ethernet_5ftype_5fipv4_568',['ETHERNET_TYPE_IPV4',['../net_2if__ether_8h.html#a70a0def48ee0a3cb7717425a27eddec2',1,'if_ether.h']]],
+  ['ethernet_5ftype_5fipv6_569',['ETHERNET_TYPE_IPV6',['../net_2if__ether_8h.html#aa875742ef8f9160fd0ce0cccbcc5905a',1,'if_ether.h']]],
+  ['ethhdr_570',['ethhdr',['../net_2if__ether_8h.html#a4282cf4a78f4312984092cb422fa453f',1,'if_ether.h']]],
+  ['expected_5fattach_5ftype_571',['expected_attach_type',['../struct__ebpf__section__info.html#a87a09840155032d1b71a9c9b35cb9c89',1,'_ebpf_section_info::expected_attach_type()'],['../struct__program__entry.html#a8bec8c2bc3d2b71f16ca3bfe06dd24ef',1,'_program_entry::expected_attach_type()'],['../structbpf__load__program__attr.html#a51fa3bedac316d17bdbfd4039ecf41c2',1,'bpf_load_program_attr::expected_attach_type()']]]
 ];
