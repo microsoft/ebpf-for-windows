@@ -4,6 +4,9 @@
 # This is the top-level workflow that runs on each pull request and push to main.
 # It invokes other jobs to perform builds and run tests.
 # All jobs run in parallel, using build artifacts to synchronize jobs.
+#
+# If you add or remove any tests that use reusable-test.yml on a pull request,
+# you must update codecov.yml to match.
 
 name: CI/CD
 
