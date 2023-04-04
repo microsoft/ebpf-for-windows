@@ -153,11 +153,7 @@ class _ebpf_emulated_dpc
             ebpf_non_preemptible = true;
             std::unique_lock<std::mutex> l(mutex);
             uintptr_t old_thread_affinity;
-            bool ebpf_fault_injection_enabled = ebpf_fault_injection_is_enabled();
-
-            ebpf_assert(
-                ebpf_set_current_thread_affinity(1ull << i, &old_thread_affinity) == EBPF_SUCCESS ||
-                ebpf_fault_injection_enabled);
+            ebpf_assert_success(ebpf_set_current_thread_affinity(1ull << i, &old_thread_affinity));
             SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
             for (;;) {
                 if (terminate) {
@@ -320,9 +316,7 @@ ebpf_platform_initiate()
         _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
         auto fault_injection_stack_depth =
             _get_environment_variable_as_size_t(EBPF_FAULT_INJECTION_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
-        // fault_injection_stack_depth = 4;
         auto leak_detector = _get_environment_variable_as_bool(EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME);
-        // leak_detector = true;
         if (fault_injection_stack_depth || leak_detector) {
             _ebpf_symbol_decoder_initialize();
         }
@@ -829,10 +823,6 @@ ebpf_query_time_since_boot(bool include_suspended_time)
 _Must_inspect_result_ ebpf_result_t
 ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
 {
-    if (ebpf_fault_injection_is_enabled() && ebpf_fault_injection_inject_fault()) {
-        return EBPF_NO_MEMORY;
-    }
-
     uintptr_t old_mask = SetThreadAffinityMask(GetCurrentThread(), new_thread_affinity_mask);
     if (old_mask == 0) {
         unsigned long error = GetLastError();
