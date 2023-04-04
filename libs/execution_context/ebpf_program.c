@@ -1947,8 +1947,8 @@ ebpf_program_get_program_section_name(_In_ const ebpf_program_t* program, _Out_ 
 ebpf_code_type_t
 ebpf_program_get_code_type(_In_ const ebpf_program_t* program)
 {
-    ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
     ebpf_code_type_t code_type = program->parameters.code_type;
-    ebpf_lock_unlock(&program->lock, state);
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
     return code_type;
 }
