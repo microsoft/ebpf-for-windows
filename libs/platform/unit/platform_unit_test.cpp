@@ -551,27 +551,32 @@ TEST_CASE("trampoline_test", "[platform]")
     const void* helper_functions2[] = {(void*)function_pointer2};
     ebpf_helper_function_addresses_t helper_function_addresses2 = {
         EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions2};
+    ebpf_result_t status;
 
     REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
-    REQUIRE(
-        ebpf_update_trampoline_table(
-            table,
-            EBPF_COUNT_OF(provider_helper_function_ids),
-            provider_helper_function_ids,
-            &helper_function_addresses1) == EBPF_SUCCESS);
-    REQUIRE(
-        ebpf_get_trampoline_function(
-            table, EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
+
+    status = ebpf_update_trampoline_table(
+        table, EBPF_COUNT_OF(provider_helper_function_ids), provider_helper_function_ids, &helper_function_addresses1);
+    if (status != EBPF_SUCCESS) {
+        ebpf_free_trampoline_table(table);
+    }
+    REQUIRE(status == EBPF_SUCCESS);
+
+    status = ebpf_get_trampoline_function(
+        table, EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function));
+    if (status != EBPF_SUCCESS) {
+        ebpf_free_trampoline_table(table);
+    }
 
     // Verify that the trampoline function invokes the provider function
     REQUIRE(test_function() == EBPF_SUCCESS);
 
-    REQUIRE(
-        ebpf_update_trampoline_table(
-            table,
-            EBPF_COUNT_OF(provider_helper_function_ids),
-            provider_helper_function_ids,
-            &helper_function_addresses2) == EBPF_SUCCESS);
+    status = ebpf_update_trampoline_table(
+        table, EBPF_COUNT_OF(provider_helper_function_ids), provider_helper_function_ids, &helper_function_addresses2);
+    if (status != EBPF_SUCCESS) {
+        ebpf_free_trampoline_table(table);
+    }
+    REQUIRE(status == EBPF_SUCCESS);
 
     // Verify that the trampoline function now invokes the new provider function
     REQUIRE(test_function() == EBPF_OBJECT_ALREADY_EXISTS);

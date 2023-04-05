@@ -57,11 +57,6 @@ static std::vector<uint32_t> _ebpf_platform_group_to_index_map;
 static ebpf_result_t
 _initialize_thread_pool()
 {
-    // CreateThreadpoolCleanupGroup can return nullptr.
-    if (ebpf_fault_injection_is_enabled() && ebpf_fault_injection_inject_fault()) {
-        return EBPF_NO_MEMORY;
-    }
-
     ebpf_result_t result = EBPF_SUCCESS;
     bool cleanup_group_created = false;
     bool return_value;
@@ -504,7 +499,6 @@ ebpf_memory_descriptor_t*
 ebpf_map_memory(size_t length)
 {
     // Skip fault injection for this VirtualAlloc OS API, as ebpf_allocate already does that.
-
     ebpf_memory_descriptor_t* descriptor = (ebpf_memory_descriptor_t*)ebpf_allocate(sizeof(ebpf_memory_descriptor_t));
     if (!descriptor) {
         return nullptr;
@@ -548,7 +542,6 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     void* view2 = nullptr;
 
     // Skip fault injection for this VirtualAlloc2 OS API, as ebpf_allocate already does that.
-
     GetSystemInfo(&sysInfo);
 
     if (length == 0) {
