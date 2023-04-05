@@ -503,10 +503,7 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 ebpf_memory_descriptor_t*
 ebpf_map_memory(size_t length)
 {
-    // VirtualAlloc OS API can return nullptr.
-    if (ebpf_fault_injection_inject_fault()) {
-        return nullptr;
-    }
+    // Skip fault injection for this VirtualAlloc OS API, as ebpf_allocate already does that.
 
     ebpf_memory_descriptor_t* descriptor = (ebpf_memory_descriptor_t*)ebpf_allocate(sizeof(ebpf_memory_descriptor_t));
     if (!descriptor) {
