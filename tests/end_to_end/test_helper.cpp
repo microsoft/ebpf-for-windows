@@ -707,15 +707,28 @@ _test_helper_libbpf::_test_helper_libbpf()
 {
     ebpf_clear_thread_local_storage();
 
-    xdp_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_XDP);
-    xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    try {
+        xdp_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_XDP);
+        xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
 
-    bind_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_BIND);
-    bind_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+        bind_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_BIND);
+        bind_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
-    cgroup_sock_addr_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
-    cgroup_inet4_connect_hook =
-        new single_instance_hook_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
+        cgroup_sock_addr_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
+        cgroup_inet4_connect_hook =
+            new single_instance_hook_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
+    } catch (...) {
+        delete xdp_hook;
+        delete xdp_program_info;
+
+        delete bind_hook;
+        delete bind_program_info;
+
+        delete cgroup_inet4_connect_hook;
+        delete cgroup_sock_addr_program_info;
+
+        throw;
+    }
 }
 
 _test_helper_libbpf::~_test_helper_libbpf()
