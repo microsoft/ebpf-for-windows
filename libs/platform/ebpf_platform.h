@@ -304,6 +304,14 @@ extern "C"
     ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source);
 
     /**
+     * @brief Free a UTF-8 string allocated by ebpf_duplicate_utf8_string.
+     *
+     * @param[in,out] string The string to free.
+     */
+    void
+    ebpf_utf8_string_free(_Inout_ ebpf_utf8_string_t* string);
+
+    /**
      * @brief Duplicate a null-terminated string.
      *
      * @param[in] source String to duplicate.
