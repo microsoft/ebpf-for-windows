@@ -321,6 +321,9 @@ ebpf_epoch_enter()
         // Block until a thread entry is available.
         ebpf_semaphore_wait(_ebpf_epoch_cpu_table[current_cpu].epoch_table_semaphore);
         // After the semaphore is acquired, then there is at least 1 available epoch entry.
+
+        // Prevent APCs from running.
+        ebpf_enter_critical_region();
     }
 
     // If the current thread is not preemptible, then there is at least 1 available epoch entry.
@@ -369,6 +372,10 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
     }
 
     if (is_preemptible) {
+        // Allow APCs to run.
+        ebpf_leave_critical_region();
+
+        // Release the thread entry.
         ebpf_semaphore_release(_ebpf_epoch_cpu_table[current_cpu].epoch_table_semaphore);
     }
 }

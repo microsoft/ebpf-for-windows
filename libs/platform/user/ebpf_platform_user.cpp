@@ -1306,3 +1306,15 @@ ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore)
 {
     ReleaseSemaphore(semaphore->semaphore, 1, nullptr);
 }
+
+void
+ebpf_enter_critical_region()
+{
+    // This is a no-op for the user mode implementation.
+}
+
+void
+ebpf_leave_critical_region()
+{
+    // This is a no-op for the user mode implementation.
+}

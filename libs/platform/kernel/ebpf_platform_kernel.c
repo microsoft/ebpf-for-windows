@@ -872,3 +872,15 @@ ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore)
 {
     KeReleaseSemaphore(&semaphore->semaphore, 0, 1, FALSE);
 }
+
+void
+ebpf_enter_critical_region()
+{
+    KeEnterCriticalRegion();
+}
+
+void
+ebpf_leave_critical_region()
+{
+    KeLeaveCriticalRegion();
+}
