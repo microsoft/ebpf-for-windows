@@ -143,6 +143,7 @@ typedef struct _ebpf_epoch_work_item
     ebpf_epoch_allocation_header_t header;
     void* callback_context;
     const void (*callback)(_Inout_ void* context);
+    ebpf_preemptible_work_item_t* preemptible_work_item;
 } ebpf_epoch_work_item_t;
 
 /**
@@ -452,6 +453,12 @@ ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ const void (*cal
     work_item->callback_context = callback_context;
     work_item->header.entry_type = EBPF_EPOCH_ALLOCATION_WORK_ITEM;
 
+    if (ebpf_allocate_preemptible_work_item(
+            &work_item->preemptible_work_item, work_item->callback, work_item->callback_context) != EBPF_SUCCESS) {
+        ebpf_free(work_item);
+        return NULL;
+    }
+
     return work_item;
 }
 
@@ -548,7 +555,7 @@ _ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t
             break;
         case EBPF_EPOCH_ALLOCATION_WORK_ITEM: {
             ebpf_epoch_work_item_t* work_item = CONTAINING_RECORD(header, ebpf_epoch_work_item_t, header);
-            work_item->callback(work_item->callback_context);
+            ebpf_queue_preemptible_work_item(work_item->preemptible_work_item);
             break;
         }
         }
