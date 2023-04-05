@@ -57,7 +57,7 @@ static std::vector<uint32_t> _ebpf_platform_group_to_index_map;
 static ebpf_result_t
 _initialize_thread_pool()
 {
-    // CreateThreadpoolCleanupGroup can return nullptr
+    // CreateThreadpoolCleanupGroup can return nullptr.
     if (ebpf_fault_injection_is_enabled() && ebpf_fault_injection_inject_fault()) {
         return EBPF_NO_MEMORY;
     }
@@ -503,7 +503,7 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 ebpf_memory_descriptor_t*
 ebpf_map_memory(size_t length)
 {
-    // VirtualAlloc OS api can return NULL
+    // VirtualAlloc OS API can return nullptr.
     if (ebpf_fault_injection_inject_fault()) {
         return nullptr;
     }
@@ -550,10 +550,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     void* view1 = nullptr;
     void* view2 = nullptr;
 
-    // VirtualAlloc2 OS api can return NULL
-    if (ebpf_fault_injection_inject_fault()) {
-        return nullptr;
-    }
+    // Skip fault injection for this VirtualAlloc2 OS API, as ebpf_allocate already does that.
 
     GetSystemInfo(&sysInfo);
 
@@ -708,7 +705,7 @@ ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
 _Must_inspect_result_ ebpf_result_t
 ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
-    // VirtualProtect OS api can return NULL
+    // VirtualProtect OS API can return nullptr.
     if (ebpf_fault_injection_inject_fault()) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }

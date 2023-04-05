@@ -6,7 +6,6 @@
 #include "ebpf_async.h"
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
-#include "ebpf_fault_injection.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_platform.h"
@@ -486,9 +485,8 @@ TEST_CASE("extension_test", "[platform]")
     ebpf_extension_provider_t* provider_context = nullptr;
     ebpf_extension_client_t* client_context = nullptr;
     void* provider_binding_context = nullptr;
-    bool ebpf_fault_injection_enabled = ebpf_fault_injection_is_enabled();
 
-    ebpf_assert(ebpf_guid_create(&interface_id) == EBPF_SUCCESS || ebpf_fault_injection_enabled);
+    REQUIRE(ebpf_guid_create(&interface_id) == EBPF_SUCCESS);
     int callback_context = 0;
     int client_binding_context = 0;
     GUID client_module_id = {};
