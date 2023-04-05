@@ -1,10 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// Include winsock2.h to avoid including ws2def.h.
-// This needs to be before any header that pulls in windows.h.
-#include "winsock2.h"
-
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "libfuzzer.h"

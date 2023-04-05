@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+// Winsock2 must be included before windows.h.
+#include <winsock2.h>
 #include <windows.h>
 
 #define FILETIME_TICKS_PER_SECOND 10000000LL        // 100 nanoseconds per tick
