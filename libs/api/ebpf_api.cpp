@@ -1040,6 +1040,7 @@ _link_ebpf_program(
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
     new_link->handle = ebpf_handle_invalid;
+    new_link->fd = ebpf_fd_invalid;
 
     try {
         size_t buffer_size = offsetof(ebpf_operation_link_program_request_t, data) + attach_parameter_size;
