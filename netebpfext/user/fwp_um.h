@@ -171,9 +171,9 @@ typedef class _fwp_engine
         return return_value;
     }
 
-    _Requires_lock_not_held_(this->lock) void add_fwpm_provider(_In_ const FWPM_PROVIDER* sub_layer)
+    _Requires_lock_not_held_(this->lock) void add_fwpm_provider(_In_ const FWPM_PROVIDER* provider)
     {
-        UNREFERENCED_PARAMETER(sub_layer);
+        UNREFERENCED_PARAMETER(provider);
         return;
     }
 
