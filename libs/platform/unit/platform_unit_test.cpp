@@ -39,6 +39,19 @@ typedef struct _free_ebpf_pinning_table
 
 typedef std::unique_ptr<ebpf_pinning_table_t, free_ebpf_pinning_table_t> ebpf_pinning_table_ptr;
 
+typedef struct _free_trampoline_table
+{
+    void
+    operator()(_In_opt_ _Post_invalid_ ebpf_trampoline_table_t* table)
+    {
+        if (table != nullptr) {
+            ebpf_free_trampoline_table(table);
+        }
+    }
+} free_trampoline_table_t;
+
+typedef std::unique_ptr<ebpf_trampoline_table_t, free_trampoline_table_t> ebpf_trampoline_table_ptr;
+
 class _test_helper
 {
   public:
@@ -537,7 +550,7 @@ TEST_CASE("trampoline_test", "[platform]")
 {
     _test_helper test_helper;
 
-    ebpf_trampoline_table_t* table = NULL;
+    ebpf_trampoline_table_ptr table;
     ebpf_result_t (*test_function)();
     auto provider_function1 = []() { return EBPF_SUCCESS; };
     ebpf_result_t (*function_pointer1)() = provider_function1;
@@ -551,36 +564,35 @@ TEST_CASE("trampoline_test", "[platform]")
     const void* helper_functions2[] = {(void*)function_pointer2};
     ebpf_helper_function_addresses_t helper_function_addresses2 = {
         EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions2};
-    ebpf_result_t status = EBPF_SUCCESS;
+    ebpf_trampoline_table_t* local_table = nullptr;
 
-    REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
+    REQUIRE(ebpf_allocate_trampoline_table(1, &local_table) == EBPF_SUCCESS);
+    table.reset(local_table);
 
-    status = ebpf_update_trampoline_table(
-        table, EBPF_COUNT_OF(provider_helper_function_ids), provider_helper_function_ids, &helper_function_addresses1);
-    if (status != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    status = ebpf_get_trampoline_function(
-        table, EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function));
-    if (status != EBPF_SUCCESS) {
-        goto Exit;
-    }
+    REQUIRE(
+        ebpf_update_trampoline_table(
+            table.get(),
+            EBPF_COUNT_OF(provider_helper_function_ids),
+            provider_helper_function_ids,
+            &helper_function_addresses1) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_get_trampoline_function(
+            table.get(), EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) ==
+        EBPF_SUCCESS);
 
     // Verify that the trampoline function invokes the provider function.
     REQUIRE(test_function() == EBPF_SUCCESS);
 
-    status = ebpf_update_trampoline_table(
-        table, EBPF_COUNT_OF(provider_helper_function_ids), provider_helper_function_ids, &helper_function_addresses2);
-    if (status != EBPF_SUCCESS) {
-        goto Exit;
-    }
+    REQUIRE(
+        ebpf_update_trampoline_table(
+            table.get(),
+            EBPF_COUNT_OF(provider_helper_function_ids),
+            provider_helper_function_ids,
+            &helper_function_addresses2) == EBPF_SUCCESS);
 
     // Verify that the trampoline function now invokes the new provider function.
     REQUIRE(test_function() == EBPF_OBJECT_ALREADY_EXISTS);
-Exit:
-    ebpf_free_trampoline_table(table);
-    REQUIRE(status == EBPF_SUCCESS);
+    ebpf_free_trampoline_table(table.release());
 }
 
 struct ebpf_security_descriptor_t_free
