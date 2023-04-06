@@ -213,8 +213,8 @@ ebpf_extension_load(
     ebpf_result_t return_value;
     ebpf_extension_client_t* local_client_context = NULL;
     ebpf_extension_client_binding_context_t* local_client_binding_context = NULL;
-    NPI_CLIENT_CHARACTERISTICS* client_characteristics = NULL;
-    NPI_REGISTRATION_INSTANCE* client_registration_instance = NULL;
+    NPI_CLIENT_CHARACTERISTICS* client_characteristics;
+    NPI_REGISTRATION_INSTANCE* client_registration_instance;
     NTSTATUS status;
 
     if (provider_binding_context == NULL) {

@@ -76,10 +76,6 @@ ebpf_cryptographic_hash_append(
 {
     NTSTATUS nt_status;
 
-    if (buffer == NULL) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
     nt_status = BCryptHashData(hash->hash_handle, (uint8_t*)buffer, (unsigned long)length, 0);
     if (!NT_SUCCESS(nt_status)) {
         return EBPF_INVALID_ARGUMENT;
