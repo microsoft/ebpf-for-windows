@@ -17,7 +17,7 @@ This document covers generating signed PE files from eBPF programs in an automat
 eBPF programs start in a higher level language (like C) that is then compiled using the LLVM tool chain into an ELF
 file containing the definition for zero or more maps and one or more code segments containing eBPF byte code. eBPF For
 Windows uses the [PREVAIL verifier](https://github.com/vbpf/ebpf-verifier) to perform safety analysis of eBPF programs.
-The verifier accepts an eBPF program compiled into an Executable Linux Format (ELF) file and then returns a yes/no
+The verifier accepts an eBPF program compiled into an Executable and Linkable Format (ELF) file and then returns a yes/no
 response depending on whether it can prove the program is safe. The verified ELF file can then be used to generate a PE
 image that can be loaded and used as an eBPF program.
 
