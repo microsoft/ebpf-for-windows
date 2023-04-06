@@ -262,3 +262,12 @@ net_ebpf_ext_trace_terminate();
             goto Exit;                                                   \
         }                                                                \
     } while (false);
+
+#define NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(api, status)                                             \
+    do {                                                                                                 \
+        NTSTATUS local_status = (status);                                                                \
+        if (!NT_SUCCESS(local_status)) {                                                                 \
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, (api), (status)); \
+            goto Exit;                                                                                   \
+        }                                                                                                \
+    } while (false);
