@@ -473,6 +473,8 @@ fuzz_program(
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
+    ebpf_watchdog_timer_t watchdog_timer;
+
     // Get the program.
     fuzz_wrapper fuzz_state;
     netebpf_ext_helper_t helper;
