@@ -92,9 +92,6 @@ static ebpf_result_t
 _ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context);
 
 static ebpf_result_t
-_ebpf_program_register_helpers(_In_ const ebpf_program_t* program);
-
-static ebpf_result_t
 _ebpf_program_get_helper_function_address(
     _In_ const ebpf_program_t* program, const uint32_t helper_function_id, uint64_t* address);
 
@@ -259,7 +256,7 @@ _ebpf_program_free(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
     EBPF_RETURN_VOID();
 }
 
-static const ebpf_program_type_t*
+static ebpf_program_type_t
 _ebpf_program_get_program_type(_In_ const ebpf_core_object_t* object)
 {
     return ebpf_program_type_uuid((const ebpf_program_t*)object);
@@ -324,7 +321,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
 }
 
 static ebpf_result_t
-ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
+_ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
@@ -373,7 +370,8 @@ ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
     }
 
     general_helper_program_data = (ebpf_program_data_t*)program->general_helper_provider_data->data;
-    if (general_helper_program_data->program_type_specific_helper_function_addresses == NULL) {
+    if (!general_helper_program_data ||
+        general_helper_program_data->program_type_specific_helper_function_addresses == NULL) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
@@ -471,6 +469,9 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
     ebpf_utf8_string_t local_file_name = {NULL, 0};
     uint8_t* local_program_info_hash = NULL;
 
+    ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+    bool lock_held = true;
+
     if (program->parameters.code_type != EBPF_CODE_NONE) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -532,7 +533,10 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
     program->parameters.program_info_hash = local_program_info_hash;
     local_program_info_hash = NULL;
 
-    return_value = ebpf_program_load_providers(program);
+    ebpf_lock_unlock(&program->lock, state);
+    lock_held = false;
+
+    return_value = _ebpf_program_load_providers(program);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
@@ -544,25 +548,28 @@ Done:
     ebpf_free(local_program_name.value);
     ebpf_free(local_section_name.value);
     ebpf_free(local_file_name.value);
+    if (lock_held) {
+        ebpf_lock_unlock(&program->lock, state);
+    }
     EBPF_RETURN_RESULT(return_value);
 }
 
-_Ret_notnull_ const ebpf_program_parameters_t*
-ebpf_program_get_parameters(_In_ const ebpf_program_t* program)
-{
-    return &program->parameters;
-}
-
-_Ret_notnull_ const ebpf_program_type_t*
+ebpf_program_type_t
 ebpf_program_type_uuid(_In_ const ebpf_program_t* program)
 {
-    return &ebpf_program_get_parameters(program)->program_type;
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    ebpf_program_type_t return_value = program->parameters.program_type;
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return return_value;
 }
 
-_Ret_notnull_ const ebpf_attach_type_t*
+ebpf_attach_type_t
 ebpf_expected_attach_type(_In_ const ebpf_program_t* program)
 {
-    return &ebpf_program_get_parameters(program)->expected_attach_type;
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    ebpf_attach_type_t return_value = program->parameters.expected_attach_type;
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return return_value;
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -599,35 +606,42 @@ Done:
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t maps_count)
 {
+    ebpf_result_t result = EBPF_SUCCESS;
     EBPF_LOG_ENTRY();
+
     size_t index;
     ebpf_map_t** program_maps = ebpf_allocate_with_tag(maps_count * sizeof(ebpf_map_t*), EBPF_POOL_TAG_PROGRAM);
     if (!program_maps) {
-        return EBPF_NO_MEMORY;
+        result = EBPF_NO_MEMORY;
+        goto Done;
     }
 
     memcpy(program_maps, maps, sizeof(ebpf_map_t*) * maps_count);
 
     // Before we acquire any references, make sure
     // all maps can be associated.
-    ebpf_result_t result = EBPF_SUCCESS;
     for (index = 0; index < maps_count; index++) {
         ebpf_map_t* map = program_maps[index];
         result = ebpf_map_associate_program(map, program);
         if (result != EBPF_SUCCESS) {
-            ebpf_free(program_maps);
-            EBPF_RETURN_RESULT(result);
+            goto Done;
         }
     }
 
+    ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
     // Now go through again and acquire references.
     program->maps = program_maps;
+    program_maps = NULL;
     program->count_of_maps = maps_count;
     for (index = 0; index < maps_count; index++) {
-        ebpf_object_acquire_reference((ebpf_core_object_t*)program_maps[index]);
+        ebpf_object_acquire_reference((ebpf_core_object_t*)program->maps[index]);
     }
+    ebpf_lock_unlock(&program->lock, state);
 
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+Done:
+    ebpf_free(program_maps);
+
+    EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
@@ -1476,8 +1490,8 @@ ebpf_program_get_info(
     output_info->nr_map_ids = program->count_of_maps;
     output_info->map_ids = (uintptr_t)map_ids;
     output_info->type = _ebpf_program_get_bpf_prog_type(program);
-    output_info->type_uuid = *ebpf_program_type_uuid(program);
-    output_info->attach_type_uuid = *ebpf_expected_attach_type(program);
+    output_info->type_uuid = ebpf_program_type_uuid(program);
+    output_info->attach_type_uuid = ebpf_expected_attach_type(program);
     output_info->pinned_path_count = program->object.pinned_path_count;
     output_info->link_count = program->link_count;
 
@@ -1738,7 +1752,7 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     uintptr_t old_thread_affinity;
     size_t batch_size = options->batch_size ? options->batch_size : 1024;
     ebpf_execution_context_state_t execution_context_state = {0};
-    bool epoch_entered = false;
+    ebpf_epoch_state_t* epoch_state = NULL;
     bool irql_raised = false;
     bool thread_affinity_set = false;
 
@@ -1751,8 +1765,7 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     old_irql = ebpf_raise_irql(context->required_irql);
     irql_raised = true;
 
-    ebpf_epoch_enter();
-    epoch_entered = true;
+    epoch_state = ebpf_epoch_enter();
 
     ebpf_get_execution_context_state(&execution_context_state);
 
@@ -1764,8 +1777,8 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
         }
         // Start a new epoch every batch_size iterations.
         if ((i % batch_size == (batch_size - 1))) {
-            ebpf_epoch_exit();
-            ebpf_epoch_enter();
+            ebpf_epoch_exit(epoch_state);
+            epoch_state = ebpf_epoch_enter();
         }
         ebpf_program_invoke(context->program, context->context, &return_value, &execution_context_state);
         if (ebpf_should_yield_processor()) {
@@ -1794,8 +1807,8 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     options->return_value = return_value;
 
 Done:
-    if (epoch_entered) {
-        ebpf_epoch_exit();
+    if (epoch_state) {
+        ebpf_epoch_exit(epoch_state);
     }
 
     if (irql_raised) {
@@ -1933,4 +1946,31 @@ ebpf_program_register_for_helper_changes(
     program->helper_function_addresses_changed_callback = callback;
     program->helper_function_addresses_changed_context = context;
     return EBPF_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_get_program_file_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* file_name)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    ebpf_result_t return_value = ebpf_duplicate_utf8_string(file_name, &program->parameters.file_name);
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return return_value;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_get_program_section_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* section_name)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    ebpf_result_t return_value = ebpf_duplicate_utf8_string(section_name, &program->parameters.section_name);
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return return_value;
+}
+
+ebpf_code_type_t
+ebpf_program_get_code_type(_In_ const ebpf_program_t* program)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    ebpf_code_type_t code_type = program->parameters.code_type;
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return code_type;
 }

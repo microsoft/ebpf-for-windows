@@ -196,9 +196,9 @@ TEST_CASE("hash_table_test", "[platform]")
 void
 run_in_epoch(std::function<void()> function)
 {
-    ebpf_epoch_enter();
+    ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
     function();
-    ebpf_epoch_exit();
+    ebpf_epoch_exit(epoch_state);
 }
 
 TEST_CASE("hash_table_stress_test", "[platform]")
@@ -325,10 +325,10 @@ TEST_CASE("epoch_test_single_epoch", "[platform]")
 {
     _test_helper test_helper;
 
-    ebpf_epoch_enter();
+    ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
     void* memory = ebpf_epoch_allocate(10);
     ebpf_epoch_free(memory);
-    ebpf_epoch_exit();
+    ebpf_epoch_exit(epoch_state);
     ebpf_epoch_flush();
 }
 
@@ -337,12 +337,12 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     _test_helper test_helper;
 
     auto epoch = []() {
-        ebpf_epoch_enter();
+        ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
         void* memory = ebpf_epoch_allocate(10);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         ebpf_epoch_free(memory);
-        ebpf_epoch_exit();
+        ebpf_epoch_exit(epoch_state);
         ebpf_epoch_flush();
     };
 
@@ -400,21 +400,21 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         auto t1 = [&]() {
             uintptr_t old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_affinity(1, &old_thread_affinity));
-            ebpf_epoch_enter();
+            ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
             void* memory = ebpf_epoch_allocate(10);
             signal_2.signal();
             signal_1.wait();
             ebpf_epoch_free(memory);
-            ebpf_epoch_exit();
+            ebpf_epoch_exit(epoch_state);
         };
         auto t2 = [&]() {
             uintptr_t old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_affinity(2, &old_thread_affinity));
             signal_2.wait();
-            ebpf_epoch_enter();
+            ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
             void* memory = ebpf_epoch_allocate(10);
             ebpf_epoch_free(memory);
-            ebpf_epoch_exit();
+            ebpf_epoch_exit(epoch_state);
             signal_1.signal();
         };
 
@@ -868,7 +868,7 @@ TEST_CASE("async", "[platform]")
     _test_helper test_helper;
 
     auto test = [](bool complete) {
-        ebpf_epoch_enter();
+        ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
         struct _async_context
         {
             ebpf_result_t result;
@@ -905,7 +905,7 @@ TEST_CASE("async", "[platform]")
             REQUIRE(cancellation_context.canceled);
             ebpf_async_complete(&async_context, 0, EBPF_SUCCESS);
         }
-        ebpf_epoch_exit();
+        ebpf_epoch_exit(epoch_state);
     };
 
     // Run the test with complete before cancel.

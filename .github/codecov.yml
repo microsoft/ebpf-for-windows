@@ -4,9 +4,9 @@
 codecov:
   notify:
     wait_for_ci: yes
-    after_n_builds: 4 # (unit_tests, bpf2c) * (Debug, Release)
+    after_n_builds: 30 # (reusable-test.yml instances in cicd.yml) * (Debug, Release)
 comment:
-    after_n_builds: 4 # (unit_tests, bpf2c) * (Debug, Release)
+    after_n_builds: 30 # (reusable-test.yml instances in cicd.yml) * (Debug, Release)
 coverage:
   status:
     project:
