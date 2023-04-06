@@ -263,6 +263,14 @@ ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebp
     }
 }
 
+void
+ebpf_utf8_string_free(_Inout_ ebpf_utf8_string_t* string)
+{
+    ebpf_free(string->value);
+    string->value = NULL;
+    string->length = 0;
+}
+
 _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static ebpf_core_object_t* _get_next_object_by_id(
     ebpf_id_t start_id, ebpf_object_type_t object_type)
 {

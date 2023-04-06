@@ -81,18 +81,40 @@ extern "C"
     ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program_parameters_t* program_parameters);
 
     /**
-     * @brief Get parameters describing the program instance.
+     * @brief Get the original file name of the program.
      *
-     * @param[in] program Program instance to query.
-     * @returns Pointer to parameters of the program.
+     * @param[in] program The program instance.
+     * @param[out] file_name The file name of the program. Caller must free this.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources.
      */
-    _Ret_notnull_ const ebpf_program_parameters_t*
-    ebpf_program_get_parameters(_In_ const ebpf_program_t* program);
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_get_program_file_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* file_name);
 
-    _Ret_notnull_ const ebpf_program_type_t*
+    /**
+     * @brief Get the original section name of the program.
+     *
+     * @param[in] program The program instance.
+     * @param[out] section_name The section name of the program. Caller must free this.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_get_program_section_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* section_name);
+
+    /**
+     * @brief Get the code type of the program.
+     *
+     * @param[in] program The program instance.
+     * @return The code type of the program.
+     */
+    ebpf_code_type_t
+    ebpf_program_get_code_type(_In_ const ebpf_program_t* program);
+
+    ebpf_program_type_t
     ebpf_program_type_uuid(_In_ const ebpf_program_t* program);
 
-    _Ret_notnull_ const ebpf_attach_type_t*
+    ebpf_attach_type_t
     ebpf_expected_attach_type(_In_ const ebpf_program_t* program);
 
     /**
