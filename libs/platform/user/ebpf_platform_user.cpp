@@ -1215,6 +1215,7 @@ ebpf_platform_thread_id()
 _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
 {
+    // GetTokenInformation OS API can fail with return value of zero.
     if (ebpf_fault_injection_inject_fault()) {
         return EBPF_NO_MEMORY;
     }

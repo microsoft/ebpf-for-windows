@@ -1081,3 +1081,11 @@ TEST_CASE("interlocked operations", "[platform]")
     REQUIRE(ebpf_interlocked_compare_exchange_pointer(&p, &b, &a) == &a);
     REQUIRE(ebpf_interlocked_compare_exchange_pointer(&p, &b, &a) == &b);
 }
+
+TEST_CASE("get_authentication_id", "[platform]")
+{
+    _test_helper test_helper;
+    uint64_t authentication_id = 0;
+
+    REQUIRE(ebpf_platform_get_authentication_id(&authentication_id) == EBPF_SUCCESS);
+}
