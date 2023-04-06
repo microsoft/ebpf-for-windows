@@ -502,7 +502,6 @@ ebpf_epoch_free_work_item(_Frees_ptr_opt_ ebpf_epoch_work_item_t* work_item)
     lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
     ebpf_list_remove_entry(&work_item->header.list_entry);
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, lock_state);
-    ebpf_free_preemptible_work_item(work_item->preemptible_work_item);
     ebpf_free(work_item);
 }
 
