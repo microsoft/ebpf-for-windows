@@ -23,7 +23,7 @@ extern "C"
 
     typedef struct _ebpf_core_object ebpf_core_object_t;
     typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);
-    typedef const ebpf_program_type_t* (*ebpf_object_get_program_type_t)(_In_ const ebpf_core_object_t* object);
+    typedef const ebpf_program_type_t (*ebpf_object_get_program_type_t)(_In_ const ebpf_core_object_t* object);
 
     typedef struct _ebpf_base_object
     {

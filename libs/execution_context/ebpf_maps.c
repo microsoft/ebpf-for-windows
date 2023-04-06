@@ -241,11 +241,11 @@ Done:
     return return_value;
 }
 
-_Ret_notnull_ static const ebpf_program_type_t*
+static ebpf_program_type_t
 _get_map_program_type(_In_ const ebpf_core_object_t* object)
 {
     const ebpf_core_object_map_t* map = (const ebpf_core_object_map_t*)object;
-    return &map->program_type;
+    return map->program_type;
 }
 
 typedef struct _ebpf_map_metadata_table
@@ -550,15 +550,15 @@ _associate_program_with_prog_array_map(_Inout_ ebpf_core_map_t* map, _In_ const 
 
     // Validate that the program type is
     // not in conflict with the map's program type.
-    const ebpf_program_type_t* program_type = ebpf_program_type_uuid(program);
+    ebpf_program_type_t program_type = ebpf_program_type_uuid(program);
     ebpf_result_t result = EBPF_SUCCESS;
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&program_array->lock);
 
     if (!program_array->is_program_type_set) {
         program_array->is_program_type_set = TRUE;
-        program_array->program_type = *program_type;
-    } else if (memcmp(&program_array->program_type, program_type, sizeof(*program_type)) != 0) {
+        program_array->program_type = program_type;
+    } else if (memcmp(&program_array->program_type, &program_type, sizeof(program_type)) != 0) {
         result = EBPF_INVALID_FD;
     }
 
@@ -597,8 +597,13 @@ static _Requires_lock_held_(object_map->lock) ebpf_result_t _validate_map_value_
     ebpf_result_t result = EBPF_SUCCESS;
     const ebpf_core_map_t* map = &object_map->core_map;
 
-    const ebpf_program_type_t* value_program_type =
-        (value_object->get_program_type) ? value_object->get_program_type(value_object) : NULL;
+    ebpf_program_type_t value_program_type = {0};
+    bool is_program_type_set = false;
+
+    if (value_object->get_program_type) {
+        value_program_type = value_object->get_program_type(value_object);
+        is_program_type_set = true;
+    }
 
     if (value_type == EBPF_OBJECT_MAP) {
         // Validate that the value is of the correct type.
@@ -610,11 +615,11 @@ static _Requires_lock_held_(object_map->lock) ebpf_result_t _validate_map_value_
 
     // Validate that the value's program type (if any) is
     // not in conflict with the map's program type.
-    if (value_program_type != NULL) {
+    if (is_program_type_set) {
         if (!object_map->is_program_type_set) {
             object_map->is_program_type_set = TRUE;
-            object_map->program_type = *value_program_type;
-        } else if (memcmp(&object_map->program_type, value_program_type, sizeof(*value_program_type)) != 0) {
+            object_map->program_type = value_program_type;
+        } else if (memcmp(&object_map->program_type, &value_program_type, sizeof(value_program_type)) != 0) {
             result = EBPF_INVALID_FD;
             goto Error;
         }
