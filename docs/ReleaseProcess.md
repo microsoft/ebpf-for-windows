@@ -3,10 +3,12 @@
 This file details the steps for creating a versioned release of
 eBPF for Windows:
 
->**Note**: Currently releases are *not* production signed.
+>**Note**: Currently releases are *not* production signed and therefore considered as "pre-releases". Their versioning is currently fixed to *Major Version (i.e., "X")* set to "`0`", therefore versioned as "`0.Y.Z`".
 
-1. On your private repo fork, create a new release branch from `main`, i.e., "`user/release-vX.Y.Z`".
-1. Update the version number, making sure to follow [Semantic Versioning 2.0](https://semver.org) ("`x.y.z`"), in the following files:
+1. On the main `ebpf-for-windows` repo, create a new release branch from `main`, i.e., "`release/X.Y`", and request the Admin of the main `ebpf-for-windows` repo to protect and apply release policies to the release branch.
+1. Wait for the main `ebpf-for-windows` repo's Admin to complete the previous step (the process may not be quick).
+1. On your private repo fork, create a new branch from the "`release/X.Y`" branch on the main `ebpf-for-windows` repo and check it out.
+1. Update the version number in the following files, making sure to follow [Semantic Versioning 2.0](https://semver.org) ("`x.y.z`"):
     * `resource\ebpf_version.h`
     * `installer\Product.wxs`, within the following XML attribute:
 
@@ -20,8 +22,8 @@ eBPF for Windows:
     ```ps
     .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
     ```
-1. Commit all the changes in the release branch into your forked repo.
-1. Create a **Draft** pull-request for the release branch into the main `ebpf-for-windows` repo, and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
+1. Commit all the changes into the branch of your forked repo.
+1. Create a **Draft** pull-request for your branch into the main repo's "`release/X.Y`" branch (which you created in step 1), and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Once the CI/CD pipeline for the PR completes, download the
    "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build artifacts
    (accessible via the "`Actions`" tab on GitHub).
@@ -51,10 +53,10 @@ eBPF for Windows:
         # Test some additional commands, e.g.:
         bpftool prog show
         ```
-1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into `main`.
+1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`release/X.Y`" branch.
 1. Go to the repo on GitHub and click on "`<Code>`" and click on right the "`Create a new release`" link.
 1. Click on the "`Choose a tag`" combo box and input the new version number as "`vX.Y.Z`", then click on "`Create new tag: X.Y.Z on publish`".
-1. Click on the "`Target`" combo box, select the "`Recent commits`" tab and search for the commit checksum for the release PR just merged into `main`.
+1. Click on the "`Target`" combo box, select the "`Recent commits`" tab and search for the commit checksum for the release PR just merged into the the main repo's "`release/X.Y`" branch.
 1. Fill in the release title as "`vX.Y.Z`" (replace "`X.Y.Z`" with the version number being released).
 1. Manually enter release notes or click "`Generate release notes`".
 1. Attach the `.msi` and `.nupkg` files by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area.
