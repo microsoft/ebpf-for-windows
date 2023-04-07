@@ -1066,7 +1066,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
         NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
         NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "net_ebpf_extension_sock_addr_authorize_recv_accept_classify",
+        "recv_accept_classify",
         incoming_metadata_values->transportEndpointHandle,
         sock_addr_ctx->protocol,
         result);
@@ -1502,14 +1502,54 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
                      : InterlockedIncrement(&_net_ebpf_ext_statistics.permit_connection_count);
     }
 
-    NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY(
-        NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "net_ebpf_extension_sock_addr_redirect_connection_classify",
-        incoming_metadata_values->transportEndpointHandle,
-        sock_addr_ctx->protocol,
-        redirected,
-        verdict);
+    // For BLOCK and redirection, trace at INFO level, else trace at VERBOSE level.
+    if (!redirected) {
+        if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
+            NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY(
+                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "connect_redirect_classify_block",
+                incoming_metadata_values->transportEndpointHandle,
+                sock_addr_ctx->protocol,
+                verdict);
+        } else {
+            NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY(
+                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "connect_redirect_classify_allow",
+                incoming_metadata_values->transportEndpointHandle,
+                sock_addr_ctx->protocol,
+                verdict);
+        }
+    } else {
+        if (sock_addr_ctx->family == AF_INET) {
+            NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_V4(
+                "connect_redirect_classify",
+                incoming_metadata_values->transportEndpointHandle,
+                sock_addr_ctx_original.protocol,
+                sock_addr_ctx_original.msg_src_ip4,
+                sock_addr_ctx_original.msg_src_port,
+                sock_addr_ctx_original.user_ip4,
+                sock_addr_ctx_original.user_port,
+                sock_addr_ctx->user_ip4,
+                sock_addr_ctx->user_port,
+                redirected,
+                verdict);
+        } else {
+            NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_V6(
+                "connect_redirect_classify",
+                incoming_metadata_values->transportEndpointHandle,
+                sock_addr_ctx_original.protocol,
+                sock_addr_ctx_original.msg_src_ip6,
+                sock_addr_ctx_original.msg_src_port,
+                sock_addr_ctx_original.user_ip6,
+                sock_addr_ctx_original.user_port,
+                sock_addr_ctx->user_ip6,
+                sock_addr_ctx->user_port,
+                redirected,
+                verdict);
+        }
+    }
 
 Exit:
     if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
@@ -1542,7 +1582,7 @@ Exit:
     if (classify_handle_acquired) {
         FwpsReleaseClassifyHandle(classify_handle);
     }
-    
+
     if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
