@@ -19,11 +19,14 @@
 #include "ebpf_structs.h"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
+#include "watchdog.h"
 
 #include <chrono>
 #include <future>
 using namespace std::chrono_literals;
 #include <mstcpip.h>
+
+CATCH_REGISTER_LISTENER(_watchdog)
 
 void
 connection_test(

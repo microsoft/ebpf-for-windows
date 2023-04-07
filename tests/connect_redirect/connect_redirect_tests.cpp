@@ -18,9 +18,12 @@
 #include "misc_helper.h"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
+#include "watchdog.h"
 
 #include <mstcpip.h>
 #include <ntsecapi.h>
+
+CATCH_REGISTER_LISTENER(_watchdog)
 
 static std::string _family;
 static std::string _protocol;
