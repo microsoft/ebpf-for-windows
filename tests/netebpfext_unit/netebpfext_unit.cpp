@@ -5,8 +5,11 @@
 #include "catch_wrapper.hpp"
 #include "ebpf_fault_injection.h"
 #include "netebpf_ext_helper.h"
+#include "watchdog.h"
 
 #include <map>
+
+CATCH_REGISTER_LISTENER(_watchdog)
 
 #define CONCURRENT_THREAD_RUN_TIME_IN_SECONDS 10
 
