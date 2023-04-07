@@ -71,7 +71,6 @@ _initialize_thread_pool()
     // Initializes a callback environment for the thread pool.
     // A TP_CALLBACK_ENVIRON structure that defines the callback environment.
     // Using this function, it allocates space for this structure and initializes it.
-    // The caller must call DestroyThreadpoolEnvironment to free the memory.
     InitializeThreadpoolEnvironment(&_callback_environment);
 
     _pool = CreateThreadpool(nullptr);
@@ -366,9 +365,6 @@ ebpf_platform_terminate()
 
     _clean_up_thread_pool();
     _ebpf_emulated_dpcs.resize(0);
-    // Call TpDestroyCallbackEnviron to destroy the callback environment.
-    DestroyThreadpoolEnvironment(&_callback_environment);
-
     if (_ebpf_leak_detector_ptr) {
         _ebpf_leak_detector_ptr->dump_leaks();
         _ebpf_leak_detector_ptr.reset();
