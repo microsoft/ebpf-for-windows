@@ -366,13 +366,13 @@ ebpf_platform_terminate()
 
     _clean_up_thread_pool();
     _ebpf_emulated_dpcs.resize(0);
+    // Call TpDestroyCallbackEnviron to destroy the callback environment.
+    DestroyThreadpoolEnvironment(&_callback_environment);
+
     if (_ebpf_leak_detector_ptr) {
         _ebpf_leak_detector_ptr->dump_leaks();
         _ebpf_leak_detector_ptr.reset();
     }
-
-    // Call TpDestroyCallbackEnviron to destroy the callback environment.
-    DestroyThreadpoolEnvironment(&_callback_environment);
 }
 
 _Must_inspect_result_ ebpf_result_t
