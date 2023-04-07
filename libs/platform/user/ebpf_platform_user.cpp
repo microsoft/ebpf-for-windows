@@ -57,11 +57,23 @@ static std::vector<uint32_t> _ebpf_platform_group_to_index_map;
 static ebpf_result_t
 _initialize_thread_pool()
 {
+    memset(&_callback_environment, 0, sizeof(_callback_environment));
+
+    // CreateThreadpoolCleanupGroup can return nullptr.
+    if (ebpf_fault_injection_is_enabled() && ebpf_fault_injection_inject_fault()) {
+        return EBPF_NO_MEMORY;
+    }
+
     ebpf_result_t result = EBPF_SUCCESS;
     bool cleanup_group_created = false;
     bool return_value;
 
+    // Initializes a callback environment for the thread pool.
+    // A TP_CALLBACK_ENVIRON structure that defines the callback environment.
+    // Using this function, it allocates space for this structure and initializes it.
+    // The caller must call DestroyThreadpoolEnvironment to free the memory.
     InitializeThreadpoolEnvironment(&_callback_environment);
+
     _pool = CreateThreadpool(nullptr);
     if (_pool == nullptr) {
         result = win32_error_code_to_ebpf_result(GetLastError());
@@ -358,6 +370,9 @@ ebpf_platform_terminate()
         _ebpf_leak_detector_ptr->dump_leaks();
         _ebpf_leak_detector_ptr.reset();
     }
+
+    // Call TpDestroyCallbackEnviron to destroy the callback environment.
+    DestroyThreadpoolEnvironment(&_callback_environment);
 }
 
 _Must_inspect_result_ ebpf_result_t
