@@ -79,7 +79,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
+  <!-- In accordance to what defined in sample.vcxproj, the build is disabled for the 'Analysis' CI/CD build, as it  does not generate the printk.sys artifact. -->
+  <ItemGroup Condition="'$(Analysis)'==''">
     <CustomBuild Include="ebpf-for-windows-redist.nuspec.in">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\redist-package\ebpf-for-windows-redist.nuspec.in -OutputFile $(OutDir)ebpf-for-windows-redist.nuspec
