@@ -538,6 +538,17 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineOpen0(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
+    FwpmProviderAdd0(_In_ HANDLE engine_handle, _In_ const FWPM_PROVIDER0* provider, _In_opt_ PSECURITY_DESCRIPTOR sd)
+{
+    auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
+
+    engine.add_fwpm_provider(provider);
+
+    UNREFERENCED_PARAMETER(sd);
+    return STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
     FwpmSubLayerAdd0(_In_ HANDLE engine_handle, _In_ const FWPM_SUBLAYER0* sub_layer, _In_opt_ PSECURITY_DESCRIPTOR sd)
 {
     UNREFERENCED_PARAMETER(sd);
