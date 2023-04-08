@@ -68,9 +68,7 @@ _initialize_thread_pool()
     bool cleanup_group_created = false;
     bool return_value;
 
-    // Initializes a callback environment for the thread pool.
-    // A TP_CALLBACK_ENVIRON structure that defines the callback environment.
-    // Using this function, it allocates space for this structure and initializes it.
+    // Initializes the callback environment for the thread pool.
     InitializeThreadpoolEnvironment(&_callback_environment);
 
     _pool = CreateThreadpool(nullptr);
@@ -116,8 +114,10 @@ _clean_up_thread_pool()
         return;
     }
 
-    CloseThreadpoolCleanupGroupMembers(_cleanup_group, false, nullptr);
-    CloseThreadpoolCleanupGroup(_cleanup_group);
+    if (_cleanup_group) {
+        CloseThreadpoolCleanupGroupMembers(_cleanup_group, false, nullptr);
+        CloseThreadpoolCleanupGroup(_cleanup_group);
+    }
     CloseThreadpool(_pool);
 }
 
