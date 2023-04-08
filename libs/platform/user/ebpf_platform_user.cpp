@@ -115,7 +115,7 @@ _clean_up_thread_pool()
     }
 
     if (_cleanup_group) {
-        CloseThreadpoolCleanupGroupMembers(_cleanup_group, false, nullptr);
+        CloseThreadpoolCleanupGroupMembers(_cleanup_group, TRUE, nullptr);
         CloseThreadpoolCleanupGroup(_cleanup_group);
     }
     CloseThreadpool(_pool);
