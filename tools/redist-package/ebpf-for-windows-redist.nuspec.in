@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!-- Copyright (c) Microsoft Corporation
+     SPDX-License-Identifier: MIT
+  -->
+<package>
+	<metadata>
+		<title>eBPF for Windows Redist</title>
+		<id>eBPF-for-Windows-Redist</id>
+		<version>{version}</version>
+		<authors>eBPF for Windows Contributors</authors>
+		<owners>eBPF for Windows Contributors</owners>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<license type="expression">MIT</license>
+		<projectUrl>https://github.com/Microsoft/ebpf-for-windows</projectUrl>
+		<repository type="git" url="https://github.com/microsoft/ebpf-for-windows.git"/>
+		<tags>resdist redistributable ebpf</tags>
+		<description>eBPF for Windows Redistributable</description>
+	</metadata>
+	<files>
+		<file src="..\..\tools\redist-package\README.md" target="."/>
+		<file src="bpf2c.exe" target="package\bin"/>
+		<file src="bpf2c.pdb" target="package\bin"/>
+		<file src="bpftool.exe" target="package\bin"/>
+		<file src="bpftool.pdb" target="package\bin"/>
+		<file src="ebpfapi.dll" target="package\bin"/>
+		<file src="ebpfapi.pdb" target="package\bin"/>
+		<file src="ebpfnetsh.dll" target="package\bin"/>
+		<file src="ebpfnetsh.pdb" target="package\bin"/>
+		<file src="ebpfforwindows.wprp" target="package\bin"/>
+		<file src="eBPFCore.sys" target="package\bin\drivers"/>
+		<file src="eBPFCore.pdb" target="package\bin\drivers"/>
+		<file src="NetEbpfExt.sys" target="package\bin\drivers"/>
+		<file src="NetEbpfExt.pdb" target="package\bin\drivers"/>
+		<file src="printk.sys" target="package\bin\drivers"/>
+		<file src="printk.pdb" target="package\bin\drivers"/>
+	</files>
+</package>

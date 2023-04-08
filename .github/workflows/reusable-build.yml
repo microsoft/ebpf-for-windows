@@ -215,7 +215,19 @@ jobs:
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ebpf-for-windows - NuGet package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
-        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.nupkg
+        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows.*.nupkg
+
+    - name: Build the NuGet Redist package
+      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\redist-package
+
+    - name: Upload the NuGet Redist package
+      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      with:
+        name: ebpf-for-windows - NuGet Redist package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
+        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows-Redist.*.nupkg
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
