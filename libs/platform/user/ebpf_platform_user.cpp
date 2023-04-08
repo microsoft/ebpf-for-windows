@@ -68,7 +68,7 @@ _initialize_thread_pool()
     bool cleanup_group_created = false;
     bool return_value;
 
-    // Initializes the callback environment for the thread pool.
+    // Initialize a callback environment for the thread pool.
     InitializeThreadpoolEnvironment(&_callback_environment);
 
     _pool = CreateThreadpool(nullptr);
@@ -115,7 +115,6 @@ _clean_up_thread_pool()
     }
 
     if (_cleanup_group) {
-        CloseThreadpoolCleanupGroupMembers(_cleanup_group, TRUE, nullptr);
         CloseThreadpoolCleanupGroup(_cleanup_group);
     }
     CloseThreadpool(_pool);
