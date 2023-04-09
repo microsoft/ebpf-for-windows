@@ -37,3 +37,8 @@ Release Process
 ------------------
 
 See [Release Process](ReleaseProcess.md).
+
+Process for servicing a release
+----------------------------------
+
+See [Servicing Process](ServicingProcess.md).
