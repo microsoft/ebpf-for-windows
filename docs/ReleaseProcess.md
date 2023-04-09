@@ -23,10 +23,12 @@ eBPF for Windows:
         .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
         ```
 1. Commit all the changes in the working branch.
-    >NOTE: the formatting rules may complain about the formatting of the generated `.c` files from the script above, in this case, do not format them but simply dismiss the verification:
+    >NOTE: the formatting rules may complain about the formatting of the generated `.c` files from the script above, in this case, format them with the following:
     >```bash
-    ># Replace X.Y.Z with the actual version being released.
-    >git commit --no-verify -am "Update sources to vX.Y.Z"
+    ># In bash
+    >./scripts/format-code --staged
+    ># In PowerShell
+    >.\\scripts\\format-code.ps1 --staged
     >```
 1. Create a **Draft** pull-request for your branch into the main repo's "`release/X.Y`" branch (which you created in step 1), and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Once the CI/CD pipeline for the PR completes, download the
