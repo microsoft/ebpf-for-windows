@@ -65,7 +65,7 @@ _initialize_thread_pool()
     InitializeThreadpoolEnvironment(&_callback_environment);
 
     // CreateThreadpoolCleanupGroup can return nullptr.
-    if (ebpf_fault_injection_is_enabled() && ebpf_fault_injection_inject_fault()) {
+    if (ebpf_fault_injection_inject_fault()) {
         return EBPF_NO_MEMORY;
     }
 
@@ -96,7 +96,6 @@ Exit:
     if (result != EBPF_SUCCESS) {
         if (cleanup_group_created) {
             CloseThreadpoolCleanupGroup(_cleanup_group);
-            _cleanup_group = nullptr;
         }
         if (_pool) {
             CloseThreadpool(_pool);
