@@ -1313,6 +1313,19 @@ extern "C"
     void
     ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore);
 
+    /**
+     * @brief Enter a critical region. This will defer execution of kernel APCs
+     * until ebpf_leave_critical_region is called.
+     */
+    void
+    ebpf_enter_critical_region();
+
+    /**
+     * @brief Leave a critical region. This will resume execution of kernel APCs.
+     */
+    void
+    ebpf_leave_critical_region();
+
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"
 #define EBPF_TRACELOG_EVENT_GENERIC_ERROR "EbpfGenericError"
