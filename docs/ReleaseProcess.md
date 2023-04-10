@@ -67,6 +67,8 @@ eBPF for Windows, and how to service it later.
 
 ## Servicing a release
 
+Servicing a release has two main scenarios:
+
 ### Updating a Release branch with patches/hot-fixes from main (*Forward Integration*)
 
 >NOTE: in servicing a release branch, **no new features must be added to the release branch**, only patches or hot-fixes will be accepted.
@@ -105,11 +107,11 @@ eBPF for Windows, and how to service it later.
 1. Create a **Draft** pull-request for your working branch into the main repo's "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Wait for  the CI/CD pipeline for the PR to complete successfully.
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`release/X.Y`" branch.
-1. Create a tag for the PR's commit number, on the main repo's "`release/X.Y`" branch, with the version number being released (i.e., "vX.Y.Z").
+1. Create a tag for the PR's commit number, on the main repo's "`release/X.Y`" branch, with the version number being released, i.e., "`vX.Y.Z`".
 1. Publish the release as per the "[Publishing a Release](ReleaseProcess.md#publishing-a-release)" process.
 
 
-### Updating the Main brach with patches/hot-fixes from a Release branch (*Reverse/Backwards Integration*)
+### Updating the main brach with patches/hot-fixes from a Release branch (*Reverse/Backwards Integration*)
 
 >IMPORTANT! Normally, this should be done by the release manager **in VERY RARE scenarios** (and it's also likely an indication there's been a failure in the releasing process), but if you are a contributor and have been asked to do this, here are the steps to be followed:
 
@@ -126,7 +128,7 @@ eBPF for Windows, and how to service it later.
 1. Create a **Draft** pull-request for your working branch into the main repo's "`main`" branch, and title the PR as *"Backwards Integration of Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Wait for  the CI/CD pipeline for the PR to complete successfully.
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`main`" branch.
-1. Create a tag for the PR's commit number, on the main repo's "`main`" branch, with meaningful name (i.e., "RI-from-release-vX.Y.Z").
+1. Create a tag for the PR's commit number, on the main repo's "`main`" branch, with meaningful name (i.e., "*RI-from-release-vX.Y.Z*").
 
 ## Publishing a Release
 
@@ -136,10 +138,10 @@ As a result of creating new release or servicing an existing one, the following 
 
 1. Create a tag for the PR's commit number, with the version number being released, i.e. "`vX.Y.Z`".
 1. Go to the repo on GitHub and click on "`<Code>`" and click on right the "`Create a new release`" link.
-1. Click on the "`Choose a tag`" combo box and select the tag with new version number as "`vX.Y.Z`" created earlier.
+1. Click on the "`Choose a tag`" combo box and select the tag with new "`vX.Y.Z`" version number, as created earlier.
 1. Fill in the release title as "`vX.Y.Z`" (replace "`X.Y.Z`" with the version number being released).
-1. Manually enter release notes or click "`Generate release notes`".
-1. Attach the `.msi` and `.nupkg` files by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area.
+1. Manually enter release notes or click "`Generate release notes`" and then edit as desired.
+1. Attach the `.msi` and the (non-redist) `.nupkg` files by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area.
 1. Check the "`Set as a pre-release`" checkbox, unless the release is production-signed.
 1. Once the uploads are complete, click "`Publish release`".
 
