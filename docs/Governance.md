@@ -33,12 +33,7 @@ When multiple pull requests are approved, maintainers should prioritize merging 
 | 8   | Performance optimizations | optimization | Doesn't do anything that isn't already working, but improvements do help users |
 | 9   | Code cleanup | cleanup | Good to do but generally doesn't significantly affect any of the above categories |
 
-Release Process
-------------------
+Process creating and servicing a release
+-------------------------------------------
 
 See [Release Process](ReleaseProcess.md).
-
-Process for servicing a release
-----------------------------------
-
-See [Servicing Process](ServicingProcess.md).

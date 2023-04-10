@@ -15,6 +15,7 @@
 		<repository type="git" url="https://github.com/microsoft/ebpf-for-windows.git"/>
 		<tags>native ebpf</tags>
 		<description>eBPF for Windows SDK</description>
+		<readme>README.md</readme>
 	</metadata>
 	<files>
 		<file src="..\..\tools\nuget\README.md" target="."/>
