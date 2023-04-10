@@ -128,6 +128,7 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(SolutionDir)scripts\create_execution_context_corpus.bat $(SolutionDir) $(OutDir)execution_context_fuzzer_corpus</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)scripts\create_execution_context_corpus.bat $(SolutionDir) $(OutDir)execution_context_fuzzer_corpus</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)execution_context_fuzzer_corpus</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutDir)execution_context_fuzzer_corpus</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)execution_context_fuzzer_corpus</Outputs>
     </CustomBuild>
   </ItemGroup>
