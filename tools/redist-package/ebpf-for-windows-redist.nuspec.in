@@ -15,6 +15,7 @@
 		<repository type="git" url="https://github.com/microsoft/ebpf-for-windows.git"/>
 		<tags>resdist redistributable ebpf</tags>
 		<description>eBPF for Windows Redistributable</description>
+		<readme>README.md</readme>
 	</metadata>
 	<files>
 		<file src="..\..\tools\redist-package\README.md" target="."/>
