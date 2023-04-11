@@ -1386,6 +1386,17 @@ extern "C"
         TraceLoggingOpcode(WINEVENT_OPCODE_STOP),                       \
         TraceLoggingString(__FUNCTION__, "==>"));
 
+#define EBPF_RETURN_ERROR(error)                   \
+    do {                                           \
+        uint32_t local_result = (error);           \
+        if (local_result == ERROR_SUCCESS) {       \
+            EBPF_LOG_FUNCTION_SUCCESS();           \
+        } else {                                   \
+            EBPF_LOG_FUNCTION_ERROR(local_result); \
+        }                                          \
+        return local_result;                       \
+    } while (false);
+
 #define EBPF_RETURN_RESULT(status)                 \
     do {                                           \
         ebpf_result_t local_result = (status);     \
@@ -1469,6 +1480,15 @@ extern "C"
         TraceLoggingKeyword((keyword)),                                  \
         TraceLoggingString(message, "Message"),                          \
         TraceLoggingNTStatus(status));
+
+#define EBPF_LOG_MESSAGE_ERROR(trace_level, keyword, message, error) \
+    TraceLoggingWrite(                                               \
+        ebpf_tracelog_provider,                                      \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                         \
+        TraceLoggingLevel(trace_level),                              \
+        TraceLoggingKeyword((keyword)),                              \
+        TraceLoggingString(message, "Message"),                      \
+        TraceLoggingWinError(error));
 
 #define EBPF_LOG_MESSAGE_UTF8_STRING(trace_level, keyword, message, string) \
     TraceLoggingWrite(                                                      \
