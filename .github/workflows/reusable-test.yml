@@ -365,7 +365,7 @@ jobs:
           cancel_others: 'false'
           paths_ignore: '["**.md", "**/docs/**"]'
 
-      - uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
+      - uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
         if: (github.event_name == 'schedule') || (github.event_name == 'push') && (steps.skip_check.outputs.should_skip != 'true')
         env:
           TITLE: Workflow failed - ${{inputs.name}}

@@ -276,6 +276,8 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object, uint64_t authent
         REQUIRE(entry.is_admin == 0);
     }
 
+    REQUIRE(entry.local_port != 0);
+
     LsaFreeReturnBuffer(data);
 }
 
