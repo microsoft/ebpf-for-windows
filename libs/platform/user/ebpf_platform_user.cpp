@@ -43,7 +43,7 @@ ebpf_leak_detector_ptr _ebpf_leak_detector_ptr;
 #define EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME "EBPF_MEMORY_LEAK_DETECTION"
 
 // Thread pool related globals.
-static TP_CALLBACK_ENVIRON _callback_environment;
+static TP_CALLBACK_ENVIRON _callback_environment{};
 static PTP_POOL _pool = nullptr;
 static PTP_CLEANUP_GROUP _cleanup_group = nullptr;
 
@@ -61,7 +61,14 @@ _initialize_thread_pool()
     bool cleanup_group_created = false;
     bool return_value;
 
+    // Initialize a callback environment for the thread pool.
     InitializeThreadpoolEnvironment(&_callback_environment);
+
+    // CreateThreadpoolCleanupGroup can return nullptr.
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_NO_MEMORY;
+    }
+
     _pool = CreateThreadpool(nullptr);
     if (_pool == nullptr) {
         result = win32_error_code_to_ebpf_result(GetLastError());
@@ -105,9 +112,13 @@ _clean_up_thread_pool()
         return;
     }
 
-    CloseThreadpoolCleanupGroupMembers(_cleanup_group, false, nullptr);
-    CloseThreadpoolCleanupGroup(_cleanup_group);
+    if (_cleanup_group) {
+        CloseThreadpoolCleanupGroupMembers(_cleanup_group, false, nullptr);
+        CloseThreadpoolCleanupGroup(_cleanup_group);
+        _cleanup_group = nullptr;
+    }
     CloseThreadpool(_pool);
+    _pool = nullptr;
 }
 
 class _ebpf_emulated_dpc;
@@ -935,6 +946,8 @@ ebpf_allocate_preemptible_work_item(
         return EBPF_NO_MEMORY;
     }
 
+    // It is required to use the InitializeThreadpoolEnvironment function to
+    // initialize the _callback_environment structure before calling CreateThreadpoolWork.
     (*work_item)->work = CreateThreadpoolWork(_ebpf_preemptible_routine, *work_item, &_callback_environment);
     if ((*work_item)->work == nullptr) {
         result = win32_error_code_to_ebpf_result(GetLastError());
@@ -1305,4 +1318,16 @@ void
 ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore)
 {
     ReleaseSemaphore(semaphore->semaphore, 1, nullptr);
+}
+
+void
+ebpf_enter_critical_region()
+{
+    // This is a no-op for the user mode implementation.
+}
+
+void
+ebpf_leave_critical_region()
+{
+    // This is a no-op for the user mode implementation.
 }
