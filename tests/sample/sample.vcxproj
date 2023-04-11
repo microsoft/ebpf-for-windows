@@ -36,18 +36,21 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <KernelConfiguration>Debug</KernelConfiguration>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <KernelConfiguration>Debug</KernelConfiguration>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <KernelConfiguration>Release</KernelConfiguration>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -115,7 +118,7 @@
       <Command>
         clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(OutDir)
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
         popd
       </Command>
@@ -141,7 +144,7 @@
       <Command>
         clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(OutDir)
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true -SkipVerification $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true -SkipVerification $true
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
         popd
       </Command>
@@ -157,7 +160,7 @@
       <Command>
         clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(OutDir)
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true -SkipVerification $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true -SkipVerification $true
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
         popd
       </Command>
