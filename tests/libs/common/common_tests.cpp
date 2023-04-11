@@ -195,7 +195,7 @@ ring_buffer_api_test_helper(
     }
 
     // Wait for event handler getting notifications for all RING_BUFFER_TEST_EVENT_COUNT events.
-    REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
+    bool notifications_received = (ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
 
     // Mark the event context as canceled, such that the event callback stops processing events.
     context->canceled = true;
@@ -205,4 +205,6 @@ ring_buffer_api_test_helper(
 
     // Unsubscribe.
     raw_context->unsubscribe();
+
+    REQUIRE(notifications_received);
 }
