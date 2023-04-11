@@ -46,4 +46,5 @@ typedef struct _sock_addr_audit_entry
     uint64_t logon_id;
     uint64_t process_id;
     int32_t is_admin;
+    uint16_t local_port;
 } sock_addr_audit_entry_t;
