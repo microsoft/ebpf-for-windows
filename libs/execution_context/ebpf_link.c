@@ -448,6 +448,8 @@ ebpf_link_get_info(
         EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
     }
 
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&link->attach_lock);
+
     memset(info, 0, sizeof(*info));
     info->id = link->object.id;
     info->prog_id = (link->program) ? ((ebpf_core_object_t*)link->program)->id : EBPF_ID_NONE;
@@ -461,6 +463,8 @@ ebpf_link_get_info(
     if ((link->client_data.size > 0) && (link->client_data.size <= size)) {
         memcpy(&info->attach_data, link->client_data.data, link->client_data.size);
     }
+
+    ebpf_lock_unlock((ebpf_lock_t*)&link->attach_lock, state);
 
     *info_size = sizeof(*info);
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
