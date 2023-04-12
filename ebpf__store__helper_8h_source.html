@@ -154,7 +154,7 @@ $(function() {
 <div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160; </div>
 <div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;<span class="keyword">static</span> <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a></div>
 <div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;_ebpf_store_update_section_information(</div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;    _In_reads_(section_info_count) <a class="code" href="struct__ebpf__program__section__info.html">ebpf_program_section_info_t</a>* section_info, uint32_t section_info_count)</div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;    _In_reads_(section_info_count) <span class="keyword">const</span> <a class="code" href="struct__ebpf__program__section__info.html">ebpf_program_section_info_t</a>* section_info, uint32_t section_info_count)</div>
 <div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;{</div>
 <div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a> status = <a class="code" href="kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2">_SUCCESS</a>;</div>
 <div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> provider_key = NULL;</div>
@@ -237,7 +237,7 @@ $(function() {
 <div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160; </div>
 <div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;<span class="keyword">static</span> <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a></div>
 <div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;_ebpf_store_update_program_information(</div>
-<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;    _In_reads_(program_info_count) <a class="code" href="struct__ebpf__program__info.html">ebpf_program_info_t</a>* program_info, uint32_t program_info_count)</div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;    _In_reads_(program_info_count) <span class="keyword">const</span> <a class="code" href="struct__ebpf__program__info.html">ebpf_program_info_t</a>* program_info, uint32_t program_info_count)</div>
 <div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;{</div>
 <div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a> status = <a class="code" href="kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2">_SUCCESS</a>;</div>
 <div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> provider_key = NULL;</div>
