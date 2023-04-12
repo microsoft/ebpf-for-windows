@@ -39,6 +39,19 @@ typedef struct _free_ebpf_pinning_table
 
 typedef std::unique_ptr<ebpf_pinning_table_t, free_ebpf_pinning_table_t> ebpf_pinning_table_ptr;
 
+typedef struct _free_trampoline_table
+{
+    void
+    operator()(_In_opt_ _Post_invalid_ ebpf_trampoline_table_t* table)
+    {
+        if (table != nullptr) {
+            ebpf_free_trampoline_table(table);
+        }
+    }
+} free_trampoline_table_t;
+
+typedef std::unique_ptr<ebpf_trampoline_table_t, free_trampoline_table_t> ebpf_trampoline_table_ptr;
+
 class _test_helper
 {
   public:
@@ -196,9 +209,9 @@ TEST_CASE("hash_table_test", "[platform]")
 void
 run_in_epoch(std::function<void()> function)
 {
-    ebpf_epoch_enter();
+    ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
     function();
-    ebpf_epoch_exit();
+    ebpf_epoch_exit(epoch_state);
 }
 
 TEST_CASE("hash_table_stress_test", "[platform]")
@@ -325,10 +338,10 @@ TEST_CASE("epoch_test_single_epoch", "[platform]")
 {
     _test_helper test_helper;
 
-    ebpf_epoch_enter();
+    ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
     void* memory = ebpf_epoch_allocate(10);
     ebpf_epoch_free(memory);
-    ebpf_epoch_exit();
+    ebpf_epoch_exit(epoch_state);
     ebpf_epoch_flush();
 }
 
@@ -337,12 +350,12 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     _test_helper test_helper;
 
     auto epoch = []() {
-        ebpf_epoch_enter();
+        ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
         void* memory = ebpf_epoch_allocate(10);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         ebpf_epoch_free(memory);
-        ebpf_epoch_exit();
+        ebpf_epoch_exit(epoch_state);
         ebpf_epoch_flush();
     };
 
@@ -400,21 +413,21 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         auto t1 = [&]() {
             uintptr_t old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_affinity(1, &old_thread_affinity));
-            ebpf_epoch_enter();
+            ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
             void* memory = ebpf_epoch_allocate(10);
             signal_2.signal();
             signal_1.wait();
             ebpf_epoch_free(memory);
-            ebpf_epoch_exit();
+            ebpf_epoch_exit(epoch_state);
         };
         auto t2 = [&]() {
             uintptr_t old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_affinity(2, &old_thread_affinity));
             signal_2.wait();
-            ebpf_epoch_enter();
+            ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
             void* memory = ebpf_epoch_allocate(10);
             ebpf_epoch_free(memory);
-            ebpf_epoch_exit();
+            ebpf_epoch_exit(epoch_state);
             signal_1.signal();
         };
 
@@ -486,7 +499,7 @@ TEST_CASE("extension_test", "[platform]")
     ebpf_extension_client_t* client_context = nullptr;
     void* provider_binding_context = nullptr;
 
-    ebpf_assert_success(ebpf_guid_create(&interface_id));
+    REQUIRE(ebpf_guid_create(&interface_id) == EBPF_SUCCESS);
     int callback_context = 0;
     int client_binding_context = 0;
     GUID client_module_id = {};
@@ -537,7 +550,7 @@ TEST_CASE("trampoline_test", "[platform]")
 {
     _test_helper test_helper;
 
-    ebpf_trampoline_table_t* table = NULL;
+    ebpf_trampoline_table_ptr table;
     ebpf_result_t (*test_function)();
     auto provider_function1 = []() { return EBPF_SUCCESS; };
     ebpf_result_t (*function_pointer1)() = provider_function1;
@@ -551,31 +564,35 @@ TEST_CASE("trampoline_test", "[platform]")
     const void* helper_functions2[] = {(void*)function_pointer2};
     ebpf_helper_function_addresses_t helper_function_addresses2 = {
         EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions2};
+    ebpf_trampoline_table_t* local_table = nullptr;
 
-    REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
+    REQUIRE(ebpf_allocate_trampoline_table(1, &local_table) == EBPF_SUCCESS);
+    table.reset(local_table);
+
     REQUIRE(
         ebpf_update_trampoline_table(
-            table,
+            table.get(),
             EBPF_COUNT_OF(provider_helper_function_ids),
             provider_helper_function_ids,
             &helper_function_addresses1) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_get_trampoline_function(
-            table, EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
+            table.get(), EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) ==
+        EBPF_SUCCESS);
 
-    // Verify that the trampoline function invokes the provider function
+    // Verify that the trampoline function invokes the provider function.
     REQUIRE(test_function() == EBPF_SUCCESS);
 
     REQUIRE(
         ebpf_update_trampoline_table(
-            table,
+            table.get(),
             EBPF_COUNT_OF(provider_helper_function_ids),
             provider_helper_function_ids,
             &helper_function_addresses2) == EBPF_SUCCESS);
 
-    // Verify that the trampoline function now invokes the new provider function
+    // Verify that the trampoline function now invokes the new provider function.
     REQUIRE(test_function() == EBPF_OBJECT_ALREADY_EXISTS);
-    ebpf_free_trampoline_table(table);
+    ebpf_free_trampoline_table(table.release());
 }
 
 struct ebpf_security_descriptor_t_free
@@ -868,7 +885,7 @@ TEST_CASE("async", "[platform]")
     _test_helper test_helper;
 
     auto test = [](bool complete) {
-        ebpf_epoch_enter();
+        ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
         struct _async_context
         {
             ebpf_result_t result;
@@ -905,7 +922,7 @@ TEST_CASE("async", "[platform]")
             REQUIRE(cancellation_context.canceled);
             ebpf_async_complete(&async_context, 0, EBPF_SUCCESS);
         }
-        ebpf_epoch_exit();
+        ebpf_epoch_exit(epoch_state);
     };
 
     // Run the test with complete before cancel.
@@ -1063,4 +1080,12 @@ TEST_CASE("interlocked operations", "[platform]")
     void* p = &a;
     REQUIRE(ebpf_interlocked_compare_exchange_pointer(&p, &b, &a) == &a);
     REQUIRE(ebpf_interlocked_compare_exchange_pointer(&p, &b, &a) == &b);
+}
+
+TEST_CASE("get_authentication_id", "[platform]")
+{
+    _test_helper test_helper;
+    uint64_t authentication_id = 0;
+
+    REQUIRE(ebpf_platform_get_authentication_id(&authentication_id) == EBPF_SUCCESS);
 }

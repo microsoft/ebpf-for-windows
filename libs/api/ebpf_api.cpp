@@ -1040,6 +1040,7 @@ _link_ebpf_program(
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
     new_link->handle = ebpf_handle_invalid;
+    new_link->fd = ebpf_fd_invalid;
 
     try {
         size_t buffer_size = offsetof(ebpf_operation_link_program_request_t, data) + attach_parameter_size;
@@ -1728,6 +1729,7 @@ _initialize_ebpf_object_from_native_file(
         program->handle = ebpf_handle_invalid;
         program->program_type = info->program_type;
         program->attach_type = info->expected_attach_type;
+        program->fd = ebpf_fd_invalid;
 
         program->section_name = ebpf_duplicate_string(info->section_name);
         if (program->section_name == nullptr) {
@@ -1760,11 +1762,17 @@ _initialize_ebpf_object_from_native_file(
     }
 
 Exit:
-    ebpf_free(program);
     if (result != EBPF_SUCCESS) {
+        if (program) {
+            // Deallocate program, if it was allocated but not added to
+            // the object programs vector.
+            clean_up_ebpf_program(program);
+        }
+
         clean_up_ebpf_programs(object.programs);
         clean_up_ebpf_maps(object.maps);
     }
+
     ebpf_free_sections(infos);
     EBPF_RETURN_RESULT(result);
 }

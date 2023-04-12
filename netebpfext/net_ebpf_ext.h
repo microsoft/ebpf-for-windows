@@ -198,6 +198,10 @@ net_ebpf_extension_add_wfp_filters(
 void
 net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) uint64_t* filter_ids);
 
+// eBPF WFP Provider GUID.
+// ddb851f5-841a-4b77-8a46-bb7063e9f162
+DEFINE_GUID(EBPF_WFP_PROVIDER, 0xddb851f5, 0x841a, 0x4b77, 0x8a, 0x46, 0xbb, 0x70, 0x63, 0xe9, 0xf1, 0x62);
+
 // Default eBPF WFP Sublayer GUID.
 // 7c7b3fb9-3331-436a-98e1-b901df457fff
 DEFINE_GUID(EBPF_DEFAULT_SUBLAYER, 0x7c7b3fb9, 0x3331, 0x436a, 0x98, 0xe1, 0xb9, 0x01, 0xdf, 0x45, 0x7f, 0xff);

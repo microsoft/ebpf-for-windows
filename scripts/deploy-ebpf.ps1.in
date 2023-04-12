@@ -117,6 +117,8 @@ $source_directory="."
     "map.sys",
     "pidtgid.o",
     "pidtgid.sys",
+    "port_leak.exe",
+    "port_leak.pdb",
     "port_quota.exe",
     "port_quota.pdb",
     "printk.o",

@@ -679,9 +679,9 @@ TEST_CASE("program", "[execution_context]")
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
 
-    const ebpf_program_type_t* returned_program_type = ebpf_program_type_uuid(program.get());
+    ebpf_program_type_t returned_program_type = ebpf_program_type_uuid(program.get());
     REQUIRE(
-        memcmp(&program_parameters.program_type, returned_program_type, sizeof(program_parameters.program_type)) == 0);
+        memcmp(&program_parameters.program_type, &returned_program_type, sizeof(program_parameters.program_type)) == 0);
 
     REQUIRE(ebpf_program_get_program_info(program.get(), &program_info) == EBPF_SUCCESS);
     REQUIRE(program_info != nullptr);
@@ -1654,7 +1654,7 @@ TEST_CASE("EBPF_OPERATION_LINK_PROGRAM", "[execution_context][negative]")
 
     // No provider.
     link_program_request->program_handle = program_handles[0];
-    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_EXTENSION_FAILED_TO_LOAD);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")

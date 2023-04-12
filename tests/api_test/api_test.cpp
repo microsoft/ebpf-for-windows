@@ -13,6 +13,7 @@
 #include "program_helper.h"
 #include "service_helper.h"
 #include "socket_helper.h"
+#include "watchdog.h"
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -23,6 +24,8 @@
 #include <ntsecapi.h>
 #include <thread>
 #include <vector>
+
+CATCH_REGISTER_LISTENER(_watchdog)
 
 #define SAMPLE_PATH ""
 

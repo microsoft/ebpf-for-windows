@@ -7,6 +7,8 @@
 #include "bpf_code_generator.h"
 #include "catch_wrapper.hpp"
 #include "test_helpers.h"
+#include "watchdog.h"
+
 extern "C"
 {
 #include "ubpf.h"
@@ -15,6 +17,8 @@ extern "C"
 #define SEPARATOR "\\"
 
 #define UBPF_CODE_SIZE 8192
+
+CATCH_REGISTER_LISTENER(_watchdog)
 
 std::string
 env_or_default(const char* environment_variable, const char* default_value)

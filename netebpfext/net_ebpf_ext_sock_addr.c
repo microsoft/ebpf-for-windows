@@ -1542,7 +1542,7 @@ Exit:
     if (classify_handle_acquired) {
         FwpsReleaseClassifyHandle(classify_handle);
     }
-    
+
     if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }

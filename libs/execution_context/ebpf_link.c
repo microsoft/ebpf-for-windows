@@ -57,7 +57,7 @@ _ebpf_link_instance_invoke_batch(
     _In_ const void* state);
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_context);
+_ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_context, _Inout_ void* state);
 
 typedef enum _ebpf_link_dispatch_table_version
 {
@@ -166,18 +166,18 @@ _ebpf_link_extension_changed_callback(
         goto Done;
     }
 
-    const ebpf_program_type_t* program_type = ebpf_program_type_uuid(link->program);
+    ebpf_program_type_t program_type = ebpf_program_type_uuid(link->program);
     ebpf_attach_provider_data_t* attach_provider_data = (ebpf_attach_provider_data_t*)provider_data->data;
 
     if (memcmp(
-            program_type,
+            &program_type,
             &attach_provider_data->supported_program_type,
             sizeof(attach_provider_data->supported_program_type)) != 0) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_LINK,
             "Attach failed due to incorrect program type",
-            *program_type);
+            program_type);
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -359,7 +359,7 @@ _ebpf_link_instance_invoke(
     return_value = _ebpf_link_instance_invoke_batch(extension_client_binding_context, program_context, result, &state);
     ebpf_assert(return_value == EBPF_SUCCESS);
 
-    return_value = _ebpf_link_instance_invoke_batch_end(extension_client_binding_context);
+    return_value = _ebpf_link_instance_invoke_batch_end(extension_client_binding_context, &state);
     ebpf_assert(return_value == EBPF_SUCCESS);
 
 Done:
@@ -380,6 +380,8 @@ _ebpf_link_instance_invoke_batch_begin(
         goto Done;
     }
 
+    ebpf_get_execution_context_state((ebpf_execution_context_state_t*)state);
+
     if (link == NULL) {
         GUID npi_id = ebpf_extension_get_provider_guid(extension_client_binding_context);
         EBPF_LOG_MESSAGE_GUID(
@@ -388,7 +390,7 @@ _ebpf_link_instance_invoke_batch_begin(
         goto Done;
     }
 
-    ebpf_epoch_enter();
+    ((ebpf_execution_context_state_t*)state)->epoch_state = ebpf_epoch_enter();
     epoch_entered = true;
 
     return_value = ebpf_program_reference_providers(link->program);
@@ -397,26 +399,25 @@ _ebpf_link_instance_invoke_batch_begin(
     }
     provider_reference_held = true;
 
-    ebpf_get_execution_context_state((ebpf_execution_context_state_t*)state);
-
 Done:
     if (return_value != EBPF_SUCCESS && provider_reference_held) {
         ebpf_program_dereference_providers(link->program);
     }
 
     if (return_value != EBPF_SUCCESS && epoch_entered) {
-        ebpf_epoch_exit();
+        ebpf_epoch_exit(((ebpf_execution_context_state_t*)state)->epoch_state);
     }
 
     return return_value;
 }
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_context)
+_ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_context, _Inout_ void* state)
 {
+    ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     ebpf_link_t* link = (ebpf_link_t*)ebpf_extension_get_client_context(extension_client_binding_context);
     ebpf_program_dereference_providers(link->program);
-    ebpf_epoch_exit();
+    ebpf_epoch_exit(execution_context_state->epoch_state);
     return EBPF_SUCCESS;
 }
 
