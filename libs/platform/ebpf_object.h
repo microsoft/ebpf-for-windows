@@ -75,7 +75,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_object_initialize(
-        ebpf_core_object_t* object,
+        _Inout_ ebpf_core_object_t* object,
         ebpf_object_type_t object_type,
         ebpf_free_object_t free_function,
         ebpf_object_get_program_type_t get_program_type_function);
@@ -83,19 +83,19 @@ extern "C"
     /**
      * @brief Acquire a reference to this object.
      *
-     * @param[in] object Object on which to acquire a reference.
+     * @param[in,out] object Object on which to acquire a reference.
      */
     void
-    ebpf_object_acquire_reference(ebpf_core_object_t* object);
+    ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object);
 
     /**
      * @brief Release a reference on this object. If the reference count reaches
      *  zero, the free_function is invoked on the object.
      *
-     * @param[in] object Object on which to release a reference.
+     * @param[in,out] object Object on which to release a reference.
      */
     void
-    ebpf_object_release_reference(ebpf_core_object_t* object);
+    ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object);
 
     /**
      * @brief Query the stored type of the object.
@@ -104,7 +104,7 @@ extern "C"
      * @return Type of the object.
      */
     ebpf_object_type_t
-    ebpf_object_get_type(ebpf_core_object_t* object);
+    ebpf_object_get_type(_In_ const ebpf_core_object_t* object);
 
     /**
      * @brief Find the next object that is of this type and acquire reference
@@ -118,7 +118,9 @@ extern "C"
      */
     void
     ebpf_object_reference_next_object(
-        ebpf_core_object_t* previous_object, ebpf_object_type_t type, ebpf_core_object_t** next_object);
+        _In_ const ebpf_core_object_t* previous_object,
+        ebpf_object_type_t type,
+        _Outptr_result_maybenull_ ebpf_core_object_t** next_object);
 
     /**
      * @brief Find an ID in the ID table, verify the type matches,
@@ -132,19 +134,6 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object);
-
-    /**
-     * @brief Find an ID in the ID table, verify the type matches,
-     *  and release a reference previously acquired via
-     *  ebpf_object_reference_id.
-     *
-     * @param[in] id ID to find in table.
-     * @param[in] object_type Object type to match.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type);
 
     /**
      * @brief Find the object of a given type with the next ID greater than a given ID.
@@ -170,19 +159,6 @@ extern "C"
     ebpf_result_t
     ebpf_object_reference_by_handle(
         ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ struct _ebpf_core_object** object);
-
-    /**
-     * @brief Find an ID in the ID table, verify the type matches,
-     *  and release a reference previously acquired via
-     *  ebpf_object_reference_id.
-     *
-     * @param[in] id ID to find in table.
-     * @param[in] object_type Object type to match.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type);
 
     /**
      * @brief Find an ID in the ID table, verify the type matches,
