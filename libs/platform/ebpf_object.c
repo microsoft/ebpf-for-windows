@@ -4,6 +4,8 @@
 #include "ebpf_handle.h"
 #include "ebpf_object.h"
 
+#include <intrin.h>
+
 static const uint32_t _ebpf_object_marker = 'eobj';
 
 static ebpf_lock_t _ebpf_object_tracking_list_lock = {0};
@@ -186,14 +188,16 @@ void
 ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object)
 {
     ebpf_assert(object->base.marker == _ebpf_object_marker);
-    int32_t new_ref_count = ebpf_interlocked_increment_int32(&object->base.reference_count);
-    ebpf_assert(new_ref_count != 1);
+    int64_t new_ref_count = ebpf_interlocked_increment_int64(&object->base.reference_count);
+    if (new_ref_count == 1) {
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+    }
 }
 
 void
 ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object)
 {
-    int32_t new_ref_count;
+    int64_t new_ref_count;
 
     if (!object)
         return;
@@ -201,8 +205,10 @@ ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object)
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
     ebpf_assert(object->base.marker == _ebpf_object_marker);
 
-    new_ref_count = ebpf_interlocked_decrement_int32(&object->base.reference_count);
-    ebpf_assert(new_ref_count != -1);
+    new_ref_count = ebpf_interlocked_decrement_int64(&object->base.reference_count);
+    if (new_ref_count < 0) {
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+    }
 
     // Remove from object tracking list under the lock.
     if (new_ref_count == 0) {
