@@ -252,7 +252,10 @@ _ebpf_program_free(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
         ebpf_object_release_reference((ebpf_core_object_t*)program->maps[index]);
     }
 
-    ebpf_epoch_schedule_work_item(program->cleanup_work_item);
+    ebpf_epoch_work_item_t* cleanup_work_item = program->cleanup_work_item;
+    program->cleanup_work_item = NULL;
+
+    ebpf_epoch_schedule_work_item(cleanup_work_item);
     EBPF_RETURN_VOID();
 }
 
@@ -315,7 +318,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
 
     ebpf_free(program->helper_function_ids);
 
-    ebpf_free(program->cleanup_work_item);
+    ebpf_epoch_cancel_work_item(program->cleanup_work_item);
     ebpf_free(program);
     EBPF_RETURN_VOID();
 }
