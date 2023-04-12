@@ -252,6 +252,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***)
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
+    ebpf_watchdog_timer_t watchdog_timer;
+
     std::vector<uint8_t> random_buffer(size);
     memcpy(random_buffer.data(), data, size);
 

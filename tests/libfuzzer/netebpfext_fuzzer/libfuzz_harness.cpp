@@ -20,7 +20,7 @@ typedef struct
 typedef struct _test_client_context
 {
     netebpfext_helper_base_client_context_t base;
-    ebpf_context_descriptor_t* ctx_descriptor;
+    const ebpf_context_descriptor_t* ctx_descriptor;
     netebpfext_fuzzer_metadata_t metadata;
 } test_client_context_t;
 
@@ -69,6 +69,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
+    ebpf_watchdog_timer_t watchdog_timer;
+
     if (size < sizeof(netebpfext_fuzzer_metadata_t)) {
         return 0;
     }

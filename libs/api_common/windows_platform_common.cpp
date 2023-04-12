@@ -522,7 +522,7 @@ _update_global_helpers_for_program_information(
                 new_helpers + global_helper_count,
                 program_info->program_type_specific_helper_prototype,
                 (program_info->count_of_program_type_specific_helpers * sizeof(ebpf_helper_function_prototype_t)));
-            ebpf_free(program_info->program_type_specific_helper_prototype);
+            ebpf_free((void*)program_info->program_type_specific_helper_prototype);
         }
 
         program_info->program_type_specific_helper_prototype = new_helpers;

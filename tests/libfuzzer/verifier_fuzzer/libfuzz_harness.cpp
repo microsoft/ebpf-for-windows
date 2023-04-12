@@ -13,6 +13,7 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
+    ebpf_watchdog_timer_t watchdog_timer;
     try {
         const char* report = nullptr;
         const char* error_message = nullptr;
