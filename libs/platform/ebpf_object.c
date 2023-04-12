@@ -292,7 +292,7 @@ ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out
 
 void
 ebpf_object_reference_next_object(
-    _In_ const ebpf_core_object_t* previous_object,
+    _In_opt_ const ebpf_core_object_t* previous_object,
     ebpf_object_type_t type,
     _Outptr_result_maybenull_ ebpf_core_object_t** next_object)
 {

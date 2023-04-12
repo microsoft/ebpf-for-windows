@@ -118,7 +118,7 @@ extern "C"
      */
     void
     ebpf_object_reference_next_object(
-        _In_ const ebpf_core_object_t* previous_object,
+        _In_opt_ const ebpf_core_object_t* previous_object,
         ebpf_object_type_t type,
         _Outptr_result_maybenull_ ebpf_core_object_t** next_object);
 
