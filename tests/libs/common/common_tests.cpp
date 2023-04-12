@@ -195,6 +195,17 @@ ring_buffer_api_test_helper(
     }
 
     // Wait for event handler getting notifications for all RING_BUFFER_TEST_EVENT_COUNT events.
+    std::future_status wait_status = std::future_status::ready;
+    int count = 0;
+    do {
+        // Wait for 1 second for the event handler to get notifications for all events.
+        wait_status = ring_buffer_event_callback.wait_for(1s);
+        if (wait_status == std::future_status::ready) {
+            break;
+        }
+        count++;
+    } while (count < 30);
+    printf("ring_buffer_api_test_helper: wait_for status [%d], count = [%d secs]\n", wait_status, count);
     REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
 
     // Mark the event context as canceled, such that the event callback stops processing events.
