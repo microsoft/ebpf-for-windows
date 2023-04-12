@@ -32,8 +32,6 @@
 		<file src="eBPFCore.pdb" target="package\bin\drivers"/>
 		<file src="NetEbpfExt.sys" target="package\bin\drivers"/>
 		<file src="NetEbpfExt.pdb" target="package\bin\drivers"/>
-		<file src="printk.sys" target="package\bin\drivers"/>
-		<file src="printk.pdb" target="package\bin\drivers"/>
 
 		<!--Temporary inclusion of the VC++ Redist-->
 		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\concrt140.dll" target="package\bin"/>
