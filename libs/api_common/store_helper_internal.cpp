@@ -230,13 +230,13 @@ _load_program_data_information(
                 goto Exit;
             }
 
-            program_information->program_type_specific_helper_prototype =
-                (ebpf_helper_function_prototype_t*)ebpf_allocate(
-                    helper_count * sizeof(ebpf_helper_function_prototype_t));
-            if (program_information->program_type_specific_helper_prototype == nullptr) {
+            ebpf_helper_function_prototype_t* helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate(
+                helper_count * sizeof(ebpf_helper_function_prototype_t));
+            if (helper_prototype == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
+            program_information->program_type_specific_helper_prototype = helper_prototype;
 
             // Add space for null terminator.
             max_helper_name_size += 1;
@@ -257,8 +257,7 @@ _load_program_data_information(
                     goto Exit;
                 }
 
-                result = _load_helper_prototype(
-                    helper_key, helper_name, &program_information->program_type_specific_helper_prototype[index]);
+                result = _load_helper_prototype(helper_key, helper_name, &helper_prototype[index]);
                 if (result != EBPF_SUCCESS) {
                     goto Exit;
                 }
