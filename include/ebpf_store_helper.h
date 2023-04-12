@@ -91,7 +91,7 @@ Exit:
  */
 static __return_type
 _ebpf_store_update_section_information(
-    _In_reads_(section_info_count) ebpf_program_section_info_t* section_info, uint32_t section_info_count)
+    _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count)
 {
     __return_type status = _SUCCESS;
     ebpf_registry_key_t provider_key = NULL;
@@ -182,7 +182,7 @@ Exit:
  */
 static __return_type
 _ebpf_store_update_program_information(
-    _In_reads_(program_info_count) ebpf_program_info_t* program_info, uint32_t program_info_count)
+    _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count)
 {
     __return_type status = _SUCCESS;
     ebpf_registry_key_t provider_key = NULL;

@@ -797,8 +797,10 @@ TEST_CASE("serialize_program_info_test", "[platform]")
         out_program_info->count_of_program_type_specific_helpers);
     REQUIRE(out_program_info->program_type_specific_helper_prototype != nullptr);
     for (uint32_t i = 0; i < in_program_info.count_of_program_type_specific_helpers; i++) {
-        ebpf_helper_function_prototype_t* in_prototype = &in_program_info.program_type_specific_helper_prototype[i];
-        ebpf_helper_function_prototype_t* out_prototype = &out_program_info->program_type_specific_helper_prototype[i];
+        const ebpf_helper_function_prototype_t* in_prototype =
+            &in_program_info.program_type_specific_helper_prototype[i];
+        const ebpf_helper_function_prototype_t* out_prototype =
+            &out_program_info->program_type_specific_helper_prototype[i];
         REQUIRE(in_prototype->helper_id == out_prototype->helper_id);
         REQUIRE(in_prototype->return_type == out_prototype->return_type);
         for (int j = 0; j < _countof(in_prototype->arguments); j++) {
