@@ -75,7 +75,7 @@ extern "C"
     /**
      * @brief Allocate an epoch work item; a work item that can be scheduled to
      * run when the current epoch ends. Allocated work items must either be
-     * scheduled or cancelled.
+     * scheduled or canceled.
      *
      * @param[in] callback_context Context to pass to the callback function.
      * @param[in] callback Callback function to run on epoch end.
