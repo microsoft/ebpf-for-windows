@@ -187,7 +187,9 @@ ebpf_object_initialize(
 void
 ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object)
 {
-    ebpf_assert(object->base.marker == _ebpf_object_marker);
+    if (object->base.marker != _ebpf_object_marker) {
+        __fastfail(FAST_FAIL_INVALID_ARG);
+    }
     int64_t new_ref_count = ebpf_interlocked_increment_int64(&object->base.reference_count);
     if (new_ref_count == 1) {
         __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
@@ -201,6 +203,10 @@ ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object)
 
     if (!object) {
         return;
+    }
+
+    if (object->base.marker != _ebpf_object_marker) {
+        __fastfail(FAST_FAIL_INVALID_ARG);
     }
 
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);

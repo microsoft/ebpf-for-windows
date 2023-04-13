@@ -25,9 +25,18 @@ extern "C"
     typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);
     typedef const ebpf_program_type_t (*ebpf_object_get_program_type_t)(_In_ const ebpf_core_object_t* object);
 
+    /**
+     * @brief Base object for all reference counted eBPF objects. This struct is embedded as the first entry in all
+     * reference counted eBPF objects. The reference count is 64bit to allow for atomic operations on 32bit and 64bit
+     * systems. The reference count is 8-byte aligned to avoid false sharing. The marker is used to detect
+     * use-after-free bugs. The marker is set to 'eobj' when the object is valid and is inverted when the object is
+     * freed. This allows for a fast check to see if the object is valid. The acquire_reference and release_reference
+     * functions are used to acquire and release a reference on the object.
+     */
     typedef struct _ebpf_base_object
     {
-        uint32_t marker;    // Contains the pattern for eobj when valid and ~eobj when deleted.
+        uint32_t marker; // Contains the 32bit value 'eobj' when the object is valid and is inverted when the object is
+                         // freed.
         uint32_t zero_fill; // Zero fill to make the reference count is 8-byte aligned.
         volatile int64_t reference_count;
         ebpf_base_acquire_reference_t acquire_reference;
