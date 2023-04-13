@@ -1751,12 +1751,6 @@ _initialize_ebpf_object_from_native_file(
             }
         }
 
-        program->hash_type = ebpf_duplicate_string(info->program_hash_type);
-        if (program->hash_type == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-
         object.programs.emplace_back(program);
         program = nullptr;
     }
@@ -1921,7 +1915,6 @@ _ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info) noexcept
     ebpf_free((void*)info->section_name);
     ebpf_free((void*)info->program_type_name);
     ebpf_free(info->raw_data);
-    ebpf_free((void*)info->program_hash_type);
     ebpf_free(info);
     EBPF_LOG_EXIT();
 }
@@ -1949,7 +1942,6 @@ typedef struct _ebpf_pe_context
     std::map<std::string, std::string> program_names;
     std::map<std::string, GUID> section_program_types;
     std::map<std::string, GUID> section_attach_types;
-    std::map<std::string, std::string> hash_types;
     uintptr_t rdata_base;
     size_t rdata_size;
     const bounded_buffer* rdata_buffer;
@@ -2135,10 +2127,6 @@ _ebpf_pe_get_section_names(
                 attach_type_guid_address < pe_context->data_base + pe_context->data_size);
             offset = attach_type_guid_address - pe_context->data_base;
             pe_context->section_attach_types[pe_section_name] = *(GUID*)(pe_context->data_buffer->buf + offset);
-
-            const char* program_info_hash_type = _ebpf_get_section_string(
-                pe_context, (uintptr_t)program->program_info_hash_type, section_header, buffer);
-            pe_context->hash_types[pe_section_name] = program_info_hash_type;
         }
     }
 
@@ -2176,7 +2164,6 @@ _ebpf_pe_add_section(
 
     std::string elf_section_name = pe_context->section_names[pe_section_name];
     std::string program_name = pe_context->program_names[pe_section_name];
-    std::string program_hash_type = pe_context->hash_types[pe_section_name];
 
     ebpf_section_info_t* info = (ebpf_section_info_t*)ebpf_allocate(sizeof(*info));
     if (info == nullptr) {
@@ -2212,13 +2199,6 @@ _ebpf_pe_add_section(
 
     info->program_type_name = ebpf_duplicate_string(program_type_name);
     if (info->program_type_name == nullptr) {
-        pe_context->result = EBPF_NO_MEMORY;
-        return_value = 1;
-        goto Exit;
-    }
-
-    info->program_hash_type = ebpf_duplicate_string(program_hash_type.c_str());
-    if (info->program_hash_type == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
         goto Exit;

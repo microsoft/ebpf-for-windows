@@ -559,6 +559,7 @@ Done:
     ebpf_free(local_program_name.value);
     ebpf_free(local_section_name.value);
     ebpf_free(local_file_name.value);
+    ebpf_free(local_hash_type_name.value);
     if (lock_held) {
         ebpf_lock_unlock(&program->lock, state);
     }
@@ -1540,7 +1541,6 @@ Done:
 typedef struct _ebpf_helper_id_to_index
 {
     uint32_t helper_id;
-
     uint32_t index;
 } ebpf_helper_id_to_index_t;
 
