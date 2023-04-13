@@ -199,8 +199,9 @@ ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object)
 {
     int64_t new_ref_count;
 
-    if (!object)
+    if (!object) {
         return;
+    }
 
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
     ebpf_assert(object->base.marker == _ebpf_object_marker);
