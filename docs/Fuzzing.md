@@ -15,17 +15,30 @@ Download the artifact and the associated build.  For example, if verifier_fuzzer
 
 Copy the crash file from the artifact folder to a separate directory,  *verifier_fuzzer* files including *verifier_fuzzer.pdb*, *verifier_fuzzer.lib*, *verifier_fuzzer.exp*, and *verifier_fuzzer.exe* from debug directory. The C Runtime library, entitled, *ucrtbased.dll*, and address sanitizer files, marked by ASAN need to be included, *clang_rt.asan_dbg_dynamic-x86_64.dll* ,and *clang_rt.asan_dynamic-x86_64.dll*.
 
+### Using the command line
 Run a desired admin CMD locating to the copied files in the new directory, and enter with the following command:
 ```
 windbgx -y SRV*;. -srcpath <your-path-to-ebpf-for-windows> verifier_fuzzer.exe <crash-file-name>
 ```
 A window containing the windbg debugger opens up and enter ```g``` in the command box of windbg. If an access violation indicating ```Access violation - code c0000005 (first chance)``` shows up, please use ```sxi c0000005``` to ignore this error. Please use ```g``` again to see the line that crashes.
 
-An alternative of running an admin CMD is to reproduce a crash to use the local latest build and run
+An alternative is to reproduce a crash to use the local latest build and run
 ```
 verifier_fuzzer.exe <crash-file-name>
 ```
 This method will show the line of crash in the source file.
+
+### Using Visual Studio
+
+From within Visual Studio, you can reproduce the crash as follows:
+
+1. Set the active configuration to FuzzerDebug.
+2. Right click the verifier_fuzzer project and click Properties.
+3. Under Debugging, set Working Directory to: $(OutDir)
+4. Under Debugging, set Command Arguments to: verifier_corpus\<crash-file-name>
+5. Build the solution.
+6. Copy the downloaded <crash-file-name> to the x64\FuzzerDebug\verifier_corpus directory.
+7. Start (with debugging) the verifier_fuzzer from within Visual Studio.
 
 # Regenerating the corpus for execution context fuzzer
 The libfuzzer tests work best if they have an existing
