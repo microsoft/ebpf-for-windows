@@ -7,7 +7,7 @@ param([parameter(Mandatory = $true)] [string] $ProgramName,
     [parameter(Mandatory = $false)] [string] $BinDir = "$PSScriptRoot",
     [parameter(Mandatory = $false)] [string] $OutDir = "$PWD",
     [parameter(Mandatory = $false)] [string] $Platform = "x64",
-    [ValidateSet("Release", "Debug")][parameter(Mandatory = $false)] [string] $Configuration = "Release",
+    [ValidateSet("Release", "FuzzerDebug", "Debug")][parameter(Mandatory = $false)] [string] $Configuration = "Release",
     [parameter(Mandatory = $false)] [bool] $SkipVerification = $false,
     [parameter(Mandatory = $false)] [bool] $KernelMode = $true)
 
@@ -21,7 +21,7 @@ if ($ProgramName.EndsWith(".o")) {
     $ProgramName = $ProgramName.Substring(0, $ProgramName.Length - 2)
 }
 
-# SkipVerification is only supported for Debug.
+# SkipVerification is only supported for Debug builds.
 if ($Configuration -eq "Release" -and $SkipVerification) {
     throw "Invalid parameter. SkipVerification is only supported for Debug builds"
 }

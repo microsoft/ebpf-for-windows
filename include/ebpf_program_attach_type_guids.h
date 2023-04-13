@@ -87,6 +87,11 @@ extern "C"
 
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_UNSPECIFIED = {0};
 
+#define EBPF_PROGRAM_TYPE_XDP_GUID                                                     \
+    {                                                                                  \
+        0xf1832a85, 0x85d5, 0x45b0, { 0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0 } \
+    }
+
     /** @brief Program type for handling incoming packets as early as possible.
      *
      * eBPF program prototype: \ref xdp_hook_t
@@ -95,8 +100,12 @@ extern "C"
      *
      * Helpers available: see bpf_helpers.h
      */
-    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_XDP = {
-        0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_XDP = EBPF_PROGRAM_TYPE_XDP_GUID;
+
+#define EBPF_PROGRAM_TYPE_BIND_GUID                                                    \
+    {                                                                                  \
+        0x608c517c, 0x6c52, 0x4a26, { 0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf } \
+    }
 
     /** @brief Program type for handling socket bind() requests.
      *
@@ -106,8 +115,12 @@ extern "C"
      *
      * Helpers available: see bpf_helpers.h
      */
-    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_BIND = {
-        0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_BIND = EBPF_PROGRAM_TYPE_BIND_GUID;
+
+#define EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID                                        \
+    {                                                                                  \
+        0x92ec8e39, 0xaeec, 0x11ec, { 0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee } \
+    }
 
     /** @brief Program type for handling various socket operations such as connect(), accept() etc.
      *
@@ -119,23 +132,31 @@ extern "C"
      *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT
      *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT
      */
-    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR = {
-        0x92ec8e39, 0xaeec, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
+    __declspec(selectany)
+        ebpf_program_type_t EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID;
+
+#define EBPF_PROGRAM_TYPE_SOCK_OPS_GUID                                                \
+    {                                                                                  \
+        0x43fb224d, 0x68f8, 0x46d6, { 0xaa, 0x3f, 0xc8, 0x56, 0x51, 0x8c, 0xbb, 0x32 } \
+    }
 
     /** @brief Program type for handling socket event notifications.
      *
      * Attach type(s): \ref EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS
      */
-    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_SOCK_OPS = {
-        0x43fb224d, 0x68f8, 0x46d6, {0xaa, 0x3f, 0xc8, 0x56, 0x51, 0x8c, 0xbb, 0x32}};
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_SOCK_OPS = EBPF_PROGRAM_TYPE_SOCK_OPS_GUID;
+
+#define EBPF_PROGRAM_TYPE_SAMPLE_GUID                                                  \
+    {                                                                                  \
+        0xf788ef4a, 0x207d, 0x4dc3, { 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c } \
+    }
 
     /** @brief Program type for handling calls from the eBPF sample extension. Used for
      * testing.
      *
      * Attach type(s): \ref EBPF_ATTACH_TYPE_SAMPLE
      */
-    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_SAMPLE = {
-        0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_SAMPLE = EBPF_PROGRAM_TYPE_SAMPLE_GUID;
 
 #ifdef __cplusplus
 }

@@ -163,8 +163,7 @@ _net_ebpf_bind_update_store_entries()
         return status;
     }
 
-    // Program information
-    _ebpf_bind_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
+    // Update program information.
     status = _ebpf_store_update_program_information(&_ebpf_bind_program_info, 1);
 
     return status;
@@ -187,7 +186,6 @@ net_ebpf_ext_bind_register_providers()
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    _ebpf_bind_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
     // Set the program type as the provider module id.
     _ebpf_bind_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_BIND;
     status = net_ebpf_extension_program_info_provider_register(
