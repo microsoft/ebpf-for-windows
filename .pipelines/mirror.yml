@@ -9,6 +9,7 @@ schedules:
   branches:
     include:
     - main
+    - release/*
   always: true
 
 # Disable PR and CI triggers.
