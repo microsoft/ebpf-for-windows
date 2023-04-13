@@ -82,17 +82,17 @@ typedef struct _ebpf_program
     _Guarded_by_(lock) void* helper_function_addresses_changed_context;
 } ebpf_program_t;
 
-static ebpf_result_t
-_ebpf_program_update_helpers(_Inout_ ebpf_program_t* program);
+_Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program);
 
 static ebpf_result_t
-_ebpf_program_update_interpret_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context);
+_ebpf_program_update_interpret_helpers(
+    size_t address_count, _In_reads_(address_count) uintptr_t* addresses, _Inout_ void* context);
 
 static ebpf_result_t
-_ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context);
+_ebpf_program_update_jit_helpers(
+    size_t address_count, _In_reads_(address_count) uintptr_t* addresses, _Inout_ void* context);
 
-static ebpf_result_t
-_ebpf_program_get_helper_function_address(
+_Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helper_function_address(
     _In_ const ebpf_program_t* program, const uint32_t helper_function_id, uint64_t* address);
 
 _Must_inspect_result_ ebpf_result_t
@@ -105,8 +105,7 @@ void
 ebpf_program_terminate()
 {}
 
-static void
-_ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
+_Requires_lock_not_held_(program->lock) static void _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     while (!ebpf_list_is_empty(&program->links)) {
@@ -117,8 +116,8 @@ _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
     EBPF_RETURN_VOID();
 }
 
-static ebpf_result_t
-_ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program);
+_Requires_lock_held_(program->lock) static ebpf_result_t
+    _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program);
 
 static ebpf_result_t
 _ebpf_program_program_info_provider_changed(
@@ -204,6 +203,8 @@ _ebpf_program_program_info_provider_changed(
             goto Exit;
         }
 
+        ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+
         return_value = _ebpf_program_update_helpers(program);
         if (return_value != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE(
@@ -216,6 +217,8 @@ _ebpf_program_program_info_provider_changed(
         program->global_helper_function_count =
             global_helper_function_addresses ? global_helper_function_addresses->helper_function_count : 0;
         program->bpf_prog_type = program_data->program_info->program_type_descriptor.bpf_prog_type;
+
+        ebpf_lock_unlock(&program->lock, state);
         return_value = EBPF_SUCCESS;
     }
 
@@ -256,6 +259,7 @@ _ebpf_program_free(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
     program->cleanup_work_item = NULL;
 
     ebpf_epoch_schedule_work_item(cleanup_work_item);
+
     EBPF_RETURN_VOID();
 }
 
@@ -323,8 +327,8 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
     EBPF_RETURN_VOID();
 }
 
-static ebpf_result_t
-_ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
+_Requires_lock_not_held_(program->lock) static ebpf_result_t
+    _ebpf_program_load_providers(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
@@ -647,8 +651,7 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-static ebpf_result_t
-_ebpf_program_load_machine_code(
+_Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_machine_code(
     _Inout_ ebpf_program_t* program,
     _In_opt_ const void* code_context,
     _In_reads_(machine_code_size) const uint8_t* machine_code,
@@ -710,22 +713,48 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-static ebpf_result_t
-_ebpf_program_update_helpers(_Inout_ ebpf_program_t* program)
+_Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program)
 {
-    if (program->helper_function_addresses_changed_callback != NULL) {
-        return program->helper_function_addresses_changed_callback(
-            program, program->helper_function_addresses_changed_context);
-    } else {
-        return EBPF_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
+    uintptr_t* helper_function_addresses = NULL;
+    if (program->parameters.code_type == EBPF_CODE_NATIVE) {
+        helper_function_addresses =
+            ebpf_allocate_with_tag(program->helper_function_count * sizeof(uintptr_t), EBPF_POOL_TAG_PROGRAM);
+        if (helper_function_addresses == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+
+        for (uint32_t index = 0; index < program->helper_function_count; index++) {
+            result = _ebpf_program_get_helper_function_address(
+                program, program->helper_function_ids[index], &helper_function_addresses[index]);
+            if (result != EBPF_SUCCESS) {
+                break;
+            }
+        }
     }
+
+    if (program->helper_function_addresses_changed_callback != NULL) {
+        result = program->helper_function_addresses_changed_callback(
+            program->helper_function_count,
+            helper_function_addresses,
+            program->helper_function_addresses_changed_context);
+    }
+Done:
+    ebpf_free(helper_function_addresses);
+    return result;
 }
 
 static ebpf_result_t
-_ebpf_program_update_interpret_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context)
+_ebpf_program_update_interpret_helpers(
+    size_t address_count, _In_reads_(address_count) uintptr_t* addresses, _Inout_ void* context)
 {
     EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(context);
+    UNREFERENCED_PARAMETER(address_count);
+    UNREFERENCED_PARAMETER(addresses);
+
+    ebpf_program_t* program = (ebpf_program_t*)context;
+    _Analysis_assume_lock_held_(program->lock);
     ebpf_result_t result = EBPF_SUCCESS;
     size_t index = 0;
 
@@ -758,10 +787,13 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_program_update_jit_helpers(_Inout_ ebpf_program_t* program, _Inout_ void* context)
+_ebpf_program_update_jit_helpers(
+    size_t address_count, _In_reads_(address_count) uintptr_t* addresses, _Inout_ void* context)
 {
     ebpf_result_t return_value;
-    UNREFERENCED_PARAMETER(context);
+    UNREFERENCED_PARAMETER(address_count);
+    UNREFERENCED_PARAMETER(addresses);
+    ebpf_program_t* program = (ebpf_program_t*)context;
     ebpf_program_data_t* program_data = NULL;
     const ebpf_helper_function_addresses_t* helper_function_addresses = NULL;
     const ebpf_helper_function_addresses_t* global_helper_function_addresses = NULL;
@@ -915,8 +947,7 @@ Exit:
 }
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-static ebpf_result_t
-_ebpf_program_load_byte_code(
+_Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_byte_code(
     _Inout_ ebpf_program_t* program, _In_ const ebpf_instruction_t* instructions, size_t instruction_count)
 {
     EBPF_LOG_ENTRY();
@@ -954,7 +985,7 @@ _ebpf_program_load_byte_code(
     ubpf_set_error_print(program->code_or_vm.vm, ebpf_log_function);
 
     program->helper_function_addresses_changed_callback = _ebpf_program_update_interpret_helpers;
-    program->helper_function_addresses_changed_context = NULL;
+    program->helper_function_addresses_changed_context = program;
 
     return_value = _ebpf_program_update_helpers(program);
     if (return_value != EBPF_SUCCESS) {
@@ -997,6 +1028,7 @@ ebpf_program_load_code(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
     program->parameters.code_type = code_type;
     ebpf_assert(
         (code_type == EBPF_CODE_NATIVE && code_context != NULL) ||
@@ -1029,6 +1061,7 @@ ebpf_program_load_code(
     }
     }
 
+    ebpf_lock_unlock(&program->lock, state);
     EBPF_RETURN_RESULT(result);
 }
 
@@ -1137,8 +1170,7 @@ Done:
     }
 }
 
-static ebpf_result_t
-_ebpf_program_get_helper_function_address(
+_Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helper_function_address(
     _In_ const ebpf_program_t* program, const uint32_t helper_function_id, uint64_t* address)
 {
     ebpf_result_t return_value;
@@ -1248,6 +1280,7 @@ ebpf_program_get_helper_function_addresses(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
 
     if (program->helper_function_count > addresses_count) {
         result = EBPF_INSUFFICIENT_BUFFER;
@@ -1263,6 +1296,7 @@ ebpf_program_get_helper_function_addresses(
     }
 
 Exit:
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
     EBPF_RETURN_RESULT(result);
 }
 
@@ -1564,8 +1598,8 @@ _ebpf_helper_id_to_index_compare(const void* lhs, const void* rhs)
  * @return EBPF_SUCCESS the program info hash matches.
  * @return EBPF_INVALID_ARGUMENT the program info hash does not match.
  */
-static ebpf_result_t
-_ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program)
+_Requires_lock_held_(program->lock) static ebpf_result_t
+    _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
@@ -1939,15 +1973,14 @@ Exit:
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_register_for_helper_changes(
     _Inout_ ebpf_program_t* program,
-    _In_ ebpf_helper_function_addresses_changed_callback_t callback,
+    _In_opt_ ebpf_helper_function_addresses_changed_callback_t callback,
     _In_opt_ void* context)
 {
-    if (program->helper_function_addresses_changed_callback != NULL) {
-        return EBPF_INVALID_ARGUMENT;
-    }
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
 
     program->helper_function_addresses_changed_callback = callback;
     program->helper_function_addresses_changed_context = context;
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
     return EBPF_SUCCESS;
 }
 
