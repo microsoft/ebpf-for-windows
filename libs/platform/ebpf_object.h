@@ -28,7 +28,7 @@ extern "C"
     typedef struct _ebpf_base_object
     {
         uint32_t marker;    // Contains the pattern for eobj when valid and ~eobj when deleted.
-        uint32_t zero_fill; // Zero fill to make the reference count 8-byte aligned.
+        uint32_t zero_fill; // Zero fill to make the reference count is 8-byte aligned.
         volatile int64_t reference_count;
         ebpf_base_acquire_reference_t acquire_reference;
         ebpf_base_release_reference_t release_reference;
