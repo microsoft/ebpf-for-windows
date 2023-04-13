@@ -34,10 +34,10 @@ typedef struct _ebpf_link
     bpf_attach_type_t bpf_attach_type;
     enum bpf_link_type link_type;
     ebpf_program_type_t program_type;
-    ebpf_extension_data_t client_data;
+    _Guarded_by_(attach_lock) ebpf_extension_data_t client_data;
     ebpf_extension_client_t* extension_client_context;
     ebpf_lock_t attach_lock;
-    ebpf_link_state_t state;
+    _Guarded_by_(attach_lock) ebpf_link_state_t state;
     void* provider_binding_context;
 } ebpf_link_t;
 
@@ -123,6 +123,8 @@ ebpf_link_initialize(
     size_t context_data_length)
 {
     EBPF_LOG_ENTRY();
+    ebpf_lock_state_t state = ebpf_lock_lock(&link->attach_lock);
+
     ebpf_result_t return_value;
 
     link->client_data.version = 0;
@@ -141,6 +143,7 @@ ebpf_link_initialize(
 
     return_value = EBPF_SUCCESS;
 Exit:
+    ebpf_lock_unlock(&link->attach_lock, state);
     EBPF_RETURN_RESULT(return_value);
 }
 
