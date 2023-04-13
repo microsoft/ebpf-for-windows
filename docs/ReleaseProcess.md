@@ -71,11 +71,11 @@ Servicing a release has two main scenarios:
 
 ### Updating a Release branch with patches/hot-fixes from main (*Forward Integration*)
 
->NOTE: in servicing a release branch, **no new features must be added to the release branch**, only patches or hot-fixes will be accepted.
+>NOTE: In servicing a release branch, **new features must not be added to the release branch**.  Only patches or hot-fixes will be accepted.
 
-1. On the main `ebpf-for-windows` repo, create and checkout a new working branch from the `/release/X.Y` branch you want to service.
+1. On the main `ebpf-for-windows` repo, create and check out a new working branch from the `/release/X.Y` branch you want to service.
 1. Update the source code with the following steps:
-    * Update the **minor version number "`Z`" only** in the following files, making sure to follow [Semantic Versioning 2.0](https://semver.org) ("`X.Y.Z`"):
+    * Update the **patch version number "`Z`" only** in the following files, making sure to follow [Semantic Versioning 2.0](https://semver.org) ("`X.Y.Z`"):
         * `resource\ebpf_version.h`
         * `installer\Product.wxs`, within the following XML attribute:
 
@@ -97,7 +97,7 @@ Servicing a release has two main scenarios:
     git mergetool
     ```
 1. Commit all the changes in the working branch.
-    >NOTE: the formatting rules may complain about the formatting of the generated `.c` files from the script above, in this case, format them with the following:
+    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, format them with the following:
     >```bash
     ># In bash
     >./scripts/format-code --staged
@@ -115,7 +115,7 @@ Servicing a release has two main scenarios:
 
 >IMPORTANT! Normally, this should be done by the release manager **in VERY RARE scenarios** (and it's also likely an indication there's been a failure in the releasing process), but if you are a contributor and have been asked to do this, here are the steps to be followed:
 
-1. On the main `ebpf-for-windows` repo, create and checkout a new working branch from the "`main`" branch.
+1. On the main `ebpf-for-windows` repo, create and check out a new working branch from the "`main`" branch.
 1. Cherry pick the commits from the "`release/X.Y`" branch branch that you want to add to the "`main`" branch (patches/hot-fixes, etc.):
     ```bash
     git cherry-pick release/X.Y <commit number> ... <commit number>
