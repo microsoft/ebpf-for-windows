@@ -126,7 +126,7 @@ Servicing a release has two main scenarios:
     ```
 1. Commit all the changes in the working branch.
 1. Create a **Draft** pull-request for your working branch into the main repo's "`main`" branch, and title the PR as *"Backwards Integration of Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
-1. Wait for  the CI/CD pipeline for the PR to complete successfully.
+1. Wait for the CI/CD pipeline for the PR to complete successfully.
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`main`" branch.
 1. Create a tag for the PR's commit number, on the main repo's "`main`" branch, with meaningful name (i.e., "*RI-from-release-vX.Y.Z*").
 
