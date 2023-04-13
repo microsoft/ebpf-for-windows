@@ -9,6 +9,10 @@
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="FuzzerDebug|x64">
+      <Configuration>FuzzerDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
@@ -29,6 +33,12 @@
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -44,12 +54,27 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\ubpf\vm;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tools\bpf2c;$(SolutionDir)libs\service;$(SolutionDir)libs\api;$(SolutionDir)libs\api_common;$(SolutionDir)libs\platform;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)rpc_interface;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\ubpf\vm;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tools\bpf2c;$(SolutionDir)libs\service;$(SolutionDir)libs\api;$(SolutionDir)libs\api_common;$(SolutionDir)libs\platform;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)rpc_interface;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -92,6 +117,9 @@
     <ProjectReference Include="..\..\..\libs\api_common\api_common.vcxproj">
       <Project>{e79382b2-fed9-4cd4-9498-dbddd6c46c91}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\libs\elf_spec\elf_spec.vcxproj">
+      <Project>{c3d2cd73-bf4c-47df-8808-2a9996124d5b}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\libs\pe-parse\pe-parse.vcxproj">
       <Project>{fe4fea79-bfbb-4822-abcb-0d3beea240a7}</Project>
     </ProjectReference>
@@ -100,9 +128,6 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\libs\service\service.vcxproj">
       <Project>{af85c549-57cc-40a5-bdfc-dcf1998de80f}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\libs\spec\spec.vcxproj">
-      <Project>{c3d2cd73-bf4c-47df-8808-2a9996124d5b}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\libs\ubpf\user\ubpf_user.vcxproj">
       <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>
@@ -115,8 +140,10 @@
     <CustomBuild Include="..\..\..\scripts\create_verifier_corpus.bat">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)scripts\create_verifier_corpus.bat $(SolutionDir) $(OutDir)verifier_corpus</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(SolutionDir)scripts\create_verifier_corpus.bat $(SolutionDir) $(OutDir)verifier_corpus</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)scripts\create_verifier_corpus.bat $(SolutionDir) $(OutDir)verifier_corpus</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)verifier_corpus\twomaps.o</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutDir)verifier_corpus\twomaps.o</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)verifier_corpus\twomaps.o</Outputs>
     </CustomBuild>
   </ItemGroup>

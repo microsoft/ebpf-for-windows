@@ -254,26 +254,26 @@ ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info
 {
     EBPF_LOG_ENTRY();
     if (program_info != NULL) {
-        ebpf_free(program_info->program_type_descriptor.context_descriptor);
+        ebpf_free((void*)program_info->program_type_descriptor.context_descriptor);
         ebpf_free((void*)program_info->program_type_descriptor.name);
         if (program_info->program_type_specific_helper_prototype != NULL) {
             for (uint32_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
-                ebpf_helper_function_prototype_t* helper_prototype =
+                const ebpf_helper_function_prototype_t* helper_prototype =
                     &program_info->program_type_specific_helper_prototype[i];
-                ebpf_free((void*)helper_prototype->name);
-                helper_prototype->name = NULL;
+                void* name = (void*)helper_prototype->name;
+                ebpf_free(name);
             }
         }
         if (program_info->global_helper_prototype != NULL) {
             for (uint32_t i = 0; i < program_info->count_of_global_helpers; i++) {
-                ebpf_helper_function_prototype_t* helper_prototype = &program_info->global_helper_prototype[i];
-                ebpf_free((void*)helper_prototype->name);
-                helper_prototype->name = NULL;
+                const ebpf_helper_function_prototype_t* helper_prototype = &program_info->global_helper_prototype[i];
+                void* name = (void*)helper_prototype->name;
+                ebpf_free(name);
             }
         }
 
-        ebpf_free(program_info->program_type_specific_helper_prototype);
-        ebpf_free(program_info->global_helper_prototype);
+        ebpf_free((void*)program_info->program_type_specific_helper_prototype);
+        ebpf_free((void*)program_info->global_helper_prototype);
         ebpf_free(program_info);
     }
     EBPF_RETURN_VOID();
@@ -291,7 +291,7 @@ ebpf_serialize_program_info(
     ebpf_result_t result = EBPF_SUCCESS;
     uint8_t* current = NULL;
     const ebpf_program_type_descriptor_t* program_type_descriptor;
-    ebpf_helper_function_prototype_t* helper_prototype_array;
+    const ebpf_helper_function_prototype_t* helper_prototype_array;
     uint32_t helper_prototype_index;
     size_t serialized_program_type_descriptor_length;
     size_t program_type_descriptor_name_length;
@@ -376,7 +376,7 @@ ebpf_serialize_program_info(
 
         for (helper_prototype_index = 0; helper_prototype_index < program_info->count_of_program_type_specific_helpers;
              helper_prototype_index++) {
-            ebpf_helper_function_prototype_t* helper_prototype = &helper_prototype_array[helper_prototype_index];
+            const ebpf_helper_function_prototype_t* helper_prototype = &helper_prototype_array[helper_prototype_index];
 
             result = ebpf_safe_size_t_add(
                 serialized_helper_prototype_array_length,
@@ -447,7 +447,7 @@ ebpf_serialize_program_info(
 
         for (helper_prototype_index = 0; helper_prototype_index < program_info->count_of_program_type_specific_helpers;
              helper_prototype_index++) {
-            ebpf_helper_function_prototype_t* helper_prototype = &helper_prototype_array[helper_prototype_index];
+            const ebpf_helper_function_prototype_t* helper_prototype = &helper_prototype_array[helper_prototype_index];
             size_t helper_function_name_length =
                 strnlen_s(helper_prototype->name, EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH);
             ebpf_serialized_helper_function_prototype_t* serialized_helper_prototype =
