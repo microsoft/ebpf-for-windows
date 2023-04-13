@@ -107,13 +107,15 @@ handle_ebpf_add_program(
         {TOKEN_PINPATH, NS_REQ_ZERO, FALSE},
         {TOKEN_INTERFACE, NS_REQ_ZERO, FALSE},
         {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
-        {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE}};
+        {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE},
+        {TOKEN_COMPARTMENT, NS_REQ_ZERO, FALSE}};
     const int FILENAME_INDEX = 0;
     const int TYPE_INDEX = 1;
     const int PINPATH_INDEX = 2;
     const int INTERFACE_INDEX = 3;
     const int PINNED_INDEX = 4;
     const int EXECUTION_INDEX = 5;
+    const int COMPARTMENT_INDEX = 6;
 
     unsigned long tag_type[_countof(tags)] = {0};
 
@@ -127,6 +129,7 @@ handle_ebpf_add_program(
     pinned_type_t pinned_type = PT_FIRST; // Like bpftool, we default to pin first.
     ebpf_execution_type_t execution = EBPF_EXECUTION_JIT;
     wchar_t* interface_parameter = nullptr;
+    COMPARTMENT_ID compartment_id = UNSPECIFIED_COMPARTMENT_ID;
 
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
@@ -163,6 +166,9 @@ handle_ebpf_add_program(
                 _countof(_ebpf_execution_type_enum),
                 _ebpf_execution_type_enum,
                 (unsigned long*)&execution);
+            break;
+        case COMPARTMENT_INDEX:
+            compartment_id = (COMPARTMENT_ID)_wtoi(argv[current_index + i]);
             break;
         default:
             status = ERROR_INVALID_SYNTAX;
@@ -215,6 +221,10 @@ handle_ebpf_add_program(
         } else {
             return ERROR_SUPPRESS_OUTPUT;
         }
+    }
+    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID) {
+        attach_parameters = &compartment_id;
+        attach_parameters_size = sizeof(compartment_id);
     }
 
     struct bpf_link* link;
