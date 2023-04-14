@@ -265,7 +265,6 @@ _net_ebpf_sock_ops_update_store_entries()
     }
 
     // Update program information.
-    _ebpf_sock_ops_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SOCK_OPS;
     status = _ebpf_store_update_program_information(&_ebpf_sock_ops_program_info, 1);
 
     return status;
@@ -288,7 +287,6 @@ net_ebpf_ext_sock_ops_register_providers()
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    _ebpf_sock_ops_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SOCK_OPS;
     // Set the program type as the provider module id.
     _ebpf_sock_ops_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_SOCK_OPS;
     status = net_ebpf_extension_program_info_provider_register(

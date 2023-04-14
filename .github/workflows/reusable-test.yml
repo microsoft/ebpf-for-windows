@@ -51,6 +51,10 @@ on:
       leak_detection:
         required: false
         type: boolean
+      configurations:
+        required: false
+        type: string
+        default: '["Debug", "Release"]'
 
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
@@ -63,7 +67,7 @@ jobs:
 
     strategy:
       matrix:
-        configurations: [Debug, Release]
+        configurations: ${{ fromJSON(inputs.configurations) }}
     runs-on: ${{inputs.environment}}
     env:
       # Configuration type to build.
@@ -204,7 +208,8 @@ jobs:
         ${{env.TEST_COMMAND}}
 
     - name: Run post test command
-      if: (steps.skip_check.outputs.should_skip != 'true') && always()
+      # Run the post test command even if the workflow has failed.
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
       id: run_post_test_command
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
@@ -274,7 +279,7 @@ jobs:
         root_dir: ${{github.workspace}}
 
     - name: Fail if code coverage upload fails
-      if: (steps.skip_check.outputs.should_skip != 'true') && always()
+      if: (steps.skip_check.outputs.should_skip != 'true')
       run: |
         if ($${{ steps.test.upload_code_coverage_report_1!='failure' }}) { exit 0 }
         if ($${{ steps.test.upload_code_coverage_report_2!='failure' }}) { exit 0 }
@@ -295,14 +300,16 @@ jobs:
           copy ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\*.log ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
 
     - name: Check for crash dumps
-      if: steps.skip_check.outputs.should_skip != 'true'
+      # Check for crash dumps even if the workflow failed.
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       id: check_dumps
       with:
         files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
 
     - name: Upload any crash dumps
-      if: (steps.skip_check.outputs.should_skip != 'true') && always() && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
+      # Upload crash dumps even if the workflow failed.
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       id: upload_crash_dumps
       with:
@@ -311,14 +318,16 @@ jobs:
         retention-days: 5
 
     - name: Check for TestLogs
+      # Check for test logs even if the workflow failed.
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
-      if: (steps.skip_check.outputs.should_skip != 'true') && always()
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
       id: check_logs
       with:
         files: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs/*
 
     - name: Upload log files
-      if: (steps.skip_check.outputs.should_skip != 'true') && always() && (steps.check_logs.outputs.files_exists == 'true')
+      # Upload test logs even if the workflow failed.
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_logs.outputs.files_exists == 'true')
       id: upload_logs
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
@@ -327,14 +336,16 @@ jobs:
         retention-days: 5
 
     - name: Check for generated artifacts
-      if: (steps.skip_check.outputs.should_skip != 'true') && always()
+      # Check for artifacts even if the workflow failed.
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       id: check_artifacts
       with:
         files: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts\*
 
     - name: Upload generated artifacts
-      if: (steps.skip_check.outputs.should_skip != 'true') && always() && (steps.check_artifacts.outputs.files_exists == 'true')
+      # Upload artifacts even if the workflow failed.
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_artifacts.outputs.files_exists == 'true')
       id: upload_artifacts
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:

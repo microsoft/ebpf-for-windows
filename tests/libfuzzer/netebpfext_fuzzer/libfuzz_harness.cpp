@@ -20,7 +20,7 @@ typedef struct
 typedef struct _test_client_context
 {
     netebpfext_helper_base_client_context_t base;
-    ebpf_context_descriptor_t* ctx_descriptor;
+    const ebpf_context_descriptor_t* ctx_descriptor;
     netebpfext_fuzzer_metadata_t metadata;
 } test_client_context_t;
 
