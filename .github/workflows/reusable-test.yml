@@ -51,6 +51,10 @@ on:
       leak_detection:
         required: false
         type: boolean
+      configurations:
+        required: false
+        type: string
+        default: '["Debug", "Release"]'
 
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
@@ -63,7 +67,7 @@ jobs:
 
     strategy:
       matrix:
-        configurations: [Debug, Release]
+        configurations: ${{ fromJSON(inputs.configurations) }}
     runs-on: ${{inputs.environment}}
     env:
       # Configuration type to build.

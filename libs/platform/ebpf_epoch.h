@@ -74,7 +74,8 @@ extern "C"
 
     /**
      * @brief Allocate an epoch work item; a work item that can be scheduled to
-     * run when the current epoch ends.
+     * run when the current epoch ends. Allocated work items must either be
+     * scheduled or canceled.
      *
      * @param[in] callback_context Context to pass to the callback function.
      * @param[in] callback Callback function to run on epoch end.
@@ -94,12 +95,13 @@ extern "C"
     ebpf_epoch_schedule_work_item(_Inout_ ebpf_epoch_work_item_t* work_item);
 
     /**
-     * @brief Free an epoch work item.
+     * @brief Cancels a previously allocated work-item. The work-item will not
+     * run when the current epoch ends.
      *
      * @param[in] work_item Pointer to work item to free.
      */
     void
-    ebpf_epoch_free_work_item(_Frees_ptr_opt_ ebpf_epoch_work_item_t* work_item);
+    ebpf_epoch_cancel_work_item(_Inout_ ebpf_epoch_work_item_t* work_item);
 
     /**
      * @brief Check the state of the free list on a CPU.
