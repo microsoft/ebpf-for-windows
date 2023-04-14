@@ -209,6 +209,7 @@ _ebpf_program_program_info_provider_changed(
         if (return_value != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE(
                 EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "Failed to update helpers for program");
+            ebpf_lock_unlock(&program->lock, state);
             goto Exit;
         }
 
