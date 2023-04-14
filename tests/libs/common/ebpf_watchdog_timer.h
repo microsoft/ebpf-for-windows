@@ -6,6 +6,7 @@
 #include <winsock2.h>
 #include <Windows.h>
 #include <errorrep.h>
+#include <intrin.h>
 #include <stdexcept>
 #include <stdint.h>
 #include <werapi.h>
@@ -25,11 +26,8 @@ typedef class _ebpf_watchdog_timer
     {
         timer = CreateThreadpoolTimer(
             [](_Inout_ PTP_CALLBACK_INSTANCE, _Inout_opt_ PVOID, _Inout_ PTP_TIMER) {
-                // Attempt to generate a WER report and raise an assertion failure if that fails.
-                if (!generate_wer_report()) {
-                    // This will cause the vectored exception handler to be called.
-                    RaiseException(STATUS_ASSERTION_FAILURE, 0, 0, NULL);
-                }
+                generate_wer_report();
+                __fastfail(FAST_FAIL_FATAL_APP_EXIT);
             },
             NULL,
             NULL);
