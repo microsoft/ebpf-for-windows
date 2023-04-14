@@ -86,12 +86,12 @@ typedef class _ebpf_fault_injection
     /**
      * @brief The log file for faults that have been injected.
      */
-    std::ofstream _log_file;
+    _Guarded_by_(_mutex) std::ofstream _log_file;
 
     /**
      * @brief The set of known fault paths.
      */
-    std::unordered_set<std::vector<uintptr_t>, _stack_hasher> _fault_hash;
+    _Guarded_by_(_mutex) std::unordered_set<std::vector<uintptr_t>, _stack_hasher> _fault_hash;
 
     /**
      * @brief The mutex to protect the set of known fault paths.
@@ -99,7 +99,7 @@ typedef class _ebpf_fault_injection
     std::mutex _mutex;
 
     size_t _stack_depth;
-    std::vector<std::string> _last_fault_stack;
+    _Guarded_by_(_mutex) std::vector<std::string> _last_fault_stack;
 
 } ebpf_fault_injection_t;
 
@@ -168,7 +168,6 @@ _ebpf_fault_injection::~_ebpf_fault_injection()
 bool
 _ebpf_fault_injection::inject_fault()
 {
-    std::unique_lock lock(_mutex);
     return is_new_stack();
 }
 
@@ -180,6 +179,8 @@ _ebpf_fault_injection::is_new_stack()
     if (recursion_guard.is_recursing()) {
         return false;
     }
+    bool new_stack = false;
+
     std::vector<uintptr_t> stack(EBPF_FAULT_STACK_CAPTURE_FRAME_COUNT);
     std::vector<uintptr_t> canonical_stack(_stack_depth);
 
@@ -203,30 +204,32 @@ _ebpf_fault_injection::is_new_stack()
             canonical_stack[i] = frame;
         }
 
+        std::unique_lock lock(_mutex);
         // Check if the stack trace is already in the hash.
-        if (_fault_hash.contains(canonical_stack)) {
-            // Stack is already in the hash, don't inject the fault.
-            return false;
-        } else {
-            // Stack is not in the hash, add it to the hash, write it to the log file and inject the fault.
+        if (!_fault_hash.contains(canonical_stack)) {
             _fault_hash.insert(canonical_stack);
-            log_stack_trace(canonical_stack, stack);
-            return true;
+            new_stack = true;
         }
     }
-    return false;
+    if (new_stack) {
+        log_stack_trace(canonical_stack, stack);
+    }
+
+    return new_stack;
 }
 
 void
 _ebpf_fault_injection::log_stack_trace(
     const std::vector<uintptr_t>& canonical_stack, const std::vector<uintptr_t>& stack)
 {
+    // Decode stack trace outside of the lock.
+    std::ostringstream log_record;
     for (auto i : canonical_stack) {
-        _log_file << std::hex << i << " ";
+        log_record << std::hex << i << " ";
     }
-    _log_file << std::endl;
+    log_record << std::endl;
 
-    _last_fault_stack.resize(0);
+    std::vector<std::string> local_last_fault_stack;
 
     for (auto frame : stack) {
         std::string name;
@@ -237,21 +240,27 @@ _ebpf_fault_injection::log_stack_trace(
         if (frame == 0) {
             break;
         }
-        _log_file << "# ";
+        log_record << "# ";
         if (_ebpf_decode_symbol(frame, name, displacement, line_number, file_name) == EBPF_SUCCESS) {
-            _log_file << std::hex << frame << " " << name << " + " << displacement;
+            log_record << std::hex << frame << " " << name << " + " << displacement;
             string_stack_frame = name + " + " + std::to_string(displacement);
             if (line_number.has_value() && file_name.has_value()) {
-                _log_file << " " << file_name.value() << " " << line_number.value();
+                log_record << " " << file_name.value() << " " << line_number.value();
                 string_stack_frame += " " + file_name.value() + " " + std::to_string(line_number.value());
             }
         }
-        _log_file << std::endl;
-        _last_fault_stack.push_back(string_stack_frame);
+        log_record << std::endl;
+        local_last_fault_stack.push_back(string_stack_frame);
     }
-    _log_file << std::endl;
-    // Flush the file after every write to prevent loss on crash.
-    _log_file.flush();
+    log_record << std::endl;
+
+    {
+        std::unique_lock lock(_mutex);
+        _last_fault_stack = local_last_fault_stack;
+        _log_file << log_record.str();
+        // Flush the file after every write to prevent loss on crash.
+        _log_file.flush();
+    }
 }
 
 void
