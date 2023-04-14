@@ -34,6 +34,10 @@ on:
       ld_flags:
         required: false
         type: string
+      configurations:
+        required: false
+        type: string
+        default: '["Debug", "Release"]'
 
 permissions:
   contents: read
@@ -45,7 +49,7 @@ jobs:
 
     strategy:
       matrix:
-        configurations: [Debug, Release]
+        configurations: ${{ fromJSON(inputs.configurations) }}
     runs-on: windows-2022
     env:
       # Path to the solution file relative to the root of the project.
@@ -166,12 +170,12 @@ jobs:
       run: copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
 
     - name: Download demo repository
-      if: steps.skip_check.outputs.should_skip != 'true'
+      if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
     - name: Extract artifacts to build path
-      if: steps.skip_check.outputs.should_skip != 'true'
+      if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -191,15 +195,8 @@ jobs:
         path: ${{github.workspace}}/build-${{ matrix.configurations }}.zip
         retention-days: 5
 
-    - name: Upload the MSI package (Debug)
-      if: inputs.build_msi == true && matrix.configurations == 'Debug'
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-      with:
-        name: ebpf-for-windows - MSI installer (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
-        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows.msi
-
-    - name: Upload the MSI package (Release)
-      if: inputs.build_msi == true && matrix.configurations == 'Release'
+    - name: Upload the MSI package
+      if: inputs.build_msi == true
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ebpf-for-windows - MSI installer (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
