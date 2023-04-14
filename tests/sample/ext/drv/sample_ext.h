@@ -54,7 +54,7 @@ sample_ebpf_extension_hook_provider_unregister();
  * @retval EBPF_OPERATION_NOT_SUPPORTED Operation not supported.
  */
 _Must_inspect_result_ ebpf_result_t
-sample_ebpf_extension_invoke_program(_In_ const sample_program_context_t* context, _Out_ uint32_t* result);
+sample_ebpf_extension_invoke_program(_Inout_ sample_program_context_t* context, _Out_ uint32_t* result);
 
 /**
  * @brief Invoke eBPF program attached to a hook provider instance and measure the execution time.
