@@ -654,7 +654,7 @@ _Requires_lock_not_held_(_fd_to_handle_mutex) static void _rundown_osfhandles()
 {
     std::vector<int> fds_to_close;
 
-    // Scoping the lock for automatic destructor call
+    // Scope locking for automatic destructor call
     {
         std::unique_lock lock(_fd_to_handle_mutex);
         for (auto [fd, handle] : _fd_to_handle_map) {
