@@ -4,6 +4,8 @@
 #include "ebpf_handle.h"
 #include "ebpf_object.h"
 
+#include <intrin.h>
+
 static const uint32_t _ebpf_object_marker = 'eobj';
 
 static ebpf_lock_t _ebpf_object_tracking_list_lock = {0};
@@ -131,7 +133,7 @@ Done:
 }
 
 _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static void _ebpf_object_tracking_list_remove(
-    ebpf_core_object_t* object)
+    _In_ const ebpf_core_object_t* object)
 {
     uint32_t index;
     ebpf_result_t return_value = _get_index_from_id(object->id, &index);
@@ -163,7 +165,7 @@ ebpf_object_tracking_terminate()
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_initialize(
-    ebpf_core_object_t* object,
+    _Inout_ ebpf_core_object_t* object,
     ebpf_object_type_t object_type,
     ebpf_free_object_t free_function,
     ebpf_object_get_program_type_t get_program_type_function)
@@ -183,64 +185,56 @@ ebpf_object_initialize(
 }
 
 void
-ebpf_object_acquire_reference(ebpf_core_object_t* object)
+ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object)
 {
-    ebpf_assert(object->base.marker == _ebpf_object_marker);
-    int32_t new_ref_count = ebpf_interlocked_increment_int32(&object->base.reference_count);
-    ebpf_assert(new_ref_count != 1);
-}
-
-_Requires_lock_held_(&_ebpf_object_tracking_list_lock) static void _ebpf_object_release_reference_under_lock(
-    ebpf_core_object_t* object)
-{
-    int32_t new_ref_count;
-
-    if (!object) {
-        return;
+    if (object->base.marker != _ebpf_object_marker) {
+        __fastfail(FAST_FAIL_INVALID_ARG);
     }
-
-    ebpf_assert(object->base.marker == _ebpf_object_marker);
-
-    new_ref_count = ebpf_interlocked_decrement_int32(&object->base.reference_count);
-    ebpf_assert(new_ref_count != -1);
-
-    if (new_ref_count == 0) {
-        EBPF_LOG_MESSAGE_POINTER_ENUM(
-            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object terminated", object, object->type);
-
-        _ebpf_object_tracking_list_remove(object);
-        object->base.marker = ~object->base.marker;
-        object->free_function(object);
+    int64_t new_ref_count = ebpf_interlocked_increment_int64(&object->base.reference_count);
+    if (new_ref_count == 1) {
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     }
 }
 
 void
-ebpf_object_release_reference(ebpf_core_object_t* object)
+ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object)
 {
-    int32_t new_ref_count;
+    int64_t new_ref_count;
 
     if (!object) {
         return;
     }
 
+    if (object->base.marker != _ebpf_object_marker) {
+        __fastfail(FAST_FAIL_INVALID_ARG);
+    }
+
+    ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
     ebpf_assert(object->base.marker == _ebpf_object_marker);
 
-    new_ref_count = ebpf_interlocked_decrement_int32(&object->base.reference_count);
-    ebpf_assert(new_ref_count != -1);
+    new_ref_count = ebpf_interlocked_decrement_int64(&object->base.reference_count);
+    if (new_ref_count < 0) {
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+    }
 
+    // Remove from object tracking list under the lock.
     if (new_ref_count == 0) {
         EBPF_LOG_MESSAGE_POINTER_ENUM(
             EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object terminated", object, object->type);
-        ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
         _ebpf_object_tracking_list_remove(object);
-        ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
+    }
+
+    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
+
+    // Free the object outside the lock.
+    if (new_ref_count == 0) {
         object->base.marker = ~object->base.marker;
         object->free_function(object);
     }
 }
 
 ebpf_object_type_t
-ebpf_object_get_type(ebpf_core_object_t* object)
+ebpf_object_get_type(_In_ const ebpf_core_object_t* object)
 {
     return object->type;
 }
@@ -311,7 +305,9 @@ ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out
 
 void
 ebpf_object_reference_next_object(
-    ebpf_core_object_t* previous_object, ebpf_object_type_t type, ebpf_core_object_t** next_object)
+    _In_opt_ const ebpf_core_object_t* previous_object,
+    ebpf_object_type_t type,
+    _Outptr_result_maybenull_ ebpf_core_object_t** next_object)
 {
     ebpf_lock_state_t state;
     *next_object = NULL;
@@ -346,26 +342,6 @@ ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outpt
             } else {
                 return_value = EBPF_KEY_NOT_FOUND;
             }
-        }
-    }
-
-    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
-    return return_value;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type)
-{
-    ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
-
-    uint32_t index;
-    ebpf_result_t return_value = _get_index_from_id(id, &index);
-    if (return_value == EBPF_SUCCESS) {
-        ebpf_core_object_t* found = _ebpf_id_table[index].object;
-        if ((found != NULL) && (found->type == object_type)) {
-            _ebpf_object_release_reference_under_lock(found);
-        } else {
-            return_value = EBPF_KEY_NOT_FOUND;
         }
     }
 
@@ -487,7 +463,7 @@ ebpf_object_release_id_reference(ebpf_id_t id, ebpf_object_type_t object_type)
         } else {
 
             // This can _never_ happen.  If the object pointer is not null, the ref-count HAS TO BE _at_ _least_ 1.
-            // This conditon is indicative of a severe internal error.
+            // This condition is indicative of a severe internal error.
             result = EBPF_FAILED;
         }
         goto Done;
