@@ -20,7 +20,7 @@ class _watchdog : public Catch::EventListenerBase
     void
     testCaseStarting(Catch::TestCaseInfo const& /*testCaseInfo*/) override
     {
-        _watchdog_timer = std::make_unique<_ebpf_watchdog_timer>();
+        _watchdog_timer = std::make_unique<_ebpf_watchdog_timer<true>>();
     }
 
     // Log failed tests.
@@ -31,5 +31,5 @@ class _watchdog : public Catch::EventListenerBase
     }
 
   private:
-    std::unique_ptr<_ebpf_watchdog_timer> _watchdog_timer;
+    std::unique_ptr<_ebpf_watchdog_timer<true>> _watchdog_timer;
 };
