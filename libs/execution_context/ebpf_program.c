@@ -25,7 +25,7 @@ typedef struct _ebpf_program
 {
     ebpf_core_object_t object;
 
-    ebpf_program_parameters_t parameters;
+    _Guarded_by_(lock) ebpf_program_parameters_t parameters;
 
     // determinant is parameters.code_type
     union
@@ -116,8 +116,8 @@ _Requires_lock_not_held_(program->lock) static void _ebpf_program_detach_links(_
     EBPF_RETURN_VOID();
 }
 
-_Requires_lock_held_(program->lock) static ebpf_result_t
-    _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program);
+static ebpf_result_t
+_ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program);
 
 static ebpf_result_t
 _ebpf_program_program_info_provider_changed(
@@ -1598,14 +1598,16 @@ _ebpf_helper_id_to_index_compare(const void* lhs, const void* rhs)
  * @return EBPF_SUCCESS the program info hash matches.
  * @return EBPF_INVALID_ARGUMENT the program info hash does not match.
  */
-_Requires_lock_held_(program->lock) static ebpf_result_t
-    _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program)
+static ebpf_result_t
+_ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
     ebpf_cryptographic_hash_t* cryptographic_hash = NULL;
     ebpf_helper_id_to_index_t* helper_id_to_index = NULL;
     ebpf_program_info_t* program_info = NULL;
+    ebpf_lock_state_t state = 0;
+    bool lock_held = false;
 
     result = ebpf_program_get_program_info(program, &program_info);
     if (result != EBPF_SUCCESS) {
@@ -1727,7 +1729,8 @@ _Requires_lock_held_(program->lock) static ebpf_result_t
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-
+    state = ebpf_lock_lock(&program->lock);
+    lock_held = true;
     if (program->parameters.program_info_hash_length == 0) {
         // This is the first time the program info hash is being computed.
         uint8_t* new_hash = ebpf_allocate(output_hash_length);
@@ -1753,6 +1756,10 @@ _Requires_lock_held_(program->lock) static ebpf_result_t
     result = EBPF_SUCCESS;
 
 Exit:
+    if (lock_held) {
+        ebpf_lock_unlock(&program->lock, state);
+    }
+
     ebpf_free(helper_id_to_index);
     ebpf_cryptographic_hash_destroy(cryptographic_hash);
     ebpf_program_free_program_info((ebpf_program_info_t*)program_info);
