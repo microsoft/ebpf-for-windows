@@ -15,18 +15,18 @@
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MD-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='FuzzerDebug'">
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Release|True'">
     <EnableASAN>true</EnableASAN>
-    <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /ZH:SHA_256 %(AdditionalOptions)</AdditionalOptions>
+    <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Debug|True' Or '$(Configuration)'=='FuzzerDebug'">
+  <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Debug|True'">
     <EnableASAN>true</EnableASAN>
-    <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /ZH:SHA_256 %(AdditionalOptions)</AdditionalOptions>
+    <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Fuzzer)'!='True' And '$(Configuration)'!='FuzzerDebug'">
+  <PropertyGroup Condition="'$(Fuzzer)'!='True'">
     <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
   <ItemDefinitionGroup>
@@ -68,7 +68,7 @@
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='FuzzerDebug'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
