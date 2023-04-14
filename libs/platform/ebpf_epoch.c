@@ -86,7 +86,7 @@ typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
     _Guarded_by_(lock) ebpf_list_entry_t free_list;                    // Per-CPU free list.
     _Guarded_by_(lock) int timer_armed : 1;
     _Guarded_by_(lock) int stale : 1;
-    _Guarded_by_(lock) int rundown_in_progress : 1;
+    _Guarded_by_(lock) int timer_disabled : 1;
 } ebpf_epoch_cpu_entry_t;
 
 C_ASSERT(sizeof(ebpf_epoch_cpu_entry_t) % EBPF_CACHE_LINE_SIZE == 0);            // Verify alignment.
@@ -106,6 +106,11 @@ static volatile int64_t _ebpf_current_epoch = 1;
  * free operations performed prior to this value can be safely deleted.
  */
 static volatile int64_t _ebpf_release_epoch = 0;
+
+/**
+ * @brief Flag to indicate that eBPF epoch tracker is shutting down.
+ */
+static volatile bool _ebpf_epoch_rundown = false;
 
 /**
  * @brief Timer used to update _ebpf_release_epoch.
@@ -136,12 +141,9 @@ typedef struct _ebpf_epoch_allocation_header
 typedef struct _ebpf_epoch_work_item
 {
     ebpf_epoch_allocation_header_t header;
-    ebpf_preemptible_work_item_t* preemptible_work_item;
     void* callback_context;
     const void (*callback)(_Inout_ void* context);
 } ebpf_epoch_work_item_t;
-
-EX_RUNDOWN_REF _ebpf_epoch_work_item_rundown_ref;
 
 /**
  * @brief Hash a thread ID into an 8bit number.
@@ -211,17 +213,6 @@ _ebpf_epoch_stale_worker(_In_ const void* work_item_context, _In_ const void* pa
  */
 static _Requires_lock_held_(cpu_entry->lock) void _ebpf_epoch_arm_timer_if_needed(ebpf_epoch_cpu_entry_t* cpu_entry);
 
-static void
-_ebpf_epoch_work_item_callback(void* context)
-{
-    ebpf_epoch_work_item_t* work_item = (ebpf_epoch_work_item_t*)context;
-    work_item->callback(work_item->callback_context);
-    work_item->preemptible_work_item = NULL;
-    ExReleaseRundownProtection(&_ebpf_epoch_work_item_rundown_ref);
-
-    // Caller of this function calls ebpf_free_preemptible_work_item.
-}
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_epoch_initiate()
 {
@@ -231,6 +222,7 @@ ebpf_epoch_initiate()
     uint32_t cpu_count;
 
     cpu_count = ebpf_get_cpu_count();
+    _ebpf_epoch_rundown = false;
 
     _ebpf_current_epoch = 1;
     _ebpf_release_epoch = 0;
@@ -267,8 +259,6 @@ ebpf_epoch_initiate()
         goto Error;
     }
 
-    ExInitializeRundownProtection(&_ebpf_epoch_work_item_rundown_ref);
-
     return return_value;
 
 Error:
@@ -282,6 +272,8 @@ ebpf_epoch_terminate()
     EBPF_LOG_ENTRY();
     uint32_t cpu_id;
 
+    _ebpf_epoch_rundown = true;
+
     if (!_ebpf_epoch_cpu_table) {
         return;
     }
@@ -289,7 +281,7 @@ ebpf_epoch_terminate()
     // First disable all timers.
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_lock_state_t lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[cpu_id].lock);
-        _ebpf_epoch_cpu_table[cpu_id].rundown_in_progress = true;
+        _ebpf_epoch_cpu_table[cpu_id].timer_disabled = true;
         ebpf_lock_unlock(&_ebpf_epoch_cpu_table[cpu_id].lock, lock_state);
     }
 
@@ -309,10 +301,6 @@ ebpf_epoch_terminate()
 #pragma warning(suppress : 6001) // _ebpf_epoch_cpu_table is initalized.
         ebpf_semaphore_destroy(_ebpf_epoch_cpu_table[cpu_id].epoch_table_semaphore);
     }
-
-    // Wait for all work items to complete.
-    ExWaitForRundownProtectionRelease(&_ebpf_epoch_work_item_rundown_ref);
-
     _ebpf_epoch_cpu_count = 0;
 
     ebpf_free_cache_aligned(_ebpf_epoch_cpu_table);
@@ -443,17 +431,19 @@ ebpf_epoch_free(_Frees_ptr_opt_ void* memory)
 
     header--;
 
+    // If eBPF is terminating then free immediately.
+    if (_ebpf_epoch_rundown) {
+        ebpf_free(header);
+        return;
+    }
+
     ebpf_assert(header->freed_epoch == 0);
     header->entry_type = EBPF_EPOCH_ALLOCATION_MEMORY;
 
     // Items are inserted into the free list in increasing epoch order.
     lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
-    if (!_ebpf_epoch_cpu_table[current_cpu].rundown_in_progress) {
-        header->freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
-        ebpf_list_insert_tail(&_ebpf_epoch_cpu_table[current_cpu].free_list, &header->list_entry);
-    } else {
-        ebpf_free(header);
-    }
+    header->freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
+    ebpf_list_insert_tail(&_ebpf_epoch_cpu_table[current_cpu].free_list, &header->list_entry);
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, lock_state);
 }
 
@@ -469,19 +459,6 @@ ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ const void (*cal
     work_item->callback_context = callback_context;
     work_item->header.entry_type = EBPF_EPOCH_ALLOCATION_WORK_ITEM;
 
-    if (!ExAcquireRundownProtection(&_ebpf_epoch_work_item_rundown_ref)) {
-        ebpf_free(work_item);
-        return NULL;
-    }
-
-    ebpf_result_t result = ebpf_allocate_preemptible_work_item(
-        &work_item->preemptible_work_item, _ebpf_epoch_work_item_callback, work_item);
-    if (result != EBPF_SUCCESS) {
-        ExReleaseRundownProtection(&_ebpf_epoch_work_item_rundown_ref);
-        ebpf_free(work_item);
-        return NULL;
-    }
-
     return work_item;
 }
 
@@ -495,23 +472,24 @@ ebpf_epoch_schedule_work_item(_Inout_ ebpf_epoch_work_item_t* work_item)
         return;
     }
 
+    // If eBPF is terminating then execute immediately.
+    if (_ebpf_epoch_rundown) {
+        work_item->callback(work_item->callback_context);
+        return;
+    }
+
     // Items are inserted into the free list in increasing epoch order.
     lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
-    if (!_ebpf_epoch_cpu_table[current_cpu].rundown_in_progress) {
-        // If rundown is not in progress, then the work item is inserted into the free list.
-        work_item->header.freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
-        ebpf_list_insert_tail(&_ebpf_epoch_cpu_table[current_cpu].free_list, &work_item->header.list_entry);
-        _ebpf_epoch_arm_timer_if_needed(&_ebpf_epoch_cpu_table[current_cpu]);
-    } else {
-        // If rundown is in progress, then the work item is executed immediately.
-        ebpf_queue_preemptible_work_item(work_item->preemptible_work_item);
-    }
+    work_item->header.freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
+    ebpf_list_insert_tail(&_ebpf_epoch_cpu_table[current_cpu].free_list, &work_item->header.list_entry);
+    _ebpf_epoch_arm_timer_if_needed(&_ebpf_epoch_cpu_table[current_cpu]);
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, lock_state);
 }
 
 void
-ebpf_epoch_cancel_work_item(_Inout_ ebpf_epoch_work_item_t* work_item)
+ebpf_epoch_free_work_item(_Frees_ptr_opt_ ebpf_epoch_work_item_t* work_item)
 {
+    ebpf_lock_state_t lock_state;
     uint32_t current_cpu;
     current_cpu = ebpf_get_current_cpu();
     if (current_cpu >= _ebpf_epoch_cpu_count) {
@@ -521,12 +499,10 @@ ebpf_epoch_cancel_work_item(_Inout_ ebpf_epoch_work_item_t* work_item)
         return;
     }
 
-    ebpf_assert(work_item->header.list_entry.Flink == NULL);
-
-    // ebpf_free_preemptible_work_item() frees both the work item and the preemptible work item.
-    ebpf_free_preemptible_work_item(work_item->preemptible_work_item);
-
-    ExReleaseRundownProtection(&_ebpf_epoch_work_item_rundown_ref);
+    lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
+    ebpf_list_remove_entry(&work_item->header.list_entry);
+    ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, lock_state);
+    ebpf_free(work_item);
 }
 
 bool
@@ -579,7 +555,7 @@ _ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t
             break;
         case EBPF_EPOCH_ALLOCATION_WORK_ITEM: {
             ebpf_epoch_work_item_t* work_item = CONTAINING_RECORD(header, ebpf_epoch_work_item_t, header);
-            ebpf_queue_preemptible_work_item(work_item->preemptible_work_item);
+            work_item->callback(work_item->callback_context);
             break;
         }
         }
@@ -652,7 +628,7 @@ _ebpf_flush_worker(_In_ const void* context)
 
 static _Requires_lock_held_(cpu_entry->lock) void _ebpf_epoch_arm_timer_if_needed(ebpf_epoch_cpu_entry_t* cpu_entry)
 {
-    if (cpu_entry->rundown_in_progress) {
+    if (cpu_entry->timer_disabled) {
         return;
     }
     if (cpu_entry->timer_armed) {
