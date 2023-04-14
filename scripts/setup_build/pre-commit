@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+set -o errexit
+
+exit_() {
+    echo ""
+    echo "$1"
+    echo ""
+    echo "This hook can be skipped if needed with 'git commit --no-verify'"
+    echo "See '.git/hooks/pre-commit', installed from 'scripts/pre-commit'"
+    exit 1
+}
+
+if [[ $(git config --get user.name | wc -w) -lt 2 ]]; then
+    # This heuristic avoids bad user names such as "root" or "Ubuntu"
+    # or a computer login name. A full name should (usually) have at
+    # least two words. We can change this if needed later.
+    exit_ "Commit failed: please fix your Git user name (see docs/Contributing.md)"
+fi
+
+if ! git diff-index --check --cached HEAD --; then
+    exit_ "Commit failed: please fix the conflict markers or whitespace errors"
+fi
+
+mapfile -t files < <(git diff --cached --name-only --diff-filter=ACMR)
+
+if [[ ${#files[@]} -eq 0 ]]; then
+    # When 'git commit --amend' is used, the files list is empty. The
+    # scripts below interpret an empty file set as a directive to
+    # check all the files, which is slow (but used in CI). So in this
+    # Git hook, we just skip the following checks instead.
+    exit 0
+fi
+
+scripts=$(git rev-parse --show-toplevel)/scripts
+
+if ! "$scripts/format-code" --quiet --whatif --files="${files[*]}"; then
+    exit_ "Commit failed: to fix the formatting please run './scripts/format-code --staged' in bash or '.\\scripts\\format-code.ps1 --staged' in powershell"
+fi
+if ! "$scripts/check-license.sh" "${files[@]}"; then
+    exit_ "Commit failed: please add license headers to the above files"
+fi

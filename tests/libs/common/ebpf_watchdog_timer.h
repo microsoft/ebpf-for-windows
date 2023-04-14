@@ -6,9 +6,9 @@
 #include <winsock2.h>
 #include <Windows.h>
 #include <errorrep.h>
-#include <intrin.h>
 #include <stdexcept>
 #include <stdint.h>
+#include <stdlib.h>
 #include <werapi.h>
 
 #pragma comment(lib, "wer.lib")
