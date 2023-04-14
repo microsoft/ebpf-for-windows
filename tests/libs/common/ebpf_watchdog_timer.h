@@ -18,8 +18,10 @@
 
 /**
  * @brief A watchdog timer that triggers a memory dump if the test takes too long.
+ *
+ * @tparam raise_fast_fail_on_timeout If true, the test will be terminated with a fast fail.
  */
-typedef class _ebpf_watchdog_timer
+template <bool raise_fast_fail_on_timeout> class _ebpf_watchdog_timer
 {
   public:
     _ebpf_watchdog_timer(int64_t timeout = EBPF_WATCHDOG_TIMER_DUE_TIME_IN_SECONDS * FILETIME_TICKS_PER_SECOND)
@@ -27,7 +29,9 @@ typedef class _ebpf_watchdog_timer
         timer = CreateThreadpoolTimer(
             [](_Inout_ PTP_CALLBACK_INSTANCE, _Inout_opt_ PVOID, _Inout_ PTP_TIMER) {
                 generate_wer_report();
-                __fastfail(FAST_FAIL_FATAL_APP_EXIT);
+                if constexpr (raise_fast_fail_on_timeout) {
+                    __fastfail(FAST_FAIL_FATAL_APP_EXIT);
+                }
             },
             NULL,
             NULL);
@@ -71,4 +75,6 @@ typedef class _ebpf_watchdog_timer
     }
     static constexpr const wchar_t wer_event_type[] = L"Test Application Hang";
     PTP_TIMER timer;
-} ebpf_watchdog_timer_t;
+};
+
+typedef _ebpf_watchdog_timer<true> ebpf_watchdog_timer_t;

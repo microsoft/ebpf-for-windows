@@ -256,7 +256,7 @@ TEST_CASE("watchdog_timeout", "[wer_report]")
     WerReportAddDump_test_expected_exception_param = false;
 
     // Expire the watchdog timer.
-    _ebpf_watchdog_timer_test watchdog_timer(1);
+    _ebpf_watchdog_timer<false> watchdog_timer(1);
     Sleep(1000);
 
     // Verify that the WER APIs are all called.
