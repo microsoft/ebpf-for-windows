@@ -88,7 +88,7 @@ jobs:
         cancel_others: 'false'
         paths_ignore: '["**.md", "**/docs/**"]'
 
-    - uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+    - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
       # Only check out source code if code coverage is being gathered.
       if: (inputs.code_coverage == true) && (steps.skip_check.outputs.should_skip != 'true')
       with:
@@ -96,7 +96,7 @@ jobs:
         ref: ${{ github.event.workflow_run.head_branch }}
 
     # Perform shallow checkout for self-hosted runner.
-    - uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+    - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
       if: (inputs.environment == 'ebpf_cicd_tests') && (steps.skip_check.outputs.should_skip != 'true')
       with:
         ref: ${{ github.event.workflow_run.head_branch }}
