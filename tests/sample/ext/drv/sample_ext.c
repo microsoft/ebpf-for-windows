@@ -388,7 +388,7 @@ _sample_ebpf_extension_hook_provider_attach_client(
     sample_ebpf_extension_hook_provider_t* local_provider_context =
         (sample_ebpf_extension_hook_provider_t*)provider_context;
     sample_ebpf_extension_hook_client_t* hook_client = NULL;
-    ebpf_extension_program_dispatch_table_t* client_dispatch_table;
+    ebpf_link_dispatch_table_t* client_dispatch_table;
 
     if ((provider_binding_context == NULL) || (provider_dispatch == NULL) || (local_provider_context == NULL)) {
         status = STATUS_INVALID_PARAMETER;
@@ -415,7 +415,7 @@ _sample_ebpf_extension_hook_provider_attach_client(
     hook_client->client_module_id = client_registration_instance->ModuleId->Guid;
     hook_client->client_binding_context = client_binding_context;
     hook_client->client_data = client_registration_instance->NpiSpecificCharacteristics;
-    client_dispatch_table = (ebpf_extension_program_dispatch_table_t*)client_dispatch;
+    client_dispatch_table = (ebpf_link_dispatch_table_t*)client_dispatch;
     if (client_dispatch_table == NULL) {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;

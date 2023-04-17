@@ -30,7 +30,7 @@ typedef ebpf_result_t (*ebpf_program_batch_invoke_function_t)(
 typedef ebpf_result_t (*ebpf_program_batch_end_invoke_function_t)(
     _In_ const void* extension_client_binding_context, _Inout_ void* state);
 
-typedef struct _ebpf_extension_program_dispatch_table
+typedef struct _ebpf_link_dispatch_table
 {
     uint16_t version; ///< Version of the dispatch table.
     uint16_t count;   ///< Number of entries in the dispatch table.
@@ -38,7 +38,7 @@ typedef struct _ebpf_extension_program_dispatch_table
     ebpf_program_batch_begin_invoke_function_t ebpf_program_batch_begin_invoke_function;
     ebpf_program_batch_invoke_function_t ebpf_program_batch_invoke_function;
     ebpf_program_batch_end_invoke_function_t ebpf_program_batch_end_invoke_function;
-} ebpf_extension_program_dispatch_table_t;
+} ebpf_link_dispatch_table_t;
 
 typedef struct _ebpf_extension_data
 {

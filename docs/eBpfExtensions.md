@@ -248,19 +248,30 @@ the provider must free the per-client context passed in via `ProviderBindingCont
 
 ### 2.5 Invoking an eBPF program from Hook NPI Provider
 To invoke an eBPF program, the extension uses the dispatch table supplied by the Hook NPI client during attaching.
-There is only one function in the client dispatch table, which is of the following type:
+The dispatch table is of the following type:
 
+```C
+typedef struct _ebpf_link_dispatch_table
+{
+    uint16_t version; ///< Version of the dispatch table.
+    uint16_t count;   ///< Number of entries in the dispatch table.
+    ebpf_program_invoke_function_t ebpf_program_invoke_function;
+    ebpf_program_batch_begin_invoke_function_t ebpf_program_batch_begin_invoke_function;
+    ebpf_program_batch_invoke_function_t ebpf_program_batch_invoke_function;
+    ebpf_program_batch_end_invoke_function_t ebpf_program_batch_end_invoke_function;
+} ebpf_link_dispatch_table_t;
 ```
-/**
- *  @brief This is the only mandatory function in the eBPF Hook NPI client dispatch table.
- */
+
+The first function pointer in the dispatch table is defined as:
+
+```C
 typedef ebpf_result_t (*ebpf_program_invoke_function_t)(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result);
+```
 
-```
 The function pointer can be obtained from the client dispatch table as follows:
-```
-invoke_program = (ebpf_program_invoke_function_t)client_dispatch_table->function[0];
+```C
+invoke_program = ((ebpf_link_dispatch_table_t*)client_dispatch_table)->ebpf_program_invoke_function;
 ```
 When an extension invokes this function pointer, then the call flows through the eBPF Execution Context and eventually
 invokes the eBPF program.  When invoking an eBPF program, the extension must supply the client binding context it
