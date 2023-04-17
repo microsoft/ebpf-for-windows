@@ -37,11 +37,10 @@ connection_test(
     struct bpf_object* raw_object = bpf_object__open("cgroup_sock_addr.o");
 
     REQUIRE(raw_object != nullptr);
-    // Load the programs.
-    REQUIRE(bpf_object__load(raw_object) == 0);
     object.reset(raw_object);
-
     raw_object = nullptr;
+    // Load the programs.
+    REQUIRE(bpf_object__load(object.get()) == 0);
 
     const char* connect_program_name = (address_family == AF_INET) ? "authorize_connect4" : "authorize_connect6";
     bpf_program* connect_program = bpf_object__find_program_by_name(object.get(), connect_program_name);
@@ -167,11 +166,10 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 
     struct bpf_object* raw_object = bpf_object__open("cgroup_sock_addr.o");
     REQUIRE(raw_object != nullptr);
-    // Load the programs.
-    REQUIRE(bpf_object__load(raw_object) == 0);
-
     object.reset(raw_object);
     raw_object = nullptr;
+    // Load the programs.
+    REQUIRE(bpf_object__load(object.get()) == 0);
 
     bpf_program* connect4_program = bpf_object__find_program_by_name(object.get(), "authorize_connect4");
     REQUIRE(connect4_program != nullptr);
@@ -261,11 +259,10 @@ connection_monitor_test(
 
     struct bpf_object* raw_object = bpf_object__open("sockops.o");
     REQUIRE(raw_object != nullptr);
-    // Load the programs.
-    REQUIRE(bpf_object__load(raw_object) == 0);
-
     object.reset(raw_object);
     raw_object = nullptr;
+    // Load the programs.
+    REQUIRE(bpf_object__load(object.get()) == 0);
 
     // Ring buffer event callback context.
     std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
@@ -439,11 +436,10 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 
     struct bpf_object* raw_object = bpf_object__open("sockops.o");
     REQUIRE(raw_object != nullptr);
-    // Load the programs.
-    REQUIRE(bpf_object__load(raw_object) == 0);
-
     object.reset(raw_object);
     raw_object = nullptr;
+    // Load the programs.
+    REQUIRE(bpf_object__load(object.get()) == 0);
 
     bpf_program* _program = bpf_object__find_program_by_name(object.get(), "connection_monitor");
     REQUIRE(_program != nullptr);

@@ -284,11 +284,9 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
     int result;
     struct bpf_object* raw_object = bpf_object__open("cgroup_sock_addr2.o");
     REQUIRE(raw_object != nullptr);
-
-    REQUIRE(bpf_object__load(raw_object) == 0);
-
     object.reset(raw_object);
     raw_object = nullptr;
+    REQUIRE(bpf_object__load(object.get()) == 0);
 
     if (_globals.attach_v4_program) {
         printf("Attaching v4 program\n");
