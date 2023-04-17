@@ -31,6 +31,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
+    ebpf_watchdog_timer_t watchdog_timer;
+
     try {
         if (!ElfCheckElf(size, const_cast<uint8_t*>(data), static_cast<uint32_t>(size))) {
             return 0;

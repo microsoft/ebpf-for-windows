@@ -18,9 +18,12 @@
 #include "misc_helper.h"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
+#include "watchdog.h"
 
 #include <mstcpip.h>
 #include <ntsecapi.h>
+
+CATCH_REGISTER_LISTENER(_watchdog)
 
 static std::string _family;
 static std::string _protocol;
@@ -272,6 +275,8 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object, uint64_t authent
     } else {
         REQUIRE(entry.is_admin == 0);
     }
+
+    REQUIRE(entry.local_port != 0);
 
     LsaFreeReturnBuffer(data);
 }

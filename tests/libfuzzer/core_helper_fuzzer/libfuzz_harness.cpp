@@ -297,7 +297,8 @@ fuzz_program(
         // No such helper id.
         return;
     }
-    ebpf_helper_function_prototype_t* prototype = &program_info->program_type_specific_helper_prototype[helper_index];
+    const ebpf_helper_function_prototype_t* prototype =
+        &program_info->program_type_specific_helper_prototype[helper_index];
 
     // Get the helper function pointer.
     ebpf_helper_id_t helper_function_id = (ebpf_helper_id_t)prototype->helper_id;
@@ -473,6 +474,8 @@ fuzz_program(
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
+    ebpf_watchdog_timer_t watchdog_timer;
+
     // Get the program.
     fuzz_wrapper fuzz_state;
     netebpf_ext_helper_t helper;

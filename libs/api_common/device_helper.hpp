@@ -108,6 +108,7 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
 
     if (!success) {
         return_value = GetLastError();
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, DeviceIoControl);
         goto Exit;
     }
 
@@ -117,5 +118,5 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
     }
 
 Exit:
-    return return_value;
+    EBPF_RETURN_ERROR(return_value);
 }

@@ -11,10 +11,13 @@
 #include "program_helper.h"
 #include "sample_ext_app.h"
 #include "service_helper.h"
+#include "watchdog.h"
 
 #include <chrono>
 #include <mutex>
 #include <thread>
+
+CATCH_REGISTER_LISTENER(_watchdog)
 
 #define SAMPLE_PATH ""
 

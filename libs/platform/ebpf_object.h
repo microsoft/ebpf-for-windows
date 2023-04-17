@@ -23,12 +23,22 @@ extern "C"
 
     typedef struct _ebpf_core_object ebpf_core_object_t;
     typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);
-    typedef const ebpf_program_type_t* (*ebpf_object_get_program_type_t)(_In_ const ebpf_core_object_t* object);
+    typedef const ebpf_program_type_t (*ebpf_object_get_program_type_t)(_In_ const ebpf_core_object_t* object);
 
+    /**
+     * @brief Base object for all reference counted eBPF objects. This struct is embedded as the first entry in all
+     * reference counted eBPF objects. The reference count is 64bit to allow for atomic operations on 32bit and 64bit
+     * systems. The reference count is 8-byte aligned to avoid false sharing. The marker is used to detect
+     * use-after-free bugs. The marker is set to 'eobj' when the object is valid and is inverted when the object is
+     * freed. This allows for a fast check to see if the object is valid. The acquire_reference and release_reference
+     * functions are used to acquire and release a reference on the object.
+     */
     typedef struct _ebpf_base_object
     {
-        uint32_t marker;
-        volatile int32_t reference_count;
+        uint32_t marker; // Contains the 32bit value 'eobj' when the object is valid and is inverted when the object is
+                         // freed.
+        uint32_t zero_fill; // Zero fill to make the reference count is 8-byte aligned.
+        volatile int64_t reference_count;
         ebpf_base_acquire_reference_t acquire_reference;
         ebpf_base_release_reference_t release_reference;
     } ebpf_base_object_t;
@@ -75,7 +85,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_object_initialize(
-        ebpf_core_object_t* object,
+        _Inout_ ebpf_core_object_t* object,
         ebpf_object_type_t object_type,
         ebpf_free_object_t free_function,
         ebpf_object_get_program_type_t get_program_type_function);
@@ -83,19 +93,19 @@ extern "C"
     /**
      * @brief Acquire a reference to this object.
      *
-     * @param[in] object Object on which to acquire a reference.
+     * @param[in,out] object Object on which to acquire a reference.
      */
     void
-    ebpf_object_acquire_reference(ebpf_core_object_t* object);
+    ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object);
 
     /**
      * @brief Release a reference on this object. If the reference count reaches
      *  zero, the free_function is invoked on the object.
      *
-     * @param[in] object Object on which to release a reference.
+     * @param[in,out] object Object on which to release a reference.
      */
     void
-    ebpf_object_release_reference(ebpf_core_object_t* object);
+    ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object);
 
     /**
      * @brief Query the stored type of the object.
@@ -104,7 +114,7 @@ extern "C"
      * @return Type of the object.
      */
     ebpf_object_type_t
-    ebpf_object_get_type(ebpf_core_object_t* object);
+    ebpf_object_get_type(_In_ const ebpf_core_object_t* object);
 
     /**
      * @brief Find the next object that is of this type and acquire reference
@@ -118,7 +128,9 @@ extern "C"
      */
     void
     ebpf_object_reference_next_object(
-        ebpf_core_object_t* previous_object, ebpf_object_type_t type, ebpf_core_object_t** next_object);
+        _In_opt_ const ebpf_core_object_t* previous_object,
+        ebpf_object_type_t type,
+        _Outptr_result_maybenull_ ebpf_core_object_t** next_object);
 
     /**
      * @brief Find an ID in the ID table, verify the type matches,
@@ -132,19 +144,6 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object);
-
-    /**
-     * @brief Find an ID in the ID table, verify the type matches,
-     *  and release a reference previously acquired via
-     *  ebpf_object_reference_id.
-     *
-     * @param[in] id ID to find in table.
-     * @param[in] object_type Object type to match.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type);
 
     /**
      * @brief Find the object of a given type with the next ID greater than a given ID.
@@ -170,19 +169,6 @@ extern "C"
     ebpf_result_t
     ebpf_object_reference_by_handle(
         ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ struct _ebpf_core_object** object);
-
-    /**
-     * @brief Find an ID in the ID table, verify the type matches,
-     *  and release a reference previously acquired via
-     *  ebpf_object_reference_id.
-     *
-     * @param[in] id ID to find in table.
-     * @param[in] object_type Object type to match.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type);
 
     /**
      * @brief Find an ID in the ID table, verify the type matches,

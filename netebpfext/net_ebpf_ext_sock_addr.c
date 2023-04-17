@@ -418,7 +418,6 @@ _net_ebpf_sock_addr_update_store_entries()
     }
 
     // Update program information.
-    _ebpf_sock_addr_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     status = _ebpf_store_update_program_information(&_ebpf_sock_addr_program_info, 1);
 
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
@@ -740,7 +739,6 @@ net_ebpf_ext_sock_addr_register_providers()
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_info_provider_data};
 
-    _ebpf_sock_addr_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     // Set the program type as the provider module id.
     _ebpf_sock_addr_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     status = net_ebpf_extension_program_info_provider_register(

@@ -39,6 +39,19 @@ typedef struct _free_ebpf_pinning_table
 
 typedef std::unique_ptr<ebpf_pinning_table_t, free_ebpf_pinning_table_t> ebpf_pinning_table_ptr;
 
+typedef struct _free_trampoline_table
+{
+    void
+    operator()(_In_opt_ _Post_invalid_ ebpf_trampoline_table_t* table)
+    {
+        if (table != nullptr) {
+            ebpf_free_trampoline_table(table);
+        }
+    }
+} free_trampoline_table_t;
+
+typedef std::unique_ptr<ebpf_trampoline_table_t, free_trampoline_table_t> ebpf_trampoline_table_ptr;
+
 class _test_helper
 {
   public:
@@ -486,7 +499,7 @@ TEST_CASE("extension_test", "[platform]")
     ebpf_extension_client_t* client_context = nullptr;
     void* provider_binding_context = nullptr;
 
-    ebpf_assert_success(ebpf_guid_create(&interface_id));
+    REQUIRE(ebpf_guid_create(&interface_id) == EBPF_SUCCESS);
     int callback_context = 0;
     int client_binding_context = 0;
     GUID client_module_id = {};
@@ -537,7 +550,7 @@ TEST_CASE("trampoline_test", "[platform]")
 {
     _test_helper test_helper;
 
-    ebpf_trampoline_table_t* table = NULL;
+    ebpf_trampoline_table_ptr table;
     ebpf_result_t (*test_function)();
     auto provider_function1 = []() { return EBPF_SUCCESS; };
     ebpf_result_t (*function_pointer1)() = provider_function1;
@@ -551,31 +564,35 @@ TEST_CASE("trampoline_test", "[platform]")
     const void* helper_functions2[] = {(void*)function_pointer2};
     ebpf_helper_function_addresses_t helper_function_addresses2 = {
         EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions2};
+    ebpf_trampoline_table_t* local_table = nullptr;
 
-    REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
+    REQUIRE(ebpf_allocate_trampoline_table(1, &local_table) == EBPF_SUCCESS);
+    table.reset(local_table);
+
     REQUIRE(
         ebpf_update_trampoline_table(
-            table,
+            table.get(),
             EBPF_COUNT_OF(provider_helper_function_ids),
             provider_helper_function_ids,
             &helper_function_addresses1) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_get_trampoline_function(
-            table, EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
+            table.get(), EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) ==
+        EBPF_SUCCESS);
 
-    // Verify that the trampoline function invokes the provider function
+    // Verify that the trampoline function invokes the provider function.
     REQUIRE(test_function() == EBPF_SUCCESS);
 
     REQUIRE(
         ebpf_update_trampoline_table(
-            table,
+            table.get(),
             EBPF_COUNT_OF(provider_helper_function_ids),
             provider_helper_function_ids,
             &helper_function_addresses2) == EBPF_SUCCESS);
 
-    // Verify that the trampoline function now invokes the new provider function
+    // Verify that the trampoline function now invokes the new provider function.
     REQUIRE(test_function() == EBPF_OBJECT_ALREADY_EXISTS);
-    ebpf_free_trampoline_table(table);
+    ebpf_free_trampoline_table(table.release());
 }
 
 struct ebpf_security_descriptor_t_free
@@ -780,8 +797,10 @@ TEST_CASE("serialize_program_info_test", "[platform]")
         out_program_info->count_of_program_type_specific_helpers);
     REQUIRE(out_program_info->program_type_specific_helper_prototype != nullptr);
     for (uint32_t i = 0; i < in_program_info.count_of_program_type_specific_helpers; i++) {
-        ebpf_helper_function_prototype_t* in_prototype = &in_program_info.program_type_specific_helper_prototype[i];
-        ebpf_helper_function_prototype_t* out_prototype = &out_program_info->program_type_specific_helper_prototype[i];
+        const ebpf_helper_function_prototype_t* in_prototype =
+            &in_program_info.program_type_specific_helper_prototype[i];
+        const ebpf_helper_function_prototype_t* out_prototype =
+            &out_program_info->program_type_specific_helper_prototype[i];
         REQUIRE(in_prototype->helper_id == out_prototype->helper_id);
         REQUIRE(in_prototype->return_type == out_prototype->return_type);
         for (int j = 0; j < _countof(in_prototype->arguments); j++) {
@@ -1063,4 +1082,12 @@ TEST_CASE("interlocked operations", "[platform]")
     void* p = &a;
     REQUIRE(ebpf_interlocked_compare_exchange_pointer(&p, &b, &a) == &a);
     REQUIRE(ebpf_interlocked_compare_exchange_pointer(&p, &b, &a) == &b);
+}
+
+TEST_CASE("get_authentication_id", "[platform]")
+{
+    _test_helper test_helper;
+    uint64_t authentication_id = 0;
+
+    REQUIRE(ebpf_platform_get_authentication_id(&authentication_id) == EBPF_SUCCESS);
 }

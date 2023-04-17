@@ -1040,6 +1040,7 @@ _link_ebpf_program(
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
     new_link->handle = ebpf_handle_invalid;
+    new_link->fd = ebpf_fd_invalid;
 
     try {
         size_t buffer_size = offsetof(ebpf_operation_link_program_request_t, data) + attach_parameter_size;
@@ -3688,8 +3689,12 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) n
                 async_query_request,
                 subscription->reply,
                 get_async_ioctl_operation_overlapped(subscription->async_ioctl_completion)));
-            if (result == EBPF_PENDING) {
-                result = EBPF_SUCCESS;
+            if (result != EBPF_SUCCESS) {
+                if (result == EBPF_PENDING) {
+                    result = EBPF_SUCCESS;
+                } else {
+                    subscription->async_ioctl_failed = true;
+                }
             }
         }
     }
@@ -3778,8 +3783,12 @@ ebpf_ring_buffer_map_subscribe(
             async_query_request,
             local_subscription->reply,
             get_async_ioctl_operation_overlapped(local_subscription->async_ioctl_completion)));
-        if (result == EBPF_PENDING) {
-            result = EBPF_SUCCESS;
+        if (result != EBPF_SUCCESS) {
+            if (result == EBPF_PENDING) {
+                result = EBPF_SUCCESS;
+            } else {
+                local_subscription->async_ioctl_failed = true;
+            }
         }
 
         // If the async IOCTL failed, then free the subscription object.
