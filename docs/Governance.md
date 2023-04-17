@@ -1,8 +1,6 @@
-Project Governance
-==================
+# Project Governance
 
-Reviewing Pull Requests
------------------------
+## Reviewing Pull Requests
 
 Pull requests need at least two approvals before being eligible for merging.
 Besides reviewing for technical correctness, reviewers are expected to:
@@ -33,7 +31,6 @@ When multiple pull requests are approved, maintainers should prioritize merging 
 | 8   | Performance optimizations | optimization | Doesn't do anything that isn't already working, but improvements do help users |
 | 9   | Code cleanup | cleanup | Good to do but generally doesn't significantly affect any of the above categories |
 
-Release Process
-------------------
+## Process for creating and servicing a release
 
-See [Release Process](ReleaseProcess.md).
+Please refer to the [Release Process.md](ReleaseProcess.md) documentation.
