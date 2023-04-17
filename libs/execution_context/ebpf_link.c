@@ -34,10 +34,10 @@ typedef struct _ebpf_link
     bpf_attach_type_t bpf_attach_type;
     enum bpf_link_type link_type;
     ebpf_program_type_t program_type;
-    ebpf_extension_data_t client_data;
+    _Guarded_by_(attach_lock) ebpf_extension_data_t client_data;
     ebpf_extension_client_t* extension_client_context;
     ebpf_lock_t attach_lock;
-    ebpf_link_state_t state;
+    _Guarded_by_(attach_lock) ebpf_link_state_t state;
     void* provider_binding_context;
 } ebpf_link_t;
 
@@ -119,6 +119,8 @@ ebpf_link_initialize(
     size_t context_data_length)
 {
     EBPF_LOG_ENTRY();
+    ebpf_lock_state_t state = ebpf_lock_lock(&link->attach_lock);
+
     ebpf_result_t return_value;
 
     link->client_data.version = 0;
@@ -137,6 +139,7 @@ ebpf_link_initialize(
 
     return_value = EBPF_SUCCESS;
 Exit:
+    ebpf_lock_unlock(&link->attach_lock, state);
     EBPF_RETURN_RESULT(return_value);
 }
 
@@ -444,6 +447,8 @@ ebpf_link_get_info(
         EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
     }
 
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&link->attach_lock);
+
     memset(info, 0, sizeof(*info));
     info->id = link->object.id;
     info->prog_id = (link->program) ? ((ebpf_core_object_t*)link->program)->id : EBPF_ID_NONE;
@@ -457,6 +462,8 @@ ebpf_link_get_info(
     if ((link->client_data.size > 0) && (link->client_data.size <= size)) {
         memcpy(&info->attach_data, link->client_data.data, link->client_data.size);
     }
+
+    ebpf_lock_unlock((ebpf_lock_t*)&link->attach_lock, state);
 
     *info_size = sizeof(*info);
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
