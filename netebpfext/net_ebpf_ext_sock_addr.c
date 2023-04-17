@@ -1154,7 +1154,7 @@ Exit:
     NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
         NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
         NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "authorize_connection_classify",
+        "auth_classify",
         incoming_metadata_values->transportEndpointHandle,
         sock_addr_ctx->protocol,
         verdict);
@@ -1502,6 +1502,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     // For BLOCK and redirection, trace at INFO level, else trace at VERBOSE level.
     if (!redirected) {
+
         if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
             NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY(
                 NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
