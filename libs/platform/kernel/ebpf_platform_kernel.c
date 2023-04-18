@@ -884,3 +884,39 @@ ebpf_leave_critical_region()
 {
     KeLeaveCriticalRegion();
 }
+
+ebpf_result_t
+ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output)
+{
+    wchar_t* unicode_string = NULL;
+    unsigned long unicode_byte_count = 0;
+    ebpf_result_t retval;
+
+    (void)RtlUTF8ToUnicodeN(NULL, 0, &unicode_byte_count, (const char*)input->value, (unsigned long)input->length);
+
+    unicode_string = (wchar_t*)ebpf_allocate(unicode_byte_count + sizeof(wchar_t));
+    if (unicode_string == NULL) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    NTSTATUS status = RtlUTF8ToUnicodeN(
+        unicode_string,
+        unicode_byte_count,
+        &unicode_byte_count,
+        (const char*)input->value,
+        (unsigned long)input->length);
+
+    if (!NT_SUCCESS(status)) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    *output = unicode_string;
+    unicode_string = NULL;
+    retval = EBPF_SUCCESS;
+
+Done:
+    ebpf_free(unicode_string);
+    return retval;
+}
