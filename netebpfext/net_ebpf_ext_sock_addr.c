@@ -1000,9 +1000,9 @@ Exit:
                 transport_endpoint_handle,                              \
                 original_context->protocol,                             \
                 original_context->msg_src_ip##family##,                 \
-                original_context->msg_src_port,                         \
+                ntohs(original_context->msg_src_port),                  \
                 original_context->user_ip##family##,                    \
-                original_context->user_port,                            \
+                ntohs(original_context->user_port),                     \
                 verdict);                                               \
         } else if (redirected_context != NULL) {                        \
             NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV##family##( \
@@ -1010,11 +1010,11 @@ Exit:
                 transport_endpoint_handle,                              \
                 original_context->protocol,                             \
                 original_context->msg_src_ip##family##,                 \
-                original_context->msg_src_port,                         \
+                ntohs(original_context->msg_src_port),                  \
                 original_context->user_ip##family##,                    \
-                original_context->user_port,                            \
+                ntohs(original_context->user_port),                     \
                 redirected_context->user_ip##family##,                  \
-                redirected_context->user_port,                          \
+                ntohs(redirected_context->user_port),                   \
                 verdict);                                               \
         } else {                                                        \
             NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(          \
@@ -1023,9 +1023,9 @@ Exit:
                 transport_endpoint_handle,                              \
                 original_context->protocol,                             \
                 original_context->msg_src_ip##family##,                 \
-                original_context->msg_src_port,                         \
+                ntohs(original_context->msg_src_port),                  \
                 original_context->msg_src_ip##family##,                 \
-                original_context->user_port,                            \
+                ntohs(original_context->user_port),                     \
                 verdict);                                               \
         }                                                               \
     }
