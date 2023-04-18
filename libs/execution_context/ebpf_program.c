@@ -424,11 +424,15 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_create(_Outptr_ ebpf_program_t** program)
+ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _Outptr_ ebpf_program_t** program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_program_t* local_program;
+    ebpf_utf8_string_t local_program_name = {NULL, 0};
+    ebpf_utf8_string_t local_section_name = {NULL, 0};
+    ebpf_utf8_string_t local_file_name = {NULL, 0};
+    uint8_t* local_program_info_hash = NULL;
 
     local_program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_PROGRAM);
     if (!local_program) {
@@ -447,48 +451,7 @@ ebpf_program_create(_Outptr_ ebpf_program_t** program)
     ebpf_list_initialize(&local_program->links);
     ebpf_lock_create(&local_program->lock);
 
-    retval = ebpf_object_initialize(
-        &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
     local_program->bpf_prog_type = BPF_PROG_TYPE_UNSPEC;
-
-    *program = local_program;
-    local_program = NULL;
-    retval = EBPF_SUCCESS;
-
-Done:
-    if (local_program) {
-        _ebpf_program_epoch_free(local_program);
-    }
-
-    EBPF_RETURN_RESULT(retval);
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program_parameters_t* program_parameters)
-{
-    EBPF_LOG_ENTRY();
-    ebpf_result_t return_value;
-    ebpf_utf8_string_t local_program_name = {NULL, 0};
-    ebpf_utf8_string_t local_section_name = {NULL, 0};
-    ebpf_utf8_string_t local_file_name = {NULL, 0};
-    uint8_t* local_program_info_hash = NULL;
-
-    ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
-    bool lock_held = true;
-
-    if (program->parameters.code_type != EBPF_CODE_NONE) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "ebpf_program_initialize program->parameters.code_type must be EBPF_CODE_NONE",
-            program->parameters.code_type);
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
 
     if (program_parameters->program_name.length >= BPF_OBJ_NAME_LEN) {
         EBPF_LOG_MESSAGE_UINT64(
@@ -496,22 +459,22 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "Program name must be less than BPF_OBJ_NAME_LEN",
             program_parameters->program_name.length);
-        return_value = EBPF_INVALID_ARGUMENT;
+        retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    return_value = ebpf_duplicate_utf8_string(&local_program_name, &program_parameters->program_name);
-    if (return_value != EBPF_SUCCESS) {
+    retval = ebpf_duplicate_utf8_string(&local_program_name, &program_parameters->program_name);
+    if (retval != EBPF_SUCCESS) {
         goto Done;
     }
 
-    return_value = ebpf_duplicate_utf8_string(&local_section_name, &program_parameters->section_name);
-    if (return_value != EBPF_SUCCESS) {
+    retval = ebpf_duplicate_utf8_string(&local_section_name, &program_parameters->section_name);
+    if (retval != EBPF_SUCCESS) {
         goto Done;
     }
 
-    return_value = ebpf_duplicate_utf8_string(&local_file_name, &program_parameters->file_name);
-    if (return_value != EBPF_SUCCESS) {
+    retval = ebpf_duplicate_utf8_string(&local_file_name, &program_parameters->file_name);
+    if (retval != EBPF_SUCCESS) {
         goto Done;
     }
 
@@ -519,7 +482,7 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
         local_program_info_hash =
             ebpf_allocate_with_tag(program_parameters->program_info_hash_length, EBPF_POOL_TAG_PROGRAM);
         if (!local_program_info_hash) {
-            return_value = EBPF_NO_MEMORY;
+            retval = EBPF_NO_MEMORY;
             goto Done;
         }
         memcpy(
@@ -528,38 +491,45 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
             program_parameters->program_info_hash_length);
     }
 
-    program->parameters = *program_parameters;
+    local_program->parameters = *program_parameters;
 
-    program->parameters.program_name = local_program_name;
+    local_program->parameters.program_name = local_program_name;
     local_program_name.value = NULL;
-    program->parameters.section_name = local_section_name;
+    local_program->parameters.section_name = local_section_name;
     local_section_name.value = NULL;
-    program->parameters.file_name = local_file_name;
+    local_program->parameters.file_name = local_file_name;
     local_file_name.value = NULL;
 
-    program->parameters.code_type = EBPF_CODE_NONE;
-    program->parameters.program_info_hash = local_program_info_hash;
+    local_program->parameters.code_type = EBPF_CODE_NONE;
+    local_program->parameters.program_info_hash = local_program_info_hash;
     local_program_info_hash = NULL;
 
-    ebpf_lock_unlock(&program->lock, state);
-    lock_held = false;
-
-    return_value = _ebpf_program_load_providers(program);
-    if (return_value != EBPF_SUCCESS) {
+    retval = _ebpf_program_load_providers(local_program);
+    if (retval != EBPF_SUCCESS) {
         goto Done;
     }
 
-    return_value = EBPF_SUCCESS;
+    retval = ebpf_object_initialize(
+        &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    *program = local_program;
+    local_program = NULL;
+    retval = EBPF_SUCCESS;
 
 Done:
     ebpf_free(local_program_info_hash);
     ebpf_free(local_program_name.value);
     ebpf_free(local_section_name.value);
     ebpf_free(local_file_name.value);
-    if (lock_held) {
-        ebpf_lock_unlock(&program->lock, state);
+
+    if (local_program) {
+        _ebpf_program_epoch_free(local_program);
     }
-    EBPF_RETURN_RESULT(return_value);
+
+    EBPF_RETURN_RESULT(retval);
 }
 
 ebpf_program_type_t
@@ -1544,12 +1514,7 @@ ebpf_program_create_and_initialize(
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
 
-    retval = ebpf_program_create(&program);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    retval = ebpf_program_initialize(program, parameters);
+    retval = ebpf_program_create(parameters, &program);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }

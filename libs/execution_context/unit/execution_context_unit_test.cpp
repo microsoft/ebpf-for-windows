@@ -652,10 +652,15 @@ TEST_CASE("program", "[execution_context]")
 {
     _ebpf_core_initializer core;
 
+    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_XDP);
+    const ebpf_utf8_string_t program_name{(uint8_t*)("foo"), 3};
+    const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
+    const ebpf_program_parameters_t program_parameters{
+        EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP, program_name, section_name};
     program_ptr program;
     {
         ebpf_program_t* local_program = nullptr;
-        REQUIRE(ebpf_program_create(&local_program) == EBPF_SUCCESS);
+        REQUIRE(ebpf_program_create(&program_parameters, &local_program) == EBPF_SUCCESS);
         program.reset(local_program);
     }
 
@@ -669,15 +674,7 @@ TEST_CASE("program", "[execution_context]")
         map.reset(local_map);
     }
 
-    const ebpf_utf8_string_t program_name{(uint8_t*)("foo"), 3};
-    const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
-    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_XDP);
-
-    const ebpf_program_parameters_t program_parameters{
-        EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP, program_name, section_name};
     ebpf_program_info_t* program_info;
-
-    REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
 
     ebpf_program_type_t returned_program_type = ebpf_program_type_uuid(program.get());
     REQUIRE(
@@ -780,11 +777,9 @@ TEST_CASE("program", "[execution_context]")
     link_ptr link;
     {
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(&local_link) == EBPF_SUCCESS);
+        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
     }
-
-    REQUIRE(ebpf_link_initialize(link.get(), EBPF_ATTACH_TYPE_XDP, nullptr, 0) == EBPF_SUCCESS);
 
     // Correct attach type, but wrong program type.
     {
@@ -826,20 +821,13 @@ TEST_CASE("name size", "[execution_context]")
 {
     _ebpf_core_initializer core;
     program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_BIND);
-
-    program_ptr program;
-    {
-        ebpf_program_t* local_program = nullptr;
-        REQUIRE(ebpf_program_create(&local_program) == EBPF_SUCCESS);
-        program.reset(local_program);
-    }
     const ebpf_utf8_string_t oversize_name{
         (uint8_t*)("a234567890123456789012345678901234567890123456789012345678901234"), 64};
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
     const ebpf_program_parameters_t program_parameters{
         EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, oversize_name, section_name};
-
-    REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_INVALID_ARGUMENT);
+    ebpf_program_t* local_program = nullptr;
+    REQUIRE(ebpf_program_create(&program_parameters, &local_program) == EBPF_INVALID_ARGUMENT);
 
     ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
     ebpf_map_t* local_map;
