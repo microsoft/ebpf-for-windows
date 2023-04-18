@@ -1191,7 +1191,7 @@ extern "C"
      * @return EBPF_INVALID_ARGUMENT The algorithm is not supported.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_cryptographic_hash_create(_In_z_ const wchar_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash);
+    ebpf_cryptographic_hash_create(_In_ const ebpf_utf8_string_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash);
 
     /**
      * @brief Destroy a cryptographic hash object.
@@ -1325,6 +1325,18 @@ extern "C"
      */
     void
     ebpf_leave_critical_region();
+
+    /**
+     * @brief Convert the provided UTF 8 string into a 16-bit unicode string.
+     *
+     * @param[in] input String to convert.
+     * @param[out] output Converted string.
+     * @retval EBPF_SUCCESS The conversion was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for the conversion.
+     * @retval EBPF_INVALID_ARGUMENT Unable to convert the string.
+     */
+    ebpf_result_t
+    ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output);
 
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"

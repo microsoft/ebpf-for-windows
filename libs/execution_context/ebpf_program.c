@@ -1651,9 +1651,7 @@ _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* pro
         sizeof(ebpf_helper_id_to_index_t),
         _ebpf_helper_id_to_index_compare);
 
-    // result = ebpf_cryptographic_hash_create(EBPF_HASH_ALGORITHM, &cryptographic_hash);
-    result = ebpf_cryptographic_hash_create(
-        (const wchar_t*)program->parameters.program_info_hash_type.value, &cryptographic_hash);
+    result = ebpf_cryptographic_hash_create(&program->parameters.program_info_hash_type, &cryptographic_hash);
 
     if (result != EBPF_SUCCESS) {
         goto Exit;
