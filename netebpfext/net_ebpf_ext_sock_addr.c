@@ -1559,7 +1559,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         "connect_redirect_classify",
         incoming_metadata_values->transportEndpointHandle,
         &sock_addr_ctx_original,
-        sock_addr_ctx,
+        redirected ? sock_addr_ctx : NULL,
         verdict);
 
 Exit:
