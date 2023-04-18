@@ -4,13 +4,6 @@
 #include "ebpf_extension_uuids.h"
 #include "net_ebpf_ext_hook_provider.h"
 
-/**
- * @brief Pointer to function to invoke the eBPF program associated with the hook NPI client.
- * This is the only function in the client's dispatch table.
- */
-typedef ebpf_result_t (*ebpf_invoke_program_function_t)(
-    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result);
-
 typedef struct _net_ebpf_ext_hook_client_rundown
 {
     EX_RUNDOWN_REF protection;
@@ -31,7 +24,7 @@ typedef struct _net_ebpf_extension_hook_client
     GUID client_module_id;                         ///< NMR module Id.
     const void* client_binding_context;            ///< Client supplied context to be passed when invoking eBPF program.
     const ebpf_extension_data_t* client_data;      ///< Client supplied attach parameters.
-    ebpf_invoke_program_function_t invoke_program; ///< Pointer to function to invoke eBPF program.
+    ebpf_program_invoke_function_t invoke_program; ///< Pointer to function to invoke eBPF program.
     void* provider_data; ///< Opaque pointer to hook specific data associated with this client.
     struct _net_ebpf_extension_hook_provider* provider_context; ///< Pointer to the hook NPI provider context.
     PIO_WORKITEM detach_work_item;              ///< Pointer to IO work item that is invoked to detach the client.
@@ -219,9 +212,9 @@ net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_h
 
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_hook_invoke_program(
-    _In_ const net_ebpf_extension_hook_client_t* client, _In_ const void* context, _Out_ uint32_t* result)
+    _In_ const net_ebpf_extension_hook_client_t* client, _Inout_ void* context, _Out_ uint32_t* result)
 {
-    ebpf_invoke_program_function_t invoke_program = client->invoke_program;
+    ebpf_program_invoke_function_t invoke_program = client->invoke_program;
     const void* client_binding_context = client->client_binding_context;
 
     ebpf_result_t invoke_result = invoke_program(client_binding_context, context, result);
@@ -326,7 +319,7 @@ _net_ebpf_extension_hook_provider_attach_client(
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_extension_hook_provider_t* local_provider_context = (net_ebpf_extension_hook_provider_t*)provider_context;
     net_ebpf_extension_hook_client_t* hook_client = NULL;
-    ebpf_extension_dispatch_table_t* client_dispatch_table;
+    ebpf_extension_program_dispatch_table_t* client_dispatch_table;
     ebpf_result_t result = EBPF_SUCCESS;
 
     NET_EBPF_EXT_LOG_ENTRY();
@@ -352,12 +345,12 @@ _net_ebpf_extension_hook_provider_attach_client(
     hook_client->client_module_id = client_registration_instance->ModuleId->Guid;
     hook_client->client_binding_context = client_binding_context;
     hook_client->client_data = (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics;
-    client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
+    client_dispatch_table = (ebpf_extension_program_dispatch_table_t*)client_dispatch;
     if (client_dispatch_table == NULL) {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
-    hook_client->invoke_program = (ebpf_invoke_program_function_t)client_dispatch_table->function[0];
+    hook_client->invoke_program = client_dispatch_table->ebpf_program_invoke_function;
     hook_client->provider_context = local_provider_context;
 
     status = _ebpf_ext_attach_init_rundown(hook_client);

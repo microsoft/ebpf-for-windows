@@ -351,7 +351,7 @@ extern "C"
         _In_ ebpf_program_test_run_complete_callback_t callback);
 
     typedef ebpf_result_t (*ebpf_helper_function_addresses_changed_callback_t)(
-        _Inout_ ebpf_program_t* program, _In_opt_ void* context);
+        size_t address_count, _In_reads_opt_(address_count) uintptr_t* addresses, _In_opt_ void* context);
 
     /**
      * @brief Register to be notified when the helper function addresses change.
@@ -365,7 +365,7 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_register_for_helper_changes(
         _Inout_ ebpf_program_t* program,
-        _In_ ebpf_helper_function_addresses_changed_callback_t callback,
+        _In_opt_ ebpf_helper_function_addresses_changed_callback_t callback,
         _In_opt_ void* context);
 
     /**

@@ -6,6 +6,15 @@
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
 
+typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
+
+typedef struct _ebpf_extension_dispatch_table
+{
+    uint16_t version; ///< Version of the dispatch table.
+    uint16_t count;   ///< Number of entries in the dispatch table.
+    _Field_size_(count) _ebpf_extension_dispatch_function function[1];
+} ebpf_extension_dispatch_table_t;
+
 typedef ebpf_result_t (*ebpf_program_invoke_function_t)(
     _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result);
 
@@ -18,16 +27,18 @@ typedef ebpf_result_t (*ebpf_program_batch_invoke_function_t)(
     _Out_ uint32_t* result,
     _In_ const void* state);
 
-typedef ebpf_result_t (*ebpf_program_batch_end_invoke_function_t)(_In_ const void* extension_client_binding_context);
+typedef ebpf_result_t (*ebpf_program_batch_end_invoke_function_t)(
+    _In_ const void* extension_client_binding_context, _Inout_ void* state);
 
-typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
-
-typedef struct _ebpf_extension_dispatch_table
+typedef struct _ebpf_extension_program_dispatch_table
 {
     uint16_t version; ///< Version of the dispatch table.
     uint16_t count;   ///< Number of entries in the dispatch table.
-    _Field_size_(count) _ebpf_extension_dispatch_function function[1];
-} ebpf_extension_dispatch_table_t;
+    ebpf_program_invoke_function_t ebpf_program_invoke_function;
+    ebpf_program_batch_begin_invoke_function_t ebpf_program_batch_begin_invoke_function;
+    ebpf_program_batch_invoke_function_t ebpf_program_batch_invoke_function;
+    ebpf_program_batch_end_invoke_function_t ebpf_program_batch_end_invoke_function;
+} ebpf_extension_program_dispatch_table_t;
 
 typedef struct _ebpf_extension_data
 {
