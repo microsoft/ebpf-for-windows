@@ -23,6 +23,8 @@ Environment:
 #include "net_ebpf_ext_sock_ops.h"
 #include "net_ebpf_ext_xdp.h"
 
+#define SUBLAYER_WEIGHT_MAXIMUM 0xFFFF
+
 // Globals.
 NDIS_HANDLE _net_ebpf_ext_ndis_handle = NULL;
 NDIS_HANDLE _net_ebpf_ext_nbl_pool_handle = NULL;
@@ -34,27 +36,17 @@ static bool _net_ebpf_sock_addr_providers_registered = false;
 static bool _net_ebpf_sock_ops_providers_registered = false;
 
 static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
-    {
-        &EBPF_DEFAULT_SUBLAYER,
-        L"EBPF Sub-Layer",
-        L"Sub-Layer for use by eBPF callouts",
-        0,
-        FWP_EMPTY // Auto weight.
-    },
-    {
-        &EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER,
-        L"EBPF CGroup Connect V4 Sub-Layer",
-        L"Sub-Layer for use by eBPF connect redirect callouts",
-        0,
-        FWP_EMPTY // Auto weight.
-    },
-    {
-        &EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
-        L"EBPF CGroup Connect V6 Sub-Layer",
-        L"Sub-Layer for use by eBPF connect redirect callouts",
-        0,
-        FWP_EMPTY // Auto weight.
-    }};
+    {&EBPF_DEFAULT_SUBLAYER, L"EBPF Sub-Layer", L"Sub-Layer for use by eBPF callouts", 0, SUBLAYER_WEIGHT_MAXIMUM},
+    {&EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER,
+     L"EBPF CGroup Connect V4 Sub-Layer",
+     L"Sub-Layer for use by eBPF connect redirect callouts",
+     0,
+     SUBLAYER_WEIGHT_MAXIMUM},
+    {&EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
+     L"EBPF CGroup Connect V6 Sub-Layer",
+     L"Sub-Layer for use by eBPF connect redirect callouts",
+     0,
+     SUBLAYER_WEIGHT_MAXIMUM}};
 
 static void
 _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_context);

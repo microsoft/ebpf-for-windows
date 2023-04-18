@@ -34,6 +34,10 @@ on:
       ld_flags:
         required: false
         type: string
+      configurations:
+        required: false
+        type: string
+        default: '["Debug", "Release"]'
 
 permissions:
   contents: read
@@ -45,7 +49,7 @@ jobs:
 
     strategy:
       matrix:
-        configurations: [Debug, Release]
+        configurations: ${{ fromJSON(inputs.configurations) }}
     runs-on: windows-2022
     env:
       # Path to the solution file relative to the root of the project.
@@ -64,14 +68,14 @@ jobs:
         cancel_others: 'false'
         paths_ignore: '["**.md", "**/docs/**"]'
 
-    - uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+    - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
       if: steps.skip_check.outputs.should_skip != 'true'
       with:
         submodules: 'recursive'
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/init@d186a2a36cc67bfa1b860e6170d37fb9634742c7
+      uses: github/codeql-action/init@7df0ce34898d659f95c0c4a09eaa8d4e32ee64db
       with:
         languages: 'cpp'
 
@@ -166,12 +170,12 @@ jobs:
       run: copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
 
     - name: Download demo repository
-      if: steps.skip_check.outputs.should_skip != 'true'
+      if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
     - name: Extract artifacts to build path
-      if: steps.skip_check.outputs.should_skip != 'true'
+      if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -191,15 +195,8 @@ jobs:
         path: ${{github.workspace}}/build-${{ matrix.configurations }}.zip
         retention-days: 5
 
-    - name: Upload the MSI package (Debug)
-      if: inputs.build_msi == true && matrix.configurations == 'Debug'
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-      with:
-        name: ebpf-for-windows - MSI installer (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
-        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows.msi
-
-    - name: Upload the MSI package (Release)
-      if: inputs.build_msi == true && matrix.configurations == 'Release'
+    - name: Upload the MSI package
+      if: inputs.build_msi == true
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ebpf-for-windows - MSI installer (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
@@ -231,4 +228,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/analyze@d186a2a36cc67bfa1b860e6170d37fb9634742c7
+      uses: github/codeql-action/analyze@7df0ce34898d659f95c0c4a09eaa8d4e32ee64db

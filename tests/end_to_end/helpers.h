@@ -539,12 +539,11 @@ typedef class _program_info_provider
             throw std::invalid_argument("Unsupported program type");
         }
         ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
-        program_data->program_info->program_type_descriptor.program_type = program_type;
 
         if (ebpf_provider_load(
                 &provider,
                 &ebpf_program_information_extension_interface_id,
-                &program_type,
+                &program_data->program_info->program_type_descriptor.program_type,
                 nullptr,
                 provider_data,
                 nullptr,

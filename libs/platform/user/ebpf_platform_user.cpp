@@ -509,6 +509,7 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 ebpf_memory_descriptor_t*
 ebpf_map_memory(size_t length)
 {
+    // Skip fault injection for this VirtualAlloc OS API, as ebpf_allocate already does that.
     ebpf_memory_descriptor_t* descriptor = (ebpf_memory_descriptor_t*)ebpf_allocate(sizeof(ebpf_memory_descriptor_t));
     if (!descriptor) {
         return nullptr;
@@ -551,6 +552,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     void* view1 = nullptr;
     void* view2 = nullptr;
 
+    // Skip fault injection for this VirtualAlloc2 OS API, as ebpf_allocate already does that.
     GetSystemInfo(&sysInfo);
 
     if (length == 0) {
@@ -704,6 +706,11 @@ ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
 _Must_inspect_result_ ebpf_result_t
 ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
+    // VirtualProtect OS API can return nullptr.
+    if (ebpf_fault_injection_inject_fault()) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+    }
+
     EBPF_LOG_ENTRY();
     unsigned long mm_protection_state = 0;
     unsigned long old_mm_protection_state = 0;
@@ -1049,6 +1056,10 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 _Must_inspect_result_ ebpf_result_t
 ebpf_guid_create(_Out_ GUID* new_guid)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
     if (UuidCreate(new_guid) == RPC_S_OK) {
         return EBPF_SUCCESS;
     } else {
@@ -1076,6 +1087,10 @@ ebpf_access_check(
     ebpf_security_access_mask_t request_access,
     _In_ const ebpf_security_generic_mapping_t* generic_mapping)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_ACCESS_DENIED;
+    }
+
     ebpf_result_t result;
     HANDLE token = INVALID_HANDLE_VALUE;
 
@@ -1127,6 +1142,10 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_validate_security_descriptor(
     _In_ const ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_NO_MEMORY;
+    }
+
     ebpf_result_t result;
     SECURITY_DESCRIPTOR_CONTROL security_descriptor_control;
     unsigned long version;
@@ -1209,6 +1228,11 @@ ebpf_platform_thread_id()
 _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
 {
+    // GetTokenInformation OS API can fail with return value of zero.
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_NO_MEMORY;
+    }
+
     ebpf_result_t return_value = EBPF_SUCCESS;
     uint32_t error;
     TOKEN_GROUPS_AND_PRIVILEGES* privileges = nullptr;
