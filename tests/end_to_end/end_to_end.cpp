@@ -2632,8 +2632,6 @@ typedef struct _ebpf_scoped_non_preemptible
 
 TEST_CASE("load_native_program_invalid5-non-preemptible", "[end-to-end]")
 {
-    _test_helper_end_to_end test_helper;
-
     // Setting ebpf_non_preemptible to true will ensure ebpf_native_load queues
     // a workitem and that code path is executed.
     ebpf_scoped_non_preemptible_t non_preemptible;
