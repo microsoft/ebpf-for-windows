@@ -985,6 +985,71 @@ Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
+#define DECLARE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                 \
+    static void _net_ebpf_ext_log_sock_addr_classify_v##family##(       \
+        _In_z_ const char* message,                                     \
+        uint64_t transport_endpoint_handle,                             \
+        _In_ const bpf_sock_addr_t* original_context,                   \
+        _In_opt_ const bpf_sock_addr_t* redirected_context,             \
+        uint32_t verdict)                                               \
+    {                                                                   \
+        if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {                  \
+            NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(          \
+                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,                       \
+                message,                                                \
+                transport_endpoint_handle,                              \
+                original_context->protocol,                             \
+                original_context->msg_src_ip##family##,                 \
+                original_context->msg_src_port,                         \
+                original_context->user_ip##family##,                    \
+                original_context->user_port,                            \
+                verdict);                                               \
+        } else if (redirected_context != NULL) {                        \
+            NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV##family##( \
+                message,                                                \
+                transport_endpoint_handle,                              \
+                original_context->protocol,                             \
+                original_context->msg_src_ip##family##,                 \
+                original_context->msg_src_port,                         \
+                original_context->user_ip##family##,                    \
+                original_context->user_port,                            \
+                redirected_context->user_ip##family##,                  \
+                redirected_context->user_port,                          \
+                verdict);                                               \
+        } else {                                                        \
+            NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(          \
+                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                    \
+                message,                                                \
+                transport_endpoint_handle,                              \
+                original_context->protocol,                             \
+                original_context->msg_src_ip##family##,                 \
+                original_context->msg_src_port,                         \
+                original_context->msg_src_ip##family##,                 \
+                original_context->user_port,                            \
+                verdict);                                               \
+        }                                                               \
+    }
+
+DECLARE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(4)
+DECLARE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(6)
+
+static void
+_net_ebpf_ext_log_sock_addr_classify(
+    _In_z_ const char* message,
+    uint64_t transport_endpoint_handle,
+    _In_ const bpf_sock_addr_t* original_context,
+    _In_opt_ const bpf_sock_addr_t* redirected_context,
+    uint32_t verdict)
+{
+    if (original_context->family == AF_INET) {
+        _net_ebpf_ext_log_sock_addr_classify_v4(
+            message, transport_endpoint_handle, original_context, redirected_context, verdict);
+    } else {
+        _net_ebpf_ext_log_sock_addr_classify_v6(
+            message, transport_endpoint_handle, original_context, redirected_context, verdict);
+    }
+}
+
 //
 // WFP callout callback functions.
 //
@@ -1069,6 +1134,9 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         sock_addr_ctx->protocol,
         result);
 
+    _net_ebpf_ext_log_sock_addr_classify(
+        "recv_accept_classify", incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, NULL, result);
+
 Exit:
     if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
@@ -1151,13 +1219,8 @@ Exit:
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
     }
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "auth_classify",
-        incoming_metadata_values->transportEndpointHandle,
-        sock_addr_ctx->protocol,
-        verdict);
+    _net_ebpf_ext_log_sock_addr_classify(
+        "auth_classify", incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, NULL, verdict);
 
     return;
 }
@@ -1500,55 +1563,12 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
                      : InterlockedIncrement(&_net_ebpf_ext_statistics.permit_connection_count);
     }
 
-    // For BLOCK and redirection, trace at INFO level, else trace at VERBOSE level.
-    if (!redirected) {
-
-        if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
-            NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY(
-                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-                "connect_redirect_classify_block",
-                incoming_metadata_values->transportEndpointHandle,
-                sock_addr_ctx->protocol,
-                verdict);
-        } else {
-            NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY(
-                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-                "connect_redirect_classify_allow",
-                incoming_metadata_values->transportEndpointHandle,
-                sock_addr_ctx->protocol,
-                verdict);
-        }
-    } else {
-        if (sock_addr_ctx->family == AF_INET) {
-            NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_V4(
-                "connect_redirect_classify",
-                incoming_metadata_values->transportEndpointHandle,
-                sock_addr_ctx_original.protocol,
-                sock_addr_ctx_original.msg_src_ip4,
-                sock_addr_ctx_original.msg_src_port,
-                sock_addr_ctx_original.user_ip4,
-                sock_addr_ctx_original.user_port,
-                sock_addr_ctx->user_ip4,
-                sock_addr_ctx->user_port,
-                redirected,
-                verdict);
-        } else {
-            NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_V6(
-                "connect_redirect_classify",
-                incoming_metadata_values->transportEndpointHandle,
-                sock_addr_ctx_original.protocol,
-                sock_addr_ctx_original.msg_src_ip6,
-                sock_addr_ctx_original.msg_src_port,
-                sock_addr_ctx_original.user_ip6,
-                sock_addr_ctx_original.user_port,
-                sock_addr_ctx->user_ip6,
-                sock_addr_ctx->user_port,
-                redirected,
-                verdict);
-        }
-    }
+    _net_ebpf_ext_log_sock_addr_classify(
+        "connect_redirect_classify",
+        incoming_metadata_values->transportEndpointHandle,
+        &sock_addr_ctx_original,
+        sock_addr_ctx,
+        verdict);
 
 Exit:
     if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
