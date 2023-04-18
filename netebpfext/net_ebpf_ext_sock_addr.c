@@ -1126,14 +1126,6 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
     }
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "recv_accept_classify",
-        incoming_metadata_values->transportEndpointHandle,
-        sock_addr_ctx->protocol,
-        result);
-
     _net_ebpf_ext_log_sock_addr_classify(
         "recv_accept_classify", incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, NULL, result);
 
