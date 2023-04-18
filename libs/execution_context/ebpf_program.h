@@ -9,6 +9,8 @@
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 
+#define EBPF_HASH_ALGORITHM "SHA256"
+
 #ifdef __cplusplus
 extern "C"
 {

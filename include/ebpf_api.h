@@ -63,6 +63,7 @@ extern "C"
         size_t raw_data_size;
         _Field_size_(raw_data_size) char* raw_data;
         ebpf_stat_t* stats;
+        _Field_z_ const char* program_hash_type;
     } ebpf_section_info_t;
 
     /**

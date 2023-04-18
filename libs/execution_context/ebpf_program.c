@@ -529,7 +529,14 @@ ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program
             program_parameters->program_info_hash_length);
     }
 
-    return_value = ebpf_duplicate_utf8_string(&local_hash_type_name, &program_parameters->program_info_hash_type);
+    // If the hash type is not specified, use the default hash type.
+    if (program_parameters->program_info_hash_type.length == 0) {
+        ebpf_utf8_string_t hash_algorithm = EBPF_UTF8_STRING_FROM_CONST_STRING(EBPF_HASH_ALGORITHM);
+        return_value = ebpf_duplicate_utf8_string(&local_hash_type_name, &hash_algorithm);
+    } else {
+        return_value = ebpf_duplicate_utf8_string(&local_hash_type_name, &program_parameters->program_info_hash_type);
+    }
+
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1644,8 +1651,10 @@ _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* pro
         sizeof(ebpf_helper_id_to_index_t),
         _ebpf_helper_id_to_index_compare);
 
+    // result = ebpf_cryptographic_hash_create(EBPF_HASH_ALGORITHM, &cryptographic_hash);
     result = ebpf_cryptographic_hash_create(
         (const wchar_t*)program->parameters.program_info_hash_type.value, &cryptographic_hash);
+
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }

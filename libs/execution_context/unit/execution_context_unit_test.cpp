@@ -1089,8 +1089,8 @@ create_various_objects(std::vector<ebpf_handle_t>& program_handles, std::map<std
             type,
             type,
             {reinterpret_cast<uint8_t*>(name.data()), name.size()},
-            {reinterpret_cast<uint8_t*>(name.data()), name.size()},
-            {reinterpret_cast<uint8_t*>(name.data()), name.size()},
+            {reinterpret_cast<uint8_t*>(section.data()), section.size()},
+            {reinterpret_cast<uint8_t*>(file.data()), file.size()},
             EBPF_CODE_NONE};
         ebpf_handle_t handle;
         REQUIRE(ebpf_program_create_and_initialize(&params, &handle) == EBPF_SUCCESS);

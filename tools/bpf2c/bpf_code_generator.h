@@ -289,7 +289,7 @@ class bpf_code_generator
         // Indices of the maps used in this section.
         std::set<size_t> referenced_map_indices;
         std::map<unsafe_string, helper_function_t> helper_functions;
-        std::string program_info_hash_type = {};
+        std::string program_info_hash_type{};
     } section_t;
 
     typedef struct _line_info
