@@ -662,10 +662,11 @@ int func()
 Let's compile it and see what it looks like.   Here we compile with `-g`
 to include source line info:
 
-> Note: Replace `.\eBPF-for-Windows.0.7.0\build\native\include\` with the path to the ebpf-for-windows nuget `./include` directory (should be in the directory where you ran `nuget install eBPF-for-Windows`). This is the first time we included header files while building so we need to use the Windows eBPF headers which we get from the nuget package.
+> Note: Replace `.\eBPF-for-Windows.<X.Y.Z>\build\native\include\` with the path to the ebpf-for-windows nuget `./include` directory (should be in the directory where you ran `nuget install eBPF-for-Windows`). This is the first time we included header files while building so we need to use the Windows eBPF headers which we get from the nuget package.
 
-```
-> clang -I .\eBPF-for-Windows.0.7.0\build\native\include\ -target bpf -Werror -g -O2 -c helpers.c -o helpers.o
+```bash
+# Replace X.Y.Z with the actual version of eBPF being used.
+> clang -I .\eBPF-for-Windows.X.Y.Z\build\native\include\ -target bpf -Werror -g -O2 -c helpers.c -o helpers.o
 
 > llvm-objdump --triple bpf -S helpers.o
 
@@ -793,7 +794,8 @@ using the map parameters specified.  We can see the fields encoded
 into the `maps` section as follows:
 
 ```
-> clang -I -I .\eBPF-for-Windows.0.7.0\build\native\include\ -target bpf -Werror -g -O2 -c maponly.c -o maponly.o
+# Replace X.Y.Z with the actual version of eBPF being used.
+> clang -I -I .\eBPF-for-Windows.X.Y.Z\build\native\include\ -target bpf -Werror -g -O2 -c maponly.c -o maponly.o
 > llvm-objdump -s -section maps maponly.o
 
 maponly.o:      file format ELF64-BPF

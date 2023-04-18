@@ -8,6 +8,8 @@
 #include "ebpf_program.h"
 #include "ebpf_protocol.h"
 
+#include <intrin.h>
+
 #define DEFAULT_PIN_ROOT_PATH "/ebpf/global"
 #define EBPF_MAX_PIN_PATH_LENGTH 256
 
@@ -126,7 +128,8 @@ typedef struct _ebpf_native_helper_address_changed_context
 } ebpf_native_helper_address_changed_context_t;
 
 static ebpf_result_t
-_ebpf_native_helper_address_changed(_Inout_ ebpf_program_t* program, _Inout_opt_ void* context);
+_ebpf_native_helper_address_changed(
+    size_t address_count, _In_reads_opt_(address_count) uintptr_t* addresses, _In_opt_ void* context);
 
 static void
 _ebpf_native_unload_work_item(_In_opt_ const void* service)
@@ -180,6 +183,11 @@ _ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program
 {
     for (uint32_t i = 0; i < count_of_programs; i++) {
         if (programs[i].handle != ebpf_handle_invalid) {
+            ebpf_program_t* program_object = NULL;
+            ebpf_assert_success(ebpf_object_reference_by_handle(
+                programs[i].handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program_object));
+            ebpf_assert_success(ebpf_program_register_for_helper_changes(program_object, NULL, NULL));
+            ebpf_object_release_reference((ebpf_core_object_t*)program_object);
             ebpf_assert_success(ebpf_handle_close(programs[i].handle));
         }
         ebpf_free(programs[i].addresses_changed_callback_context);
@@ -243,18 +251,16 @@ ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 {
     ebpf_assert(module->base.marker == _ebpf_native_marker);
 
-// Locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
-#pragma warning(push)
-#pragma warning(disable : 4189)
-    int32_t new_ref_count = ebpf_interlocked_increment_int32(&module->base.reference_count);
-    ebpf_assert(new_ref_count != 1);
-#pragma warning(pop)
+    int64_t new_ref_count = ebpf_interlocked_increment_int64(&module->base.reference_count);
+    if (new_ref_count == 1) {
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+    }
 }
 
 void
 ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* module)
 {
-    int32_t new_ref_count;
+    int64_t new_ref_count;
     ebpf_lock_state_t module_lock_state = 0;
 
     if (!module) {
@@ -263,8 +269,10 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
 
     ebpf_assert(module->base.marker == _ebpf_native_marker);
 
-    new_ref_count = ebpf_interlocked_decrement_int32(&module->base.reference_count);
-    ebpf_assert(new_ref_count != -1);
+    new_ref_count = ebpf_interlocked_decrement_int64(&module->base.reference_count);
+    if (new_ref_count < 0) {
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+    }
 
     if (new_ref_count == 1) {
         // Check if all the program references have been released. If that
@@ -1478,7 +1486,8 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_native_helper_address_changed(_Inout_ ebpf_program_t* program, _Inout_opt_ void* context)
+_ebpf_native_helper_address_changed(
+    size_t address_count, _In_reads_opt_(address_count) uintptr_t* addresses, _In_opt_ void* context)
 {
     ebpf_result_t return_value;
     ebpf_native_helper_address_changed_context_t* helper_address_changed_context =
@@ -1493,21 +1502,13 @@ _ebpf_native_helper_address_changed(_Inout_ ebpf_program_t* program, _Inout_opt_
         goto Done;
     }
 
-    helper_function_addresses = ebpf_allocate(helper_count * sizeof(uint64_t));
-    if (helper_function_addresses == NULL) {
-        return_value = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    return_value = ebpf_program_get_helper_function_addresses(program, helper_count, helper_function_addresses);
-
-    if (return_value != EBPF_SUCCESS) {
+    if (helper_count != address_count || addresses == NULL) {
+        return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
     for (size_t i = 0; i < helper_count; i++) {
-        *(uint64_t*)&(helper_address_changed_context->native_program->entry->helpers[i].address) =
-            helper_function_addresses[i];
+        *(uint64_t*)&(helper_address_changed_context->native_program->entry->helpers[i].address) = addresses[i];
     }
 
     return_value = EBPF_SUCCESS;

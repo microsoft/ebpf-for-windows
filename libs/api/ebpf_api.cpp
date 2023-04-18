@@ -3690,8 +3690,12 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) n
                 async_query_request,
                 subscription->reply,
                 get_async_ioctl_operation_overlapped(subscription->async_ioctl_completion)));
-            if (result == EBPF_PENDING) {
-                result = EBPF_SUCCESS;
+            if (result != EBPF_SUCCESS) {
+                if (result == EBPF_PENDING) {
+                    result = EBPF_SUCCESS;
+                } else {
+                    subscription->async_ioctl_failed = true;
+                }
             }
         }
     }
@@ -3780,8 +3784,12 @@ ebpf_ring_buffer_map_subscribe(
             async_query_request,
             local_subscription->reply,
             get_async_ioctl_operation_overlapped(local_subscription->async_ioctl_completion)));
-        if (result == EBPF_PENDING) {
-            result = EBPF_SUCCESS;
+        if (result != EBPF_SUCCESS) {
+            if (result == EBPF_PENDING) {
+                result = EBPF_SUCCESS;
+            } else {
+                local_subscription->async_ioctl_failed = true;
+            }
         }
 
         // If the async IOCTL failed, then free the subscription object.
