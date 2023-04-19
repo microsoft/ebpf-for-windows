@@ -18,9 +18,11 @@ trigger:
   branches:
     include:
     - main
+    - release/*
 
 pr:
 - main
+- release/*
 
 schedules:
 - cron: '00 21 * * *'
@@ -28,6 +30,7 @@ schedules:
   branches:
     include:
     - main
+    - release/*
   always: true
 
 parameters: # parameters are shown up in ADO UI in a build queue time
