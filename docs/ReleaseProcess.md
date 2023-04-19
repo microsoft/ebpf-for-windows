@@ -10,21 +10,13 @@ eBPF for Windows, and how to service it later.
 1. On the main `ebpf-for-windows` repo, create a new release branch from `main`, i.e., "`release/X.Y`", and request the Admin of the main `ebpf-for-windows` repo to protect and apply release policies to the release branch.
 1. Wait for the main `ebpf-for-windows` repo's Admin to complete the previous step (the process may not be quick).
 1. On your private repo fork, create a new branch from the "`release/X.Y`" branch on the main `ebpf-for-windows` repo and check it out.
-1. Update the source code with the following steps:
-    * Update the version number in the following files, making sure to follow [Semantic Versioning 2.0](https://semver.org) ("`X.Y.Z`"):
-        * `resource\ebpf_version.h`
-        * `installer\Product.wxs`, within the following XML attribute:
+1. Run the following script from the root directory of the repository, within a "*Developer Poweshell for VS 2022"* instance. Make sure to follow [Semantic Versioning 2.0](https://semver.org) ("`X.Y.Z`"):
 
-            ```xml
-            <Wix... <Product... Version="X.Y.Z" ...>...>
-            ```
-    * Open Visual Studio and *Rebuild* `ebpf-for-windows.sln` in "`x64/Debug`" mode.
-    * Regenerate the expected `bpf2c` output (i.e. the corresponding "`.c`" files for all the solution's test/demo "`.o`" files), by running the following script:
-
-        ```ps
-        .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
-        ```
-1. Commit all the changes in the working branch.
+    ```ps
+    # Replace "X.Y.Z" with the version number being released
+    .\scripts\update-release.ps1 X.Y.Z
+    ```
+1. Verify all the changes then commit all in the working branch.
     >NOTE: the formatting rules may complain about the formatting of the generated `.c` files from the script above, in this case, format them with the following:
     >```bash
     ># In bash
@@ -74,21 +66,14 @@ Servicing a release has two main scenarios:
 >NOTE: In servicing a release branch, **new features must not be added to the release branch**.  Only patches or hot-fixes will be accepted.
 
 1. On the main `ebpf-for-windows` repo, create and check out a new working branch from the `/release/X.Y` branch you want to service.
-1. Update the source code with the following steps:
-    * Update the **patch version number "`Z`" only** in the following files, making sure to follow [Semantic Versioning 2.0](https://semver.org) ("`X.Y.Z`"):
-        * `resource\ebpf_version.h`
-        * `installer\Product.wxs`, within the following XML attribute:
+1. Run the following script from the root directory of the repository, within a "*Developer Poweshell for VS 2022"* instance. Make sure to follow [Semantic Versioning 2.0](https://semver.org) ("`X.Y.Z`"):
 
-            ```xml
-            <Wix... <Product... Version="X.Y.Z" ...>...>
-            ```
-    * Open Visual Studio and *Rebuild* `ebpf-for-windows.sln` in "`x64/Debug`" mode.
-    * Regenerate the expected `bpf2c` output (i.e. the corresponding "`.c`" files for all the solution's test/demo "`.o`" files), by running the following script:
-
-        ```ps
-        .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
-        ```
+    ```ps
+    # Replace "X.Y.Z" with the version number being released
+    .\scripts\update-release.ps1 X.Y.Z
+    ```
 1. Cherry pick the commits from `main` that you want to add to the release (patches/hot-fixes, etc.):
+
     ```bash
     git cherry-pick main <commit number> ... <commit number>
     ```
@@ -96,7 +81,7 @@ Servicing a release has two main scenarios:
     ```bash
     git mergetool
     ```
-1. Commit all the changes in the working branch.
+1. Verify all the changes then commit all in the working branch.
     >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, format them with the following:
     >```bash
     ># In bash
