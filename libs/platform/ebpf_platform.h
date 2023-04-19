@@ -1327,7 +1327,7 @@ extern "C"
     ebpf_leave_critical_region();
 
     /**
-     * @brief Convert the provided UTF 8 string into a 16-bit unicode string.
+     * @brief Convert the provided UTF-8 string into a UTF-16LE string.
      *
      * @param[in] input String to convert.
      * @param[out] output Converted string.
