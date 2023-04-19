@@ -1329,8 +1329,8 @@ extern "C"
     /**
      * @brief Convert the provided UTF-8 string into a UTF-16LE string.
      *
-     * @param[in] input String to convert.
-     * @param[out] output Converted string.
+     * @param[in] input UTF-8 string to convert.
+     * @param[out] output Converted UTF-16LE string.
      * @retval EBPF_SUCCESS The conversion was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for the conversion.
      * @retval EBPF_INVALID_ARGUMENT Unable to convert the string.
