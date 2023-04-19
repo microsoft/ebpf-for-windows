@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+// The CNG algorithm name to use must be listed in
+// https://learn.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers
 #define EBPF_HASH_ALGORITHM "SHA256"
 
 class bpf_code_generator

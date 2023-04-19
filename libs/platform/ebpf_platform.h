@@ -1184,7 +1184,9 @@ extern "C"
     /**
      * @brief Create a cryptographic hash object.
      *
-     * @param[in] algorithm The algorithm to use. Recommended values are "SHA256".
+     * @param[in] algorithm The algorithm to use. Recommended value is "SHA256".
+     *  The CNG algorithm name to use is listed in
+     *  https://learn.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers
      * @param[out] hash The hash object.
      * @return EBPF_SUCCESS The hash object was created.
      * @return EBPF_NO_MEMORY Unable to allocate memory for the hash object.
