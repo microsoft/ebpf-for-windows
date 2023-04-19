@@ -1235,13 +1235,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
-    std::istringstream version_stream(EBPF_VERSION);
-    std::string version_major;
-    std::string version_minor;
-    std::string version_revision;
-    std::getline(version_stream, version_major, '.');
-    std::getline(version_stream, version_minor, '.');
-    std::getline(version_stream, version_revision, '.');
+    std::string version_major = std::to_string(EBPF_VERSION_MAJOR);
+    std::string version_minor = std::to_string(EBPF_VERSION_MINOR);
+    std::string version_revision = std::to_string(EBPF_VERSION_REVISION);
 
     output_stream << "static void" << std::endl
                   << "_get_version(_Out_ bpf2c_version_t* version)" << std::endl
