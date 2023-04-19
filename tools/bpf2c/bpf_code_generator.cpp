@@ -1224,7 +1224,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                 std::string hash_string = program.program_info_hash_type;
                 if (hash_string.empty()) {
                     // If the hash type is not known, use the default hash type.
-                    // Current, only SHA256 is supported.
+                    // Current, only SHA-256 is supported.
                     hash_string = EBPF_HASH_ALGORITHM;
                     program.program_info_hash_type = hash_string;
                 }
