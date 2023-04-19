@@ -70,13 +70,11 @@ _netebpf_ext_helper::_netebpf_ext_helper(
     nmr_program_info_client_handle_initialized = true;
 
     this->hook_invoke_function = dispatch_function;
-    if (dispatch_function != nullptr) {
+    if (dispatch_function != nullptr && client_context != nullptr) {
         hook_client.ClientRegistrationInstance.NpiSpecificCharacteristics = npi_specific_characteristics;
-        if (client_context != nullptr) {
-            client_context->helper = this;
-            nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
-            nmr_hook_client_handle_initialized = true;
-        }
+        client_context->helper = this;
+        nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
+        nmr_hook_client_handle_initialized = true;
     }
 }
 
