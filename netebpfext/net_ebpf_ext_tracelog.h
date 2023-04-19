@@ -223,7 +223,7 @@ net_ebpf_ext_trace_terminate();
         TraceLoggingUInt16((source_port), "src_port"),                                                         \
         TraceLoggingIPv4Address((destination_ip), "dst_ip"),                                                   \
         TraceLoggingUInt16((destination_port), "dst_port"),                                                    \
-        TraceLoggingUInt64((verdict), "Verdict"));
+        TraceLoggingUInt32((verdict), "Verdict"));
 
 #define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV6(                                                              \
     trace_level, message, handle, protocol, source_ip, source_port, destination_ip, destination_port, verdict) \
@@ -239,7 +239,7 @@ net_ebpf_ext_trace_terminate();
         TraceLoggingUInt16((source_port), "src_port"),                                                         \
         TraceLoggingIPv6Address((destination_ip), "dst_ip"),                                                   \
         TraceLoggingUInt16((destination_port), "dst_port"),                                                    \
-        TraceLoggingUInt64((verdict), "Verdict"));
+        TraceLoggingUInt32((verdict), "Verdict"));
 
 #define NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV4(            \
     message,                                                          \
