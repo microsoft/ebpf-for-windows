@@ -681,7 +681,7 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
     }
 
     // Verify that all maps were successfully removed.
-    uint32_t id = 0;
+    uint32_t id;
     if (!ebpf_fuzzing_enabled) {
         REQUIRE(bpf_map_get_next_id(0, &id) < 0);
         REQUIRE(errno == ENOENT);
