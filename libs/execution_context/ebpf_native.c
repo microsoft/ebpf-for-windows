@@ -250,9 +250,18 @@ void
 ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 {
     ebpf_assert(module->base.marker == _ebpf_native_marker);
+    ebpf_lock_state_t state = 0;
+    bool fail_fast = false;
 
-    int64_t new_ref_count = ebpf_interlocked_increment_int64(&module->base.reference_count);
-    if (new_ref_count == 1) {
+    state = ebpf_lock_lock(&module->lock);
+    if (module->base.reference_count != 0) {
+        module->base.reference_count++;
+    } else {
+        fail_fast = true;
+    }
+    ebpf_lock_unlock(&module->lock, state);
+
+    if (fail_fast) {
         __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     }
 }
@@ -262,6 +271,8 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
 {
     int64_t new_ref_count;
     ebpf_lock_state_t module_lock_state = 0;
+    bool lock_acquired = false;
+    bool fail_fast = false;
 
     if (!module) {
         EBPF_RETURN_VOID();
@@ -269,15 +280,18 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
 
     ebpf_assert(module->base.marker == _ebpf_native_marker);
 
-    new_ref_count = ebpf_interlocked_decrement_int64(&module->base.reference_count);
+    module_lock_state = ebpf_lock_lock(&module->lock);
+
+    new_ref_count = --module->base.reference_count;
+    lock_acquired = true;
     if (new_ref_count < 0) {
-        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+        fail_fast = true;
+        goto Exit;
     }
 
     if (new_ref_count == 1) {
         // Check if all the program references have been released. If that
         // is the case, explicitly unload the driver, if it is safe to do so.
-        module_lock_state = ebpf_lock_lock(&module->lock);
         if (!module->detaching) {
             // If the module is not yet marked as detaching, and reference
             // count is 1, it means all the program references have been
@@ -291,7 +305,11 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
             ebpf_assert_success(_ebpf_native_unload(module));
         }
         ebpf_lock_unlock(&module->lock, module_lock_state);
+        lock_acquired = false;
     } else if (new_ref_count == 0) {
+        ebpf_lock_unlock(&module->lock, module_lock_state);
+        lock_acquired = false;
+
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
         // Delete entry from hash table.
         ebpf_assert_success(
@@ -309,6 +327,14 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
 
         // Clean up the native module.
         _ebpf_native_clean_up_module(module);
+    }
+
+Exit:
+    if (lock_acquired) {
+        ebpf_lock_unlock(&module->lock, module_lock_state);
+    }
+    if (fail_fast) {
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     }
 
     EBPF_RETURN_VOID();
