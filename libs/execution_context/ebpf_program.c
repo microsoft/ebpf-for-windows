@@ -283,8 +283,12 @@ _ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
  * work-item.
  */
 static void
-_ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
+_ebpf_program_epoch_free(_In_opt_ _Post_invalid_ void* context)
 {
+    if (!context) {
+        return;
+    }
+
     EBPF_LOG_ENTRY();
     ebpf_program_t* program = (ebpf_program_t*)context;
 
@@ -432,6 +436,7 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     ebpf_utf8_string_t local_program_name = {NULL, 0};
     ebpf_utf8_string_t local_section_name = {NULL, 0};
     ebpf_utf8_string_t local_file_name = {NULL, 0};
+    ebpf_utf8_string_t local_hash_type_name = {NULL, 0};
     uint8_t* local_program_info_hash = NULL;
 
     local_program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_PROGRAM);
@@ -491,6 +496,18 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
             program_parameters->program_info_hash_length);
     }
 
+    // If the hash type is not specified, use the default hash type.
+    if (program_parameters->program_info_hash_type.length == 0) {
+        ebpf_utf8_string_t hash_algorithm = EBPF_UTF8_STRING_FROM_CONST_STRING(EBPF_HASH_ALGORITHM);
+        retval = ebpf_duplicate_utf8_string(&local_hash_type_name, &hash_algorithm);
+    } else {
+        retval = ebpf_duplicate_utf8_string(&local_hash_type_name, &program_parameters->program_info_hash_type);
+    }
+
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     local_program->parameters = *program_parameters;
 
     local_program->parameters.program_name = local_program_name;
@@ -503,7 +520,7 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     local_program->parameters.code_type = EBPF_CODE_NONE;
     local_program->parameters.program_info_hash = local_program_info_hash;
     local_program_info_hash = NULL;
-    program->parameters.program_info_hash_type = local_hash_type_name;
+    local_program->parameters.program_info_hash_type = local_hash_type_name;
     local_hash_type_name.value = NULL;
 
     retval = _ebpf_program_load_providers(local_program);
@@ -511,6 +528,8 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
         goto Done;
     }
 
+    // Note: This is performed after initializing the program as it inserts the program into the global list.
+    // From this point on, the program can be found by other threads.
     retval = ebpf_object_initialize(
         &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
     if (retval != EBPF_SUCCESS) {
@@ -527,9 +546,7 @@ Done:
     ebpf_free(local_section_name.value);
     ebpf_free(local_file_name.value);
 
-    if (local_program) {
-        _ebpf_program_epoch_free(local_program);
-    }
+    _ebpf_program_epoch_free(local_program);
 
     EBPF_RETURN_RESULT(retval);
 }
