@@ -7,9 +7,7 @@ eBPF for Windows, and how to service it later.
 
 ## Creating a new release
 
-1. On the main `ebpf-for-windows` repo, create a new release branch from `main`, i.e., "`release/X.Y`", and request the Admin of the main `ebpf-for-windows` repo to protect and apply release policies to the release branch.
-1. Wait for the main `ebpf-for-windows` repo's Admin to complete the previous step (the process may not be quick).
-1. On your private repo fork, create a new branch from the "`release/X.Y`" branch on the main `ebpf-for-windows` repo and check it out.
+1. Create a working branch from "`main`" on your private repo fork, and check it out.
 1. Run the following script from the root directory of the repository, within a "*Developer Poweshell for VS 2022"* instance. Make sure to follow [Semantic Versioning 2.0](https://semver.org) ("`X.Y.Z`"):
 
     ```ps
@@ -24,9 +22,8 @@ eBPF for Windows, and how to service it later.
     ># In PowerShell
     >.\\scripts\\format-code.ps1 --staged
     >```
-1. Create a **Draft** pull-request for your branch into the main repo's "`release/X.Y`" branch (which you created in step 1), and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
-1. Once the CI/CD pipeline for the PR completes, download the
-   "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build artifacts
+1. Create a **Draft** pull-request for your branch into the main repo's "`main`" branch (which you created in step 1), and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
+1. Once the CI/CD pipeline for the PR completes, download the "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build artifacts
    (accessible via the "`Actions`" tab on GitHub).
 1. Extract the `*.msi` and `*.nupkg` files, respectively, out of them, and rename them in the following format (replace "`X.Y.Z`" with the version number being released):
 
@@ -54,8 +51,11 @@ eBPF for Windows, and how to service it later.
         # Test some additional commands, e.g.:
         bpftool prog show
         ```
-1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`release/X.Y`" branch.
-
+1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`main`" branch.
+1. On the main `ebpf-for-windows` repo, create a new release branch from `main` **corresponding to the previous PR's commit**, name it "`release/X.Y`" (replace "X.Y.Z" with the version number being released).
+1. Request the Admin of the main `ebpf-for-windows` repo to protect and apply release policies to the release branch.
+1. Wait for the main `ebpf-for-windows` repo's Admin to complete the previous step.
+1. Publish the release as per the "[Publishing a Release](ReleaseProcess.md#publishing-a-release)" process.
 
 ## Servicing a release
 

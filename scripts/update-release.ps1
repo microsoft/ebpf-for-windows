@@ -21,10 +21,10 @@ if ($version -match '^\d+\.\d+\.\d+$') {
 
         # Rebuild the solution, so to regenerate the '.o' files with the new version number.
         Write-Host -ForegroundColor DarkGreen "Rebuilding the solution, please wait..."
-        $msbuildExitCode = msbuild.exe .\ebpf-for-windows.sln /p:Configuration=Debug /p:Platform=x64 /t:Rebuild
+        $msbuildExitCode = msbuild /m /p:Configuration=Debug /p:Platform=x64 /p:ReleaseJIT=True ebpf-for-windows.sln /t:Clean,Build
         if ($msbuildExitCode -ne 0) {
             Write-Host -ForegroundColor Red "msbuild failed with exit code $msbuildExitCode. Aborting script."
-            Write-Host -ForegroundColor DarkYellow "Please rebuild the solution in 'x64/Debug' with VS or msbuild to debug the issue."
+            Write-Host -ForegroundColor DarkYellow "Please rebuild the solution in 'x64/Debug' with Visual Studio or MsBuild to debug the issue."
             exit 1
         }
 
@@ -34,7 +34,7 @@ if ($version -match '^\d+\.\d+\.\d+$') {
         Write-Host -ForegroundColor DarkGreen "Expected `bpf2c` output regenerated."
 
         $majorMinor = $version -replace '\.\d+$'
-        Write-Host -ForegroundColor DarkYellow "Please verify all the changes then submit the pull-request into the release/$majorMinor branch."
+        Write-Host -ForegroundColor DarkYellow "Please verify all the changes then submit the pull-request into the 'release/$majorMinor' branch."
     } else {
         Write-Host -ForegroundColor Red "'ebpf-for-windows.sln' not found in the current path."
         Write-Host -ForegroundColor DarkYellow "Please run this script from the root directory of the repository, within a Developer Poweshell for VS 2022."
