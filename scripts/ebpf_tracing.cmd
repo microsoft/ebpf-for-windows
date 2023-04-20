@@ -85,9 +85,9 @@ if "%option%"=="periodic" (
 goto done
 
 :usage
-    echo Usage: tsk_tracing_startup.cmd ^<tracePath^> ^<start, stop, periodic^>
+    echo Usage: ebpf_tracing.cmd ^<start, stop, periodic^> ^<tracePath^>
     echo Examples:
-    echo        tsk_tracing_startup.cmd start ^"C:\My Trace Path^"
-    echo        tsk_tracing_startup.cmd stop ^"C:\My Trace Path^"
-    echo        tsk_tracing_startup.cmd periodic ^"C:\My Trace Path^"
+    echo        ebpf_tracing.cmd start ^"C:\My Trace Path^"
+    echo        ebpf_tracing.cmd stop ^"C:\My Trace Path^"
+    echo        ebpf_tracing.cmd periodic ^"C:\My Trace Path^"
 :done
