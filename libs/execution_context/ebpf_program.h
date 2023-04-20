@@ -9,6 +9,10 @@
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 
+// The CNG algorithm name to use must be listed in
+// https://learn.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers
+#define EBPF_HASH_ALGORITHM "SHA256"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -34,6 +38,7 @@ extern "C"
         ebpf_code_type_t code_type;
         const uint8_t* program_info_hash;
         size_t program_info_hash_length;
+        ebpf_utf8_string_t program_info_hash_type;
     } ebpf_program_parameters_t;
 
     typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);
