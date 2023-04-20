@@ -1355,3 +1355,41 @@ ebpf_leave_critical_region()
 {
     // This is a no-op for the user mode implementation.
 }
+
+ebpf_result_t
+ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output)
+{
+    wchar_t* unicode_string = NULL;
+    ebpf_result_t retval;
+
+    // Compute the size needed to hold the unicode string.
+    int result = MultiByteToWideChar(CP_UTF8, 0, (const char*)input->value, (int)input->length, NULL, 0);
+
+    if (result <= 0) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    result++;
+
+    unicode_string = (wchar_t*)ebpf_allocate(result * sizeof(wchar_t));
+    if (unicode_string == NULL) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    result = MultiByteToWideChar(CP_UTF8, 0, (const char*)input->value, (int)input->length, unicode_string, result);
+
+    if (result == 0) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    *output = unicode_string;
+    unicode_string = NULL;
+    retval = EBPF_SUCCESS;
+
+Done:
+    ebpf_free(unicode_string);
+    return retval;
+}

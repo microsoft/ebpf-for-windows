@@ -15,10 +15,11 @@ typedef struct _ebpf_cryptographic_hash
 } ebpf_cryptographic_hash_t;
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_cryptographic_hash_create(_In_z_ const wchar_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash)
+ebpf_cryptographic_hash_create(_In_ const ebpf_utf8_string_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash)
 {
     ebpf_result_t result;
     NTSTATUS nt_status;
+    wchar_t* algorithm_unicode_string = NULL;
     ebpf_cryptographic_hash_t* local_hash =
         (ebpf_cryptographic_hash_t*)ebpf_allocate(sizeof(ebpf_cryptographic_hash_t));
     if (local_hash == NULL) {
@@ -27,8 +28,12 @@ ebpf_cryptographic_hash_create(_In_z_ const wchar_t* algorithm, _Outptr_ ebpf_cr
     }
 
     memset(local_hash, 0, sizeof(ebpf_cryptographic_hash_t));
+    result = ebpf_utf8_string_to_unicode(algorithm, &algorithm_unicode_string);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
-    nt_status = BCryptOpenAlgorithmProvider(&local_hash->algorithm_handle, algorithm, NULL, 0);
+    nt_status = BCryptOpenAlgorithmProvider(&local_hash->algorithm_handle, algorithm_unicode_string, NULL, 0);
     if (!NT_SUCCESS(nt_status)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -44,6 +49,7 @@ ebpf_cryptographic_hash_create(_In_z_ const wchar_t* algorithm, _Outptr_ ebpf_cr
     *hash = local_hash;
     local_hash = NULL;
 Done:
+    ebpf_free(algorithm_unicode_string);
     ebpf_cryptographic_hash_destroy(local_hash);
     local_hash = NULL;
     return result;

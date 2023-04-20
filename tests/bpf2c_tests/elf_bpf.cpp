@@ -88,6 +88,8 @@ enum class _test_mode
     NoVerify,
     VerifyFail,
     UseHash,
+    UseHashSHA512,
+    UseHashX,
     FileNotFound,
 };
 
@@ -105,6 +107,13 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
     if (test_mode == _test_mode::UseHash) {
         argv.push_back("--hash");
         argv.push_back("SHA256");
+    } else if (test_mode == _test_mode::UseHashSHA512) {
+        argv.push_back("--hash");
+        argv.push_back("SHA512");
+    } else if (test_mode == _test_mode::UseHashX) {
+        argv.push_back("--hash");
+        // Invalid hash algorithm.
+        argv.push_back("SHAX");
     } else {
         argv.push_back("--hash");
         argv.push_back("none");
@@ -149,9 +158,15 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
             REQUIRE(result_value != 0);
             REQUIRE(err != "");
         } break;
-        case _test_mode::UseHash:
+        case _test_mode::UseHashSHA512:
+        case _test_mode::UseHash: {
             REQUIRE(result_value == 0);
             REQUIRE(out != "");
+        } break;
+        case _test_mode::UseHashX: {
+            REQUIRE(result_value != 0);
+            REQUIRE(err != "");
+        }
         }
         if (option) {
             argv.pop_back();
@@ -206,6 +221,8 @@ DECLARE_TEST("tail_call_map", _test_mode::Verify)
 DECLARE_TEST("tail_call_multiple", _test_mode::Verify)
 DECLARE_TEST("test_sample_ebpf", _test_mode::Verify)
 DECLARE_TEST("test_utility_helpers", _test_mode::Verify)
+DECLARE_TEST("cgroup_sock_addr", _test_mode::UseHashSHA512)
+DECLARE_TEST("cgroup_sock_addr2", _test_mode::UseHashX)
 
 DECLARE_TEST("no_such_file", _test_mode::FileNotFound)
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::UseHash, std::string("xdp"))
