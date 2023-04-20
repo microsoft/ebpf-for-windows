@@ -246,24 +246,26 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-void
-ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
+_Requires_exclusive_lock_held_(module->lock) void ebpf_native_acquire_reference_under_lock(
+    _Inout_ ebpf_native_module_t* module)
 {
     ebpf_assert(module->base.marker == _ebpf_native_marker);
-    ebpf_lock_state_t state = 0;
-    bool fail_fast = false;
 
-    state = ebpf_lock_lock(&module->lock);
     if (module->base.reference_count != 0) {
         module->base.reference_count++;
     } else {
-        fail_fast = true;
-    }
-    ebpf_lock_unlock(&module->lock, state);
-
-    if (fail_fast) {
         __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     }
+}
+
+void
+ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
+{
+    ebpf_lock_state_t state = 0;
+
+    state = ebpf_lock_lock(&module->lock);
+    ebpf_native_acquire_reference_under_lock(module);
+    ebpf_lock_unlock(&module->lock, state);
 }
 
 void
@@ -1370,7 +1372,7 @@ ebpf_native_load_programs(
 
     // Take a reference on the native module before releasing the lock.
     // This will ensure the driver cannot unload while we are processing this request.
-    ebpf_native_acquire_reference(module);
+    ebpf_native_acquire_reference_under_lock(module);
     module_referenced = true;
 
     ebpf_lock_unlock(&module->lock, module_state);
