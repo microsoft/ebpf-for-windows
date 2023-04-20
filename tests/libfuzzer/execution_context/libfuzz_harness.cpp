@@ -171,8 +171,8 @@ class fuzz_wrapper
                 type,
                 type,
                 {reinterpret_cast<uint8_t*>(name.data()), name.size()},
-                {reinterpret_cast<uint8_t*>(file.data()), file.size()},
                 {reinterpret_cast<uint8_t*>(section.data()), section.size()},
+                {reinterpret_cast<uint8_t*>(file.data()), file.size()},
                 EBPF_CODE_JIT};
             ebpf_handle_t handle;
             if (ebpf_program_create_and_initialize(&params, &handle) == EBPF_SUCCESS) {

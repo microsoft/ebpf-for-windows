@@ -1002,8 +1002,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
     size_t program_count = 0;
     size_t program_name_length = 0;
     size_t section_name_length = 0;
+    size_t hash_type_length = 0;
     uint8_t* program_name = NULL;
     uint8_t* section_name = NULL;
+    uint8_t* hash_type_name = NULL;
 
     // Get the programs.
     module->table->programs(&programs, &program_count);
@@ -1030,8 +1032,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
         program_name_length = strnlen_s(program->program_name, BPF_OBJ_NAME_LEN);
         section_name_length = strnlen_s(program->section_name, BPF_OBJ_NAME_LEN);
+        hash_type_length = strnlen_s(program->program_info_hash_type, BPF_OBJ_NAME_LEN);
+
         if (program_name_length == 0 || program_name_length >= BPF_OBJ_NAME_LEN || section_name_length == 0 ||
-            section_name_length >= BPF_OBJ_NAME_LEN) {
+            section_name_length >= BPF_OBJ_NAME_LEN || hash_type_length == 0 || hash_type_length >= BPF_OBJ_NAME_LEN) {
             result = EBPF_INVALID_ARGUMENT;
             break;
         }
@@ -1064,6 +1068,15 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
         parameters.program_info_hash = program->program_info_hash;
         parameters.program_info_hash_length = program->program_info_hash_length;
 
+        hash_type_name = ebpf_allocate_with_tag(hash_type_length, EBPF_POOL_TAG_NATIVE);
+        if (hash_type_name == NULL) {
+            result = EBPF_NO_MEMORY;
+            break;
+        }
+        memcpy(hash_type_name, program->program_info_hash_type, hash_type_length);
+        parameters.program_info_hash_type.value = hash_type_name;
+        parameters.program_info_hash_type.length = hash_type_length;
+
         result = ebpf_program_create_and_initialize(&parameters, &native_program->handle);
         if (result != EBPF_SUCCESS) {
             break;
@@ -1071,8 +1084,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
         ebpf_free(program_name);
         ebpf_free(section_name);
+        ebpf_free(hash_type_name);
         program_name = NULL;
         section_name = NULL;
+        hash_type_name = NULL;
 
         // Load machine code.
         result = ebpf_core_load_code(
@@ -1134,6 +1149,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
     ebpf_free(program_name);
     ebpf_free(section_name);
+    ebpf_free(hash_type_name);
     return result;
 }
 
