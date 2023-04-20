@@ -24,7 +24,8 @@ param (
 #>
 function Get-UpstreamBranches
 {
-    param ([Parameter(Mandatory = $true)][string]$BranchPrefix)
+    param ([Parameter(Mandatory = $true)][string]$BranchPrefix,
+    [Parameter(Mandatory = $true)][string]$RemoteUrl)
 
     Write-Output "Syncing new branches with prefix $BranchPrefix"
     $UpstreamPrefix = "upstream/" + $BranchPrefix
@@ -55,7 +56,7 @@ function Get-UpstreamBranches
         $BranchName = $BranchNames[1]
         Write-Output "Syncing new branch $BranchName"
         git checkout $BranchName
-        git push -u origin $BranchName
+        git push -u origin $BranchName $RemoteUrl
     }
 }
 
@@ -82,25 +83,30 @@ git checkout $BranchName
 git reset --hard origin/$BranchName
 
 # Fetch the changes from upstream.
+Write-Output "Fetching changes from upstream"
 git fetch upstream
 
 # Merge the changes to local repo.
+Write-Output "Merge changes to local repo"
 git merge upstream/$BranchName
 
 # Push the changes to remote.
+Write-Output "Push changes to remote"
 git push $url
-
-# Fetch the tags from upstream
-git fetch upstream --tags
-
-# Push the tags to remote.
-git push --tags $url
 
 # This script is invoked for multiple branches. Check and sync for new release
 # branches only when it is invoked for "main".
-if ($BranchName -is "main")
+if ($BranchName -eq "main")
 {
-    Get-UpstreamBranches -BranchPrefix "release/"
+    Get-UpstreamBranches -BranchPrefix "release/" -RemoteUrl $url
 }
+
+# Fetch the tags from upstream
+Write-Output "Fetching tags from upstream"
+git fetch upstream --tags
+
+# Push the tags to remote.
+Write-Output "Pushing tags to remote"
+git push --tags $url
 
 Write-Output "Successfully mirrored latest changes"
