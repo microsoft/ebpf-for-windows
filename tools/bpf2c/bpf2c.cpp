@@ -122,7 +122,7 @@ main(int argc, char** argv)
         std::string verifier_output_file;
         std::string file;
         std::string type_string = "";
-        std::string hash_algorithm = "SHA256";
+        std::string hash_algorithm = EBPF_HASH_ALGORITHM;
         bool verify_programs = true;
         std::vector<std::string> parameters(argv + 1, argv + argc);
         auto iter = parameters.begin();
@@ -216,7 +216,6 @@ main(int argc, char** argv)
         auto data = load_file_to_memory(file);
         std::optional<std::vector<uint8_t>> hash_value;
         if (hash_algorithm != "none") {
-
             _hash hash(hash_algorithm);
             hash_value = hash.hash_string(data);
         }
@@ -282,7 +281,7 @@ main(int argc, char** argv)
             if (verify_programs && (hash_algorithm != "none")) {
                 program_info_hash = get_program_info_type_hash(hash_algorithm);
             }
-            generator.parse(section, program_type, attach_type, program_info_hash);
+            generator.parse(section, program_type, attach_type, program_info_hash, hash_algorithm);
         }
 
         for (const auto& section : sections) {

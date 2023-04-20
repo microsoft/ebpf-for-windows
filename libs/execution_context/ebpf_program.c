@@ -19,7 +19,6 @@
 
 static size_t _ebpf_program_state_index = MAXUINT64;
 #define EBPF_MAX_HASH_SIZE 128
-#define EBPF_HASH_ALGORITHM L"SHA256"
 
 typedef struct _ebpf_program
 {
@@ -316,6 +315,7 @@ _ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
     ebpf_free(program->parameters.section_name.value);
     ebpf_free(program->parameters.file_name.value);
     ebpf_free((void*)program->parameters.program_info_hash);
+    ebpf_free(program->parameters.program_info_hash_type.value);
 
     ebpf_free(program->maps);
 
@@ -503,6 +503,8 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     local_program->parameters.code_type = EBPF_CODE_NONE;
     local_program->parameters.program_info_hash = local_program_info_hash;
     local_program_info_hash = NULL;
+    program->parameters.program_info_hash_type = local_hash_type_name;
+    local_hash_type_name.value = NULL;
 
     retval = _ebpf_program_load_providers(local_program);
     if (retval != EBPF_SUCCESS) {
@@ -1600,7 +1602,8 @@ _ebpf_program_initialize_or_verify_program_info_hash(_Inout_ ebpf_program_t* pro
         sizeof(ebpf_helper_id_to_index_t),
         _ebpf_helper_id_to_index_compare);
 
-    result = ebpf_cryptographic_hash_create(EBPF_HASH_ALGORITHM, &cryptographic_hash);
+    result = ebpf_cryptographic_hash_create(&program->parameters.program_info_hash_type, &cryptographic_hash);
+
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
