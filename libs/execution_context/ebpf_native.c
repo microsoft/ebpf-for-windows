@@ -274,7 +274,6 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
     int64_t new_ref_count;
     ebpf_lock_state_t module_lock_state = 0;
     bool lock_acquired = false;
-    bool fail_fast = false;
 
     if (!module) {
         EBPF_RETURN_VOID();
@@ -283,12 +282,11 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
     ebpf_assert(module->base.marker == _ebpf_native_marker);
 
     module_lock_state = ebpf_lock_lock(&module->lock);
+    lock_acquired = true;
 
     new_ref_count = --module->base.reference_count;
-    lock_acquired = true;
     if (new_ref_count < 0) {
-        fail_fast = true;
-        goto Exit;
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     }
 
     if (new_ref_count == 1) {
@@ -331,12 +329,8 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
         _ebpf_native_clean_up_module(module);
     }
 
-Exit:
     if (lock_acquired) {
         ebpf_lock_unlock(&module->lock, module_lock_state);
-    }
-    if (fail_fast) {
-        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     }
 
     EBPF_RETURN_VOID();
