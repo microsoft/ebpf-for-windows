@@ -1,6 +1,18 @@
 @rem Copyright (c) Microsoft Corporation
 @rem SPDX-License-Identifier: MIT
 
+@rem Script behavior:
+@rem - When called with 'start', it will:
+@rem 	- Setup the logman session named as defined in 'trace_name'.
+@rem    - Configure the WFP/eBPF events to be monitored
+@rem    - Start the session within the given 'tracePath' directory.
+@rem - When called with 'stop', it will:
+@rem 	- Stop then delete the logman session, and finally deletes the 'tracePath' directory.
+@rem - When called with 'periodic', it will:
+@rem 	- Run 'netsh wfp show state' into the 'tracePath' directory, and if the file is under 'max_size_mb', it will move it into the '.\committed' subfolder, adding a timestamp to its name.
+@rem 	- Iterate over all the '.etl' files in the 'tracePath' directory, sorted in descending order by "date modified", skip the first 'num_etl_files_to_keep' files and move the others into the '.\committed' subfolder.
+@rem 	- Iterate over all the '.etl' and '.xml' files in the '.\committed' subfolder and delete files older than 'files_max_age_days' days.
+
 @echo off
 setlocal enabledelayedexpansion
 
@@ -63,7 +75,7 @@ if "%option%"=="periodic" (
 	logman create trace !trace_name! -o !tracePath! -f bincirc -max %max_size_mb% -cnf 0:35:00 -v mmddhhmm
 
 	@rem Define the WFP events to be traced.
-	logman update trace !trace_name! -p "{00e7ee66-5b24-5c41-22cb-af98f63e2f90}" 0x7 4
+	logman update trace !trace_name! -p "{00e7ee66-5b24-5c41-22cb-af98f63e2f90}" 0x7 0x4
 
 	@rem Define the eBPF events to be traced.
 	logman update trace !trace_name! -p "{394f321c-5cf4-404c-aa34-4df1428a7f9c}" 0xffffffffffffffff 0x4
