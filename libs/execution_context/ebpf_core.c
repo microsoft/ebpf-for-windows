@@ -1188,18 +1188,14 @@ _ebpf_core_protocol_link_program(
         goto Done;
     }
 
-    retval = ebpf_link_create(&link);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
     size_t data_length;
     retval = ebpf_safe_size_t_subtract(
         request->header.length, FIELD_OFFSET(ebpf_operation_link_program_request_t, data), &data_length);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
-    retval = ebpf_link_initialize(link, request->attach_type, request->data, data_length);
+
+    retval = ebpf_link_create(request->attach_type, request->data, data_length, &link);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1393,11 +1389,7 @@ _ebpf_core_protocol_get_program_info(
     program_parameters.program_type = request->program_type;
 
     if (request->program_handle == ebpf_handle_invalid) {
-        retval = ebpf_program_create(&program);
-        if (retval != EBPF_SUCCESS) {
-            goto Done;
-        }
-        retval = ebpf_program_initialize(program, &program_parameters);
+        retval = ebpf_program_create(&program_parameters, &program);
         if (retval != EBPF_SUCCESS) {
             goto Done;
         }

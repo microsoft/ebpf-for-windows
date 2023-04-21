@@ -89,58 +89,59 @@ _ebpf_link_free(_Frees_ptr_ ebpf_core_object_t* object)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_link_create(_Outptr_ ebpf_link_t** link)
-{
-    EBPF_LOG_ENTRY();
-    *link = ebpf_epoch_allocate_with_tag(sizeof(ebpf_link_t), EBPF_POOL_TAG_LINK);
-    if (*link == NULL) {
-        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
-    }
-
-    memset(*link, 0, sizeof(ebpf_link_t));
-
-    ebpf_result_t result = ebpf_object_initialize(&(*link)->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL);
-    if (result != EBPF_SUCCESS) {
-        ebpf_epoch_free(link);
-        EBPF_RETURN_RESULT(result);
-    }
-
-    (*link)->state = EBPF_LINK_STATE_IDLE;
-
-    ebpf_lock_create(&(*link)->attach_lock);
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_link_initialize(
-    _Inout_ ebpf_link_t* link,
+ebpf_link_create(
     ebpf_attach_type_t attach_type,
     _In_reads_(context_data_length) const uint8_t* context_data,
-    size_t context_data_length)
+    size_t context_data_length,
+    _Outptr_ ebpf_link_t** link)
 {
     EBPF_LOG_ENTRY();
-    ebpf_lock_state_t state = ebpf_lock_lock(&link->attach_lock);
-
-    ebpf_result_t return_value;
-
-    link->client_data.version = 0;
-    link->client_data.size = context_data_length;
-
-    if (context_data_length > 0) {
-        link->client_data.data = ebpf_allocate_with_tag(context_data_length, EBPF_POOL_TAG_LINK);
-        if (!link->client_data.data) {
-            return_value = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-        memcpy(link->client_data.data, context_data, context_data_length);
+    ebpf_result_t retval;
+    ebpf_link_t* local_link = NULL;
+    local_link = ebpf_epoch_allocate_with_tag(sizeof(ebpf_link_t), EBPF_POOL_TAG_LINK);
+    if (local_link == NULL) {
+        retval = EBPF_NO_MEMORY;
+        goto Exit;
     }
 
-    link->attach_type = attach_type;
+    memset(local_link, 0, sizeof(ebpf_link_t));
 
-    return_value = EBPF_SUCCESS;
+    local_link->state = EBPF_LINK_STATE_IDLE;
+
+    local_link->client_data.version = 0;
+    local_link->client_data.size = context_data_length;
+
+    if (context_data_length > 0) {
+        local_link->client_data.data = ebpf_allocate_with_tag(context_data_length, EBPF_POOL_TAG_LINK);
+        if (!local_link->client_data.data) {
+            retval = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        memcpy(local_link->client_data.data, context_data, context_data_length);
+    }
+
+    local_link->attach_type = attach_type;
+
+    ebpf_lock_create(&local_link->attach_lock);
+
+    // Note: This must be the last thing done in this function as it inserts the object into the global list.
+    // After this point, the object can be accessed by other threads.
+    ebpf_result_t result = ebpf_object_initialize(&local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL);
+    if (result != EBPF_SUCCESS) {
+        retval = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    *link = local_link;
+    local_link = NULL;
+    retval = EBPF_SUCCESS;
+
 Exit:
-    ebpf_lock_unlock(&link->attach_lock, state);
-    EBPF_RETURN_RESULT(return_value);
+    if (local_link) {
+        _ebpf_link_free(&local_link->object);
+    }
+
+    EBPF_RETURN_RESULT(retval);
 }
 
 static ebpf_result_t
