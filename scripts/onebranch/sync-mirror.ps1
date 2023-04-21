@@ -34,18 +34,41 @@ function Get-UpstreamBranches
     $UpstreamBranches = $Branches | Select-String -Pattern $UpstreamPrefix -AllMatches
     $LocalBranches = $Branches | Select-String -Pattern $OriginPrefix -AllMatches
     $LocalBranchNames = @()
+    $NewBranchNames = @()
 
-    for ($i = 0; $i -lt $LocalBranches.Count; $i++)
+    if ($LocalBranches -ne $null)
     {
-        $LocalBranchNames += $LocalBranches[$i].Line
+        if ($LocalBranches -is [array])
+        {
+            for ($i = 0; $i -lt $LocalBranches.Count; $i++)
+            {
+                $LocalBranchNames += $LocalBranches[$i].Line
+            }
+        }
+        else
+        {
+            $LocalBranchNames += $LocalBranches.Line
+        }
     }
 
-    $NewBranchNames = @()
-    for ($i = 0; $i -lt $UpstreamBranches.Count; $i++)
+    if ($UpstreamBranches -ne $null)
     {
-        if (-not($LocalBranchNames.Contains($UpstreamBranches[$i].Line)))
+        if ($UpstreamBranches -is [array])
         {
-            $NewBranchNames += $UpstreamBranches[$i].Line
+            for ($i = 0; $i -lt $UpstreamBranches.Count; $i++)
+            {
+                if (-not($LocalBranchNames.Contains($UpstreamBranches[$i].Line)))
+                {
+                    $NewBranchNames += $UpstreamBranches[$i].Line
+                }
+            }
+        }
+        else
+        {
+            if (-not($LocalBranchNames.Contains($UpstreamBranches.Line)))
+            {
+                $NewBranchNames += $UpstreamBranches.Line
+            }
         }
     }
 
@@ -58,6 +81,8 @@ function Get-UpstreamBranches
         git checkout $BranchName
         git push -u origin $BranchName $RemoteUrl
     }
+
+    Write-Output "Done syncing new branches"
 }
 
 Set-StrictMode -Version 'Latest'
