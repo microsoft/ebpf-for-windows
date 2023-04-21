@@ -47,7 +47,7 @@ if "%option%"=="periodic" (
     popd
     set "wfp_state_file=!tracePath!\wfpstate.xml"
 	if exist "!wfp_state_file!" (
-		@rem If the  file size is under 30Mb, then move it to the 'traceCommittedPath' directory (otherwise it'll be overwritten by the next rundown).
+		@rem If the  file size is LEQ than'max_size_mb', then move it to the 'traceCommittedPath' directory (otherwise it'll be overwritten by the next rundown).
 		for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
 		set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
 		set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
@@ -60,7 +60,7 @@ if "%option%"=="periodic" (
 	)
 
 	@rem Iterate over all the .etl files in the 'tracePath' directory, sorted in descending order by "date modified",
-	@rem and skip the first 'num_etl_files_to_keep' files (i.e., the newest files).
+	@rem and skip the first 'num_etl_files_to_keep' files (i.e., the newest 'num_etl_files_to_keep' files).
 	for /f "skip=%num_etl_files_to_keep% delims=" %%f in ('dir /b /o-d "!tracePath!\*.etl"') do (
 		move /y "!tracePath!\%%f" "!traceCommittedPath!" >nul
 	)
