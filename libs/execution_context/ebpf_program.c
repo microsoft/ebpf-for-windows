@@ -337,7 +337,7 @@ _Requires_lock_not_held_(program->lock) static ebpf_result_t
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
-    void* provider_binding_context;
+    void* provider_binding_context = NULL;
     ebpf_program_data_t* general_helper_program_data = NULL;
     GUID module_id = {0};
 
