@@ -72,10 +72,8 @@ if "%option%"=="periodic" (
 
 ) else if "%option%"=="start" (
 
-	pushd "!tracePath!"
-
 	@rem Setup the tracing session.
-	logman create trace !trace_name! -o "!tracePath!" -f bincirc -max %max_size_mb% -cnf %logman_period% -v mmddhhmm
+	logman create trace !trace_name! -o "!tracePath!\ebpf_trace" -f bincirc -max %max_size_mb% -cnf %logman_period% -v mmddhhmm
 
 	@rem Define the WFP events to be traced.
 	logman update trace !trace_name! -p "{00e7ee66-5b24-5c41-22cb-af98f63e2f90}" 0x7 0x4
@@ -86,8 +84,6 @@ if "%option%"=="periodic" (
 
 	@rem Start the tracing session.
 	logman start !trace_name!
-
-	popd
 
 ) else if "%option%"=="stop" (
 
