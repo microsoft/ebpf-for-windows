@@ -985,7 +985,7 @@ Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
-#define DECLARE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                 \
+#define DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                  \
     static void _net_ebpf_ext_log_sock_addr_classify_v##family##(       \
         _In_z_ const char* message,                                     \
         uint64_t transport_endpoint_handle,                             \
@@ -1030,8 +1030,8 @@ Exit:
         }                                                               \
     }
 
-DECLARE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(4)
-DECLARE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(6)
+DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(4)
+DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(6)
 
 static void
 _net_ebpf_ext_log_sock_addr_classify(
