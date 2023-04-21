@@ -26,9 +26,7 @@ typedef class _ebpf_program_test_state
         // ebpf_core_initiate() since that initializes the interface GUID.
         program_info_provider = new _program_info_provider(EBPF_PROGRAM_TYPE_XDP);
 
-        REQUIRE(ebpf_program_create(&program) == EBPF_SUCCESS);
-
-        REQUIRE(ebpf_program_initialize(program, &parameters) == EBPF_SUCCESS);
+        REQUIRE(ebpf_program_create(&parameters, &program) == EBPF_SUCCESS);
     }
     ~_ebpf_program_test_state()
     {
