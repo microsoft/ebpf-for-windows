@@ -3,7 +3,7 @@
 
 @rem Script behavior:
 @rem - When called with 'start', it will:
-@rem 	- Setup the logman session named as defined in 'trace_name'.
+@rem 	- Setup the logman session named as defined in 'trace_name', capping circular-log file size to 'max_size_mb', and generating every 'logman_period'.
 @rem    - Configure the WFP/eBPF events to be monitored
 @rem    - Start the session within the given 'tracePath' directory.
 @rem - When called with 'stop', it will:
@@ -21,13 +21,14 @@ if "%~1"=="" goto usage
 if "%~2"=="" goto usage
 set option=%1
 set tracePath=%~2
-if not exist %tracePath% (
-	echo Path %tracePath% does not exist
+if not exist "!tracePath!" (
+	echo Path "!tracePath!" does not exist
 	goto usage
 )
 
 @rem Define the parameters for the tracing session and the periodic cleanup job.
 set trace_name="ebpf_diag"
+set logman_period=0:35:00
 set /a max_size_mb=20
 set /a max_size_bytes=max_size_mb*1000000
 set /a files_max_age_days=7
@@ -47,7 +48,7 @@ if "%option%"=="periodic" (
     popd
     set "wfp_state_file=!tracePath!\wfpstate.xml"
 	if exist "!wfp_state_file!" (
-		@rem If the  file size is LEQ than'max_size_mb', then move it to the 'traceCommittedPath' directory (otherwise it'll be overwritten by the next rundown).
+		@rem If the file size is less or equal than 'max_size_mb', then move it to the 'traceCommittedPath' directory (otherwise it'll just be overwritten by the next rundown).
 		for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
 		set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
 		set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
@@ -71,8 +72,10 @@ if "%option%"=="periodic" (
 
 ) else if "%option%"=="start" (
 
+	pushd "!tracePath!"
+
 	@rem Setup the tracing session.
-	logman create trace !trace_name! -o !tracePath! -f bincirc -max %max_size_mb% -cnf 0:35:00 -v mmddhhmm
+	logman create trace !trace_name! -o "!tracePath!" -f bincirc -max %max_size_mb% -cnf %logman_period% -v mmddhhmm
 
 	@rem Define the WFP events to be traced.
 	logman update trace !trace_name! -p "{00e7ee66-5b24-5c41-22cb-af98f63e2f90}" 0x7 0x4
@@ -84,11 +87,13 @@ if "%option%"=="periodic" (
 	@rem Start the tracing session.
 	logman start !trace_name!
 
+	popd
+
 ) else if "%option%"=="stop" (
 
 	logman stop !trace_name!
 	logman delete !trace_name!
-	rmdir /s /q !tracePath!
+	rmdir /s /q "!tracePath!"
 
 ) else (
 
@@ -99,7 +104,7 @@ goto done
 :usage
     echo Usage: ebpf_tracing.cmd ^<start, stop, periodic^> ^<tracePath^>
     echo Examples:
-    echo        ebpf_tracing.cmd start ^"C:\My Trace Path^"
-    echo        ebpf_tracing.cmd stop ^"C:\My Trace Path^"
-    echo        ebpf_tracing.cmd periodic ^"C:\My Trace Path^"
+    echo        ebpf_tracing.cmd start "C:\_ebpf\logs"
+    echo        ebpf_tracing.cmd stop "C:\_ebpf\logs"
+    echo        ebpf_tracing.cmd periodic "C:\_ebpf\logs"
 :done
