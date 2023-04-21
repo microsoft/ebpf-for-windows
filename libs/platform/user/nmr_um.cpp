@@ -120,6 +120,10 @@ NmrClientAttachProvider(
     _Out_ void** provider_binding_context,
     _Out_ const void** provider_dispatch)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     try {
         return _nmr::get().client_attach_provider(
             nmr_binding_handle,
