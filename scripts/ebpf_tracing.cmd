@@ -42,13 +42,13 @@ if "%option%"=="periodic" (
 		mkdir !traceCommittedPath!
 	)
 
-    @rem Rundown the WFP state.
+    @rem Run down the WFP state.
     pushd "!tracePath!"
     netsh wfp show state
     popd
     set "wfp_state_file=!tracePath!\wfpstate.xml"
 	if exist "!wfp_state_file!" (
-		@rem If the file size is less or equal than 'max_size_mb', then move it to the 'traceCommittedPath' directory (otherwise it'll just be overwritten by the next rundown).
+		@rem If the file size is less or equal than 'max_size_mb', then move it to the 'traceCommittedPath' directory (otherwise it'll just be overwritten by the next run down).
 		for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
 		set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
 		set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
@@ -72,7 +72,7 @@ if "%option%"=="periodic" (
 
 ) else if "%option%"=="start" (
 
-	@rem Setup the tracing session.
+	@rem Set up the tracing session.
 	logman create trace !trace_name! -o "!tracePath!\ebpf_trace" -f bincirc -max %max_size_mb% -cnf %logman_period% -v mmddhhmm
 
 	@rem Define the WFP events to be traced.
