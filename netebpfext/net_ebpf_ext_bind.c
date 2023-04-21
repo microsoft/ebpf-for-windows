@@ -408,7 +408,7 @@ _ebpf_bind_context_create(
 
     if (context_in == NULL || context_size_in < sizeof(bind_md_t)) {
         NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Context is required");
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, "Context is required");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -477,5 +477,5 @@ _ebpf_bind_context_destroy(
     }
 
     ExFreePool(bind_context);
-    NET_EBPF_EXT_LOG_FUNCTION_SUCCESS();
+    NET_EBPF_EXT_LOG_EXIT();
 }
