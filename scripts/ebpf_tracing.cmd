@@ -4,7 +4,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-@rem Check the number of arguments and their validity
+@rem Check the number of arguments and their validity.
 if "%~1"=="" goto usage
 if "%~2"=="" goto usage
 set option=%1
@@ -14,7 +14,7 @@ if not exist %tracePath% (
 	goto usage
 )
 
-@rem Define the parameters for the tracing session and the periodic cleanup job
+@rem Define the parameters for the tracing session and the periodic cleanup job.
 set trace_name="ebpf_diag"
 set /a max_size_mb=20
 set /a max_size_bytes=max_size_mb*1000000
@@ -23,13 +23,13 @@ set /a num_etl_files_to_keep=1
 
 if "%option%"=="periodic" (
 
-    @rem Create a subdirectory for the committed files (if not already present), the external job will zip from there to the final destination.
+    @rem Create a subdirectory for the committed files (if not already present).
 	set "traceCommittedPath=!tracePath!\committed"
 	if not exist "!traceCommittedPath!" (
 		mkdir !traceCommittedPath!
 	)
 
-    @rem Rundown the WFP state
+    @rem Rundown the WFP state.
     pushd "!tracePath!"
     netsh wfp show state
     popd
@@ -59,17 +59,17 @@ if "%option%"=="periodic" (
 
 ) else if "%option%"=="start" (
 
-	@rem Setup the tracing session
+	@rem Setup the tracing session.
 	logman create trace !trace_name! -o !tracePath! -f bincirc -max %max_size_mb% -cnf 0:35:00 -v mmddhhmm
 
-	@rem Define the WFP events to be traced
+	@rem Define the WFP events to be traced.
 	logman update trace !trace_name! -p "{00e7ee66-5b24-5c41-22cb-af98f63e2f90}" 0x7 4
 
-	@rem Define the eBPF events to be traced -- TBD - need to get the event masks
+	@rem Define the eBPF events to be traced.
 	logman update trace !trace_name! -p "{394f321c-5cf4-404c-aa34-4df1428a7f9c}" 0xffffffffffffffff 0x4
 	logman update trace !trace_name! -p "{f2f2ca01-ad02-4a07-9e90-95a2334f3692}" 0xffffffffffffffff 0x4
 
-	@rem Start the tracing session
+	@rem Start the tracing session.
 	logman start !trace_name!
 
 ) else if "%option%"=="stop" (
