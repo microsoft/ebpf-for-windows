@@ -22,8 +22,7 @@ if "%~2"=="" goto usage
 set option=%1
 set tracePath=%~2
 if not exist "!tracePath!" (
-	echo Path "!tracePath!" does not exist
-	goto usage
+	mkdir !tracePath!
 )
 
 @rem Define the parameters for the tracing session and the periodic cleanup job.
