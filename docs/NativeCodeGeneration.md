@@ -204,7 +204,7 @@ points and meta-data about the programs.
 
 6) At this point, the eBPF execution context is free to invoke the eBPF programs.
 
-7) In response to a reattach notification on the program contract, the driver performs the following step:
+7) In response to a reattach notification on the program contract, the driver performs the following steps:
    - It hashes the program information and compares it with the hash stored in the program.
    - It rejects the program if the hash does not match.
 This ensures that the verifier and the program use the same program information. The verifier uses this information to check the program safety.
