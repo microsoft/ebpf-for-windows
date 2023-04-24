@@ -22,7 +22,7 @@ if "%~2"=="" goto usage
 set option=%1
 set tracePath=%~2
 if not exist "!tracePath!" (
-	mkdir !tracePath!
+	mkdir "!tracePath!"
 )
 
 @rem Define the parameters for the tracing session and the periodic cleanup job.
@@ -38,7 +38,7 @@ if "%option%"=="periodic" (
     @rem Create a subdirectory for the committed files (if not already present).
 	set "traceCommittedPath=!tracePath!\committed"
 	if not exist "!traceCommittedPath!" (
-		mkdir !traceCommittedPath!
+		mkdir "!traceCommittedPath!"
 	)
 
     @rem Run down the WFP state.
