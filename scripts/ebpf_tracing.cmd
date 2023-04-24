@@ -62,7 +62,7 @@ if "%option%"=="periodic" (
 
 	@rem Iterate over all the .etl files in the 'tracePath' directory, sorted in descending order by "date modified",
 	@rem and skip the first 'num_etl_files_to_keep' files (i.e., the newest 'num_etl_files_to_keep' files).
-	for /f "skip=%num_etl_files_to_keep% delims=" %%f in ('dir /b /o-d "!tracePath!\*.etl"') do (
+	for /f "skip=%num_etl_files_to_keep% delims=" %%f in ('dir /b /o-n "!tracePath!\*.etl"') do (
 		move /y "!tracePath!\%%f" "!traceCommittedPath!" >nul
 	)
 
