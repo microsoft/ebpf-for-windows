@@ -224,7 +224,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 1
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_coverage.outputs.files_exists == 'true')
-      uses: codecov/codecov-action@40a12dcee2df644d47232dde008099a3e9e4f865
+      uses: codecov/codecov-action@894ff025c7b54547a9a2a1e9f228beae737ad3c2
       id: upload_code_coverage_report_1
       continue-on-error: true
       with:
@@ -239,7 +239,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 2
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_1.outcome == 'failure')
-      uses: codecov/codecov-action@40a12dcee2df644d47232dde008099a3e9e4f865
+      uses: codecov/codecov-action@894ff025c7b54547a9a2a1e9f228beae737ad3c2
       id: upload_code_coverage_report_2
       continue-on-error: true
       with:
@@ -254,7 +254,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 3
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_2.outcome == 'failure')
-      uses: codecov/codecov-action@40a12dcee2df644d47232dde008099a3e9e4f865
+      uses: codecov/codecov-action@894ff025c7b54547a9a2a1e9f228beae737ad3c2
       id: upload_code_coverage_report_3
       continue-on-error: true
       with:
@@ -269,7 +269,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 4
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_3.outcome == 'failure')
-      uses: codecov/codecov-action@40a12dcee2df644d47232dde008099a3e9e4f865
+      uses: codecov/codecov-action@894ff025c7b54547a9a2a1e9f228beae737ad3c2
       id: upload_code_coverage_report_4
       continue-on-error: true
       with:
