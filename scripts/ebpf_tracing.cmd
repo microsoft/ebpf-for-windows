@@ -30,7 +30,7 @@ set trace_name="ebpf_diag"
 set logman_period=0:35:00
 set /a max_size_mb=20
 set /a max_size_bytes=max_size_mb*1000000
-set /a files_max_age_days=7
+set /a files_max_age_days=1
 set /a num_etl_files_to_keep=1
 
 if "%option%"=="periodic" (
