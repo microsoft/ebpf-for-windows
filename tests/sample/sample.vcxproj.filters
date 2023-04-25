@@ -108,5 +108,17 @@
     <CustomBuild Include="sockops.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="cgroup_sendto_count0.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="cgroup_sendto_count1.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="cgroup_sendto_count2.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="cgroup_sendto_count3.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>
