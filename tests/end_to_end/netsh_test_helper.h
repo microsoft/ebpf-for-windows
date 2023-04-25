@@ -9,6 +9,7 @@
 #include "links.h"
 #include "maps.h"
 #include "pins.h"
+#include "processes.h"
 #include "programs.h"
 
 #include <windows.h>

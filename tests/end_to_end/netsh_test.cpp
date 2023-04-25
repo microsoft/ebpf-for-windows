@@ -838,3 +838,17 @@ TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
 
     ebpf_epoch_flush();
 }
+
+TEST_CASE("show processes", "[netsh][processes]")
+{
+    _test_helper_netsh test_helper;
+    int result;
+    std::string output = run_netsh_command_with_args(handle_ebpf_show_processes, &result, 0);
+    REQUIRE(result == NO_ERROR);
+
+    // There are no real eBPF handles used in this test so the result should be empty.
+    REQUIRE(
+        output == "\n"
+                  "  PID  Name\n"
+                  "=====  ==============\n");
+}

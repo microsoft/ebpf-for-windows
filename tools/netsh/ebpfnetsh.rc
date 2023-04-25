@@ -252,6 +252,14 @@ BEGIN
 \nRemarks: Shows pinned program paths.\
 \n"
 
+    HLP_EBPF_SHOW_PROCESSES  "Shows processes using eBPF.\n"
+    HLP_EBPF_SHOW_PROCESSES_EX "\
+\nUsage: %1!s!\
+\n\
+\nRemarks: Shows processes using eBPF.\
+\n"
+
+
 
 END
 

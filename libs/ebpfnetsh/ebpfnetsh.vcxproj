@@ -118,6 +118,7 @@
     <ClCompile Include="links.cpp" />
     <ClCompile Include="maps.cpp" />
     <ClCompile Include="pins.cpp" />
+    <ClCompile Include="processes.cpp" />
     <ClCompile Include="programs.cpp" />
     <ClCompile Include="utilities.cpp" />
   </ItemGroup>
@@ -126,6 +127,7 @@
     <ClInclude Include="links.h" />
     <ClInclude Include="maps.h" />
     <ClInclude Include="pins.h" />
+    <ClInclude Include="processes.h" />
     <ClInclude Include="programs.h" />
     <ClInclude Include="tokens.h" />
     <ClInclude Include="utilities.h" />
