@@ -99,6 +99,7 @@ _print_handle_info(HANDLE process_handle, HANDLE other_handle)
         goto Done;
     }
     if (WaitForSingleObject(thread, TIMEOUT_IN_MS) == WAIT_TIMEOUT) {
+#pragma warning(suppress : 6258) // Using TerminateThread does not allow proper thread clean up.
         TerminateThread(thread, 1);
     }
     CloseHandle(thread);
