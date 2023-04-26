@@ -184,6 +184,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpf_stress_tests_um", "tes
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "redist-package", "tools\redist-package\redist-package.vcxproj", "{A08B9A8B-FCD0-4E93-8811-D60EED639BE0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpf_stress_tests_km", "tests\stress\km\ebpf_stress_tests_km.vcxproj", "{4F082524-9496-44FA-8CBA-4BC0BDC62568}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64

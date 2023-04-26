@@ -399,7 +399,41 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
-      test_command: .\ebpf_stress_tests_um -jtt=32 -jtd=300
+      test_command: .\ebpf_stress_tests_um -tt=32 -td=10
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      leak_detection: false
+      gather_dumps: true
+      capture_etw: true
+
+  # Run multi-threaded stress tests against the kernel mode eBPF sub-system.
+  # The '-td' parameter specifies the run time per test, so the total run-time will be a multiple of the total number
+  # of tests, as each test is run sequentially.
+  kernel_mode_multi_threaded_stress_test:
+    needs: regular
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: kernel_mode_multi_threaded_stress
+      test_command: .\ebpf_stress_tests_km -tt=32 -td=10
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      leak_detection: false
+      gather_dumps: true
+      capture_etw: true
+
+  # Run multi-threaded stress tests against the kernel mode eBPF sub-system with extension restart enabled.
+  # The '-td' parameter specifies the run time per test, so the total run-time will be a multiple of the total number
+  # of tests, as each test is run sequentially.
+  kernel_mode_multi_threaded_stress_extension_restart_test:
+    needs: regular
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: kernel_mode_multi_threaded_stress_extension_restart
+      test_command: .\ebpf_stress_tests_km -tt=32 -td=10 -er=true -erd=250
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false

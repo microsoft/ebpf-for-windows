@@ -301,7 +301,7 @@ jobs:
 
     - name: Check for crash dumps
       # Check for crash dumps even if the workflow failed.
-      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
+      if: always() && (steps.skip_check.outputs.should_skip != 'true')
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       id: check_dumps
       with:
@@ -309,7 +309,7 @@ jobs:
 
     - name: Upload any crash dumps
       # Upload crash dumps even if the workflow failed.
-      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
+      if: always() && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       id: upload_crash_dumps
       with:

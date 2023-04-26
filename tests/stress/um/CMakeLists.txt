@@ -12,6 +12,7 @@ add_executable("ebpf_stress_tests_um"
     ../../end_to_end/test_helper.cpp
 
     ../ebpf_stress_tests.cpp
+    stress_tests_um.cpp
 )
 
 target_include_directories("ebpf_stress_tests_um" PRIVATE
@@ -20,6 +21,7 @@ target_include_directories("ebpf_stress_tests_um" PRIVATE
     "${CMAKE_SOURCE_DIR}/include"
     "${CMAKE_SOURCE_DIR}/libs/api"
     "${CMAKE_SOURCE_DIR}/libs/ebpfnetsh"
+    "${CMAKE_SOURCE_DIR}/tests/stress"
     "${CMAKE_SOURCE_DIR}/tests/libs/util"
     "${CMAKE_SOURCE_DIR}/tests/libs/common"
     "${CMAKE_SOURCE_DIR}/external/ebpf-verifier/src"
@@ -31,11 +33,11 @@ target_include_directories("ebpf_stress_tests_um" PRIVATE
     "${CMAKE_SOURCE_DIR}/tests/end_to_end"
     "${CMAKE_SOURCE_DIR}/tests/sample"
     "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
-    "${CMAKE_SOURCE_DIR}//tests/xdp"
+    "${CMAKE_SOURCE_DIR}/tests/xdp"
     "${CMAKE_SOURCE_DIR}/tools/export_program_info"
     "${CMAKE_SOURCE_DIR}/libs/thunk"
     "${CMAKE_SOURCE_DIR}/libs/thunk/mock"
-    "${CMAKE_SOURCE_DIR}//netebpfext"
+    "${CMAKE_SOURCE_DIR}/netebpfext"
     "${WDK_ROOT}/include/${WDK_VERSION}/km"
     "${WDK_ROOT}/include/${WDK_VERSION}/shared"
 )
