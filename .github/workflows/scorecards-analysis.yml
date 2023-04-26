@@ -27,6 +27,7 @@ jobs:
     permissions:
       # Needed to upload the results to code-scanning dashboard.
       security-events: write
+      id-token: write
       actions: read
       contents: read
 
@@ -50,7 +51,7 @@ jobs:
 
       - name: "Run analysis"
         if: github.ref_name == 'main'
-        uses: ossf/scorecard-action@b614d455ee90608b5e36e3299cd50d457eb37d5f # Don't update this until they fix PR support
+        uses: ossf/scorecard-action@e38b1902ae4f44df626f11ba0734b14fb91f8f86 # v2.1.2
         with:
           results_file: results.sarif
           results_format: sarif
