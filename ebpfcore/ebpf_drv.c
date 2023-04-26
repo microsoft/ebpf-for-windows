@@ -9,6 +9,8 @@
  */
 
 #include "ebpf_core.h"
+#include "ebpf_version.h"
+#include "git_commit_id.h"
 
 #include <wdf.h>
 
@@ -32,6 +34,8 @@ static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
 
 // Function codes from 0x800 to 0xFFF are for customer use.
 #define IOCTL_EBPF_CTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+const char ebpf_core_version[] = EBPF_VERSION " " GIT_COMMIT_ID;
 
 //
 // Pre-Declarations
@@ -69,6 +73,10 @@ _ebpf_driver_initialize_device(WDFDRIVER driver_handle, _Out_ WDFDEVICE* device)
     UNICODE_STRING ebpf_device_name;
     WDF_FILEOBJECT_CONFIG file_object_config;
     UNICODE_STRING ebpf_symbolic_device_name;
+
+    // Log the version of the driver at startup.
+    // This is useful for debugging purposes and to ensure that the version string is present in the binary.
+    EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_CORE, ebpf_core_version);
 
     // Allow access to kernel/system, administrators, and ebpfsvc only.
     DECLARE_CONST_UNICODE_STRING(security_descriptor, EBPF_EXECUTION_CONTEXT_DEVICE_SDDL);

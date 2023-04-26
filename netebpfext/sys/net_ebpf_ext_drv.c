@@ -9,6 +9,8 @@
 
 #include "ebpf_platform.h"
 #include "ebpf_store_helper.h"
+#include "ebpf_version.h"
+#include "git_commit_id.h"
 #include "net_ebpf_ext.h"
 
 #include <ntddk.h>
@@ -26,6 +28,8 @@
 static WDFDEVICE _net_ebpf_ext_device = NULL;
 static BOOLEAN _net_ebpf_ext_driver_unloading_flag = FALSE;
 DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
+
+const char net_ebpf_ext_version[] = EBPF_VERSION " " GIT_COMMIT_ID;
 
 //
 // Pre-Declarations
@@ -158,6 +162,11 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
             status);
         goto Exit;
     }
+
+    // Log the version of the driver.
+    // This is useful for debugging purposes and to ensure that the version string is present in the binary.
+    NET_EBPF_EXT_LOG_MESSAGE(
+        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE, NET_EBPF_EXT_TRACELOG_KEYWORD_BASE, net_ebpf_ext_version);
 
 Exit:
     if (!NT_SUCCESS(status)) {
