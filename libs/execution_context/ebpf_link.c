@@ -34,10 +34,10 @@ typedef struct _ebpf_link
     bpf_attach_type_t bpf_attach_type;
     enum bpf_link_type link_type;
     ebpf_program_type_t program_type;
-    ebpf_extension_data_t client_data;
+    _Guarded_by_(attach_lock) ebpf_extension_data_t client_data;
     ebpf_extension_client_t* extension_client_context;
     ebpf_lock_t attach_lock;
-    ebpf_link_state_t state;
+    _Guarded_by_(attach_lock) ebpf_link_state_t state;
     void* provider_binding_context;
 } ebpf_link_t;
 
@@ -57,7 +57,7 @@ _ebpf_link_instance_invoke_batch(
     _In_ const void* state);
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_context);
+_ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_context, _Inout_ void* state);
 
 typedef enum _ebpf_link_dispatch_table_version
 {
@@ -65,13 +65,7 @@ typedef enum _ebpf_link_dispatch_table_version
     EBPF_LINK_DISPATCH_TABLE_VERSION = EBPF_LINK_DISPATCH_TABLE_VERSION_1, ///< Current version of the dispatch table.
 } ebpf_link_dispatch_table_version_t;
 
-const typedef struct _ebpf_link_dispatch_table
-{
-    ebpf_extension_dispatch_table_t;
-    _ebpf_extension_dispatch_function new_functions[];
-} ebpf_link_dispatch_table_t;
-
-static ebpf_link_dispatch_table_t _ebpf_link_dispatch_table = {
+static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table = {
     EBPF_LINK_DISPATCH_TABLE_VERSION,
     4, // Count of functions. This should be updated when new functions are added.
     _ebpf_link_instance_invoke,
@@ -80,8 +74,10 @@ static ebpf_link_dispatch_table_t _ebpf_link_dispatch_table = {
     _ebpf_link_instance_invoke_batch_end,
 };
 
-// Assert that new_functions is aligned with ebpf_extension_dispatch_table_t->function.
-C_ASSERT(sizeof(ebpf_extension_dispatch_table_t) == EBPF_OFFSET_OF(ebpf_link_dispatch_table_t, new_functions));
+// Assert that the invoke function is aligned with ebpf_extension_dispatch_table_t->function.
+C_ASSERT(
+    EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function) ==
+    EBPF_OFFSET_OF(ebpf_extension_program_dispatch_table_t, ebpf_program_invoke_function));
 
 static void
 _ebpf_link_free(_Frees_ptr_ ebpf_core_object_t* object)
@@ -93,54 +89,59 @@ _ebpf_link_free(_Frees_ptr_ ebpf_core_object_t* object)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_link_create(_Outptr_ ebpf_link_t** link)
-{
-    EBPF_LOG_ENTRY();
-    *link = ebpf_epoch_allocate_with_tag(sizeof(ebpf_link_t), EBPF_POOL_TAG_LINK);
-    if (*link == NULL)
-        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
-
-    memset(*link, 0, sizeof(ebpf_link_t));
-
-    ebpf_result_t result = ebpf_object_initialize(&(*link)->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL);
-    if (result != EBPF_SUCCESS) {
-        ebpf_epoch_free(link);
-        EBPF_RETURN_RESULT(result);
-    }
-
-    (*link)->state = EBPF_LINK_STATE_IDLE;
-
-    ebpf_lock_create(&(*link)->attach_lock);
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_link_initialize(
-    _Inout_ ebpf_link_t* link,
+ebpf_link_create(
     ebpf_attach_type_t attach_type,
     _In_reads_(context_data_length) const uint8_t* context_data,
-    size_t context_data_length)
+    size_t context_data_length,
+    _Outptr_ ebpf_link_t** link)
 {
     EBPF_LOG_ENTRY();
-    ebpf_result_t return_value;
-
-    link->client_data.version = 0;
-    link->client_data.size = context_data_length;
-
-    if (context_data_length > 0) {
-        link->client_data.data = ebpf_allocate_with_tag(context_data_length, EBPF_POOL_TAG_LINK);
-        if (!link->client_data.data) {
-            return_value = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-        memcpy(link->client_data.data, context_data, context_data_length);
+    ebpf_result_t retval;
+    ebpf_link_t* local_link = NULL;
+    local_link = ebpf_epoch_allocate_with_tag(sizeof(ebpf_link_t), EBPF_POOL_TAG_LINK);
+    if (local_link == NULL) {
+        retval = EBPF_NO_MEMORY;
+        goto Exit;
     }
 
-    link->attach_type = attach_type;
+    memset(local_link, 0, sizeof(ebpf_link_t));
 
-    return_value = EBPF_SUCCESS;
+    local_link->state = EBPF_LINK_STATE_IDLE;
+
+    local_link->client_data.version = 0;
+    local_link->client_data.size = context_data_length;
+
+    if (context_data_length > 0) {
+        local_link->client_data.data = ebpf_allocate_with_tag(context_data_length, EBPF_POOL_TAG_LINK);
+        if (!local_link->client_data.data) {
+            retval = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        memcpy(local_link->client_data.data, context_data, context_data_length);
+    }
+
+    local_link->attach_type = attach_type;
+
+    ebpf_lock_create(&local_link->attach_lock);
+
+    // Note: This must be the last thing done in this function as it inserts the object into the global list.
+    // After this point, the object can be accessed by other threads.
+    ebpf_result_t result = ebpf_object_initialize(&local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL);
+    if (result != EBPF_SUCCESS) {
+        retval = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    *link = local_link;
+    local_link = NULL;
+    retval = EBPF_SUCCESS;
+
 Exit:
-    EBPF_RETURN_RESULT(return_value);
+    if (local_link) {
+        _ebpf_link_free(&local_link->object);
+    }
+
+    EBPF_RETURN_RESULT(retval);
 }
 
 static ebpf_result_t
@@ -165,18 +166,18 @@ _ebpf_link_extension_changed_callback(
         goto Done;
     }
 
-    const ebpf_program_type_t* program_type = ebpf_program_type_uuid(link->program);
+    ebpf_program_type_t program_type = ebpf_program_type_uuid(link->program);
     ebpf_attach_provider_data_t* attach_provider_data = (ebpf_attach_provider_data_t*)provider_data->data;
 
     if (memcmp(
-            program_type,
+            &program_type,
             &attach_provider_data->supported_program_type,
             sizeof(attach_provider_data->supported_program_type)) != 0) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_LINK,
             "Attach failed due to incorrect program type",
-            *program_type);
+            program_type);
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -358,7 +359,7 @@ _ebpf_link_instance_invoke(
     return_value = _ebpf_link_instance_invoke_batch(extension_client_binding_context, program_context, result, &state);
     ebpf_assert(return_value == EBPF_SUCCESS);
 
-    return_value = _ebpf_link_instance_invoke_batch_end(extension_client_binding_context);
+    return_value = _ebpf_link_instance_invoke_batch_end(extension_client_binding_context, &state);
     ebpf_assert(return_value == EBPF_SUCCESS);
 
 Done:
@@ -379,6 +380,8 @@ _ebpf_link_instance_invoke_batch_begin(
         goto Done;
     }
 
+    ebpf_get_execution_context_state((ebpf_execution_context_state_t*)state);
+
     if (link == NULL) {
         GUID npi_id = ebpf_extension_get_provider_guid(extension_client_binding_context);
         EBPF_LOG_MESSAGE_GUID(
@@ -387,7 +390,7 @@ _ebpf_link_instance_invoke_batch_begin(
         goto Done;
     }
 
-    ebpf_epoch_enter();
+    ((ebpf_execution_context_state_t*)state)->epoch_state = ebpf_epoch_enter();
     epoch_entered = true;
 
     return_value = ebpf_program_reference_providers(link->program);
@@ -396,26 +399,25 @@ _ebpf_link_instance_invoke_batch_begin(
     }
     provider_reference_held = true;
 
-    ebpf_get_execution_context_state((ebpf_execution_context_state_t*)state);
-
 Done:
     if (return_value != EBPF_SUCCESS && provider_reference_held) {
         ebpf_program_dereference_providers(link->program);
     }
 
     if (return_value != EBPF_SUCCESS && epoch_entered) {
-        ebpf_epoch_exit();
+        ebpf_epoch_exit(((ebpf_execution_context_state_t*)state)->epoch_state);
     }
 
     return return_value;
 }
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_context)
+_ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_context, _Inout_ void* state)
 {
+    ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     ebpf_link_t* link = (ebpf_link_t*)ebpf_extension_get_client_context(extension_client_binding_context);
     ebpf_program_dereference_providers(link->program);
-    ebpf_epoch_exit();
+    ebpf_epoch_exit(execution_context_state->epoch_state);
     return EBPF_SUCCESS;
 }
 
@@ -446,6 +448,8 @@ ebpf_link_get_info(
         EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
     }
 
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&link->attach_lock);
+
     memset(info, 0, sizeof(*info));
     info->id = link->object.id;
     info->prog_id = (link->program) ? ((ebpf_core_object_t*)link->program)->id : EBPF_ID_NONE;
@@ -459,6 +463,8 @@ ebpf_link_get_info(
     if ((link->client_data.size > 0) && (link->client_data.size <= size)) {
         memcpy(&info->attach_data, link->client_data.data, link->client_data.size);
     }
+
+    ebpf_lock_unlock((ebpf_lock_t*)&link->attach_lock, state);
 
     *info_size = sizeof(*info);
     EBPF_RETURN_RESULT(EBPF_SUCCESS);

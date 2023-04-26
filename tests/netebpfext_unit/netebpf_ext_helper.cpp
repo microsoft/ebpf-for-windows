@@ -66,32 +66,26 @@ _netebpf_ext_helper::_netebpf_ext_helper(
 
     wfp_initialized = true;
 
-    REQUIRE(NmrRegisterClient(&program_info_client, this, &nmr_program_info_client_handle) == STATUS_SUCCESS);
+    nmr_program_info_client_handle = std::make_unique<nmr_client_registration_t>(&program_info_client, this);
+    nmr_program_info_client_handle_initialized = true;
 
-    nmr_hook_client_handle = INVALID_HANDLE_VALUE;
     this->hook_invoke_function = dispatch_function;
-    if (dispatch_function != nullptr) {
+    if (dispatch_function != nullptr && client_context != nullptr) {
         hook_client.ClientRegistrationInstance.NpiSpecificCharacteristics = npi_specific_characteristics;
         client_context->helper = this;
-        REQUIRE(NmrRegisterClient(&hook_client, client_context, &nmr_hook_client_handle) == STATUS_SUCCESS);
+        nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
+        nmr_hook_client_handle_initialized = true;
     }
 }
 
 _netebpf_ext_helper::~_netebpf_ext_helper()
 {
-    if (nmr_program_info_client_handle != INVALID_HANDLE_VALUE) {
-        NTSTATUS status = NmrDeregisterClient(nmr_program_info_client_handle);
-        if (status == STATUS_PENDING) {
-            status = NmrWaitForClientDeregisterComplete(nmr_program_info_client_handle);
-        }
-        REQUIRE(status == STATUS_SUCCESS);
+    if (nmr_program_info_client_handle_initialized) {
+        nmr_hook_client_handle.reset(nullptr);
     }
-    if (nmr_hook_client_handle != INVALID_HANDLE_VALUE) {
-        NTSTATUS status = NmrDeregisterClient(nmr_hook_client_handle);
-        if (status == STATUS_PENDING) {
-            status = NmrWaitForClientDeregisterComplete(nmr_hook_client_handle);
-        }
-        REQUIRE(status == STATUS_SUCCESS);
+
+    if (nmr_hook_client_handle_initialized) {
+        nmr_hook_client_handle.reset(nullptr);
     }
 
     if (wfp_initialized) {
@@ -166,8 +160,7 @@ _netebpf_ext_helper::_program_info_client_attach_provider(
 NTSTATUS
 _netebpf_ext_helper::_program_info_client_detach_provider(_Inout_ void* client_binding_context)
 {
-    auto& program_info_provider = *reinterpret_cast<program_info_provider_t*>(client_binding_context);
-    program_info_provider.parent->program_info_providers.erase(program_info_provider.module_id.Guid);
+    UNREFERENCED_PARAMETER(client_binding_context);
     return STATUS_SUCCESS;
 }
 

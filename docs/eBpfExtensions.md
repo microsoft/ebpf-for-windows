@@ -252,15 +252,15 @@ There is only one function in the client dispatch table, which is of the followi
 
 ```
 /**
- *  @brief This is the only function in the eBPF Hook NPI client dispatch table.
+ *  @brief This is the only mandatory function in the eBPF Hook NPI client dispatch table.
  */
-typedef ebpf_result_t (*ebpf_invoke_program_function_t)(
+typedef ebpf_result_t (*ebpf_program_invoke_function_t)(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result);
 
 ```
 The function pointer can be obtained from the client dispatch table as follows:
 ```
-invoke_program = (ebpf_invoke_program_function_t)client_dispatch_table->function[0];
+invoke_program = (ebpf_program_invoke_function_t)client_dispatch_table->function[0];
 ```
 When an extension invokes this function pointer, then the call flows through the eBPF Execution Context and eventually
 invokes the eBPF program.  When invoking an eBPF program, the extension must supply the client binding context it

@@ -185,16 +185,18 @@ _get_program_info_data(ebpf_program_type_t program_type, _Outptr_ ebpf_program_i
 
     auto reply = reinterpret_cast<ebpf_operation_get_program_info_reply_t*>(reply_buffer.data());
     ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply_buffer));
-    if ((result != EBPF_SUCCESS) && (result != EBPF_INSUFFICIENT_BUFFER))
+    if ((result != EBPF_SUCCESS) && (result != EBPF_INSUFFICIENT_BUFFER)) {
         goto Exit;
+    }
 
     if (result == EBPF_INSUFFICIENT_BUFFER) {
         required_buffer_length = reply->header.length;
         reply_buffer.resize(required_buffer_length);
         reply = reinterpret_cast<ebpf_operation_get_program_info_reply_t*>(reply_buffer.data());
         result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply_buffer));
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
     }
 
     if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFO) {
@@ -520,7 +522,7 @@ _update_global_helpers_for_program_information(
                 new_helpers + global_helper_count,
                 program_info->program_type_specific_helper_prototype,
                 (program_info->count_of_program_type_specific_helpers * sizeof(ebpf_helper_function_prototype_t)));
-            ebpf_free(program_info->program_type_specific_helper_prototype);
+            ebpf_free((void*)program_info->program_type_specific_helper_prototype);
         }
 
         program_info->program_type_specific_helper_prototype = new_helpers;

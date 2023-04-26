@@ -230,13 +230,13 @@ _load_program_data_information(
                 goto Exit;
             }
 
-            program_information->program_type_specific_helper_prototype =
-                (ebpf_helper_function_prototype_t*)ebpf_allocate(
-                    helper_count * sizeof(ebpf_helper_function_prototype_t));
-            if (program_information->program_type_specific_helper_prototype == nullptr) {
+            ebpf_helper_function_prototype_t* helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate(
+                helper_count * sizeof(ebpf_helper_function_prototype_t));
+            if (helper_prototype == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
+            program_information->program_type_specific_helper_prototype = helper_prototype;
 
             // Add space for null terminator.
             max_helper_name_size += 1;
@@ -257,8 +257,7 @@ _load_program_data_information(
                     goto Exit;
                 }
 
-                result = _load_helper_prototype(
-                    helper_key, helper_name, &program_information->program_type_specific_helper_prototype[index]);
+                result = _load_helper_prototype(helper_key, helper_name, &helper_prototype[index]);
                 if (result != EBPF_SUCCESS) {
                     goto Exit;
                 }
@@ -374,7 +373,15 @@ ebpf_store_load_program_information(
 Exit:
     if (result != EBPF_SUCCESS) {
         ebpf_free(*program_info);
+
+        // Deallocate the dynamic memory in the program_info_array vector.
+        if (program_info_array.size() > 0) {
+            for (auto program_data : program_info_array) {
+                ebpf_program_info_free(program_data);
+            }
+        }
     }
+
     if (program_data_key) {
         close_registry_key(program_data_key);
     }
@@ -569,6 +576,15 @@ ebpf_store_load_section_information(
 Exit:
     if (result != EBPF_SUCCESS) {
         ebpf_free(*section_info);
+        // Deallocate the dynamic memory in the section_info_array vector.
+        if (section_info_array.size() > 0) {
+            for (auto section_data : section_info_array) {
+                ebpf_free(section_data->program_type);
+                ebpf_free(section_data->attach_type);
+                ebpf_free(const_cast<char*>(section_data->section_prefix));
+                ebpf_free(section_data);
+            }
+        }
     }
     if (section_data_key) {
         close_registry_key(section_data_key);

@@ -3,6 +3,7 @@
 #pragma once
 
 #define TOKEN_ATTACHED L"attached"
+#define TOKEN_COMPARTMENT L"compartment"
 #define TOKEN_EXECUTION L"execution"
 #define TOKEN_FILENAME L"filename"
 #define TOKEN_ID L"id"

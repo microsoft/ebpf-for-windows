@@ -80,13 +80,15 @@ ebpf_serialize_internal_map_info_array(
         // Increment required_length by EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path).
         result = ebpf_safe_size_t_add(
             *required_length, EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path), required_length);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
 
         // Increment required_length by map_info[map_index].pin_path.length.
         result = ebpf_safe_size_t_add(*required_length, map_info[map_index].pin_path.length, required_length);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
     }
 
     // Output buffer too small.
@@ -112,8 +114,9 @@ ebpf_serialize_internal_map_info_array(
         // Compute required length for serialized map info.
         result = ebpf_safe_size_t_add(
             EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path), source->pin_path.length, &serialized_map_info_length);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
 
         // Copy the map definition fields.
         destination->definition = source->definition;
@@ -156,8 +159,9 @@ ebpf_deserialize_map_info_array(
 
     // Allocate the output maps.
     result = ebpf_safe_size_t_multiply(sizeof(ebpf_map_info_t), (size_t)map_count, &out_map_size);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
 
     out_map_info = (ebpf_map_info_t*)ebpf_allocate(out_map_size);
     if (out_map_info == NULL) {
@@ -196,8 +200,9 @@ ebpf_deserialize_map_info_array(
         // Adjust remaining input buffer length.
         result =
             ebpf_safe_size_t_subtract(buffer_left, EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path), &buffer_left);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
 
         // Check if sufficient input buffer remaining.
         if (buffer_left < source->pin_path_length) {
@@ -228,8 +233,9 @@ ebpf_deserialize_map_info_array(
 
             // Adjust remaining input buffer length.
             result = ebpf_safe_size_t_subtract(buffer_left, source->pin_path_length, &buffer_left);
-            if (result != EBPF_SUCCESS)
+            if (result != EBPF_SUCCESS) {
                 goto Exit;
+            }
         }
     }
 
@@ -248,26 +254,26 @@ ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info
 {
     EBPF_LOG_ENTRY();
     if (program_info != NULL) {
-        ebpf_free(program_info->program_type_descriptor.context_descriptor);
+        ebpf_free((void*)program_info->program_type_descriptor.context_descriptor);
         ebpf_free((void*)program_info->program_type_descriptor.name);
         if (program_info->program_type_specific_helper_prototype != NULL) {
             for (uint32_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
-                ebpf_helper_function_prototype_t* helper_prototype =
+                const ebpf_helper_function_prototype_t* helper_prototype =
                     &program_info->program_type_specific_helper_prototype[i];
-                ebpf_free((void*)helper_prototype->name);
-                helper_prototype->name = NULL;
+                void* name = (void*)helper_prototype->name;
+                ebpf_free(name);
             }
         }
         if (program_info->global_helper_prototype != NULL) {
             for (uint32_t i = 0; i < program_info->count_of_global_helpers; i++) {
-                ebpf_helper_function_prototype_t* helper_prototype = &program_info->global_helper_prototype[i];
-                ebpf_free((void*)helper_prototype->name);
-                helper_prototype->name = NULL;
+                const ebpf_helper_function_prototype_t* helper_prototype = &program_info->global_helper_prototype[i];
+                void* name = (void*)helper_prototype->name;
+                ebpf_free(name);
             }
         }
 
-        ebpf_free(program_info->program_type_specific_helper_prototype);
-        ebpf_free(program_info->global_helper_prototype);
+        ebpf_free((void*)program_info->program_type_specific_helper_prototype);
+        ebpf_free((void*)program_info->global_helper_prototype);
         ebpf_free(program_info);
     }
     EBPF_RETURN_VOID();
@@ -285,7 +291,7 @@ ebpf_serialize_program_info(
     ebpf_result_t result = EBPF_SUCCESS;
     uint8_t* current = NULL;
     const ebpf_program_type_descriptor_t* program_type_descriptor;
-    ebpf_helper_function_prototype_t* helper_prototype_array;
+    const ebpf_helper_function_prototype_t* helper_prototype_array;
     uint32_t helper_prototype_index;
     size_t serialized_program_type_descriptor_length;
     size_t program_type_descriptor_name_length;
@@ -337,8 +343,9 @@ ebpf_serialize_program_info(
         serialized_program_type_descriptor_length,
         EBPF_OFFSET_OF(ebpf_serialized_program_type_descriptor_t, name),
         &serialized_program_type_descriptor_length);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
 
     program_type_descriptor_name_length =
         strnlen_s(program_type_descriptor->name, EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH);
@@ -346,13 +353,15 @@ ebpf_serialize_program_info(
         serialized_program_type_descriptor_length,
         program_type_descriptor_name_length,
         &serialized_program_type_descriptor_length);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
 
     // Increment required_length by length of serialized program type descriptor.
     result = ebpf_safe_size_t_add(*required_length, serialized_program_type_descriptor_length, required_length);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
 
     // Compute required length for serialized helper function prototypes array.
     serialized_helper_prototype_array_length = 0;
@@ -361,32 +370,36 @@ ebpf_serialize_program_info(
             serialized_helper_prototype_array_length,
             EBPF_OFFSET_OF(ebpf_serialized_helper_function_prototype_array_t, prototypes),
             &serialized_helper_prototype_array_length);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
 
         for (helper_prototype_index = 0; helper_prototype_index < program_info->count_of_program_type_specific_helpers;
              helper_prototype_index++) {
-            ebpf_helper_function_prototype_t* helper_prototype = &helper_prototype_array[helper_prototype_index];
+            const ebpf_helper_function_prototype_t* helper_prototype = &helper_prototype_array[helper_prototype_index];
 
             result = ebpf_safe_size_t_add(
                 serialized_helper_prototype_array_length,
                 EBPF_OFFSET_OF(ebpf_serialized_helper_function_prototype_t, name),
                 &serialized_helper_prototype_array_length);
-            if (result != EBPF_SUCCESS)
+            if (result != EBPF_SUCCESS) {
                 goto Exit;
+            }
 
             result = ebpf_safe_size_t_add(
                 serialized_helper_prototype_array_length,
                 strnlen_s(helper_prototype->name, EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH),
                 &serialized_helper_prototype_array_length);
-            if (result != EBPF_SUCCESS)
+            if (result != EBPF_SUCCESS) {
                 goto Exit;
+            }
         }
 
         // Increment required length by the length of serialized helper function prototype array.
         result = ebpf_safe_size_t_add(*required_length, serialized_helper_prototype_array_length, required_length);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
     }
 
     if (output_buffer_length < *required_length) {
@@ -434,7 +447,7 @@ ebpf_serialize_program_info(
 
         for (helper_prototype_index = 0; helper_prototype_index < program_info->count_of_program_type_specific_helpers;
              helper_prototype_index++) {
-            ebpf_helper_function_prototype_t* helper_prototype = &helper_prototype_array[helper_prototype_index];
+            const ebpf_helper_function_prototype_t* helper_prototype = &helper_prototype_array[helper_prototype_index];
             size_t helper_function_name_length =
                 strnlen_s(helper_prototype->name, EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH);
             ebpf_serialized_helper_function_prototype_t* serialized_helper_prototype =
@@ -525,8 +538,9 @@ ebpf_deserialize_program_info(
     // Adjust remaining buffer length.
     result = ebpf_safe_size_t_subtract(
         buffer_left, EBPF_OFFSET_OF(ebpf_serialized_program_type_descriptor_t, name), &buffer_left);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
 
     // Check if sufficient buffer is remaining for program type descriptor name.
     if (buffer_left < sizeof(serialized_program_type_descriptor->name_length)) {
@@ -548,8 +562,9 @@ ebpf_deserialize_program_info(
 
     // Adjust remaining buffer length.
     result = ebpf_safe_size_t_subtract(buffer_left, serialized_program_type_descriptor->name_length, &buffer_left);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
 
     // Advance the input buffer current pointer to the end of program type descriptor section.
     current += serialized_program_type_descriptor->size;
@@ -582,14 +597,16 @@ ebpf_deserialize_program_info(
     // Adjust remaining buffer length.
     result = ebpf_safe_size_t_subtract(
         buffer_left, EBPF_OFFSET_OF(ebpf_serialized_helper_function_prototype_array_t, prototypes), &buffer_left);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
 
     // Allocate array of helper function prototypes.
     result = ebpf_safe_size_t_multiply(
         helper_function_count, sizeof(ebpf_helper_function_prototype_t), &helper_prototype_array_size);
-    if (result != EBPF_SUCCESS)
+    if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
     local_helper_prototype_array = (ebpf_helper_function_prototype_t*)ebpf_allocate(helper_prototype_array_size);
     if (local_helper_prototype_array == NULL) {
         result = EBPF_NO_MEMORY;
@@ -612,14 +629,16 @@ ebpf_deserialize_program_info(
         // Serialize helper prototype.
         helper_prototype->helper_id = serialized_helper_prototype->helper_id;
         helper_prototype->return_type = serialized_helper_prototype->return_type;
-        for (int i = 0; i < EBPF_COUNT_OF(helper_prototype->arguments); i++)
+        for (int i = 0; i < EBPF_COUNT_OF(helper_prototype->arguments); i++) {
             helper_prototype->arguments[i] = serialized_helper_prototype->arguments[i];
+        }
 
         // Adjust remaining buffer length.
         result = ebpf_safe_size_t_subtract(
             buffer_left, EBPF_OFFSET_OF(ebpf_serialized_helper_function_prototype_t, name), &buffer_left);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
 
         // Check if enough buffer left for helper function name.
         if (buffer_left < serialized_helper_prototype->name_length) {
@@ -638,8 +657,9 @@ ebpf_deserialize_program_info(
 
         // Adjust remaining buffer length.
         result = ebpf_safe_size_t_subtract(buffer_left, serialized_helper_prototype->name_length, &buffer_left);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
 
         // Advance the current pointer to the end of the helper function prototype.
         current += serialized_helper_prototype->size;

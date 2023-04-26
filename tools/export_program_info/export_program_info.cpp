@@ -22,11 +22,11 @@ extern ebpf_registry_key_t ebpf_root_registry_key;
 
 typedef struct _ebpf_program_section_info_with_count
 {
-    _Field_size_(section_info_count) ebpf_program_section_info_t* section_info;
+    _Field_size_(section_info_count) const ebpf_program_section_info_t* section_info;
     size_t section_info_count;
 } ebpf_program_section_info_with_count_t;
 
-static ebpf_program_info_t* program_information_array[] = {
+static const ebpf_program_info_t* program_information_array[] = {
     &_ebpf_bind_program_info,
     &_ebpf_sock_addr_program_info,
     &_ebpf_sock_ops_program_info,
@@ -50,25 +50,6 @@ export_all_program_information()
     uint32_t status = ERROR_SUCCESS;
     size_t array_size = _countof(program_information_array);
     for (uint32_t i = 0; i < array_size; i++) {
-        auto program_type = program_information_array[i];
-        switch (program_type->program_type_descriptor.bpf_prog_type) {
-        case BPF_PROG_TYPE_BIND:
-            program_type->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
-            break;
-        case BPF_PROG_TYPE_XDP:
-            program_type->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
-            break;
-        case BPF_PROG_TYPE_CGROUP_SOCK_ADDR:
-            program_type->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
-            break;
-        case BPF_PROG_TYPE_SOCK_OPS:
-            program_type->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SOCK_OPS;
-            break;
-        case BPF_PROG_TYPE_SAMPLE:
-            program_type->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SAMPLE;
-            break;
-        };
-
         status = _ebpf_store_update_program_information(program_information_array[i], 1);
         if (status != ERROR_SUCCESS) {
             break;

@@ -9,6 +9,10 @@
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 
+// The CNG algorithm name to use must be listed in
+// https://learn.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers
+#define EBPF_HASH_ALGORITHM "SHA256"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -34,6 +38,7 @@ extern "C"
         ebpf_code_type_t code_type;
         const uint8_t* program_info_hash;
         size_t program_info_hash_length;
+        ebpf_utf8_string_t program_info_hash_type;
     } ebpf_program_parameters_t;
 
     typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);
@@ -56,43 +61,52 @@ extern "C"
     ebpf_program_terminate();
 
     /**
-     * @brief Create a new program instance.
+     * @brief Create a new program instance and initialize a program instance from the provided program parameters.
      *
+     * @param[in] program_parameters Program parameters to be used to initialize
      * @param[out] program Pointer to memory that will contain the program instance.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_create(_Outptr_ ebpf_program_t** program);
+    ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _Outptr_ ebpf_program_t** program);
 
     /**
-     * @brief Initialize a program instance from the provided program
-     *  parameters.
+     * @brief Get the original file name of the program.
      *
-     * @param[in, out] program Program instance to initialize.
-     * @param[in] program_parameters Program parameters to be used to initialize
-     *  the program instance.
+     * @param[in] program The program instance.
+     * @param[out] file_name The file name of the program. Caller must free this.
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  program instance.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program_parameters_t* program_parameters);
+    ebpf_program_get_program_file_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* file_name);
 
     /**
-     * @brief Get parameters describing the program instance.
+     * @brief Get the original section name of the program.
      *
-     * @param[in] program Program instance to query.
-     * @returns Pointer to parameters of the program.
+     * @param[in] program The program instance.
+     * @param[out] section_name The section name of the program. Caller must free this.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources.
      */
-    _Ret_notnull_ const ebpf_program_parameters_t*
-    ebpf_program_get_parameters(_In_ const ebpf_program_t* program);
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_get_program_section_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* section_name);
 
-    _Ret_notnull_ const ebpf_program_type_t*
+    /**
+     * @brief Get the code type of the program.
+     *
+     * @param[in] program The program instance.
+     * @return The code type of the program.
+     */
+    ebpf_code_type_t
+    ebpf_program_get_code_type(_In_ const ebpf_program_t* program);
+
+    ebpf_program_type_t
     ebpf_program_type_uuid(_In_ const ebpf_program_t* program);
 
-    _Ret_notnull_ const ebpf_attach_type_t*
+    ebpf_attach_type_t
     ebpf_expected_attach_type(_In_ const ebpf_program_t* program);
 
     /**
@@ -329,7 +343,7 @@ extern "C"
         _In_ ebpf_program_test_run_complete_callback_t callback);
 
     typedef ebpf_result_t (*ebpf_helper_function_addresses_changed_callback_t)(
-        _Inout_ ebpf_program_t* program, _In_opt_ void* context);
+        size_t address_count, _In_reads_opt_(address_count) uintptr_t* addresses, _In_opt_ void* context);
 
     /**
      * @brief Register to be notified when the helper function addresses change.
@@ -343,7 +357,7 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_register_for_helper_changes(
         _Inout_ ebpf_program_t* program,
-        _In_ ebpf_helper_function_addresses_changed_callback_t callback,
+        _In_opt_ ebpf_helper_function_addresses_changed_callback_t callback,
         _In_opt_ void* context);
 
     /**

@@ -13,6 +13,7 @@ target_include_directories("EbpfCore" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
   "${CMAKE_SOURCE_DIR}/libs/execution_context"
+  "${CMAKE_SOURCE_DIR}/resource"
   "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 

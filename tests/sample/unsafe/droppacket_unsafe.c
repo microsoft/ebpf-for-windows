@@ -38,8 +38,9 @@ DropPacket(xdp_md_t* ctx)
         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {
             long key = 0;
             long* count = bpf_map_lookup_elem(&port_map, &key);
-            if (count)
+            if (count) {
                 *count = (*count + 1);
+            }
             rc = XDP_DROP;
         }
     }

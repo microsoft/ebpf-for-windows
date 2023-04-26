@@ -261,8 +261,9 @@ bpf_code_generator::program_sections()
             continue;
         }
         bpf_code_generator::unsafe_string name = section->get_name();
-        if (name.empty() || (section->get_size() == 0) || name == ".text")
+        if (name.empty() || (section->get_size() == 0) || name == ".text") {
             continue;
+        }
         if ((section->get_type() == 1) && (section->get_flags() == 6)) {
             section_names.push_back(section->get_name());
         }
@@ -281,7 +282,8 @@ bpf_code_generator::parse(
     const bpf_code_generator::unsafe_string& section_name,
     const GUID& program_type,
     const GUID& attach_type,
-    const std::optional<std::vector<uint8_t>>& program_info_hash)
+    const std::optional<std::vector<uint8_t>>& program_info_hash,
+    const std::string& program_info_hash_type)
 {
     current_section = &sections[section_name];
     get_register_name(0);
@@ -289,18 +291,22 @@ bpf_code_generator::parse(
     get_register_name(10);
 
     set_pe_section_name(section_name);
-    set_program_and_attach_type_and_hash(program_type, attach_type, program_info_hash);
+    set_program_and_attach_type_and_hash(program_type, attach_type, program_info_hash, program_info_hash_type);
     extract_program(section_name);
     extract_relocations_and_maps(section_name);
 }
 
 void
 bpf_code_generator::set_program_and_attach_type_and_hash(
-    const GUID& program_type, const GUID& attach_type, const std::optional<std::vector<uint8_t>>& program_info_hash)
+    const GUID& program_type,
+    const GUID& attach_type,
+    const std::optional<std::vector<uint8_t>>& program_info_hash,
+    const std::string& program_info_hash_type)
 {
     memcpy(&current_section->program_type, &program_type, sizeof(GUID));
     memcpy(&current_section->expected_attach_type, &attach_type, sizeof(GUID));
     current_section->program_info_hash = program_info_hash;
+    current_section->program_info_hash_type = program_info_hash_type;
 }
 
 void
@@ -413,8 +419,9 @@ bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsaf
     ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
 
     auto relocations = get_optional_section(".rel" + section_name);
-    if (!relocations)
+    if (!relocations) {
         relocations = get_optional_section(".rela" + section_name);
+    }
 
     if (relocations) {
         ELFIO::const_relocation_section_accessor relocation_reader{reader, relocations};
@@ -555,10 +562,11 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
         case EBPF_CLS_ALU64: {
             std::string destination = get_register_name(inst.dst);
             std::string source;
-            if (inst.opcode & EBPF_SRC_REG)
+            if (inst.opcode & EBPF_SRC_REG) {
                 source = get_register_name(inst.src);
-            else
+            } else {
                 source = "IMMEDIATE(" + std::to_string(inst.imm) + ")";
+            }
             bool is64bit = (inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU64;
             AluOperations operation = static_cast<AluOperations>(inst.opcode >> 4);
             std::string swap_function;
@@ -573,16 +581,17 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(std::format("{} *= {};", destination, source));
                 break;
             case AluOperations::Div:
-                if (is64bit)
+                if (is64bit) {
                     output.lines.push_back(
                         std::format("{} = {} ? ({} / {}) : 0;", destination, source, destination, source));
-                else
+                } else {
                     output.lines.push_back(std::format(
                         "{} = (uint32_t){} ? (uint32_t){} / (uint32_t){} : 0;",
                         destination,
                         source,
                         destination,
                         source));
+                }
                 break;
             case AluOperations::Or:
                 output.lines.push_back(std::format("{} |= {};", destination, source));
@@ -594,19 +603,20 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(std::format("{} <<= {};", destination, source));
                 break;
             case AluOperations::Rsh:
-                if (is64bit)
+                if (is64bit) {
                     output.lines.push_back(std::format("{} >>= {};", destination, source));
-                else
+                } else {
                     output.lines.push_back(std::format("{} = (uint32_t){} >> {};", destination, destination, source));
+                }
                 break;
             case AluOperations::Neg:
                 output.lines.push_back(std::format("{} = -(int64_t){};", destination, destination));
                 break;
             case AluOperations::Mod:
-                if (is64bit)
+                if (is64bit) {
                     output.lines.push_back(std::format(
                         "{} = {} ? ({} % {}): {} ;", destination, source, destination, source, destination));
-                else
+                } else {
                     output.lines.push_back(std::format(
                         "{} = (uint32_t){} ? ((uint32_t){} % (uint32_t){}) : (uint32_t){};",
                         destination,
@@ -614,6 +624,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                         destination,
                         source,
                         destination));
+                }
                 break;
             case AluOperations::Xor:
                 output.lines.push_back(std::format("{} ^= {};", destination, source));
@@ -622,11 +633,12 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(std::format("{} = {};", destination, source));
                 break;
             case AluOperations::Ashr:
-                if (is64bit)
+                if (is64bit) {
                     output.lines.push_back(
                         std::format("{} = (int64_t){} >> (uint32_t){};", destination, destination, source));
-                else
+                } else {
                     output.lines.push_back(std::format("{} = (int32_t){} >> {};", destination, destination, source));
+                }
                 break;
             case AluOperations::ByteOrder: {
                 std::string size_type = "";
@@ -673,8 +685,9 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             default:
                 throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
-            if (!is64bit)
+            if (!is64bit) {
                 output.lines.push_back(std::format("{} &= UINT32_MAX;", destination));
+            }
 
         } break;
         case EBPF_CLS_LD: {
@@ -1146,8 +1159,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             if (output.lines.empty()) {
                 continue;
             }
-            if (!output.label.empty())
+            if (!output.label.empty()) {
                 output_stream << output.label << ":" << std::endl;
+            }
             auto current_line = line_info.find(output.instruction_offset);
             if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
                 current_line->second.line_number != 0) {
@@ -1206,6 +1220,15 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             if (program.program_info_hash.has_value()) {
                 output_stream << INDENT INDENT << program_info_hash_name << "," << std::endl;
                 output_stream << INDENT INDENT << program.program_info_hash.value().size() << "," << std::endl;
+                // Append the hash type
+                std::string hash_string = program.program_info_hash_type;
+                if (hash_string.empty()) {
+                    // If the hash type is not known, use the default hash type.
+                    hash_string = EBPF_HASH_ALGORITHM;
+                    program.program_info_hash_type = hash_string;
+                }
+                output_stream << INDENT INDENT << "\"" << hash_string << "\""
+                              << "," << std::endl;
             }
             output_stream << INDENT "}," << std::endl;
         }
@@ -1226,13 +1249,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
-    std::istringstream version_stream(EBPF_VERSION);
-    std::string version_major;
-    std::string version_minor;
-    std::string version_revision;
-    std::getline(version_stream, version_major, '.');
-    std::getline(version_stream, version_minor, '.');
-    std::getline(version_stream, version_revision, '.');
+    std::string version_major = std::to_string(EBPF_VERSION_MAJOR);
+    std::string version_minor = std::to_string(EBPF_VERSION_MINOR);
+    std::string version_revision = std::to_string(EBPF_VERSION_REVISION);
 
     output_stream << "static void" << std::endl
                   << "_get_version(_Out_ bpf2c_version_t* version)" << std::endl

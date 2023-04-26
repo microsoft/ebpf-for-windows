@@ -23,6 +23,8 @@ Environment:
 #include "net_ebpf_ext_sock_ops.h"
 #include "net_ebpf_ext_xdp.h"
 
+#define SUBLAYER_WEIGHT_MAXIMUM 0xFFFF
+
 // Globals.
 NDIS_HANDLE _net_ebpf_ext_ndis_handle = NULL;
 NDIS_HANDLE _net_ebpf_ext_nbl_pool_handle = NULL;
@@ -34,27 +36,17 @@ static bool _net_ebpf_sock_addr_providers_registered = false;
 static bool _net_ebpf_sock_ops_providers_registered = false;
 
 static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
-    {
-        &EBPF_DEFAULT_SUBLAYER,
-        L"EBPF Sub-Layer",
-        L"Sub-Layer for use by eBPF callouts",
-        0,
-        FWP_EMPTY // Auto weight.
-    },
-    {
-        &EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER,
-        L"EBPF CGroup Connect V4 Sub-Layer",
-        L"Sub-Layer for use by eBPF connect redirect callouts",
-        0,
-        FWP_EMPTY // Auto weight.
-    },
-    {
-        &EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
-        L"EBPF CGroup Connect V6 Sub-Layer",
-        L"Sub-Layer for use by eBPF connect redirect callouts",
-        0,
-        FWP_EMPTY // Auto weight.
-    }};
+    {&EBPF_DEFAULT_SUBLAYER, L"EBPF Sub-Layer", L"Sub-Layer for use by eBPF callouts", 0, SUBLAYER_WEIGHT_MAXIMUM},
+    {&EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER,
+     L"EBPF CGroup Connect V4 Sub-Layer",
+     L"Sub-Layer for use by eBPF connect redirect callouts",
+     0,
+     SUBLAYER_WEIGHT_MAXIMUM},
+    {&EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
+     L"EBPF CGroup Connect V6 Sub-Layer",
+     L"Sub-Layer for use by eBPF connect redirect callouts",
+     0,
+     SUBLAYER_WEIGHT_MAXIMUM}};
 
 static void
 _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_context);
@@ -266,8 +258,9 @@ net_ebpf_extension_wfp_filter_context_create(
     *filter_context = local_filter_context;
     local_filter_context = NULL;
 Exit:
-    if (local_filter_context != NULL)
+    if (local_filter_context != NULL) {
         ExFreePool(local_filter_context);
+    }
 
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
@@ -346,8 +339,9 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 {
     uint32_t callout_id = 0;
 
-    if (hook_id < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states))
+    if (hook_id < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states)) {
         callout_id = _net_ebpf_ext_wfp_callout_states[hook_id].assigned_callout_id;
+    }
 
     return callout_id;
 }
@@ -355,8 +349,9 @@ void
 net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) uint64_t* filter_ids)
 {
     NET_EBPF_EXT_LOG_ENTRY();
-    for (uint32_t index = 0; index < filter_count; index++)
+    for (uint32_t index = 0; index < filter_count; index++) {
         FwpmFilterDeleteById(_fwp_engine_handle, filter_ids[index]);
+    }
     ExFreePool(filter_ids);
     NET_EBPF_EXT_LOG_EXIT();
 }
@@ -406,6 +401,7 @@ net_ebpf_extension_add_wfp_filters(
         filter.layerKey = *filter_parameter->layer_guid;
         filter.displayData.name = (wchar_t*)filter_parameter->name;
         filter.displayData.description = (wchar_t*)filter_parameter->description;
+        filter.providerKey = (GUID*)&EBPF_WFP_PROVIDER;
         filter.action.type = FWP_ACTION_CALLOUT_TERMINATING;
         filter.action.calloutKey = *filter_parameter->callout_guid;
         filter.filterCondition = (FWPM_FILTER_CONDITION*)conditions;
@@ -444,10 +440,12 @@ net_ebpf_extension_add_wfp_filters(
 
 Exit:
     if (!NT_SUCCESS(status)) {
-        if (local_filter_ids != NULL)
+        if (local_filter_ids != NULL) {
             ExFreePool(local_filter_ids);
-        if (is_in_transaction)
+        }
+        if (is_in_transaction) {
             FwpmTransactionAbort(_fwp_engine_handle);
+        }
     }
 
     NET_EBPF_EXT_RETURN_RESULT(result);
@@ -495,6 +493,7 @@ _net_ebpf_ext_register_wfp_callout(_Inout_ net_ebpf_ext_wfp_callout_state_t* cal
 
     callout_add_state.calloutKey = *callout_state->callout_guid;
     callout_add_state.displayData = display_data;
+    callout_add_state.providerKey = (GUID*)&EBPF_WFP_PROVIDER;
     callout_add_state.applicableLayer = *callout_state->layer_guid;
 
     status = FwpmCalloutAdd(_fwp_engine_handle, &callout_add_state, NULL, NULL);
@@ -562,11 +561,13 @@ Exit:
 void
 net_ebpf_ext_uninitialize_ndis_handles()
 {
-    if (_net_ebpf_ext_nbl_pool_handle != NULL)
+    if (_net_ebpf_ext_nbl_pool_handle != NULL) {
         NdisFreeNetBufferListPool(_net_ebpf_ext_nbl_pool_handle);
+    }
 
-    if (_net_ebpf_ext_ndis_handle != NULL)
+    if (_net_ebpf_ext_ndis_handle != NULL) {
         NdisFreeGenericObject((NDIS_GENERIC_OBJECT*)_net_ebpf_ext_ndis_handle);
+    }
 }
 
 NTSTATUS
@@ -578,6 +579,7 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
 -- */
 {
     NTSTATUS status = STATUS_SUCCESS;
+    FWPM_PROVIDER ebpf_wfp_provider = {0};
     FWPM_SUBLAYER ebpf_hook_sub_layer;
 
     UNREFERENCED_PARAMETER(device_object);
@@ -599,18 +601,19 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     session.flags = FWPM_SESSION_FLAG_DYNAMIC;
 
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &_fwp_engine_handle);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmEngineOpen", status);
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS("FwpmEngineOpen", status);
     is_engined_opened = TRUE;
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmTransactionBegin", status);
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS("FwpmTransactionBegin", status);
     is_in_transaction = TRUE;
+
+    // Create the WFP provider.
+    ebpf_wfp_provider.displayData.name = L"Microsoft Corporation";
+    ebpf_wfp_provider.displayData.description = L"Windows Networking eBPF Extension";
+    ebpf_wfp_provider.providerKey = EBPF_WFP_PROVIDER;
+    status = FwpmProviderAdd(_fwp_engine_handle, &ebpf_wfp_provider, NULL);
+    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS("FwpmProviderAdd", status);
 
     // Add all the sub layers.
     for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_sublayers); index++) {
@@ -619,14 +622,12 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
         ebpf_hook_sub_layer.subLayerKey = *(_net_ebpf_ext_sublayers[index].sublayer_guid);
         ebpf_hook_sub_layer.displayData.name = (wchar_t*)_net_ebpf_ext_sublayers[index].name;
         ebpf_hook_sub_layer.displayData.description = (wchar_t*)_net_ebpf_ext_sublayers[index].description;
+        ebpf_hook_sub_layer.providerKey = (GUID*)&EBPF_WFP_PROVIDER;
         ebpf_hook_sub_layer.flags = _net_ebpf_ext_sublayers[index].flags;
         ebpf_hook_sub_layer.weight = _net_ebpf_ext_sublayers[index].weight;
 
         status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpf_hook_sub_layer, NULL);
-        if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmSubLayerAdd", status);
-            goto Exit;
-        }
+        NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS("FwpmSubLayerAdd", status);
     }
 
     for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
@@ -642,18 +643,12 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     }
 
     status = FwpmTransactionCommit(_fwp_engine_handle);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpmTransactionCommit", status);
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS("FwpmTransactionCommit", status);
     is_in_transaction = FALSE;
 
     // Create L2 injection handle.
     status = FwpsInjectionHandleCreate(AF_LINK, FWPS_INJECTION_TYPE_L2, &_net_ebpf_ext_l2_injection_handle);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "FwpsInjectionHandleCreate", status);
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS("FwpsInjectionHandleCreate", status);
 
 Exit:
 

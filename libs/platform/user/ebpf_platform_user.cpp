@@ -43,7 +43,7 @@ ebpf_leak_detector_ptr _ebpf_leak_detector_ptr;
 #define EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME "EBPF_MEMORY_LEAK_DETECTION"
 
 // Thread pool related globals.
-static TP_CALLBACK_ENVIRON _callback_environment;
+static TP_CALLBACK_ENVIRON _callback_environment{};
 static PTP_POOL _pool = nullptr;
 static PTP_CLEANUP_GROUP _cleanup_group = nullptr;
 
@@ -61,7 +61,14 @@ _initialize_thread_pool()
     bool cleanup_group_created = false;
     bool return_value;
 
+    // Initialize a callback environment for the thread pool.
     InitializeThreadpoolEnvironment(&_callback_environment);
+
+    // CreateThreadpoolCleanupGroup can return nullptr.
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_NO_MEMORY;
+    }
+
     _pool = CreateThreadpool(nullptr);
     if (_pool == nullptr) {
         result = win32_error_code_to_ebpf_result(GetLastError());
@@ -105,9 +112,13 @@ _clean_up_thread_pool()
         return;
     }
 
-    CloseThreadpoolCleanupGroupMembers(_cleanup_group, false, nullptr);
-    CloseThreadpoolCleanupGroup(_cleanup_group);
+    if (_cleanup_group) {
+        CloseThreadpoolCleanupGroupMembers(_cleanup_group, false, nullptr);
+        CloseThreadpoolCleanupGroup(_cleanup_group);
+        _cleanup_group = nullptr;
+    }
     CloseThreadpool(_pool);
+    _pool = nullptr;
 }
 
 class _ebpf_emulated_dpc;
@@ -381,13 +392,15 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void*
         return nullptr;
     }
 
-    if (ebpf_fault_injection_inject_fault())
+    if (ebpf_fault_injection_inject_fault()) {
         return nullptr;
+    }
 
     void* memory;
     memory = calloc(size, 1);
-    if (memory != nullptr)
+    if (memory != nullptr) {
         memset(memory, 0, size);
+    }
 
     if (memory && _ebpf_leak_detector_ptr) {
         _ebpf_leak_detector_ptr->register_allocation(reinterpret_cast<uintptr_t>(memory), size);
@@ -412,12 +425,14 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) v
         return nullptr;
     }
 
-    if (ebpf_fault_injection_inject_fault())
+    if (ebpf_fault_injection_inject_fault()) {
         return nullptr;
+    }
 
     void* p = realloc(memory, new_size);
-    if (p && (new_size > old_size))
+    if (p && (new_size > old_size)) {
         memset(((char*)p) + old_size, 0, new_size - old_size);
+    }
 
     if (_ebpf_leak_detector_ptr) {
         _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
@@ -451,8 +466,9 @@ __drv_allocatesMem(Mem) _Must_inspect_result_
         return nullptr;
     }
 
-    if (ebpf_fault_injection_inject_fault())
+    if (ebpf_fault_injection_inject_fault()) {
         return nullptr;
+    }
 
     void* memory = _aligned_malloc(size, EBPF_CACHE_LINE_SIZE);
     if (memory) {
@@ -493,6 +509,7 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 ebpf_memory_descriptor_t*
 ebpf_map_memory(size_t length)
 {
+    // Skip fault injection for this VirtualAlloc OS API, as ebpf_allocate already does that.
     ebpf_memory_descriptor_t* descriptor = (ebpf_memory_descriptor_t*)ebpf_allocate(sizeof(ebpf_memory_descriptor_t));
     if (!descriptor) {
         return nullptr;
@@ -535,6 +552,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     void* view1 = nullptr;
     void* view2 = nullptr;
 
+    // Skip fault injection for this VirtualAlloc2 OS API, as ebpf_allocate already does that.
     GetSystemInfo(&sysInfo);
 
     if (length == 0) {
@@ -688,6 +706,11 @@ ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
 _Must_inspect_result_ ebpf_result_t
 ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
+    // VirtualProtect OS API can return nullptr.
+    if (ebpf_fault_injection_inject_fault()) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+    }
+
     EBPF_LOG_ENTRY();
     unsigned long mm_protection_state = 0;
     unsigned long old_mm_protection_state = 0;
@@ -930,6 +953,8 @@ ebpf_allocate_preemptible_work_item(
         return EBPF_NO_MEMORY;
     }
 
+    // It is required to use the InitializeThreadpoolEnvironment function to
+    // initialize the _callback_environment structure before calling CreateThreadpoolWork.
     (*work_item)->work = CreateThreadpoolWork(_ebpf_preemptible_routine, *work_item, &_callback_environment);
     if ((*work_item)->work == nullptr) {
         result = win32_error_code_to_ebpf_result(GetLastError());
@@ -959,8 +984,9 @@ _ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* c
     ebpf_timer_work_item_t* timer_work_item = reinterpret_cast<ebpf_timer_work_item_t*>(context);
     UNREFERENCED_PARAMETER(instance);
     UNREFERENCED_PARAMETER(timer);
-    if (timer_work_item)
+    if (timer_work_item) {
         timer_work_item->work_item_routine(timer_work_item->work_item_context);
+    }
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -971,12 +997,14 @@ ebpf_allocate_timer_work_item(
 {
     *work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t));
 
-    if (*work_item == nullptr)
+    if (*work_item == nullptr) {
         goto Error;
+    }
 
     (*work_item)->threadpool_timer = CreateThreadpoolTimer(_ebpf_timer_callback, *work_item, nullptr);
-    if ((*work_item)->threadpool_timer == nullptr)
+    if ((*work_item)->threadpool_timer == nullptr) {
         goto Error;
+    }
 
     (*work_item)->work_item_routine = work_item_routine;
     (*work_item)->work_item_context = work_item_context;
@@ -985,8 +1013,9 @@ ebpf_allocate_timer_work_item(
 
 Error:
     if (*work_item != nullptr) {
-        if ((*work_item)->threadpool_timer != nullptr)
+        if ((*work_item)->threadpool_timer != nullptr) {
             CloseThreadpoolTimer((*work_item)->threadpool_timer);
+        }
 
         ebpf_free(*work_item);
     }
@@ -1012,8 +1041,9 @@ ebpf_schedule_timer_work_item(_Inout_ ebpf_timer_work_item_t* timer, uint32_t el
 void
 ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 {
-    if (!work_item)
+    if (!work_item) {
         return;
+    }
 
     WaitForThreadpoolTimerCallbacks(work_item->threadpool_timer, true);
     CloseThreadpoolTimer(work_item->threadpool_timer);
@@ -1026,10 +1056,15 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 _Must_inspect_result_ ebpf_result_t
 ebpf_guid_create(_Out_ GUID* new_guid)
 {
-    if (UuidCreate(new_guid) == RPC_S_OK)
-        return EBPF_SUCCESS;
-    else
+    if (ebpf_fault_injection_inject_fault()) {
         return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    if (UuidCreate(new_guid) == RPC_S_OK) {
+        return EBPF_SUCCESS;
+    } else {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
 }
 
 int32_t
@@ -1052,6 +1087,10 @@ ebpf_access_check(
     ebpf_security_access_mask_t request_access,
     _In_ const ebpf_security_generic_mapping_t* generic_mapping)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_ACCESS_DENIED;
+    }
+
     ebpf_result_t result;
     HANDLE token = INVALID_HANDLE_VALUE;
 
@@ -1089,11 +1128,13 @@ ebpf_access_check(
     }
 
 Done:
-    if (token != INVALID_HANDLE_VALUE)
+    if (token != INVALID_HANDLE_VALUE) {
         CloseHandle(token);
+    }
 
-    if (is_impersonating)
+    if (is_impersonating) {
         RevertToSelf();
+    }
     return result;
 }
 
@@ -1101,6 +1142,10 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_validate_security_descriptor(
     _In_ const ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_NO_MEMORY;
+    }
+
     ebpf_result_t result;
     SECURITY_DESCRIPTOR_CONTROL security_descriptor_control;
     unsigned long version;
@@ -1183,6 +1228,11 @@ ebpf_platform_thread_id()
 _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
 {
+    // GetTokenInformation OS API can fail with return value of zero.
+    if (ebpf_fault_injection_inject_fault()) {
+        return EBPF_NO_MEMORY;
+    }
+
     ebpf_result_t return_value = EBPF_SUCCESS;
     uint32_t error;
     TOKEN_GROUPS_AND_PRIVILEGES* privileges = nullptr;
@@ -1292,4 +1342,54 @@ void
 ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore)
 {
     ReleaseSemaphore(semaphore->semaphore, 1, nullptr);
+}
+
+void
+ebpf_enter_critical_region()
+{
+    // This is a no-op for the user mode implementation.
+}
+
+void
+ebpf_leave_critical_region()
+{
+    // This is a no-op for the user mode implementation.
+}
+
+ebpf_result_t
+ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output)
+{
+    wchar_t* unicode_string = NULL;
+    ebpf_result_t retval;
+
+    // Compute the size needed to hold the unicode string.
+    int result = MultiByteToWideChar(CP_UTF8, 0, (const char*)input->value, (int)input->length, NULL, 0);
+
+    if (result <= 0) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    result++;
+
+    unicode_string = (wchar_t*)ebpf_allocate(result * sizeof(wchar_t));
+    if (unicode_string == NULL) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    result = MultiByteToWideChar(CP_UTF8, 0, (const char*)input->value, (int)input->length, unicode_string, result);
+
+    if (result == 0) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    *output = unicode_string;
+    unicode_string = NULL;
+    retval = EBPF_SUCCESS;
+
+Done:
+    ebpf_free(unicode_string);
+    return retval;
 }

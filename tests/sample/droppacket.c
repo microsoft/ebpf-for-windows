@@ -53,8 +53,9 @@ DropPacket(xdp_md_t* ctx)
         }
     }
 
-    if ((char*)ctx->data + sizeof(ETHERNET_HEADER) + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) > (char*)ctx->data_end)
+    if ((char*)ctx->data + sizeof(ETHERNET_HEADER) + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) > (char*)ctx->data_end) {
         goto Done;
+    }
 
     ethernet_header = (ETHERNET_HEADER*)ctx->data;
     if (ntohs(ethernet_header->Type) == 0x0800) {
@@ -63,13 +64,15 @@ DropPacket(xdp_md_t* ctx)
         if (ipv4_header->Protocol == IPPROTO_UDP) {
             // UDP.
             char* next_header = (char*)ipv4_header + sizeof(uint32_t) * ipv4_header->HeaderLength;
-            if ((char*)next_header + sizeof(UDP_HEADER) > (char*)ctx->data_end)
+            if ((char*)next_header + sizeof(UDP_HEADER) > (char*)ctx->data_end) {
                 goto Done;
+            }
             UDP_HEADER* udp_header = (UDP_HEADER*)((char*)ipv4_header + sizeof(uint32_t) * ipv4_header->HeaderLength);
             if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {
                 long* count = bpf_map_lookup_elem(&dropped_packet_map, &key);
-                if (count)
+                if (count) {
                     *count = (*count + 1);
+                }
                 rc = XDP_DROP;
             }
         }

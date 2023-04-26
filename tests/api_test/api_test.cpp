@@ -13,6 +13,7 @@
 #include "program_helper.h"
 #include "service_helper.h"
 #include "socket_helper.h"
+#include "watchdog.h"
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -23,6 +24,8 @@
 #include <ntsecapi.h>
 #include <thread>
 #include <vector>
+
+CATCH_REGISTER_LISTENER(_watchdog)
 
 #define SAMPLE_PATH ""
 
@@ -129,8 +132,9 @@ _test_program_load(
         execution_type = EBPF_EXECUTION_JIT;
     }
     REQUIRE(program_execution_type == execution_type);
-    if (execution_type != EBPF_EXECUTION_NATIVE)
+    if (execution_type != EBPF_EXECUTION_NATIVE) {
         REQUIRE(strcmp(program_file_name, file_name) == 0);
+    }
 
     // Next program should not be present.
     uint32_t previous_id = next_id;
@@ -627,24 +631,28 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
 
     // Test map-in-maps.
     struct bpf_map* outer_map = bpf_object__find_map_by_name(object, "dummy_outer_map");
-    if (outer_map == nullptr)
+    if (outer_map == nullptr) {
         cleanup();
+    }
     REQUIRE(outer_map != nullptr);
 
     int outer_map_fd = bpf_map__fd(outer_map);
-    if (outer_map_fd <= 0)
+    if (outer_map_fd <= 0) {
         cleanup();
+    }
     REQUIRE(outer_map_fd > 0);
 
     // Test map-in-maps.
     struct bpf_map* outer_idx_map = bpf_object__find_map_by_name(object, "dummy_outer_idx_map");
-    if (outer_idx_map == nullptr)
+    if (outer_idx_map == nullptr) {
         cleanup();
+    }
     REQUIRE(outer_idx_map != nullptr);
 
     int outer_idx_map_fd = bpf_map__fd(outer_idx_map);
-    if (outer_idx_map_fd <= 0)
+    if (outer_idx_map_fd <= 0) {
         cleanup();
+    }
     REQUIRE(outer_idx_map_fd > 0);
 
     // Clean up tail calls.

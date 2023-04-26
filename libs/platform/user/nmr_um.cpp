@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_fault_injection.h"
 #include "nmr_impl.h"
 
 nmr_t _nmr::singleton;
@@ -11,6 +12,10 @@ NmrRegisterProvider(
     _In_opt_ __drv_aliasesMem void* provider_context,
     _Out_ HANDLE* nmr_provider_handle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     try {
         *nmr_provider_handle = nmr_t::get().register_provider(*provider_characteristics, provider_context);
         return STATUS_SUCCESS;
@@ -60,6 +65,10 @@ NmrRegisterClient(
     _In_opt_ __drv_aliasesMem void* client_context,
     _Out_ HANDLE* nmr_client_handle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     try {
         *nmr_client_handle = _nmr::get().register_client(*client_characteristics, client_context);
         return STATUS_SUCCESS;
@@ -111,6 +120,10 @@ NmrClientAttachProvider(
     _Out_ void** provider_binding_context,
     _Out_ const void** provider_dispatch)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     try {
         return _nmr::get().client_attach_provider(
             nmr_binding_handle,

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #define _wer_report _wer_report_test
+#define _ebpf_watchdog_timer _ebpf_watchdog_timer_test
 #define AddVectoredExceptionHandler AddVectoredExceptionHandler_test
 #define SetThreadStackGuarantee SetThreadStackGuarantee_test
 #define RemoveVectoredExceptionHandler RemoveVectoredExceptionHandler_test
@@ -11,9 +12,11 @@
 #define WINBASEAPI
 
 // Included first to ensure the overridden copy is the only one.
+#include "ebpf_watchdog_timer.h"
 #include "wer_report.hpp"
 
 #undef _wer_report
+#undef _ebpf_watchdog_timer_test
 #undef AddVectoredExceptionHandler
 #undef SetThreadStackGuarantee
 #undef RemoveVectoredExceptionHandler
@@ -62,6 +65,9 @@ uint32_t WerReportCreate_test_report_handle = 2;
 bool WerReportCreate_test_fail = false;
 bool WerReportCreate_test_called = false;
 
+std::wstring WerReportCreate_test_expected_event_type = L"Test Application Crash";
+WER_REPORT_TYPE WerReportCreate_test_expected_report_type = WerReportApplicationCrash;
+
 // Incorrect SAL required to match header.
 HRESULT
 WINAPI
@@ -71,8 +77,8 @@ WerReportCreate_test(
     _In_opt_ WER_REPORT_INFORMATION* report_information,
     _Out_ HREPORT* report_handle)
 {
-    REQUIRE(std::wstring(event_type) == L"Test Application Crash");
-    REQUIRE(report_type == WerReportApplicationCrash);
+    REQUIRE(std::wstring(event_type) == WerReportCreate_test_expected_event_type);
+    REQUIRE(report_type == WerReportCreate_test_expected_report_type);
     REQUIRE(report_information == nullptr);
     *report_handle = &WerReportCreate_test_report_handle;
     WerReportCreate_test_called = true;
@@ -81,6 +87,8 @@ WerReportCreate_test(
 
 bool WerReportAddDump_test_fail = false;
 bool WerReportAddDump_test_called = false;
+
+bool WerReportAddDump_test_expected_exception_param = true;
 
 HRESULT
 WINAPI
@@ -97,7 +105,7 @@ WerReportAddDump_test(
     REQUIRE(process == GetCurrentProcess());
     REQUIRE(thread == GetCurrentThread());
     REQUIRE(dump_type == WerDumpTypeHeapDump);
-    REQUIRE(exception_param != nullptr);
+    REQUIRE(((exception_param != nullptr) || !WerReportAddDump_test_expected_exception_param));
     REQUIRE(dump_custom_options == nullptr);
     REQUIRE(dwFlags == 0);
     WerReportAddDump_test_called = true;
@@ -140,8 +148,9 @@ TEST_CASE("wer_report_started_shutdown", "[wer_report]")
         REQUIRE(SetThreadStackGuarantee_test_stack_size_in_bytes == 32 * 1024);
     }
 
-    if (old_buffer)
+    if (old_buffer) {
         _putenv_s("EBPF_ENABLE_WER_REPORT", old_buffer);
+    }
 }
 
 TEST_CASE("wer_report_fatal_exception", "[wer_report]")
@@ -228,6 +237,29 @@ TEST_CASE("wer_report_failure", "[wer_report]")
 
     // Fail WerReportSubmit
     REQUIRE(AddVectoredExceptionHandler_test_handler(&exception_pointers) == EXCEPTION_CONTINUE_SEARCH);
+    REQUIRE(WerReportCreate_test_called);
+    REQUIRE(WerReportAddDump_test_called);
+    REQUIRE(WerReportSubmit_test_called);
+}
+
+TEST_CASE("watchdog_timeout", "[wer_report]")
+{
+    WerReportCreate_test_fail = false;
+    WerReportAddDump_test_fail = false;
+    WerReportSubmit_test_fail = false;
+    WerReportCreate_test_called = false;
+    WerReportAddDump_test_called = false;
+    WerReportSubmit_test_called = false;
+
+    WerReportCreate_test_expected_event_type = L"Test Application Hang";
+    WerReportCreate_test_expected_report_type = WerReportApplicationHang;
+    WerReportAddDump_test_expected_exception_param = false;
+
+    // Expire the watchdog timer.
+    _ebpf_watchdog_timer<false> watchdog_timer(1);
+    Sleep(1000);
+
+    // Verify that the WER APIs are all called.
     REQUIRE(WerReportCreate_test_called);
     REQUIRE(WerReportAddDump_test_called);
     REQUIRE(WerReportSubmit_test_called);

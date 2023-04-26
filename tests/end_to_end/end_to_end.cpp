@@ -25,6 +25,7 @@ namespace ebpf {
 #include "program_helper.h"
 #include "sample_test_common.h"
 #include "test_helper.hpp"
+#include "watchdog.h"
 #include "xdp_tests_common.h"
 
 #include <WinSock2.h>
@@ -39,6 +40,7 @@ namespace ebpf {
 using namespace Platform;
 
 CATCH_REGISTER_LISTENER(_passed_test_log)
+CATCH_REGISTER_LISTENER(_watchdog)
 
 #define NATIVE_DRIVER_SERVICE_NAME L"test_service"
 #define NATIVE_DRIVER_SERVICE_NAME_2 L"test_service2"
@@ -163,16 +165,17 @@ typedef class _ip_packet
     {
         _packet = prepare_ip_packet((address_family == AF_INET) ? ETHERNET_TYPE_IPV4 : ETHERNET_TYPE_IPV6);
         set_mac_addresses(source_mac, destination_mac);
-        if (_address_family == AF_INET)
+        if (_address_family == AF_INET) {
             (ip_addresses == nullptr) ? set_ipv4_addresses(&_test_ipv4_addrs.source, &_test_ipv4_addrs.destination)
                                       : set_ipv4_addresses(
                                             &(reinterpret_cast<const _ipv4_address_pair*>(ip_addresses))->source,
                                             &(reinterpret_cast<const _ipv4_address_pair*>(ip_addresses))->destination);
-        else
+        } else {
             (ip_addresses == nullptr) ? set_ipv6_addresses(&_test_ipv6_addrs.source, &_test_ipv6_addrs.destination)
                                       : set_ipv6_addresses(
                                             &(reinterpret_cast<const _ipv6_address_pair*>(ip_addresses))->source,
                                             &(reinterpret_cast<const _ipv6_address_pair*>(ip_addresses))->destination);
+        }
     }
     uint8_t*
     data()
@@ -1942,15 +1945,17 @@ _wrong_map_reuse_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_obj_pin(port_map_fd, "/ebpf/global/outer_map") == 0);
 
     // Open eBPF program file.
-    bpf_object* object = bpf_object__open(file_name);
-    REQUIRE(object != nullptr);
-    bpf_program* program = bpf_object__next_program(object, nullptr);
+    bpf_object_ptr object;
+    {
+        bpf_object* local_object = bpf_object__open(file_name);
+        REQUIRE(local_object != nullptr);
+        object.reset(local_object);
+    }
+    bpf_program* program = bpf_object__next_program(object.get(), nullptr);
     REQUIRE(program != nullptr);
 
     // Try to load the program.  This should fail because the maps can't be reused.
-    REQUIRE(bpf_object__load(object) == -EINVAL);
-
-    bpf_object__close(object);
+    REQUIRE(bpf_object__load(object.get()) == -EINVAL);
 
     Platform::_close(outer_map_fd);
     Platform::_close(inner_map_fd);
@@ -2024,18 +2029,26 @@ TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
 
     struct bpf_object_open_opts opts = {0};
     opts.pin_root_path = "/custompath/global";
-    struct bpf_object* object = bpf_object__open_file("map_reuse.o", &opts);
-    REQUIRE(object != nullptr);
+    bpf_object_ptr object;
+    {
+        struct bpf_object* local_object = bpf_object__open_file("map_reuse.o", &opts);
+        REQUIRE(local_object != nullptr);
+        object.reset(local_object);
+    }
 
     // Load the program.
-    REQUIRE(bpf_object__load(object) == 0);
+    REQUIRE(bpf_object__load(object.get()) == 0);
 
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "lookup_update");
+    struct bpf_program* program = bpf_object__find_program_by_name(object.get(), "lookup_update");
     REQUIRE(program != nullptr);
 
     // Attach should now succeed.
-    struct bpf_link* link = bpf_program__attach(program);
-    REQUIRE(link != nullptr);
+    bpf_link_ptr link;
+    {
+        struct bpf_link* local_link = bpf_program__attach(program);
+        REQUIRE(local_link != nullptr);
+        link.reset(local_link);
+    }
 
     fd_t outer_map_fd = bpf_obj_get("/custompath/global/outer_map");
     REQUIRE(outer_map_fd > 0);
@@ -2076,9 +2089,6 @@ TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
 
     REQUIRE(ebpf_object_unpin("/custompath/global/outer_map") == EBPF_SUCCESS);
     REQUIRE(ebpf_object_unpin("/custompath/global/port_map") == EBPF_SUCCESS);
-
-    REQUIRE(bpf_link__destroy(link) == 0);
-    bpf_object__close(object);
 }
 
 static void

@@ -335,8 +335,9 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         (net_ebpf_extension_hook_provider_t*)provider_context);
     NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
-    if (client_data->data != NULL)
+    if (client_data->data != NULL) {
         compartment_id = *(uint32_t*)client_data->data;
+    }
 
     // Set compartment id (if not UNSPECIFIED_COMPARTMENT_ID) as WFP filter condition.
     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID) {
@@ -417,7 +418,6 @@ _net_ebpf_sock_addr_update_store_entries()
     }
 
     // Update program information.
-    _ebpf_sock_addr_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     status = _ebpf_store_update_program_information(&_ebpf_sock_addr_program_info, 1);
 
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
@@ -739,7 +739,6 @@ net_ebpf_ext_sock_addr_register_providers()
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_info_provider_data};
 
-    _ebpf_sock_addr_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     // Set the program type as the provider module id.
     _ebpf_sock_addr_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     status = net_ebpf_extension_program_info_provider_register(
@@ -986,6 +985,71 @@ Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
+#define DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                  \
+    static void _net_ebpf_ext_log_sock_addr_classify_v##family##(       \
+        _In_z_ const char* message,                                     \
+        uint64_t transport_endpoint_handle,                             \
+        _In_ const bpf_sock_addr_t* original_context,                   \
+        _In_opt_ const bpf_sock_addr_t* redirected_context,             \
+        uint32_t verdict)                                               \
+    {                                                                   \
+        if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {                  \
+            NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(          \
+                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,                       \
+                message,                                                \
+                transport_endpoint_handle,                              \
+                original_context->protocol,                             \
+                original_context->msg_src_ip##family##,                 \
+                ntohs(original_context->msg_src_port),                  \
+                original_context->user_ip##family##,                    \
+                ntohs(original_context->user_port),                     \
+                verdict);                                               \
+        } else if (redirected_context != NULL) {                        \
+            NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV##family##( \
+                message,                                                \
+                transport_endpoint_handle,                              \
+                original_context->protocol,                             \
+                original_context->msg_src_ip##family##,                 \
+                ntohs(original_context->msg_src_port),                  \
+                original_context->user_ip##family##,                    \
+                ntohs(original_context->user_port),                     \
+                redirected_context->user_ip##family##,                  \
+                ntohs(redirected_context->user_port),                   \
+                verdict);                                               \
+        } else {                                                        \
+            NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(          \
+                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                    \
+                message,                                                \
+                transport_endpoint_handle,                              \
+                original_context->protocol,                             \
+                original_context->msg_src_ip##family##,                 \
+                ntohs(original_context->msg_src_port),                  \
+                original_context->msg_src_ip##family##,                 \
+                ntohs(original_context->user_port),                     \
+                verdict);                                               \
+        }                                                               \
+    }
+
+DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(4)
+DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(6)
+
+static void
+_net_ebpf_ext_log_sock_addr_classify(
+    _In_z_ const char* message,
+    uint64_t transport_endpoint_handle,
+    _In_ const bpf_sock_addr_t* original_context,
+    _In_opt_ const bpf_sock_addr_t* redirected_context,
+    uint32_t verdict)
+{
+    if (original_context->family == AF_INET) {
+        _net_ebpf_ext_log_sock_addr_classify_v4(
+            message, transport_endpoint_handle, original_context, redirected_context, verdict);
+    } else {
+        _net_ebpf_ext_log_sock_addr_classify_v6(
+            message, transport_endpoint_handle, original_context, redirected_context, verdict);
+    }
+}
+
 //
 // WFP callout callback functions.
 //
@@ -1016,8 +1080,9 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
-    if (filter_context == NULL)
+    if (filter_context == NULL) {
         goto Exit;
+    }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     if (attached_client == NULL) {
@@ -1061,13 +1126,8 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
     }
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "net_ebpf_extension_sock_addr_authorize_recv_accept_classify",
-        incoming_metadata_values->transportEndpointHandle,
-        sock_addr_ctx->protocol,
-        result);
+    _net_ebpf_ext_log_sock_addr_classify(
+        "recv_accept_classify", incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, NULL, result);
 
 Exit:
     if (attached_client) {
@@ -1104,8 +1164,9 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
-    if (filter_context == NULL)
+    if (filter_context == NULL) {
         goto Exit;
+    }
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -1150,13 +1211,8 @@ Exit:
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
     }
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "authorize_connection_classify",
-        incoming_metadata_values->transportEndpointHandle,
-        sock_addr_ctx->protocol,
-        verdict);
+    _net_ebpf_ext_log_sock_addr_classify(
+        "auth_classify", incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, NULL, verdict);
 
     return;
 }
@@ -1499,13 +1555,11 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
                      : InterlockedIncrement(&_net_ebpf_ext_statistics.permit_connection_count);
     }
 
-    NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY(
-        NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "net_ebpf_extension_sock_addr_redirect_connection_classify",
+    _net_ebpf_ext_log_sock_addr_classify(
+        "connect_redirect_classify",
         incoming_metadata_values->transportEndpointHandle,
-        sock_addr_ctx->protocol,
-        redirected,
+        &sock_addr_ctx_original,
+        redirected ? sock_addr_ctx : NULL,
         verdict);
 
 Exit:

@@ -4,13 +4,6 @@
 #include "ebpf_extension_uuids.h"
 #include "net_ebpf_ext_hook_provider.h"
 
-/**
- * @brief Pointer to function to invoke the eBPF program associated with the hook NPI client.
- * This is the only function in the client's dispatch table.
- */
-typedef ebpf_result_t (*ebpf_invoke_program_function_t)(
-    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result);
-
 typedef struct _net_ebpf_ext_hook_client_rundown
 {
     EX_RUNDOWN_REF protection;
@@ -31,7 +24,7 @@ typedef struct _net_ebpf_extension_hook_client
     GUID client_module_id;                         ///< NMR module Id.
     const void* client_binding_context;            ///< Client supplied context to be passed when invoking eBPF program.
     const ebpf_extension_data_t* client_data;      ///< Client supplied attach parameters.
-    ebpf_invoke_program_function_t invoke_program; ///< Pointer to function to invoke eBPF program.
+    ebpf_program_invoke_function_t invoke_program; ///< Pointer to function to invoke eBPF program.
     void* provider_data; ///< Opaque pointer to hook specific data associated with this client.
     struct _net_ebpf_extension_hook_provider* provider_context; ///< Pointer to the hook NPI provider context.
     PIO_WORKITEM detach_work_item;              ///< Pointer to IO work item that is invoked to detach the client.
@@ -219,14 +212,15 @@ net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_h
 
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_hook_invoke_program(
-    _In_ const net_ebpf_extension_hook_client_t* client, _In_ const void* context, _Out_ uint32_t* result)
+    _In_ const net_ebpf_extension_hook_client_t* client, _Inout_ void* context, _Out_ uint32_t* result)
 {
-    ebpf_invoke_program_function_t invoke_program = client->invoke_program;
+    ebpf_program_invoke_function_t invoke_program = client->invoke_program;
     const void* client_binding_context = client->client_binding_context;
 
     ebpf_result_t invoke_result = invoke_program(client_binding_context, context, result);
-    if (invoke_result != EBPF_SUCCESS)
+    if (invoke_result != EBPF_SUCCESS) {
         NET_EBPF_EXT_LOG_FUNCTION_ERROR(invoke_result);
+    }
     return invoke_result;
 }
 
@@ -243,8 +237,9 @@ net_ebpf_extension_hook_check_attach_parameter(
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    if (memcmp(attach_parameter, wild_card_attach_parameter, attach_parameter_size) == 0)
+    if (memcmp(attach_parameter, wild_card_attach_parameter, attach_parameter_size) == 0) {
         using_wild_card_attach_parameter = TRUE;
+    }
 
     ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
     lock_held = TRUE;
@@ -278,8 +273,9 @@ net_ebpf_extension_hook_check_attach_parameter(
     }
 
 Exit:
-    if (lock_held)
+    if (lock_held) {
         RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
+    }
 
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
@@ -323,7 +319,7 @@ _net_ebpf_extension_hook_provider_attach_client(
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_extension_hook_provider_t* local_provider_context = (net_ebpf_extension_hook_provider_t*)provider_context;
     net_ebpf_extension_hook_client_t* hook_client = NULL;
-    ebpf_extension_dispatch_table_t* client_dispatch_table;
+    ebpf_extension_program_dispatch_table_t* client_dispatch_table;
     ebpf_result_t result = EBPF_SUCCESS;
 
     NET_EBPF_EXT_LOG_ENTRY();
@@ -349,12 +345,12 @@ _net_ebpf_extension_hook_provider_attach_client(
     hook_client->client_module_id = client_registration_instance->ModuleId->Guid;
     hook_client->client_binding_context = client_binding_context;
     hook_client->client_data = (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics;
-    client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
+    client_dispatch_table = (ebpf_extension_program_dispatch_table_t*)client_dispatch;
     if (client_dispatch_table == NULL) {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
-    hook_client->invoke_program = (ebpf_invoke_program_function_t)client_dispatch_table->function[0];
+    hook_client->invoke_program = client_dispatch_table->ebpf_program_invoke_function;
     hook_client->provider_context = local_provider_context;
 
     status = _ebpf_ext_attach_init_rundown(hook_client);
@@ -439,9 +435,10 @@ net_ebpf_extension_hook_provider_unregister(_Frees_ptr_opt_ net_ebpf_extension_h
     NET_EBPF_EXT_LOG_ENTRY();
     if (provider_context != NULL) {
         NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
-        if (status == STATUS_PENDING)
+        if (status == STATUS_PENDING) {
             // Wait for clients to detach.
             NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+        }
         ExFreePool(provider_context);
     }
     NET_EBPF_EXT_LOG_EXIT();
@@ -487,15 +484,17 @@ net_ebpf_extension_hook_provider_register(
     local_provider_context->custom_data = custom_data;
 
     status = NmrRegisterProvider(characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status)) {
         goto Exit;
+    }
 
     *provider_context = local_provider_context;
     local_provider_context = NULL;
 
 Exit:
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status)) {
         net_ebpf_extension_hook_provider_unregister(local_provider_context);
+    }
 
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
@@ -505,9 +504,10 @@ net_ebpf_extension_hook_get_attached_client(_Inout_ net_ebpf_extension_hook_prov
 {
     net_ebpf_extension_hook_client_t* client_context = NULL;
     ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
-    if (!IsListEmpty(&provider_context->attached_clients_list))
+    if (!IsListEmpty(&provider_context->attached_clients_list)) {
         client_context = (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(
             provider_context->attached_clients_list.Flink, net_ebpf_extension_hook_client_t, link);
+    }
     RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
     return client_context;
 }
@@ -521,10 +521,10 @@ net_ebpf_extension_hook_get_next_attached_client(
     ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
     if (client_context == NULL) {
         // Return the first attached client (if any).
-        if (!IsListEmpty(&provider_context->attached_clients_list))
+        if (!IsListEmpty(&provider_context->attached_clients_list)) {
             next_client = (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(
                 provider_context->attached_clients_list.Flink, net_ebpf_extension_hook_client_t, link);
-
+        }
     } else {
         // Return the next client, unless this is the last one.
         if (client_context->link.Flink != &provider_context->attached_clients_list) {

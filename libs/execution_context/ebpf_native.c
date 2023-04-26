@@ -8,6 +8,8 @@
 #include "ebpf_program.h"
 #include "ebpf_protocol.h"
 
+#include <intrin.h>
+
 #define DEFAULT_PIN_ROOT_PATH "/ebpf/global"
 #define EBPF_MAX_PIN_PATH_LENGTH 256
 
@@ -126,7 +128,8 @@ typedef struct _ebpf_native_helper_address_changed_context
 } ebpf_native_helper_address_changed_context_t;
 
 static ebpf_result_t
-_ebpf_native_helper_address_changed(_Inout_ ebpf_program_t* program, _Inout_opt_ void* context);
+_ebpf_native_helper_address_changed(
+    size_t address_count, _In_reads_opt_(address_count) uintptr_t* addresses, _In_opt_ void* context);
 
 static void
 _ebpf_native_unload_work_item(_In_opt_ const void* service)
@@ -180,6 +183,11 @@ _ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program
 {
     for (uint32_t i = 0; i < count_of_programs; i++) {
         if (programs[i].handle != ebpf_handle_invalid) {
+            ebpf_program_t* program_object = NULL;
+            ebpf_assert_success(ebpf_object_reference_by_handle(
+                programs[i].handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program_object));
+            ebpf_assert_success(ebpf_program_register_for_helper_changes(program_object, NULL, NULL));
+            ebpf_object_release_reference((ebpf_core_object_t*)program_object);
             ebpf_assert_success(ebpf_handle_close(programs[i].handle));
         }
         ebpf_free(programs[i].addresses_changed_callback_context);
@@ -238,37 +246,52 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-void
-ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
+_Requires_exclusive_lock_held_(module->lock) static void _ebpf_native_acquire_reference_under_lock(
+    _Inout_ ebpf_native_module_t* module)
 {
     ebpf_assert(module->base.marker == _ebpf_native_marker);
 
-// Locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
-#pragma warning(push)
-#pragma warning(disable : 4189)
-    int32_t new_ref_count = ebpf_interlocked_increment_int32(&module->base.reference_count);
-    ebpf_assert(new_ref_count != 1);
-#pragma warning(pop)
+    if (module->base.reference_count != 0) {
+        module->base.reference_count++;
+    } else {
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+    }
+}
+
+void
+ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
+{
+    ebpf_lock_state_t state = 0;
+
+    state = ebpf_lock_lock(&module->lock);
+    _ebpf_native_acquire_reference_under_lock(module);
+    ebpf_lock_unlock(&module->lock, state);
 }
 
 void
 ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* module)
 {
-    int32_t new_ref_count;
+    int64_t new_ref_count;
     ebpf_lock_state_t module_lock_state = 0;
+    bool lock_acquired = false;
 
-    if (!module)
+    if (!module) {
         EBPF_RETURN_VOID();
+    }
 
     ebpf_assert(module->base.marker == _ebpf_native_marker);
 
-    new_ref_count = ebpf_interlocked_decrement_int32(&module->base.reference_count);
-    ebpf_assert(new_ref_count != -1);
+    module_lock_state = ebpf_lock_lock(&module->lock);
+    lock_acquired = true;
+
+    new_ref_count = --module->base.reference_count;
+    if (new_ref_count < 0) {
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+    }
 
     if (new_ref_count == 1) {
         // Check if all the program references have been released. If that
         // is the case, explicitly unload the driver, if it is safe to do so.
-        module_lock_state = ebpf_lock_lock(&module->lock);
         if (!module->detaching) {
             // If the module is not yet marked as detaching, and reference
             // count is 1, it means all the program references have been
@@ -282,7 +305,11 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
             ebpf_assert_success(_ebpf_native_unload(module));
         }
         ebpf_lock_unlock(&module->lock, module_lock_state);
+        lock_acquired = false;
     } else if (new_ref_count == 0) {
+        ebpf_lock_unlock(&module->lock, module_lock_state);
+        lock_acquired = false;
+
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
         // Delete entry from hash table.
         ebpf_assert_success(
@@ -302,6 +329,10 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
         _ebpf_native_clean_up_module(module);
     }
 
+    if (lock_acquired) {
+        ebpf_lock_unlock(&module->lock, module_lock_state);
+    }
+
     EBPF_RETURN_VOID();
 }
 
@@ -313,6 +344,7 @@ ebpf_native_terminate()
     // ebpf_provider_unload is blocking call until all the
     // native modules have been detached.
     ebpf_provider_unload(_ebpf_native_provider);
+    _ebpf_native_provider = NULL;
 
     // All native modules should be cleaned up by now.
     ebpf_assert(!_ebpf_native_client_table || ebpf_hash_table_key_count(_ebpf_native_client_table) == 0);
@@ -359,7 +391,7 @@ _ebpf_native_provider_attach_client_callback(
         goto Done;
     }
     table = (metadata_table_t*)client_registration_instance->NpiSpecificCharacteristics;
-    if (!table->programs || !table->maps) {
+    if (!table || !table->programs || !table->maps) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -992,8 +1024,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
     size_t program_count = 0;
     size_t program_name_length = 0;
     size_t section_name_length = 0;
+    size_t hash_type_length = 0;
     uint8_t* program_name = NULL;
     uint8_t* section_name = NULL;
+    uint8_t* hash_type_name = NULL;
 
     // Get the programs.
     module->table->programs(&programs, &program_count);
@@ -1020,8 +1054,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
         program_name_length = strnlen_s(program->program_name, BPF_OBJ_NAME_LEN);
         section_name_length = strnlen_s(program->section_name, BPF_OBJ_NAME_LEN);
+        hash_type_length = strnlen_s(program->program_info_hash_type, BPF_OBJ_NAME_LEN);
+
         if (program_name_length == 0 || program_name_length >= BPF_OBJ_NAME_LEN || section_name_length == 0 ||
-            section_name_length >= BPF_OBJ_NAME_LEN) {
+            section_name_length >= BPF_OBJ_NAME_LEN || hash_type_length == 0 || hash_type_length >= BPF_OBJ_NAME_LEN) {
             result = EBPF_INVALID_ARGUMENT;
             break;
         }
@@ -1054,6 +1090,15 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
         parameters.program_info_hash = program->program_info_hash;
         parameters.program_info_hash_length = program->program_info_hash_length;
 
+        hash_type_name = ebpf_allocate_with_tag(hash_type_length, EBPF_POOL_TAG_NATIVE);
+        if (hash_type_name == NULL) {
+            result = EBPF_NO_MEMORY;
+            break;
+        }
+        memcpy(hash_type_name, program->program_info_hash_type, hash_type_length);
+        parameters.program_info_hash_type.value = hash_type_name;
+        parameters.program_info_hash_type.length = hash_type_length;
+
         result = ebpf_program_create_and_initialize(&parameters, &native_program->handle);
         if (result != EBPF_SUCCESS) {
             break;
@@ -1061,8 +1106,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
         ebpf_free(program_name);
         ebpf_free(section_name);
+        ebpf_free(hash_type_name);
         program_name = NULL;
         section_name = NULL;
+        hash_type_name = NULL;
 
         // Load machine code.
         result = ebpf_core_load_code(
@@ -1124,6 +1171,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
     ebpf_free(program_name);
     ebpf_free(section_name);
+    ebpf_free(hash_type_name);
     return result;
 }
 
@@ -1334,7 +1382,7 @@ ebpf_native_load_programs(
 
     // Take a reference on the native module before releasing the lock.
     // This will ensure the driver cannot unload while we are processing this request.
-    ebpf_native_acquire_reference(module);
+    _ebpf_native_acquire_reference_under_lock(module);
     module_referenced = true;
 
     ebpf_lock_unlock(&module->lock, module_state);
@@ -1460,7 +1508,8 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_native_helper_address_changed(_Inout_ ebpf_program_t* program, _Inout_opt_ void* context)
+_ebpf_native_helper_address_changed(
+    size_t address_count, _In_reads_opt_(address_count) uintptr_t* addresses, _In_opt_ void* context)
 {
     ebpf_result_t return_value;
     ebpf_native_helper_address_changed_context_t* helper_address_changed_context =
@@ -1475,21 +1524,13 @@ _ebpf_native_helper_address_changed(_Inout_ ebpf_program_t* program, _Inout_opt_
         goto Done;
     }
 
-    helper_function_addresses = ebpf_allocate(helper_count * sizeof(uint64_t));
-    if (helper_function_addresses == NULL) {
-        return_value = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    return_value = ebpf_program_get_helper_function_addresses(program, helper_count, helper_function_addresses);
-
-    if (return_value != EBPF_SUCCESS) {
+    if (helper_count != address_count || addresses == NULL) {
+        return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
     for (size_t i = 0; i < helper_count; i++) {
-        *(uint64_t*)&(helper_address_changed_context->native_program->entry->helpers[i].address) =
-            helper_function_addresses[i];
+        *(uint64_t*)&(helper_address_changed_context->native_program->entry->helpers[i].address) = addresses[i];
     }
 
     return_value = EBPF_SUCCESS;

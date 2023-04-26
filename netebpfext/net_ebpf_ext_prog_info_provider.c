@@ -83,8 +83,9 @@ Exit:
         *provider_binding_context = program_info_client;
         program_info_client = NULL;
     } else {
-        if (program_info_client)
+        if (program_info_client) {
             ExFreePool(program_info_client);
+        }
     }
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
@@ -118,8 +119,9 @@ net_ebpf_extension_program_info_provider_unregister(
 {
     if (provider_context != NULL) {
         NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
-        if (status == STATUS_PENDING)
+        if (status == STATUS_PENDING) {
             NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+        }
         ExFreePool(provider_context);
     }
 }
@@ -156,15 +158,17 @@ net_ebpf_extension_program_info_provider_register(
     characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
 
     status = NmrRegisterProvider(characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status)) {
         goto Exit;
+    }
 
     *provider_context = local_provider_context;
     local_provider_context = NULL;
 
 Exit:
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status)) {
         net_ebpf_extension_program_info_provider_unregister(local_provider_context);
+    }
 
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }

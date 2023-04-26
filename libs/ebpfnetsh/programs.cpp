@@ -56,6 +56,12 @@ _prog_type_supports_interface(bpf_prog_type prog_type)
     return (prog_type == BPF_PROG_TYPE_XDP);
 }
 
+bool
+_prog_type_supports_compartment(bpf_prog_type prog_type)
+{
+    return (prog_type == BPF_PROG_TYPE_CGROUP_SOCK_ADDR);
+}
+
 _Must_inspect_result_ ebpf_result_t
 _process_interface_parameter(
     _In_ const _Null_terminated_ wchar_t* interface_parameter, bpf_prog_type prog_type, _Out_ uint32_t* if_index)
@@ -63,10 +69,32 @@ _process_interface_parameter(
     ebpf_result_t result = EBPF_SUCCESS;
     if (_prog_type_supports_interface(prog_type)) {
         result = parse_if_index(interface_parameter, if_index);
-        if (result != EBPF_SUCCESS)
+        if (result != EBPF_SUCCESS) {
             std::cerr << "Interface parameter is invalid." << std::endl;
+        }
     } else {
         std::cerr << "Interface parameter is not allowed for program types that don't support interfaces." << std::endl;
+        result = EBPF_INVALID_ARGUMENT;
+    }
+    return result;
+}
+
+_Must_inspect_result_ ebpf_result_t
+_process_compartment_parameter(
+    _In_ const _Null_terminated_ wchar_t* compartment_parameter,
+    bpf_prog_type prog_type,
+    _Out_ COMPARTMENT_ID* compartment_id)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    if (_prog_type_supports_compartment(prog_type)) {
+        *compartment_id = (COMPARTMENT_ID)_wtoi(compartment_parameter);
+        if (*compartment_id == 0) {
+            std::cerr << "Compartment parameter is invalid." << std::endl;
+            result = EBPF_INVALID_ARGUMENT;
+        }
+    } else {
+        std::cerr << "Compartment parameter is not allowed for program types that don't support compartments."
+                  << std::endl;
         result = EBPF_INVALID_ARGUMENT;
     }
     return result;
@@ -76,6 +104,17 @@ struct _program_unloader
 {
     struct bpf_object* object;
     ~_program_unloader() { bpf_object__close(object); }
+};
+
+struct _link_deleter
+{
+    struct bpf_link* link;
+    ~_link_deleter()
+    {
+        if (link != nullptr) {
+            ebpf_link_close(link);
+        }
+    }
 };
 
 // The following function uses windows specific input type to match
@@ -95,13 +134,15 @@ handle_ebpf_add_program(
         {TOKEN_PINPATH, NS_REQ_ZERO, FALSE},
         {TOKEN_INTERFACE, NS_REQ_ZERO, FALSE},
         {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
-        {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE}};
+        {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE},
+        {TOKEN_COMPARTMENT, NS_REQ_ZERO, FALSE}};
     const int FILENAME_INDEX = 0;
     const int TYPE_INDEX = 1;
     const int PINPATH_INDEX = 2;
     const int INTERFACE_INDEX = 3;
     const int PINNED_INDEX = 4;
     const int EXECUTION_INDEX = 5;
+    const int COMPARTMENT_INDEX = 6;
 
     unsigned long tag_type[_countof(tags)] = {0};
 
@@ -115,6 +156,7 @@ handle_ebpf_add_program(
     pinned_type_t pinned_type = PT_FIRST; // Like bpftool, we default to pin first.
     ebpf_execution_type_t execution = EBPF_EXECUTION_JIT;
     wchar_t* interface_parameter = nullptr;
+    wchar_t* compartment_parameter = nullptr;
 
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
@@ -152,6 +194,9 @@ handle_ebpf_add_program(
                 _ebpf_execution_type_enum,
                 (unsigned long*)&execution);
             break;
+        case COMPARTMENT_INDEX:
+            compartment_parameter = argv[current_index + i];
+            break;
         default:
             status = ERROR_INVALID_SYNTAX;
             break;
@@ -188,7 +233,7 @@ handle_ebpf_add_program(
     program_fd = bpf_program__fd(program);
 
     // Program loaded. Populate the unloader with object pointer, such that
-    // the program gets unloaded automatically, if it fails to get attached.
+    // the program gets unloaded automatically, if this function fails somewhere.
     struct _program_unloader unloader = {object};
 
     ebpf_result_t result;
@@ -204,16 +249,27 @@ handle_ebpf_add_program(
             return ERROR_SUPPRESS_OUTPUT;
         }
     }
+    COMPARTMENT_ID compartment_id = UNSPECIFIED_COMPARTMENT_ID;
+    if (compartment_parameter != nullptr) {
+        result = _process_compartment_parameter(compartment_parameter, bpf_program__type(program), &compartment_id);
+        if (result == EBPF_SUCCESS) {
+            attach_parameters = &compartment_id;
+            attach_parameters_size = sizeof(compartment_id);
+        } else {
+            return ERROR_SUPPRESS_OUTPUT;
+        }
+    }
 
     struct bpf_link* link;
     result = ebpf_program_attach(program, nullptr, attach_parameters, attach_parameters_size, &link);
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not attach program" << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
-    } else {
-        // Program successfully attached, reset unloader.
-        unloader.object = nullptr;
     }
+
+    // Link attached. Populate the deleter with link pointer, such that link
+    // object is closed when the function returns.
+    struct _link_deleter link_deleter = {link};
 
     if (pinned_type == PT_FIRST) {
         // The pinpath specified is like a "file" under which to pin programs.
@@ -242,8 +298,8 @@ handle_ebpf_add_program(
         return ERROR_SUPPRESS_OUTPUT;
     }
     std::cout << "Loaded with ID " << info.id << std::endl;
+    unloader.object = nullptr;
 
-    ebpf_link_close(link);
     _ebpf_netsh_objects.push_back(object);
 
     return ERROR_SUCCESS;
@@ -405,8 +461,9 @@ _ebpf_program_attach_by_id(
     if (result == EBPF_SUCCESS) {
         ebpf_result_t local_result =
             ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, &link);
-        if (local_result == EBPF_SUCCESS)
+        if (local_result == EBPF_SUCCESS) {
             ebpf_link_close(link);
+        }
     }
 
     Platform::_close(program_fd);

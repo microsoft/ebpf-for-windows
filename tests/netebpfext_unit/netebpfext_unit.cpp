@@ -5,8 +5,13 @@
 #include "catch_wrapper.hpp"
 #include "ebpf_fault_injection.h"
 #include "netebpf_ext_helper.h"
+#include "passed_test_log.h"
+#include "watchdog.h"
 
 #include <map>
+
+CATCH_REGISTER_LISTENER(_watchdog)
+CATCH_REGISTER_LISTENER(_passed_test_log)
 
 #define CONCURRENT_THREAD_RUN_TIME_IN_SECONDS 10
 
@@ -149,7 +154,7 @@ TEST_CASE("xdp_context", "[netebpfext]")
     xdp_md_t input_context = {};
     size_t output_context_size = sizeof(xdp_md_t);
     xdp_md_t output_context = {};
-    xdp_md_t* xdp_context;
+    xdp_md_t* xdp_context = nullptr;
 
     input_context.data_meta = 12345;
     input_context.ingress_ifindex = 67890;
@@ -163,6 +168,7 @@ TEST_CASE("xdp_context", "[netebpfext]")
 
     // Positive test:
     // Null context
+    xdp_context = nullptr;
     REQUIRE(
         xdp_program_data->context_create(input_data.data(), input_data.size(), nullptr, 0, (void**)&xdp_context) ==
         EBPF_SUCCESS);
@@ -263,7 +269,7 @@ TEST_CASE("bind_context", "[netebpfext]")
     };
     size_t output_context_size = sizeof(bind_md_t);
     bind_md_t output_context = {};
-    bind_md_t* bind_context;
+    bind_md_t* bind_context = nullptr;
 
     // Positive test:
     // Null data
@@ -278,6 +284,7 @@ TEST_CASE("bind_context", "[netebpfext]")
     REQUIRE(
         bind_program_data->context_create(input_data.data(), input_data.size(), nullptr, 0, (void**)&bind_context) ==
         EBPF_INVALID_ARGUMENT);
+    bind_context = nullptr;
 
     REQUIRE(
         bind_program_data->context_create(
@@ -285,7 +292,7 @@ TEST_CASE("bind_context", "[netebpfext]")
             input_data.size(),
             (const uint8_t*)&input_context,
             sizeof(input_context),
-            (void**)&bind_context) == 0);
+            (void**)&bind_context) == EBPF_SUCCESS);
 
     // Modify the context.
     bind_context->process_id++;
@@ -534,6 +541,7 @@ sock_addr_thread_function(
 }
 
 // Invoke SOCK_ADDR_CONNECT concurrently with same classify parameters.
+
 TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
 {
     ebpf_extension_data_t npi_specific_characteristics = {};
@@ -684,7 +692,7 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
     };
     size_t output_context_size = sizeof(bpf_sock_addr_t);
     bpf_sock_addr_t output_context = {};
-    bpf_sock_addr_t* sock_addr_context;
+    bpf_sock_addr_t* sock_addr_context = nullptr;
 
     std::vector<uint8_t> input_data(100);
 
@@ -697,12 +705,14 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
             (const uint8_t*)&input_context,
             sizeof(input_context),
             (void**)&sock_addr_context) == EBPF_INVALID_ARGUMENT);
+    sock_addr_context = nullptr;
 
     // Negative test:
     // Context missing
     REQUIRE(
         sock_addr_program_data->context_create(nullptr, 0, nullptr, 0, (void**)&sock_addr_context) ==
         EBPF_INVALID_ARGUMENT);
+    sock_addr_context = nullptr;
 
     REQUIRE(
         sock_addr_program_data->context_create(
@@ -803,7 +813,7 @@ TEST_CASE("sock_ops_context", "[netebpfext]")
     };
     size_t output_context_size = sizeof(bpf_sock_ops_t);
     bpf_sock_ops_t output_context = {};
-    bpf_sock_ops_t* sock_ops_context;
+    bpf_sock_ops_t* sock_ops_context = nullptr;
 
     std::vector<uint8_t> input_data(100);
 

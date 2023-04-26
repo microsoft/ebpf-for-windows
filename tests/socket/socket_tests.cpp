@@ -19,11 +19,14 @@
 #include "ebpf_structs.h"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
+#include "watchdog.h"
 
 #include <chrono>
 #include <future>
 using namespace std::chrono_literals;
 #include <mstcpip.h>
+
+CATCH_REGISTER_LISTENER(_watchdog)
 
 void
 connection_test(
@@ -89,10 +92,11 @@ connection_test(
     // Send loopback message to test port.
     const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
-    if (address_family == AF_INET)
+    if (address_family == AF_INET) {
         IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
-    else
+    } else {
         IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+    }
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
     // The packet should be blocked by the connect program.
@@ -344,10 +348,11 @@ connection_monitor_test(
     // Send loopback message to test port.
     const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
-    if (address_family == AF_INET)
+    if (address_family == AF_INET) {
         IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
-    else
+    } else {
         IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+    }
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
     // Receive the packet on test port.
     receiver_socket.complete_async_receive();

@@ -10,7 +10,10 @@
 #include "catch_wrapper.hpp"
 #include "ebpf_udp.h"
 #include "socket_helper.h"
+#include "watchdog.h"
 #include "xdp_tests_common.h"
+
+CATCH_REGISTER_LISTENER(_watchdog)
 
 std::string _remote_ip;
 const uint16_t _reflection_port = REFLECTION_TEST_PORT;
@@ -103,8 +106,9 @@ main(int argc, char* argv[])
     session.cli(cli);
 
     int returnCode = session.applyCommandLine(argc, argv);
-    if (returnCode != 0)
+    if (returnCode != 0) {
         return returnCode;
+    }
 
     WSAData data;
 

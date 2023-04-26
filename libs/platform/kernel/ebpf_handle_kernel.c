@@ -66,11 +66,13 @@ ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ ebpf_base_object_t* obje
     file_handle = 0;
     return_value = EBPF_SUCCESS;
 Done:
-    if (file_object)
+    if (file_object) {
         ObDereferenceObject(file_object);
+    }
 
-    if (file_handle)
+    if (file_handle) {
         ObCloseHandle(file_handle, UserMode);
+    }
 
     EBPF_RETURN_RESULT(return_value);
 }
@@ -83,8 +85,9 @@ ebpf_handle_close(ebpf_handle_t handle)
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ObCloseHandle, status);
         EBPF_RETURN_RESULT(EBPF_INVALID_OBJECT);
-    } else
+    } else {
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_handle(
@@ -128,7 +131,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_h
     return_value = EBPF_SUCCESS;
 
 Done:
-    if (file_object)
+    if (file_object) {
         ObDereferenceObject(file_object);
+    }
     return return_value;
 }
