@@ -1347,6 +1347,7 @@ ebpf_native_load(
 
     result = ebpf_allocate_preemptible_work_item(&cleanup_workitem, _ebpf_native_unload_work_item, local_service_name);
     if (result != EBPF_SUCCESS) {
+        ebpf_free(local_service_name);
         goto Done;
     }
 
@@ -1415,10 +1416,10 @@ ebpf_native_load(
     state = ebpf_lock_lock(&module->lock);
     module->state = MODULE_STATE_INITIALIZED;
     module->service_name = local_service_name;
-    local_service_name = NULL;
     module->cleanup_workitem = cleanup_workitem;
 
     cleanup_workitem = NULL;
+    local_service_name = NULL;
 
     ebpf_lock_unlock(&module->lock, state);
 
@@ -1439,7 +1440,6 @@ Done:
     if (local_module_handle != ebpf_handle_invalid) {
         ebpf_assert_success(ebpf_handle_close(local_module_handle));
     }
-    ebpf_free(local_service_name);
 
     EBPF_RETURN_RESULT(result);
 }
