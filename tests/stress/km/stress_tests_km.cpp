@@ -693,8 +693,140 @@ _mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control
     }
 }
 
+enum class program_map_usage : uint32_t
+{
+    IGNORE_MAP,
+    USE_MAP
+};
+
+static std::pair<bpf_object_ptr, fd_t>
+_load_attach_program(const std::string& file_name, uint32_t thread_index)
+{
+    bpf_object_ptr object_ptr;
+    bpf_object* object_raw_ptr = nullptr;
+
+    // Get the 'object' ptr for the program associated with this thread.
+    object_raw_ptr = bpf_object__open(file_name.c_str());
+    if (object_raw_ptr == nullptr) {
+        LOG_ERROR(
+            "{}({}) FATAL ERROR: bpf_object__open({}) failed. errno:{}",
+            __func__,
+            thread_index,
+            file_name.c_str(),
+            errno);
+        REQUIRE(object_raw_ptr != nullptr);
+    }
+    LOG_VERBOSE("{}({}) Opened file:{}", __func__, thread_index, file_name.c_str());
+
+    // Load the program.
+    auto result = bpf_object__load(object_raw_ptr);
+    if (result != 0) {
+        LOG_ERROR(
+            "{}({}) FATAL ERROR: bpf_object__load({}) failed. errno:{}",
+            __func__,
+            thread_index,
+            file_name.c_str(),
+            errno);
+        REQUIRE(result == 0);
+    }
+    LOG_VERBOSE("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
+
+    // Get program object for (the only) program in this file.
+    auto program = bpf_object__next_program(object_raw_ptr, nullptr);
+    if (program == nullptr) {
+        LOG_ERROR(
+            "{}({}) FATAL ERROR: bpf_object__next_program({}) failed. errno:{}",
+            __func__,
+            thread_index,
+            file_name.c_str(),
+            errno);
+        REQUIRE(program != nullptr);
+    }
+    LOG_VERBOSE(
+        "{}({}) Found program object for program:{}, file_name:{}",
+        __func__,
+        thread_index,
+        program->program_name,
+        file_name.c_str());
+
+    // Get the fd for this program.
+    fd_t program_fd = bpf_program__fd(program);
+    if (program_fd < 0) {
+        LOG_ERROR(
+            "{}({}) FATAL ERROR: bpf_program__fd({}) failed. program:{}, errno:{}",
+            __func__,
+            thread_index,
+            file_name.c_str(),
+            program->program_name,
+            errno);
+        REQUIRE(program_fd >= 0);
+    }
+    LOG_VERBOSE(
+        "{}({}) Opened fd:{}, for program:{}, file_name:{}",
+        __func__,
+        thread_index,
+        program_fd,
+        program->program_name,
+        file_name.c_str());
+
+    // Enforce the 'unspecified' compartment id. In the absence of additional compartments in the system, (as of now)
+    // a non-existent id causes a kernel assert in netebpfext.sys debug builds.
+    result = bpf_prog_attach(program_fd, UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_CONNECT, 0);
+    if (result != 0) {
+        LOG_ERROR(
+            "{}({}) FATAL ERROR: bpf_prog_attach({}) failed. program:{}, errno:{}",
+            __func__,
+            thread_index,
+            file_name.c_str(),
+            program->program_name,
+            errno);
+        REQUIRE(result == 0);
+    }
+    LOG_VERBOSE(
+        "{}({}) Attached program:{}, file_name:{}", __func__, thread_index, program->program_name, file_name.c_str());
+
+    object_ptr.reset(object_raw_ptr);
+    return std::make_pair(std::move(object_ptr), program_fd);
+}
+
+#if 1
 static void
-_prep_programs(thread_context& context)
+_prep_program(thread_context& context, program_map_usage map_usage)
+{
+    // Stash the object pointer as well need it at 'close' time.
+    auto [program_object, program_fd] = _load_attach_program(context.file_name, context.thread_index);
+    auto& entry = context.object_table[context.thread_index];
+    entry.object = std::move(program_object);
+    context.program_fd = program_fd;
+
+    if (map_usage == program_map_usage::USE_MAP) {
+
+        // Get the map fd for the map for this program.
+        // auto map_fd = bpf_object__find_map_fd_by_name(object_raw_ptr, context.map_name.c_str());
+        auto map_fd = bpf_object__find_map_fd_by_name(entry.object.get(), context.map_name.c_str());
+        if (map_fd < 0) {
+            LOG_ERROR(
+                "{}({}) FATAL ERROR: bpf_object__find_map_fd_by_name({}) failed. file_name:{}, errno:{}",
+                __func__,
+                context.thread_index,
+                context.map_name.c_str(),
+                context.file_name.c_str(),
+                errno);
+            REQUIRE(map_fd >= 0);
+        }
+        LOG_VERBOSE(
+            "{}({}) Opened fd:{} for map:{}, file_name:{}",
+            __func__,
+            context.thread_index,
+            map_fd,
+            context.map_name.c_str(),
+            context.file_name.c_str());
+        context.map_fd = map_fd;
+    }
+}
+
+#else
+_prep_program(thread_context& context, program_map_usage map_usage)
 {
     bpf_object* object_raw_ptr = nullptr;
 
@@ -724,26 +856,29 @@ _prep_programs(thread_context& context)
     }
     LOG_VERBOSE("{}({}) loaded file:{}", __func__, context.thread_index, context.file_name.c_str());
 
-    // Get the map fd for the 'sendto_count' map for this program.
-    auto map_fd = bpf_object__find_map_fd_by_name(object_raw_ptr, context.map_name.c_str());
-    if (map_fd < 0) {
-        LOG_ERROR(
-            "{}({}) FATAL ERROR: bpf_object__find_map_fd_by_name({}) failed. file_name:{}, errno:{}",
+    if (map_usage == program_map_usage::USE_MAP) {
+
+        // Get the map fd for the 'sendto_count' map for this program.
+        auto map_fd = bpf_object__find_map_fd_by_name(object_raw_ptr, context.map_name.c_str());
+        if (map_fd < 0) {
+            LOG_ERROR(
+                "{}({}) FATAL ERROR: bpf_object__find_map_fd_by_name({}) failed. file_name:{}, errno:{}",
+                __func__,
+                context.thread_index,
+                context.map_name.c_str(),
+                context.file_name.c_str(),
+                errno);
+            REQUIRE(map_fd >= 0);
+        }
+        LOG_VERBOSE(
+            "{}({}) Opened fd:{} for map:{}, file_name:{}",
             __func__,
             context.thread_index,
+            map_fd,
             context.map_name.c_str(),
-            context.file_name.c_str(),
-            errno);
-        REQUIRE(map_fd >= 0);
+            context.file_name.c_str());
+        context.map_fd = map_fd;
     }
-    LOG_VERBOSE(
-        "{}({}) Opened fd:{} for map:{}, file_name:{}",
-        __func__,
-        context.thread_index,
-        map_fd,
-        context.map_name.c_str(),
-        context.file_name.c_str());
-    context.map_fd = map_fd;
 
     // Get program object for (the only) program in this file.
     auto program = bpf_object__next_program(object_raw_ptr, nullptr);
@@ -809,11 +944,12 @@ _prep_programs(thread_context& context)
     auto& entry = context.object_table[context.thread_index];
     entry.object.reset(object_raw_ptr);
 }
+#endif
 
 void
 _invoke_test_thread_function(thread_context& context)
 {
-    _prep_programs(context);
+    _prep_program(context, program_map_usage::USE_MAP);
     SOCKET socket_handle;
     SOCKADDR_STORAGE remote_endpoint{};
 
@@ -871,7 +1007,6 @@ void
 _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_control_info& test_control_info)
 {
     UNREFERENCED_PARAMETER(program_type);
-    UNREFERENCED_PARAMETER(test_control_info);
 
     WSAData data{};
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
@@ -918,6 +1053,126 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
         thread_entry = std::move(std::thread(_invoke_test_thread_function, std::ref(context_entry)));
     }
 
+    if (test_control_info.extension_restart_enabled) {
+
+        // Start the 'extension stop-and-restart' thread for extension for this program type.
+        extension_restart_thread_table.push_back(std::thread([&]() {
+            // Delay the start of this thread for a bit to allow the ebpf programs to attach successfully. There's a
+            // window where if the extension is unloading/unloaded, an incoming attach might fail.
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+
+            // Bump up the priority of this thread so it doesn't get bogged down by the test threads.
+            if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)) {
+                error = GetLastError();
+                LOG_WARN("WARNING:{} - Unable to increase 'extension restart' thread priority", __func__, error);
+            }
+
+            std::string extension_name = {"netebpfext"};
+            using sc = std::chrono::steady_clock;
+            auto endtime = sc::now() + std::chrono::minutes(test_control_info.duration);
+            while (sc::now() < endtime) {
+                LOG_VERBOSE("Toggling extension state for '{}' extension...", extension_name.c_str());
+
+                // Drivers can sometimes take some time to stop and (re)start and we need to poll until we can
+                // determine the final status. 10 (ten) seconds seems a reasonable timeout for this polling.
+                constexpr uint32_t RESTART_TIMEOUT_SECONDS = 10;
+                if (!_restart_extension(extension_name, RESTART_TIMEOUT_SECONDS)) {
+                    exit(-1);
+                }
+
+                LOG_VERBOSE(
+                    "Next restart for {} extension after a delay of {} ms",
+                    extension_name,
+                    test_control_info.extension_restart_delay);
+                std::this_thread::sleep_for(std::chrono::milliseconds(test_control_info.extension_restart_delay));
+            }
+            LOG_INFO("**** Extension restart thread done. Exiting. ****");
+        }));
+    }
+
+    // wait for threads to terminate.
+    LOG_INFO("waiting on {} test threads...", test_thread_table.size());
+    for (auto& t : test_thread_table) {
+        t.join();
+    }
+
+    if (test_control_info.extension_restart_enabled) {
+        LOG_INFO("waiting on {} extension restart threads...", extension_restart_thread_table.size());
+        for (auto& t : extension_restart_thread_table) {
+            t.join();
+        }
+    }
+}
+
+static void
+_invoke_mt_sockaddr_thread_function(thread_context& context)
+{
+    SOCKET socket_handle;
+    SOCKADDR_STORAGE remote_endpoint{};
+
+    if (context.role == thread_role_type::MONITOR_IPV4) {
+        socket_handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        remote_endpoint.ss_family = AF_INET;
+    } else {
+        socket_handle = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+        remote_endpoint.ss_family = AF_INET6;
+    }
+    REQUIRE(socket_handle != INVALID_SOCKET);
+    INETADDR_SETLOOPBACK(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
+    uint16_t remote_port = SOCKET_TEST_PORT + static_cast<uint16_t>(context.thread_index);
+    (reinterpret_cast<PSOCKADDR_IN>(&remote_endpoint))->sin_port = htons(remote_port);
+
+    // Now send out a burst of TCP 'connect' attempts for the duration of the test.  The burst should keep invoking the
+    // program at a very high rate while we're also restarting the extension underneath it.
+    using sc = std::chrono::steady_clock;
+    auto endtime = sc::now() + std::chrono::minutes(context.duration);
+    while (sc::now() < endtime) {
+
+        constexpr uint32_t BURST_SIZE = 8192;
+        for (uint32_t i = 0; i < BURST_SIZE; i++) {
+
+            // The intent here is to ensure that our program gets invoked, so we don't care if 'connect' fails.
+            (void)connect(
+                socket_handle,
+                reinterpret_cast<SOCKADDR*>(&remote_endpoint),
+                static_cast<int>(sizeof(remote_endpoint)));
+        }
+    }
+}
+
+static void
+_mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
+{
+    WSAData data{};
+    auto error = WSAStartup(MAKEWORD(2, 2), &data);
+    REQUIRE(error == 0);
+
+    auto [program_object, _] = _load_attach_program({"cgroup_mt_connect4.sys"}, 0);
+
+    // Not used, needed for thread_context initialization.
+    std::vector<object_table_entry> dummy_table(1);
+
+    size_t total_threads = test_control_info.threads_count;
+    std::vector<thread_context> thread_context_table(
+        total_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, dummy_table});
+    std::vector<std::thread> test_thread_table(total_threads);
+    for (uint32_t i = 0; i < total_threads; i++) {
+
+        // First, prepare the context for this thread.
+        auto& context_entry = thread_context_table[i];
+        context_entry.is_native_program = true;
+        context_entry.role = thread_role_type::MONITOR_IPV4;
+        context_entry.thread_index = i;
+        context_entry.duration = test_control_info.duration;
+        context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
+
+        // Now create the thread.
+        auto& thread_entry = test_thread_table[i];
+        thread_entry = std::move(std::thread(_invoke_mt_sockaddr_thread_function, std::ref(context_entry)));
+    }
+
+    // Another table for the 'extension restart' thread.
+    std::vector<std::thread> extension_restart_thread_table{};
     if (test_control_info.extension_restart_enabled) {
 
         // Start the 'extension stop-and-restart' thread for extension for this program type.
@@ -1059,4 +1314,31 @@ TEST_CASE("native_invoke_program_restart_extension_v4_test", "[mt_stress_test]")
     test_control_info local_test_control_info = _global_test_control_info;
     local_test_control_info.extension_restart_enabled = true;
     _mt_invoke_prog_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
+}
+
+TEST_CASE("sockaddr_invoke_program_test", "[mt_stress_test]")
+{
+    // Test layout:
+    // 1. Load the "cgroup_mt_connect4.sys" native ebpf program
+    //    - This program monitors an IPv4 endpoint, 127.0.0.1:<target_port>. On every invocation, the program returns a
+    //      specific value per the following (arbitrary) algorithm:
+    //      > (target_port % 3 == 0) : BPF_SOCK_ADDR_VERDICT_REJECT
+    //        (target_port % 2 == 0) : BPF_SOCK_ADDR_VERDICT_PROCEED
+    //        else                   : BPF_SOCK_ADDR_VERDICT_REDIRECT
+    //
+    // 2. Create the specified # of threads and for the duration of test, each thread will:
+    //    - Attempt a TCP 'connect' to the remote endpoint 127.0.01:<target_port + thread_context.thread_index>
+    //      continuously in a loop.
+    //      (The test set up ensures that the thread_index passed in each thread_context is unique to that thread.)
+    //
+    //    We ignore the result of the 'connect' attempt as the intent here is to test the parallel invocation of the
+    //    WFP callout and ensure this test doesn't cause kernel mode crashes.
+    //
+    // 3. Start the 'extension restart' thread in parallel to continuously restart the netebpf extension.
+
+    _km_test_init();
+    LOG_INFO("\nStarting test *** sockaddr_invoke_program_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+    local_test_control_info.extension_restart_enabled = true;
+    _mt_sockaddr_invoke_program_test(local_test_control_info);
 }
