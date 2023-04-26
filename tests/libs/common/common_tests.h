@@ -48,8 +48,6 @@ typedef struct _close_bpf_object
     }
 } close_bpf_object_t;
 
-typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
-
 int
 ring_buffer_test_event_handler(_Inout_ void* ctx, _In_opt_ const void* data, size_t size);
 

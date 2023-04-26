@@ -66,6 +66,8 @@ typedef struct _test_globals
     bool attach_v6_program;
 } test_globals_t;
 
+typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
+
 static test_globals_t _globals;
 static volatile bool _globals_initialized = false;
 

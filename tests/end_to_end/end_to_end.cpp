@@ -66,6 +66,8 @@ CATCH_REGISTER_LISTENER(_watchdog)
 
 extern thread_local bool ebpf_non_preemptible;
 
+typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
+
 std::vector<uint8_t>
 prepare_ip_packet(uint16_t ethernet_type)
 {
