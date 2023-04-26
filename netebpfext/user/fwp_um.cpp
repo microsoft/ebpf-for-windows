@@ -488,10 +488,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmTransactionCommit0(_In_ _Release
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmTransactionAbort0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_NO_MEMORY;
-    }
-
     UNREFERENCED_PARAMETER(engine_handle);
     return STATUS_SUCCESS;
 }
