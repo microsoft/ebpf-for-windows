@@ -1231,7 +1231,7 @@ _ebpf_native_close_handles_workitem(_In_opt_ const void* context)
         return;
     }
 
-    ebpf_native_handle_information_t* handle_info = (ebpf_native_handle_information_t*)context;
+    ebpf_native_handle_cleanup_information_t* handle_info = (ebpf_native_handle_cleanup_information_t*)context;
     for (uint32_t i = 0; i < handle_info->count_of_program_handles; i++) {
         if (handle_info->program_handles[i] != ebpf_handle_invalid) {
             ebpf_assert_success(ebpf_handle_close(handle_info->program_handles[i]));
@@ -1268,7 +1268,7 @@ _ebpf_native_initialize_handle_cleanup_context(
     ebpf_result_t result = EBPF_SUCCESS;
 
     cleanup_context->handle_information =
-        (ebpf_native_handle_information_t*)ebpf_allocate(sizeof(ebpf_native_handle_information_t));
+        (ebpf_native_handle_cleanup_information_t*)ebpf_allocate(sizeof(ebpf_native_handle_cleanup_information_t));
     if (cleanup_context->handle_information == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
