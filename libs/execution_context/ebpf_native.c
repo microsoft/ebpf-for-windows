@@ -54,25 +54,17 @@ typedef enum _ebpf_native_module_state
     MODULE_STATE_UNLOADING,
 } ebpf_native_module_state_t;
 
-// typedef struct _ebpf_native_handle_information
-// {
-//     size_t count_of_program_handles;
-//     ebpf_handle_t* program_handles;
-//     size_t count_of_map_handles;
-//     ebpf_handle_t* map_handles;
-// } ebpf_native_handle_information_t;
-
 typedef struct _ebpf_native_handle_information
 {
     size_t count_of_program_handles;
     ebpf_handle_t* program_handles;
     size_t count_of_map_handles;
     ebpf_handle_t* map_handles;
-} ebpf_native_handle_information_t;
+} ebpf_native_handle_cleanup_information_t;
 
 typedef struct _ebpf_native_handle_cleanup_context
 {
-    ebpf_native_handle_information_t* handle_information;
+    ebpf_native_handle_cleanup_information_t* handle_information;
     ebpf_preemptible_work_item_t* handle_cleanup_workitem;
 } ebpf_native_handle_cleanup_context_t;
 
@@ -92,8 +84,6 @@ typedef struct _ebpf_native_module
     HANDLE nmr_binding_handle;
     ebpf_list_entry_t list_entry;
     ebpf_preemptible_work_item_t* cleanup_workitem;
-    // ebpf_native_handle_information_t* handle_cleanup_information;
-    // ebpf_preemptible_work_item_t* handle_cleanup_workitem;
     ebpf_native_handle_cleanup_context_t handle_cleanup_context;
 } ebpf_native_module_t;
 
@@ -1199,6 +1189,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
     }
 
     if (result != EBPF_SUCCESS) {
+        // Copy the handles in the cleanup context.
         for (uint32_t i = 0; i < module->program_count; i++) {
             module->handle_cleanup_context.handle_information->program_handles[i] = module->programs[i].handle;
         }
@@ -1236,7 +1227,6 @@ _ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
 static void
 _ebpf_native_close_handles_workitem(_In_opt_ const void* context)
 {
-
     if (context == NULL) {
         return;
     }
@@ -1602,7 +1592,7 @@ Done:
             module->handle_cleanup_context.handle_information = NULL;
         }
     } else {
-        // No need to close program and map handles. Clean up handle cleanup context.
+        // Success case. No need to close program and map handles. Clean up handle cleanup context.
         _ebpf_native_clean_up_handle_cleanup_context(&module->handle_cleanup_context);
     }
 
