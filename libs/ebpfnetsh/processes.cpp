@@ -25,7 +25,7 @@ typedef struct
 typedef struct
 {
     HANDLE target_handle;
-    WCHAR name[MAX_PATH];
+    WCHAR name[1024];
 } query_name_param_t;
 
 // Get the object name associated with a target handle.
@@ -40,6 +40,10 @@ _query_name_thread_proc(_In_ void* parameter)
     OBJECT_NAME_INFORMATION* object_name_info = (OBJECT_NAME_INFORMATION*)buffer;
     status = NtQueryObject(param->target_handle, ObjectNameInformation, object_name_info, buffer_size, nullptr);
     if (NT_SUCCESS(status) && (object_name_info->Name.Length > 0)) {
+        if (object_name_info->Name.Length >= sizeof(param->name)) {
+            param->name[0] = 0;
+            return 1;
+        }
         memcpy(param->name, object_name_info->Name.Buffer, object_name_info->Name.Length);
         param->name[object_name_info->Name.Length / sizeof(WCHAR)] = 0;
     } else {
