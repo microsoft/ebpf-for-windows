@@ -1279,11 +1279,11 @@ _ebpf_native_initialize_handle_cleanup_context(
 {
     ebpf_result_t result = EBPF_SUCCESS;
 
-    memset(cleanup_context, 0, sizeof(ebpf_native_handle_cleanup_context_t);
-
     if (!ExAcquireRundownProtection(&_ebpf_native_work_item_rundown_reference)) {
         return EBPF_FAILED;
     }
+
+    memset(cleanup_context, 0, sizeof(ebpf_native_handle_cleanup_context_t));
 
     cleanup_context->handle_information =
         (ebpf_native_handle_cleanup_information_t*)ebpf_allocate(sizeof(ebpf_native_handle_cleanup_information_t));
