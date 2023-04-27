@@ -62,12 +62,12 @@ typedef struct _ebpf_native_handle_cleanup_information
     ebpf_handle_t* program_handles;
     size_t count_of_map_handles;
     ebpf_handle_t* map_handles;
-} ebpf_native_handle_cleanup_information_t;
+} ebpf_native_handle_cleanup_info_t;
 
 typedef struct _ebpf_native_handle_cleanup_context
 {
-    ebpf_native_handle_cleanup_information_t* handle_information;
-    ebpf_preemptible_work_item_t* handle_cleanup_workitem;
+    ebpf_native_handle_cleanup_info_t* handle_information;
+    ebpf_preemptible_work_item_t* handle_cleanup_work_item;
 } ebpf_native_handle_cleanup_context_t;
 
 typedef struct _ebpf_native_module
@@ -85,7 +85,7 @@ typedef struct _ebpf_native_module
     size_t program_count;
     HANDLE nmr_binding_handle;
     ebpf_list_entry_t list_entry;
-    ebpf_preemptible_work_item_t* cleanup_workitem;
+    ebpf_preemptible_work_item_t* cleanup_work_item;
     ebpf_native_handle_cleanup_context_t handle_cleanup_context;
 } ebpf_native_module_t;
 
@@ -190,8 +190,8 @@ _ebpf_native_clean_up_maps(
         }
         if (close_handles && map->handle != ebpf_handle_invalid) {
             ebpf_assert_success(ebpf_handle_close(map->handle));
+            map->handle = ebpf_handle_invalid;
         }
-        map->handle = ebpf_handle_invalid;
     }
 
     ebpf_free(maps);
@@ -210,8 +210,8 @@ _ebpf_native_clean_up_programs(
             ebpf_object_release_reference((ebpf_core_object_t*)program_object);
             if (close_handles) {
                 ebpf_assert_success(ebpf_handle_close(programs[i].handle));
+                programs[i].handle = ebpf_handle_invalid;
             }
-            programs[i].handle = ebpf_handle_invalid;
         }
         ebpf_free(programs[i].addresses_changed_callback_context);
         programs[i].addresses_changed_callback_context = NULL;
@@ -233,7 +233,7 @@ _ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
 
     // Note: Do not free module->service_name here explicitly.
     // It will be freed automatically when workitem is freed.
-    ebpf_free_preemptible_work_item(module->cleanup_workitem);
+    ebpf_free_preemptible_work_item(module->cleanup_work_item);
 
     ebpf_lock_destroy(&module->lock);
 
@@ -259,8 +259,8 @@ _Requires_lock_held_(module->lock) static ebpf_result_t _ebpf_native_unload(_Ino
     module->state = MODULE_STATE_UNLOADING;
 
     // Queue pre-allocated work item to unload the driver.
-    work_item = module->cleanup_workitem;
-    module->cleanup_workitem = NULL;
+    work_item = module->cleanup_work_item;
+    module->cleanup_work_item = NULL;
     module->service_name = NULL;
 
     ebpf_queue_preemptible_work_item(work_item);
@@ -1232,13 +1232,13 @@ _ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
 }
 
 static void
-_ebpf_native_close_handles_workitem(_In_opt_ const void* context)
+_ebpf_native_close_handles_work_item(_In_opt_ const void* context)
 {
     if (context == NULL) {
         return;
     }
 
-    ebpf_native_handle_cleanup_information_t* handle_info = (ebpf_native_handle_cleanup_information_t*)context;
+    ebpf_native_handle_cleanup_info_t* handle_info = (ebpf_native_handle_cleanup_info_t*)context;
     for (uint32_t i = 0; i < handle_info->count_of_program_handles; i++) {
         if (handle_info->program_handles[i] != ebpf_handle_invalid) {
             ebpf_assert_success(ebpf_handle_close(handle_info->program_handles[i]));
@@ -1269,7 +1269,7 @@ _ebpf_native_clean_up_handle_cleanup_context(_Inout_ ebpf_native_handle_cleanup_
         ebpf_free(cleanup_context->handle_information->map_handles);
         ebpf_free(cleanup_context->handle_information->program_handles);
     }
-    ebpf_free_preemptible_work_item(cleanup_context->handle_cleanup_workitem);
+    ebpf_free_preemptible_work_item(cleanup_context->handle_cleanup_work_item);
     ExReleaseRundownProtection(&_ebpf_native_work_item_rundown_reference);
 }
 
@@ -1286,7 +1286,7 @@ _ebpf_native_initialize_handle_cleanup_context(
     memset(cleanup_context, 0, sizeof(ebpf_native_handle_cleanup_context_t));
 
     cleanup_context->handle_information =
-        (ebpf_native_handle_cleanup_information_t*)ebpf_allocate(sizeof(ebpf_native_handle_cleanup_information_t));
+        (ebpf_native_handle_cleanup_info_t*)ebpf_allocate(sizeof(ebpf_native_handle_cleanup_info_t));
     if (cleanup_context->handle_information == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -1318,8 +1318,8 @@ _ebpf_native_initialize_handle_cleanup_context(
     }
 
     result = ebpf_allocate_preemptible_work_item(
-        &cleanup_context->handle_cleanup_workitem,
-        _ebpf_native_close_handles_workitem,
+        &cleanup_context->handle_cleanup_work_item,
+        _ebpf_native_close_handles_work_item,
         cleanup_context->handle_information);
 
 Done:
@@ -1347,7 +1347,7 @@ ebpf_native_load(
     ebpf_native_module_t** existing_module = NULL;
     wchar_t* local_service_name = NULL;
     ebpf_handle_t local_module_handle = ebpf_handle_invalid;
-    ebpf_preemptible_work_item_t* cleanup_workitem = NULL;
+    ebpf_preemptible_work_item_t* cleanup_work_item = NULL;
 
     local_service_name = ebpf_allocate_with_tag((size_t)service_name_length + 2, EBPF_POOL_TAG_NATIVE);
     if (local_service_name == NULL) {
@@ -1356,7 +1356,7 @@ ebpf_native_load(
     }
     memcpy(local_service_name, (uint8_t*)service_name, service_name_length);
 
-    result = ebpf_allocate_preemptible_work_item(&cleanup_workitem, _ebpf_native_unload_work_item, local_service_name);
+    result = ebpf_allocate_preemptible_work_item(&cleanup_work_item, _ebpf_native_unload_work_item, local_service_name);
     if (result != EBPF_SUCCESS) {
         ebpf_free(local_service_name);
         goto Done;
@@ -1427,9 +1427,9 @@ ebpf_native_load(
     state = ebpf_lock_lock(&module->lock);
     module->state = MODULE_STATE_INITIALIZED;
     module->service_name = local_service_name;
-    module->cleanup_workitem = cleanup_workitem;
+    module->cleanup_work_item = cleanup_work_item;
 
-    cleanup_workitem = NULL;
+    cleanup_work_item = NULL;
     local_service_name = NULL;
 
     ebpf_lock_unlock(&module->lock, state);
@@ -1446,7 +1446,7 @@ Done:
         table_lock_acquired = false;
     }
     if (result != EBPF_SUCCESS) {
-        ebpf_free_preemptible_work_item(cleanup_workitem);
+        ebpf_free_preemptible_work_item(cleanup_work_item);
     }
     if (local_module_handle != ebpf_handle_invalid) {
         ebpf_assert_success(ebpf_handle_close(local_module_handle));
@@ -1608,8 +1608,8 @@ Done:
 
         if (cleanup_context_created) {
             // Queue work item to close map and program handles.
-            ebpf_queue_preemptible_work_item(module->handle_cleanup_context.handle_cleanup_workitem);
-            module->handle_cleanup_context.handle_cleanup_workitem = NULL;
+            ebpf_queue_preemptible_work_item(module->handle_cleanup_context.handle_cleanup_work_item);
+            module->handle_cleanup_context.handle_cleanup_work_item = NULL;
             module->handle_cleanup_context.handle_information = NULL;
         }
     } else {
