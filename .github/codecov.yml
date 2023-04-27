@@ -4,9 +4,27 @@
 codecov:
   notify:
     wait_for_ci: yes
-    after_n_builds: 23 # (reusable-test.yml instances in cicd.yml) * (# configurations per instance)
+    #
+    # 'after_n_builds' calculation.
+    # This value needs to match the actual number of 'Per PR' tasks listed in the .github\cicd.yml` file that upload
+    # code coverage data.  Note that we DO NOT consider the 'scheduled' tasks in this calculation.
+    #
+    # Algorithm:
+    # Initialize 'after_n_builds' to zero.
+    # For each 'Per-PR' task in '.github\cicd.yml' (Ignore 'scheduled' tasks).
+    #   - If the task does not have the 'uses: ./.github/workflows/reusable-test.yml' clause, ignore the task.
+    #   - If the task does not have the 'code_coverage: true' clause, ignore the task.
+    #   - The 'driver' task does its own code coverage upload, so add 2 (two) to after_n_builds.
+    #     (This is an exception to the 'code_coverage: true' clause requirement.)
+    #   - If the task does not have the 'configurations: ...' clause,
+    #         add 2 (two) to after_n_builds.
+    #     else
+    #         add the number of comma-sepatated configurations to after_n_builds.
+    # 'after_n_builds' is now set to the right count.
+    #
+    after_n_builds: 14
 comment:
-    after_n_builds: 23 # (reusable-test.yml instances in cicd.yml) * (# configurations per instance)
+    after_n_builds: 14
 coverage:
   status:
     project:
