@@ -708,11 +708,16 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_he
     ebpf_result_t result = EBPF_SUCCESS;
     uintptr_t* helper_function_addresses = NULL;
     if (program->parameters.code_type == EBPF_CODE_NATIVE) {
-        helper_function_addresses =
-            ebpf_allocate_with_tag(program->helper_function_count * sizeof(uintptr_t), EBPF_POOL_TAG_PROGRAM);
-        if (helper_function_addresses == NULL) {
-            result = EBPF_NO_MEMORY;
-            goto Done;
+
+        // We _can_ have instances of ebpf programs that do not need to call any helper functions.
+        // Such programs are valid and the 'program->helper_function_count' member for such programs will be 0 (Zero).
+        if (program->helper_function_count) {
+            helper_function_addresses =
+                ebpf_allocate_with_tag(program->helper_function_count * sizeof(uintptr_t), EBPF_POOL_TAG_PROGRAM);
+            if (helper_function_addresses == NULL) {
+                result = EBPF_NO_MEMORY;
+                goto Done;
+            }
         }
 
         for (uint32_t index = 0; index < program->helper_function_count; index++) {
