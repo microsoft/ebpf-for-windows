@@ -191,13 +191,13 @@ jobs:
         tar -xf ..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
 
     - name: Zip Build Output
-      if: steps.skip_check.outputs.should_skip != 'true'
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
       working-directory: ${{github.workspace}}
       run: |
         Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{ matrix.configurations }}.zip
 
     - name: Upload Build Output
-      if: steps.skip_check.outputs.should_skip != 'true'
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{inputs.build_artifact}}-${{matrix.configurations}}
