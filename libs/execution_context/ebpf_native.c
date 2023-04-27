@@ -1244,13 +1244,13 @@ _ebpf_native_close_handles_workitem(_In_opt_ const void* context)
     ebpf_native_handle_information_t* handle_info = (ebpf_native_handle_information_t*)context;
     for (uint32_t i = 0; i < handle_info->count_of_program_handles; i++) {
         if (handle_info->program_handles[i] != ebpf_handle_invalid) {
-            ebpf_handle_close(handle_info->program_handles[i]);
+            ebpf_assert_success(ebpf_handle_close(handle_info->program_handles[i]));
             handle_info->program_handles[i] = ebpf_handle_invalid;
         }
     }
     for (uint32_t i = 0; i < handle_info->count_of_map_handles; i++) {
         if (handle_info->map_handles[i] != ebpf_handle_invalid) {
-            ebpf_handle_close(handle_info->map_handles[i]);
+            ebpf_assert_success(ebpf_handle_close(handle_info->map_handles[i]));
             handle_info->map_handles[i] = ebpf_handle_invalid;
         }
     }
