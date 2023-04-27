@@ -54,7 +54,7 @@ typedef enum _ebpf_native_module_state
     MODULE_STATE_UNLOADING,
 } ebpf_native_module_state_t;
 
-typedef struct _ebpf_native_handle_information
+typedef struct _ebpf_native_handle_cleanup_information
 {
     size_t count_of_program_handles;
     ebpf_handle_t* program_handles;
