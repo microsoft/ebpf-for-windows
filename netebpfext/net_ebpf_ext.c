@@ -592,7 +592,7 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
 
     UNREFERENCED_PARAMETER(device_object);
 
-    BOOLEAN is_engined_opened = FALSE;
+    BOOLEAN is_engine_opened = FALSE;
     BOOLEAN is_in_transaction = FALSE;
 
     FWPM_SESSION session = {0};
@@ -610,7 +610,7 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
 
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &_fwp_engine_handle);
     NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS("FwpmEngineOpen", status);
-    is_engined_opened = TRUE;
+    is_engine_opened = TRUE;
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
     NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS("FwpmTransactionBegin", status);
@@ -668,7 +668,7 @@ Exit:
             }
         }
 
-        if (is_engined_opened) {
+        if (is_engine_opened) {
             net_ebpf_extension_uninitialize_wfp_components();
         }
     }
