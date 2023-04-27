@@ -376,7 +376,7 @@ ebpf_native_terminate()
     _ebpf_native_client_table = NULL;
     ebpf_lock_destroy(&_ebpf_native_client_table_lock);
 
-    // Wait for all queued work-items to complete.
+    // Wait for all queued work items to complete.
     ExWaitForRundownProtectionRelease(&_ebpf_native_work_item_rundown_reference);
 
     EBPF_RETURN_VOID();
