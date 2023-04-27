@@ -515,5 +515,6 @@ _Requires_lock_held_(link->attach_lock) static void _ebpf_link_set_state(
             old_state == EBPF_LINK_STATE_ATTACHING);
         break;
     }
+    UNREFERENCED_PARAMETER(old_state);
     link->state = new_state;
 }
