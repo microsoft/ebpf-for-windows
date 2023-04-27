@@ -1463,6 +1463,7 @@ ebpf_native_load_programs(
     wchar_t* local_service_name = NULL;
     bool module_referenced = false;
     bool maps_created = false;
+    bool cleanup_context_created = false;
 
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
@@ -1528,6 +1529,7 @@ ebpf_native_load_programs(
             *module_id);
         goto Done;
     }
+    cleanup_context_created = true;
 
     // Create maps.
     result = _ebpf_native_create_maps(module);
@@ -1593,11 +1595,17 @@ Done:
         }
         ebpf_free(local_service_name);
 
-        // Queue work item to close map and program handles.
-        ebpf_queue_preemptible_work_item(module->handle_cleanup_context.handle_cleanup_workitem);
-        module->handle_cleanup_context.handle_cleanup_workitem = NULL;
-        module->handle_cleanup_context.handle_information = NULL;
+        if (cleanup_context_created) {
+            // Queue work item to close map and program handles.
+            ebpf_queue_preemptible_work_item(module->handle_cleanup_context.handle_cleanup_workitem);
+            module->handle_cleanup_context.handle_cleanup_workitem = NULL;
+            module->handle_cleanup_context.handle_information = NULL;
+        }
+    } else {
+        // No need to close program and map handles. Clean up handle cleanup context.
+        _ebpf_native_clean_up_handle_cleanup_context(&module->handle_cleanup_context);
     }
+
     if (module_referenced) {
         ebpf_native_release_reference(module);
         module_referenced = false;
