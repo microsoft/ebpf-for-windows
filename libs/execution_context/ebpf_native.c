@@ -1234,13 +1234,17 @@ _ebpf_native_close_handles_workitem(_In_opt_ const void* context)
     ebpf_native_handle_cleanup_information_t* handle_info = (ebpf_native_handle_cleanup_information_t*)context;
     for (uint32_t i = 0; i < handle_info->count_of_program_handles; i++) {
         if (handle_info->program_handles[i] != ebpf_handle_invalid) {
-            ebpf_assert_success(ebpf_handle_close(handle_info->program_handles[i]));
+            // ebpf_assert_success(ebpf_handle_close(handle_info->program_handles[i]));
+            ebpf_result_t result = ebpf_handle_close(handle_info->program_handles[i]);
+            ebpf_assert(result == EBPF_SUCCESS);
             handle_info->program_handles[i] = ebpf_handle_invalid;
         }
     }
     for (uint32_t i = 0; i < handle_info->count_of_map_handles; i++) {
         if (handle_info->map_handles[i] != ebpf_handle_invalid) {
-            ebpf_assert_success(ebpf_handle_close(handle_info->map_handles[i]));
+            // ebpf_assert_success(ebpf_handle_close(handle_info->map_handles[i]));
+            ebpf_result_t result = ebpf_handle_close(handle_info->map_handles[i]);
+            ebpf_assert(result == EBPF_SUCCESS);
             handle_info->map_handles[i] = ebpf_handle_invalid;
         }
     }
@@ -1256,8 +1260,10 @@ _ebpf_native_clean_up_handle_cleanup_context(_Inout_ ebpf_native_handle_cleanup_
         return;
     }
 
-    ebpf_free(cleanup_context->handle_information->map_handles);
-    ebpf_free(cleanup_context->handle_information->program_handles);
+    if (cleanup_context->handle_information != NULL) {
+        ebpf_free(cleanup_context->handle_information->map_handles);
+        ebpf_free(cleanup_context->handle_information->program_handles);
+    }
     ebpf_free_preemptible_work_item(cleanup_context->handle_cleanup_workitem);
 }
 
