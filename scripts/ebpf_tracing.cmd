@@ -26,7 +26,6 @@ set "max_committed_etl_files=30"
 set "max_committed_wfp_state_files=1"
 
 :parse_args
-echo Parameter: "%~1"
 if "%~1" == "" goto :validate_args
 if /i "%~1" == "start" set "command=%~1" & shift & goto :parse_args
 if /i "%~1" == "stop" set "command=%~1" & shift & goto :parse_args
@@ -55,14 +54,16 @@ if "%trace_path%" == "" (
 )
 
 :run_command
-echo Running with the following parameter values:
-echo command=%command%
-echo trace_path=%trace_path%
-echo trace_name=%trace_name%
-echo rundown_period=%rundown_period%
-echo max_file_size_mb=%max_file_size_mb%
-echo max_committed_etl_files=%max_committed_etl_files%
-echo max_committed_wfp_state_files=%max_committed_wfp_state_files%
+@rem Uncomment below for debugging purposes.
+@rem ---------------------------------------
+@rem echo Running with the following parameter values:
+@rem echo command=%command%
+@rem echo trace_path=%trace_path%
+@rem echo trace_name=%trace_name%
+@rem echo rundown_period=%rundown_period%
+@rem echo max_file_size_mb=%max_file_size_mb%
+@rem echo max_committed_etl_files=%max_committed_etl_files%
+@rem echo max_committed_wfp_state_files=%max_committed_wfp_state_files%
 
 @rem Internal constants
 set /a num_etl_files_to_keep=1
