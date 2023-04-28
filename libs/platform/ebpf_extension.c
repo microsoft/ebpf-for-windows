@@ -146,6 +146,13 @@ _ebpf_extension_client_attach_provider(
 
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrClientAttachProvider, status);
+
+        // If the attach failed, then the provider binding context is not valid.
+        // Notify client that provider is no longer available.
+        local_client_binding_context->provider_binding_context = NULL;
+        local_client_binding_context->provider_dispatch_table = NULL;
+        local_client_binding_context->provider_data = NULL;
+        (void)_ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
         goto Done;
     }
 
