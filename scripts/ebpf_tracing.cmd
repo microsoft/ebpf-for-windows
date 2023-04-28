@@ -29,7 +29,8 @@ if not exist "!tracePath!" (
 set trace_name="ebpf_diag"
 set logman_period=0:35:00
 set /a max_size_mb=20
-set /a max_committed_files=41
+set /a max_committed_etl_files=41
+set /a max_committed_wfp_state_files=1
 
 @rem Internal constants
 set /a num_etl_files_to_keep=1
@@ -70,8 +71,12 @@ if "%option%"=="periodic" (
 		move /y "!tracePath!\%%f" "!traceCommittedPath!" >nul
 	)
 
-	@rem Iterate over all the files in the 'traceCommittedPath' directory, and delete files older files than `max_committed_files`.
-	for /f "skip=%max_committed_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\*.*"') do ( del "!traceCommittedPath!\%%f" )
+	@rem Iterate over all the .ETL files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_etl_files`.
+	for /f "skip=%max_committed_etl_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\*.etl"') do ( del "!traceCommittedPath!\%%f" )
+
+	@rem Iterate over all the WFP-state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_wfp_state_files`.
+	for /f "skip=%max_committed_wfp_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.zip"') do ( del "!traceCommittedPath!\%%f" )
+
 
 ) else if "%option%"=="start" (
 
