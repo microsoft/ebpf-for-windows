@@ -51,6 +51,7 @@ if "%option%"=="periodic" (
     set "wfp_state_file_zip=!tracePath!\wfpstate.zip"
 	makecab "!wfp_state_file!" "!wfp_state_file_zip!"
 	if exist "!wfp_state_file_zip!" (
+		del "!wfp_state_file!"
 		@rem If the file size is less or equal than 'max_size_mb', then move it to the 'traceCommittedPath' directory (otherwise it'll just be overwritten by the next run down).
 		for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
 		set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
