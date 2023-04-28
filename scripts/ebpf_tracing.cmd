@@ -3,13 +3,13 @@
 
 @rem Script behavior:
 @rem - When called with 'start', it will:
-@rem 	- Setup the logman session named as defined in 'trace_name', capping circular-log file size to 'max_size_mb', and generating every 'logman_period'.
+@rem 	- Setup the logman session named as defined in 'trace_name', capping circular-log file size to 'max_file_size_mb', and generating every 'logman_period'.
 @rem    - Configure the WFP/eBPF events to be monitored
 @rem    - Start the session within the given 'tracePath' directory.
 @rem - When called with 'stop', it will:
 @rem 	- Stop then delete the logman session, and finally deletes the 'tracePath' directory.
 @rem - When called with 'periodic', it will:
-@rem 	- Run 'netsh wfp show state' into the 'tracePath' directory, and if the file is under 'max_size_mb', it will move it into the '.\committed' subfolder, adding a timestamp to its name.
+@rem 	- Run 'netsh wfp show state' into the 'tracePath' directory, and if the file is under 'max_file_size_mb', it will move it into the '.\committed' subfolder, adding a timestamp to its name.
 @rem 	- Iterate over all the '.etl' files in the 'tracePath' directory, sorted in descending order by "date modified", skip the first 'num_etl_files_to_keep' files and move the others into the '.\committed' subfolder.
 @rem 	- Iterate over all the '.etl' and '.xml' files in the '.\committed' subfolder and delete files older than 'files_max_age_days' days.
 
@@ -27,14 +27,14 @@ if not exist "!tracePath!" (
 
 @rem Define the parameters for the tracing session and the periodic cleanup job.
 set trace_name="ebpf_diag"
-set logman_period=0:35:00
-set /a max_size_mb=20
+set logman_period=0:33:00
+set /a max_file_size_mb=20
 set /a max_committed_etl_files=41
 set /a max_committed_wfp_state_files=1
 
 @rem Internal constants
 set /a num_etl_files_to_keep=1
-set /a max_size_bytes=max_size_mb*1000000
+set /a max_size_bytes=max_file_size_mb*1000000
 
 if "%option%"=="periodic" (
 
@@ -53,7 +53,7 @@ if "%option%"=="periodic" (
 	makecab "!wfp_state_file!" "!wfp_state_file_cab!"
 	if exist "!wfp_state_file_cab!" (
 		del "!wfp_state_file!"
-		@rem If the file size is less or equal than 'max_size_mb', then move it to the 'traceCommittedPath' directory (otherwise it'll just be overwritten by the next run down).
+		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory (otherwise it'll just be overwritten by the next run down).
 		for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
 		set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
 		set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
@@ -80,7 +80,7 @@ if "%option%"=="periodic" (
 ) else if "%option%"=="start" (
 
 	@rem Set up the tracing session.
-	logman create trace !trace_name! -o "!tracePath!\ebpf_trace" -f bincirc -max %max_size_mb% -cnf %logman_period% -v mmddhhmm
+	logman create trace !trace_name! -o "!tracePath!\ebpf_trace" -f bincirc -max %max_file_size_mb% -cnf %logman_period% -v mmddhhmm
 
 	@rem Define the WFP events to be traced.
 	logman update trace !trace_name! -p "{00e7ee66-5b24-5c41-22cb-af98f63e2f90}" 0x7 0x4
