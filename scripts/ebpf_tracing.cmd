@@ -49,18 +49,18 @@ if "%option%"=="periodic" (
     netsh wfp show state
     popd
     set "wfp_state_file=!tracePath!\wfpstate.xml"
-    set "wfp_state_file_zip=!tracePath!\wfpstate.zip"
-	makecab "!wfp_state_file!" "!wfp_state_file_zip!"
-	if exist "!wfp_state_file_zip!" (
+    set "wfp_state_file_cab=!tracePath!\wfpstate.cab"
+	makecab "!wfp_state_file!" "!wfp_state_file_cab!"
+	if exist "!wfp_state_file_cab!" (
 		del "!wfp_state_file!"
 		@rem If the file size is less or equal than 'max_size_mb', then move it to the 'traceCommittedPath' directory (otherwise it'll just be overwritten by the next run down).
 		for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
 		set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
 		set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
 		set "timestamp=!YYYY!!MM!!DD!_!HH!!Min!!Sec!"
-		for %%F in ("!wfp_state_file_zip!") do (
+		for %%F in ("!wfp_state_file_cab!") do (
 			if %%~zF LEQ %max_size_bytes% (
-				move /y "!wfp_state_file_zip!" "!traceCommittedPath!\wfpstate_!timestamp!.zip" >nul
+				move /y "!wfp_state_file_cab!" "!traceCommittedPath!\wfpstate_!timestamp!.cab" >nul
 			)
 		)
 	)
@@ -75,8 +75,7 @@ if "%option%"=="periodic" (
 	for /f "skip=%max_committed_etl_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\*.etl"') do ( del "!traceCommittedPath!\%%f" )
 
 	@rem Iterate over all the WFP-state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_wfp_state_files`.
-	for /f "skip=%max_committed_wfp_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.zip"') do ( del "!traceCommittedPath!\%%f" )
-
+	for /f "skip=%max_committed_wfp_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.cab"') do ( del "!traceCommittedPath!\%%f" )
 
 ) else if "%option%"=="start" (
 
