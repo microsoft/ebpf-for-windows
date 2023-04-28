@@ -54,8 +54,8 @@ if "%trace_path%" == "" (
 )
 
 :run_command
-@rem Uncomment below for debugging purposes.
-@rem ---------------------------------------
+@rem Uncomment ECHOs below for debugging purposes.
+@rem ----------------------------------------------
 @rem echo Running with the following parameter values:
 @rem echo command=%command%
 @rem echo trace_path=%trace_path%
@@ -70,7 +70,7 @@ set /a num_etl_files_to_keep=1
 set /a max_file_size_bytes=!max_file_size_mb!*1000000
 
 if not exist "!trace_path!" (
-	echo Creating "!trace_path!"
+	echo Creating trace_path "!trace_path!"
 	mkdir "!trace_path!"
 )
 
@@ -86,22 +86,28 @@ if "%command%"=="periodic" (
     pushd "!trace_path!"
     netsh wfp show state
     popd
-    set "wfp_state_file=!trace_path!\wfpstate.xml"
     set "wfp_state_file_cab=!trace_path!\wfpstate.cab"
-	makecab "!wfp_state_file!" "!wfp_state_file_cab!"
+	makecab "!trace_path!\wfpstate.xml" "!wfp_state_file_cab!"
 	if exist "!wfp_state_file_cab!" (
-		del "!wfp_state_file!"
 
-		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory (otherwise it'll just be overwritten by the next run down).
-		for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do (
-			set "dt=%%a"
-			set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
-			set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
-			set "timestamp=!YYYY!!MM!!DD!_!HH!!Min!!Sec!"
-			for %%F in ("!wfp_state_file_cab!") do (
-				if %%~zF LEQ %max_file_size_bytes% (
+		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory.
+		for %%F in ("!wfp_state_file_cab!") do (
+			if %%~zF LEQ %max_file_size_bytes% (
+
+				@rem Get the current date and time in a format suitable for file names.
+				for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do (
+					set "dt=%%a"
+					set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
+					set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
+					set "timestamp=!YYYY!!MM!!DD!_!HH!!Min!!Sec!"
+
+					@rem Move the .CAB file to the 'traceCommittedPath' directory.
 					move /y "!wfp_state_file_cab!" "!traceCommittedPath!\wfpstate_!timestamp!.cab" >nul
 				)
+			) else (
+
+				@rem If the .CAB file size is greater than 'max_file_size_mb', then delete it.
+				del "!wfp_state_file_cab!"
 			)
 		)
 	)
@@ -117,7 +123,6 @@ if "%command%"=="periodic" (
 
 	@rem Iterate over all the WFP-state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_wfp_state_files`.
 	for /f "skip=%max_committed_wfp_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.cab"') do ( del "!traceCommittedPath!\%%f" )
-
 
 ) else if "%command%"=="start" (
 
@@ -136,18 +141,19 @@ if "%command%"=="periodic" (
 
 ) else if "%command%"=="stop" (
 
+	@rem Stop and delete the tracing session.
 	logman stop !trace_name!
 	logman delete !trace_name!
+
+	@rem Delete the tracing directory.
 	rmdir /s /q "!trace_path!"
 
 ) else (
 
 	goto :usage
 )
-
 endlocal
 exit /b 0
-
 
 :usage
 echo Usage: ebpf_tracing.cmd command /trace_path path [/trace_name name] [/rundown_period ^<period as (H:mm:ss)^>] [/max_file_size_mb size] [/max_committed_etl_files count] [/max_committed_wfp_state_files count]
