@@ -16,7 +16,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-@rem Define the default parameters values for the tracing session and the periodic cleanup job.
+@rem Define the default parameter values for the tracing session and the periodic cleanup job.
 set "command="
 set "trace_path="
 set "trace_name=ebpf_diag"
