@@ -239,6 +239,8 @@ ebpf_core_terminate()
 
     ebpf_program_terminate();
 
+    ebpf_handle_table_terminate();
+
     ebpf_async_terminate();
 
     ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
@@ -256,8 +258,6 @@ ebpf_core_terminate()
     // to be called after ebpf_epoch_terminate() to ensure all the program epoch
     // cleanup work items have been executed by this time.
     ebpf_native_terminate();
-
-    ebpf_handle_table_terminate();
 
     // Verify that all ebpf_core_object_t objects have been freed.
     ebpf_object_tracking_terminate();

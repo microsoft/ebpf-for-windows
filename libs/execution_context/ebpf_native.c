@@ -22,8 +22,6 @@ static bpf2c_version_t _ebpf_minimum_version = {0, 0, 0};
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
 
-EX_RUNDOWN_REF _ebpf_native_work_item_rundown_reference;
-
 typedef uint64_t (*helper_function_address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
 
 typedef struct _ebpf_native_map
@@ -376,9 +374,6 @@ ebpf_native_terminate()
     _ebpf_native_client_table = NULL;
     ebpf_lock_destroy(&_ebpf_native_client_table_lock);
 
-    // Wait for all queued work items to complete.
-    ExWaitForRundownProtectionRelease(&_ebpf_native_work_item_rundown_reference);
-
     EBPF_RETURN_VOID();
 }
 
@@ -565,8 +560,6 @@ ebpf_native_initiate()
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
-
-    ExInitializeRundownProtection(&_ebpf_native_work_item_rundown_reference);
 
 Done:
     if (return_value != EBPF_SUCCESS) {
@@ -877,7 +870,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
 Done:
     if (result != EBPF_SUCCESS) {
         // Copy the handles in the cleanup context.
-        for (uint32_t i = 0; i < module->map_count; i++) {
+        for (size_t i = 0; i < module->map_count; i++) {
             module->handle_cleanup_context.handle_information->map_handles[i] = module->maps[i].handle;
         }
         _ebpf_native_clean_up_maps(module->maps, module->map_count, true, false);
@@ -1197,7 +1190,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
     if (result != EBPF_SUCCESS) {
         // Copy the handles in the cleanup context.
-        for (uint32_t i = 0; i < module->program_count; i++) {
+        for (size_t i = 0; i < module->program_count; i++) {
             module->handle_cleanup_context.handle_information->program_handles[i] = module->programs[i].handle;
         }
         _ebpf_native_clean_up_programs(module->programs, module->program_count, false);
@@ -1241,21 +1234,19 @@ _ebpf_native_close_handles_work_item(_In_opt_ const void* context)
     ebpf_native_handle_cleanup_info_t* handle_info = (ebpf_native_handle_cleanup_info_t*)context;
     for (uint32_t i = 0; i < handle_info->count_of_program_handles; i++) {
         if (handle_info->program_handles[i] != ebpf_handle_invalid) {
-            ebpf_assert_success(ebpf_handle_close(handle_info->program_handles[i]));
+            (void)ebpf_handle_close(handle_info->program_handles[i]);
             handle_info->program_handles[i] = ebpf_handle_invalid;
         }
     }
     for (uint32_t i = 0; i < handle_info->count_of_map_handles; i++) {
         if (handle_info->map_handles[i] != ebpf_handle_invalid) {
-            ebpf_assert_success(ebpf_handle_close(handle_info->map_handles[i]));
+            (void)ebpf_handle_close(handle_info->map_handles[i]);
             handle_info->map_handles[i] = ebpf_handle_invalid;
         }
     }
 
     ebpf_free(handle_info->program_handles);
     ebpf_free(handle_info->map_handles);
-
-    ExReleaseRundownProtection(&_ebpf_native_work_item_rundown_reference);
 }
 
 static void
@@ -1270,7 +1261,6 @@ _ebpf_native_clean_up_handle_cleanup_context(_Inout_ ebpf_native_handle_cleanup_
         ebpf_free(cleanup_context->handle_information->program_handles);
     }
     ebpf_free_preemptible_work_item(cleanup_context->handle_cleanup_work_item);
-    ExReleaseRundownProtection(&_ebpf_native_work_item_rundown_reference);
 }
 
 static ebpf_result_t
@@ -1278,10 +1268,6 @@ _ebpf_native_initialize_handle_cleanup_context(
     size_t program_handle_count, size_t map_handle_count, _Inout_ ebpf_native_handle_cleanup_context_t* cleanup_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-
-    if (!ExAcquireRundownProtection(&_ebpf_native_work_item_rundown_reference)) {
-        return EBPF_FAILED;
-    }
 
     memset(cleanup_context, 0, sizeof(ebpf_native_handle_cleanup_context_t));
 
