@@ -167,6 +167,6 @@ echo   /max_committed_wfp_state_files count Number of (most recent) WFP-state .C
 echo Examples (overriding defaults):
 echo        ebpf_tracing.cmd start /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF" /rundown_period 0:35:00 /max_file_size_mb 20
 echo        ebpf_tracing.cmd stop /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF"
-echo        ebpf_tracing.cmd periodic periodic /trace_path "%SystemRoot%\Logs\eBPF" /max_file_size_mb 20 /max_committed_etl_files 30 /max_committed_wfp_state_files 1
+echo        ebpf_tracing.cmd periodic /trace_path "%SystemRoot%\Logs\eBPF" /max_file_size_mb 20 /max_committed_etl_files 30 /max_committed_wfp_state_files 1
 endlocal
 exit /b 1
