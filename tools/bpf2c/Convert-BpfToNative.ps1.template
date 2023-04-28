@@ -1,6 +1,73 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
+<#
+.SYNOPSIS
+    Generate a native driver from a BPF program.
+
+.DESCRIPTION
+    This script generates a native driver (.sys file) from a BPF program. The native program can be used to load BPF
+    programs into the kernel when Hyper-V Code Integrity (HVCI) is enabled.
+
+.PARAMETER ProgramName
+    Specifies the name of the BPF program to convert.
+
+.PARAMETER Type
+    Specifies the type of the BPF program. Valid values include "xdp", "bind", "sockops", and other BPF program types.
+
+.PARAMETER IncludeDir
+    Specifies the directory containing the bpf2c include files.
+
+.PARAMETER BinDir
+    Specifies the directory containing the bpf2c binaries.
+
+.PARAMETER OutDir
+    Specifies the directory where the generated driver will be placed.
+
+.PARAMETER Platform
+    Specifies the target platform. Valid values include "x64".
+
+.PARAMETER Configuration
+    Specifies the build configuration. Valid values include "Release", "FuzzerDebug", and "Debug".
+
+.PARAMETER SkipVerification
+    Specifies whether to skip verification of the generated driver. This parameter is only supported for Debug builds.
+
+.PARAMETER KernelMode
+    Specifies whether to generate a kernel-mode driver. If this parameter is false, a user DLL will be generated.
+
+.PARAMETER ResourceFile
+    Specifies the path to a resource file to embed in the generated driver.
+
+.EXAMPLE
+    .\Convert-BpfToNative.ps1 -ProgramName bindmonitor
+
+    This example generates a native driver from the BPF program bindmonitor.o.
+
+.EXAMPLE
+    .\Convert-BpfToNative.ps1 -ProgramName bindmonitor -Type bind
+
+    This example generates a native driver from the BPF program bindmonitor.o. The
+    program type is set to "bind".
+
+.EXAMPLE
+    .\Convert-BpfToNative.ps1 -ProgramName bindmonitor -Type bind -Configuration Debug
+
+    This example generates a native driver from the BPF program bindmonitor.o. The program type is set to "bind".
+    The driver is built in Debug configuration.
+
+.EXAMPLE
+    .\Convert-BpfToNative.ps1 -ProgramName bindmonitor -Type bind -Configuration Debug -KernelMode $false
+
+    This example generates a user-mode DLL from the BPF program bindmonitor.o. The program type is set to "bind".
+    The driver is built in Debug configuration.
+
+.NOTES
+    Author: Microsoft Corporation
+    Website: https://github.com/microsoft/ebpf-for-windows
+
+#>
+
 param([parameter(Mandatory = $true)] [string] $ProgramName,
     [parameter(Mandatory = $false)] [string] $Type,
     [parameter(Mandatory = $false)] [string] $IncludeDir = "$PSScriptRoot\..\include",
@@ -9,7 +76,8 @@ param([parameter(Mandatory = $true)] [string] $ProgramName,
     [parameter(Mandatory = $false)] [string] $Platform = "x64",
     [ValidateSet("Release", "FuzzerDebug", "Debug")][parameter(Mandatory = $false)] [string] $Configuration = "Release",
     [parameter(Mandatory = $false)] [bool] $SkipVerification = $false,
-    [parameter(Mandatory = $false)] [bool] $KernelMode = $true)
+    [parameter(Mandatory = $false)] [bool] $KernelMode = $true,
+    [parameter(Mandatory = $false)] [string] $ResourceFile = "")
 
 Push-Location $OutDir
 
@@ -64,7 +132,7 @@ if ($PSBoundParameters.ContainsKey("Type")) {
     $AdditionalOptions += " --type $Type"
 }
 
-msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:ProgramName="$ProgramName" /p:AdditionalOptions="$AdditionalOptions" $ProjectFile
+msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:ProgramName="$ProgramName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed for $ProgramName.o"
