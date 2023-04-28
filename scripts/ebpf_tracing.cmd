@@ -16,7 +16,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-@rem Define the default parameter values for the tracing session and the periodic cleanup job.
+@rem Define the default parameters values for the tracing session and the periodic cleanup job.
 set "command="
 set "trace_path="
 set "trace_name=ebpf_diag"
@@ -28,9 +28,9 @@ set "max_committed_wfp_state_files=1"
 :parse_args
 echo Parameter: "%~1"
 if "%~1" == "" goto :validate_args
-if /i "%~1" == "start" set "command=%~1" & shift & goto parse_args
-if /i "%~1" == "stop" set "command=%~1" & shift & goto parse_args
-if /i "%~1" == "periodic" set "command=%~1" & shift & goto parse_args
+if /i "%~1" == "start" set "command=%~1" & shift & goto :parse_args
+if /i "%~1" == "stop" set "command=%~1" & shift & goto :parse_args
+if /i "%~1" == "periodic" set "command=%~1" & shift & goto :parse_args
 if "%~1" == "/trace_path" set "trace_path=%~2" & shift & shift & goto :parse_args
 if "%~1" == "/trace_name" set "trace_name=%~2" & shift & shift & goto :parse_args
 if "%~1" == "/rundown_period" set rundown_period=%~2 & shift & shift & goto :parse_args
@@ -38,20 +38,20 @@ if "%~1" == "/max_file_size_mb" set max_file_size_mb=%~2 & shift & shift & goto 
 if "%~1" == "/max_committed_etl_files" set max_committed_etl_files=%~2 & shift & shift & goto :parse_args
 if "%~1" == "/max_committed_wfp_state_files" set max_committed_wfp_state_files=%~2 & shift & shift & goto :parse_args
 echo Unknown parameter: "%~1"
-goto usage
+goto :usage
 
 :validate_args
 if "%command%" == "" (
     echo Mandatory parameter 'command' is missing.
-    goto usage
+    goto :usage
 )
 if not "%command%" == "start" if not "%command%" == "stop" if not "%command%" == "periodic" (
     echo Error: Invalid command specified: '%command%'. Valid values are start, stop, and periodic.
-    goto usage
+    goto :usage
 )
 if "%trace_path%" == "" (
     echo Error: Mandatory parameter 'trace_path' is missing.
-    goto usage
+    goto :usage
 )
 
 :run_command
@@ -141,7 +141,7 @@ if "%command%"=="periodic" (
 
 ) else (
 
-	goto usage
+	goto :usage
 )
 
 endlocal
