@@ -17,6 +17,7 @@
 #include "common_tests.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_structs.h"
+#include "native_helper.hpp"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 #include "watchdog.h"
@@ -28,6 +29,75 @@ using namespace std::chrono_literals;
 
 CATCH_REGISTER_LISTENER(_watchdog)
 
+// #if defined(CONFIG_BPF_JIT_DISABLED)
+// #define EBPF_PROGRAM_FILE_EXTENSION ".sys"
+// #else
+// #define EBPF_PROGRAM_FILE_EXTENSION ".o"
+// #endif
+
+// typedef class _random_generator
+// {
+//   public:
+//     _random_generator() { srand((uint32_t)time(NULL)); }
+//     uint32_t
+//     get_random_number()
+//     {
+//         return rand();
+//     }
+// } random_generator_t;
+
+// random_generator_t random_generator;
+
+// typedef class _native_module_helper
+// {
+// public:
+//     _native_module_helper(_In_z_ const char* file_name);
+//     std::string get_file_name() const { return _file_name; }
+//     ~_native_module_helper();
+
+// private:
+//     std::string _file_name;
+// } native_module_helper_t;
+
+// _native_module_helper::_native_module_helper(_In_z_ const char* file_name_prefix)
+// {
+// #if defined(CONFIG_BPF_JIT_DISABLED)
+//     int32_t random_number;
+//     std::string file_name_prefix_string(file_name_prefix);
+
+//     std::string original_file_name = file_name_prefix_string + std::string(EBPF_PROGRAM_FILE_EXTENSION);
+
+//     // Generate a random number to append to the file name.
+//     // srand((uint32_t)time(NULL));
+//     // random_number = rand();
+//     random_number = random_generator.get_random_number();
+
+//     std::string random_string = std::to_string(random_number);
+//     _file_name = file_name_prefix_string + random_string + std::string(EBPF_PROGRAM_FILE_EXTENSION);
+
+//     // printf("original_file_name = %s\n", original_file_name.c_str());
+//     // printf("copy_file_name = %s\n", _file_name.c_str());
+
+//     // REQUIRE(CopyFileA(original_file_name.c_str(), _file_name.c_str(), TRUE) == TRUE);
+//     if (CopyFileA(original_file_name.c_str(), _file_name.c_str(), TRUE) == FALSE) {
+//         int error = GetLastError();
+//         // printf("CopyFileA failed with error %d\n", error);
+//     }
+// #else
+//     _file_name = std::string(file_name_prefix) + std::string(EBPF_PROGRAM_FILE_EXTENSION);
+// #endif
+// }
+
+// _native_module_helper::~_native_module_helper()
+// {
+// #if defined(CONFIG_BPF_JIT_DISABLED)
+//     DeleteFileA(_file_name.c_str());
+
+//     // Sleep for 2 seconds.
+//     // Sleep(2000);
+// #endif
+// }
+
 void
 connection_test(
     ADDRESS_FAMILY address_family,
@@ -35,7 +105,9 @@ connection_test(
     _Inout_ receiver_socket_t& receiver_socket,
     uint32_t protocol)
 {
-    struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
+    native_module_helper_t helper("cgroup_sock_addr");
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -162,8 +234,9 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
     bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
+    native_module_helper_t helper("cgroup_sock_addr");
 
-    struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -254,7 +327,8 @@ connection_monitor_test(
     uint32_t protocol,
     bool disconnect)
 {
-    struct bpf_object* object = bpf_object__open("sockops.o");
+    native_module_helper_t helper("sockops");
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -430,7 +504,8 @@ TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
 
 TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 {
-    struct bpf_object* object = bpf_object__open("sockops.o");
+    native_module_helper_t helper("sockops");
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);

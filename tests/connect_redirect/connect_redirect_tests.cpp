@@ -16,6 +16,7 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_structs.h"
 #include "misc_helper.h"
+#include "native_helper.hpp"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 #include "watchdog.h"
@@ -24,6 +25,12 @@
 #include <ntsecapi.h>
 
 CATCH_REGISTER_LISTENER(_watchdog)
+
+// #if defined(CONFIG_BPF_JIT_DISABLED)
+// #define CGROUP_SOCK_ADDR_FILE "cgroup_sock_addr2.sys"
+// #else
+// #define CGROUP_SOCK_ADDR_FILE "cgroup_sock_addr2.o"
+// #endif
 
 static std::string _family;
 static std::string _protocol;
@@ -285,7 +292,9 @@ static void
 _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 {
     int result;
-    struct bpf_object* object = bpf_object__open("cgroup_sock_addr2.o");
+    native_module_helper_t helper("cgroup_sock_addr2");
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
 
     REQUIRE(bpf_object__load(object) == 0);
