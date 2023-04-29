@@ -174,6 +174,20 @@ _open_process_and_walk_handles(DWORD process_id)
     return 0;
 }
 
+static bool
+_is_elevated()
+{
+    TOKEN_ELEVATION token_elevation = {0};
+    DWORD return_length = 0;
+
+    if (!GetTokenInformation(
+            GetCurrentProcessToken(), TokenElevation, &token_elevation, sizeof(token_elevation), &return_length)) {
+        return 0;
+    }
+
+    return token_elevation.TokenIsElevated;
+}
+
 // The following function uses windows specific type as an input to match
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
 unsigned long
@@ -193,6 +207,12 @@ handle_ebpf_show_processes(
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);
     UNREFERENCED_PARAMETER(done);
+
+    // Check whether we are running elevated.
+    if (!_is_elevated()) {
+        std::cout << "This command requires running as Administrator" << std::endl;
+        return ERROR_SUPPRESS_OUTPUT;
+    }
 
     DWORD max_processes = 512;
     DWORD bytes_used;

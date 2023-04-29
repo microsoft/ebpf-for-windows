@@ -844,11 +844,20 @@ TEST_CASE("show processes", "[netsh][processes]")
     _test_helper_netsh test_helper;
     int result;
     std::string output = run_netsh_command_with_args(handle_ebpf_show_processes, &result, 0);
-    REQUIRE(result == NO_ERROR);
 
-    // There are no real eBPF handles used in this test so the result should be empty.
-    REQUIRE(
-        output == "\n"
-                  "  PID  Name\n"
-                  "=====  ==============\n");
+    TOKEN_ELEVATION token_elevation = {0};
+    DWORD return_length = 0;
+    if (!GetTokenInformation(
+            GetCurrentProcessToken(), TokenElevation, &token_elevation, sizeof(token_elevation), &return_length) ||
+        !token_elevation.TokenIsElevated) {
+        REQUIRE(output == "This command requires running as Administrator\n");
+        REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    } else {
+        // There are no real eBPF handles used in this test so the result should be empty.
+        REQUIRE(
+            output == "\n"
+                      "  PID  Name\n"
+                      "=====  ==============\n");
+        REQUIRE(result == NO_ERROR);
+    }
 }
