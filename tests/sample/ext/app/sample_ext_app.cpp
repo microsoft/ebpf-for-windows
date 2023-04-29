@@ -169,8 +169,12 @@ TEST_CASE("utility_helpers_test_native", "[sample_ext_test]") { utility_helpers_
 TEST_CASE("netsh_add_program_test_sample_ebpf", "[sample_ext_test]")
 {
     int result;
-    std::string output =
-        _run_netsh_command(handle_ebpf_add_program, L"test_sample_ebpf.o", L"pinned=none", nullptr, &result);
+#if defined(CONFIG_BPF_JIT_DISABLED)
+    const wchar_t* file_name = L"test_sample_ebpf.sys";
+#else
+    const wchar_t* file_name = L"test_sample_ebpf.o";
+#endif
+    std::string output = _run_netsh_command(handle_ebpf_add_program, file_name, L"pinned=none", nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(output.starts_with("Loaded with"));
 }
