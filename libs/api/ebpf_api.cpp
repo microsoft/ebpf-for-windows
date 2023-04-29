@@ -2508,8 +2508,8 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
 
     try {
         if (result == EBPF_SUCCESS) {
+            std::unique_lock lock(_ebpf_state_mutex);
             for (auto& map : object->maps) {
-                std::unique_lock lock(_ebpf_state_mutex);
                 _ebpf_maps.insert(std::pair<ebpf_handle_t, ebpf_map_t*>(map->map_handle, map));
             }
         }
