@@ -121,8 +121,7 @@ if "%command%"=="periodic" (
 	@rem Iterate over all the WFP-state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_wfp_state_files`.
 	for /f "skip=%max_committed_wfp_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.cab"') do ( del "!traceCommittedPath!\%%f" )
 
-
-	@rem Iterate over all the .ETL files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_folder_size_mb`.
+	@rem Iterate over all the .ETL files in the 'traceCommittedPath' directory, and delete the older files overflowing `max_committed_folder_size_mb`.
 	set size=0
 	set /a max_committed_folder_size_kb=!max_committed_folder_size_mb! * 1024
 	for /f "skip=1 delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\*.etl"') do (
