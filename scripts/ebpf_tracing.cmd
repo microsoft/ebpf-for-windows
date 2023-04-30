@@ -166,15 +166,20 @@ endlocal
 exit /b 0
 
 :usage
-echo Usage: ebpf_tracing.cmd command /trace_path path [/trace_name name] [/rundown_period ^<period as (H:mm:ss)^>] [/max_file_size_mb size] [/max_committed_folder_size_mb count] [/max_committed_wfp_state_files count]
-echo   command                              (mandatory) Valid values are: [start, stop, periodic]
-echo   /trace_path path                     (mandatory) Path into which the tracing will be located (creates it if it does not exist).
-echo   /trace_name name                     Name of the logman trace (Default: "ebpf_diag")
-echo   /rundown_period period               Period, expressed as (H:mm:ss) for saving and generating a new ETL log, and for generating a WFP state snapshot (Default: 0:35:00).
-echo   /max_file_size_mb size               Maximum size set for an ETL log (Default: 20).
-echo   /max_committed_folder_size_mb count  Maximum overall size for (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 100)
-echo   /max_committed_wfp_state_files count Number of (most recent) WFP-state .CAB files to keep in the main 'trace_path\committed' (Default: 1).
+echo Usage: ebpf_tracing.cmd command /trace_path path [/trace_name name] [/rundown_period period] [/max_file_size_mb size] [/max_committed_folder_size_mb count] [/max_committed_wfp_state_files count]
+echo:
+echo Valid parameters:
+echo:
+echo   <command>                            - (mandatory) Valid values are: [start, stop, periodic]
+echo   /trace_path path                     - (mandatory) Path into which the tracing will be located (creates it if it does not exist).
+echo   /trace_name name                     - Name of the logman trace (Default: "ebpf_diag")
+echo   /rundown_period period               - Period, expressed as (H:mm:ss), for saving and generating a new ETL log, and for generating a WFP state snapshot (Default: 0:35:00).
+echo   /max_file_size_mb size               - Maximum size set for an ETL log (Default: 20).
+echo   /max_committed_folder_size_mb count  - Maximum overall size for (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 150)
+echo   /max_committed_wfp_state_files count - Number of (most recent) WFP-state .CAB files to keep in the main 'trace_path\committed' (Default: 1).
+echo:
 echo Examples (overriding defaults):
+echo:
 echo        ebpf_tracing.cmd start /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF" /rundown_period 0:35:00 /max_file_size_mb 20
 echo        ebpf_tracing.cmd stop /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF"
 echo        ebpf_tracing.cmd periodic /trace_path "%SystemRoot%\Logs\eBPF" /max_file_size_mb 20 /max_committed_folder_size_mb 30 /max_committed_wfp_state_files 1
