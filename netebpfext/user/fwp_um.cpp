@@ -432,10 +432,6 @@ static std::unique_ptr<fwp_injection_handle> _injection_handle;
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmFilterDeleteById0(_In_ HANDLE engine_handle, _In_ uint64_t id)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
     auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
 
     if (engine.remove_fwpm_filter(id)) {
