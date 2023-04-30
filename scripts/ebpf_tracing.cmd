@@ -22,7 +22,7 @@ set "trace_path="
 set "trace_name=ebpf_diag"
 set "rundown_period=0:35:00"
 set "max_file_size_mb=20"
-set "max_committed_etl_files=30"
+set "max_committed_folder_size_mb=150"
 set "max_committed_wfp_state_files=1"
 
 :parse_args
@@ -34,7 +34,7 @@ if "%~1" == "/trace_path" set "trace_path=%~2" & shift & shift & goto :parse_arg
 if "%~1" == "/trace_name" set "trace_name=%~2" & shift & shift & goto :parse_args
 if "%~1" == "/rundown_period" set rundown_period=%~2 & shift & shift & goto :parse_args
 if "%~1" == "/max_file_size_mb" set max_file_size_mb=%~2 & shift & shift & goto :parse_args
-if "%~1" == "/max_committed_etl_files" set max_committed_etl_files=%~2 & shift & shift & goto :parse_args
+if "%~1" == "/max_committed_folder_size_mb" set max_committed_folder_size_mb=%~2 & shift & shift & goto :parse_args
 if "%~1" == "/max_committed_wfp_state_files" set max_committed_wfp_state_files=%~2 & shift & shift & goto :parse_args
 echo Unknown parameter: "%~1"
 goto :usage
@@ -62,7 +62,7 @@ if "%trace_path%" == "" (
 @rem echo trace_name=%trace_name%
 @rem echo rundown_period=%rundown_period%
 @rem echo max_file_size_mb=%max_file_size_mb%
-@rem echo max_committed_etl_files=%max_committed_etl_files%
+@rem echo max_committed_folder_size_mb=%max_committed_folder_size_mb%
 @rem echo max_committed_wfp_state_files=%max_committed_wfp_state_files%
 
 @rem Internal constants
@@ -118,11 +118,23 @@ if "%command%"=="periodic" (
 		move /y "!trace_path!\%%f" "!traceCommittedPath!" >nul
 	)
 
-	@rem Iterate over all the .ETL files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_etl_files`.
-	for /f "skip=%max_committed_etl_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\*.etl"') do ( del "!traceCommittedPath!\%%f" )
-
 	@rem Iterate over all the WFP-state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_wfp_state_files`.
 	for /f "skip=%max_committed_wfp_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.cab"') do ( del "!traceCommittedPath!\%%f" )
+
+
+	@rem Iterate over all the .ETL files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_folder_size_mb`.
+	set size=0
+	set /a max_committed_folder_size_kb=!max_committed_folder_size_mb! * 1024
+	for /f "skip=1 delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\*.etl"') do (
+		for /f "skip=1 tokens=2 delims==; " %%g in ('wmic datafile where "name='!traceCommittedPath:\=\\!\\%%f'" get filesize /value') do (
+			set "file_size=%%g"
+			set /a size=!size! + !file_size! /1024
+			ECHO SIZE=!size!
+			if !size! gtr !max_committed_folder_size_kb! (
+				del "!traceCommittedPath!\%%f"
+			)
+		)
+	)
 
 ) else if "%command%"=="start" (
 
@@ -156,17 +168,17 @@ endlocal
 exit /b 0
 
 :usage
-echo Usage: ebpf_tracing.cmd command /trace_path path [/trace_name name] [/rundown_period ^<period as (H:mm:ss)^>] [/max_file_size_mb size] [/max_committed_etl_files count] [/max_committed_wfp_state_files count]
+echo Usage: ebpf_tracing.cmd command /trace_path path [/trace_name name] [/rundown_period ^<period as (H:mm:ss)^>] [/max_file_size_mb size] [/max_committed_folder_size_mb count] [/max_committed_wfp_state_files count]
 echo   command                              (mandatory) Valid values are: [start, stop, periodic]
 echo   /trace_path path                     (mandatory) Path into which the tracing will be located (creates it if it does not exist).
 echo   /trace_name name                     Name of the logman trace (Default: "ebpf_diag")
 echo   /rundown_period period               Period, expressed as (H:mm:ss) for saving and generating a new ETL log, and for generating a WFP state snapshot (Default: 0:35:00).
 echo   /max_file_size_mb size               Maximum size set for an ETL log (Default: 20).
-echo   /max_committed_etl_files count       Number of (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 30)
+echo   /max_committed_folder_size_mb count  Maximum overall size for (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 100)
 echo   /max_committed_wfp_state_files count Number of (most recent) WFP-state .CAB files to keep in the main 'trace_path\committed' (Default: 1).
 echo Examples (overriding defaults):
 echo        ebpf_tracing.cmd start /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF" /rundown_period 0:35:00 /max_file_size_mb 20
 echo        ebpf_tracing.cmd stop /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF"
-echo        ebpf_tracing.cmd periodic /trace_path "%SystemRoot%\Logs\eBPF" /max_file_size_mb 20 /max_committed_etl_files 30 /max_committed_wfp_state_files 1
+echo        ebpf_tracing.cmd periodic /trace_path "%SystemRoot%\Logs\eBPF" /max_file_size_mb 20 /max_committed_folder_size_mb 30 /max_committed_wfp_state_files 1
 endlocal
 exit /b 1
