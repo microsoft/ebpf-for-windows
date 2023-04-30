@@ -128,7 +128,7 @@ if "%command%"=="periodic" (
 	for /f "skip=1 delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\*.etl"') do (
 		for /f "skip=1 tokens=2 delims==; " %%g in ('wmic datafile where "name='!traceCommittedPath:\=\\!\\%%f'" get filesize /value') do (
 			set "file_size=%%g"
-			set /a size=!size! + !file_size! /1024
+			set /a size=!size! + !file_size! / 1024
 			if !size! gtr !max_committed_folder_size_kb! (
 				del "!traceCommittedPath!\%%f"
 			)
