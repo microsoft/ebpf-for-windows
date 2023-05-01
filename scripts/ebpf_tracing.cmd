@@ -22,7 +22,7 @@ set "trace_path="
 set "trace_name=ebpf_diag"
 set "rundown_period=0:35:00"
 set "max_file_size_mb=20"
-set "max_committed_folder_size_mb=150"
+set "max_committed_folder_size_mb=200"
 set "max_committed_wfp_state_files=1"
 
 :parse_args
@@ -175,7 +175,7 @@ echo   /trace_path path                     - (mandatory) Path into which the tr
 echo   /trace_name name                     - Name of the logman trace (Default: "ebpf_diag")
 echo   /rundown_period period               - Period, expressed as (H:mm:ss), for saving and generating a new ETL log, and for generating a WFP state snapshot (Default: 0:35:00).
 echo   /max_file_size_mb size               - Maximum size set for an ETL log (Default: 20).
-echo   /max_committed_folder_size_mb count  - Maximum overall size for (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 150)
+echo   /max_committed_folder_size_mb count  - Maximum overall size for (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 200)
 echo   /max_committed_wfp_state_files count - Number of (most recent) WFP-state .CAB files to keep in the main 'trace_path\committed' (Default: 1).
 echo:
 echo Examples (overriding defaults):
