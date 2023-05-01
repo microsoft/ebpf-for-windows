@@ -26,12 +26,6 @@
 
 CATCH_REGISTER_LISTENER(_watchdog)
 
-// #if defined(CONFIG_BPF_JIT_DISABLED)
-// #define CGROUP_SOCK_ADDR_FILE "cgroup_sock_addr2.sys"
-// #else
-// #define CGROUP_SOCK_ADDR_FILE "cgroup_sock_addr2.o"
-// #endif
-
 static std::string _family;
 static std::string _protocol;
 static std::string _vip_v4;

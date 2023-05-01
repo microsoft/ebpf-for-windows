@@ -10,10 +10,12 @@
 
 #pragma comment(lib, "rpcrt4")
 
+#define EBPF_PROGRAM_FILE_EXTENSION_JIT ".o"
+#define EBPF_PROGRAM_FILE_EXTENSION_NATIVE ".sys"
 #if defined(CONFIG_BPF_JIT_DISABLED)
-#define EBPF_PROGRAM_FILE_EXTENSION ".sys"
+#define EBPF_PROGRAM_FILE_EXTENSION EBPF_PROGRAM_FILE_EXTENSION_NATIVE
 #else
-#define EBPF_PROGRAM_FILE_EXTENSION ".o"
+#define EBPF_PROGRAM_FILE_EXTENSION EBPF_PROGRAM_FILE_EXTENSION_JIT
 #endif
 
 typedef class _random_generator
@@ -34,9 +36,7 @@ typedef class _native_module_helper
   public:
     _native_module_helper(_In_z_ const char* file_name_prefix)
     {
-        // printf("ANUSA: C1 called\n");
         initialize(file_name_prefix, ebpf_execution_type_t::EBPF_EXECUTION_ANY);
-        // _native_module_helper(file_name_prefix, ebpf_execution_type_t::EBPF_EXECUTION_ANY);
     }
     _native_module_helper(_In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type)
     {
@@ -45,7 +45,7 @@ typedef class _native_module_helper
     std::string
     get_file_name() const
     {
-        printf("====> ANUSA: get_file_name: %s\n", _file_name.c_str());
+        printf("_native_module_helper::get_file_name: %s\n", _file_name.c_str());
         return _file_name;
     }
     ~_native_module_helper();

@@ -174,21 +174,13 @@ TEST_CASE("utility_helpers_test_jit", "[sample_ext_test]") { utility_helpers_tes
 #endif
 TEST_CASE("utility_helpers_test_native", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_NATIVE); }
 
-// TEST_CASE("netsh_add_program_test_sample_ebpf", "[sample_ext_test]")
-// {
-//     int result;
-//     native_module_helper_t helper("test_sample_ebpf");
-//     std::string file_name_string  = std::string(helper.get_file_name().c_str());
-//     // ebpf_utf8_string_t utf_string = {0};
-//     wchar_t* file_name = nullptr;
-//     // utf_string.length = (uint16_t)file_name_string.length();
-//     // utf_string.value = (uint8_t*)file_name_string.c_str();
-//     // printf("ANUSA: ANUSA: file_name_string: %s\n", file_name_string.c_str());
-//     REQUIRE(string_to_wide_string(file_name_string.c_str(), &file_name) == ERROR_SUCCESS);
-
-//     std::string output = _run_netsh_command(handle_ebpf_add_program, file_name, L"pinned=none", nullptr, &result);
-//     REQUIRE(result == NO_ERROR);
-//     REQUIRE(output.starts_with("Loaded with"));
-
-//     free(file_name);
-// }
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("netsh_add_program_test_sample_ebpf", "[sample_ext_test]")
+{
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_add_program, L"test_sample_ebpf.o", L"pinned=none", nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output.starts_with("Loaded with"));
+}
+#endif
