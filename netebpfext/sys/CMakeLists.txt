@@ -41,6 +41,7 @@ target_include_directories("NetEbpfExt" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
   "${CMAKE_SOURCE_DIR}/netebpfext/sys"
   "${CMAKE_SOURCE_DIR}/netebpfext"
+  "${CMAKE_SOURCE_DIR}/resource"
 )
 
 target_link_directories("NetEbpfExt" PRIVATE

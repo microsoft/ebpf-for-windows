@@ -209,16 +209,90 @@ net_ebpf_ext_trace_terminate();
         TraceLoggingUInt64((value2), (#value2)),                                                             \
         TraceLoggingUInt64((value3), (#value3)));
 
-#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY(trace_level, keyword, message, handle, protocol, redirect, verdict) \
-    TraceLoggingWrite(                                                                                          \
-        net_ebpf_ext_tracelog_provider,                                                                         \
-        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                                                            \
-        TraceLoggingLevel(trace_level),                                                                         \
-        TraceLoggingKeyword((keyword)),                                                                         \
-        TraceLoggingString(message, "Message"),                                                                 \
-        TraceLoggingUInt64((handle), "TransportEndpointHandle"),                                                \
-        TraceLoggingUInt64((protocol), "Protocol"),                                                             \
-        TraceLoggingUInt64((redirect), "Redirected"),                                                           \
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV4(                                                              \
+    trace_level, message, handle, protocol, source_ip, source_port, destination_ip, destination_port, verdict) \
+    TraceLoggingWrite(                                                                                         \
+        net_ebpf_ext_tracelog_provider,                                                                        \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                                                           \
+        TraceLoggingLevel(trace_level),                                                                        \
+        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR),                                          \
+        TraceLoggingString(message, "Message"),                                                                \
+        TraceLoggingUInt64((handle), "TransportEndpointHandle"),                                               \
+        TraceLoggingUInt64((protocol), "Protocol"),                                                            \
+        TraceLoggingIPv4Address((source_ip), "src_ip"),                                                        \
+        TraceLoggingUInt16((source_port), "src_port"),                                                         \
+        TraceLoggingIPv4Address((destination_ip), "dst_ip"),                                                   \
+        TraceLoggingUInt16((destination_port), "dst_port"),                                                    \
+        TraceLoggingUInt32((verdict), "Verdict"));
+
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV6(                                                              \
+    trace_level, message, handle, protocol, source_ip, source_port, destination_ip, destination_port, verdict) \
+    TraceLoggingWrite(                                                                                         \
+        net_ebpf_ext_tracelog_provider,                                                                        \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                                                           \
+        TraceLoggingLevel(trace_level),                                                                        \
+        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR),                                          \
+        TraceLoggingString(message, "Message"),                                                                \
+        TraceLoggingUInt64((handle), "TransportEndpointHandle"),                                               \
+        TraceLoggingUInt64((protocol), "Protocol"),                                                            \
+        TraceLoggingIPv6Address((source_ip), "src_ip"),                                                        \
+        TraceLoggingUInt16((source_port), "src_port"),                                                         \
+        TraceLoggingIPv6Address((destination_ip), "dst_ip"),                                                   \
+        TraceLoggingUInt16((destination_port), "dst_port"),                                                    \
+        TraceLoggingUInt32((verdict), "Verdict"));
+
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV4(            \
+    message,                                                          \
+    handle,                                                           \
+    protocol,                                                         \
+    source_ip,                                                        \
+    source_port,                                                      \
+    destination_ip,                                                   \
+    destination_port,                                                 \
+    redirected_ip,                                                    \
+    redirected_port,                                                  \
+    verdict)                                                          \
+    TraceLoggingWrite(                                                \
+        net_ebpf_ext_tracelog_provider,                               \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                  \
+        TraceLoggingLevel(NET_EBPF_EXT_TRACELOG_LEVEL_INFO),          \
+        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR), \
+        TraceLoggingString(message, "Message"),                       \
+        TraceLoggingUInt64((handle), "TransportEndpointHandle"),      \
+        TraceLoggingUInt64((protocol), "Protocol"),                   \
+        TraceLoggingIPv4Address((source_ip), "src_ip"),               \
+        TraceLoggingUInt16((source_port), "src_port"),                \
+        TraceLoggingIPv4Address((destination_ip), "dst_ip"),          \
+        TraceLoggingUInt16((destination_port), "dst_port"),           \
+        TraceLoggingIPv4Address((redirected_ip), "redirected_ip"),    \
+        TraceLoggingUInt16((redirected_port), "redirected_port"),     \
+        TraceLoggingUInt64((verdict), "Verdict"));
+
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV6(            \
+    message,                                                          \
+    handle,                                                           \
+    protocol,                                                         \
+    source_ip,                                                        \
+    source_port,                                                      \
+    destination_ip,                                                   \
+    destination_port,                                                 \
+    redirected_ip,                                                    \
+    redirected_port,                                                  \
+    verdict)                                                          \
+    TraceLoggingWrite(                                                \
+        net_ebpf_ext_tracelog_provider,                               \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                  \
+        TraceLoggingLevel(NET_EBPF_EXT_TRACELOG_LEVEL_INFO),          \
+        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR), \
+        TraceLoggingString(message, "Message"),                       \
+        TraceLoggingUInt64((handle), "TransportEndpointHandle"),      \
+        TraceLoggingUInt64((protocol), "Protocol"),                   \
+        TraceLoggingIPv6Address((source_ip), "src_ip"),               \
+        TraceLoggingUInt16((source_port), "src_port"),                \
+        TraceLoggingIPv6Address((destination_ip), "dst_ip"),          \
+        TraceLoggingUInt16((destination_port), "dst_port"),           \
+        TraceLoggingIPv6Address((redirected_ip), "redirected_ip"),    \
+        TraceLoggingUInt16((redirected_port), "redirected_port"),     \
         TraceLoggingUInt64((verdict), "Verdict"));
 
 #define NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result)          \

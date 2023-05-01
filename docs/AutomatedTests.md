@@ -68,6 +68,7 @@ Fault injection tests inject faults in order to test behavior under fault condit
 
 Tests in this category currently include:
 * unit_tests.exe: The unit test discussed above, but run under fault injection conditions.
+* netebpfext_unit.exe: The unit test discussed above, but run under fault injection conditions.
 
 ## Performance tests
 Performance tests check for performance regressions across builds.

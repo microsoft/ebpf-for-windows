@@ -72,7 +72,9 @@ extern "C"
     ebpf_object_tracking_terminate();
 
     /**
-     * @brief Initialize an ebpf_core_object_t structure.
+     * @brief Initialize an ebpf_core_object_t structure. This function must be called after all the fields of the
+     * structure have been initialized as this will publish the object to the tracking table which can be used to
+     * enumerate all objects of a given type.
      *
      * @param[in, out] object ebpf_core_object_t structure to initialize.
      * @param[in] object_type The type of the object.

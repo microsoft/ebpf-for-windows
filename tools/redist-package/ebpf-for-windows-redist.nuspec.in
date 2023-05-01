@@ -27,11 +27,15 @@
 		<file src="ebpfapi.pdb" target="package\bin"/>
 		<file src="ebpfnetsh.dll" target="package\bin"/>
 		<file src="ebpfnetsh.pdb" target="package\bin"/>
-		<file src="ebpfforwindows.wprp" target="package\bin"/>
+		<!--eBPF drivers-->
 		<file src="eBPFCore.sys" target="package\bin\drivers"/>
 		<file src="eBPFCore.pdb" target="package\bin\drivers"/>
 		<file src="NetEbpfExt.sys" target="package\bin\drivers"/>
 		<file src="NetEbpfExt.pdb" target="package\bin\drivers"/>
+		<!--eBPF tracing -->
+		<file src="..\..\scripts\ebpf_tracing.cmd" target="package\bin"/>
+		<file src="..\..\scripts\ebpf_tracing_startup_task.xml" target="package\bin"/>
+		<file src="..\..\scripts\ebpf_tracing_periodic_task.xml" target="package\bin"/>
 
 		<!--Temporary inclusion of the VC++ Redist-->
 		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\concrt140.dll" target="package\bin"/>

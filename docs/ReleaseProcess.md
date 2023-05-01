@@ -52,8 +52,8 @@ eBPF for Windows, and how to service it later.
         bpftool prog show
         ```
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`main`" branch.
-1. On the main `ebpf-for-windows` repo, create a new release branch from `main` **corresponding to the previous PR's commit**, name it "`release/X.Y`" (replace "X.Y.Z" with the version number being released).
-1. Request the Admin of the main `ebpf-for-windows` repo to protect and apply release policies to the release branch.
+1. On the main `ebpf-for-windows` repo, create a new release branch from `main` **corresponding to the previous PR's commit**, name it "`release/X.Y`" (replace "X.Y" with the version number being released).
+1. Request the Admin of the main `ebpf-for-windows` repo to protect and apply release policies to the "`release/X.Y`" branch.
 1. Wait for the main `ebpf-for-windows` repo's Admin to complete the previous step.
 1. Publish the release as per the "[Publishing a Release](ReleaseProcess.md#publishing-a-release)" process.
 
@@ -102,6 +102,7 @@ Servicing a release has two main scenarios:
 
 1. On the main `ebpf-for-windows` repo, create and check out a new working branch from the "`main`" branch.
 1. Cherry pick the commits from the "`release/X.Y`" branch branch that you want to add to the "`main`" branch (patches/hot-fixes, etc.):
+
     ```bash
     git cherry-pick release/X.Y <commit number> ... <commit number>
     ```

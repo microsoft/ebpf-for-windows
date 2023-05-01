@@ -69,6 +69,12 @@ ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, i
     return InterlockedCompareExchange((long volatile*)destination, exchange, comparand);
 }
 
+int64_t
+ebpf_interlocked_compare_exchange_int64(_Inout_ volatile int64_t* destination, int64_t exchange, int64_t comparand)
+{
+    return InterlockedCompareExchange64(destination, exchange, comparand);
+}
+
 void*
 ebpf_interlocked_compare_exchange_pointer(
     _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comparand)

@@ -870,7 +870,7 @@ _ebpf_xdp_context_delete(
     net_ebpf_xdp_md_t* xdp_context = (net_ebpf_xdp_md_t*)context;
 
     // Copy the packet data to the output buffer.
-    if (data_out != NULL && data_size_out != NULL) {
+    if (data_out != NULL && data_size_out != NULL && xdp_context->base.data != NULL) {
         size_t data_size = *data_size_out;
         size_t xdp_data_size = (char*)(xdp_context->base.data_end) - (char*)(xdp_context->base.data);
         if (data_size > xdp_data_size) {

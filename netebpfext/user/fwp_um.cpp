@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_fault_injection.h"
 #include "fwp_um.h"
 #include "net_ebpf_ext_sock_addr.h"
 #include "netebpfext_platform.h"
@@ -251,6 +252,7 @@ _fwp_engine::test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameter
     bool redirected = false;
     uint16_t redirected_port = 0;
     uint8_t* redirected_address = nullptr;
+    bool fault_injection_enabled = ebpf_fault_injection_is_enabled();
 
     _allocate_and_initialize_connection_request(AF_INET, parameters);
 
@@ -269,7 +271,7 @@ _fwp_engine::test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameter
 
     action = test_callout(
         FWPS_LAYER_ALE_CONNECT_REDIRECT_V4, FWPM_LAYER_ALE_CONNECT_REDIRECT_V4, EBPF_DEFAULT_SUBLAYER, incoming_value);
-    ebpf_assert(action == FWP_ACTION_PERMIT);
+    ebpf_assert(action == FWP_ACTION_PERMIT || fault_injection_enabled);
 
     if (_fwp_um_connect_request != nullptr) {
         redirected =
@@ -294,7 +296,7 @@ _fwp_engine::test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameter
 
     if (redirected) {
         // In case the connection is redirected, AUTH_CONNECT callout will be invoked twice.
-        ebpf_assert(action == FWP_ACTION_PERMIT);
+        ebpf_assert(action == FWP_ACTION_PERMIT || fault_injection_enabled);
 
         incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_REMOTE_PORT].value.uint16 = ntohs(redirected_port);
         incoming_value2[FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_REMOTE_ADDRESS].value.uint32 =
@@ -317,6 +319,7 @@ _fwp_engine::test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameter
     bool redirected = false;
     uint16_t redirected_port = 0;
     uint8_t* redirected_address = nullptr;
+    bool fault_injection_enabled = ebpf_fault_injection_is_enabled();
 
     _allocate_and_initialize_connection_request(AF_INET6, parameters);
 
@@ -337,7 +340,7 @@ _fwp_engine::test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameter
         FWPM_LAYER_ALE_CONNECT_REDIRECT_V6,
         EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
         incoming_value);
-    ebpf_assert(action == FWP_ACTION_PERMIT);
+    ebpf_assert(action == FWP_ACTION_PERMIT || fault_injection_enabled);
 
     if (_fwp_um_connect_request != nullptr) {
         redirected =
@@ -363,7 +366,7 @@ _fwp_engine::test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameter
 
     if (redirected) {
         // In case the connection is redirected, AUTH_CONNECT callout will be invoked twice.
-        ebpf_assert(action == FWP_ACTION_PERMIT);
+        ebpf_assert(action == FWP_ACTION_PERMIT || fault_injection_enabled);
 
         FWP_BYTE_ARRAY16 destination_ip = {0};
         memcpy(destination_ip.byteArray16, redirected_address, 16);
@@ -429,6 +432,10 @@ static std::unique_ptr<fwp_injection_handle> _injection_handle;
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmFilterDeleteById0(_In_ HANDLE engine_handle, _In_ uint64_t id)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
     auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
 
     if (engine.remove_fwpm_filter(id)) {
@@ -441,6 +448,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmFilterDeleteById0(_In_ HANDLE en
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
     FwpmTransactionBegin0(_In_ _Acquires_lock_(_Curr_) HANDLE engine_handle, _In_ uint32_t flags)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     UNREFERENCED_PARAMETER(engine_handle);
     UNREFERENCED_PARAMETER(flags);
     return STATUS_SUCCESS;
@@ -452,6 +463,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmFilterAdd0(
     _In_opt_ PSECURITY_DESCRIPTOR sd,
     _Out_opt_ uint64_t* id)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     UNREFERENCED_PARAMETER(sd);
 
     auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
@@ -480,6 +495,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmTransactionAbort0(_In_ _Releases
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
     FwpsCalloutRegister3(_Inout_ void* device_object, _In_ const FWPS_CALLOUT3* callout, _Out_opt_ uint32_t* callout_id)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     UNREFERENCED_PARAMETER(device_object);
 
     auto& engine = *_fwp_engine::get()->get();
@@ -499,6 +518,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmCalloutAdd0(
     _In_opt_ PSECURITY_DESCRIPTOR sd,
     _Out_opt_ uint32_t* id)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
 
     auto id_returned = engine.add_fwpm_callout(callout);
@@ -512,6 +535,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmCalloutAdd0(
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsCalloutUnregisterById0(_In_ const uint32_t callout_id)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     auto& engine = *_fwp_engine::get()->get();
 
     if (engine.remove_fwps_callout(callout_id)) {
@@ -528,6 +555,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineOpen0(
     _In_opt_ const FWPM_SESSION0* session,
     _Out_ HANDLE* engine_handle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     UNREFERENCED_PARAMETER(server_name);
     UNREFERENCED_PARAMETER(authn_service);
     UNREFERENCED_PARAMETER(auth_identity);
@@ -540,6 +571,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineOpen0(
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
     FwpmProviderAdd0(_In_ HANDLE engine_handle, _In_ const FWPM_PROVIDER0* provider, _In_opt_ PSECURITY_DESCRIPTOR sd)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
 
     engine.add_fwpm_provider(provider);
@@ -551,6 +586,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
     FwpmSubLayerAdd0(_In_ HANDLE engine_handle, _In_ const FWPM_SUBLAYER0* sub_layer, _In_opt_ PSECURITY_DESCRIPTOR sd)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     UNREFERENCED_PARAMETER(sd);
     auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
 
@@ -561,6 +600,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineClose0(_Inout_ HANDLE engine_handle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     if (engine_handle != _fwp_engine::get()->get()) {
         return STATUS_INVALID_PARAMETER;
     } else {
@@ -571,6 +614,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmEngineClose0(_Inout_ HANDLE engi
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsInjectionHandleCreate0(
     _In_opt_ ADDRESS_FAMILY address_family, _In_ uint32_t flags, _Out_ HANDLE* injection_handle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     _injection_handle = std::make_unique<_fwp_injection_handle>(address_family, flags);
     *injection_handle = _injection_handle.get();
 
@@ -579,6 +626,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsInjectionHandleCreate0(
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsInjectionHandleDestroy0(_In_ HANDLE injection_handle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     if (injection_handle != _injection_handle.get()) {
         return STATUS_INVALID_PARAMETER;
     } else {
