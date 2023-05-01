@@ -23,7 +23,7 @@ if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+$') {
 
         # Rebuild the solution, so to regenerate the '.o' files with the new version number.
         Write-Host -ForegroundColor DarkGreen "Rebuilding the solution, please wait..."
-        #$msbuildExitCode = msbuild /m /p:Configuration=Debug /p:Platform=x64 /p:ReleaseJIT=True ebpf-for-windows.sln /t:Clean,Build
+        $msbuildExitCode = msbuild /m /p:Configuration=Debug /p:Platform=x64 /p:ReleaseJIT=True ebpf-for-windows.sln /t:Clean,Build
         if ($msbuildExitCode -ne 0) {
             Write-Host -ForegroundColor Red "msbuild failed with exit code $msbuildExitCode. Aborting script."
             Write-Host -ForegroundColor DarkYellow "Please rebuild the solution in 'x64/Debug' with Visual Studio or MsBuild to debug the issue."
@@ -32,7 +32,7 @@ if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+$') {
 
         # Regenerate the expected `bpf2c` output (i.e. the corresponding "`.c`" files for all the solution's test/demo "`.o`" files).
         Write-Host -ForegroundColor DarkGreen "Regenerating the expected `bpf2c` output..."
-        #.\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
+        .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
         Write-Host -ForegroundColor DarkGreen "Expected `bpf2c` output regenerated."
 
         Write-Host -ForegroundColor DarkYellow "Please verify all the changes then submit the pull-request into the 'release/$majorVersion.$minorVersion branch."
