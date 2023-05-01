@@ -15,7 +15,7 @@ on:
       test_command:
         required: true
         type: string
-      # The name of the build artifact to download.
+      # The name of the build artifact to download .
       build_artifact:
         required: true
         type: string
