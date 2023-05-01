@@ -5,6 +5,8 @@
 #include "ebpf_execution_type.h"
 #include "native_helper.hpp"
 
+#include <rpc.h>
+
 #define EBPF_PROGRAM_FILE_EXTENSION_JIT ".o"
 #define EBPF_PROGRAM_FILE_EXTENSION_NATIVE ".sys"
 
@@ -76,6 +78,7 @@ Done:
 void
 _native_module_helper::initialize(_In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type)
 {
+    GUID random_guid;
     // printf("ANUSA: C2 called, execution type = %d\n", execution_type);
 #if defined(CONFIG_BPF_JIT_DISABLED)
     ebpf_execution_type_t system_default = ebpf_execution_type_t::EBPF_EXECUTION_NATIVE;
@@ -102,8 +105,14 @@ _native_module_helper::initialize(_In_z_ const char* file_name_prefix, ebpf_exec
         // Generate a random number to append to the file name.
         random_number = _random_generator.get_random_number();
 
-        std::string random_string = std::to_string(random_number);
-        _file_name = file_name_prefix_string + random_string + std::string(EBPF_PROGRAM_FILE_EXTENSION_NATIVE);
+        // Generate a random GUID to append to the file name.
+        REQUIRE(UuidCreate(&random_guid) == RPC_S_OK);
+        auto guid_string = guid_to_string(&random_guid);
+
+        // printf("====> ANUSA: guid_string: %s\n", guid_string.c_str());
+
+        // std::string random_string = std::to_string(random_number);
+        _file_name = file_name_prefix_string + guid_string + std::string(EBPF_PROGRAM_FILE_EXTENSION_NATIVE);
 
         printf("====> ANUSA: _file_name: %s\n", _file_name.c_str());
 

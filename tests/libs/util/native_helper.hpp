@@ -8,6 +8,8 @@
 #include <string>
 #include <time.h>
 
+#pragma comment(lib, "rpcrt4")
+
 #if defined(CONFIG_BPF_JIT_DISABLED)
 #define EBPF_PROGRAM_FILE_EXTENSION ".sys"
 #else
