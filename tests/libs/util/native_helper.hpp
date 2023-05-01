@@ -55,5 +55,4 @@ typedef class _native_module_helper
     bool _delete_file_on_destruction = false;
 } native_module_helper_t;
 
-int32_t
-string_to_wide_string(_In_z_ const char* input, _Outptr_ wchar_t** output);
+_Success_(return == 0) int32_t string_to_wide_string(_In_z_ const char* input, _Outptr_ wchar_t** output);

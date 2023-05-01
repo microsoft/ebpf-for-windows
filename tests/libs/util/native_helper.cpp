@@ -8,12 +8,38 @@
 #define EBPF_PROGRAM_FILE_EXTENSION_JIT ".o"
 #define EBPF_PROGRAM_FILE_EXTENSION_NATIVE ".sys"
 
-int32_t
-string_to_wide_string(_In_z_ const char* input, _Outptr_ wchar_t** output)
+std::string
+guid_to_string(_In_ const GUID* guid)
+{
+    char guid_string[37] = {0};
+    sprintf_s(
+        guid_string,
+        sizeof(guid_string) / sizeof(guid_string[0]),
+        "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+        guid->Data1,
+        guid->Data2,
+        guid->Data3,
+        guid->Data4[0],
+        guid->Data4[1],
+        guid->Data4[2],
+        guid->Data4[3],
+        guid->Data4[4],
+        guid->Data4[5],
+        guid->Data4[6],
+        guid->Data4[7]);
+
+    return std::string(guid_string);
+}
+
+#pragma warning(push)
+#pragma warning(disable : 6101) // Returning uninitialized memory '*unicode_string'
+_Success_(return == 0) int32_t string_to_wide_string(_In_z_ const char* input, _Outptr_ wchar_t** output)
 {
     wchar_t* unicode_string = NULL;
     int32_t result;
     int32_t size;
+
+    // *output = nullptr;
 
     // Compute the size needed to hold the unicode string.
     size = MultiByteToWideChar(CP_UTF8, 0, input, (int32_t)strlen(input), NULL, 0);
@@ -38,13 +64,14 @@ string_to_wide_string(_In_z_ const char* input, _Outptr_ wchar_t** output)
     }
 
     *output = unicode_string;
-    unicode_string = NULL;
+    unicode_string = nullptr;
     result = ERROR_SUCCESS;
 
 Done:
     free(unicode_string);
     return result;
 }
+#pragma warning(pop)
 
 void
 _native_module_helper::initialize(_In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type)
@@ -78,7 +105,7 @@ _native_module_helper::initialize(_In_z_ const char* file_name_prefix, ebpf_exec
         std::string random_string = std::to_string(random_number);
         _file_name = file_name_prefix_string + random_string + std::string(EBPF_PROGRAM_FILE_EXTENSION_NATIVE);
 
-        // printf("====> ANUSA: _file_name: %s\n", _file_name.c_str());
+        printf("====> ANUSA: _file_name: %s\n", _file_name.c_str());
 
         REQUIRE(CopyFileA(original_file_name.c_str(), _file_name.c_str(), TRUE) == TRUE);
 
