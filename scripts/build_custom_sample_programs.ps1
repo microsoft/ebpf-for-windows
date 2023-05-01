@@ -17,8 +17,8 @@ if ($FileName -eq "bpf")
     $ProgramType = "xdp"
 }
 
-.\Convert-BpfToNative.ps1 -ProgramName $Filename -Type $ProgramType -IncludeDir $IncludePath -Platform $Platform -Configuration $KernelConfiguration -KernelMode $True
-.\Convert-BpfToNative.ps1 -ProgramName $Filename -Type $ProgramType -IncludeDir $IncludePath -Platform $Platform -Configuration $Configuration -KernelMode $False
+.\Convert-BpfToNative.ps1 -FileName $Filename -Type $ProgramType -IncludeDir $IncludePath -Platform $Platform -Configuration $KernelConfiguration -KernelMode $True
+.\Convert-BpfToNative.ps1 -FileName $Filename -Type $ProgramType -IncludeDir $IncludePath -Platform $Platform -Configuration $Configuration -KernelMode $False
 
 
 Pop-Location

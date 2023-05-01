@@ -19,15 +19,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(ProgramName)_dll.c" />
+    <ClCompile Include="$(FileName)_dll.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{1baf5f74-b71f-4088-8677-f27070302b59}</ProjectGuid>
-    <RootNamespace>$(ProgramName)dll</RootNamespace>
+    <RootNamespace>$(FileName)dll</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>$(ProgramName)_um</ProjectName>
+    <ProjectName>$(FileName)_um</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup>
@@ -47,7 +47,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <LinkIncremental>false</LinkIncremental>
-    <TargetName>$(ProgramName)_um</TargetName>
+    <TargetName>$(FileName)_um</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -64,7 +64,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>$(BinDir)bpf2c.exe --bpf $(ProgramName).o --dll $(AdditionalOptions) &gt;$(ProgramName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(AdditionalOptions) &gt;$(FileName)_dll.c</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
@@ -82,7 +82,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>$(BinDir)bpf2c.exe --bpf $(ProgramName).o --dll $(AdditionalOptions) &gt;$(ProgramName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(AdditionalOptions) &gt;$(FileName)_dll.c</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -102,7 +102,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>$(BinDir)bpf2c.exe --bpf $(ProgramName).o --dll $(AdditionalOptions) &gt;$(ProgramName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(AdditionalOptions) &gt;$(FileName)_dll.c</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup Condition="$(ResourceFile)!=''">

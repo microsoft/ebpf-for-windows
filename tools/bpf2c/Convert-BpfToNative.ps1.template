@@ -7,10 +7,10 @@
 
 .DESCRIPTION
     This script generates a native driver (.sys file) from a BPF program. The native program can be used to load BPF
-    programs into the kernel when Hyper-V Code Integrity (HVCI) is enabled.
+    programs into the kernel when Hypervisor-protected Code Integrity (HVCI) is enabled.
 
-.PARAMETER ProgramName
-    Specifies the name of the BPF program to convert.
+.PARAMETER FileName
+    Specifies the name of the ELF file containing the BPF program.
 
 .PARAMETER Type
     Specifies the type of the BPF program. Valid values include "xdp", "bind", "sockops", and other BPF program types.
@@ -40,24 +40,24 @@
     Specifies the path to a resource file to embed in the generated driver.
 
 .EXAMPLE
-    .\Convert-BpfToNative.ps1 -ProgramName bindmonitor
+    .\Convert-BpfToNative.ps1 -FileName bindmonitor
 
     This example generates a native driver from the BPF program bindmonitor.o.
 
 .EXAMPLE
-    .\Convert-BpfToNative.ps1 -ProgramName bindmonitor -Type bind
+    .\Convert-BpfToNative.ps1 -FileName bindmonitor -Type bind
 
     This example generates a native driver from the BPF program bindmonitor.o. The
     program type is set to "bind".
 
 .EXAMPLE
-    .\Convert-BpfToNative.ps1 -ProgramName bindmonitor -Type bind -Configuration Debug
+    .\Convert-BpfToNative.ps1 -FileName bindmonitor -Type bind -Configuration Debug
 
     This example generates a native driver from the BPF program bindmonitor.o. The program type is set to "bind".
     The driver is built in Debug configuration.
 
 .EXAMPLE
-    .\Convert-BpfToNative.ps1 -ProgramName bindmonitor -Type bind -Configuration Debug -KernelMode $false
+    .\Convert-BpfToNative.ps1 -FileName bindmonitor -Type bind -Configuration Debug -KernelMode $false
 
     This example generates a user-mode DLL from the BPF program bindmonitor.o. The program type is set to "bind".
     The driver is built in Debug configuration.
@@ -68,7 +68,7 @@
 
 #>
 
-param([parameter(Mandatory = $true)] [string] $ProgramName,
+param([parameter(Mandatory = $true)] [string] $FileName,
     [parameter(Mandatory = $false)] [string] $Type,
     [parameter(Mandatory = $false)] [string] $IncludeDir = "$PSScriptRoot\..\include",
     [parameter(Mandatory = $false)] [string] $BinDir = "$PSScriptRoot",
@@ -85,8 +85,8 @@ $KernelModeProject = '___KERNEL_MODE_VCXPROJ___'
 $UserModeProject = '___USER_MODE_VCXPROJ___'
 
 # If program name ends with .o, remove the suffix
-if ($ProgramName.EndsWith(".o")) {
-    $ProgramName = $ProgramName.Substring(0, $ProgramName.Length - 2)
+if ($FileName.EndsWith(".o")) {
+    $FileName = $FileName.Substring(0, $FileName.Length - 2)
 }
 
 # SkipVerification is only supported for Debug builds.
@@ -98,13 +98,13 @@ if ($null -eq (Get-Command 'msbuild.exe' -ErrorAction SilentlyContinue)) {
     throw "Unable to locate msbuild.exe. This command needs to run within a 'Developer Command Prompt'"
 }
 
-$fileExists = Test-Path -Path ("$ProgramName.o")
+$fileExists = Test-Path -Path ("$FileName.o")
 if (!$fileExists) {
-    $errorString = "Can't find program file: " + "$ProgramName.o"
+    $errorString = "Can't find program file: " + "$FileName.o"
     throw $errorString
 }
 
-$TempDir = "$OutDir\$ProgramName"
+$TempDir = "$OutDir\$FileName"
 
 if ($KernelMode) {
     $TempDir += "_km"
@@ -114,15 +114,15 @@ else {
 }
 
 mkdir -Force $TempDir
-Copy-Item -Path "$ProgramName.o" -Destination "$TempDir\"
+Copy-Item -Path "$FileName.o" -Destination "$TempDir\"
 cd $TempDir
 
 if ($KernelMode) {
-    $ProjectFile = "$ProgramName.vcxproj"
+    $ProjectFile = "$FileName.vcxproj"
     Set-Content -Path $ProjectFile -Value $KernelModeProject
 }
 else {
-    $ProjectFile = "$ProgramName_um.vcxproj"
+    $ProjectFile = "$FileName_um.vcxproj"
     Set-Content -Path $ProjectFile -Value $UserModeProject
 }
 
@@ -132,10 +132,10 @@ if ($PSBoundParameters.ContainsKey("Type")) {
     $AdditionalOptions += " --type $Type"
 }
 
-msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:ProgramName="$ProgramName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" $ProjectFile
+msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {
-    throw "Build failed for $ProgramName.o"
+    throw "Build failed for $FileName.o"
 }
 
 Pop-Location
