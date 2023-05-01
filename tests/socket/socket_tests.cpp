@@ -29,74 +29,7 @@ using namespace std::chrono_literals;
 
 CATCH_REGISTER_LISTENER(_watchdog)
 
-// #if defined(CONFIG_BPF_JIT_DISABLED)
-// #define EBPF_PROGRAM_FILE_EXTENSION ".sys"
-// #else
-// #define EBPF_PROGRAM_FILE_EXTENSION ".o"
-// #endif
-
-// typedef class _random_generator
-// {
-//   public:
-//     _random_generator() { srand((uint32_t)time(NULL)); }
-//     uint32_t
-//     get_random_number()
-//     {
-//         return rand();
-//     }
-// } random_generator_t;
-
-// random_generator_t random_generator;
-
-// typedef class _native_module_helper
-// {
-// public:
-//     _native_module_helper(_In_z_ const char* file_name);
-//     std::string get_file_name() const { return _file_name; }
-//     ~_native_module_helper();
-
-// private:
-//     std::string _file_name;
-// } native_module_helper_t;
-
-// _native_module_helper::_native_module_helper(_In_z_ const char* file_name_prefix)
-// {
-// #if defined(CONFIG_BPF_JIT_DISABLED)
-//     int32_t random_number;
-//     std::string file_name_prefix_string(file_name_prefix);
-
-//     std::string original_file_name = file_name_prefix_string + std::string(EBPF_PROGRAM_FILE_EXTENSION);
-
-//     // Generate a random number to append to the file name.
-//     // srand((uint32_t)time(NULL));
-//     // random_number = rand();
-//     random_number = random_generator.get_random_number();
-
-//     std::string random_string = std::to_string(random_number);
-//     _file_name = file_name_prefix_string + random_string + std::string(EBPF_PROGRAM_FILE_EXTENSION);
-
-//     // printf("original_file_name = %s\n", original_file_name.c_str());
-//     // printf("copy_file_name = %s\n", _file_name.c_str());
-
-//     // REQUIRE(CopyFileA(original_file_name.c_str(), _file_name.c_str(), TRUE) == TRUE);
-//     if (CopyFileA(original_file_name.c_str(), _file_name.c_str(), TRUE) == FALSE) {
-//         int error = GetLastError();
-//         // printf("CopyFileA failed with error %d\n", error);
-//     }
-// #else
-//     _file_name = std::string(file_name_prefix) + std::string(EBPF_PROGRAM_FILE_EXTENSION);
-// #endif
-// }
-
-// _native_module_helper::~_native_module_helper()
-// {
-// #if defined(CONFIG_BPF_JIT_DISABLED)
-//     DeleteFileA(_file_name.c_str());
-
-//     // Sleep for 2 seconds.
-//     // Sleep(2000);
-// #endif
-// }
+typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
 
 void
 connection_test(

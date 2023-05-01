@@ -10,6 +10,7 @@
 #include "common_tests.h"
 #include "ebpf_structs.h"
 #include "misc_helper.h"
+#include "native_helper.hpp"
 #include "program_helper.h"
 #include "service_helper.h"
 #include "socket_helper.h"
@@ -362,14 +363,20 @@ TEST_CASE("test_ebpf_map_next_previous_jit", "[test_ebpf_map_next_previous]")
 
 TEST_CASE("test_ebpf_program_next_previous_native", "[test_ebpf_program_next_previous]")
 {
-    _test_program_next_previous("droppacket.sys", DROP_PACKET_PROGRAM_COUNT);
-    _test_program_next_previous("bindmonitor.sys", BIND_MONITOR_PROGRAM_COUNT);
+    native_module_helper_t droppacket_helper("droppacket", EBPF_EXECUTION_NATIVE);
+    _test_program_next_previous(droppacket_helper.get_file_name().c_str(), DROP_PACKET_PROGRAM_COUNT);
+
+    native_module_helper_t bindmonitor_helper("bindmonitor", EBPF_EXECUTION_NATIVE);
+    _test_program_next_previous(bindmonitor_helper.get_file_name().c_str(), BIND_MONITOR_PROGRAM_COUNT);
 }
 
 TEST_CASE("test_ebpf_map_next_previous_native", "[test_ebpf_map_next_previous]")
 {
-    _test_map_next_previous("droppacket.sys", DROP_PACKET_MAP_COUNT);
-    _test_map_next_previous("bindmonitor.sys", BIND_MONITOR_MAP_COUNT);
+    native_module_helper_t droppacket_helper("droppacket", EBPF_EXECUTION_NATIVE);
+    _test_map_next_previous(droppacket_helper.get_file_name().c_str(), DROP_PACKET_MAP_COUNT);
+
+    native_module_helper_t bindmonitor_helper("bindmonitor", EBPF_EXECUTION_NATIVE);
+    _test_map_next_previous(bindmonitor_helper.get_file_name().c_str(), BIND_MONITOR_MAP_COUNT);
 }
 
 void
@@ -808,9 +815,9 @@ bpf_user_helpers_test(ebpf_execution_type_t execution_type)
     struct bpf_object* object = nullptr;
     uint64_t process_thread_id = get_current_pid_tgid();
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "bindmonitor.sys" : "bindmonitor.o";
+    native_module_helper_t module_helper("bindmonitor", execution_type);
     program_load_attach_helper_t _helper(
-        file_name, BPF_PROG_TYPE_BIND, "BindMonitor", execution_type, nullptr, 0, hook);
+        module_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "BindMonitor", execution_type, nullptr, 0, hook);
     object = _helper.get_object();
 
     perform_socket_bind(0, true);
