@@ -11,7 +11,7 @@ eBPF for Windows, and how to service it later.
 1. Run the following script from the root directory of the repository, within a "*Developer Poweshell for VS 2022"* instance. Make sure to follow [Semantic Versioning 2.0](https://semver.org) ("`X.Y.Z`"):
 
     ```ps
-    # Replace "X.Y.Z" with the version number being released
+    # Replace "X.Y.Z" with the new version number being released
     .\scripts\update-release.ps1 X Y Z
     ```
 1. Verify all the changes then commit all in the working branch.
@@ -69,7 +69,7 @@ Servicing a release has two main scenarios:
 1. Run the following script from the root directory of the repository, within a "*Developer Poweshell for VS 2022"* instance. Make sure to follow [Semantic Versioning 2.0](https://semver.org) ("`X.Y.Z`"):
 
     ```ps
-    # Replace "X.Y.Z" with the version number being released
+    # Replace "X.Y.Z" with the new version number being released
     .\scripts\update-release.ps1 X Y Z
     ```
 1. Cherry pick the commits from `main` that you want to add to the release (patches/hot-fixes, etc.):
