@@ -863,6 +863,7 @@ _IRQL_requires_(PASSIVE_LEVEL) NTSTATUS NTAPI
     FwpsRedirectHandleCreate0(_In_ const GUID* providerGuid, _Reserved_ UINT32 flags, _Out_ HANDLE* redirectHandle)
 {
     if (ebpf_fault_injection_inject_fault()) {
+        *redirectHandle = 0;
         return STATUS_NO_MEMORY;
     }
 
@@ -880,6 +881,9 @@ _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) FWPS_CONN
         _In_ HANDLE redirectRecords, _In_ HANDLE redirectHandle, _Outptr_opt_result_maybenull_ void** redirectContext)
 {
     if (ebpf_fault_injection_inject_fault()) {
+        if (redirectContext) {
+            *redirectContext = NULL;
+        }
         return FWPS_CONNECTION_REDIRECTED_BY_SELF;
     }
 
