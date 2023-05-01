@@ -75,7 +75,8 @@ jobs:
     with:
       name: unit_tests
       pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
-      test_command: .\unit_tests.exe -d yes
+      # Exclude [processes] test that CodeCoverage can't work with.
+      test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: true
