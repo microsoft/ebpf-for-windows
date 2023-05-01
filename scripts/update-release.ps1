@@ -4,7 +4,7 @@
 param ($majorVersion, $minorVersion, $revisionNumber)
 
 # Check if the version number is in the format X.Y.Z
-if ($version -match '^\d+\.\d+\.\d+$') {
+if ('$majorVersion.$minorVersion.$revisionNumber' -match '^\d+\.\d+\.\d+$') {
 
     if (Test-Path -Path ".\ebpf-for-windows.sln") {
         # Set the new version number in the ebpf_version.h file.
