@@ -12,7 +12,7 @@ eBPF for Windows, and how to service it later.
 
     ```ps
     # Replace "X.Y.Z" with the version number being released
-    .\scripts\update-release.ps1 X.Y.Z
+    .\scripts\update-release.ps1 X Y Z
     ```
 1. Verify all the changes then commit all in the working branch.
     >NOTE: the formatting rules may complain about the formatting of the generated `.c` files from the script above, in this case, format them with the following:
@@ -70,7 +70,7 @@ Servicing a release has two main scenarios:
 
     ```ps
     # Replace "X.Y.Z" with the version number being released
-    .\scripts\update-release.ps1 X.Y.Z
+    .\scripts\update-release.ps1 X Y Z
     ```
 1. Cherry pick the commits from `main` that you want to add to the release (patches/hot-fixes, etc.):
 

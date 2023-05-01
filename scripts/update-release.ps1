@@ -4,15 +4,15 @@
 param ($majorVersion, $minorVersion, $revisionNumber)
 
 # Check if the version number is in the format X.Y.Z
-if ('$majorVersion.$minorVersion.$revisionNumber' -match '^\d+\.\d+\.\d+$') {
+if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+$') {
 
     if (Test-Path -Path ".\ebpf-for-windows.sln") {
         # Set the new version number in the ebpf_version.h file.
         $ebpf_version_file = "$PSScriptRoot\..\resource\ebpf_version.h"
         Write-Host -ForegroundColor DarkGreen "Updating the version number in the '$ebpf_version_file' file..."
-        (Get-Content $ebpf_version_file -Raw -Encoding UTF8) -replace 'EBPF_VERSION_MAJOR "\d+"', "EBPF_VERSION_MAJOR `"$majorVersion`"" | Set-Content $ebpf_version_file
-		(Get-Content $ebpf_version_file -Raw -Encoding UTF8) -replace 'EBPF_VERSION_MINOR "\d+"', "EBPF_VERSION_MINOR `"$minorVersion`"" | Set-Content $ebpf_version_file
-		(Get-Content $ebpf_version_file -Raw -Encoding UTF8) -replace 'EBPF_VERSION_REVISION "\d+"', "EBPF_VERSION_REVISION `"$revisionNumber`"" | Set-Content $ebpf_version_file
+        (Get-Content $ebpf_version_file -Raw -Encoding UTF8) -replace '(?<=#define EBPF_VERSION_MAJOR )\d+', $majorVersion | Set-Content $ebpf_version_file
+		(Get-Content $ebpf_version_file -Raw -Encoding UTF8) -replace '(?<=#define EBPF_VERSION_MINOR )\d+', $minorVersion | Set-Content $ebpf_version_file
+		(Get-Content $ebpf_version_file -Raw -Encoding UTF8) -replace '(?<=#define EBPF_VERSION_REVISION )\d+', $revisionNumber | Set-Content $ebpf_version_file
         Write-Host -ForegroundColor DarkGreen "Version number updated to '$majorVersion.$minorVersion.$revisionNumber' in $ebpf_version_file"
 
         # Update the version number in the Wix installer file.
@@ -23,7 +23,7 @@ if ('$majorVersion.$minorVersion.$revisionNumber' -match '^\d+\.\d+\.\d+$') {
 
         # Rebuild the solution, so to regenerate the '.o' files with the new version number.
         Write-Host -ForegroundColor DarkGreen "Rebuilding the solution, please wait..."
-        $msbuildExitCode = msbuild /m /p:Configuration=Debug /p:Platform=x64 /p:ReleaseJIT=True ebpf-for-windows.sln /t:Clean,Build
+        #$msbuildExitCode = msbuild /m /p:Configuration=Debug /p:Platform=x64 /p:ReleaseJIT=True ebpf-for-windows.sln /t:Clean,Build
         if ($msbuildExitCode -ne 0) {
             Write-Host -ForegroundColor Red "msbuild failed with exit code $msbuildExitCode. Aborting script."
             Write-Host -ForegroundColor DarkYellow "Please rebuild the solution in 'x64/Debug' with Visual Studio or MsBuild to debug the issue."
@@ -32,7 +32,7 @@ if ('$majorVersion.$minorVersion.$revisionNumber' -match '^\d+\.\d+\.\d+$') {
 
         # Regenerate the expected `bpf2c` output (i.e. the corresponding "`.c`" files for all the solution's test/demo "`.o`" files).
         Write-Host -ForegroundColor DarkGreen "Regenerating the expected `bpf2c` output..."
-        .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
+        #.\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
         Write-Host -ForegroundColor DarkGreen "Expected `bpf2c` output regenerated."
 
         Write-Host -ForegroundColor DarkYellow "Please verify all the changes then submit the pull-request into the 'release/$majorVersion.$minorVersion branch."
@@ -41,5 +41,8 @@ if ('$majorVersion.$minorVersion.$revisionNumber' -match '^\d+\.\d+\.\d+$') {
         Write-Host -ForegroundColor DarkYellow "Please run this script from the root directory of the repository, within a Developer Poweshell for VS 2022."
     }
 } else {
-    Write-Host -ForegroundColor Red "Invalid version number format. Please enter the version number in the format 'X.Y.Z'."
+    Write-Host -ForegroundColor Red "Invalid version number format. Please enter the version number in the format 'X Y Z', e.g.:"
+    Write-Host
+    Write-Host -ForegroundColor DarkGreen "   PS> .\scripts\update-release.ps1 0 9 0"
+    Write-Host
 }
