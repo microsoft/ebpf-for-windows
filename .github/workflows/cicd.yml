@@ -51,7 +51,7 @@ jobs:
       configurations: '["Debug", "FuzzerDebug", "Release"]'
 
   # Perform the native-only build.
-  regular_native_only:
+  regular_native-only:
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-build.yml
@@ -157,7 +157,7 @@ jobs:
   driver_native_only:
     # Always run this job.
     # Only run this on repos that have self-host runners.
-    needs: regular_native_only
+    needs: regular_native-only
     if: github.repository == 'microsoft/ebpf-for-windows'
     uses: ./.github/workflows/reusable-test.yml
     with:
