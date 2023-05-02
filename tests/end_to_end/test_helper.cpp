@@ -683,6 +683,9 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
     } catch (Catch::TestFailureException&) {
     }
 
+    // Detach all the native module clients.
+    _unload_all_native_modules();
+
     // Simulate IO_WORKITEM behavior by waiting for all work items to complete.
     ebpf_platform_wait_for_preemptible_work_items();
 
@@ -692,9 +695,6 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         REQUIRE(bpf_map_get_next_id(0, &id) < 0);
         REQUIRE(errno == ENOENT);
     }
-
-    // Detach all the native module clients.
-    _unload_all_native_modules();
 
     clear_program_info_cache();
     if (api_initialized) {

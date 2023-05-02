@@ -928,7 +928,6 @@ _ebpf_preemptible_routine(_Inout_ PTP_CALLBACK_INSTANCE instance, _In_opt_ void*
     work_item->work_item_routine(work_item->work_item_context);
 
     ebpf_free_preemptible_work_item(work_item);
-    ExReleaseRundownProtection(&_ebpf_platform_preemptible_work_items_rundown);
 }
 
 void
@@ -941,14 +940,13 @@ ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* wo
     CloseThreadpoolWork(work_item->work);
     ebpf_free(work_item->work_item_context);
     ebpf_free(work_item);
+
+    ExReleaseRundownProtection(&_ebpf_platform_preemptible_work_items_rundown);
 }
 
 void
 ebpf_queue_preemptible_work_item(_Inout_ ebpf_preemptible_work_item_t* work_item)
 {
-    if (ExAcquireRundownProtection(&_ebpf_platform_preemptible_work_items_rundown) == FALSE) {
-        ebpf_assert(false);
-    }
     SubmitThreadpoolWork(work_item->work);
 }
 
@@ -959,6 +957,11 @@ ebpf_allocate_preemptible_work_item(
     _Inout_opt_ void* work_item_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+
+    if (!ExAcquireRundownProtection(&_ebpf_platform_preemptible_work_items_rundown)) {
+        return EBPF_FAILED;
+    }
+
     *work_item = (ebpf_preemptible_work_item_t*)ebpf_allocate(sizeof(ebpf_preemptible_work_item_t));
     if (*work_item == nullptr) {
         return EBPF_NO_MEMORY;
@@ -1409,5 +1412,4 @@ void
 ebpf_platform_wait_for_preemptible_work_items()
 {
     ExWaitForRundownProtectionRelease(&_ebpf_platform_preemptible_work_items_rundown);
-    ExReInitializeRundownProtection(&_ebpf_platform_preemptible_work_items_rundown);
 }
