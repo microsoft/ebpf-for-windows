@@ -325,7 +325,6 @@ ebpf_platform_initiate()
         auto fault_injection_stack_depth =
             _get_environment_variable_as_size_t(EBPF_FAULT_INJECTION_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
         auto leak_detector = _get_environment_variable_as_bool(EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME);
-        leak_detector = true;
         if (fault_injection_stack_depth || leak_detector) {
             _ebpf_symbol_decoder_initialize();
         }

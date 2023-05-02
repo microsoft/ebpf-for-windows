@@ -686,7 +686,7 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
     // Detach all the native module clients.
     _unload_all_native_modules();
 
-    // Simulate IO_WORKITEM behavior by waiting for all work items to complete.
+    // Simulate IO_WORKITEM behavior by waiting for all preemptible work items to complete.
     ebpf_platform_wait_for_preemptible_work_items();
 
     // Verify that all maps were successfully removed.
