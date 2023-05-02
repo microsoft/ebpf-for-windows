@@ -770,10 +770,10 @@ handle_ebpf_show_programs(
             continue;
         }
 
-        status =
+        ebpf_result_t result =
             ebpf_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name);
-        if (status != ERROR_SUCCESS) {
-            break;
+        if (result != EBPF_SUCCESS) {
+            continue;
         }
 
         if (filename.empty() || strcmp(program_file_name, filename.c_str()) == 0) {

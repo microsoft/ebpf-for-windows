@@ -218,10 +218,7 @@ net_ebpf_extension_hook_invoke_program(
     const void* client_binding_context = client->client_binding_context;
 
     ebpf_result_t invoke_result = invoke_program(client_binding_context, context, result);
-    if (invoke_result != EBPF_SUCCESS) {
-        NET_EBPF_EXT_LOG_FUNCTION_ERROR(invoke_result);
-    }
-    return invoke_result;
+    NET_EBPF_EXT_RETURN_RESULT(invoke_result);
 }
 
 _Must_inspect_result_ ebpf_result_t

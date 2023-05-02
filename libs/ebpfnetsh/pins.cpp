@@ -61,5 +61,5 @@ handle_ebpf_show_pins(
 
         Platform::_close(program_fd);
     }
-    return EBPF_SUCCESS;
+    return NO_ERROR;
 }

@@ -13,6 +13,9 @@ add_library("netsh_static" STATIC
   pins.h
   pins.cpp
 
+  processes.h
+  processes.cpp
+
   programs.h
   programs.cpp
 
