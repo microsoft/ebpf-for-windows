@@ -51,7 +51,7 @@ jobs:
       configurations: '["Debug", "FuzzerDebug", "Release"]'
 
   # Perform the native-only build.
-  regular_native-only:
+  regular_native_only:
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-build.yml
