@@ -11,7 +11,7 @@ function(add_bpftonative_command file_name kernel_mode unsafe_program)
     set (output_file ${output_dir}/${file_name}_um.dll)
   endif()
 
-  set(command_line ${powershell_path} -NonInteractive -ExecutionPolicy Unrestricted ${output_dir}/Convert-BpfToNative.ps1 -IncludeDir ${CMAKE_SOURCE_DIR}/include -ProgramName ${file_name} -OutDir ${output_dir} -Platform x64 -Configuration $(Configuration) -KernelMode ${kernel_mode})
+  set(command_line ${powershell_path} -NonInteractive -ExecutionPolicy Unrestricted ${output_dir}/Convert-BpfToNative.ps1 -IncludeDir ${CMAKE_SOURCE_DIR}/include -FileName ${file_name} -OutDir ${output_dir} -Platform x64 -Configuration $(Configuration) -KernelMode ${kernel_mode})
 
   set (input_file ${output_dir}/${file_name}.o)
   if (${unsafe_program})
