@@ -963,7 +963,8 @@ ebpf_allocate_preemptible_work_item(
 
     *work_item = (ebpf_preemptible_work_item_t*)ebpf_allocate(sizeof(ebpf_preemptible_work_item_t));
     if (*work_item == nullptr) {
-        return EBPF_NO_MEMORY;
+        result = EBPF_NO_MEMORY;
+        goto Done;
     }
 
     // It is required to use the InitializeThreadpoolEnvironment function to
@@ -978,6 +979,7 @@ ebpf_allocate_preemptible_work_item(
 
 Done:
     if (result != EBPF_SUCCESS) {
+        ExReleaseRundownProtection(&_ebpf_platform_preemptible_work_items_rundown);
         ebpf_free(*work_item);
         *work_item = nullptr;
     }
