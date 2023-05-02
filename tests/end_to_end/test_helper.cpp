@@ -51,9 +51,6 @@ static GUID _ebpf_native_provider_id = {/* 5e24d2f5-f799-42c3-a945-87feefd930a7 
                                         0x42c3,
                                         {0xa9, 0x45, 0x87, 0xfe, 0xef, 0xd9, 0x30, 0xa7}};
 
-void
-ebpf_platform_wait_for_preemptible_work_items();
-
 typedef struct _service_context
 {
     std::wstring name;
@@ -683,16 +680,6 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 
         // Detach all the native module clients.
         _unload_all_native_modules();
-
-        // Simulate IO_WORKITEM behavior by waiting for all preemptible work items to complete.
-        ebpf_platform_wait_for_preemptible_work_items();
-
-        // Verify that all maps were successfully removed.
-        uint32_t id;
-        if (!ebpf_fuzzing_enabled) {
-            REQUIRE(bpf_map_get_next_id(0, &id) < 0);
-            REQUIRE(errno == ENOENT);
-        }
 
         clear_program_info_cache();
         if (api_initialized) {

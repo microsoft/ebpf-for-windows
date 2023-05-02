@@ -1408,9 +1408,3 @@ Done:
     ebpf_free(unicode_string);
     return retval;
 }
-
-void
-ebpf_platform_wait_for_preemptible_work_items()
-{
-    ExWaitForRundownProtectionRelease(&_ebpf_platform_preemptible_work_items_rundown);
-}
