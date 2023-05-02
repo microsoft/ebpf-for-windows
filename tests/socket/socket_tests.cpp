@@ -29,8 +29,6 @@ using namespace std::chrono_literals;
 
 CATCH_REGISTER_LISTENER(_watchdog)
 
-typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
-
 void
 connection_test(
     ADDRESS_FAMILY address_family,
