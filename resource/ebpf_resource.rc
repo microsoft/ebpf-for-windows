@@ -67,7 +67,7 @@ LANGUAGE LANG_ENGLISH,
                     VALUE "FileDescription", EBPF_FILE_DESCRIPTION
                     VALUE "FileVersion", GIT_COMMIT_ID
                     VALUE "InternalName", EBPF_FILE_NAME
-                    VALUE "LegalCopyright", "Copyright (C) 2022"
+                    VALUE "LegalCopyright", "Copyright (C) 2023"
                     VALUE "OriginalFilename", EBPF_FILE_NAME,
                     VALUE "ProductName", EBPF_PRODUCT_NAME
                     VALUE "ProductVersion", EBPF_VERSION

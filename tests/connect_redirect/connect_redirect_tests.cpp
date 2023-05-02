@@ -16,6 +16,7 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_structs.h"
 #include "misc_helper.h"
+#include "native_helper.hpp"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 #include "watchdog.h"
@@ -65,8 +66,6 @@ typedef struct _test_globals
     bool attach_v4_program;
     bool attach_v6_program;
 } test_globals_t;
-
-typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
 
 static test_globals_t _globals;
 static volatile bool _globals_initialized = false;
@@ -286,18 +285,16 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object, uint64_t authent
 static void
 _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 {
-    bpf_object_ptr object;
-
     int result;
-    struct bpf_object* raw_object = bpf_object__open("cgroup_sock_addr2.o");
-    REQUIRE(raw_object != nullptr);
-    object.reset(raw_object);
-    raw_object = nullptr;
-    REQUIRE(bpf_object__load(object.get()) == 0);
+    native_module_helper_t helper("cgroup_sock_addr2");
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    REQUIRE(object != nullptr);
+    REQUIRE(bpf_object__load(object) == 0);
 
     if (_globals.attach_v4_program) {
         printf("Attaching v4 program\n");
-        bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object.get(), "connect_redirect4");
+        bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object, "connect_redirect4");
         REQUIRE(connect_program_v4 != nullptr);
 
         result = bpf_prog_attach(
@@ -307,7 +304,7 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 
     if (_globals.attach_v6_program) {
         printf("Attaching v6 program\n");
-        bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object.get(), "connect_redirect6");
+        bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object, "connect_redirect6");
         REQUIRE(connect_program_v6 != nullptr);
 
         result = bpf_prog_attach(
@@ -315,8 +312,7 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
         REQUIRE(result == 0);
     }
 
-    *return_object = object.get();
-    object.reset(nullptr);
+    *return_object = object;
 }
 
 static void

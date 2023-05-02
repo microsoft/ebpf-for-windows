@@ -25,7 +25,7 @@ image that can be loaded and used as an eBPF program.
 
 From the root of the eBPF-For-Windows project (from a VS Developer Command Prompt), after building the project, run:
 ```
-powershell scripts\Convert-BpfToNative.ps1 -ProgramName my_program
+powershell scripts\Convert-BpfToNative.ps1 -FileName my_program
 ```
 Where my_program is the name of your BPF program without the extension. This will produce a native image in x64\Release
 with name of my_program.sys.

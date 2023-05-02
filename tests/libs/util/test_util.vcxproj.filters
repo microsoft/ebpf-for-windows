@@ -1,4 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) Microsoft Corporation
+  SPDX-License-Identifier: MIT
+-->
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="capture_helper.cpp" />
@@ -8,6 +12,7 @@
     <ClCompile Include="socket_helper.cpp" />
     <ClCompile Include="program_helper.cpp" />
     <ClCompile Include="hash.cpp" />
+    <ClCompile Include="native_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ioctl_helper.h" />
@@ -17,5 +22,6 @@
     <ClInclude Include="wer_report.hpp" />
     <ClInclude Include="hash.h" />
     <ClInclude Include="header.h" />
+    <ClInclude Include="native_helper.hpp" />
   </ItemGroup>
 </Project>
