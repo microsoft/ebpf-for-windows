@@ -68,7 +68,11 @@ function Invoke-Test
     }
 
     Write-Log "$TestName $ArgumentsList"
-    $Output = &$TestName $ArgumentsList
+    $ErrorOutput = $($Output = &$TestName $ArgumentsList) 2>&1
+    if ($ErrorOutput) {
+        throw ("$TestName Failed with error: $ErrorOutput")
+    }
+
     $TestName = $OriginalTestName
     if ($LASTEXITCODE -ne 0) {
         throw ("$TestName Failed with $LASTEXITCODE.")
