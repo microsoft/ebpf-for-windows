@@ -10,6 +10,7 @@
 #include "common_tests.h"
 #include "ebpf_structs.h"
 #include "misc_helper.h"
+#include "native_helper.hpp"
 #include "program_helper.h"
 #include "service_helper.h"
 #include "socket_helper.h"
@@ -285,6 +286,17 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
 #define INTERPRET_LOAD_RESULT 0
 #endif
 
+static int32_t
+_get_expected_jit_result(int32_t expected_result)
+{
+#if defined(CONFIG_BPF_JIT_DISABLED)
+    UNREFERENCED_PARAMETER(expected_result);
+    return -EOTHER;
+#else
+    return expected_result;
+#endif
+}
+
 // Load droppacket (JIT) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 
@@ -295,7 +307,7 @@ DECLARE_LOAD_TEST_CASE("droppacket.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NA
 DECLARE_DUPLICATE_LOAD_TEST_CASE("droppacket.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, 2, 0);
 
 // Load droppacket (ANY) without providing expected program type.
-DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, 0);
+DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, JIT_LOAD_RESULT);
 
 // Load droppacket (INTERPRET) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
@@ -313,17 +325,18 @@ DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INT
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 
 // Try to load bindmonitor with providing wrong program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, -EACCES);
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, _get_expected_jit_result(-EACCES));
 
 // Try to load an unsafe program.
-DECLARE_LOAD_TEST_CASE("droppacket_unsafe.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, -EACCES);
+DECLARE_LOAD_TEST_CASE(
+    "droppacket_unsafe.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, _get_expected_jit_result(-EACCES));
 
 // Try to load multiple programs of different program types
 TEST_CASE("test_ebpf_multiple_programs_load_jit")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
         {"droppacket.o", BPF_PROG_TYPE_XDP}, {"bindmonitor.o", BPF_PROG_TYPE_BIND}};
-    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_JIT, 0);
+    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 }
 
 TEST_CASE("test_ebpf_multiple_programs_load_interpret")
@@ -334,16 +347,36 @@ TEST_CASE("test_ebpf_multiple_programs_load_interpret")
         _countof(test_parameters), test_parameters, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 }
 
-TEST_CASE("test_ebpf_program_next_previous", "[test_ebpf_program_next_previous]")
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("test_ebpf_program_next_previous_jit", "[test_ebpf_program_next_previous]")
 {
     _test_program_next_previous("droppacket.o", DROP_PACKET_PROGRAM_COUNT);
     _test_program_next_previous("bindmonitor.o", BIND_MONITOR_PROGRAM_COUNT);
 }
 
-TEST_CASE("test_ebpf_map_next_previous", "[test_ebpf_map_next_previous]")
+TEST_CASE("test_ebpf_map_next_previous_jit", "[test_ebpf_map_next_previous]")
 {
     _test_map_next_previous("droppacket.o", DROP_PACKET_MAP_COUNT);
     _test_map_next_previous("bindmonitor.o", BIND_MONITOR_MAP_COUNT);
+}
+#endif
+
+TEST_CASE("test_ebpf_program_next_previous_native", "[test_ebpf_program_next_previous]")
+{
+    native_module_helper_t droppacket_helper("droppacket", EBPF_EXECUTION_NATIVE);
+    _test_program_next_previous(droppacket_helper.get_file_name().c_str(), DROP_PACKET_PROGRAM_COUNT);
+
+    native_module_helper_t bindmonitor_helper("bindmonitor", EBPF_EXECUTION_NATIVE);
+    _test_program_next_previous(bindmonitor_helper.get_file_name().c_str(), BIND_MONITOR_PROGRAM_COUNT);
+}
+
+TEST_CASE("test_ebpf_map_next_previous_native", "[test_ebpf_map_next_previous]")
+{
+    native_module_helper_t droppacket_helper("droppacket", EBPF_EXECUTION_NATIVE);
+    _test_map_next_previous(droppacket_helper.get_file_name().c_str(), DROP_PACKET_MAP_COUNT);
+
+    native_module_helper_t bindmonitor_helper("bindmonitor", EBPF_EXECUTION_NATIVE);
+    _test_map_next_previous(bindmonitor_helper.get_file_name().c_str(), BIND_MONITOR_MAP_COUNT);
 }
 
 void
@@ -497,13 +530,14 @@ _test_nested_maps(bpf_map_type type)
 TEST_CASE("array_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
 TEST_CASE("hash_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
-TEST_CASE("tailcall_load_test", "[tailcall_load_test]")
+void
+tailcall_load_test(_In_z_ const char* file_name)
 {
     int result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
 
-    result = _program_load_helper("tail_call_multiple.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, &object, &program_fd);
+    result = _program_load_helper(file_name, BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, &object, &program_fd);
     REQUIRE(result == 0);
 
     REQUIRE(program_fd > 0);
@@ -538,6 +572,12 @@ TEST_CASE("tailcall_load_test", "[tailcall_load_test]")
 
     bpf_object__close(object);
 }
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("tailcall_load_test_jit", "[tailcall_load_test]") { tailcall_load_test("tail_call_multiple.o"); }
+#endif
+
+TEST_CASE("tailcall_load_test_native", "[tailcall_load_test]") { tailcall_load_test("tail_call_multiple.sys"); }
 
 int
 perform_bind(_Out_ SOCKET* socket, uint16_t port_number)
@@ -775,9 +815,9 @@ bpf_user_helpers_test(ebpf_execution_type_t execution_type)
     struct bpf_object* object = nullptr;
     uint64_t process_thread_id = get_current_pid_tgid();
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "bindmonitor.sys" : "bindmonitor.o";
+    native_module_helper_t module_helper("bindmonitor", execution_type);
     program_load_attach_helper_t _helper(
-        file_name, BPF_PROG_TYPE_BIND, "BindMonitor", execution_type, nullptr, 0, hook);
+        module_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "BindMonitor", execution_type, nullptr, 0, hook);
     object = _helper.get_object();
 
     perform_socket_bind(0, true);
@@ -800,7 +840,9 @@ bpf_user_helpers_test(ebpf_execution_type_t execution_type)
     LsaFreeReturnBuffer(data);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("bpf_user_helpers_test_jit", "[api_test]") { bpf_user_helpers_test(EBPF_EXECUTION_JIT); }
+#endif
 TEST_CASE("bpf_user_helpers_test_native", "[api_test]") { bpf_user_helpers_test(EBPF_EXECUTION_NATIVE); }
 
 // This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.

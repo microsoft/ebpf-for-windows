@@ -7,6 +7,7 @@
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
+#include "native_helper.hpp"
 #include "netsh_test_helper.h"
 #include "program_helper.h"
 #include "sample_ext_app.h"
@@ -146,9 +147,15 @@ utility_helpers_test(ebpf_execution_type_t execution_type)
 {
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "test_sample_ebpf.sys" : "test_sample_ebpf.o";
+    native_module_helper_t native_module_helper("test_sample_ebpf", execution_type);
     program_load_attach_helper_t _helper(
-        file_name, BPF_PROG_TYPE_SAMPLE, "test_utility_helpers", execution_type, nullptr, 0, hook);
+        native_module_helper.get_file_name().c_str(),
+        BPF_PROG_TYPE_SAMPLE,
+        "test_utility_helpers",
+        execution_type,
+        nullptr,
+        0,
+        hook);
     object = _helper.get_object();
 
     std::vector<char> dummy(1);
@@ -166,6 +173,8 @@ TEST_CASE("utility_helpers_test_interpret", "[sample_ext_test]") { utility_helpe
 TEST_CASE("utility_helpers_test_jit", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_JIT); }
 #endif
 TEST_CASE("utility_helpers_test_native", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_NATIVE); }
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("netsh_add_program_test_sample_ebpf", "[sample_ext_test]")
 {
     int result;
@@ -174,3 +183,4 @@ TEST_CASE("netsh_add_program_test_sample_ebpf", "[sample_ext_test]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(output.starts_with("Loaded with"));
 }
+#endif
