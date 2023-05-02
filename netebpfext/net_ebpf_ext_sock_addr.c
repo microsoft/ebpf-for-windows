@@ -545,7 +545,7 @@ _net_ebpf_extension_sock_addr_on_client_attach(
 Exit:
     if (result != EBPF_SUCCESS) {
         if (filter_context != NULL) {
-            net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
+            ExFreePool(filter_context);
         }
     }
 

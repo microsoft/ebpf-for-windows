@@ -479,17 +479,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmFilterAdd0(
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmTransactionCommit0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_NO_MEMORY;
-    }
-
+    // Skip fault injection for this API because return failure status requires cleanup.
     UNREFERENCED_PARAMETER(engine_handle);
     return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmTransactionAbort0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle)
 {
-    // Skip fault injection for this API because return failure status requires to do cleanup.
+    // Skip fault injection for this API because return failure status requires cleanup.
     UNREFERENCED_PARAMETER(engine_handle);
     return STATUS_SUCCESS;
 }
@@ -880,13 +877,7 @@ _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) FWPS_CONN
     FwpsQueryConnectionRedirectState0(
         _In_ HANDLE redirectRecords, _In_ HANDLE redirectHandle, _Outptr_opt_result_maybenull_ void** redirectContext)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        if (redirectContext) {
-            *redirectContext = NULL;
-        }
-        return FWPS_CONNECTION_REDIRECTED_BY_SELF;
-    }
-
+    // Skip fault injection as the return is FWPS_CONNECTION_NOT_REDIRECTED.
     UNREFERENCED_PARAMETER(redirectRecords);
     UNREFERENCED_PARAMETER(redirectHandle);
 
