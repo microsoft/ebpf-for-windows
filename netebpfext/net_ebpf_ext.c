@@ -665,10 +665,10 @@ Exit:
 
     if (!NT_SUCCESS(status)) {
         if (is_in_transaction) {
-            status = FwpmTransactionAbort(_fwp_engine_handle);
-            if (!NT_SUCCESS(status)) {
+            NTSTATUS abort_status = FwpmTransactionAbort(_fwp_engine_handle);
+            if (!NT_SUCCESS(abort_status)) {
                 NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionAbort", status);
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionAbort", abort_status);
             }
         }
 
