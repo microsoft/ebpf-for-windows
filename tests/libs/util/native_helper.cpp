@@ -7,11 +7,8 @@
 
 #include <rpc.h>
 
-#define EBPF_PROGRAM_FILE_EXTENSION_JIT ".o"
-#define EBPF_PROGRAM_FILE_EXTENSION_NATIVE ".sys"
-
-std::string
-guid_to_string(_In_ const GUID* guid)
+static std::string
+_guid_to_string(_In_ const GUID* guid)
 {
     char guid_string[37] = {0};
     sprintf_s(
@@ -93,7 +90,7 @@ _native_module_helper::initialize(_In_z_ const char* file_name_prefix, ebpf_exec
 
         // Generate a random GUID to append to the file name.
         REQUIRE(UuidCreate(&random_guid) == RPC_S_OK);
-        auto guid_string = guid_to_string(&random_guid);
+        auto guid_string = _guid_to_string(&random_guid);
 
         _file_name = file_name_prefix_string + guid_string + std::string(EBPF_PROGRAM_FILE_EXTENSION_NATIVE);
         REQUIRE(CopyFileA(original_file_name.c_str(), _file_name.c_str(), TRUE) == TRUE);

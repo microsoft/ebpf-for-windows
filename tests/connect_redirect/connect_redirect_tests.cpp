@@ -290,7 +290,6 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
-
     REQUIRE(bpf_object__load(object) == 0);
 
     if (_globals.attach_v4_program) {

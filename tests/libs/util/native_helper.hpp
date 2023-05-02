@@ -18,19 +18,6 @@
 #define EBPF_PROGRAM_FILE_EXTENSION EBPF_PROGRAM_FILE_EXTENSION_JIT
 #endif
 
-typedef class _random_generator
-{
-  public:
-    _random_generator() { srand((uint32_t)time(NULL)); }
-    uint32_t
-    get_random_number()
-    {
-        return rand();
-    }
-} random_generator_t;
-
-static random_generator_t _random_generator;
-
 typedef class _native_module_helper
 {
   public:
