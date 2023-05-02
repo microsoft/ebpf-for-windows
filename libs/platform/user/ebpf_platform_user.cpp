@@ -33,6 +33,8 @@ int32_t _ebpf_platform_initiate_count = 0;
 extern "C" bool ebpf_fuzzing_enabled = false;
 extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
+static EX_RUNDOWN_REF _ebpf_platform_preemptible_work_items_rundown;
+
 ebpf_leak_detector_ptr _ebpf_leak_detector_ptr;
 
 /**
@@ -323,6 +325,7 @@ ebpf_platform_initiate()
         auto fault_injection_stack_depth =
             _get_environment_variable_as_size_t(EBPF_FAULT_INJECTION_SIMULATION_ENVIRONMENT_VARIABLE_NAME);
         auto leak_detector = _get_environment_variable_as_bool(EBPF_MEMORY_LEAK_DETECTION_ENVIRONMENT_VARIABLE_NAME);
+        leak_detector = true;
         if (fault_injection_stack_depth || leak_detector) {
             _ebpf_symbol_decoder_initialize();
         }
@@ -348,6 +351,8 @@ ebpf_platform_initiate()
             _ebpf_platform_group_to_index_map[i] = base_index;
             base_index += GetMaximumProcessorCount((uint16_t)i);
         }
+
+        ExInitializeRundownProtection(&_ebpf_platform_preemptible_work_items_rundown);
     } catch (const std::bad_alloc&) {
         return EBPF_NO_MEMORY;
     }
@@ -362,6 +367,8 @@ ebpf_platform_terminate()
     if (count != 0) {
         return;
     }
+
+    ExWaitForRundownProtectionRelease(&_ebpf_platform_preemptible_work_items_rundown);
 
     _clean_up_thread_pool();
     _ebpf_emulated_dpcs.resize(0);
@@ -921,6 +928,7 @@ _ebpf_preemptible_routine(_Inout_ PTP_CALLBACK_INSTANCE instance, _In_opt_ void*
     work_item->work_item_routine(work_item->work_item_context);
 
     ebpf_free_preemptible_work_item(work_item);
+    ExReleaseRundownProtection(&_ebpf_platform_preemptible_work_items_rundown);
 }
 
 void
@@ -938,6 +946,9 @@ ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* wo
 void
 ebpf_queue_preemptible_work_item(_Inout_ ebpf_preemptible_work_item_t* work_item)
 {
+    if (ExAcquireRundownProtection(&_ebpf_platform_preemptible_work_items_rundown) == FALSE) {
+        ebpf_assert(false);
+    }
     SubmitThreadpoolWork(work_item->work);
 }
 
@@ -1392,4 +1403,11 @@ ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar
 Done:
     ebpf_free(unicode_string);
     return retval;
+}
+
+void
+ebpf_platform_wait_for_preemptible_work_items()
+{
+    ExWaitForRundownProtectionRelease(&_ebpf_platform_preemptible_work_items_rundown);
+    ExReInitializeRundownProtection(&_ebpf_platform_preemptible_work_items_rundown);
 }
