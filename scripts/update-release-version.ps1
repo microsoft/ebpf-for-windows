@@ -45,6 +45,6 @@ if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+$') {
 } else {
     Write-Host -ForegroundColor Red "Invalid version number format. Please enter the version number in the format 'X Y Z', e.g.:"
     Write-Host
-    Write-Host -ForegroundColor DarkGreen "   PS> .\scripts\update-release.ps1 0 9 0"
+    Write-Host -ForegroundColor DarkGreen "   PS> .\scripts\update-release-version.ps1 0 9 0"
     Write-Host
 }
