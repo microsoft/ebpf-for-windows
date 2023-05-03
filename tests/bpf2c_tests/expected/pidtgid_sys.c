@@ -253,7 +253,7 @@ func(void* context)
     if (r2 > r1)
 #line 42 "sample/pidtgid.c"
         goto label_1;
-        // EBPF_OP_LDXH pc=4 dst=r1 src=r6 offset=26 imm=0
+    // EBPF_OP_LDXH pc=4 dst=r1 src=r6 offset=26 imm=0
 #line 42 "sample/pidtgid.c"
     r1 = *(uint16_t*)(uintptr_t)(r6 + OFFSET(26));
     // EBPF_OP_JNE_IMM pc=5 dst=r1 src=r0 offset=16 imm=15295
@@ -261,7 +261,7 @@ func(void* context)
     if (r1 != IMMEDIATE(15295))
 #line 42 "sample/pidtgid.c"
         goto label_1;
-        // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=19
+    // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=19
 #line 43 "sample/pidtgid.c"
     r0 = func_helpers[0].address
 #line 43 "sample/pidtgid.c"
@@ -270,7 +270,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 43 "sample/pidtgid.c"
         return 0;
-        // EBPF_OP_LDXDW pc=7 dst=r1 src=r6 offset=16 imm=0
+    // EBPF_OP_LDXDW pc=7 dst=r1 src=r6 offset=16 imm=0
 #line 45 "sample/pidtgid.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(16));
     // EBPF_OP_STXW pc=8 dst=r10 src=r0 offset=-8 imm=0
@@ -360,7 +360,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

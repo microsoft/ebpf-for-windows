@@ -33,6 +33,8 @@ int32_t _ebpf_platform_initiate_count = 0;
 extern "C" bool ebpf_fuzzing_enabled = false;
 extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
+static EX_RUNDOWN_REF _ebpf_platform_preemptible_work_items_rundown;
+
 ebpf_leak_detector_ptr _ebpf_leak_detector_ptr;
 
 /**
@@ -348,6 +350,8 @@ ebpf_platform_initiate()
             _ebpf_platform_group_to_index_map[i] = base_index;
             base_index += GetMaximumProcessorCount((uint16_t)i);
         }
+
+        ExInitializeRundownProtection(&_ebpf_platform_preemptible_work_items_rundown);
     } catch (const std::bad_alloc&) {
         return EBPF_NO_MEMORY;
     }
@@ -362,6 +366,8 @@ ebpf_platform_terminate()
     if (count != 0) {
         return;
     }
+
+    ExWaitForRundownProtectionRelease(&_ebpf_platform_preemptible_work_items_rundown);
 
     _clean_up_thread_pool();
     _ebpf_emulated_dpcs.resize(0);
@@ -933,6 +939,8 @@ ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* wo
     CloseThreadpoolWork(work_item->work);
     ebpf_free(work_item->work_item_context);
     ebpf_free(work_item);
+
+    ExReleaseRundownProtection(&_ebpf_platform_preemptible_work_items_rundown);
 }
 
 void
@@ -948,9 +956,15 @@ ebpf_allocate_preemptible_work_item(
     _Inout_opt_ void* work_item_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+
+    if (!ExAcquireRundownProtection(&_ebpf_platform_preemptible_work_items_rundown)) {
+        return EBPF_FAILED;
+    }
+
     *work_item = (ebpf_preemptible_work_item_t*)ebpf_allocate(sizeof(ebpf_preemptible_work_item_t));
     if (*work_item == nullptr) {
-        return EBPF_NO_MEMORY;
+        result = EBPF_NO_MEMORY;
+        goto Done;
     }
 
     // It is required to use the InitializeThreadpoolEnvironment function to
@@ -965,6 +979,7 @@ ebpf_allocate_preemptible_work_item(
 
 Done:
     if (result != EBPF_SUCCESS) {
+        ExReleaseRundownProtection(&_ebpf_platform_preemptible_work_items_rundown);
         ebpf_free(*work_item);
         *work_item = nullptr;
     }

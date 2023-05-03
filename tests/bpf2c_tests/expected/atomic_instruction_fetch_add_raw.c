@@ -99,12 +99,12 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 23 "sample/atomic_instruction_fetch_add.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=2 imm=0
+    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=2 imm=0
 #line 24 "sample/atomic_instruction_fetch_add.c"
     if (r0 == IMMEDIATE(0))
 #line 24 "sample/atomic_instruction_fetch_add.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=8 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=8 dst=r1 src=r0 offset=0 imm=1
 #line 24 "sample/atomic_instruction_fetch_add.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_ATOMIC64_ADD pc=9 dst=r0 src=r1 offset=0 imm=0
@@ -152,7 +152,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 
