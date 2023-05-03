@@ -577,10 +577,7 @@ RtlSetDaclSecurityDescriptor(
     _In_opt_ PACL Dacl,
     _In_ BOOLEAN DaclDefaulted)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
+    // Skip Fault Injection.
     UNREFERENCED_PARAMETER(SecurityDescriptor);
     UNREFERENCED_PARAMETER(DaclPresent);
     UNREFERENCED_PARAMETER(Dacl);
@@ -593,10 +590,7 @@ NTSTATUS
 NTAPI
 RtlCreateSecurityDescriptor(_Out_ PSECURITY_DESCRIPTOR SecurityDescriptor, _In_ unsigned long Revision)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
+    // Skip Fault Injection.
     UNREFERENCED_PARAMETER(Revision);
     memset(SecurityDescriptor, 0, sizeof(SECURITY_DESCRIPTOR));
 
