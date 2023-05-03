@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #define EBPF_VERSION_MAJOR 0
-#define EBPF_VERSION_MINOR 7
+#define EBPF_VERSION_MINOR 9
 #define EBPF_VERSION_REVISION 0
 
 #define QUOTE(str) #str

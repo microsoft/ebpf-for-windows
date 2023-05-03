@@ -204,12 +204,12 @@ BindMonitor(void* context)
     if ((BindMonitor_helpers[0].tail_call) && (r0 == 0))
 #line 149 "sample/unsafe/invalid_maps2.c"
         return 0;
-        // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
+    // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
 #line 151 "sample/unsafe/invalid_maps2.c"
     if (r0 != IMMEDIATE(0))
 #line 151 "sample/unsafe/invalid_maps2.c"
         goto label_1;
-        // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
 #line 154 "sample/unsafe/invalid_maps2.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=10 dst=r2 src=r0 offset=0 imm=0
@@ -311,12 +311,12 @@ BindMonitor_Callee0(void* context)
     if ((BindMonitor_Callee0_helpers[0].tail_call) && (r0 == 0))
 #line 165 "sample/unsafe/invalid_maps2.c"
         return 0;
-        // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
+    // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
 #line 167 "sample/unsafe/invalid_maps2.c"
     if (r0 != IMMEDIATE(0))
 #line 167 "sample/unsafe/invalid_maps2.c"
         goto label_1;
-        // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
 #line 170 "sample/unsafe/invalid_maps2.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=10 dst=r2 src=r0 offset=0 imm=0
@@ -425,7 +425,7 @@ BindMonitor_Callee1(void* context)
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0))
 #line 182 "sample/unsafe/invalid_maps2.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
 #line 182 "sample/unsafe/invalid_maps2.c"
     r7 = r0;
     // EBPF_OP_JEQ_IMM pc=9 dst=r7 src=r0 offset=82 imm=0
@@ -433,7 +433,7 @@ BindMonitor_Callee1(void* context)
     if (r7 == IMMEDIATE(0))
 #line 183 "sample/unsafe/invalid_maps2.c"
         goto label_9;
-        // EBPF_OP_LDXW pc=10 dst=r1 src=r7 offset=0 imm=0
+    // EBPF_OP_LDXW pc=10 dst=r1 src=r7 offset=0 imm=0
 #line 183 "sample/unsafe/invalid_maps2.c"
     r1 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
     // EBPF_OP_JEQ_IMM pc=11 dst=r1 src=r0 offset=80 imm=0
@@ -441,7 +441,7 @@ BindMonitor_Callee1(void* context)
     if (r1 == IMMEDIATE(0))
 #line 183 "sample/unsafe/invalid_maps2.c"
         goto label_9;
-        // EBPF_OP_LDXDW pc=12 dst=r1 src=r6 offset=16 imm=0
+    // EBPF_OP_LDXDW pc=12 dst=r1 src=r6 offset=16 imm=0
 #line 105 "sample/unsafe/invalid_maps2.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(16));
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-8 imm=0
@@ -495,12 +495,12 @@ BindMonitor_Callee1(void* context)
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0))
 #line 110 "sample/unsafe/invalid_maps2.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=29 dst=r0 src=r0 offset=1 imm=0
+    // EBPF_OP_JEQ_IMM pc=29 dst=r0 src=r0 offset=1 imm=0
 #line 111 "sample/unsafe/invalid_maps2.c"
     if (r0 == IMMEDIATE(0))
 #line 111 "sample/unsafe/invalid_maps2.c"
         goto label_1;
-        // EBPF_OP_JA pc=30 dst=r0 src=r0 offset=33 imm=0
+    // EBPF_OP_JA pc=30 dst=r0 src=r0 offset=33 imm=0
 #line 111 "sample/unsafe/invalid_maps2.c"
     goto label_3;
 label_1:
@@ -512,7 +512,7 @@ label_1:
     if (r1 != IMMEDIATE(0))
 #line 115 "sample/unsafe/invalid_maps2.c"
         goto label_8;
-        // EBPF_OP_LDXDW pc=33 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=33 dst=r1 src=r6 offset=0 imm=0
 #line 119 "sample/unsafe/invalid_maps2.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
     // EBPF_OP_JEQ_IMM pc=34 dst=r1 src=r0 offset=56 imm=0
@@ -520,7 +520,7 @@ label_1:
     if (r1 == IMMEDIATE(0))
 #line 119 "sample/unsafe/invalid_maps2.c"
         goto label_8;
-        // EBPF_OP_LDXDW pc=35 dst=r1 src=r6 offset=8 imm=0
+    // EBPF_OP_LDXDW pc=35 dst=r1 src=r6 offset=8 imm=0
 #line 119 "sample/unsafe/invalid_maps2.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
     // EBPF_OP_JEQ_IMM pc=36 dst=r1 src=r0 offset=54 imm=0
@@ -528,7 +528,7 @@ label_1:
     if (r1 == IMMEDIATE(0))
 #line 119 "sample/unsafe/invalid_maps2.c"
         goto label_8;
-        // EBPF_OP_MOV64_REG pc=37 dst=r8 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=37 dst=r8 src=r10 offset=0 imm=0
 #line 119 "sample/unsafe/invalid_maps2.c"
     r8 = r10;
     // EBPF_OP_ADD64_IMM pc=38 dst=r8 src=r0 offset=0 imm=-8
@@ -561,7 +561,7 @@ label_1:
     if ((BindMonitor_Callee1_helpers[1].tail_call) && (r0 == 0))
 #line 123 "sample/unsafe/invalid_maps2.c"
         return 0;
-        // EBPF_OP_LDDW pc=47 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=47 dst=r1 src=r0 offset=0 imm=0
 #line 124 "sample/unsafe/invalid_maps2.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_REG pc=49 dst=r2 src=r8 offset=0 imm=0
@@ -576,12 +576,12 @@ label_1:
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0))
 #line 124 "sample/unsafe/invalid_maps2.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=51 dst=r0 src=r0 offset=39 imm=0
+    // EBPF_OP_JEQ_IMM pc=51 dst=r0 src=r0 offset=39 imm=0
 #line 125 "sample/unsafe/invalid_maps2.c"
     if (r0 == IMMEDIATE(0))
 #line 125 "sample/unsafe/invalid_maps2.c"
         goto label_8;
-        // EBPF_OP_MOV64_REG pc=52 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=52 dst=r1 src=r0 offset=0 imm=0
 #line 125 "sample/unsafe/invalid_maps2.c"
     r1 = r0;
     // EBPF_OP_ADD64_IMM pc=53 dst=r1 src=r0 offset=0 imm=4
@@ -602,7 +602,7 @@ label_2:
     if (r2 >= r3)
 #line 130 "sample/unsafe/invalid_maps2.c"
         goto label_3;
-        // EBPF_OP_MOV64_REG pc=58 dst=r3 src=r1 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=58 dst=r3 src=r1 offset=0 imm=0
 #line 134 "sample/unsafe/invalid_maps2.c"
     r3 = r1;
     // EBPF_OP_ADD64_REG pc=59 dst=r3 src=r9 offset=0 imm=0
@@ -631,12 +631,12 @@ label_3:
     if (r1 == IMMEDIATE(0))
 #line 193 "sample/unsafe/invalid_maps2.c"
         goto label_4;
-        // EBPF_OP_JEQ_IMM pc=66 dst=r1 src=r0 offset=9 imm=2
+    // EBPF_OP_JEQ_IMM pc=66 dst=r1 src=r0 offset=9 imm=2
 #line 193 "sample/unsafe/invalid_maps2.c"
     if (r1 == IMMEDIATE(2))
 #line 193 "sample/unsafe/invalid_maps2.c"
         goto label_5;
-        // EBPF_OP_LDXW pc=67 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDXW pc=67 dst=r1 src=r0 offset=0 imm=0
 #line 210 "sample/unsafe/invalid_maps2.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
     // EBPF_OP_JA pc=68 dst=r0 src=r0 offset=11 imm=0
@@ -657,7 +657,7 @@ label_4:
     if (r1 >= r2)
 #line 195 "sample/unsafe/invalid_maps2.c"
         goto label_9;
-        // EBPF_OP_ADD64_IMM pc=73 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_ADD64_IMM pc=73 dst=r1 src=r0 offset=0 imm=1
 #line 199 "sample/unsafe/invalid_maps2.c"
     r1 += IMMEDIATE(1);
     // EBPF_OP_STXW pc=74 dst=r0 src=r1 offset=0 imm=0
@@ -675,7 +675,7 @@ label_5:
     if (r1 == IMMEDIATE(0))
 #line 202 "sample/unsafe/invalid_maps2.c"
         goto label_7;
-        // EBPF_OP_ADD64_IMM pc=78 dst=r1 src=r0 offset=0 imm=-1
+    // EBPF_OP_ADD64_IMM pc=78 dst=r1 src=r0 offset=0 imm=-1
 #line 203 "sample/unsafe/invalid_maps2.c"
     r1 += IMMEDIATE(-1);
     // EBPF_OP_STXW pc=79 dst=r0 src=r1 offset=0 imm=0
@@ -795,7 +795,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

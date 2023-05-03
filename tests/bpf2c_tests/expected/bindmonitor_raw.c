@@ -132,7 +132,7 @@ BindMonitor(void* context)
     if ((BindMonitor_helpers[0].tail_call) && (r0 == 0))
 #line 52 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_STXDW pc=4 dst=r10 src=r0 offset=-8 imm=0
+    // EBPF_OP_STXDW pc=4 dst=r10 src=r0 offset=-8 imm=0
 #line 52 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint64_t)r0;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r8 offset=-72 imm=0
@@ -153,7 +153,7 @@ BindMonitor(void* context)
     if ((BindMonitor_helpers[1].tail_call) && (r0 == 0))
 #line 55 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_STXDW pc=9 dst=r10 src=r0 offset=-80 imm=0
+    // EBPF_OP_STXDW pc=9 dst=r10 src=r0 offset=-80 imm=0
 #line 55 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-80)) = (uint64_t)r0;
     // EBPF_OP_MOV64_REG pc=10 dst=r1 src=r6 offset=0 imm=0
@@ -168,7 +168,7 @@ BindMonitor(void* context)
     if ((BindMonitor_helpers[2].tail_call) && (r0 == 0))
 #line 56 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_STXW pc=12 dst=r10 src=r0 offset=-72 imm=0
+    // EBPF_OP_STXW pc=12 dst=r10 src=r0 offset=-72 imm=0
 #line 56 "sample/bindmonitor.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-72)) = (uint32_t)r0;
     // EBPF_OP_MOV64_REG pc=13 dst=r2 src=r10 offset=0 imm=0
@@ -198,7 +198,7 @@ BindMonitor(void* context)
     if ((BindMonitor_helpers[3].tail_call) && (r0 == 0))
 #line 58 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=21 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=21 dst=r2 src=r10 offset=0 imm=0
 #line 58 "sample/bindmonitor.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=22 dst=r2 src=r0 offset=0 imm=-84
@@ -216,7 +216,7 @@ BindMonitor(void* context)
     if ((BindMonitor_helpers[4].tail_call) && (r0 == 0))
 #line 308 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=26 dst=r7 src=r0 offset=0 imm=0
 #line 308 "sample/bindmonitor.c"
     r7 = r0;
     // EBPF_OP_JEQ_IMM pc=27 dst=r7 src=r0 offset=519 imm=0
@@ -224,7 +224,7 @@ BindMonitor(void* context)
     if (r7 == IMMEDIATE(0))
 #line 309 "sample/bindmonitor.c"
         goto label_9;
-        // EBPF_OP_LDXW pc=28 dst=r1 src=r7 offset=0 imm=0
+    // EBPF_OP_LDXW pc=28 dst=r1 src=r7 offset=0 imm=0
 #line 309 "sample/bindmonitor.c"
     r1 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
     // EBPF_OP_JEQ_IMM pc=29 dst=r1 src=r0 offset=517 imm=0
@@ -232,7 +232,7 @@ BindMonitor(void* context)
     if (r1 == IMMEDIATE(0))
 #line 309 "sample/bindmonitor.c"
         goto label_9;
-        // EBPF_OP_LDXDW pc=30 dst=r1 src=r6 offset=16 imm=0
+    // EBPF_OP_LDXDW pc=30 dst=r1 src=r6 offset=16 imm=0
 #line 64 "sample/bindmonitor.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(16));
     // EBPF_OP_STXDW pc=31 dst=r10 src=r1 offset=-8 imm=0
@@ -286,7 +286,7 @@ BindMonitor(void* context)
     if ((BindMonitor_helpers[4].tail_call) && (r0 == 0))
 #line 69 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=47 dst=r0 src=r0 offset=7 imm=0
+    // EBPF_OP_JEQ_IMM pc=47 dst=r0 src=r0 offset=7 imm=0
 #line 70 "sample/bindmonitor.c"
     if (r0 == IMMEDIATE(0))
 #line 70 "sample/bindmonitor.c"
@@ -309,12 +309,12 @@ label_2:
     if (r1 == IMMEDIATE(0))
 #line 319 "sample/bindmonitor.c"
         goto label_7;
-        // EBPF_OP_JEQ_IMM pc=52 dst=r1 src=r0 offset=471 imm=2
+    // EBPF_OP_JEQ_IMM pc=52 dst=r1 src=r0 offset=471 imm=2
 #line 319 "sample/bindmonitor.c"
     if (r1 == IMMEDIATE(2))
 #line 319 "sample/bindmonitor.c"
         goto label_4;
-        // EBPF_OP_LDXW pc=53 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDXW pc=53 dst=r1 src=r0 offset=0 imm=0
 #line 336 "sample/bindmonitor.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
     // EBPF_OP_JA pc=54 dst=r0 src=r0 offset=473 imm=0
@@ -329,7 +329,7 @@ label_3:
     if (r1 != IMMEDIATE(0))
 #line 74 "sample/bindmonitor.c"
         goto label_8;
-        // EBPF_OP_LDXDW pc=57 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=57 dst=r1 src=r6 offset=0 imm=0
 #line 78 "sample/bindmonitor.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
     // EBPF_OP_JEQ_IMM pc=58 dst=r1 src=r0 offset=487 imm=0
@@ -337,7 +337,7 @@ label_3:
     if (r1 == IMMEDIATE(0))
 #line 78 "sample/bindmonitor.c"
         goto label_8;
-        // EBPF_OP_LDXDW pc=59 dst=r1 src=r6 offset=8 imm=0
+    // EBPF_OP_LDXDW pc=59 dst=r1 src=r6 offset=8 imm=0
 #line 78 "sample/bindmonitor.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
     // EBPF_OP_JEQ_IMM pc=60 dst=r1 src=r0 offset=485 imm=0
@@ -345,7 +345,7 @@ label_3:
     if (r1 == IMMEDIATE(0))
 #line 78 "sample/bindmonitor.c"
         goto label_8;
-        // EBPF_OP_MOV64_REG pc=61 dst=r8 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=61 dst=r8 src=r10 offset=0 imm=0
 #line 78 "sample/bindmonitor.c"
     r8 = r10;
     // EBPF_OP_ADD64_IMM pc=62 dst=r8 src=r0 offset=0 imm=-8
@@ -375,7 +375,7 @@ label_3:
     if ((BindMonitor_helpers[3].tail_call) && (r0 == 0))
 #line 82 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_LDDW pc=70 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=70 dst=r1 src=r0 offset=0 imm=0
 #line 83 "sample/bindmonitor.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_REG pc=72 dst=r2 src=r8 offset=0 imm=0
@@ -390,12 +390,12 @@ label_3:
     if ((BindMonitor_helpers[4].tail_call) && (r0 == 0))
 #line 83 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=74 dst=r0 src=r0 offset=471 imm=0
+    // EBPF_OP_JEQ_IMM pc=74 dst=r0 src=r0 offset=471 imm=0
 #line 84 "sample/bindmonitor.c"
     if (r0 == IMMEDIATE(0))
 #line 84 "sample/bindmonitor.c"
         goto label_8;
-        // EBPF_OP_LDXDW pc=75 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=75 dst=r1 src=r6 offset=0 imm=0
 #line 98 "sample/bindmonitor.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
     // EBPF_OP_LDXDW pc=76 dst=r2 src=r6 offset=8 imm=0
@@ -412,7 +412,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 98 "sample/bindmonitor.c"
         goto label_1;
-        // EBPF_OP_LDXB pc=80 dst=r1 src=r1 offset=0 imm=0
+    // EBPF_OP_LDXB pc=80 dst=r1 src=r1 offset=0 imm=0
 #line 99 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(0));
     // EBPF_OP_STXB pc=81 dst=r0 src=r1 offset=4 imm=0
@@ -435,7 +435,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 101 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=87 dst=r1 src=r1 offset=1 imm=0
+    // EBPF_OP_LDXB pc=87 dst=r1 src=r1 offset=1 imm=0
 #line 102 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(1));
     // EBPF_OP_STXB pc=88 dst=r0 src=r1 offset=5 imm=0
@@ -458,7 +458,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 104 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=94 dst=r1 src=r1 offset=2 imm=0
+    // EBPF_OP_LDXB pc=94 dst=r1 src=r1 offset=2 imm=0
 #line 105 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(2));
     // EBPF_OP_STXB pc=95 dst=r0 src=r1 offset=6 imm=0
@@ -481,7 +481,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 107 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=101 dst=r1 src=r1 offset=3 imm=0
+    // EBPF_OP_LDXB pc=101 dst=r1 src=r1 offset=3 imm=0
 #line 108 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(3));
     // EBPF_OP_STXB pc=102 dst=r0 src=r1 offset=7 imm=0
@@ -504,7 +504,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 110 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=108 dst=r1 src=r1 offset=4 imm=0
+    // EBPF_OP_LDXB pc=108 dst=r1 src=r1 offset=4 imm=0
 #line 111 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(4));
     // EBPF_OP_STXB pc=109 dst=r0 src=r1 offset=8 imm=0
@@ -527,7 +527,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 113 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=115 dst=r1 src=r1 offset=5 imm=0
+    // EBPF_OP_LDXB pc=115 dst=r1 src=r1 offset=5 imm=0
 #line 114 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(5));
     // EBPF_OP_STXB pc=116 dst=r0 src=r1 offset=9 imm=0
@@ -550,7 +550,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 116 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=122 dst=r1 src=r1 offset=6 imm=0
+    // EBPF_OP_LDXB pc=122 dst=r1 src=r1 offset=6 imm=0
 #line 117 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(6));
     // EBPF_OP_STXB pc=123 dst=r0 src=r1 offset=10 imm=0
@@ -573,7 +573,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 119 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=129 dst=r1 src=r1 offset=7 imm=0
+    // EBPF_OP_LDXB pc=129 dst=r1 src=r1 offset=7 imm=0
 #line 120 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(7));
     // EBPF_OP_STXB pc=130 dst=r0 src=r1 offset=11 imm=0
@@ -596,7 +596,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 122 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=136 dst=r1 src=r1 offset=8 imm=0
+    // EBPF_OP_LDXB pc=136 dst=r1 src=r1 offset=8 imm=0
 #line 123 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(8));
     // EBPF_OP_STXB pc=137 dst=r0 src=r1 offset=12 imm=0
@@ -619,7 +619,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 125 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=143 dst=r1 src=r1 offset=9 imm=0
+    // EBPF_OP_LDXB pc=143 dst=r1 src=r1 offset=9 imm=0
 #line 126 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(9));
     // EBPF_OP_STXB pc=144 dst=r0 src=r1 offset=13 imm=0
@@ -642,7 +642,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 128 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=150 dst=r1 src=r1 offset=10 imm=0
+    // EBPF_OP_LDXB pc=150 dst=r1 src=r1 offset=10 imm=0
 #line 129 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(10));
     // EBPF_OP_STXB pc=151 dst=r0 src=r1 offset=14 imm=0
@@ -665,7 +665,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 131 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=157 dst=r1 src=r1 offset=11 imm=0
+    // EBPF_OP_LDXB pc=157 dst=r1 src=r1 offset=11 imm=0
 #line 132 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(11));
     // EBPF_OP_STXB pc=158 dst=r0 src=r1 offset=15 imm=0
@@ -688,7 +688,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 134 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=164 dst=r1 src=r1 offset=12 imm=0
+    // EBPF_OP_LDXB pc=164 dst=r1 src=r1 offset=12 imm=0
 #line 135 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(12));
     // EBPF_OP_STXB pc=165 dst=r0 src=r1 offset=16 imm=0
@@ -711,7 +711,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 137 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=171 dst=r1 src=r1 offset=13 imm=0
+    // EBPF_OP_LDXB pc=171 dst=r1 src=r1 offset=13 imm=0
 #line 138 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(13));
     // EBPF_OP_STXB pc=172 dst=r0 src=r1 offset=17 imm=0
@@ -734,7 +734,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 140 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=178 dst=r1 src=r1 offset=14 imm=0
+    // EBPF_OP_LDXB pc=178 dst=r1 src=r1 offset=14 imm=0
 #line 141 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(14));
     // EBPF_OP_STXB pc=179 dst=r0 src=r1 offset=18 imm=0
@@ -757,7 +757,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 143 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=185 dst=r1 src=r1 offset=15 imm=0
+    // EBPF_OP_LDXB pc=185 dst=r1 src=r1 offset=15 imm=0
 #line 144 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(15));
     // EBPF_OP_STXB pc=186 dst=r0 src=r1 offset=19 imm=0
@@ -780,7 +780,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 146 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=192 dst=r1 src=r1 offset=16 imm=0
+    // EBPF_OP_LDXB pc=192 dst=r1 src=r1 offset=16 imm=0
 #line 147 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(16));
     // EBPF_OP_STXB pc=193 dst=r0 src=r1 offset=20 imm=0
@@ -803,7 +803,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 149 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=199 dst=r1 src=r1 offset=17 imm=0
+    // EBPF_OP_LDXB pc=199 dst=r1 src=r1 offset=17 imm=0
 #line 150 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(17));
     // EBPF_OP_STXB pc=200 dst=r0 src=r1 offset=21 imm=0
@@ -826,7 +826,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 152 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=206 dst=r1 src=r1 offset=18 imm=0
+    // EBPF_OP_LDXB pc=206 dst=r1 src=r1 offset=18 imm=0
 #line 153 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(18));
     // EBPF_OP_STXB pc=207 dst=r0 src=r1 offset=22 imm=0
@@ -849,7 +849,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 155 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=213 dst=r1 src=r1 offset=19 imm=0
+    // EBPF_OP_LDXB pc=213 dst=r1 src=r1 offset=19 imm=0
 #line 156 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(19));
     // EBPF_OP_STXB pc=214 dst=r0 src=r1 offset=23 imm=0
@@ -872,7 +872,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 158 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=220 dst=r1 src=r1 offset=20 imm=0
+    // EBPF_OP_LDXB pc=220 dst=r1 src=r1 offset=20 imm=0
 #line 159 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(20));
     // EBPF_OP_STXB pc=221 dst=r0 src=r1 offset=24 imm=0
@@ -895,7 +895,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 161 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=227 dst=r1 src=r1 offset=21 imm=0
+    // EBPF_OP_LDXB pc=227 dst=r1 src=r1 offset=21 imm=0
 #line 162 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(21));
     // EBPF_OP_STXB pc=228 dst=r0 src=r1 offset=25 imm=0
@@ -918,7 +918,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 164 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=234 dst=r1 src=r1 offset=22 imm=0
+    // EBPF_OP_LDXB pc=234 dst=r1 src=r1 offset=22 imm=0
 #line 165 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(22));
     // EBPF_OP_STXB pc=235 dst=r0 src=r1 offset=26 imm=0
@@ -941,7 +941,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 167 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=241 dst=r1 src=r1 offset=23 imm=0
+    // EBPF_OP_LDXB pc=241 dst=r1 src=r1 offset=23 imm=0
 #line 168 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(23));
     // EBPF_OP_STXB pc=242 dst=r0 src=r1 offset=27 imm=0
@@ -964,7 +964,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 170 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=248 dst=r1 src=r1 offset=24 imm=0
+    // EBPF_OP_LDXB pc=248 dst=r1 src=r1 offset=24 imm=0
 #line 171 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(24));
     // EBPF_OP_STXB pc=249 dst=r0 src=r1 offset=28 imm=0
@@ -987,7 +987,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 173 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=255 dst=r1 src=r1 offset=25 imm=0
+    // EBPF_OP_LDXB pc=255 dst=r1 src=r1 offset=25 imm=0
 #line 174 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(25));
     // EBPF_OP_STXB pc=256 dst=r0 src=r1 offset=29 imm=0
@@ -1010,7 +1010,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 176 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=262 dst=r1 src=r1 offset=26 imm=0
+    // EBPF_OP_LDXB pc=262 dst=r1 src=r1 offset=26 imm=0
 #line 177 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(26));
     // EBPF_OP_STXB pc=263 dst=r0 src=r1 offset=30 imm=0
@@ -1033,7 +1033,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 179 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=269 dst=r1 src=r1 offset=27 imm=0
+    // EBPF_OP_LDXB pc=269 dst=r1 src=r1 offset=27 imm=0
 #line 180 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(27));
     // EBPF_OP_STXB pc=270 dst=r0 src=r1 offset=31 imm=0
@@ -1056,7 +1056,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 182 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=276 dst=r1 src=r1 offset=28 imm=0
+    // EBPF_OP_LDXB pc=276 dst=r1 src=r1 offset=28 imm=0
 #line 183 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(28));
     // EBPF_OP_STXB pc=277 dst=r0 src=r1 offset=32 imm=0
@@ -1079,7 +1079,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 185 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=283 dst=r1 src=r1 offset=29 imm=0
+    // EBPF_OP_LDXB pc=283 dst=r1 src=r1 offset=29 imm=0
 #line 186 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(29));
     // EBPF_OP_STXB pc=284 dst=r0 src=r1 offset=33 imm=0
@@ -1102,7 +1102,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 188 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=290 dst=r1 src=r1 offset=30 imm=0
+    // EBPF_OP_LDXB pc=290 dst=r1 src=r1 offset=30 imm=0
 #line 189 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(30));
     // EBPF_OP_STXB pc=291 dst=r0 src=r1 offset=34 imm=0
@@ -1125,7 +1125,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 191 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=297 dst=r1 src=r1 offset=31 imm=0
+    // EBPF_OP_LDXB pc=297 dst=r1 src=r1 offset=31 imm=0
 #line 192 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(31));
     // EBPF_OP_STXB pc=298 dst=r0 src=r1 offset=35 imm=0
@@ -1148,7 +1148,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 194 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=304 dst=r1 src=r1 offset=32 imm=0
+    // EBPF_OP_LDXB pc=304 dst=r1 src=r1 offset=32 imm=0
 #line 195 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(32));
     // EBPF_OP_STXB pc=305 dst=r0 src=r1 offset=36 imm=0
@@ -1171,7 +1171,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 197 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=311 dst=r1 src=r1 offset=33 imm=0
+    // EBPF_OP_LDXB pc=311 dst=r1 src=r1 offset=33 imm=0
 #line 198 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(33));
     // EBPF_OP_STXB pc=312 dst=r0 src=r1 offset=37 imm=0
@@ -1194,7 +1194,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 200 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=318 dst=r1 src=r1 offset=34 imm=0
+    // EBPF_OP_LDXB pc=318 dst=r1 src=r1 offset=34 imm=0
 #line 201 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(34));
     // EBPF_OP_STXB pc=319 dst=r0 src=r1 offset=38 imm=0
@@ -1217,7 +1217,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 203 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=325 dst=r1 src=r1 offset=35 imm=0
+    // EBPF_OP_LDXB pc=325 dst=r1 src=r1 offset=35 imm=0
 #line 204 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(35));
     // EBPF_OP_STXB pc=326 dst=r0 src=r1 offset=39 imm=0
@@ -1240,7 +1240,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 206 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=332 dst=r1 src=r1 offset=36 imm=0
+    // EBPF_OP_LDXB pc=332 dst=r1 src=r1 offset=36 imm=0
 #line 207 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(36));
     // EBPF_OP_STXB pc=333 dst=r0 src=r1 offset=40 imm=0
@@ -1263,7 +1263,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 209 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=339 dst=r1 src=r1 offset=37 imm=0
+    // EBPF_OP_LDXB pc=339 dst=r1 src=r1 offset=37 imm=0
 #line 210 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(37));
     // EBPF_OP_STXB pc=340 dst=r0 src=r1 offset=41 imm=0
@@ -1286,7 +1286,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 212 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=346 dst=r1 src=r1 offset=38 imm=0
+    // EBPF_OP_LDXB pc=346 dst=r1 src=r1 offset=38 imm=0
 #line 213 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(38));
     // EBPF_OP_STXB pc=347 dst=r0 src=r1 offset=42 imm=0
@@ -1309,7 +1309,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 215 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=353 dst=r1 src=r1 offset=39 imm=0
+    // EBPF_OP_LDXB pc=353 dst=r1 src=r1 offset=39 imm=0
 #line 216 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(39));
     // EBPF_OP_STXB pc=354 dst=r0 src=r1 offset=43 imm=0
@@ -1332,7 +1332,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 218 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=360 dst=r1 src=r1 offset=40 imm=0
+    // EBPF_OP_LDXB pc=360 dst=r1 src=r1 offset=40 imm=0
 #line 219 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(40));
     // EBPF_OP_STXB pc=361 dst=r0 src=r1 offset=44 imm=0
@@ -1355,7 +1355,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 221 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=367 dst=r1 src=r1 offset=41 imm=0
+    // EBPF_OP_LDXB pc=367 dst=r1 src=r1 offset=41 imm=0
 #line 222 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(41));
     // EBPF_OP_STXB pc=368 dst=r0 src=r1 offset=45 imm=0
@@ -1378,7 +1378,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 224 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=374 dst=r1 src=r1 offset=42 imm=0
+    // EBPF_OP_LDXB pc=374 dst=r1 src=r1 offset=42 imm=0
 #line 225 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(42));
     // EBPF_OP_STXB pc=375 dst=r0 src=r1 offset=46 imm=0
@@ -1401,7 +1401,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 227 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=381 dst=r1 src=r1 offset=43 imm=0
+    // EBPF_OP_LDXB pc=381 dst=r1 src=r1 offset=43 imm=0
 #line 228 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(43));
     // EBPF_OP_STXB pc=382 dst=r0 src=r1 offset=47 imm=0
@@ -1424,7 +1424,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 230 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=388 dst=r1 src=r1 offset=44 imm=0
+    // EBPF_OP_LDXB pc=388 dst=r1 src=r1 offset=44 imm=0
 #line 231 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(44));
     // EBPF_OP_STXB pc=389 dst=r0 src=r1 offset=48 imm=0
@@ -1447,7 +1447,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 233 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=395 dst=r1 src=r1 offset=45 imm=0
+    // EBPF_OP_LDXB pc=395 dst=r1 src=r1 offset=45 imm=0
 #line 234 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(45));
     // EBPF_OP_STXB pc=396 dst=r0 src=r1 offset=49 imm=0
@@ -1470,7 +1470,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 236 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=402 dst=r1 src=r1 offset=46 imm=0
+    // EBPF_OP_LDXB pc=402 dst=r1 src=r1 offset=46 imm=0
 #line 237 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(46));
     // EBPF_OP_STXB pc=403 dst=r0 src=r1 offset=50 imm=0
@@ -1493,7 +1493,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 239 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=409 dst=r1 src=r1 offset=47 imm=0
+    // EBPF_OP_LDXB pc=409 dst=r1 src=r1 offset=47 imm=0
 #line 240 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(47));
     // EBPF_OP_STXB pc=410 dst=r0 src=r1 offset=51 imm=0
@@ -1516,7 +1516,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 242 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=416 dst=r1 src=r1 offset=48 imm=0
+    // EBPF_OP_LDXB pc=416 dst=r1 src=r1 offset=48 imm=0
 #line 243 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(48));
     // EBPF_OP_STXB pc=417 dst=r0 src=r1 offset=52 imm=0
@@ -1539,7 +1539,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 245 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=423 dst=r1 src=r1 offset=49 imm=0
+    // EBPF_OP_LDXB pc=423 dst=r1 src=r1 offset=49 imm=0
 #line 246 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(49));
     // EBPF_OP_STXB pc=424 dst=r0 src=r1 offset=53 imm=0
@@ -1562,7 +1562,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 248 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=430 dst=r1 src=r1 offset=50 imm=0
+    // EBPF_OP_LDXB pc=430 dst=r1 src=r1 offset=50 imm=0
 #line 249 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(50));
     // EBPF_OP_STXB pc=431 dst=r0 src=r1 offset=54 imm=0
@@ -1585,7 +1585,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 251 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=437 dst=r1 src=r1 offset=51 imm=0
+    // EBPF_OP_LDXB pc=437 dst=r1 src=r1 offset=51 imm=0
 #line 252 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(51));
     // EBPF_OP_STXB pc=438 dst=r0 src=r1 offset=55 imm=0
@@ -1608,7 +1608,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 254 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=444 dst=r1 src=r1 offset=52 imm=0
+    // EBPF_OP_LDXB pc=444 dst=r1 src=r1 offset=52 imm=0
 #line 255 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(52));
     // EBPF_OP_STXB pc=445 dst=r0 src=r1 offset=56 imm=0
@@ -1631,7 +1631,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 257 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=451 dst=r1 src=r1 offset=53 imm=0
+    // EBPF_OP_LDXB pc=451 dst=r1 src=r1 offset=53 imm=0
 #line 258 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(53));
     // EBPF_OP_STXB pc=452 dst=r0 src=r1 offset=57 imm=0
@@ -1654,7 +1654,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 260 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=458 dst=r1 src=r1 offset=54 imm=0
+    // EBPF_OP_LDXB pc=458 dst=r1 src=r1 offset=54 imm=0
 #line 261 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(54));
     // EBPF_OP_STXB pc=459 dst=r0 src=r1 offset=58 imm=0
@@ -1677,7 +1677,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 263 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=465 dst=r1 src=r1 offset=55 imm=0
+    // EBPF_OP_LDXB pc=465 dst=r1 src=r1 offset=55 imm=0
 #line 264 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(55));
     // EBPF_OP_STXB pc=466 dst=r0 src=r1 offset=59 imm=0
@@ -1700,7 +1700,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 266 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=472 dst=r1 src=r1 offset=56 imm=0
+    // EBPF_OP_LDXB pc=472 dst=r1 src=r1 offset=56 imm=0
 #line 267 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(56));
     // EBPF_OP_STXB pc=473 dst=r0 src=r1 offset=60 imm=0
@@ -1723,7 +1723,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 269 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=479 dst=r1 src=r1 offset=57 imm=0
+    // EBPF_OP_LDXB pc=479 dst=r1 src=r1 offset=57 imm=0
 #line 270 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(57));
     // EBPF_OP_STXB pc=480 dst=r0 src=r1 offset=61 imm=0
@@ -1746,7 +1746,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 272 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=486 dst=r1 src=r1 offset=58 imm=0
+    // EBPF_OP_LDXB pc=486 dst=r1 src=r1 offset=58 imm=0
 #line 273 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(58));
     // EBPF_OP_STXB pc=487 dst=r0 src=r1 offset=62 imm=0
@@ -1769,7 +1769,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 275 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=493 dst=r1 src=r1 offset=59 imm=0
+    // EBPF_OP_LDXB pc=493 dst=r1 src=r1 offset=59 imm=0
 #line 276 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(59));
     // EBPF_OP_STXB pc=494 dst=r0 src=r1 offset=63 imm=0
@@ -1792,7 +1792,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 278 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=500 dst=r1 src=r1 offset=60 imm=0
+    // EBPF_OP_LDXB pc=500 dst=r1 src=r1 offset=60 imm=0
 #line 279 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(60));
     // EBPF_OP_STXB pc=501 dst=r0 src=r1 offset=64 imm=0
@@ -1815,7 +1815,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 281 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=507 dst=r1 src=r1 offset=61 imm=0
+    // EBPF_OP_LDXB pc=507 dst=r1 src=r1 offset=61 imm=0
 #line 282 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(61));
     // EBPF_OP_STXB pc=508 dst=r0 src=r1 offset=65 imm=0
@@ -1838,7 +1838,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 284 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=514 dst=r1 src=r1 offset=62 imm=0
+    // EBPF_OP_LDXB pc=514 dst=r1 src=r1 offset=62 imm=0
 #line 285 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(62));
     // EBPF_OP_STXB pc=515 dst=r0 src=r1 offset=66 imm=0
@@ -1861,7 +1861,7 @@ label_3:
     if ((int64_t)r3 > (int64_t)r2)
 #line 287 "sample/bindmonitor.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=521 dst=r1 src=r1 offset=63 imm=0
+    // EBPF_OP_LDXB pc=521 dst=r1 src=r1 offset=63 imm=0
 #line 288 "sample/bindmonitor.c"
     r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(63));
     // EBPF_OP_STXB pc=522 dst=r0 src=r1 offset=67 imm=0
@@ -1879,7 +1879,7 @@ label_4:
     if (r1 == IMMEDIATE(0))
 #line 328 "sample/bindmonitor.c"
         goto label_6;
-        // EBPF_OP_ADD64_IMM pc=526 dst=r1 src=r0 offset=0 imm=-1
+    // EBPF_OP_ADD64_IMM pc=526 dst=r1 src=r0 offset=0 imm=-1
 #line 329 "sample/bindmonitor.c"
     r1 += IMMEDIATE(-1);
     // EBPF_OP_STXW pc=527 dst=r0 src=r1 offset=0 imm=0
@@ -1925,7 +1925,7 @@ label_6:
     if ((BindMonitor_helpers[5].tail_call) && (r0 == 0))
 #line 338 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_JA pc=539 dst=r0 src=r0 offset=6 imm=0
+    // EBPF_OP_JA pc=539 dst=r0 src=r0 offset=6 imm=0
 #line 338 "sample/bindmonitor.c"
     goto label_8;
 label_7:
@@ -1943,7 +1943,7 @@ label_7:
     if (r1 >= r2)
 #line 321 "sample/bindmonitor.c"
         goto label_9;
-        // EBPF_OP_ADD64_IMM pc=544 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_ADD64_IMM pc=544 dst=r1 src=r0 offset=0 imm=1
 #line 325 "sample/bindmonitor.c"
     r1 += IMMEDIATE(1);
     // EBPF_OP_STXW pc=545 dst=r0 src=r1 offset=0 imm=0
@@ -1995,7 +1995,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 
