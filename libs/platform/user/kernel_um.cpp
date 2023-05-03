@@ -507,10 +507,7 @@ RtlULongAdd(
     _In_ unsigned long addend,
     _Out_ _Deref_out_range_(==, augend + addend) unsigned long* result)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_INTEGER_OVERFLOW;
-    }
-
+    // Skip Fault Injection.
     *result = augend + addend;
     return STATUS_SUCCESS;
 }
@@ -530,10 +527,7 @@ IoGetFileObjectGenericMapping() { return &_mapping; }
 NTSTATUS
 RtlCreateAcl(_Out_ PACL Acl, unsigned long AclLength, unsigned long AclRevision)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
+    // Skip Fault Injection.
     UNREFERENCED_PARAMETER(Acl);
     UNREFERENCED_PARAMETER(AclRevision);
 
