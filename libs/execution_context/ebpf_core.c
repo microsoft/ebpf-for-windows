@@ -104,16 +104,18 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_is_current_admin,
 };
 
-static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
-static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
+static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
     EBPF_COUNT_OF(_ebpf_general_helpers), (uint64_t*)_ebpf_general_helpers};
-static ebpf_program_data_t _ebpf_global_helper_function_program_data = {
+static const ebpf_program_data_t _ebpf_global_helper_function_program_data = {
     &_ebpf_global_helper_program_info, &_ebpf_global_helper_function_dispatch_table};
 
-static ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
+static const ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
     EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION,
     sizeof(_ebpf_global_helper_function_program_data),
     &_ebpf_global_helper_function_program_data};
+
+static const NPI_PROVIDER_CHARACTERISTICS* _ebpf_global_helper_function_provider_characteristics = NULL;
+static HANDLE _ebpf_global_helper_function_nmr_binding_handle = NULL;
 
 NTSTATUS
 ebpf_general_helper_function_provider_attach_client(
@@ -150,6 +152,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_core_initiate()
 {
     ebpf_result_t return_value;
+    NTSTATUS status;
 
     ebpf_program_information_extension_interface_id = EBPF_PROGRAM_INFO_EXTENSION_IID;
     ebpf_hook_extension_interface_id = EBPF_HOOK_EXTENSION_IID;
@@ -203,19 +206,24 @@ ebpf_core_initiate()
 
     _ebpf_global_helper_program_info.count_of_program_type_specific_helpers = ebpf_core_helper_functions_count;
     _ebpf_global_helper_program_info.program_type_specific_helper_prototype = ebpf_core_helper_function_prototype;
-    return_value = ebpf_provider_load(
-        &_ebpf_global_helper_function_provider_context,
+
+    return_value = ebpf_allocate_and_initialize_npi_provider_characteristics(
         &ebpf_program_information_extension_interface_id,
         &ebpf_general_helper_function_module_id,
-        NULL,
         &_ebpf_global_helper_function_extension_data,
+        ebpf_general_helper_function_provider_attach_client,
+        ebpf_general_helper_function_provider_detach_client,
         NULL,
-        NULL,
-        (PNPI_PROVIDER_ATTACH_CLIENT_FN)ebpf_general_helper_function_provider_attach_client,
-        (PNPI_PROVIDER_DETACH_CLIENT_FN)ebpf_general_helper_function_provider_detach_client,
-        NULL);
-
+        &_ebpf_global_helper_function_provider_characteristics);
     if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    status = NmrRegisterProvider(
+        _ebpf_global_helper_function_provider_characteristics, NULL, &_ebpf_global_helper_function_nmr_binding_handle);
+
+    if (!NT_SUCCESS(status)) {
+        return_value = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -236,8 +244,16 @@ Done:
 void
 ebpf_core_terminate()
 {
-    ebpf_provider_unload(_ebpf_global_helper_function_provider_context);
-    _ebpf_global_helper_function_provider_context = NULL;
+    if (_ebpf_global_helper_function_nmr_binding_handle) {
+        NTSTATUS status = NmrDeregisterProvider(_ebpf_global_helper_function_nmr_binding_handle);
+        if (status == STATUS_PENDING) {
+            NmrWaitForProviderDeregisterComplete(_ebpf_global_helper_function_nmr_binding_handle);
+        }
+        _ebpf_global_helper_function_nmr_binding_handle = NULL;
+    }
+
+    ebpf_free((void*)_ebpf_global_helper_function_provider_characteristics);
+    _ebpf_global_helper_function_provider_characteristics = NULL;
 
     ebpf_program_terminate();
 

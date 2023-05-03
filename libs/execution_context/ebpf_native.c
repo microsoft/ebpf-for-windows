@@ -101,7 +101,8 @@ static GUID _ebpf_native_provider_id = {/* 5e24d2f5-f799-42c3-a945-87feefd930a7 
                                         0x42c3,
                                         {0xa9, 0x45, 0x87, 0xfe, 0xef, 0xd9, 0x30, 0xa7}};
 
-static ebpf_extension_provider_t* _ebpf_native_provider = NULL;
+static NPI_PROVIDER_CHARACTERISTICS* _ebpf_native_provider_characteristics = NULL;
+static HANDLE _ebpf_native_nmr_provider_handle = NULL;
 
 #define EBPF_CLIENT_TABLE_BUCKET_COUNT 64
 static ebpf_lock_t _ebpf_native_client_table_lock = {0};
@@ -366,8 +367,15 @@ ebpf_native_terminate()
 
     // ebpf_provider_unload is blocking call until all the
     // native modules have been detached.
-    ebpf_provider_unload(_ebpf_native_provider);
-    _ebpf_native_provider = NULL;
+    NTSTATUS status = NmrDeregisterProvider(_ebpf_native_nmr_provider_handle);
+    if (status == STATUS_PENDING) {
+        NmrWaitForProviderDeregisterComplete(_ebpf_native_nmr_provider_handle);
+    } else {
+        ebpf_assert(status == STATUS_SUCCESS);
+    }
+    _ebpf_native_nmr_provider_handle = NULL;
+    ebpf_free(_ebpf_native_provider_characteristics);
+    _ebpf_native_provider_characteristics = NULL;
 
     // All native modules should be cleaned up by now.
     ebpf_assert(!_ebpf_native_client_table || ebpf_hash_table_key_count(_ebpf_native_client_table) == 0);
@@ -564,19 +572,23 @@ ebpf_native_initiate()
     }
     hash_table_created = true;
 
-    return_value = ebpf_provider_load(
-        &_ebpf_native_provider,
+    return_value = ebpf_allocate_and_initialize_npi_provider_characteristics(
         &_ebpf_native_npi_id,
         &_ebpf_native_provider_id,
         NULL,
+        _ebpf_native_provider_attach_client_callback,
+        _ebpf_native_provider_detach_client_callback,
         NULL,
-        NULL,
-        NULL,
-        (NPI_PROVIDER_ATTACH_CLIENT_FN*)_ebpf_native_provider_attach_client_callback,
-        (NPI_PROVIDER_DETACH_CLIENT_FN*)_ebpf_native_provider_detach_client_callback,
-        NULL);
+        &_ebpf_native_provider_characteristics);
 
     if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    NTSTATUS status =
+        NmrRegisterProvider(_ebpf_native_provider_characteristics, NULL, &_ebpf_native_nmr_provider_handle);
+    if (!NT_SUCCESS(status)) {
+        return_value = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -587,6 +599,8 @@ Done:
             _ebpf_native_client_table = NULL;
         }
         ebpf_lock_destroy(&_ebpf_native_client_table_lock);
+        ebpf_free(_ebpf_native_provider_characteristics);
+        _ebpf_native_provider_characteristics = NULL;
     }
 
     EBPF_RETURN_RESULT(return_value);

@@ -88,8 +88,6 @@ extern "C"
     typedef struct _ebpf_non_preemptible_work_item ebpf_non_preemptible_work_item_t;
     typedef struct _ebpf_preemptible_work_item ebpf_preemptible_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
-    typedef struct _ebpf_extension_client ebpf_extension_client_t;
-    typedef struct _ebpf_extension_provider ebpf_extension_provider_t;
     typedef struct _ebpf_helper_function_prototype ebpf_helper_function_prototype_t;
 
     typedef struct _ebpf_trampoline_table ebpf_trampoline_table_t;
@@ -877,127 +875,53 @@ extern "C"
     int64_t
     ebpf_interlocked_xor_int64(_Inout_ volatile int64_t* destination, int64_t mask);
 
-    typedef ebpf_result_t (*ebpf_extension_change_callback_t)(
-        _In_ const void* client_binding_context, _In_opt_ const ebpf_extension_data_t* provider_data);
-
     /**
-     * @brief Load an extension and get its dispatch table.
+     * @brief Helper function that allocates and initializes an NPI provider characteristics structure.
      *
-     * @param[out] client_context Context used to unload the extension.
-     * @param[in] interface_id GUID representing the identity of the extension interface.
-     * @param[in] expected_provider_module_id GUID representing the expected identity of the provider.
-     * @param[in] client_module_id GUID representing the identity of the client.
-     * @param[in] extension_client_context Opaque per-instance pointer passed to the extension.
-     * @param[in] client_data Opaque client data passed to the extension or
-        NULL if there is none.
-     * @param[in] client_data_length Length of the client data.
-     * @param[in] client_dispatch_table Table of function pointers the client
-     *  exposes or NULL if there is none.
-     * @param[out] provider_binding_context Provider binding context. Can be NULL.
-     * @param[out] provider_data Opaque provider data. Can be NULL.
-     * @param[out] provider_dispatch_table Table of function pointers the
-     *  provider exposes. Can be NULL.
-     * @param[in] extension_changed Callback invoked when a provider attaches
-     *  or detaches. NULL if not used.
+     * @param[in] interface_id The interface ID of the NPI provider.
+     * @param[in] provider_module_id The module ID of the NPI provider.
+     * @param[in] npi_specific_characteristics The NPI specific characteristics.
+     * @param[in] attach_client_callback The attach client callback.
+     * @param[in] detach_client_callback The detach client callback.
+     * @param[in] provider_cleanup_binding_context_callback The provider cleanup binding context callback.
+     * @param[out] provider_characteristics Pointer to memory that will contain the
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NOT_FOUND The provider was not found.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_extension_load(
-        _Outptr_ ebpf_extension_client_t** client_context,
-        _In_ const GUID* interface_id,
-        _In_ const GUID* expected_provider_module_id,
-        _In_ const GUID* client_module_id,
-        _In_ const void* extension_client_context,
-        _In_opt_ const ebpf_extension_data_t* client_data,
-        _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
-        _Outptr_opt_ void** provider_binding_context,
-        _Outptr_opt_ const ebpf_extension_data_t** provider_data,
-        _Outptr_opt_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
-        _In_opt_ ebpf_extension_change_callback_t extension_changed);
-
-    /**
-     * @brief Helper function that returns an opaque client context from an extension client.
-     *
-     * @param[in] extension_client_binding_context Opaque pointer to an extension client binding context. This is the
-     * same as the extension_client_binding_context input parameter obtained in the _ebpf_extension_dispatch_function
-     * callback function.
-     *
-     * @returns Pointer to opaque per-instance context that was passed in call to ebpf_extension_load, or NULL on
-     * failure.
-     */
-    void*
-    ebpf_extension_get_client_context(_In_ const void* extension_client_binding_context);
-
-    GUID
-    ebpf_extension_get_provider_guid(_In_ const void* extension_client_binding_context);
-
-    /**
-     * @brief Unload an extension.
-     *
-     * @param[in] client_context Context of the extension to unload.
-     */
-    void
-    ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context);
-
-    /**
-     * @brief Prevent extension provider from unloading.
-     *
-     * @param[in,out] client_context Client context to reference.
-     */
-    _Must_inspect_result_ bool
-    ebpf_extension_reference_provider_data(_Inout_ ebpf_extension_client_t* client_context);
-
-    /**
-     * @brief Allow extension provider to unload.
-     *
-     * @param[in,out] client_context Client context to dereference.
-     */
-    void
-    ebpf_extension_dereference_provider_data(_Inout_ ebpf_extension_client_t* client_context);
-
-    /**
-     * @brief Register as an extension provider.
-     *
-     * @param[out] provider_context Context used to unload the provider.
-     * @param[in] interface_id GUID representing the identity of the interface.
-     * @param[in] provider_module_id GUID representing the identity of the provider.
-     * @param[in, out] provider_binding_context Provider binding context.
-     * @param[in] provider_data Opaque provider data.
-     * @param[in] provider_dispatch_table Table of function pointers the
-     *  provider exposes.
-     * @param[in, out] callback_context Opaque per-instance pointer passed to the callback functions.
-     * @param[in] attach_client_callback Function invoked when a client attaches.
-     * @param[in] detach_client_callback Function invoked when a client detaches.
-     * @param[in] provider_cleanup_binding_context_callback Function invoked when a binding context can be cleaned up.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The provider was unable to
-     *  load.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  operation.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_provider_load(
-        _Outptr_ ebpf_extension_provider_t** provider_context,
+    ebpf_result_t
+    ebpf_allocate_and_initialize_npi_provider_characteristics(
         _In_ const GUID* interface_id,
         _In_ const GUID* provider_module_id,
-        _Inout_opt_ void* provider_binding_context,
-        _In_opt_ const ebpf_extension_data_t* provider_data,
-        _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
-        _Inout_opt_ void* callback_context,
+        _In_opt_ const void* npi_specific_characteristics,
         _In_ NPI_PROVIDER_ATTACH_CLIENT_FN attach_client_callback,
         _In_ NPI_PROVIDER_DETACH_CLIENT_FN detach_client_callback,
-        _In_opt_ PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN provider_cleanup_binding_context_callback);
+        _In_opt_ PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN provider_cleanup_binding_context_callback,
+        _Outptr_ const NPI_PROVIDER_CHARACTERISTICS** provider_characteristics);
 
     /**
-     * @brief Unload a provider.
+     * @brief Helper function that allocates and initializes an NPI client characteristics structure.
      *
-     * @param[in] provider_context Provider to unload.
+     * @param[in] interface_id The interface ID for the NPI.
+     * @param[in] client_module_id The client module ID.
+     * @param[in] npi_specific_characteristics The NPI specific characteristics.
+     * @param[in] attach_provider_callback The attach provider callback.
+     * @param[in] detach_provider_callback The detach provider callback.
+     * @param[in] client_cleanup_binding_context_callback The client cleanup binding context callback.
+     * @param[out] client_characteristics Pointer to the client characteristics.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
      */
-    void
-    ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context);
+    ebpf_result_t
+    ebpf_allocate_and_initialize_npi_client_characteristics(
+        _In_ const GUID* interface_id,
+        _In_ const GUID* client_module_id,
+        _In_opt_ const void* npi_specific_characteristics,
+        _In_ NPI_CLIENT_ATTACH_PROVIDER_FN attach_provider_callback,
+        _In_ NPI_CLIENT_DETACH_PROVIDER_FN detach_provider_callback,
+        _In_opt_ PNPI_CLIENT_CLEANUP_BINDING_CONTEXT_FN client_cleanup_binding_context_callback,
+        _Outptr_ const NPI_CLIENT_CHARACTERISTICS** client_characteristics);
 
     _Must_inspect_result_ ebpf_result_t
     ebpf_guid_create(_Out_ GUID* new_guid);
@@ -1251,6 +1175,9 @@ extern "C"
         _Out_writes_to_(input_length, *output_length) uint8_t* buffer,
         size_t input_length,
         _Out_ size_t* output_length);
+
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_cryptographic_hash_get_hash_length(_In_ const ebpf_cryptographic_hash_t* hash, _Out_ size_t* length);
 
     /**
      * @brief Should the current thread yield the processor?

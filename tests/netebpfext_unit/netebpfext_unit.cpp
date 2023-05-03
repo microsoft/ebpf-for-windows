@@ -59,7 +59,7 @@ TEST_CASE("query program info", "[netebpfext]")
     std::vector<std::string> program_names;
     for (const auto& guid : guids) {
         ebpf_extension_data_t extension_data = helper.get_program_info_provider_data(guid);
-        auto& program_data = *reinterpret_cast<ebpf_program_data_t*>(extension_data.data);
+        auto& program_data = *reinterpret_cast<const ebpf_program_data_t*>(extension_data.data);
         program_names.push_back(program_data.program_info->program_type_descriptor.name);
     }
 
