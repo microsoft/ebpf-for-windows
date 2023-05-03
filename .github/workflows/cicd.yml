@@ -155,6 +155,25 @@ jobs:
       # driver tests manually gather code coverage
       code_coverage: false
 
+  # Run the native-only driver tests on self-hosted runners.
+  driver_native_only:
+    # Always run this job.
+    # Only run this on repos that have self-host runners.
+    needs: regular_native-only
+    if: github.repository == 'microsoft/ebpf-for-windows'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      name: driver
+      build_artifact: Build-x64-native-only
+      environment: ebpf_cicd_tests
+      # driver test copies dumps to testlog folder.
+      gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
+
   ossar:
     # Always run this job.
     needs: regular

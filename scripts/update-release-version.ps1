@@ -20,7 +20,7 @@ if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+$') {
         # Update the version number in the Wix installer file.
         $ebpf_installer_file = "$PSScriptRoot\..\installer\Product.wxs"
         Write-Host -ForegroundColor DarkGreen "Updating the version number in the '$ebpf_installer_file' file..."
-        (Get-Content $ebpf_installer_file -Raw -Encoding UTF8) -replace 'Version="\d+\.\d+\.\d+"', "Version=`"$majorVersion.$minorVersion.$revisionNumber`"" | Set-Content $ebpf_installer_file
+        (Get-Content $ebpf_installer_file -Raw -Encoding UTF8) -replace 'Version="\d+\.\d+\.\d+"', "Version=`"$majorVersion.$minorVersion.$revisionNumber`"" | Set-Content $ebpf_installer_file -NoNewline
         Write-Host -ForegroundColor DarkGreen "Version number updated to '$majorVersion.$minorVersion.$revisionNumber' in $ebpf_installer_file"
 
         # Rebuild the solution, so to regenerate the NuGet packages and the '.o' files with the new version number.

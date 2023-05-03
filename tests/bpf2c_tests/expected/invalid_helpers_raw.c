@@ -180,12 +180,12 @@ BindMonitor(void* context)
     if ((BindMonitor_helpers[0].tail_call) && (r0 == 0))
 #line 131 "sample/unsafe/invalid_helpers.c"
         return 0;
-        // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
+    // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
 #line 133 "sample/unsafe/invalid_helpers.c"
     if (r0 != IMMEDIATE(0))
 #line 133 "sample/unsafe/invalid_helpers.c"
         goto label_1;
-        // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
 #line 136 "sample/unsafe/invalid_helpers.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=10 dst=r2 src=r0 offset=0 imm=0
@@ -287,12 +287,12 @@ BindMonitor_Callee0(void* context)
     if ((BindMonitor_Callee0_helpers[0].tail_call) && (r0 == 0))
 #line 147 "sample/unsafe/invalid_helpers.c"
         return 0;
-        // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
+    // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
 #line 149 "sample/unsafe/invalid_helpers.c"
     if (r0 != IMMEDIATE(0))
 #line 149 "sample/unsafe/invalid_helpers.c"
         goto label_1;
-        // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
 #line 152 "sample/unsafe/invalid_helpers.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=10 dst=r2 src=r0 offset=0 imm=0
@@ -402,7 +402,7 @@ BindMonitor_Callee1(void* context)
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0))
 #line 164 "sample/unsafe/invalid_helpers.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
 #line 164 "sample/unsafe/invalid_helpers.c"
     r7 = r0;
     // EBPF_OP_JEQ_IMM pc=9 dst=r7 src=r0 offset=89 imm=0
@@ -410,7 +410,7 @@ BindMonitor_Callee1(void* context)
     if (r7 == IMMEDIATE(0))
 #line 165 "sample/unsafe/invalid_helpers.c"
         goto label_10;
-        // EBPF_OP_LDXW pc=10 dst=r1 src=r7 offset=0 imm=0
+    // EBPF_OP_LDXW pc=10 dst=r1 src=r7 offset=0 imm=0
 #line 165 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
     // EBPF_OP_JEQ_IMM pc=11 dst=r1 src=r0 offset=87 imm=0
@@ -418,7 +418,7 @@ BindMonitor_Callee1(void* context)
     if (r1 == IMMEDIATE(0))
 #line 165 "sample/unsafe/invalid_helpers.c"
         goto label_10;
-        // EBPF_OP_LDXDW pc=12 dst=r1 src=r6 offset=16 imm=0
+    // EBPF_OP_LDXDW pc=12 dst=r1 src=r6 offset=16 imm=0
 #line 82 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(16));
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-8 imm=0
@@ -472,12 +472,12 @@ BindMonitor_Callee1(void* context)
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0))
 #line 87 "sample/unsafe/invalid_helpers.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=29 dst=r0 src=r0 offset=1 imm=0
+    // EBPF_OP_JEQ_IMM pc=29 dst=r0 src=r0 offset=1 imm=0
 #line 88 "sample/unsafe/invalid_helpers.c"
     if (r0 == IMMEDIATE(0))
 #line 88 "sample/unsafe/invalid_helpers.c"
         goto label_1;
-        // EBPF_OP_JA pc=30 dst=r0 src=r0 offset=40 imm=0
+    // EBPF_OP_JA pc=30 dst=r0 src=r0 offset=40 imm=0
 #line 88 "sample/unsafe/invalid_helpers.c"
     goto label_4;
 label_1:
@@ -499,12 +499,12 @@ label_1:
     if ((BindMonitor_Callee1_helpers[1].tail_call) && (r0 == 0))
 #line 92 "sample/unsafe/invalid_helpers.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=36 dst=r0 src=r0 offset=1 imm=0
+    // EBPF_OP_JEQ_IMM pc=36 dst=r0 src=r0 offset=1 imm=0
 #line 93 "sample/unsafe/invalid_helpers.c"
     if (r0 == IMMEDIATE(0))
 #line 93 "sample/unsafe/invalid_helpers.c"
         goto label_2;
-        // EBPF_OP_JA pc=37 dst=r0 src=r0 offset=33 imm=0
+    // EBPF_OP_JA pc=37 dst=r0 src=r0 offset=33 imm=0
 #line 93 "sample/unsafe/invalid_helpers.c"
     goto label_4;
 label_2:
@@ -516,7 +516,7 @@ label_2:
     if (r1 != IMMEDIATE(0))
 #line 97 "sample/unsafe/invalid_helpers.c"
         goto label_9;
-        // EBPF_OP_LDXDW pc=40 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=40 dst=r1 src=r6 offset=0 imm=0
 #line 101 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
     // EBPF_OP_JEQ_IMM pc=41 dst=r1 src=r0 offset=56 imm=0
@@ -524,7 +524,7 @@ label_2:
     if (r1 == IMMEDIATE(0))
 #line 101 "sample/unsafe/invalid_helpers.c"
         goto label_9;
-        // EBPF_OP_LDXDW pc=42 dst=r1 src=r6 offset=8 imm=0
+    // EBPF_OP_LDXDW pc=42 dst=r1 src=r6 offset=8 imm=0
 #line 101 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
     // EBPF_OP_JEQ_IMM pc=43 dst=r1 src=r0 offset=54 imm=0
@@ -532,7 +532,7 @@ label_2:
     if (r1 == IMMEDIATE(0))
 #line 101 "sample/unsafe/invalid_helpers.c"
         goto label_9;
-        // EBPF_OP_MOV64_REG pc=44 dst=r8 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=44 dst=r8 src=r10 offset=0 imm=0
 #line 101 "sample/unsafe/invalid_helpers.c"
     r8 = r10;
     // EBPF_OP_ADD64_IMM pc=45 dst=r8 src=r0 offset=0 imm=-8
@@ -565,7 +565,7 @@ label_2:
     if ((BindMonitor_Callee1_helpers[2].tail_call) && (r0 == 0))
 #line 105 "sample/unsafe/invalid_helpers.c"
         return 0;
-        // EBPF_OP_LDDW pc=54 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=54 dst=r1 src=r0 offset=0 imm=0
 #line 106 "sample/unsafe/invalid_helpers.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_REG pc=56 dst=r2 src=r8 offset=0 imm=0
@@ -580,12 +580,12 @@ label_2:
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0))
 #line 106 "sample/unsafe/invalid_helpers.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=58 dst=r0 src=r0 offset=39 imm=0
+    // EBPF_OP_JEQ_IMM pc=58 dst=r0 src=r0 offset=39 imm=0
 #line 107 "sample/unsafe/invalid_helpers.c"
     if (r0 == IMMEDIATE(0))
 #line 107 "sample/unsafe/invalid_helpers.c"
         goto label_9;
-        // EBPF_OP_MOV64_REG pc=59 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=59 dst=r1 src=r0 offset=0 imm=0
 #line 107 "sample/unsafe/invalid_helpers.c"
     r1 = r0;
     // EBPF_OP_ADD64_IMM pc=60 dst=r1 src=r0 offset=0 imm=4
@@ -606,7 +606,7 @@ label_3:
     if (r2 >= r3)
 #line 112 "sample/unsafe/invalid_helpers.c"
         goto label_4;
-        // EBPF_OP_MOV64_REG pc=65 dst=r3 src=r1 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=65 dst=r3 src=r1 offset=0 imm=0
 #line 116 "sample/unsafe/invalid_helpers.c"
     r3 = r1;
     // EBPF_OP_ADD64_REG pc=66 dst=r3 src=r9 offset=0 imm=0
@@ -635,12 +635,12 @@ label_4:
     if (r1 == IMMEDIATE(0))
 #line 175 "sample/unsafe/invalid_helpers.c"
         goto label_5;
-        // EBPF_OP_JEQ_IMM pc=73 dst=r1 src=r0 offset=9 imm=2
+    // EBPF_OP_JEQ_IMM pc=73 dst=r1 src=r0 offset=9 imm=2
 #line 175 "sample/unsafe/invalid_helpers.c"
     if (r1 == IMMEDIATE(2))
 #line 175 "sample/unsafe/invalid_helpers.c"
         goto label_6;
-        // EBPF_OP_LDXW pc=74 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDXW pc=74 dst=r1 src=r0 offset=0 imm=0
 #line 192 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
     // EBPF_OP_JA pc=75 dst=r0 src=r0 offset=11 imm=0
@@ -661,7 +661,7 @@ label_5:
     if (r1 >= r2)
 #line 177 "sample/unsafe/invalid_helpers.c"
         goto label_10;
-        // EBPF_OP_ADD64_IMM pc=80 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_ADD64_IMM pc=80 dst=r1 src=r0 offset=0 imm=1
 #line 181 "sample/unsafe/invalid_helpers.c"
     r1 += IMMEDIATE(1);
     // EBPF_OP_STXW pc=81 dst=r0 src=r1 offset=0 imm=0
@@ -679,7 +679,7 @@ label_6:
     if (r1 == IMMEDIATE(0))
 #line 184 "sample/unsafe/invalid_helpers.c"
         goto label_8;
-        // EBPF_OP_ADD64_IMM pc=85 dst=r1 src=r0 offset=0 imm=-1
+    // EBPF_OP_ADD64_IMM pc=85 dst=r1 src=r0 offset=0 imm=-1
 #line 185 "sample/unsafe/invalid_helpers.c"
     r1 += IMMEDIATE(-1);
     // EBPF_OP_STXW pc=86 dst=r0 src=r1 offset=0 imm=0
@@ -799,7 +799,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

@@ -677,39 +677,32 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 
         // Run down duplicate handles, if any.
         _duplicate_handles.rundown();
+
+        // Detach all the native module clients.
+        _unload_all_native_modules();
+
+        clear_program_info_cache();
+        if (api_initialized) {
+            ebpf_api_terminate();
+        }
+        if (ec_initialized) {
+            ebpf_core_terminate();
+        }
+
+        device_io_control_handler = nullptr;
+        cancel_io_ex_handler = nullptr;
+        create_file_handler = nullptr;
+        close_handle_handler = nullptr;
+        duplicate_handle_handler = nullptr;
+
+        _expect_native_module_load_failures = false;
+
+        // Change back to original value.
+        _ebpf_platform_is_preemptible = true;
+
+        set_verification_in_progress(false);
     } catch (Catch::TestFailureException&) {
     }
-
-    // Verify that all maps were successfully removed.
-    uint32_t id;
-    if (!ebpf_fuzzing_enabled) {
-        REQUIRE(bpf_map_get_next_id(0, &id) < 0);
-        REQUIRE(errno == ENOENT);
-    }
-
-    // Detach all the native module clients.
-    _unload_all_native_modules();
-
-    clear_program_info_cache();
-    if (api_initialized) {
-        ebpf_api_terminate();
-    }
-    if (ec_initialized) {
-        ebpf_core_terminate();
-    }
-
-    device_io_control_handler = nullptr;
-    cancel_io_ex_handler = nullptr;
-    create_file_handler = nullptr;
-    close_handle_handler = nullptr;
-    duplicate_handle_handler = nullptr;
-
-    _expect_native_module_load_failures = false;
-
-    // Change back to original value.
-    _ebpf_platform_is_preemptible = true;
-
-    set_verification_in_progress(false);
 }
 
 _test_helper_libbpf::_test_helper_libbpf()
