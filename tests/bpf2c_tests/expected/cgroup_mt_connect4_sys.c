@@ -224,7 +224,7 @@ tcp_mt_connect4(void* context)
     if (r2 != IMMEDIATE(6))
 #line 27 "sample/cgroup_mt_connect4.c"
         goto label_1;
-        // EBPF_OP_LDXH pc=3 dst=r2 src=r1 offset=40 imm=0
+    // EBPF_OP_LDXH pc=3 dst=r2 src=r1 offset=40 imm=0
 #line 33 "sample/cgroup_mt_connect4.c"
     r2 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(40));
     // EBPF_OP_MOV64_IMM pc=4 dst=r3 src=r0 offset=0 imm=7459
@@ -238,7 +238,7 @@ tcp_mt_connect4(void* context)
     if (r3 > r2)
 #line 33 "sample/cgroup_mt_connect4.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=7 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=7 dst=r0 src=r0 offset=0 imm=0
 #line 33 "sample/cgroup_mt_connect4.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_MOV64_REG pc=8 dst=r3 src=r2 offset=0 imm=0
@@ -266,7 +266,7 @@ tcp_mt_connect4(void* context)
     if (r4 > r5)
 #line 41 "sample/cgroup_mt_connect4.c"
         goto label_1;
-        // EBPF_OP_AND64_IMM pc=17 dst=r3 src=r0 offset=0 imm=1
+    // EBPF_OP_AND64_IMM pc=17 dst=r3 src=r0 offset=0 imm=1
 #line 46 "sample/cgroup_mt_connect4.c"
     r3 &= IMMEDIATE(1);
     // EBPF_OP_MOV64_IMM pc=18 dst=r0 src=r0 offset=0 imm=1
@@ -277,7 +277,7 @@ tcp_mt_connect4(void* context)
     if (r3 == IMMEDIATE(0))
 #line 46 "sample/cgroup_mt_connect4.c"
         goto label_1;
-        // EBPF_OP_ADD64_IMM pc=20 dst=r2 src=r0 offset=0 imm=-6141
+    // EBPF_OP_ADD64_IMM pc=20 dst=r2 src=r0 offset=0 imm=-6141
 #line 54 "sample/cgroup_mt_connect4.c"
     r2 += IMMEDIATE(-6141);
     // EBPF_OP_STXH pc=21 dst=r1 src=r2 offset=40 imm=0
@@ -325,7 +325,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

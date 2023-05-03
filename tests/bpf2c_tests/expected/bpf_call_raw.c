@@ -114,7 +114,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 22 "sample/bpf_call.c"
         return 0;
-        // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
 #line 23 "sample/bpf_call.c"
     return r0;
 #line 23 "sample/bpf_call.c"
@@ -152,7 +152,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

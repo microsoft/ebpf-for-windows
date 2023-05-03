@@ -266,7 +266,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 23 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=12 dst=r9 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=12 dst=r9 src=r0 offset=0 imm=0
 #line 23 "sample/printk.c"
     r9 = r0;
     // EBPF_OP_MOV64_IMM pc=13 dst=r1 src=r0 offset=0 imm=10
@@ -299,7 +299,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 24 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=21 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=21 dst=r6 src=r0 offset=0 imm=0
 #line 24 "sample/printk.c"
     r6 = r0;
     // EBPF_OP_CALL pc=22 dst=r0 src=r0 offset=0 imm=19
@@ -311,7 +311,7 @@ func(void* context)
     if ((func_helpers[1].tail_call) && (r0 == 0))
 #line 27 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=23 dst=r8 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=23 dst=r8 src=r0 offset=0 imm=0
 #line 27 "sample/printk.c"
     r8 = r0;
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=1852404597
@@ -362,7 +362,7 @@ func(void* context)
     if ((func_helpers[2].tail_call) && (r0 == 0))
 #line 28 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=40 dst=r1 src=r0 offset=0 imm=7695397
+    // EBPF_OP_MOV64_IMM pc=40 dst=r1 src=r0 offset=0 imm=7695397
 #line 28 "sample/printk.c"
     r1 = IMMEDIATE(7695397);
     // EBPF_OP_STXW pc=41 dst=r10 src=r1 offset=-16 imm=0
@@ -404,7 +404,7 @@ func(void* context)
     if ((func_helpers[2].tail_call) && (r0 == 0))
 #line 29 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=54 dst=r1 src=r0 offset=0 imm=1819026725
+    // EBPF_OP_MOV64_IMM pc=54 dst=r1 src=r0 offset=0 imm=1819026725
 #line 29 "sample/printk.c"
     r1 = IMMEDIATE(1819026725);
     // EBPF_OP_STXW pc=55 dst=r10 src=r1 offset=-16 imm=0
@@ -449,7 +449,7 @@ func(void* context)
     if ((func_helpers[2].tail_call) && (r0 == 0))
 #line 30 "sample/printk.c"
         return 0;
-        // EBPF_OP_ADD64_REG pc=69 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_ADD64_REG pc=69 dst=r6 src=r0 offset=0 imm=0
 #line 30 "sample/printk.c"
     r6 += r0;
     // EBPF_OP_STXH pc=70 dst=r10 src=r9 offset=-16 imm=0
@@ -491,7 +491,7 @@ func(void* context)
     if ((func_helpers[3].tail_call) && (r0 == 0))
 #line 31 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=83 dst=r1 src=r0 offset=0 imm=117
+    // EBPF_OP_MOV64_IMM pc=83 dst=r1 src=r0 offset=0 imm=117
 #line 33 "sample/printk.c"
     r1 = IMMEDIATE(117);
     // EBPF_OP_STXH pc=84 dst=r10 src=r1 offset=-4 imm=0
@@ -545,7 +545,7 @@ func(void* context)
     if ((func_helpers[4].tail_call) && (r0 == 0))
 #line 33 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=100 dst=r1 src=r0 offset=0 imm=9504
+    // EBPF_OP_MOV64_IMM pc=100 dst=r1 src=r0 offset=0 imm=9504
 #line 33 "sample/printk.c"
     r1 = IMMEDIATE(9504);
     // EBPF_OP_STXH pc=101 dst=r10 src=r1 offset=-28 imm=0
@@ -584,7 +584,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 37 "sample/printk.c"
         return 0;
-        // EBPF_OP_LDDW pc=111 dst=r1 src=r0 offset=0 imm=843333954
+    // EBPF_OP_LDDW pc=111 dst=r1 src=r0 offset=0 imm=843333954
 #line 37 "sample/printk.c"
     r1 = (uint64_t)7812660273793483074;
     // EBPF_OP_STXDW pc=113 dst=r10 src=r1 offset=-32 imm=0
@@ -617,7 +617,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 38 "sample/printk.c"
         return 0;
-        // EBPF_OP_LDDW pc=121 dst=r1 src=r0 offset=0 imm=860111170
+    // EBPF_OP_LDDW pc=121 dst=r1 src=r0 offset=0 imm=860111170
 #line 38 "sample/printk.c"
     r1 = (uint64_t)7220718397787750722;
     // EBPF_OP_STXDW pc=123 dst=r10 src=r1 offset=-32 imm=0
@@ -650,7 +650,7 @@ func(void* context)
     if ((func_helpers[2].tail_call) && (r0 == 0))
 #line 39 "sample/printk.c"
         return 0;
-        // EBPF_OP_LDDW pc=131 dst=r1 src=r0 offset=0 imm=876888386
+    // EBPF_OP_LDDW pc=131 dst=r1 src=r0 offset=0 imm=876888386
 #line 39 "sample/printk.c"
     r1 = (uint64_t)31566017637663042;
     // EBPF_OP_STXDW pc=133 dst=r10 src=r1 offset=-32 imm=0
@@ -680,7 +680,7 @@ func(void* context)
     if ((func_helpers[2].tail_call) && (r0 == 0))
 #line 40 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=140 dst=r1 src=r0 offset=0 imm=893665602
+    // EBPF_OP_MOV64_IMM pc=140 dst=r1 src=r0 offset=0 imm=893665602
 #line 40 "sample/printk.c"
     r1 = IMMEDIATE(893665602);
     // EBPF_OP_STXW pc=141 dst=r10 src=r1 offset=-32 imm=0
@@ -713,7 +713,7 @@ func(void* context)
     if ((func_helpers[2].tail_call) && (r0 == 0))
 #line 44 "sample/printk.c"
         return 0;
-        // EBPF_OP_LDDW pc=149 dst=r1 src=r0 offset=0 imm=910442818
+    // EBPF_OP_LDDW pc=149 dst=r1 src=r0 offset=0 imm=910442818
 #line 44 "sample/printk.c"
     r1 = (uint64_t)32973392554770754;
     // EBPF_OP_STXDW pc=151 dst=r10 src=r1 offset=-32 imm=0
@@ -740,7 +740,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 45 "sample/printk.c"
         return 0;
-        // EBPF_OP_STXB pc=157 dst=r10 src=r8 offset=-22 imm=0
+    // EBPF_OP_STXB pc=157 dst=r10 src=r8 offset=-22 imm=0
 #line 48 "sample/printk.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-22)) = (uint8_t)r8;
     // EBPF_OP_MOV64_IMM pc=158 dst=r1 src=r0 offset=0 imm=25966
@@ -776,7 +776,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 48 "sample/printk.c"
         return 0;
-        // EBPF_OP_ADD64_REG pc=168 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_ADD64_REG pc=168 dst=r6 src=r0 offset=0 imm=0
 #line 48 "sample/printk.c"
     r6 += r0;
     // EBPF_OP_MOV64_REG pc=169 dst=r0 src=r6 offset=0 imm=0
@@ -820,7 +820,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

@@ -91,7 +91,7 @@ count_tcp_connect4(void* context)
     if (r2 != IMMEDIATE(6))
 #line 30 "sample/cgroup_count_connect4.c"
         goto label_2;
-        // EBPF_OP_LDXH pc=3 dst=r1 src=r1 offset=40 imm=0
+    // EBPF_OP_LDXH pc=3 dst=r1 src=r1 offset=40 imm=0
 #line 36 "sample/cgroup_count_connect4.c"
     r1 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(40));
     // EBPF_OP_JNE_IMM pc=4 dst=r1 src=r0 offset=25 imm=7459
@@ -99,7 +99,7 @@ count_tcp_connect4(void* context)
     if (r1 != IMMEDIATE(7459))
 #line 36 "sample/cgroup_count_connect4.c"
         goto label_2;
-        // EBPF_OP_MOV64_IMM pc=5 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=5 dst=r6 src=r0 offset=0 imm=0
 #line 36 "sample/cgroup_count_connect4.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXDW pc=6 dst=r10 src=r6 offset=-16 imm=0
@@ -129,12 +129,12 @@ count_tcp_connect4(void* context)
     if ((count_tcp_connect4_helpers[0].tail_call) && (r0 == 0))
 #line 44 "sample/cgroup_count_connect4.c"
         return 0;
-        // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=12 imm=0
+    // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=12 imm=0
 #line 45 "sample/cgroup_count_connect4.c"
     if (r0 != IMMEDIATE(0))
 #line 45 "sample/cgroup_count_connect4.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=15 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=15 dst=r1 src=r0 offset=0 imm=1
 #line 45 "sample/cgroup_count_connect4.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-16 imm=0
@@ -170,7 +170,7 @@ count_tcp_connect4(void* context)
     if ((count_tcp_connect4_helpers[1].tail_call) && (r0 == 0))
 #line 47 "sample/cgroup_count_connect4.c"
         return 0;
-        // EBPF_OP_JA pc=26 dst=r0 src=r0 offset=3 imm=0
+    // EBPF_OP_JA pc=26 dst=r0 src=r0 offset=3 imm=0
 #line 47 "sample/cgroup_count_connect4.c"
     goto label_2;
 label_1:
@@ -185,12 +185,12 @@ label_1:
     *(uint64_t*)(uintptr_t)(r0 + OFFSET(0)) = (uint64_t)r1;
 label_2:
     // EBPF_OP_MOV64_REG pc=30 dst=r0 src=r6 offset=0 imm=0
-#line 56 "sample/cgroup_count_connect4.c"
+#line 58 "sample/cgroup_count_connect4.c"
     r0 = r6;
     // EBPF_OP_EXIT pc=31 dst=r0 src=r0 offset=0 imm=0
-#line 56 "sample/cgroup_count_connect4.c"
+#line 58 "sample/cgroup_count_connect4.c"
     return r0;
-#line 56 "sample/cgroup_count_connect4.c"
+#line 58 "sample/cgroup_count_connect4.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -225,7 +225,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 
