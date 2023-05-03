@@ -218,7 +218,7 @@ test_maps(void* context)
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 76 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=12 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=12 dst=r6 src=r0 offset=0 imm=0
 #line 76 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=13 dst=r6 src=r0 offset=0 imm=32
@@ -232,7 +232,7 @@ test_maps(void* context)
     if ((int64_t)r7 > (int64_t)r6)
 #line 77 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_REG pc=16 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=16 dst=r2 src=r10 offset=0 imm=0
 #line 77 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=17 dst=r2 src=r0 offset=0 imm=-4
@@ -250,7 +250,7 @@ test_maps(void* context)
     if ((test_maps_helpers[1].tail_call) && (r0 == 0))
 #line 82 "sample/map.c"
         return 0;
-        // EBPF_OP_LDDW pc=21 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_LDDW pc=21 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/map.c"
     r6 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=23 dst=r0 src=r0 offset=22 imm=0
@@ -258,7 +258,7 @@ test_maps(void* context)
     if (r0 == IMMEDIATE(0))
 #line 83 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_REG pc=24 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=24 dst=r2 src=r10 offset=0 imm=0
 #line 83 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=25 dst=r2 src=r0 offset=0 imm=-4
@@ -276,7 +276,7 @@ test_maps(void* context)
     if ((test_maps_helpers[2].tail_call) && (r0 == 0))
 #line 88 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=29 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=29 dst=r6 src=r0 offset=0 imm=0
 #line 88 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=30 dst=r6 src=r0 offset=0 imm=32
@@ -293,7 +293,7 @@ test_maps(void* context)
     if ((int64_t)r1 > (int64_t)r6)
 #line 89 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_REG pc=34 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=34 dst=r2 src=r10 offset=0 imm=0
 #line 89 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=35 dst=r2 src=r0 offset=0 imm=-4
@@ -320,7 +320,7 @@ test_maps(void* context)
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 94 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=42 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=42 dst=r6 src=r0 offset=0 imm=0
 #line 94 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=43 dst=r6 src=r0 offset=0 imm=32
@@ -360,7 +360,7 @@ label_2:
     if ((test_maps_helpers[3].tail_call) && (r0 == 0))
 #line 105 "sample/map.c"
         return 0;
-        // EBPF_OP_LDDW pc=53 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_LDDW pc=53 dst=r6 src=r0 offset=0 imm=-1
 #line 105 "sample/map.c"
     r6 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=55 dst=r0 src=r0 offset=-10 imm=0
@@ -368,7 +368,7 @@ label_2:
     if (r0 == IMMEDIATE(0))
 #line 295 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=56 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=56 dst=r7 src=r0 offset=0 imm=0
 #line 295 "sample/map.c"
     r7 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=57 dst=r10 src=r7 offset=-4 imm=0
@@ -407,7 +407,7 @@ label_2:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 76 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=68 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=68 dst=r6 src=r0 offset=0 imm=0
 #line 76 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=69 dst=r6 src=r0 offset=0 imm=32
@@ -421,7 +421,7 @@ label_2:
     if ((int64_t)r7 > (int64_t)r6)
 #line 77 "sample/map.c"
         goto label_3;
-        // EBPF_OP_MOV64_REG pc=72 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=72 dst=r2 src=r10 offset=0 imm=0
 #line 77 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=73 dst=r2 src=r0 offset=0 imm=-4
@@ -439,7 +439,7 @@ label_2:
     if ((test_maps_helpers[1].tail_call) && (r0 == 0))
 #line 82 "sample/map.c"
         return 0;
-        // EBPF_OP_LDDW pc=77 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_LDDW pc=77 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/map.c"
     r6 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=79 dst=r0 src=r0 offset=22 imm=0
@@ -447,7 +447,7 @@ label_2:
     if (r0 == IMMEDIATE(0))
 #line 83 "sample/map.c"
         goto label_3;
-        // EBPF_OP_MOV64_REG pc=80 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=80 dst=r2 src=r10 offset=0 imm=0
 #line 83 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=81 dst=r2 src=r0 offset=0 imm=-4
@@ -465,7 +465,7 @@ label_2:
     if ((test_maps_helpers[2].tail_call) && (r0 == 0))
 #line 88 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=85 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=85 dst=r6 src=r0 offset=0 imm=0
 #line 88 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=86 dst=r6 src=r0 offset=0 imm=32
@@ -482,7 +482,7 @@ label_2:
     if ((int64_t)r1 > (int64_t)r6)
 #line 89 "sample/map.c"
         goto label_3;
-        // EBPF_OP_MOV64_REG pc=90 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=90 dst=r2 src=r10 offset=0 imm=0
 #line 89 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=91 dst=r2 src=r0 offset=0 imm=-4
@@ -509,7 +509,7 @@ label_2:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 94 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=98 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=98 dst=r6 src=r0 offset=0 imm=0
 #line 94 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=99 dst=r6 src=r0 offset=0 imm=32
@@ -546,7 +546,7 @@ label_4:
     if ((test_maps_helpers[3].tail_call) && (r0 == 0))
 #line 105 "sample/map.c"
         return 0;
-        // EBPF_OP_LDDW pc=108 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_LDDW pc=108 dst=r6 src=r0 offset=0 imm=-1
 #line 105 "sample/map.c"
     r6 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=110 dst=r0 src=r0 offset=-65 imm=0
@@ -554,7 +554,7 @@ label_4:
     if (r0 == IMMEDIATE(0))
 #line 296 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=111 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=111 dst=r7 src=r0 offset=0 imm=0
 #line 296 "sample/map.c"
     r7 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=112 dst=r10 src=r7 offset=-4 imm=0
@@ -593,7 +593,7 @@ label_4:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 76 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=123 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=123 dst=r6 src=r0 offset=0 imm=0
 #line 76 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=124 dst=r6 src=r0 offset=0 imm=32
@@ -607,7 +607,7 @@ label_4:
     if ((int64_t)r7 > (int64_t)r6)
 #line 77 "sample/map.c"
         goto label_5;
-        // EBPF_OP_MOV64_REG pc=127 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=127 dst=r2 src=r10 offset=0 imm=0
 #line 77 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=128 dst=r2 src=r0 offset=0 imm=-4
@@ -625,7 +625,7 @@ label_4:
     if ((test_maps_helpers[1].tail_call) && (r0 == 0))
 #line 82 "sample/map.c"
         return 0;
-        // EBPF_OP_LDDW pc=132 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_LDDW pc=132 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/map.c"
     r6 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=134 dst=r0 src=r0 offset=23 imm=0
@@ -633,7 +633,7 @@ label_4:
     if (r0 == IMMEDIATE(0))
 #line 83 "sample/map.c"
         goto label_5;
-        // EBPF_OP_MOV64_REG pc=135 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=135 dst=r2 src=r10 offset=0 imm=0
 #line 83 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=136 dst=r2 src=r0 offset=0 imm=-4
@@ -651,7 +651,7 @@ label_4:
     if ((test_maps_helpers[2].tail_call) && (r0 == 0))
 #line 88 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=140 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=140 dst=r6 src=r0 offset=0 imm=0
 #line 88 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=141 dst=r6 src=r0 offset=0 imm=32
@@ -668,7 +668,7 @@ label_4:
     if ((int64_t)r1 > (int64_t)r6)
 #line 89 "sample/map.c"
         goto label_5;
-        // EBPF_OP_MOV64_REG pc=145 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=145 dst=r2 src=r10 offset=0 imm=0
 #line 89 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=146 dst=r2 src=r0 offset=0 imm=-4
@@ -698,7 +698,7 @@ label_4:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 94 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=154 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=154 dst=r6 src=r0 offset=0 imm=0
 #line 94 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=155 dst=r6 src=r0 offset=0 imm=32
@@ -753,7 +753,7 @@ label_6:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 76 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=170 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=170 dst=r6 src=r0 offset=0 imm=0
 #line 76 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=171 dst=r6 src=r0 offset=0 imm=32
@@ -767,7 +767,7 @@ label_6:
     if ((int64_t)r7 > (int64_t)r6)
 #line 77 "sample/map.c"
         goto label_7;
-        // EBPF_OP_MOV64_REG pc=174 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=174 dst=r2 src=r10 offset=0 imm=0
 #line 77 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=175 dst=r2 src=r0 offset=0 imm=-4
@@ -785,7 +785,7 @@ label_6:
     if ((test_maps_helpers[1].tail_call) && (r0 == 0))
 #line 82 "sample/map.c"
         return 0;
-        // EBPF_OP_LDDW pc=179 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_LDDW pc=179 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/map.c"
     r6 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=181 dst=r0 src=r0 offset=23 imm=0
@@ -793,7 +793,7 @@ label_6:
     if (r0 == IMMEDIATE(0))
 #line 83 "sample/map.c"
         goto label_7;
-        // EBPF_OP_MOV64_REG pc=182 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=182 dst=r2 src=r10 offset=0 imm=0
 #line 83 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=183 dst=r2 src=r0 offset=0 imm=-4
@@ -811,7 +811,7 @@ label_6:
     if ((test_maps_helpers[2].tail_call) && (r0 == 0))
 #line 88 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=187 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=187 dst=r6 src=r0 offset=0 imm=0
 #line 88 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=188 dst=r6 src=r0 offset=0 imm=32
@@ -828,7 +828,7 @@ label_6:
     if ((int64_t)r1 > (int64_t)r6)
 #line 89 "sample/map.c"
         goto label_7;
-        // EBPF_OP_MOV64_REG pc=192 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=192 dst=r2 src=r10 offset=0 imm=0
 #line 89 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=193 dst=r2 src=r0 offset=0 imm=-4
@@ -858,7 +858,7 @@ label_6:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 94 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=201 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=201 dst=r6 src=r0 offset=0 imm=0
 #line 94 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=202 dst=r6 src=r0 offset=0 imm=32
@@ -913,7 +913,7 @@ label_8:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 76 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=217 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=217 dst=r6 src=r0 offset=0 imm=0
 #line 76 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=218 dst=r6 src=r0 offset=0 imm=32
@@ -927,7 +927,7 @@ label_8:
     if ((int64_t)r7 > (int64_t)r6)
 #line 77 "sample/map.c"
         goto label_9;
-        // EBPF_OP_MOV64_REG pc=221 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=221 dst=r2 src=r10 offset=0 imm=0
 #line 77 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=222 dst=r2 src=r0 offset=0 imm=-4
@@ -945,7 +945,7 @@ label_8:
     if ((test_maps_helpers[1].tail_call) && (r0 == 0))
 #line 82 "sample/map.c"
         return 0;
-        // EBPF_OP_LDDW pc=226 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_LDDW pc=226 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/map.c"
     r6 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=228 dst=r0 src=r0 offset=22 imm=0
@@ -953,7 +953,7 @@ label_8:
     if (r0 == IMMEDIATE(0))
 #line 83 "sample/map.c"
         goto label_9;
-        // EBPF_OP_MOV64_REG pc=229 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=229 dst=r2 src=r10 offset=0 imm=0
 #line 83 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=230 dst=r2 src=r0 offset=0 imm=-4
@@ -971,7 +971,7 @@ label_8:
     if ((test_maps_helpers[2].tail_call) && (r0 == 0))
 #line 88 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=234 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=234 dst=r6 src=r0 offset=0 imm=0
 #line 88 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=235 dst=r6 src=r0 offset=0 imm=32
@@ -988,7 +988,7 @@ label_8:
     if ((int64_t)r1 > (int64_t)r6)
 #line 89 "sample/map.c"
         goto label_9;
-        // EBPF_OP_MOV64_REG pc=239 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=239 dst=r2 src=r10 offset=0 imm=0
 #line 89 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=240 dst=r2 src=r0 offset=0 imm=-4
@@ -1015,7 +1015,7 @@ label_8:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 94 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=247 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=247 dst=r6 src=r0 offset=0 imm=0
 #line 94 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=248 dst=r6 src=r0 offset=0 imm=32
@@ -1052,7 +1052,7 @@ label_10:
     if ((test_maps_helpers[3].tail_call) && (r0 == 0))
 #line 105 "sample/map.c"
         return 0;
-        // EBPF_OP_LDDW pc=257 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_LDDW pc=257 dst=r6 src=r0 offset=0 imm=-1
 #line 105 "sample/map.c"
     r6 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=259 dst=r0 src=r0 offset=-214 imm=0
@@ -1060,7 +1060,7 @@ label_10:
     if (r0 == IMMEDIATE(0))
 #line 299 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=260 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=260 dst=r7 src=r0 offset=0 imm=0
 #line 299 "sample/map.c"
     r7 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=261 dst=r10 src=r7 offset=-4 imm=0
@@ -1099,7 +1099,7 @@ label_10:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 76 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=272 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=272 dst=r6 src=r0 offset=0 imm=0
 #line 76 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=273 dst=r6 src=r0 offset=0 imm=32
@@ -1113,7 +1113,7 @@ label_10:
     if ((int64_t)r7 > (int64_t)r6)
 #line 77 "sample/map.c"
         goto label_11;
-        // EBPF_OP_MOV64_REG pc=276 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=276 dst=r2 src=r10 offset=0 imm=0
 #line 77 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=277 dst=r2 src=r0 offset=0 imm=-4
@@ -1131,7 +1131,7 @@ label_10:
     if ((test_maps_helpers[1].tail_call) && (r0 == 0))
 #line 82 "sample/map.c"
         return 0;
-        // EBPF_OP_LDDW pc=281 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_LDDW pc=281 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/map.c"
     r6 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=283 dst=r0 src=r0 offset=22 imm=0
@@ -1139,7 +1139,7 @@ label_10:
     if (r0 == IMMEDIATE(0))
 #line 83 "sample/map.c"
         goto label_11;
-        // EBPF_OP_MOV64_REG pc=284 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=284 dst=r2 src=r10 offset=0 imm=0
 #line 83 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=285 dst=r2 src=r0 offset=0 imm=-4
@@ -1157,7 +1157,7 @@ label_10:
     if ((test_maps_helpers[2].tail_call) && (r0 == 0))
 #line 88 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=289 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=289 dst=r6 src=r0 offset=0 imm=0
 #line 88 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=290 dst=r6 src=r0 offset=0 imm=32
@@ -1174,7 +1174,7 @@ label_10:
     if ((int64_t)r1 > (int64_t)r6)
 #line 89 "sample/map.c"
         goto label_11;
-        // EBPF_OP_MOV64_REG pc=294 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=294 dst=r2 src=r10 offset=0 imm=0
 #line 89 "sample/map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=295 dst=r2 src=r0 offset=0 imm=-4
@@ -1201,7 +1201,7 @@ label_10:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 94 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=302 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=302 dst=r6 src=r0 offset=0 imm=0
 #line 94 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=303 dst=r6 src=r0 offset=0 imm=32
@@ -1238,7 +1238,7 @@ label_12:
     if ((test_maps_helpers[3].tail_call) && (r0 == 0))
 #line 105 "sample/map.c"
         return 0;
-        // EBPF_OP_LDDW pc=312 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_LDDW pc=312 dst=r6 src=r0 offset=0 imm=-1
 #line 105 "sample/map.c"
     r6 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=314 dst=r0 src=r0 offset=-269 imm=0
@@ -1246,7 +1246,7 @@ label_12:
     if (r0 == IMMEDIATE(0))
 #line 300 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=315 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=315 dst=r7 src=r0 offset=0 imm=0
 #line 300 "sample/map.c"
     r7 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=316 dst=r10 src=r7 offset=-4 imm=0
@@ -1285,7 +1285,7 @@ label_12:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 131 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=327 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=327 dst=r6 src=r0 offset=0 imm=0
 #line 131 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=328 dst=r6 src=r0 offset=0 imm=32
@@ -1299,7 +1299,7 @@ label_12:
     if ((int64_t)r7 > (int64_t)r6)
 #line 132 "sample/map.c"
         goto label_13;
-        // EBPF_OP_STXW pc=331 dst=r10 src=r8 offset=-4 imm=0
+    // EBPF_OP_STXW pc=331 dst=r10 src=r8 offset=-4 imm=0
 #line 136 "sample/map.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r8;
     // EBPF_OP_MOV64_REG pc=332 dst=r2 src=r10 offset=0 imm=0
@@ -1329,7 +1329,7 @@ label_12:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 137 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=340 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=340 dst=r6 src=r0 offset=0 imm=0
 #line 137 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=341 dst=r6 src=r0 offset=0 imm=32
@@ -1343,7 +1343,7 @@ label_12:
     if ((int64_t)r7 > (int64_t)r6)
 #line 138 "sample/map.c"
         goto label_13;
-        // EBPF_OP_MOV64_IMM pc=344 dst=r1 src=r0 offset=0 imm=2
+    // EBPF_OP_MOV64_IMM pc=344 dst=r1 src=r0 offset=0 imm=2
 #line 138 "sample/map.c"
     r1 = IMMEDIATE(2);
     // EBPF_OP_STXW pc=345 dst=r10 src=r1 offset=-4 imm=0
@@ -1379,7 +1379,7 @@ label_12:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 143 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=355 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=355 dst=r6 src=r0 offset=0 imm=0
 #line 143 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=356 dst=r6 src=r0 offset=0 imm=32
@@ -1393,7 +1393,7 @@ label_12:
     if ((int64_t)r7 > (int64_t)r6)
 #line 144 "sample/map.c"
         goto label_13;
-        // EBPF_OP_MOV64_IMM pc=359 dst=r1 src=r0 offset=0 imm=3
+    // EBPF_OP_MOV64_IMM pc=359 dst=r1 src=r0 offset=0 imm=3
 #line 144 "sample/map.c"
     r1 = IMMEDIATE(3);
     // EBPF_OP_STXW pc=360 dst=r10 src=r1 offset=-4 imm=0
@@ -1426,7 +1426,7 @@ label_12:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 149 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=369 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=369 dst=r6 src=r0 offset=0 imm=0
 #line 149 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=370 dst=r6 src=r0 offset=0 imm=32
@@ -1440,7 +1440,7 @@ label_12:
     if ((int64_t)r7 > (int64_t)r6)
 #line 150 "sample/map.c"
         goto label_13;
-        // EBPF_OP_MOV64_IMM pc=373 dst=r1 src=r0 offset=0 imm=4
+    // EBPF_OP_MOV64_IMM pc=373 dst=r1 src=r0 offset=0 imm=4
 #line 150 "sample/map.c"
     r1 = IMMEDIATE(4);
     // EBPF_OP_STXW pc=374 dst=r10 src=r1 offset=-4 imm=0
@@ -1476,7 +1476,7 @@ label_12:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 155 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=384 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=384 dst=r6 src=r0 offset=0 imm=0
 #line 155 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=385 dst=r6 src=r0 offset=0 imm=32
@@ -1490,7 +1490,7 @@ label_12:
     if ((int64_t)r7 > (int64_t)r6)
 #line 156 "sample/map.c"
         goto label_13;
-        // EBPF_OP_MOV64_IMM pc=388 dst=r1 src=r0 offset=0 imm=5
+    // EBPF_OP_MOV64_IMM pc=388 dst=r1 src=r0 offset=0 imm=5
 #line 156 "sample/map.c"
     r1 = IMMEDIATE(5);
     // EBPF_OP_STXW pc=389 dst=r10 src=r1 offset=-4 imm=0
@@ -1523,7 +1523,7 @@ label_12:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 161 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=398 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=398 dst=r6 src=r0 offset=0 imm=0
 #line 161 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=399 dst=r6 src=r0 offset=0 imm=32
@@ -1537,7 +1537,7 @@ label_12:
     if ((int64_t)r7 > (int64_t)r6)
 #line 162 "sample/map.c"
         goto label_13;
-        // EBPF_OP_MOV64_IMM pc=402 dst=r1 src=r0 offset=0 imm=6
+    // EBPF_OP_MOV64_IMM pc=402 dst=r1 src=r0 offset=0 imm=6
 #line 162 "sample/map.c"
     r1 = IMMEDIATE(6);
     // EBPF_OP_STXW pc=403 dst=r10 src=r1 offset=-4 imm=0
@@ -1573,7 +1573,7 @@ label_12:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 167 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=413 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=413 dst=r6 src=r0 offset=0 imm=0
 #line 167 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=414 dst=r6 src=r0 offset=0 imm=32
@@ -1587,7 +1587,7 @@ label_12:
     if ((int64_t)r7 > (int64_t)r6)
 #line 168 "sample/map.c"
         goto label_13;
-        // EBPF_OP_MOV64_IMM pc=417 dst=r1 src=r0 offset=0 imm=7
+    // EBPF_OP_MOV64_IMM pc=417 dst=r1 src=r0 offset=0 imm=7
 #line 168 "sample/map.c"
     r1 = IMMEDIATE(7);
     // EBPF_OP_STXW pc=418 dst=r10 src=r1 offset=-4 imm=0
@@ -1620,7 +1620,7 @@ label_12:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 173 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=427 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=427 dst=r6 src=r0 offset=0 imm=0
 #line 173 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=428 dst=r6 src=r0 offset=0 imm=32
@@ -1634,7 +1634,7 @@ label_12:
     if ((int64_t)r7 > (int64_t)r6)
 #line 174 "sample/map.c"
         goto label_13;
-        // EBPF_OP_MOV64_IMM pc=431 dst=r1 src=r0 offset=0 imm=8
+    // EBPF_OP_MOV64_IMM pc=431 dst=r1 src=r0 offset=0 imm=8
 #line 174 "sample/map.c"
     r1 = IMMEDIATE(8);
     // EBPF_OP_STXW pc=432 dst=r10 src=r1 offset=-4 imm=0
@@ -1670,7 +1670,7 @@ label_12:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 179 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=442 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=442 dst=r6 src=r0 offset=0 imm=0
 #line 179 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=443 dst=r6 src=r0 offset=0 imm=32
@@ -1684,7 +1684,7 @@ label_12:
     if ((int64_t)r7 > (int64_t)r6)
 #line 180 "sample/map.c"
         goto label_13;
-        // EBPF_OP_MOV64_IMM pc=446 dst=r1 src=r0 offset=0 imm=9
+    // EBPF_OP_MOV64_IMM pc=446 dst=r1 src=r0 offset=0 imm=9
 #line 180 "sample/map.c"
     r1 = IMMEDIATE(9);
     // EBPF_OP_STXW pc=447 dst=r10 src=r1 offset=-4 imm=0
@@ -1717,7 +1717,7 @@ label_12:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 185 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=456 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=456 dst=r6 src=r0 offset=0 imm=0
 #line 185 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=457 dst=r6 src=r0 offset=0 imm=32
@@ -1731,7 +1731,7 @@ label_12:
     if ((int64_t)r7 > (int64_t)r6)
 #line 186 "sample/map.c"
         goto label_13;
-        // EBPF_OP_MOV64_IMM pc=460 dst=r1 src=r0 offset=0 imm=10
+    // EBPF_OP_MOV64_IMM pc=460 dst=r1 src=r0 offset=0 imm=10
 #line 186 "sample/map.c"
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXW pc=461 dst=r10 src=r1 offset=-4 imm=0
@@ -1767,7 +1767,7 @@ label_12:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 191 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=471 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=471 dst=r6 src=r0 offset=0 imm=0
 #line 191 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=472 dst=r6 src=r0 offset=0 imm=32
@@ -1822,7 +1822,7 @@ label_14:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 131 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=487 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=487 dst=r6 src=r0 offset=0 imm=0
 #line 131 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=488 dst=r6 src=r0 offset=0 imm=32
@@ -1836,7 +1836,7 @@ label_14:
     if ((int64_t)r7 > (int64_t)r6)
 #line 132 "sample/map.c"
         goto label_15;
-        // EBPF_OP_STXW pc=491 dst=r10 src=r8 offset=-4 imm=0
+    // EBPF_OP_STXW pc=491 dst=r10 src=r8 offset=-4 imm=0
 #line 136 "sample/map.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r8;
     // EBPF_OP_MOV64_REG pc=492 dst=r2 src=r10 offset=0 imm=0
@@ -1869,7 +1869,7 @@ label_14:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 137 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=501 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=501 dst=r6 src=r0 offset=0 imm=0
 #line 137 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=502 dst=r6 src=r0 offset=0 imm=32
@@ -1883,7 +1883,7 @@ label_14:
     if ((int64_t)r7 > (int64_t)r6)
 #line 138 "sample/map.c"
         goto label_15;
-        // EBPF_OP_MOV64_IMM pc=505 dst=r1 src=r0 offset=0 imm=2
+    // EBPF_OP_MOV64_IMM pc=505 dst=r1 src=r0 offset=0 imm=2
 #line 138 "sample/map.c"
     r1 = IMMEDIATE(2);
     // EBPF_OP_STXW pc=506 dst=r10 src=r1 offset=-4 imm=0
@@ -1916,7 +1916,7 @@ label_14:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 143 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=515 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=515 dst=r6 src=r0 offset=0 imm=0
 #line 143 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=516 dst=r6 src=r0 offset=0 imm=32
@@ -1930,7 +1930,7 @@ label_14:
     if ((int64_t)r7 > (int64_t)r6)
 #line 144 "sample/map.c"
         goto label_15;
-        // EBPF_OP_MOV64_IMM pc=519 dst=r1 src=r0 offset=0 imm=3
+    // EBPF_OP_MOV64_IMM pc=519 dst=r1 src=r0 offset=0 imm=3
 #line 144 "sample/map.c"
     r1 = IMMEDIATE(3);
     // EBPF_OP_STXW pc=520 dst=r10 src=r1 offset=-4 imm=0
@@ -1966,7 +1966,7 @@ label_14:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 149 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=530 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=530 dst=r6 src=r0 offset=0 imm=0
 #line 149 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=531 dst=r6 src=r0 offset=0 imm=32
@@ -1980,7 +1980,7 @@ label_14:
     if ((int64_t)r7 > (int64_t)r6)
 #line 150 "sample/map.c"
         goto label_15;
-        // EBPF_OP_MOV64_IMM pc=534 dst=r1 src=r0 offset=0 imm=4
+    // EBPF_OP_MOV64_IMM pc=534 dst=r1 src=r0 offset=0 imm=4
 #line 150 "sample/map.c"
     r1 = IMMEDIATE(4);
     // EBPF_OP_STXW pc=535 dst=r10 src=r1 offset=-4 imm=0
@@ -2013,7 +2013,7 @@ label_14:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 155 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=544 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=544 dst=r6 src=r0 offset=0 imm=0
 #line 155 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=545 dst=r6 src=r0 offset=0 imm=32
@@ -2027,7 +2027,7 @@ label_14:
     if ((int64_t)r7 > (int64_t)r6)
 #line 156 "sample/map.c"
         goto label_15;
-        // EBPF_OP_MOV64_IMM pc=548 dst=r1 src=r0 offset=0 imm=5
+    // EBPF_OP_MOV64_IMM pc=548 dst=r1 src=r0 offset=0 imm=5
 #line 156 "sample/map.c"
     r1 = IMMEDIATE(5);
     // EBPF_OP_STXW pc=549 dst=r10 src=r1 offset=-4 imm=0
@@ -2063,7 +2063,7 @@ label_14:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 161 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=559 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=559 dst=r6 src=r0 offset=0 imm=0
 #line 161 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=560 dst=r6 src=r0 offset=0 imm=32
@@ -2077,7 +2077,7 @@ label_14:
     if ((int64_t)r7 > (int64_t)r6)
 #line 162 "sample/map.c"
         goto label_15;
-        // EBPF_OP_MOV64_IMM pc=563 dst=r1 src=r0 offset=0 imm=6
+    // EBPF_OP_MOV64_IMM pc=563 dst=r1 src=r0 offset=0 imm=6
 #line 162 "sample/map.c"
     r1 = IMMEDIATE(6);
     // EBPF_OP_STXW pc=564 dst=r10 src=r1 offset=-4 imm=0
@@ -2110,7 +2110,7 @@ label_14:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 167 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=573 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=573 dst=r6 src=r0 offset=0 imm=0
 #line 167 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=574 dst=r6 src=r0 offset=0 imm=32
@@ -2124,7 +2124,7 @@ label_14:
     if ((int64_t)r7 > (int64_t)r6)
 #line 168 "sample/map.c"
         goto label_15;
-        // EBPF_OP_MOV64_IMM pc=577 dst=r1 src=r0 offset=0 imm=7
+    // EBPF_OP_MOV64_IMM pc=577 dst=r1 src=r0 offset=0 imm=7
 #line 168 "sample/map.c"
     r1 = IMMEDIATE(7);
     // EBPF_OP_STXW pc=578 dst=r10 src=r1 offset=-4 imm=0
@@ -2160,7 +2160,7 @@ label_14:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 173 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=588 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=588 dst=r6 src=r0 offset=0 imm=0
 #line 173 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=589 dst=r6 src=r0 offset=0 imm=32
@@ -2174,7 +2174,7 @@ label_14:
     if ((int64_t)r7 > (int64_t)r6)
 #line 174 "sample/map.c"
         goto label_15;
-        // EBPF_OP_MOV64_IMM pc=592 dst=r1 src=r0 offset=0 imm=8
+    // EBPF_OP_MOV64_IMM pc=592 dst=r1 src=r0 offset=0 imm=8
 #line 174 "sample/map.c"
     r1 = IMMEDIATE(8);
     // EBPF_OP_STXW pc=593 dst=r10 src=r1 offset=-4 imm=0
@@ -2207,7 +2207,7 @@ label_14:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 179 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=602 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=602 dst=r6 src=r0 offset=0 imm=0
 #line 179 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=603 dst=r6 src=r0 offset=0 imm=32
@@ -2221,7 +2221,7 @@ label_14:
     if ((int64_t)r7 > (int64_t)r6)
 #line 180 "sample/map.c"
         goto label_15;
-        // EBPF_OP_MOV64_IMM pc=606 dst=r1 src=r0 offset=0 imm=9
+    // EBPF_OP_MOV64_IMM pc=606 dst=r1 src=r0 offset=0 imm=9
 #line 180 "sample/map.c"
     r1 = IMMEDIATE(9);
     // EBPF_OP_STXW pc=607 dst=r10 src=r1 offset=-4 imm=0
@@ -2257,7 +2257,7 @@ label_14:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 185 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=617 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=617 dst=r6 src=r0 offset=0 imm=0
 #line 185 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=618 dst=r6 src=r0 offset=0 imm=32
@@ -2271,7 +2271,7 @@ label_14:
     if ((int64_t)r7 > (int64_t)r6)
 #line 186 "sample/map.c"
         goto label_15;
-        // EBPF_OP_MOV64_IMM pc=621 dst=r1 src=r0 offset=0 imm=10
+    // EBPF_OP_MOV64_IMM pc=621 dst=r1 src=r0 offset=0 imm=10
 #line 186 "sample/map.c"
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXW pc=622 dst=r10 src=r1 offset=-4 imm=0
@@ -2307,7 +2307,7 @@ label_14:
     if ((test_maps_helpers[0].tail_call) && (r0 == 0))
 #line 191 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=632 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=632 dst=r6 src=r0 offset=0 imm=0
 #line 191 "sample/map.c"
     r6 = r0;
     // EBPF_OP_LSH64_IMM pc=633 dst=r6 src=r0 offset=0 imm=32
@@ -2347,7 +2347,7 @@ label_16:
     if ((test_maps_helpers[4].tail_call) && (r0 == 0))
 #line 242 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=643 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=643 dst=r1 src=r0 offset=0 imm=0
 #line 242 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=644 dst=r1 src=r0 offset=0 imm=32
@@ -2367,7 +2367,7 @@ label_16:
     if (r1 == r2)
 #line 242 "sample/map.c"
         goto label_17;
-        // EBPF_OP_MOV64_REG pc=650 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=650 dst=r6 src=r0 offset=0 imm=0
 #line 242 "sample/map.c"
     r6 = r0;
 label_17:
@@ -2376,7 +2376,7 @@ label_17:
     if (r1 != r2)
 #line 242 "sample/map.c"
         goto label_36;
-        // EBPF_OP_LDXW pc=652 dst=r1 src=r10 offset=-4 imm=0
+    // EBPF_OP_LDXW pc=652 dst=r1 src=r10 offset=-4 imm=0
 #line 242 "sample/map.c"
     r1 = *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4));
     // EBPF_OP_JNE_IMM pc=653 dst=r1 src=r0 offset=407 imm=0
@@ -2384,7 +2384,7 @@ label_17:
     if (r1 != IMMEDIATE(0))
 #line 242 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=654 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=654 dst=r1 src=r0 offset=0 imm=0
 #line 242 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=655 dst=r10 src=r1 offset=-4 imm=0
@@ -2408,7 +2408,7 @@ label_17:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 243 "sample/map.c"
         return 0;
-        // EBPF_OP_LDXW pc=661 dst=r1 src=r10 offset=-4 imm=0
+    // EBPF_OP_LDXW pc=661 dst=r1 src=r10 offset=-4 imm=0
 #line 243 "sample/map.c"
     r1 = *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4));
     // EBPF_OP_MOV64_REG pc=662 dst=r7 src=r6 offset=0 imm=0
@@ -2419,7 +2419,7 @@ label_17:
     if (r1 == IMMEDIATE(0))
 #line 243 "sample/map.c"
         goto label_18;
-        // EBPF_OP_MOV64_IMM pc=664 dst=r7 src=r0 offset=0 imm=-1
+    // EBPF_OP_MOV64_IMM pc=664 dst=r7 src=r0 offset=0 imm=-1
 #line 243 "sample/map.c"
     r7 = IMMEDIATE(-1);
 label_18:
@@ -2440,7 +2440,7 @@ label_18:
     if (r2 == r3)
 #line 243 "sample/map.c"
         goto label_19;
-        // EBPF_OP_MOV64_REG pc=671 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=671 dst=r7 src=r0 offset=0 imm=0
 #line 243 "sample/map.c"
     r7 = r0;
 label_19:
@@ -2452,7 +2452,7 @@ label_19:
     if (r2 != r3)
 #line 243 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_REG pc=674 dst=r6 src=r7 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=674 dst=r6 src=r7 offset=0 imm=0
 #line 243 "sample/map.c"
     r6 = r7;
     // EBPF_OP_JNE_IMM pc=675 dst=r1 src=r0 offset=385 imm=0
@@ -2460,7 +2460,7 @@ label_19:
     if (r1 != IMMEDIATE(0))
 #line 243 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=676 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=676 dst=r1 src=r0 offset=0 imm=0
 #line 243 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=677 dst=r10 src=r1 offset=-4 imm=0
@@ -2487,7 +2487,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 251 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=684 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=684 dst=r6 src=r0 offset=0 imm=0
 #line 251 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=685 dst=r1 src=r6 offset=0 imm=0
@@ -2504,7 +2504,7 @@ label_19:
     if (r1 != IMMEDIATE(0))
 #line 251 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=689 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=689 dst=r1 src=r0 offset=0 imm=1
 #line 251 "sample/map.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXW pc=690 dst=r10 src=r1 offset=-4 imm=0
@@ -2531,7 +2531,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 252 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=697 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=697 dst=r6 src=r0 offset=0 imm=0
 #line 252 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=698 dst=r1 src=r6 offset=0 imm=0
@@ -2548,7 +2548,7 @@ label_19:
     if (r1 != IMMEDIATE(0))
 #line 252 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=702 dst=r1 src=r0 offset=0 imm=2
+    // EBPF_OP_MOV64_IMM pc=702 dst=r1 src=r0 offset=0 imm=2
 #line 252 "sample/map.c"
     r1 = IMMEDIATE(2);
     // EBPF_OP_STXW pc=703 dst=r10 src=r1 offset=-4 imm=0
@@ -2575,7 +2575,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 253 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=710 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=710 dst=r6 src=r0 offset=0 imm=0
 #line 253 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=711 dst=r1 src=r6 offset=0 imm=0
@@ -2592,7 +2592,7 @@ label_19:
     if (r1 != IMMEDIATE(0))
 #line 253 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=715 dst=r1 src=r0 offset=0 imm=3
+    // EBPF_OP_MOV64_IMM pc=715 dst=r1 src=r0 offset=0 imm=3
 #line 253 "sample/map.c"
     r1 = IMMEDIATE(3);
     // EBPF_OP_STXW pc=716 dst=r10 src=r1 offset=-4 imm=0
@@ -2619,7 +2619,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 254 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=723 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=723 dst=r6 src=r0 offset=0 imm=0
 #line 254 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=724 dst=r1 src=r6 offset=0 imm=0
@@ -2636,7 +2636,7 @@ label_19:
     if (r1 != IMMEDIATE(0))
 #line 254 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=728 dst=r1 src=r0 offset=0 imm=4
+    // EBPF_OP_MOV64_IMM pc=728 dst=r1 src=r0 offset=0 imm=4
 #line 254 "sample/map.c"
     r1 = IMMEDIATE(4);
     // EBPF_OP_STXW pc=729 dst=r10 src=r1 offset=-4 imm=0
@@ -2663,7 +2663,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 255 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=736 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=736 dst=r6 src=r0 offset=0 imm=0
 #line 255 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=737 dst=r1 src=r6 offset=0 imm=0
@@ -2680,7 +2680,7 @@ label_19:
     if (r1 != IMMEDIATE(0))
 #line 255 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=741 dst=r1 src=r0 offset=0 imm=5
+    // EBPF_OP_MOV64_IMM pc=741 dst=r1 src=r0 offset=0 imm=5
 #line 255 "sample/map.c"
     r1 = IMMEDIATE(5);
     // EBPF_OP_STXW pc=742 dst=r10 src=r1 offset=-4 imm=0
@@ -2707,7 +2707,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 256 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=749 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=749 dst=r6 src=r0 offset=0 imm=0
 #line 256 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=750 dst=r1 src=r6 offset=0 imm=0
@@ -2724,7 +2724,7 @@ label_19:
     if (r1 != IMMEDIATE(0))
 #line 256 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=754 dst=r1 src=r0 offset=0 imm=6
+    // EBPF_OP_MOV64_IMM pc=754 dst=r1 src=r0 offset=0 imm=6
 #line 256 "sample/map.c"
     r1 = IMMEDIATE(6);
     // EBPF_OP_STXW pc=755 dst=r10 src=r1 offset=-4 imm=0
@@ -2751,7 +2751,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 257 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=762 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=762 dst=r6 src=r0 offset=0 imm=0
 #line 257 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=763 dst=r1 src=r6 offset=0 imm=0
@@ -2768,7 +2768,7 @@ label_19:
     if (r1 != IMMEDIATE(0))
 #line 257 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=767 dst=r1 src=r0 offset=0 imm=7
+    // EBPF_OP_MOV64_IMM pc=767 dst=r1 src=r0 offset=0 imm=7
 #line 257 "sample/map.c"
     r1 = IMMEDIATE(7);
     // EBPF_OP_STXW pc=768 dst=r10 src=r1 offset=-4 imm=0
@@ -2795,7 +2795,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 258 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=775 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=775 dst=r6 src=r0 offset=0 imm=0
 #line 258 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=776 dst=r1 src=r6 offset=0 imm=0
@@ -2812,7 +2812,7 @@ label_19:
     if (r1 != IMMEDIATE(0))
 #line 258 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=780 dst=r1 src=r0 offset=0 imm=8
+    // EBPF_OP_MOV64_IMM pc=780 dst=r1 src=r0 offset=0 imm=8
 #line 258 "sample/map.c"
     r1 = IMMEDIATE(8);
     // EBPF_OP_STXW pc=781 dst=r10 src=r1 offset=-4 imm=0
@@ -2839,7 +2839,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 259 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=788 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=788 dst=r6 src=r0 offset=0 imm=0
 #line 259 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=789 dst=r1 src=r6 offset=0 imm=0
@@ -2856,7 +2856,7 @@ label_19:
     if (r1 != IMMEDIATE(0))
 #line 259 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=793 dst=r1 src=r0 offset=0 imm=9
+    // EBPF_OP_MOV64_IMM pc=793 dst=r1 src=r0 offset=0 imm=9
 #line 259 "sample/map.c"
     r1 = IMMEDIATE(9);
     // EBPF_OP_STXW pc=794 dst=r10 src=r1 offset=-4 imm=0
@@ -2883,7 +2883,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 260 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=801 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=801 dst=r6 src=r0 offset=0 imm=0
 #line 260 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=802 dst=r1 src=r6 offset=0 imm=0
@@ -2900,7 +2900,7 @@ label_19:
     if (r1 != IMMEDIATE(0))
 #line 260 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=806 dst=r8 src=r0 offset=0 imm=10
+    // EBPF_OP_MOV64_IMM pc=806 dst=r8 src=r0 offset=0 imm=10
 #line 260 "sample/map.c"
     r8 = IMMEDIATE(10);
     // EBPF_OP_STXW pc=807 dst=r10 src=r8 offset=-4 imm=0
@@ -2927,7 +2927,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 263 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=814 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=814 dst=r6 src=r0 offset=0 imm=0
 #line 263 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=815 dst=r1 src=r6 offset=0 imm=0
@@ -2947,7 +2947,7 @@ label_19:
     if (r1 != r2)
 #line 263 "sample/map.c"
         goto label_36;
-        // EBPF_OP_STXW pc=821 dst=r10 src=r8 offset=-4 imm=0
+    // EBPF_OP_STXW pc=821 dst=r10 src=r8 offset=-4 imm=0
 #line 264 "sample/map.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r8;
     // EBPF_OP_MOV64_REG pc=822 dst=r2 src=r10 offset=0 imm=0
@@ -2971,7 +2971,7 @@ label_19:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 264 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=828 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=828 dst=r6 src=r0 offset=0 imm=0
 #line 264 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=829 dst=r1 src=r6 offset=0 imm=0
@@ -2988,7 +2988,7 @@ label_19:
     if (r1 == IMMEDIATE(0))
 #line 264 "sample/map.c"
         goto label_20;
-        // EBPF_OP_MOV64_REG pc=833 dst=r7 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=833 dst=r7 src=r6 offset=0 imm=0
 #line 264 "sample/map.c"
     r7 = r6;
 label_20:
@@ -2997,7 +2997,7 @@ label_20:
     if (r1 != IMMEDIATE(0))
 #line 264 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=835 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=835 dst=r1 src=r0 offset=0 imm=0
 #line 264 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=836 dst=r10 src=r1 offset=-4 imm=0
@@ -3021,7 +3021,7 @@ label_20:
     if ((test_maps_helpers[4].tail_call) && (r0 == 0))
 #line 266 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=842 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=842 dst=r6 src=r0 offset=0 imm=0
 #line 266 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=843 dst=r1 src=r6 offset=0 imm=0
@@ -3038,7 +3038,7 @@ label_20:
     if (r1 == IMMEDIATE(0))
 #line 266 "sample/map.c"
         goto label_21;
-        // EBPF_OP_JA pc=847 dst=r0 src=r0 offset=213 imm=0
+    // EBPF_OP_JA pc=847 dst=r0 src=r0 offset=213 imm=0
 #line 266 "sample/map.c"
     goto label_36;
 label_21:
@@ -3053,7 +3053,7 @@ label_21:
     if (r1 != IMMEDIATE(1))
 #line 266 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=852 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=852 dst=r1 src=r0 offset=0 imm=0
 #line 266 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=853 dst=r10 src=r1 offset=-4 imm=0
@@ -3077,7 +3077,7 @@ label_21:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 274 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=859 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=859 dst=r6 src=r0 offset=0 imm=0
 #line 274 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=860 dst=r1 src=r6 offset=0 imm=0
@@ -3094,7 +3094,7 @@ label_21:
     if (r1 == IMMEDIATE(0))
 #line 274 "sample/map.c"
         goto label_22;
-        // EBPF_OP_JA pc=864 dst=r0 src=r0 offset=196 imm=0
+    // EBPF_OP_JA pc=864 dst=r0 src=r0 offset=196 imm=0
 #line 274 "sample/map.c"
     goto label_36;
 label_22:
@@ -3109,7 +3109,7 @@ label_22:
     if (r1 != IMMEDIATE(1))
 #line 274 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=869 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=869 dst=r1 src=r0 offset=0 imm=0
 #line 274 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=870 dst=r10 src=r1 offset=-4 imm=0
@@ -3133,7 +3133,7 @@ label_22:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 275 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=876 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=876 dst=r6 src=r0 offset=0 imm=0
 #line 275 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=877 dst=r1 src=r6 offset=0 imm=0
@@ -3150,7 +3150,7 @@ label_22:
     if (r1 == IMMEDIATE(0))
 #line 275 "sample/map.c"
         goto label_23;
-        // EBPF_OP_JA pc=881 dst=r0 src=r0 offset=179 imm=0
+    // EBPF_OP_JA pc=881 dst=r0 src=r0 offset=179 imm=0
 #line 275 "sample/map.c"
     goto label_36;
 label_23:
@@ -3165,7 +3165,7 @@ label_23:
     if (r1 != IMMEDIATE(2))
 #line 275 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=886 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=886 dst=r1 src=r0 offset=0 imm=0
 #line 275 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=887 dst=r10 src=r1 offset=-4 imm=0
@@ -3189,7 +3189,7 @@ label_23:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 276 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=893 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=893 dst=r6 src=r0 offset=0 imm=0
 #line 276 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=894 dst=r1 src=r6 offset=0 imm=0
@@ -3206,7 +3206,7 @@ label_23:
     if (r1 == IMMEDIATE(0))
 #line 276 "sample/map.c"
         goto label_24;
-        // EBPF_OP_JA pc=898 dst=r0 src=r0 offset=162 imm=0
+    // EBPF_OP_JA pc=898 dst=r0 src=r0 offset=162 imm=0
 #line 276 "sample/map.c"
     goto label_36;
 label_24:
@@ -3221,7 +3221,7 @@ label_24:
     if (r1 != IMMEDIATE(3))
 #line 276 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=903 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=903 dst=r1 src=r0 offset=0 imm=0
 #line 276 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=904 dst=r10 src=r1 offset=-4 imm=0
@@ -3245,7 +3245,7 @@ label_24:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 277 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=910 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=910 dst=r6 src=r0 offset=0 imm=0
 #line 277 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=911 dst=r1 src=r6 offset=0 imm=0
@@ -3262,7 +3262,7 @@ label_24:
     if (r1 == IMMEDIATE(0))
 #line 277 "sample/map.c"
         goto label_25;
-        // EBPF_OP_JA pc=915 dst=r0 src=r0 offset=145 imm=0
+    // EBPF_OP_JA pc=915 dst=r0 src=r0 offset=145 imm=0
 #line 277 "sample/map.c"
     goto label_36;
 label_25:
@@ -3277,7 +3277,7 @@ label_25:
     if (r1 != IMMEDIATE(4))
 #line 277 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=920 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=920 dst=r1 src=r0 offset=0 imm=0
 #line 277 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=921 dst=r10 src=r1 offset=-4 imm=0
@@ -3301,7 +3301,7 @@ label_25:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 278 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=927 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=927 dst=r6 src=r0 offset=0 imm=0
 #line 278 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=928 dst=r1 src=r6 offset=0 imm=0
@@ -3318,7 +3318,7 @@ label_25:
     if (r1 == IMMEDIATE(0))
 #line 278 "sample/map.c"
         goto label_26;
-        // EBPF_OP_JA pc=932 dst=r0 src=r0 offset=128 imm=0
+    // EBPF_OP_JA pc=932 dst=r0 src=r0 offset=128 imm=0
 #line 278 "sample/map.c"
     goto label_36;
 label_26:
@@ -3333,7 +3333,7 @@ label_26:
     if (r1 != IMMEDIATE(5))
 #line 278 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=937 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=937 dst=r1 src=r0 offset=0 imm=0
 #line 278 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=938 dst=r10 src=r1 offset=-4 imm=0
@@ -3357,7 +3357,7 @@ label_26:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 279 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=944 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=944 dst=r6 src=r0 offset=0 imm=0
 #line 279 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=945 dst=r1 src=r6 offset=0 imm=0
@@ -3374,7 +3374,7 @@ label_26:
     if (r1 == IMMEDIATE(0))
 #line 279 "sample/map.c"
         goto label_27;
-        // EBPF_OP_JA pc=949 dst=r0 src=r0 offset=111 imm=0
+    // EBPF_OP_JA pc=949 dst=r0 src=r0 offset=111 imm=0
 #line 279 "sample/map.c"
     goto label_36;
 label_27:
@@ -3389,7 +3389,7 @@ label_27:
     if (r1 != IMMEDIATE(6))
 #line 279 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=954 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=954 dst=r1 src=r0 offset=0 imm=0
 #line 279 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=955 dst=r10 src=r1 offset=-4 imm=0
@@ -3413,7 +3413,7 @@ label_27:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 280 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=961 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=961 dst=r6 src=r0 offset=0 imm=0
 #line 280 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=962 dst=r1 src=r6 offset=0 imm=0
@@ -3430,7 +3430,7 @@ label_27:
     if (r1 == IMMEDIATE(0))
 #line 280 "sample/map.c"
         goto label_28;
-        // EBPF_OP_JA pc=966 dst=r0 src=r0 offset=94 imm=0
+    // EBPF_OP_JA pc=966 dst=r0 src=r0 offset=94 imm=0
 #line 280 "sample/map.c"
     goto label_36;
 label_28:
@@ -3445,7 +3445,7 @@ label_28:
     if (r1 != IMMEDIATE(7))
 #line 280 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=971 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=971 dst=r1 src=r0 offset=0 imm=0
 #line 280 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=972 dst=r10 src=r1 offset=-4 imm=0
@@ -3469,7 +3469,7 @@ label_28:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 281 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=978 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=978 dst=r6 src=r0 offset=0 imm=0
 #line 281 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=979 dst=r1 src=r6 offset=0 imm=0
@@ -3486,7 +3486,7 @@ label_28:
     if (r1 == IMMEDIATE(0))
 #line 281 "sample/map.c"
         goto label_29;
-        // EBPF_OP_JA pc=983 dst=r0 src=r0 offset=77 imm=0
+    // EBPF_OP_JA pc=983 dst=r0 src=r0 offset=77 imm=0
 #line 281 "sample/map.c"
     goto label_36;
 label_29:
@@ -3501,7 +3501,7 @@ label_29:
     if (r1 != IMMEDIATE(8))
 #line 281 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=988 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=988 dst=r1 src=r0 offset=0 imm=0
 #line 281 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=989 dst=r10 src=r1 offset=-4 imm=0
@@ -3525,7 +3525,7 @@ label_29:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 282 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=995 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=995 dst=r6 src=r0 offset=0 imm=0
 #line 282 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=996 dst=r1 src=r6 offset=0 imm=0
@@ -3542,7 +3542,7 @@ label_29:
     if (r1 == IMMEDIATE(0))
 #line 282 "sample/map.c"
         goto label_30;
-        // EBPF_OP_JA pc=1000 dst=r0 src=r0 offset=60 imm=0
+    // EBPF_OP_JA pc=1000 dst=r0 src=r0 offset=60 imm=0
 #line 282 "sample/map.c"
     goto label_36;
 label_30:
@@ -3557,7 +3557,7 @@ label_30:
     if (r1 != IMMEDIATE(9))
 #line 282 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=1005 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1005 dst=r1 src=r0 offset=0 imm=0
 #line 282 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1006 dst=r10 src=r1 offset=-4 imm=0
@@ -3581,7 +3581,7 @@ label_30:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 283 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1012 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1012 dst=r6 src=r0 offset=0 imm=0
 #line 283 "sample/map.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=1013 dst=r1 src=r6 offset=0 imm=0
@@ -3598,7 +3598,7 @@ label_30:
     if (r1 == IMMEDIATE(0))
 #line 283 "sample/map.c"
         goto label_31;
-        // EBPF_OP_JA pc=1017 dst=r0 src=r0 offset=43 imm=0
+    // EBPF_OP_JA pc=1017 dst=r0 src=r0 offset=43 imm=0
 #line 283 "sample/map.c"
     goto label_36;
 label_31:
@@ -3613,7 +3613,7 @@ label_31:
     if (r1 != IMMEDIATE(10))
 #line 283 "sample/map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=1022 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1022 dst=r1 src=r0 offset=0 imm=0
 #line 283 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1023 dst=r10 src=r1 offset=-4 imm=0
@@ -3637,7 +3637,7 @@ label_31:
     if ((test_maps_helpers[4].tail_call) && (r0 == 0))
 #line 286 "sample/map.c"
         return 0;
-        // EBPF_OP_LDXW pc=1029 dst=r1 src=r10 offset=-4 imm=0
+    // EBPF_OP_LDXW pc=1029 dst=r1 src=r10 offset=-4 imm=0
 #line 286 "sample/map.c"
     r1 = *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4));
     // EBPF_OP_MOV64_REG pc=1030 dst=r6 src=r7 offset=0 imm=0
@@ -3648,7 +3648,7 @@ label_31:
     if (r1 == IMMEDIATE(0))
 #line 286 "sample/map.c"
         goto label_32;
-        // EBPF_OP_MOV64_IMM pc=1032 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_MOV64_IMM pc=1032 dst=r6 src=r0 offset=0 imm=-1
 #line 286 "sample/map.c"
     r6 = IMMEDIATE(-1);
 label_32:
@@ -3669,7 +3669,7 @@ label_32:
     if (r2 == r3)
 #line 286 "sample/map.c"
         goto label_33;
-        // EBPF_OP_MOV64_REG pc=1039 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1039 dst=r6 src=r0 offset=0 imm=0
 #line 286 "sample/map.c"
     r6 = r0;
 label_33:
@@ -3678,12 +3678,12 @@ label_33:
     if (r2 != r3)
 #line 286 "sample/map.c"
         goto label_36;
-        // EBPF_OP_JNE_IMM pc=1041 dst=r1 src=r0 offset=19 imm=0
+    // EBPF_OP_JNE_IMM pc=1041 dst=r1 src=r0 offset=19 imm=0
 #line 286 "sample/map.c"
     if (r1 != IMMEDIATE(0))
 #line 286 "sample/map.c"
         goto label_36;
-        // EBPF_OP_MOV64_IMM pc=1042 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1042 dst=r1 src=r0 offset=0 imm=0
 #line 286 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1043 dst=r10 src=r1 offset=-4 imm=0
@@ -3707,7 +3707,7 @@ label_33:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 287 "sample/map.c"
         return 0;
-        // EBPF_OP_LDXW pc=1049 dst=r1 src=r10 offset=-4 imm=0
+    // EBPF_OP_LDXW pc=1049 dst=r1 src=r10 offset=-4 imm=0
 #line 287 "sample/map.c"
     r1 = *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4));
     // EBPF_OP_JEQ_IMM pc=1050 dst=r1 src=r0 offset=1 imm=0
@@ -3715,7 +3715,7 @@ label_33:
     if (r1 == IMMEDIATE(0))
 #line 287 "sample/map.c"
         goto label_34;
-        // EBPF_OP_MOV64_IMM pc=1051 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_MOV64_IMM pc=1051 dst=r6 src=r0 offset=0 imm=-1
 #line 287 "sample/map.c"
     r6 = IMMEDIATE(-1);
 label_34:
@@ -3736,7 +3736,7 @@ label_34:
     if (r2 == r3)
 #line 287 "sample/map.c"
         goto label_35;
-        // EBPF_OP_MOV64_REG pc=1058 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1058 dst=r6 src=r0 offset=0 imm=0
 #line 287 "sample/map.c"
     r6 = r0;
 label_35:
@@ -3745,7 +3745,7 @@ label_35:
     if (r2 != r3)
 #line 287 "sample/map.c"
         goto label_36;
-        // EBPF_OP_JEQ_IMM pc=1060 dst=r1 src=r0 offset=5 imm=0
+    // EBPF_OP_JEQ_IMM pc=1060 dst=r1 src=r0 offset=5 imm=0
 #line 287 "sample/map.c"
     if (r1 == IMMEDIATE(0))
 #line 287 "sample/map.c"
@@ -3793,7 +3793,7 @@ label_37:
     if ((test_maps_helpers[4].tail_call) && (r0 == 0))
 #line 242 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1073 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1073 dst=r1 src=r0 offset=0 imm=0
 #line 242 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=1074 dst=r1 src=r0 offset=0 imm=32
@@ -3813,7 +3813,7 @@ label_37:
     if (r1 == r2)
 #line 242 "sample/map.c"
         goto label_38;
-        // EBPF_OP_MOV64_REG pc=1080 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1080 dst=r7 src=r0 offset=0 imm=0
 #line 242 "sample/map.c"
     r7 = r0;
 label_38:
@@ -3822,7 +3822,7 @@ label_38:
     if (r1 != r2)
 #line 242 "sample/map.c"
         goto label_58;
-        // EBPF_OP_LDXW pc=1082 dst=r1 src=r10 offset=-4 imm=0
+    // EBPF_OP_LDXW pc=1082 dst=r1 src=r10 offset=-4 imm=0
 #line 242 "sample/map.c"
     r1 = *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4));
     // EBPF_OP_JNE_IMM pc=1083 dst=r1 src=r0 offset=378 imm=0
@@ -3830,7 +3830,7 @@ label_38:
     if (r1 != IMMEDIATE(0))
 #line 242 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1084 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1084 dst=r1 src=r0 offset=0 imm=0
 #line 242 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1085 dst=r10 src=r1 offset=-4 imm=0
@@ -3854,7 +3854,7 @@ label_38:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 243 "sample/map.c"
         return 0;
-        // EBPF_OP_LDXW pc=1091 dst=r1 src=r10 offset=-4 imm=0
+    // EBPF_OP_LDXW pc=1091 dst=r1 src=r10 offset=-4 imm=0
 #line 243 "sample/map.c"
     r1 = *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4));
     // EBPF_OP_MOV64_REG pc=1092 dst=r6 src=r7 offset=0 imm=0
@@ -3865,7 +3865,7 @@ label_38:
     if (r1 == IMMEDIATE(0))
 #line 243 "sample/map.c"
         goto label_39;
-        // EBPF_OP_MOV64_IMM pc=1094 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_MOV64_IMM pc=1094 dst=r6 src=r0 offset=0 imm=-1
 #line 243 "sample/map.c"
     r6 = IMMEDIATE(-1);
 label_39:
@@ -3886,7 +3886,7 @@ label_39:
     if (r2 == r3)
 #line 243 "sample/map.c"
         goto label_40;
-        // EBPF_OP_MOV64_REG pc=1101 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1101 dst=r6 src=r0 offset=0 imm=0
 #line 243 "sample/map.c"
     r6 = r0;
 label_40:
@@ -3898,7 +3898,7 @@ label_40:
     if (r2 != r3)
 #line 243 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_REG pc=1104 dst=r7 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1104 dst=r7 src=r6 offset=0 imm=0
 #line 243 "sample/map.c"
     r7 = r6;
     // EBPF_OP_JNE_IMM pc=1105 dst=r1 src=r0 offset=356 imm=0
@@ -3906,7 +3906,7 @@ label_40:
     if (r1 != IMMEDIATE(0))
 #line 243 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1106 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1106 dst=r1 src=r0 offset=0 imm=0
 #line 243 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1107 dst=r10 src=r1 offset=-4 imm=0
@@ -3933,7 +3933,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 251 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1114 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1114 dst=r7 src=r0 offset=0 imm=0
 #line 251 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1115 dst=r1 src=r7 offset=0 imm=0
@@ -3950,7 +3950,7 @@ label_40:
     if (r1 != IMMEDIATE(0))
 #line 251 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1119 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=1119 dst=r1 src=r0 offset=0 imm=1
 #line 251 "sample/map.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXW pc=1120 dst=r10 src=r1 offset=-4 imm=0
@@ -3977,7 +3977,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 252 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1127 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1127 dst=r7 src=r0 offset=0 imm=0
 #line 252 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1128 dst=r1 src=r7 offset=0 imm=0
@@ -3994,7 +3994,7 @@ label_40:
     if (r1 != IMMEDIATE(0))
 #line 252 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1132 dst=r1 src=r0 offset=0 imm=2
+    // EBPF_OP_MOV64_IMM pc=1132 dst=r1 src=r0 offset=0 imm=2
 #line 252 "sample/map.c"
     r1 = IMMEDIATE(2);
     // EBPF_OP_STXW pc=1133 dst=r10 src=r1 offset=-4 imm=0
@@ -4021,7 +4021,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 253 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1140 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1140 dst=r7 src=r0 offset=0 imm=0
 #line 253 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1141 dst=r1 src=r7 offset=0 imm=0
@@ -4038,7 +4038,7 @@ label_40:
     if (r1 != IMMEDIATE(0))
 #line 253 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1145 dst=r1 src=r0 offset=0 imm=3
+    // EBPF_OP_MOV64_IMM pc=1145 dst=r1 src=r0 offset=0 imm=3
 #line 253 "sample/map.c"
     r1 = IMMEDIATE(3);
     // EBPF_OP_STXW pc=1146 dst=r10 src=r1 offset=-4 imm=0
@@ -4065,7 +4065,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 254 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1153 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1153 dst=r7 src=r0 offset=0 imm=0
 #line 254 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1154 dst=r1 src=r7 offset=0 imm=0
@@ -4082,7 +4082,7 @@ label_40:
     if (r1 != IMMEDIATE(0))
 #line 254 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1158 dst=r1 src=r0 offset=0 imm=4
+    // EBPF_OP_MOV64_IMM pc=1158 dst=r1 src=r0 offset=0 imm=4
 #line 254 "sample/map.c"
     r1 = IMMEDIATE(4);
     // EBPF_OP_STXW pc=1159 dst=r10 src=r1 offset=-4 imm=0
@@ -4109,7 +4109,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 255 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1166 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1166 dst=r7 src=r0 offset=0 imm=0
 #line 255 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1167 dst=r1 src=r7 offset=0 imm=0
@@ -4126,7 +4126,7 @@ label_40:
     if (r1 != IMMEDIATE(0))
 #line 255 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1171 dst=r1 src=r0 offset=0 imm=5
+    // EBPF_OP_MOV64_IMM pc=1171 dst=r1 src=r0 offset=0 imm=5
 #line 255 "sample/map.c"
     r1 = IMMEDIATE(5);
     // EBPF_OP_STXW pc=1172 dst=r10 src=r1 offset=-4 imm=0
@@ -4153,7 +4153,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 256 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1179 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1179 dst=r7 src=r0 offset=0 imm=0
 #line 256 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1180 dst=r1 src=r7 offset=0 imm=0
@@ -4170,7 +4170,7 @@ label_40:
     if (r1 != IMMEDIATE(0))
 #line 256 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1184 dst=r1 src=r0 offset=0 imm=6
+    // EBPF_OP_MOV64_IMM pc=1184 dst=r1 src=r0 offset=0 imm=6
 #line 256 "sample/map.c"
     r1 = IMMEDIATE(6);
     // EBPF_OP_STXW pc=1185 dst=r10 src=r1 offset=-4 imm=0
@@ -4197,7 +4197,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 257 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1192 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1192 dst=r7 src=r0 offset=0 imm=0
 #line 257 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1193 dst=r1 src=r7 offset=0 imm=0
@@ -4214,7 +4214,7 @@ label_40:
     if (r1 != IMMEDIATE(0))
 #line 257 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1197 dst=r1 src=r0 offset=0 imm=7
+    // EBPF_OP_MOV64_IMM pc=1197 dst=r1 src=r0 offset=0 imm=7
 #line 257 "sample/map.c"
     r1 = IMMEDIATE(7);
     // EBPF_OP_STXW pc=1198 dst=r10 src=r1 offset=-4 imm=0
@@ -4241,7 +4241,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 258 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1205 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1205 dst=r7 src=r0 offset=0 imm=0
 #line 258 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1206 dst=r1 src=r7 offset=0 imm=0
@@ -4258,7 +4258,7 @@ label_40:
     if (r1 != IMMEDIATE(0))
 #line 258 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1210 dst=r1 src=r0 offset=0 imm=8
+    // EBPF_OP_MOV64_IMM pc=1210 dst=r1 src=r0 offset=0 imm=8
 #line 258 "sample/map.c"
     r1 = IMMEDIATE(8);
     // EBPF_OP_STXW pc=1211 dst=r10 src=r1 offset=-4 imm=0
@@ -4285,7 +4285,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 259 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1218 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1218 dst=r7 src=r0 offset=0 imm=0
 #line 259 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1219 dst=r1 src=r7 offset=0 imm=0
@@ -4302,7 +4302,7 @@ label_40:
     if (r1 != IMMEDIATE(0))
 #line 259 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1223 dst=r1 src=r0 offset=0 imm=9
+    // EBPF_OP_MOV64_IMM pc=1223 dst=r1 src=r0 offset=0 imm=9
 #line 259 "sample/map.c"
     r1 = IMMEDIATE(9);
     // EBPF_OP_STXW pc=1224 dst=r10 src=r1 offset=-4 imm=0
@@ -4329,7 +4329,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 260 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1231 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1231 dst=r7 src=r0 offset=0 imm=0
 #line 260 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1232 dst=r1 src=r7 offset=0 imm=0
@@ -4346,7 +4346,7 @@ label_40:
     if (r1 != IMMEDIATE(0))
 #line 260 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1236 dst=r8 src=r0 offset=0 imm=10
+    // EBPF_OP_MOV64_IMM pc=1236 dst=r8 src=r0 offset=0 imm=10
 #line 260 "sample/map.c"
     r8 = IMMEDIATE(10);
     // EBPF_OP_STXW pc=1237 dst=r10 src=r8 offset=-4 imm=0
@@ -4373,7 +4373,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 263 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1244 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1244 dst=r7 src=r0 offset=0 imm=0
 #line 263 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1245 dst=r1 src=r7 offset=0 imm=0
@@ -4393,7 +4393,7 @@ label_40:
     if (r1 != r2)
 #line 263 "sample/map.c"
         goto label_58;
-        // EBPF_OP_STXW pc=1251 dst=r10 src=r8 offset=-4 imm=0
+    // EBPF_OP_STXW pc=1251 dst=r10 src=r8 offset=-4 imm=0
 #line 264 "sample/map.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r8;
     // EBPF_OP_MOV64_REG pc=1252 dst=r2 src=r10 offset=0 imm=0
@@ -4417,7 +4417,7 @@ label_40:
     if ((test_maps_helpers[6].tail_call) && (r0 == 0))
 #line 264 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1258 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1258 dst=r7 src=r0 offset=0 imm=0
 #line 264 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1259 dst=r1 src=r7 offset=0 imm=0
@@ -4434,7 +4434,7 @@ label_40:
     if (r1 == IMMEDIATE(0))
 #line 264 "sample/map.c"
         goto label_41;
-        // EBPF_OP_MOV64_REG pc=1263 dst=r6 src=r7 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1263 dst=r6 src=r7 offset=0 imm=0
 #line 264 "sample/map.c"
     r6 = r7;
 label_41:
@@ -4443,7 +4443,7 @@ label_41:
     if (r1 != IMMEDIATE(0))
 #line 264 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1265 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1265 dst=r1 src=r0 offset=0 imm=0
 #line 264 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1266 dst=r10 src=r1 offset=-4 imm=0
@@ -4467,7 +4467,7 @@ label_41:
     if ((test_maps_helpers[4].tail_call) && (r0 == 0))
 #line 266 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1272 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1272 dst=r7 src=r0 offset=0 imm=0
 #line 266 "sample/map.c"
     r7 = r0;
     // EBPF_OP_MOV64_REG pc=1273 dst=r1 src=r7 offset=0 imm=0
@@ -4484,7 +4484,7 @@ label_41:
     if (r1 == IMMEDIATE(0))
 #line 266 "sample/map.c"
         goto label_42;
-        // EBPF_OP_JA pc=1277 dst=r0 src=r0 offset=184 imm=0
+    // EBPF_OP_JA pc=1277 dst=r0 src=r0 offset=184 imm=0
 #line 266 "sample/map.c"
     goto label_58;
 label_42:
@@ -4499,7 +4499,7 @@ label_42:
     if (r1 != IMMEDIATE(10))
 #line 266 "sample/map.c"
         goto label_59;
-        // EBPF_OP_MOV64_IMM pc=1282 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1282 dst=r1 src=r0 offset=0 imm=0
 #line 266 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1283 dst=r10 src=r1 offset=-4 imm=0
@@ -4523,7 +4523,7 @@ label_42:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 274 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1289 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1289 dst=r1 src=r0 offset=0 imm=0
 #line 274 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=1290 dst=r1 src=r0 offset=0 imm=32
@@ -4553,7 +4553,7 @@ label_44:
     if (r1 != IMMEDIATE(10))
 #line 274 "sample/map.c"
         goto label_59;
-        // EBPF_OP_MOV64_IMM pc=1297 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1297 dst=r1 src=r0 offset=0 imm=0
 #line 274 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1298 dst=r10 src=r1 offset=-4 imm=0
@@ -4577,7 +4577,7 @@ label_44:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 275 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1304 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1304 dst=r1 src=r0 offset=0 imm=0
 #line 275 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=1305 dst=r1 src=r0 offset=0 imm=32
@@ -4591,7 +4591,7 @@ label_44:
     if (r1 == IMMEDIATE(0))
 #line 275 "sample/map.c"
         goto label_45;
-        // EBPF_OP_JA pc=1308 dst=r0 src=r0 offset=-16 imm=0
+    // EBPF_OP_JA pc=1308 dst=r0 src=r0 offset=-16 imm=0
 #line 275 "sample/map.c"
     goto label_43;
 label_45:
@@ -4603,7 +4603,7 @@ label_45:
     if (r1 != IMMEDIATE(9))
 #line 275 "sample/map.c"
         goto label_59;
-        // EBPF_OP_MOV64_IMM pc=1311 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1311 dst=r1 src=r0 offset=0 imm=0
 #line 275 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1312 dst=r10 src=r1 offset=-4 imm=0
@@ -4627,7 +4627,7 @@ label_45:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 276 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1318 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1318 dst=r1 src=r0 offset=0 imm=0
 #line 276 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=1319 dst=r1 src=r0 offset=0 imm=32
@@ -4641,7 +4641,7 @@ label_45:
     if (r1 == IMMEDIATE(0))
 #line 276 "sample/map.c"
         goto label_46;
-        // EBPF_OP_JA pc=1322 dst=r0 src=r0 offset=-30 imm=0
+    // EBPF_OP_JA pc=1322 dst=r0 src=r0 offset=-30 imm=0
 #line 276 "sample/map.c"
     goto label_43;
 label_46:
@@ -4653,7 +4653,7 @@ label_46:
     if (r1 != IMMEDIATE(8))
 #line 276 "sample/map.c"
         goto label_59;
-        // EBPF_OP_MOV64_IMM pc=1325 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1325 dst=r1 src=r0 offset=0 imm=0
 #line 276 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1326 dst=r10 src=r1 offset=-4 imm=0
@@ -4677,7 +4677,7 @@ label_46:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 277 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1332 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1332 dst=r1 src=r0 offset=0 imm=0
 #line 277 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=1333 dst=r1 src=r0 offset=0 imm=32
@@ -4691,7 +4691,7 @@ label_46:
     if (r1 == IMMEDIATE(0))
 #line 277 "sample/map.c"
         goto label_47;
-        // EBPF_OP_JA pc=1336 dst=r0 src=r0 offset=-44 imm=0
+    // EBPF_OP_JA pc=1336 dst=r0 src=r0 offset=-44 imm=0
 #line 277 "sample/map.c"
     goto label_43;
 label_47:
@@ -4703,7 +4703,7 @@ label_47:
     if (r1 != IMMEDIATE(7))
 #line 277 "sample/map.c"
         goto label_59;
-        // EBPF_OP_MOV64_IMM pc=1339 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1339 dst=r1 src=r0 offset=0 imm=0
 #line 277 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1340 dst=r10 src=r1 offset=-4 imm=0
@@ -4727,7 +4727,7 @@ label_47:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 278 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1346 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1346 dst=r1 src=r0 offset=0 imm=0
 #line 278 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=1347 dst=r1 src=r0 offset=0 imm=32
@@ -4741,7 +4741,7 @@ label_47:
     if (r1 == IMMEDIATE(0))
 #line 278 "sample/map.c"
         goto label_48;
-        // EBPF_OP_JA pc=1350 dst=r0 src=r0 offset=-58 imm=0
+    // EBPF_OP_JA pc=1350 dst=r0 src=r0 offset=-58 imm=0
 #line 278 "sample/map.c"
     goto label_43;
 label_48:
@@ -4753,7 +4753,7 @@ label_48:
     if (r1 != IMMEDIATE(6))
 #line 278 "sample/map.c"
         goto label_59;
-        // EBPF_OP_MOV64_IMM pc=1353 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1353 dst=r1 src=r0 offset=0 imm=0
 #line 278 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1354 dst=r10 src=r1 offset=-4 imm=0
@@ -4777,7 +4777,7 @@ label_48:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 279 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1360 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1360 dst=r1 src=r0 offset=0 imm=0
 #line 279 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=1361 dst=r1 src=r0 offset=0 imm=32
@@ -4791,7 +4791,7 @@ label_48:
     if (r1 == IMMEDIATE(0))
 #line 279 "sample/map.c"
         goto label_49;
-        // EBPF_OP_JA pc=1364 dst=r0 src=r0 offset=-72 imm=0
+    // EBPF_OP_JA pc=1364 dst=r0 src=r0 offset=-72 imm=0
 #line 279 "sample/map.c"
     goto label_43;
 label_49:
@@ -4803,7 +4803,7 @@ label_49:
     if (r1 != IMMEDIATE(5))
 #line 279 "sample/map.c"
         goto label_59;
-        // EBPF_OP_MOV64_IMM pc=1367 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1367 dst=r1 src=r0 offset=0 imm=0
 #line 279 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1368 dst=r10 src=r1 offset=-4 imm=0
@@ -4827,7 +4827,7 @@ label_49:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 280 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1374 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1374 dst=r1 src=r0 offset=0 imm=0
 #line 280 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=1375 dst=r1 src=r0 offset=0 imm=32
@@ -4841,7 +4841,7 @@ label_49:
     if (r1 == IMMEDIATE(0))
 #line 280 "sample/map.c"
         goto label_50;
-        // EBPF_OP_JA pc=1378 dst=r0 src=r0 offset=-86 imm=0
+    // EBPF_OP_JA pc=1378 dst=r0 src=r0 offset=-86 imm=0
 #line 280 "sample/map.c"
     goto label_43;
 label_50:
@@ -4853,7 +4853,7 @@ label_50:
     if (r1 != IMMEDIATE(4))
 #line 280 "sample/map.c"
         goto label_59;
-        // EBPF_OP_MOV64_IMM pc=1381 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1381 dst=r1 src=r0 offset=0 imm=0
 #line 280 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1382 dst=r10 src=r1 offset=-4 imm=0
@@ -4877,7 +4877,7 @@ label_50:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 281 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1388 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1388 dst=r1 src=r0 offset=0 imm=0
 #line 281 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=1389 dst=r1 src=r0 offset=0 imm=32
@@ -4891,7 +4891,7 @@ label_50:
     if (r1 == IMMEDIATE(0))
 #line 281 "sample/map.c"
         goto label_51;
-        // EBPF_OP_JA pc=1392 dst=r0 src=r0 offset=-100 imm=0
+    // EBPF_OP_JA pc=1392 dst=r0 src=r0 offset=-100 imm=0
 #line 281 "sample/map.c"
     goto label_43;
 label_51:
@@ -4903,7 +4903,7 @@ label_51:
     if (r1 != IMMEDIATE(3))
 #line 281 "sample/map.c"
         goto label_59;
-        // EBPF_OP_MOV64_IMM pc=1395 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1395 dst=r1 src=r0 offset=0 imm=0
 #line 281 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1396 dst=r10 src=r1 offset=-4 imm=0
@@ -4927,7 +4927,7 @@ label_51:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 282 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1402 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1402 dst=r1 src=r0 offset=0 imm=0
 #line 282 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=1403 dst=r1 src=r0 offset=0 imm=32
@@ -4941,7 +4941,7 @@ label_51:
     if (r1 == IMMEDIATE(0))
 #line 282 "sample/map.c"
         goto label_52;
-        // EBPF_OP_JA pc=1406 dst=r0 src=r0 offset=-114 imm=0
+    // EBPF_OP_JA pc=1406 dst=r0 src=r0 offset=-114 imm=0
 #line 282 "sample/map.c"
     goto label_43;
 label_52:
@@ -4953,7 +4953,7 @@ label_52:
     if (r1 != IMMEDIATE(2))
 #line 282 "sample/map.c"
         goto label_59;
-        // EBPF_OP_MOV64_IMM pc=1409 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1409 dst=r1 src=r0 offset=0 imm=0
 #line 282 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1410 dst=r10 src=r1 offset=-4 imm=0
@@ -4977,7 +4977,7 @@ label_52:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 283 "sample/map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=1416 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1416 dst=r1 src=r0 offset=0 imm=0
 #line 283 "sample/map.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=1417 dst=r1 src=r0 offset=0 imm=32
@@ -4991,7 +4991,7 @@ label_52:
     if (r1 == IMMEDIATE(0))
 #line 283 "sample/map.c"
         goto label_53;
-        // EBPF_OP_JA pc=1420 dst=r0 src=r0 offset=-128 imm=0
+    // EBPF_OP_JA pc=1420 dst=r0 src=r0 offset=-128 imm=0
 #line 283 "sample/map.c"
     goto label_43;
 label_53:
@@ -5003,7 +5003,7 @@ label_53:
     if (r1 != IMMEDIATE(1))
 #line 283 "sample/map.c"
         goto label_59;
-        // EBPF_OP_MOV64_IMM pc=1423 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1423 dst=r1 src=r0 offset=0 imm=0
 #line 283 "sample/map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1424 dst=r10 src=r1 offset=-4 imm=0
@@ -5027,7 +5027,7 @@ label_53:
     if ((test_maps_helpers[4].tail_call) && (r0 == 0))
 #line 286 "sample/map.c"
         return 0;
-        // EBPF_OP_LDXW pc=1430 dst=r1 src=r10 offset=-4 imm=0
+    // EBPF_OP_LDXW pc=1430 dst=r1 src=r10 offset=-4 imm=0
 #line 286 "sample/map.c"
     r1 = *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4));
     // EBPF_OP_MOV64_REG pc=1431 dst=r7 src=r6 offset=0 imm=0
@@ -5038,7 +5038,7 @@ label_53:
     if (r1 == IMMEDIATE(0))
 #line 286 "sample/map.c"
         goto label_54;
-        // EBPF_OP_MOV64_IMM pc=1433 dst=r7 src=r0 offset=0 imm=-1
+    // EBPF_OP_MOV64_IMM pc=1433 dst=r7 src=r0 offset=0 imm=-1
 #line 286 "sample/map.c"
     r7 = IMMEDIATE(-1);
 label_54:
@@ -5059,7 +5059,7 @@ label_54:
     if (r2 == r3)
 #line 286 "sample/map.c"
         goto label_55;
-        // EBPF_OP_MOV64_REG pc=1440 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1440 dst=r7 src=r0 offset=0 imm=0
 #line 286 "sample/map.c"
     r7 = r0;
 label_55:
@@ -5068,12 +5068,12 @@ label_55:
     if (r2 != r3)
 #line 286 "sample/map.c"
         goto label_58;
-        // EBPF_OP_JNE_IMM pc=1442 dst=r1 src=r0 offset=19 imm=0
+    // EBPF_OP_JNE_IMM pc=1442 dst=r1 src=r0 offset=19 imm=0
 #line 286 "sample/map.c"
     if (r1 != IMMEDIATE(0))
 #line 286 "sample/map.c"
         goto label_58;
-        // EBPF_OP_MOV64_IMM pc=1443 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1443 dst=r6 src=r0 offset=0 imm=0
 #line 286 "sample/map.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1444 dst=r10 src=r6 offset=-4 imm=0
@@ -5097,7 +5097,7 @@ label_55:
     if ((test_maps_helpers[5].tail_call) && (r0 == 0))
 #line 287 "sample/map.c"
         return 0;
-        // EBPF_OP_LDXW pc=1450 dst=r1 src=r10 offset=-4 imm=0
+    // EBPF_OP_LDXW pc=1450 dst=r1 src=r10 offset=-4 imm=0
 #line 287 "sample/map.c"
     r1 = *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4));
     // EBPF_OP_JEQ_IMM pc=1451 dst=r1 src=r0 offset=1 imm=0
@@ -5105,7 +5105,7 @@ label_55:
     if (r1 == IMMEDIATE(0))
 #line 287 "sample/map.c"
         goto label_56;
-        // EBPF_OP_MOV64_IMM pc=1452 dst=r7 src=r0 offset=0 imm=-1
+    // EBPF_OP_MOV64_IMM pc=1452 dst=r7 src=r0 offset=0 imm=-1
 #line 287 "sample/map.c"
     r7 = IMMEDIATE(-1);
 label_56:
@@ -5126,7 +5126,7 @@ label_56:
     if (r2 == r3)
 #line 287 "sample/map.c"
         goto label_57;
-        // EBPF_OP_MOV64_REG pc=1459 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=1459 dst=r7 src=r0 offset=0 imm=0
 #line 287 "sample/map.c"
     r7 = r0;
 label_57:
@@ -5135,7 +5135,7 @@ label_57:
     if (r2 != r3)
 #line 287 "sample/map.c"
         goto label_58;
-        // EBPF_OP_JEQ_IMM pc=1461 dst=r1 src=r0 offset=-1416 imm=0
+    // EBPF_OP_JEQ_IMM pc=1461 dst=r1 src=r0 offset=-1416 imm=0
 #line 287 "sample/map.c"
     if (r1 == IMMEDIATE(0))
 #line 287 "sample/map.c"
@@ -5200,7 +5200,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

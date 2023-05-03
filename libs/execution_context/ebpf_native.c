@@ -1260,7 +1260,14 @@ _ebpf_native_clean_up_handle_cleanup_context(_Inout_ ebpf_native_handle_cleanup_
         ebpf_free(cleanup_context->handle_information->map_handles);
         ebpf_free(cleanup_context->handle_information->program_handles);
     }
-    ebpf_free_preemptible_work_item(cleanup_context->handle_cleanup_work_item);
+
+    if (cleanup_context->handle_cleanup_work_item != NULL) {
+        // ebpf_free_preemptible_work_item() will free the handle_information.
+        ebpf_free_preemptible_work_item(cleanup_context->handle_cleanup_work_item);
+
+    } else {
+        ebpf_free(cleanup_context->handle_information);
+    }
 }
 
 static ebpf_result_t
