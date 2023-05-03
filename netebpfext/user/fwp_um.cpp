@@ -640,10 +640,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsInjectionHandleDestroy0(_In_ HAN
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
     FwpsFlowRemoveContext0(_In_ uint64_t flow_id, _In_ UINT16 layer_id, _In_ uint32_t callout_id)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_NO_MEMORY;
-    }
-
+    // Skip fault injection.
     auto& engine = *_fwp_engine::get()->get();
     engine.delete_flow_context(flow_id, layer_id, callout_id);
 
