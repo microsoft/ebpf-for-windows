@@ -614,7 +614,11 @@ _net_ebpf_sock_addr_create_security_descriptor()
     dacl = (ACL*)ExAllocatePoolUninitialized(NonPagedPoolNx, acl_length, NET_EBPF_EXTENSION_POOL_TAG);
     NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, dacl, "dacl", status);
 
-    RtlCreateAcl(dacl, acl_length, ACL_REVISION);
+    status = RtlCreateAcl(dacl, acl_length, ACL_REVISION);
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlCreateAcl", status);
+        goto Exit;
+    }
 
     status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, access_mask, SeExports->SeAliasAdminsSid);
     if (!NT_SUCCESS(status)) {
