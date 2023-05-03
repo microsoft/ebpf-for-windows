@@ -67,6 +67,8 @@ typedef struct _test_globals
     bool attach_v6_program;
 } test_globals_t;
 
+typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
+
 static test_globals_t _globals;
 static volatile bool _globals_initialized = false;
 
@@ -274,7 +276,7 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object, uint64_t authent
     if (_globals.user_type == user_type_t::ADMINISTRATOR) {
         REQUIRE(entry.is_admin == 1);
     } else {
-        REQUIRE(entry.is_admin == 0);
+        REQUIRE(entry.is_admin == 0); 
     }
 
     REQUIRE(entry.local_port != 0);
@@ -283,18 +285,22 @@ _validate_audit_map_entry(_In_ const struct bpf_object* object, uint64_t authent
 }
 
 static void
-_load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
+_load_and_attach_ebpf_programs(_Out_ bpf_object_ptr* unique_object, _Outptr_ struct bpf_object** return_object)
 {
+    bpf_object_ptr object;
+    unique_object->reset(nullptr);
     int result;
     native_module_helper_t helper("cgroup_sock_addr2");
 
-    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
-    REQUIRE(object != nullptr);
-    REQUIRE(bpf_object__load(object) == 0);
+    struct bpf_object* raw_object = bpf_object__open(helper.get_file_name().c_str());
+    REQUIRE(raw_object != nullptr);
+    object.reset(raw_object);
+    raw_object = nullptr;
+    REQUIRE(bpf_object__load(object.get()) == 0);
 
     if (_globals.attach_v4_program) {
         printf("Attaching v4 program\n");
-        bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object, "connect_redirect4");
+        bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object.get(), "connect_redirect4");
         REQUIRE(connect_program_v4 != nullptr);
 
         result = bpf_prog_attach(
@@ -304,7 +310,7 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
 
     if (_globals.attach_v6_program) {
         printf("Attaching v6 program\n");
-        bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object, "connect_redirect6");
+        bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object.get(), "connect_redirect6");
         REQUIRE(connect_program_v6 != nullptr);
 
         result = bpf_prog_attach(
@@ -312,7 +318,9 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
         REQUIRE(result == 0);
     }
 
-    *return_object = object;
+    *return_object = object.get();
+    unique_object->reset(object.get());
+    object.reset(nullptr);
 }
 
 static void
@@ -496,7 +504,8 @@ connect_redirect_test_wrapper(
     {                                                                                                            \
         _initialize_test_globals();                                                                              \
         struct bpf_object* object = nullptr;                                                                     \
-        _load_and_attach_ebpf_programs(&object);                                                                 \
+        bpf_object_ptr unique_object;                                                                            \
+        _load_and_attach_ebpf_programs(&unique_object, & object);                                                \
         _globals.family = family;                                                                                \
         _globals.protocol = protocol;                                                                            \
         const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                        \
@@ -583,7 +592,8 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv
     {                                                                                               \
         _initialize_test_globals();                                                                 \
         struct bpf_object* object = nullptr;                                                        \
-        _load_and_attach_ebpf_programs(&object);                                                    \
+        bpf_object_ptr unique_object;                                                               \
+        _load_and_attach_ebpf_programs(&unique_object, & object);                                   \
         _globals.family = family;                                                                   \
         _globals.protocol = protocol;                                                               \
         const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";           \
