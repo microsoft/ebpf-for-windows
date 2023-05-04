@@ -610,11 +610,12 @@ SeAccessCheckFromState(
     _Out_ PACCESS_MASK GrantedAccess,
     _Out_ NTSTATUS* AccessStatus)
 {
+    if (Privileges != NULL) {
+        *Privileges = NULL;
+    }
+    *GrantedAccess = DesiredAccess;
+
     if (ebpf_fault_injection_inject_fault()) {
-        if (Privileges != NULL) {
-            *Privileges = NULL;
-        }
-        *GrantedAccess = DesiredAccess;
         *AccessStatus = STATUS_ACCESS_DENIED;
         return false;
     }
@@ -626,10 +627,6 @@ SeAccessCheckFromState(
     UNREFERENCED_PARAMETER(GenericMapping);
     UNREFERENCED_PARAMETER(AccessMode);
 
-    if (Privileges != NULL) {
-        *Privileges = NULL;
-    }
-    *GrantedAccess = DesiredAccess;
     *AccessStatus = STATUS_SUCCESS;
 
     return true;

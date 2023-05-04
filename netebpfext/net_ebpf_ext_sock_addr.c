@@ -297,16 +297,15 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
     NTSTATUS status;
     BOOLEAN access_allowed;
     net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
-    int32_t is_admin;
+    int32_t is_admin = 0;
 
     sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     status = _perform_access_check(
         _net_ebpf_ext_security_descriptor_admin, sock_addr_ctx->access_information, &access_allowed);
 
-    if (access_allowed) {
+    // Check the status and access_allowed to determine if the admin access is allowed.
+    if ((status == STATUS_SUCCESS) && access_allowed) {
         is_admin = 1;
-    } else {
-        is_admin = 0;
     }
 
     return is_admin;
@@ -614,11 +613,7 @@ _net_ebpf_sock_addr_create_security_descriptor()
     dacl = (ACL*)ExAllocatePoolUninitialized(NonPagedPoolNx, acl_length, NET_EBPF_EXTENSION_POOL_TAG);
     NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, dacl, "dacl", status);
 
-    status = RtlCreateAcl(dacl, acl_length, ACL_REVISION);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlCreateAcl", status);
-        goto Exit;
-    }
+    RtlCreateAcl(dacl, acl_length, ACL_REVISION);
 
     status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, access_mask, SeExports->SeAliasAdminsSid);
     if (!NT_SUCCESS(status)) {
