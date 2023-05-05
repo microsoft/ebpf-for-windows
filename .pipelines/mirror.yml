@@ -21,6 +21,7 @@ pool:
 
 steps:
 - checkout: self
+  persistCredentials: true
   clean: true
   fetchDepth: 0
   displayName: 'Checkout Repository'

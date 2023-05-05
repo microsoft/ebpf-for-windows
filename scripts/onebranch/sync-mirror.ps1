@@ -117,7 +117,8 @@ git merge upstream/$BranchName
 
 # Push the changes to remote.
 Write-Output "Push changes to remote"
-git push $url
+## git push $url
+git push
 
 # This script is invoked for multiple branches. Check and sync for new release
 # branches only when it is invoked for "main".
@@ -132,6 +133,7 @@ git fetch upstream --tags
 
 # Push the tags to remote.
 Write-Output "Pushing tags to remote"
-git push --tags $url
+## git push --tags $url
+git push --tags
 
 Write-Output "Successfully mirrored latest changes"
