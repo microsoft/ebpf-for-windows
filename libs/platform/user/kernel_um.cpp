@@ -558,7 +558,7 @@ NTSTATUS
 RtlAddAccessAllowedAce(_Inout_ PACL Acl, _In_ unsigned long AceRevision, _In_ ACCESS_MASK AccessMask, _In_ PSID Sid)
 {
     if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_BUFFER_TOO_SMALL;
+        return STATUS_INSUFFICIENT_RESOURCES;
     }
 
     UNREFERENCED_PARAMETER(Acl);
