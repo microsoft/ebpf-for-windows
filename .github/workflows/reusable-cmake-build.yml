@@ -34,11 +34,19 @@ jobs:
       PLATFORM_TOOLSET: v143
 
     steps:
+    - id: skip_check
+      uses: fkirc/skip-duplicate-actions@12aca0a884f6137d619d6a8a09fcc3406ced5281 # v5.3.0
+      with:
+        cancel_others: 'false'
+        paths_ignore: '["**.md", "**/docs/**"]'
+
     - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
+      if: steps.skip_check.outputs.should_skip != 'true'
       with:
         submodules: 'recursive'
 
     - name: Install tools
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         choco install -y llvm --version 11.0.1 --allow-downgrade
@@ -46,6 +54,7 @@ jobs:
 
     - name: Cache nuget packages
       uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8
+      if: steps.skip_check.outputs.should_skip != 'true'
       env:
         cache-name: cache-nuget-modules
       with:
@@ -53,28 +62,33 @@ jobs:
         key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}
 
     - name: Configure the project
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: cmd
       run: |
         cmake -S . -B build -G "${{env.CMAKE_GENERATOR}}" -A ${{env.BUILD_PLATFORM}} -T ${{env.PLATFORM_TOOLSET}}
 
     - name: Build the project
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: cmd
       run: |
         cmake --build build --config ${{env.BUILD_CONFIGURATION }}
 
     - name: Download demo repository
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
     - name: Extract artifacts to build path
+      if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/build/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         tar -xf ..\..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
 
     - name: Upload Build Output
+      if: steps.skip_check.outputs.should_skip != 'true'
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
