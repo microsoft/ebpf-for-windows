@@ -42,12 +42,14 @@ function Get-UpstreamBranches
         {
             for ($i = 0; $i -lt $LocalBranches.Count; $i++)
             {
-                $LocalBranchNames += $LocalBranches[$i].Line
+                $BranchNameSuffix = $LocalBranches[$i].Line -split "origin/"
+                $LocalBranchNames += $BranchNameSuffix[1]
             }
         }
         else
         {
-            $LocalBranchNames += $LocalBranches.Line
+            $BranchNameSuffix = $LocalBranches.Line -split "origin/"
+            $LocalBranchNames += $BranchNameSuffix[1]
         }
     }
 
@@ -57,17 +59,21 @@ function Get-UpstreamBranches
         {
             for ($i = 0; $i -lt $UpstreamBranches.Count; $i++)
             {
-                if (-not($LocalBranchNames.Contains($UpstreamBranches[$i].Line)))
+                $BranchNameSuffix = $UpstreamBranches[$i].Line -split "upstream/"
+                if (-not($LocalBranchNames.Contains($BranchNameSuffix[1])))
                 {
-                    $NewBranchNames += $UpstreamBranches[$i].Line
+                    # $BranchNameSuffix = $UpstreamBranches[$i].Line -split "upstream/"
+                    $NewBranchNames += $BranchNameSuffix[1]
                 }
             }
         }
         else
         {
-            if (-not($LocalBranchNames.Contains($UpstreamBranches.Line)))
+            $BranchNameSuffix = $UpstreamBranches.Line -split "upstream/"
+            if (-not($LocalBranchNames.Contains($BranchNameSuffix[1])))
             {
-                $NewBranchNames += $UpstreamBranches.Line
+                # $BranchNameSuffix = $UpstreamBranches.Line -split "upstream/"
+                $NewBranchNames += $BranchNameSuffix[1]
             }
         }
     }
@@ -75,11 +81,12 @@ function Get-UpstreamBranches
     # Got the new branches. Create and push local version of these branches.
     for ($i = 0; $i -lt $NewBranchNames.Count; $i++)
     {
-        $BranchNames = $NewBranchNames[$i] -split "upstream/"
-        $BranchName = $BranchNames[1]
+        # $BranchNames = $NewBranchNames[$i] -split "upstream/"
+        $BranchName = $NewBranchNames[$i]
         Write-Output "Syncing new branch $BranchName"
         git checkout $BranchName
-        git push -u origin $BranchName $RemoteUrl
+        ## git push -u origin $BranchName $RemoteUrl
+        git push -u origin $BranchName
     }
 
     Write-Output "Done syncing new branches"
