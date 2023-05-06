@@ -936,3 +936,40 @@ TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
     bpf_object__close(object);
     */
 }
+
+TEST_CASE("native_program_load_attach", "[regression]")
+{
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+    uint32_t next_id;
+    const char* file_name = "regression\\cgroup_sock_addr2_0.9.0.sys";
+
+    result = _program_load_helper(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd);
+    REQUIRE(result == 0);
+
+    bpf_program* v4_program = bpf_object__find_program_by_name(object, "connect_redirect4");
+    REQUIRE(v4_program != nullptr);
+
+    bpf_program* v6_program = bpf_object__find_program_by_name(object, "connect_redirect6");
+    REQUIRE(v6_program != nullptr);
+
+    // Attach both v4 and v6 programs.
+    bpf_link* v4_link = bpf_program__attach(v4_program);
+    REQUIRE(v4_link != nullptr);
+
+    bpf_link* v6_link = bpf_program__attach(v6_program);
+    REQUIRE(v6_link != nullptr);
+
+    // Detach both v4 and v6 programs.
+    result = bpf_link__destroy(v4_link);
+    REQUIRE(result == 0);
+
+    result = bpf_link__destroy(v6_link);
+    REQUIRE(result == 0);
+
+    bpf_object__close(object);
+
+    // We have closed handles to the programs. Program should be unloaded now.
+    REQUIRE(bpf_prog_get_next_id(0, &next_id) == -ENOENT);
+}
