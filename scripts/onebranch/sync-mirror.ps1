@@ -62,7 +62,6 @@ function Get-UpstreamBranches
                 $BranchNameSuffix = $UpstreamBranches[$i].Line -split "upstream/"
                 if (-not($LocalBranchNames.Contains($BranchNameSuffix[1])))
                 {
-                    # $BranchNameSuffix = $UpstreamBranches[$i].Line -split "upstream/"
                     $NewBranchNames += $BranchNameSuffix[1]
                 }
             }
@@ -72,7 +71,6 @@ function Get-UpstreamBranches
             $BranchNameSuffix = $UpstreamBranches.Line -split "upstream/"
             if (-not($LocalBranchNames.Contains($BranchNameSuffix[1])))
             {
-                # $BranchNameSuffix = $UpstreamBranches.Line -split "upstream/"
                 $NewBranchNames += $BranchNameSuffix[1]
             }
         }
@@ -81,11 +79,11 @@ function Get-UpstreamBranches
     # Got the new branches. Create and push local version of these branches.
     for ($i = 0; $i -lt $NewBranchNames.Count; $i++)
     {
-        # $BranchNames = $NewBranchNames[$i] -split "upstream/"
         $BranchName = $NewBranchNames[$i]
         Write-Output "Syncing new branch $BranchName"
+        Write-Output "Executing: git checkout $BranchName"
         git checkout $BranchName
-        ## git push -u origin $BranchName $RemoteUrl
+        Write-Output "Executing: git push -u origin $BranchName"
         git push -u origin $BranchName
     }
 
@@ -140,7 +138,7 @@ git fetch upstream --tags
 
 # Push the tags to remote.
 Write-Output "Pushing tags to remote"
-## git push --tags $url
+Write-Output "Executing: git push --tags"
 git push --tags
 
 Write-Output "Successfully mirrored latest changes"
