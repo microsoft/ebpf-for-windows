@@ -69,6 +69,7 @@ typedef struct _test_globals
 
 static test_globals_t _globals;
 static volatile bool _globals_initialized = false;
+static struct bpf_object* _object = nullptr;
 
 static void
 _impersonate_user()
@@ -494,17 +495,13 @@ connect_redirect_test_wrapper(
     void connection_authorization_tests_##destination##(                                                         \
         ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)              \
     {                                                                                                            \
-        _initialize_test_globals();                                                                              \
-        struct bpf_object* object = nullptr;                                                                     \
-        _load_and_attach_ebpf_programs(&object);                                                                 \
         _globals.family = family;                                                                                \
         _globals.protocol = protocol;                                                                            \
         const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                        \
         const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                              \
         const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";                             \
         printf("CONNECT: " #destination " | %s | %s | %s\n", protocol_string, family_string, dual_stack_string); \
-        authorize_test_wrapper(object, dual_stack, addresses.##destination##);                                   \
-        bpf_object__close(object);                                                                               \
+        authorize_test_wrapper(_object, dual_stack, addresses.##destination##);                                  \
     }
 
 // Declare connection_authorization_* test functions.
@@ -577,26 +574,22 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv
 // Dual stack socket, IPv6, UDP
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, IPPROTO_UDP)
 
-#define DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(original_destination, new_destination)         \
-    void connection_redirection_tests_##original_destination##_##new_destination##(                 \
-        ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses) \
-    {                                                                                               \
-        _initialize_test_globals();                                                                 \
-        struct bpf_object* object = nullptr;                                                        \
-        _load_and_attach_ebpf_programs(&object);                                                    \
-        _globals.family = family;                                                                   \
-        _globals.protocol = protocol;                                                               \
-        const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";           \
-        const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                 \
-        const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";                \
-        printf(                                                                                     \
-            "REDIRECT: " #original_destination " -> " #new_destination " | %s | %s | %s\n",         \
-            protocol_string,                                                                        \
-            family_string,                                                                          \
-            dual_stack_string);                                                                     \
-        connect_redirect_test_wrapper(                                                              \
-            object, addresses.##original_destination##, addresses.##new_destination##, dual_stack); \
-        bpf_object__close(object);                                                                  \
+#define DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(original_destination, new_destination)          \
+    void connection_redirection_tests_##original_destination##_##new_destination##(                  \
+        ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)  \
+    {                                                                                                \
+        _globals.family = family;                                                                    \
+        _globals.protocol = protocol;                                                                \
+        const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";            \
+        const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                  \
+        const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";                 \
+        printf(                                                                                      \
+            "REDIRECT: " #original_destination " -> " #new_destination " | %s | %s | %s\n",          \
+            protocol_string,                                                                         \
+            family_string,                                                                           \
+            dual_stack_string);                                                                      \
+        connect_redirect_test_wrapper(                                                               \
+            _object, addresses.##original_destination##, addresses.##new_destination##, dual_stack); \
     }
 
 // Declare connection_redirection_* test functions.
@@ -735,6 +728,10 @@ main(int argc, char* argv[])
         return 1;
     }
 
+    _initialize_test_globals();
+    _load_and_attach_ebpf_programs(&_object);
     session.run();
+    bpf_object__close(_object);
+
     WSACleanup();
 }
