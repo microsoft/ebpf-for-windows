@@ -99,10 +99,8 @@ extern "C"
     } ebpf_object_type_t;
 
     typedef struct _ebpf_base_object ebpf_base_object_t;
-    typedef void (*ebpf_base_release_reference_t)(
-        _Inout_ void* base_object, _In_ ebpf_file_id_t file_id, _In_ uint32_t line);
-    typedef void (*ebpf_base_acquire_reference_t)(
-        _Inout_ void* base_object, _In_ ebpf_file_id_t file_id, _In_ uint32_t line);
+    typedef void (*ebpf_base_release_reference_t)(_Inout_ void* base_object, ebpf_file_id_t file_id, uint32_t line);
+    typedef void (*ebpf_base_acquire_reference_t)(_Inout_ void* base_object, ebpf_file_id_t file_id, uint32_t line);
 
     typedef struct _ebpf_core_object ebpf_core_object_t;
     typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);
