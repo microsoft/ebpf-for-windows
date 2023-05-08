@@ -432,10 +432,7 @@ static std::unique_ptr<fwp_injection_handle> _injection_handle;
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmFilterDeleteById0(_In_ HANDLE engine_handle, _In_ uint64_t id)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
+    // Skip fault injection for this API because return failure status requires to remove filter from the list.
     auto& engine = *reinterpret_cast<_fwp_engine*>(engine_handle);
 
     if (engine.remove_fwpm_filter(id)) {
@@ -482,12 +479,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmFilterAdd0(
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmTransactionCommit0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle)
 {
+    // Skip fault injection for this API because return failure status requires cleanup.
     UNREFERENCED_PARAMETER(engine_handle);
     return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpmTransactionAbort0(_In_ _Releases_lock_(_Curr_) HANDLE engine_handle)
 {
+    // Skip fault injection for this API because return failure status requires cleanup.
     UNREFERENCED_PARAMETER(engine_handle);
     return STATUS_SUCCESS;
 }
@@ -641,6 +640,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS FwpsInjectionHandleDestroy0(_In_ HAN
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
     FwpsFlowRemoveContext0(_In_ uint64_t flow_id, _In_ UINT16 layer_id, _In_ uint32_t callout_id)
 {
+    // Skip fault injection.
     auto& engine = *_fwp_engine::get()->get();
     engine.delete_flow_context(flow_id, layer_id, callout_id);
 
@@ -650,6 +650,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsFlowAssociateContext0(
     _In_ uint64_t flow_id, _In_ UINT16 layer_id, _In_ uint32_t callout_id, _In_ uint64_t flowContext)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     UNREFERENCED_PARAMETER(layer_id);
 
     auto& engine = *_fwp_engine::get()->get();
@@ -667,6 +671,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsAllocateNetBufferAndNetBufferLi
     _In_ size_t data_length,
     _Outptr_ NET_BUFFER_LIST** net_buffer_list)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     NTSTATUS status;
     NET_BUFFER_LIST* new_net_buffer_list = NULL;
 
@@ -757,6 +765,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS FwpsAllocateCloneNetBufferList0(
     _In_ unsigned long allocate_clone_flags,
     _Outptr_ NET_BUFFER_LIST** net_buffer_list)
 {
+    // Skip fault injection, as it is already handled in NdisAllocateCloneNetBufferList
     if (net_buffer_list_pool_handle == nullptr || net_buffer_pool_handle == nullptr) {
         return STATUS_INVALID_PARAMETER;
     }
@@ -796,6 +805,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS NTAPI FwpsAcquireWritableLayerDataP
     _Out_ void** writableLayerData,
     _Inout_opt_ FWPS_CLASSIFY_OUT0* classifyOut)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     NTSTATUS status = STATUS_SUCCESS;
     UNREFERENCED_PARAMETER(classifyHandle);
     UNREFERENCED_PARAMETER(filterId);
@@ -813,6 +826,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS NTAPI FwpsAcquireWritableLayerDataP
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS NTAPI
     FwpsAcquireClassifyHandle0(_In_ void* classifyContext, _In_ UINT32 flags, _Out_ UINT64* classifyHandle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_NO_MEMORY;
+    }
+
     UNREFERENCED_PARAMETER(classifyContext);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(classifyHandle);
@@ -839,6 +856,11 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void NTAPI
 _IRQL_requires_(PASSIVE_LEVEL) NTSTATUS NTAPI
     FwpsRedirectHandleCreate0(_In_ const GUID* providerGuid, _Reserved_ UINT32 flags, _Out_ HANDLE* redirectHandle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        *redirectHandle = 0;
+        return STATUS_NO_MEMORY;
+    }
+
     UNREFERENCED_PARAMETER(providerGuid);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(redirectHandle);
@@ -852,6 +874,7 @@ _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) FWPS_CONN
     FwpsQueryConnectionRedirectState0(
         _In_ HANDLE redirectRecords, _In_ HANDLE redirectHandle, _Outptr_opt_result_maybenull_ void** redirectContext)
 {
+    // Skip fault injection as the return is FWPS_CONNECTION_NOT_REDIRECTED.
     UNREFERENCED_PARAMETER(redirectRecords);
     UNREFERENCED_PARAMETER(redirectHandle);
 

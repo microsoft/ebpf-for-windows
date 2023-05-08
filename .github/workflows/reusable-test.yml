@@ -80,7 +80,6 @@ jobs:
       POST_COMMAND: ${{inputs.post_test}}
       EBPF_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
 
-    # Checking out the branch is needed to gather correct code coverage data.
     steps:
     - id: skip_check
       uses: fkirc/skip-duplicate-actions@12aca0a884f6137d619d6a8a09fcc3406ced5281 # v5.3.0
@@ -88,6 +87,7 @@ jobs:
         cancel_others: 'false'
         paths_ignore: '["**.md", "**/docs/**"]'
 
+    # Checking out the branch is needed to gather correct code coverage data.
     - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
       # Only check out source code if code coverage is being gathered.
       if: (inputs.code_coverage == true) && (steps.skip_check.outputs.should_skip != 'true')
@@ -363,7 +363,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@6b3083af2869dc3314a0257a42f4af696cc79ba3 # v2.3.1
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969 # v2.4.0
         with:
           disable-sudo: true
           egress-policy: block
