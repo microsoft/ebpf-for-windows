@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define EBPF_FILE_ID EBPF_FILE_ID_NATIVE
+
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
 #include "ebpf_native.h"
@@ -202,10 +204,10 @@ _ebpf_native_clean_up_programs(
     for (uint32_t i = 0; i < count_of_programs; i++) {
         if (programs[i].handle != ebpf_handle_invalid) {
             ebpf_program_t* program_object = NULL;
-            ebpf_assert_success(ebpf_object_reference_by_handle(
+            ebpf_assert_success(EBPF_OBJECT_REFERENCE_BY_HANDLE(
                 programs[i].handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program_object));
             ebpf_assert_success(ebpf_program_register_for_helper_changes(program_object, NULL, NULL));
-            ebpf_object_release_reference((ebpf_core_object_t*)program_object);
+            EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program_object);
             if (close_handles) {
                 ebpf_assert_success(ebpf_handle_close(programs[i].handle));
                 programs[i].handle = ebpf_handle_invalid;
@@ -377,6 +379,23 @@ ebpf_native_terminate()
     EBPF_RETURN_VOID();
 }
 
+void
+ebpf_object_update_reference_history(void* object, bool acquire, uint32_t file_id, uint32_t line);
+
+static void
+_ebpf_native_acquire_reference_internal(_Inout_ void* base_object, _In_ ebpf_file_id_t file_id, _In_ uint32_t line)
+{
+    ebpf_object_update_reference_history(base_object, true, file_id, line);
+    ebpf_native_acquire_reference(base_object);
+}
+
+static void
+_ebpf_native_release_reference_internal(_Inout_ void* base_object, _In_ ebpf_file_id_t file_id, _In_ uint32_t line)
+{
+    ebpf_object_update_reference_history(base_object, false, file_id, line);
+    ebpf_native_release_reference(base_object);
+}
+
 static NTSTATUS
 _ebpf_native_provider_attach_client_callback(
     HANDLE nmr_binding_handle,
@@ -438,8 +457,8 @@ _ebpf_native_provider_attach_client_callback(
 
     ebpf_lock_create(&client_context->lock);
     client_context->base.marker = _ebpf_native_marker;
-    client_context->base.acquire_reference = ebpf_native_acquire_reference;
-    client_context->base.release_reference = ebpf_native_release_reference;
+    client_context->base.acquire_reference = _ebpf_native_acquire_reference_internal;
+    client_context->base.release_reference = _ebpf_native_release_reference_internal;
     // Acquire "attach" reference. Released when detach is called for this module.
     client_context->base.reference_count = 1;
     client_context->client_module_id = *client_module_id;
@@ -702,7 +721,7 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
     ebpf_core_object_t* object;
     ebpf_handle_t inner_map_handle = ebpf_handle_invalid;
     uint16_t info_size = (uint16_t)sizeof(info);
-    ebpf_result_t result = ebpf_object_reference_by_handle(original_map_handle, EBPF_OBJECT_MAP, &object);
+    ebpf_result_t result = EBPF_OBJECT_REFERENCE_BY_HANDLE(original_map_handle, EBPF_OBJECT_MAP, &object);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -743,7 +762,7 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
     }
 
 Exit:
-    ebpf_object_release_reference(object);
+    EBPF_OBJECT_RELEASE_REFERENCE(object);
     EBPF_RETURN_RESULT(result);
 }
 
@@ -1163,7 +1182,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
         context->native_program = native_program;
 
         ebpf_program_t* program_object = NULL;
-        result = ebpf_object_reference_by_handle(
+        result = EBPF_OBJECT_REFERENCE_BY_HANDLE(
             native_program->handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program_object);
         if (result != EBPF_SUCCESS) {
             ebpf_free(context);
@@ -1172,7 +1191,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
         result = ebpf_program_register_for_helper_changes(program_object, _ebpf_native_helper_address_changed, context);
 
-        ebpf_object_release_reference((ebpf_core_object_t*)program_object);
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program_object);
 
         if (result != EBPF_SUCCESS) {
             ebpf_free(context);

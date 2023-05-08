@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define EBPF_FILE_ID EBPF_FILE_ID_PLATFORM_UNIT_TESTS
+
 #include "api_common.hpp"
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
@@ -322,7 +324,7 @@ TEST_CASE("pinning_test", "[platform]")
     REQUIRE(ebpf_pinning_table_find(pinning_table.get(), &foo, (ebpf_core_object_t**)&some_object) == EBPF_SUCCESS);
     REQUIRE(an_object.object.base.reference_count == 3);
     REQUIRE(some_object == &an_object);
-    ebpf_object_release_reference(&some_object->object);
+    EBPF_OBJECT_RELEASE_REFERENCE(&some_object->object);
     REQUIRE(ebpf_pinning_table_delete(pinning_table.get(), &foo) == EBPF_SUCCESS);
     REQUIRE(another_object.object.base.reference_count == 2);
 
@@ -330,8 +332,8 @@ TEST_CASE("pinning_test", "[platform]")
     REQUIRE(an_object.object.base.reference_count == 1);
     REQUIRE(another_object.object.base.reference_count == 1);
 
-    ebpf_object_release_reference(&an_object.object);
-    ebpf_object_release_reference(&another_object.object);
+    EBPF_OBJECT_RELEASE_REFERENCE(&an_object.object);
+    EBPF_OBJECT_RELEASE_REFERENCE(&another_object.object);
 }
 
 TEST_CASE("epoch_test_single_epoch", "[platform]")

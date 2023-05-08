@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define EBPF_FILE_ID EBPF_FILE_ID_PROGRAM
+
 #include "bpf_helpers.h"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
@@ -252,7 +254,7 @@ _ebpf_program_free(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
     ebpf_assert(ebpf_list_is_empty(&program->links));
 
     for (index = 0; index < program->count_of_maps; index++) {
-        ebpf_object_release_reference((ebpf_core_object_t*)program->maps[index]);
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program->maps[index]);
     }
 
     ebpf_epoch_work_item_t* cleanup_work_item = program->cleanup_work_item;
@@ -589,7 +591,7 @@ ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
         goto Done;
     }
 
-    ebpf_object_acquire_reference((ebpf_core_object_t*)map);
+    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)map);
     program_maps[map_count - 1] = map;
     program->maps = program_maps;
     program->count_of_maps = map_count;
@@ -631,7 +633,7 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     program_maps = NULL;
     program->count_of_maps = maps_count;
     for (index = 0; index < maps_count; index++) {
-        ebpf_object_acquire_reference((ebpf_core_object_t*)program->maps[index]);
+        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program->maps[index]);
     }
     ebpf_lock_unlock(&program->lock, state);
 
@@ -1147,7 +1149,7 @@ ebpf_program_invoke(
         }
 
         if (state.count != 0) {
-            ebpf_object_release_reference((ebpf_core_object_t*)current_program);
+            EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)current_program);
             current_program = NULL;
         }
 
@@ -1447,7 +1449,7 @@ ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 {
     EBPF_LOG_ENTRY();
     // Acquire "attach" reference on the link object.
-    ebpf_object_acquire_reference((ebpf_core_object_t*)link);
+    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)link);
 
     // Insert the link in the attach list.
     ebpf_lock_state_t state;
@@ -1470,7 +1472,7 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
     ebpf_lock_unlock(&program->lock, state);
 
     // Release the "attach" reference.
-    ebpf_object_release_reference((ebpf_core_object_t*)link);
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)link);
     EBPF_RETURN_VOID();
 }
 
@@ -1549,7 +1551,7 @@ ebpf_program_create_and_initialize(
     }
 
 Done:
-    ebpf_object_release_reference((ebpf_core_object_t*)program);
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
     return retval;
 }
 

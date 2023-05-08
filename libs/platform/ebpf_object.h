@@ -9,6 +9,87 @@ extern "C"
 {
 #endif
 
+    /**
+     * @brief Identifier for the file that is referencing the object. Each file that references an object is assigned
+     * a unique identifier. This identifier is used to track the reference count of the object. The file identifier is
+     * recorded in the _ebpf_object_reference_history table along with the line number of the reference. This allows
+     * for tracking down use-after-free bugs and leaks of objects.
+     */
+    typedef enum _ebpf_file_id
+    {
+        EBPF_FILE_ID_UNKNOWN,
+        EBPF_FILE_ID_CORE,
+        EBPF_FILE_ID_MAPS,
+        EBPF_FILE_ID_LINK,
+        EBPF_FILE_ID_PROGRAM,
+        EBPF_FILE_ID_NATIVE,
+        EBPF_FILE_ID_PINNING_TABLE,
+        EBPF_FILE_ID_HANDLE,
+        EBPF_FILE_ID_EXECUTION_CONTEXT_UNIT_TESTS,
+        EBPF_FILE_ID_PLATFORM_UNIT_TESTS,
+        EBPF_FILE_ID_PERFORMANCE_TESTS,
+        EBPF_FILE_ID_CORE_HELPER_FUZZER,
+    } ebpf_file_id_t;
+
+/**
+ * @brief Macro to acquire a reference on an object and record the file and line number of the reference.
+ */
+#define EBPF_OBJECT_ACQUIRE_REFERENCE(object) ebpf_object_acquire_reference(object, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to release a reference on an object and record the file and line number of the reference.
+ */
+#define EBPF_OBJECT_RELEASE_REFERENCE(object) ebpf_object_release_reference(object, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to locate the next object in the object list and acquire a reference on it and record the file and
+ * line number of the reference.
+ */
+#define EBPF_OBJECT_REFERENCE_NEXT_OBJECT(object, type, next_object) \
+    ebpf_object_reference_next_object(object, type, next_object, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to locate an object by its ID and acquire a reference on it and record the file and line number of
+ * the reference.
+ */
+#define EBPF_OBJECT_REFERENCE_BY_ID(object_id, type, object) \
+    ebpf_object_reference_by_id(object_id, type, object, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to locate an object by its handle and acquire a reference on it and record the file and line number
+ * of the reference.
+ */
+#define EBPF_OBJECT_REFERENCE_BY_HANDLE(object_handle, type, object) \
+    ebpf_object_reference_by_handle(object_handle, type, object, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to acquire a reference on an object ID and record the file and line number of the reference.
+ *
+ */
+#define EBPF_OBJECT_ACQUIRE_ID_REFERENCE(object_id, type) \
+    ebpf_object_acquire_id_reference(object_id, type, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to release a reference on an object ID and record the file and line number of the reference.
+ *
+ */
+#define EBPF_OBJECT_RELEASE_ID_REFERENCE(object_id, type) \
+    ebpf_object_release_id_reference(object_id, type, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to acquire a reference on an object via it's function pointers and record the file and line number
+ * of the reference.
+ */
+#define EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT(base_object) \
+    base_object->acquire_reference(base_object, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to release a reference on an object via it's function pointers and record the file and line number
+ * of the reference.
+ */
+#define EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(base_object) \
+    base_object->release_reference(base_object, EBPF_FILE_ID, __LINE__)
+
     typedef enum _ebpf_object_type
     {
         EBPF_OBJECT_UNKNOWN,
@@ -18,8 +99,10 @@ extern "C"
     } ebpf_object_type_t;
 
     typedef struct _ebpf_base_object ebpf_base_object_t;
-    typedef void (*ebpf_base_release_reference_t)(_Inout_ void* base_object);
-    typedef void (*ebpf_base_acquire_reference_t)(_Inout_ void* base_object);
+    typedef void (*ebpf_base_release_reference_t)(
+        _Inout_ void* base_object, _In_ ebpf_file_id_t file_id, _In_ uint32_t line);
+    typedef void (*ebpf_base_acquire_reference_t)(
+        _Inout_ void* base_object, _In_ ebpf_file_id_t file_id, _In_ uint32_t line);
 
     typedef struct _ebpf_core_object ebpf_core_object_t;
     typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);
@@ -98,7 +181,7 @@ extern "C"
      * @param[in,out] object Object on which to acquire a reference.
      */
     void
-    ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object);
+    ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object, ebpf_file_id_t file_id, uint32_t line);
 
     /**
      * @brief Release a reference on this object. If the reference count reaches
@@ -107,7 +190,7 @@ extern "C"
      * @param[in,out] object Object on which to release a reference.
      */
     void
-    ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object);
+    ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object, ebpf_file_id_t file_id, uint32_t line);
 
     /**
      * @brief Query the stored type of the object.
@@ -132,7 +215,9 @@ extern "C"
     ebpf_object_reference_next_object(
         _In_opt_ const ebpf_core_object_t* previous_object,
         ebpf_object_type_t type,
-        _Outptr_result_maybenull_ ebpf_core_object_t** next_object);
+        _Outptr_result_maybenull_ ebpf_core_object_t** next_object,
+        ebpf_file_id_t file_id,
+        uint32_t line);
 
     /**
      * @brief Find an ID in the ID table, verify the type matches,
@@ -145,7 +230,12 @@ extern "C"
      * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object);
+    ebpf_object_reference_by_id(
+        ebpf_id_t id,
+        ebpf_object_type_t object_type,
+        _Outptr_ ebpf_core_object_t** object,
+        ebpf_file_id_t file_id,
+        uint32_t line);
 
     /**
      * @brief Find the object of a given type with the next ID greater than a given ID.
@@ -170,7 +260,11 @@ extern "C"
      */
     ebpf_result_t
     ebpf_object_reference_by_handle(
-        ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ struct _ebpf_core_object** object);
+        ebpf_handle_t handle,
+        ebpf_object_type_t object_type,
+        _Outptr_ struct _ebpf_core_object** object,
+        ebpf_file_id_t file_id,
+        uint32_t line);
 
     /**
      * @brief Find an ID in the ID table, verify the type matches,
@@ -183,7 +277,8 @@ extern "C"
      * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_object_acquire_id_reference(ebpf_id_t start_id, ebpf_object_type_t object_type);
+    ebpf_object_acquire_id_reference(
+        ebpf_id_t start_id, ebpf_object_type_t object_type, ebpf_file_id_t file_id, uint32_t line);
 
     /**
      * @brief Find an ID in the ID table, verify the type matches,
@@ -196,7 +291,8 @@ extern "C"
      * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_object_release_id_reference(ebpf_id_t start_id, ebpf_object_type_t object_type);
+    ebpf_object_release_id_reference(
+        ebpf_id_t start_id, ebpf_object_type_t object_type, ebpf_file_id_t file_id, uint32_t line);
 
 #ifdef __cplusplus
 }
