@@ -83,7 +83,7 @@ static _Guarded_by_(_ebpf_object_tracking_list_lock) ebpf_id_entry_t _ebpf_id_ta
 static struct _ebpf_object_reference_entry
 {
     uintptr_t object : 64;
-    unsigned int file_id : 16;
+    ebpf_file_id_t file_id : 16;
     unsigned int line : 31;
     bool acquire : 1;
 } _ebpf_object_reference_history[1024];
