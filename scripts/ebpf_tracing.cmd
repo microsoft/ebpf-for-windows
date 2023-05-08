@@ -1,18 +1,6 @@
 @rem Copyright (c) Microsoft Corporation
 @rem SPDX-License-Identifier: MIT
 
-@rem Script behavior:
-@rem - When called with 'start', it will:
-@rem 	- Setup the logman session named as defined in 'trace_name', capping circular-log file size to 'max_file_size_mb', and generating every 'rundown_period'.
-@rem    - Configure the WFP/eBPF events to be monitored
-@rem    - Start the session within the given 'trace_path' directory.
-@rem - When called with 'stop', it will:
-@rem 	- Stop then delete the logman session, and finally deletes the 'trace_path' directory.
-@rem - When called with 'periodic', it will:
-@rem 	- Run 'netsh wfp show state' into the 'trace_path' directory, and if the file is under 'max_file_size_mb', it will move it into the '.\committed' subfolder, adding a timestamp to its name.
-@rem 	- Iterate over all the '.etl' files in the 'trace_path' directory, sorted in descending order by "date modified", skip the first 'num_etl_files_to_keep' files and move the others into the '.\committed' subfolder.
-@rem 	- Iterate over all the '.etl' and '.xml' files in the '.\committed' subfolder and delete files older than 'files_max_age_days' days.
-
 @echo off
 setlocal enabledelayedexpansion
 
@@ -21,7 +9,7 @@ set "command="
 set "trace_path="
 set "trace_name=ebpf_diag"
 set "rundown_period=0:35:00"
-set "max_file_size_mb=20"
+set "max_file_size_mb=40"
 set "max_committed_folder_size_mb=200"
 set "max_committed_wfp_state_files=1"
 
@@ -86,12 +74,11 @@ if "%command%"=="periodic" (
     pushd "!trace_path!"
     netsh wfp show state
     popd
-    set "wfp_state_file_cab=!trace_path!\wfpstate.cab"
-	makecab "!trace_path!\wfpstate.xml" "!wfp_state_file_cab!"
-	if exist "!wfp_state_file_cab!" (
+    set "wfp_state_file_xml=!trace_path!\wfpstate.xml"
+	if exist "!wfp_state_file_xml!" (
 
 		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory.
-		for %%F in ("!wfp_state_file_cab!") do (
+		for %%F in ("!wfp_state_file_xml!") do (
 			if %%~zF LEQ %max_file_size_bytes% (
 
 				@rem Get the current date and time in a format suitable for file names.
@@ -101,13 +88,13 @@ if "%command%"=="periodic" (
 					set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
 					set "timestamp=!YYYY!!MM!!DD!_!HH!!Min!!Sec!"
 
-					@rem Move the .CAB file to the 'traceCommittedPath' directory.
-					move /y "!wfp_state_file_cab!" "!traceCommittedPath!\wfpstate_!timestamp!.cab" >nul
+					@rem Move the .XML file to the 'traceCommittedPath' directory.
+					move /y "!wfp_state_file_xml!" "!traceCommittedPath!\wfpstate_!timestamp!.xml" >nul
 				)
 			) else (
 
-				@rem If the .CAB file size is greater than 'max_file_size_mb', then delete it.
-				del "!wfp_state_file_cab!"
+				@rem If the .XML file size is greater than 'max_file_size_mb', then delete it.
+				del "!wfp_state_file_xml!"
 			)
 		)
 	)
@@ -119,7 +106,7 @@ if "%command%"=="periodic" (
 	)
 
 	@rem Iterate over all the WFP-state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_wfp_state_files`.
-	for /f "skip=%max_committed_wfp_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.cab"') do ( del "!traceCommittedPath!\%%f" )
+	for /f "skip=%max_committed_wfp_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.xml"') do ( del "!traceCommittedPath!\%%f" )
 
 	@rem Iterate over all the .ETL files in the 'traceCommittedPath' directory, and delete the older files overflowing `max_committed_folder_size_mb`.
 	set size=0
@@ -166,8 +153,7 @@ endlocal
 exit /b 0
 
 :usage
-echo Usage: ebpf_tracing.cmd command /trace_path path [/trace_name name] [/rundown_period period] [/max_file_size_mb size] [/max_committed_folder_size_mb count] [/max_committed_wfp_state_files count]
-echo:
+echo Usage: ebpf_tracing.cmd command /trace_path path [/trace_name name] [/rundown_period period] [/max_file_size_mb size] [/max_committed_folder_size_mb size] [/max_committed_wfp_state_files count]
 echo Valid parameters:
 echo:
 echo   <command>                            - (mandatory) Valid values are: [start, stop, periodic]
@@ -175,13 +161,24 @@ echo   /trace_path path                     - (mandatory) Path into which the tr
 echo   /trace_name name                     - Name of the logman trace (Default: "ebpf_diag")
 echo   /rundown_period period               - Period, expressed as (H:mm:ss), for saving and generating a new ETL log, and for generating a WFP state snapshot (Default: 0:35:00).
 echo   /max_file_size_mb size               - Maximum size set for an ETL log (Default: 20).
-echo   /max_committed_folder_size_mb count  - Maximum overall size for (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 200)
-echo   /max_committed_wfp_state_files count - Number of (most recent) WFP-state .CAB files to keep in the main 'trace_path\committed' (Default: 1).
+echo   /max_committed_folder_size_mb size   - Maximum overall size for (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 200)
+echo   /max_committed_wfp_state_files count - Number of (most recent) WFP-state .XML files to keep in the main 'trace_path\committed' (Default: 1).
 echo:
-echo Examples (overriding defaults):
+echo Behaviour:
+echo - When called with the 'start' command, it will:
+echo 	- Setup the logman session named as defined in 'trace_name', capping circular-log file size to 'max_file_size_mb', and generating every 'rundown_period'.
+echo    - Configure the WFP/eBPF events to be monitored
+echo    - Start the session within the given 'trace_path' directory.
+echo - When called with the 'stop' command, it will:
+echo 	- Stop then delete the logman session, and delete the 'trace_path' directory.
+echo - When called with the 'periodic' command, it will:
+echo 	- Run 'netsh wfp show state' into the 'trace_path' directory, and if the file is under 'max_file_size_mb', it will move it into the 'trace_path\committed' subfolder, adding a timestamp to its name.
+echo 	- Iterate over all the '.xml' files in the 'trace_path\committed' subfolder and delete the older files overflowing 'max_committed_wfp_state_files'.
+echo 	- Iterate over all the '.etl' files in the 'trace_path' directory, sorted in descending order by 'date modified', skip the first files summing up to 'max_committed_folder_size_mb' and move the others into the 'trace_path\committed' subfolder.
 echo:
-echo        ebpf_tracing.cmd start /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF" /rundown_period 0:35:00 /max_file_size_mb 20
-echo        ebpf_tracing.cmd stop /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF"
-echo        ebpf_tracing.cmd periodic /trace_path "%SystemRoot%\Logs\eBPF" /max_file_size_mb 20 /max_committed_folder_size_mb 30 /max_committed_wfp_state_files 1
+echo Examples:
+echo    ebpf_tracing.cmd start /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF" /rundown_period 0:35:00 /max_file_size_mb 20
+echo    ebpf_tracing.cmd stop /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF"
+echo    ebpf_tracing.cmd periodic /trace_path "%SystemRoot%\Logs\eBPF" /max_file_size_mb 20 /max_committed_folder_size_mb 30 /max_committed_wfp_state_files 1
 endlocal
 exit /b 1
