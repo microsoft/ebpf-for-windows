@@ -721,7 +721,7 @@ main(int argc, char* argv[])
         return returnCode;
     }
 
-    // Setup Windows Sockets.
+    // Set up Windows Sockets.
     WSAData data;
     int error = WSAStartup(2, &data);
     if (error != 0) {
@@ -736,7 +736,7 @@ main(int argc, char* argv[])
     // Run the test command.
     session.run();
 
-    // Cleanup.
+    // Clean up.
     bpf_object__close(_bpf_object);
     WSACleanup();
 }
