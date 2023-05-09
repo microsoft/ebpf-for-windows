@@ -729,7 +729,7 @@ main(int argc, char* argv[])
         return 1;
     }
 
-    // Initialize globals and load and attach the eBPF programs, once.
+    // Initialize globals and load & attach the eBPF programs, once.
     _initialize_test_globals();
     _load_and_attach_ebpf_programs(&_bpf_object);
 
