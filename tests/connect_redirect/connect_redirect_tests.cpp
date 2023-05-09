@@ -495,7 +495,8 @@ connect_redirect_test_wrapper(
     void connection_authorization_tests_##destination##(                                                         \
         ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)              \
     {                                                                                                            \
-        _initialize_test_globals() _globals.family = family;                                                     \
+        _initialize_test_globals();                                                                              \
+        _globals.family = family;                                                                                \
         _globals.protocol = protocol;                                                                            \
         const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                        \
         const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                              \
@@ -578,7 +579,8 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv
     void connection_redirection_tests_##original_destination##_##new_destination##(                      \
         ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)      \
     {                                                                                                    \
-        _initialize_test_globals() _globals.family = family;                                             \
+        _initialize_test_globals();                                                                      \
+        _globals.family = family;                                                                        \
         _globals.protocol = protocol;                                                                    \
         const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                \
         const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                      \
