@@ -532,7 +532,7 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
 
     // Note: This is performed after initializing the program as it inserts the program into the global list.
     // From this point on, the program can be found by other threads.
-    retval = ebpf_object_initialize(
+    retval = EBPF_OBJECT_INITIALIZE(
         &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
     if (retval != EBPF_SUCCESS) {
         goto Done;

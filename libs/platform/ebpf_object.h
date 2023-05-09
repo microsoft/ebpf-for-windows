@@ -90,6 +90,19 @@ extern "C"
 #define EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(base_object) \
     base_object->release_reference(base_object, EBPF_FILE_ID, __LINE__)
 
+/**
+ * @brief Macro to initialize an object and record the file and line number of the reference.
+ *EBPF_OBJECT_INITIALIZE
+ */
+#define EBPF_OBJECT_INITIALIZE(object, object_type, free_function, get_program_type_function) \
+    ebpf_object_initialize(                                                                   \
+        (ebpf_core_object_t*)(object),                                                        \
+        (object_type),                                                                        \
+        (free_function),                                                                      \
+        (get_program_type_function),                                                          \
+        EBPF_FILE_ID,                                                                         \
+        __LINE__)
+
     typedef enum _ebpf_object_type
     {
         EBPF_OBJECT_UNKNOWN,
@@ -171,7 +184,9 @@ extern "C"
         _Inout_ ebpf_core_object_t* object,
         ebpf_object_type_t object_type,
         ebpf_free_object_t free_function,
-        ebpf_object_get_program_type_t get_program_type_function);
+        ebpf_object_get_program_type_t get_program_type_function,
+        ebpf_file_id_t file_id,
+        uint32_t line);
 
     /**
      * @brief Acquire a reference to this object.

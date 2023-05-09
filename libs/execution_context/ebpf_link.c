@@ -138,7 +138,7 @@ ebpf_link_create(
 
     // Note: This must be the last thing done in this function as it inserts the object into the global list.
     // After this point, the object can be accessed by other threads.
-    ebpf_result_t result = ebpf_object_initialize(&local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL);
+    ebpf_result_t result = EBPF_OBJECT_INITIALIZE(&local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL);
     if (result != EBPF_SUCCESS) {
         retval = EBPF_NO_MEMORY;
         goto Exit;
@@ -324,9 +324,9 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
         ebpf_assert(program != NULL);
     }
 
-    // if (link->state == EBPF_LINK_STATE_INITIAL || link->state == EBPF_LINK_STATE_DETACHED) {
-    //     ebpf_assert(link->program == NULL);
-    // }
+    if (link->state == EBPF_LINK_STATE_INITIAL || link->state == EBPF_LINK_STATE_DETACHED) {
+        ebpf_assert(link->program == NULL);
+    }
 
     ebpf_lock_unlock(&link->attach_lock, state);
 

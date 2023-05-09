@@ -2291,7 +2291,7 @@ ebpf_map_create(
 
     const ebpf_map_metadata_table_t* table = &ebpf_map_metadata_tables[local_map->ebpf_map_definition.type];
     ebpf_object_get_program_type_t get_program_type = (table->get_object_from_entry) ? _get_map_program_type : NULL;
-    result = ebpf_object_initialize(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, get_program_type);
+    result = EBPF_OBJECT_INITIALIZE(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, get_program_type);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }

@@ -304,10 +304,10 @@ TEST_CASE("pinning_test", "[platform]")
     ebpf_utf8_string_t bar = EBPF_UTF8_STRING_FROM_CONST_STRING("bar");
 
     REQUIRE(
-        ebpf_object_initialize(
+        EBPF_OBJECT_INITIALIZE(
             &an_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
     REQUIRE(
-        ebpf_object_initialize(
+        EBPF_OBJECT_INITIALIZE(
             &another_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
 
     ebpf_pinning_table_ptr pinning_table;
