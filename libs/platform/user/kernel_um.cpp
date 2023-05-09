@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_fault_injection.h"
 #include "ebpf_platform.h"
 #include "kernel_um.h"
 
@@ -187,8 +188,8 @@ typedef unsigned long PFN_NUMBER;
 
 #define PAGE_ALIGN(Va) ((void*)((ULONG_PTR)(Va) & ~(PAGE_SIZE - 1)))
 #define BYTE_OFFSET(Va) ((unsigned long)((LONG_PTR)(Va) & (PAGE_SIZE - 1)))
-#define ADDRESS_AND_SIZE_TO_SPAN_PAGES(Va, size)                                                        \
-    (((((size)-1) >> PAGE_SHIFT) +                                                                      \
+#define ADDRESS_AND_SIZE_TO_SPAN_PAGES(Va, size)                                                                \
+    (((((size)-1) >> PAGE_SHIFT) +                                                                              \
       (((((unsigned long)(size - 1) & (PAGE_SIZE - 1)) + (PtrToUlong(Va) & (PAGE_SIZE - 1)))) >> PAGE_SHIFT)) + \
      1L)
 
@@ -373,6 +374,7 @@ IoAllocateMdl(
     _In_ BOOLEAN charge_quota,
     _Inout_opt_ IRP* irp)
 {
+    // Skip Fault Injection as it is already added in ebpf_allocate.
     PMDL mdl;
 
     UNREFERENCED_PARAMETER(secondary_buffer);
@@ -405,6 +407,7 @@ io_work_item_wrapper(_Inout_ PTP_CALLBACK_INSTANCE instance, _Inout_opt_ void* c
 PIO_WORKITEM
 IoAllocateWorkItem(_In_ DEVICE_OBJECT* device_object)
 {
+    // Skip Fault Injection as it is already added in ebpf_allocate.
     auto work_item = reinterpret_cast<IO_WORKITEM*>(ebpf_allocate(sizeof(IO_WORKITEM)));
     if (!work_item) {
         return nullptr;
@@ -464,6 +467,7 @@ KeInitializeSpinLock(_Out_ PKSPIN_LOCK spin_lock)
 _Requires_lock_not_held_(*spin_lock) _Acquires_lock_(*spin_lock) _IRQL_requires_max_(DISPATCH_LEVEL) KIRQL
     KeAcquireSpinLockRaiseToDpc(_Inout_ PKSPIN_LOCK spin_lock)
 {
+    // Skip Fault Injection.
     auto lock = reinterpret_cast<SRWLOCK*>(spin_lock);
     AcquireSRWLockExclusive(lock);
     return 0;
@@ -489,6 +493,10 @@ MmGetSystemAddressForMdlSafe(
     _In_ unsigned long page_priority // MM_PAGE_PRIORITY logically OR'd with MdlMapping*
 )
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return nullptr;
+    }
+
     UNREFERENCED_PARAMETER(page_priority);
     return ((void*)((PUCHAR)(mdl)->start_va + (mdl)->byte_offset));
 }
@@ -499,6 +507,7 @@ RtlULongAdd(
     _In_ unsigned long addend,
     _Out_ _Deref_out_range_(==, augend + addend) unsigned long* result)
 {
+    // Skip Fault Injection.
     *result = augend + addend;
     return STATUS_SUCCESS;
 }
@@ -518,6 +527,7 @@ IoGetFileObjectGenericMapping() { return &_mapping; }
 NTSTATUS
 RtlCreateAcl(_Out_ PACL Acl, unsigned long AclLength, unsigned long AclRevision)
 {
+    // Skip Fault Injection.
     UNREFERENCED_PARAMETER(Acl);
     UNREFERENCED_PARAMETER(AclRevision);
 
@@ -547,6 +557,10 @@ RtlLengthSid(_In_ PSID Sid)
 NTSTATUS
 RtlAddAccessAllowedAce(_Inout_ PACL Acl, _In_ unsigned long AceRevision, _In_ ACCESS_MASK AccessMask, _In_ PSID Sid)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
     UNREFERENCED_PARAMETER(Acl);
     UNREFERENCED_PARAMETER(AceRevision);
     UNREFERENCED_PARAMETER(AccessMask);
@@ -563,6 +577,7 @@ RtlSetDaclSecurityDescriptor(
     _In_opt_ PACL Dacl,
     _In_ BOOLEAN DaclDefaulted)
 {
+    // Skip Fault Injection.
     UNREFERENCED_PARAMETER(SecurityDescriptor);
     UNREFERENCED_PARAMETER(DaclPresent);
     UNREFERENCED_PARAMETER(Dacl);
@@ -575,6 +590,7 @@ NTSTATUS
 NTAPI
 RtlCreateSecurityDescriptor(_Out_ PSECURITY_DESCRIPTOR SecurityDescriptor, _In_ unsigned long Revision)
 {
+    // Skip Fault Injection.
     UNREFERENCED_PARAMETER(Revision);
     memset(SecurityDescriptor, 0, sizeof(SECURITY_DESCRIPTOR));
 
@@ -594,6 +610,16 @@ SeAccessCheckFromState(
     _Out_ PACCESS_MASK GrantedAccess,
     _Out_ NTSTATUS* AccessStatus)
 {
+    if (Privileges != NULL) {
+        *Privileges = NULL;
+    }
+    *GrantedAccess = DesiredAccess;
+
+    if (ebpf_fault_injection_inject_fault()) {
+        *AccessStatus = STATUS_ACCESS_DENIED;
+        return false;
+    }
+
     UNREFERENCED_PARAMETER(SecurityDescriptor);
     UNREFERENCED_PARAMETER(PrimaryTokenInformation);
     UNREFERENCED_PARAMETER(ClientTokenInformation);
@@ -601,10 +627,6 @@ SeAccessCheckFromState(
     UNREFERENCED_PARAMETER(GenericMapping);
     UNREFERENCED_PARAMETER(AccessMode);
 
-    if (Privileges != NULL) {
-        *Privileges = NULL;
-    }
-    *GrantedAccess = DesiredAccess;
     *AccessStatus = STATUS_SUCCESS;
 
     return true;
