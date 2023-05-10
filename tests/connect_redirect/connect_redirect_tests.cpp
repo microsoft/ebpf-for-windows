@@ -201,6 +201,7 @@ _initialize_test_globals()
     _globals.attach_v6_program = false;
 
     // Read v4 addresses.
+    printf("Reading v4 addresses.\n");
     if (_remote_ip_v4 != "") {
         get_address_from_string(
             _remote_ip_v4, _globals.addresses[socket_family_t::IPv4].remote_address, false, &family);
@@ -236,6 +237,7 @@ _initialize_test_globals()
         0);
 
     // Read v6 addresses.
+    printf("Reading v6 addresses.\n");
     if (_remote_ip_v6 != "") {
         get_address_from_string(
             _remote_ip_v6, _globals.addresses[socket_family_t::IPv6].remote_address, false, &family);
@@ -258,12 +260,15 @@ _initialize_test_globals()
     }
     IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[socket_family_t::IPv6].loopback_address);
 
+    // Load the user token.
+    printf("Loading user token.\n");
     _globals.user_type = _get_user_type(_user_type_string);
     _globals.user_token = _log_on_user(_user_name, _password);
     _globals.destination_port = _destination_port;
     _globals.proxy_port = _proxy_port;
 
     // Load and attach the programs.
+    printf("Loading and attaching programs.\n");
     native_module_helper_t helper("cgroup_sock_addr2");
     _globals.bpf_object.reset(bpf_object__open(helper.get_file_name().c_str()));
     REQUIRE(_globals.bpf_object.get() != nullptr);
@@ -289,6 +294,7 @@ _initialize_test_globals()
         REQUIRE(result == 0);
     }
 
+    printf("Done initializing globals.\n");
     _globals_initialized = true;
 }
 
@@ -332,6 +338,7 @@ _update_policy_map(
     bool dual_stack,
     bool add)
 {
+    printf("Updating policy map.\n");
     bpf_map* policy_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "policy_map");
     REQUIRE(policy_map != nullptr);
 
@@ -464,6 +471,7 @@ authorize_test_wrapper(bool dual_stack, _In_ sockaddr_storage& destination)
 {
     client_socket_t* sender_socket = nullptr;
 
+    printf("Running authorize_test_wrapper()\n");
     get_client_socket(dual_stack, &sender_socket);
     authorize_test(sender_socket, destination, dual_stack);
     delete sender_socket;
@@ -473,6 +481,8 @@ void
 connect_redirect_test_wrapper(_In_ sockaddr_storage& destination, _In_ sockaddr_storage& proxy, bool dual_stack)
 {
     client_socket_t* sender_socket = nullptr;
+
+    printf("Running connect_redirect_test_wrapper()\n");
     get_client_socket(dual_stack, &sender_socket);
     connect_redirect_test(
         sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
@@ -703,6 +713,7 @@ main(int argc, char* argv[])
     session.cli(cli);
 
     // Parse the command line.
+    printf("Parsing command line...\n");
     int returnCode = session.applyCommandLine(argc, argv);
     if (returnCode != 0) {
         return returnCode;
@@ -710,6 +721,7 @@ main(int argc, char* argv[])
 
     // Set up Windows Sockets.
     WSAData data;
+    printf("Initializing Winsock...\n");
     int error = WSAStartup(2, &data);
     if (error != 0) {
         printf("Unable to load Winsock: %d\n", error);
@@ -717,9 +729,11 @@ main(int argc, char* argv[])
     }
 
     // Initialize globals
+    printf("Initializing globals...\n");
     _initialize_test_globals();
 
     // Run the test command.
+    printf("Running tests...\n");
     session.run();
 
     // Clean up.
