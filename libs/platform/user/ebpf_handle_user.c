@@ -94,7 +94,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_h
     ebpf_handle_t handle,
     _In_opt_ ebpf_compare_object_t compare_function,
     _In_opt_ const void* context,
-    _Outptr_ struct _ebpf_base_object** object)
+    _Outptr_ struct _ebpf_base_object** object,
+    uint32_t file_id,
+    uint32_t line)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
@@ -107,7 +109,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_h
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     if (_ebpf_handle_table[handle] != NULL &&
         (compare_function == NULL || compare_function(_ebpf_handle_table[handle], context))) {
-        EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT(_ebpf_handle_table[handle]);
+        _ebpf_handle_table[handle]->acquire_reference(_ebpf_handle_table[handle], file_id, line);
         *object = _ebpf_handle_table[handle];
         return_value = EBPF_SUCCESS;
     } else {

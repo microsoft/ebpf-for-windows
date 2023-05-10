@@ -511,13 +511,8 @@ ebpf_object_reference_by_handle(
     uint32_t file_id,
     uint32_t line)
 {
-    ebpf_result_t return_value =
-        ebpf_reference_base_object_by_handle(handle, _ebpf_object_compare, &object_type, (ebpf_base_object_t**)object);
-
-    if (return_value == EBPF_SUCCESS) {
-        _update_reference_history(*object, EBPF_OBJECT_ACQUIRE, file_id, line);
-    }
-    return return_value;
+    return ebpf_reference_base_object_by_handle(
+        handle, _ebpf_object_compare, &object_type, (ebpf_base_object_t**)object, file_id, line);
 }
 
 _Must_inspect_result_ char*

@@ -174,6 +174,8 @@ extern "C"
      * @param[in] object_type The type of the object.
      * @param[in] free_function The function used to free the object.
      * @param[in] get_program_type_function The function used to get a program type, or NULL.  Each program
+     * @param[in] file_id The file ID of the caller.
+     * @param[in] line The line number of the caller.
      * has a program type, and hence so do maps that can contain programs, whether directly (like
      * BPF_MAP_TYPE_PROG_ARRAY) or indirectly (like BPF_MAP_TYPE_ARRAY_OF_MAPS containing a BPF_MAP_TYPE_PROG_ARRAY).
      * @retval EBPF_SUCCESS Initialization succeeded.
@@ -192,6 +194,8 @@ extern "C"
      * @brief Acquire a reference to this object.
      *
      * @param[in,out] object Object on which to acquire a reference.
+     * @param[in] file_id The file ID of the caller.
+     * @param[in] line The line number of the caller.
      */
     void
     ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object, ebpf_file_id_t file_id, uint32_t line);
@@ -201,6 +205,8 @@ extern "C"
      *  zero, the free_function is invoked on the object.
      *
      * @param[in,out] object Object on which to release a reference.
+     * @param[in] file_id The file ID of the caller.
+     * @param[in] line The line number of the caller.
      */
     void
     ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object, ebpf_file_id_t file_id, uint32_t line);
@@ -222,6 +228,8 @@ extern "C"
      *  to find first object.
      * @param[in] type Type of object to find.
      * @param[out] next_object Pointer to memory containing the next object or
+     * @param[in] file_id The file ID of the caller.
+     * @param[in] line The line number of the caller.
      *  NULL if there are no more objects of that type.
      */
     void
@@ -239,6 +247,8 @@ extern "C"
      * @param[in] id ID to find in table.
      * @param[in] object_type Object type to match.
      * @param[out] object Pointer to memory that contains object success.
+     * @param[in] file_id The file ID of the caller.
+     * @param[in] line The line number of the caller.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
      */
@@ -268,6 +278,8 @@ extern "C"
      * @param[in] handle Handle to find in table.
      * @param[in] object_type Object type to match.
      * @param[out] object Pointer to memory that contains object success.
+     * @param[in] file_id The file ID of the caller.
+     * @param[in] line The line number of the caller.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
      */
@@ -286,6 +298,8 @@ extern "C"
      *
      * @param[in] id ID to find in table.
      * @param[in] object_type Object type to match.
+     * @param[in] file_id The file ID of the caller.
+     * @param[in] line The line number of the caller.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
      */
@@ -300,6 +314,8 @@ extern "C"
      *
      * @param[in] id ID to find in table.
      * @param[in] object_type Object type to match.
+     * @param[in] file_id The file ID of the caller.
+     * @param[in] line The line number of the caller.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
      */
