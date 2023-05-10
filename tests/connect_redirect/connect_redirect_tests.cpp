@@ -54,6 +54,18 @@ typedef struct _test_addresses
     struct sockaddr_storage vip_address;
 } test_addresses_t;
 
+typedef struct _close_bpf_object
+{
+    void
+    operator()(_In_opt_ _Post_invalid_ bpf_object* object)
+    {
+        if (object != nullptr) {
+            bpf_object__close(object);
+        }
+    }
+} close_bpf_object_t;
+typedef std::unique_ptr<bpf_object, close_bpf_object_t> _bpf_object_uptr;
+
 typedef struct _test_globals
 {
     user_type_t user_type;
@@ -65,11 +77,11 @@ typedef struct _test_globals
     test_addresses_t addresses[socket_family_t::Max];
     bool attach_v4_program;
     bool attach_v6_program;
+    _bpf_object_uptr bpf_object;
 } test_globals_t;
 
 static test_globals_t _globals;
 static volatile bool _globals_initialized = false;
-static struct bpf_object* _bpf_object = nullptr;
 
 static void
 _impersonate_user()
@@ -176,12 +188,86 @@ _get_user_type(std::string& user_type_string)
 }
 
 static void
+_validate_audit_map_entry(uint64_t authentication_id)
+{
+    bpf_map* audit_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "audit_map");
+    REQUIRE(audit_map != nullptr);
+
+    fd_t map_fd = bpf_map__fd(audit_map);
+
+    uint64_t process_id = get_current_pid_tgid();
+    sock_addr_audit_entry_t entry = {0};
+    int result = bpf_map_lookup_elem(map_fd, &process_id, &entry);
+    REQUIRE(result == 0);
+
+    REQUIRE(process_id == entry.process_id);
+    REQUIRE(entry.logon_id == authentication_id);
+    SECURITY_LOGON_SESSION_DATA* data = NULL;
+    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    if (_globals.user_type == user_type_t::ADMINISTRATOR) {
+        REQUIRE(entry.is_admin == 1);
+    } else {
+        REQUIRE(entry.is_admin == 0);
+    }
+
+    REQUIRE(entry.local_port != 0);
+
+    LsaFreeReturnBuffer(data);
+}
+
+static void
+_update_policy_map(
+    _In_ sockaddr_storage& destination,
+    _In_ sockaddr_storage& proxy,
+    uint16_t destination_port,
+    uint16_t proxy_port,
+    uint32_t protocol,
+    bool dual_stack,
+    bool add)
+{
+    bpf_map* policy_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "policy_map");
+    REQUIRE(policy_map != nullptr);
+
+    fd_t map_fd = bpf_map__fd(policy_map);
+
+    // Insert / delete redirect policy entry in the map.
+    destination_entry_t key = {0};
+    destination_entry_t value = {0};
+
+    if (_globals.family == AF_INET && dual_stack) {
+        struct sockaddr_in6* v6_destination = (struct sockaddr_in6*)&destination;
+        struct sockaddr_in6* v6_proxy = (struct sockaddr_in6*)&proxy;
+
+        INET_SET_ADDRESS(
+            AF_INET6, (PUCHAR)&key.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_destination->sin6_addr));
+        INET_SET_ADDRESS(
+            AF_INET6, (PUCHAR)&value.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_proxy->sin6_addr));
+    } else {
+        INET_SET_ADDRESS(_globals.family, (PUCHAR)&key.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&destination));
+        INET_SET_ADDRESS(_globals.family, (PUCHAR)&value.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&proxy));
+    }
+
+    key.destination_port = htons(destination_port);
+    value.destination_port = htons(proxy_port);
+    key.protocol = protocol;
+
+    if (add) {
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
+    } else {
+        REQUIRE(bpf_map_delete_elem(map_fd, &key) == 0);
+    }
+}
+
+static void
 _initialize_test_globals()
 {
     if (_globals_initialized) {
         return;
     }
 
+    int result;
     ADDRESS_FAMILY family;
     uint32_t v4_addresses = 0;
     uint32_t v6_addresses = 0;
@@ -250,62 +336,26 @@ _initialize_test_globals()
     _globals.user_token = _log_on_user(_user_name, _password);
     _globals.destination_port = _destination_port;
     _globals.proxy_port = _proxy_port;
-    _globals_initialized = true;
-}
 
-static void
-_validate_audit_map_entry(_In_ const struct bpf_object* object, uint64_t authentication_id)
-{
-    bpf_map* audit_map = bpf_object__find_map_by_name(object, "audit_map");
-    REQUIRE(audit_map != nullptr);
-
-    fd_t map_fd = bpf_map__fd(audit_map);
-
-    uint64_t process_id = get_current_pid_tgid();
-    sock_addr_audit_entry_t entry = {0};
-    int result = bpf_map_lookup_elem(map_fd, &process_id, &entry);
-    REQUIRE(result == 0);
-
-    REQUIRE(process_id == entry.process_id);
-    REQUIRE(entry.logon_id == authentication_id);
-    SECURITY_LOGON_SESSION_DATA* data = NULL;
-    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
-    REQUIRE(result == ERROR_SUCCESS);
-
-    if (_globals.user_type == user_type_t::ADMINISTRATOR) {
-        REQUIRE(entry.is_admin == 1);
-    } else {
-        REQUIRE(entry.is_admin == 0);
-    }
-
-    REQUIRE(entry.local_port != 0);
-
-    LsaFreeReturnBuffer(data);
-}
-
-static void
-_load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
-{
-    int result;
+    // Load and attach the programs.
     native_module_helper_t helper("cgroup_sock_addr2");
-
-    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
-    REQUIRE(object != nullptr);
-    REQUIRE(bpf_object__load(object) == 0);
-
+    _globals.bpf_object.reset(bpf_object__open(helper.get_file_name().c_str()));
+    REQUIRE(_globals.bpf_object.get() != nullptr);
+    REQUIRE(bpf_object__load(_globals.bpf_object.get()) == 0);
     if (_globals.attach_v4_program) {
         printf("Attaching v4 program\n");
-        bpf_program* connect_program_v4 = bpf_object__find_program_by_name(object, "connect_redirect4");
+        bpf_program* connect_program_v4 =
+            bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_redirect4");
         REQUIRE(connect_program_v4 != nullptr);
 
         result = bpf_prog_attach(
             bpf_program__fd(const_cast<const bpf_program*>(connect_program_v4)), 0, BPF_CGROUP_INET4_CONNECT, 0);
         REQUIRE(result == 0);
     }
-
     if (_globals.attach_v6_program) {
         printf("Attaching v6 program\n");
-        bpf_program* connect_program_v6 = bpf_object__find_program_by_name(object, "connect_redirect6");
+        bpf_program* connect_program_v6 =
+            bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_redirect6");
         REQUIRE(connect_program_v6 != nullptr);
 
         result = bpf_prog_attach(
@@ -313,56 +363,11 @@ _load_and_attach_ebpf_programs(_Outptr_ struct bpf_object** return_object)
         REQUIRE(result == 0);
     }
 
-    *return_object = object;
-}
-
-static void
-_update_policy_map(
-    _In_ const struct bpf_object* object,
-    _In_ sockaddr_storage& destination,
-    _In_ sockaddr_storage& proxy,
-    uint16_t destination_port,
-    uint16_t proxy_port,
-    uint32_t protocol,
-    bool dual_stack,
-    bool add)
-{
-    bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
-    REQUIRE(policy_map != nullptr);
-
-    fd_t map_fd = bpf_map__fd(policy_map);
-
-    // Insert / delete redirect policy entry in the map.
-    destination_entry_t key = {0};
-    destination_entry_t value = {0};
-
-    if (_globals.family == AF_INET && dual_stack) {
-        struct sockaddr_in6* v6_destination = (struct sockaddr_in6*)&destination;
-        struct sockaddr_in6* v6_proxy = (struct sockaddr_in6*)&proxy;
-
-        INET_SET_ADDRESS(
-            AF_INET6, (PUCHAR)&key.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_destination->sin6_addr));
-        INET_SET_ADDRESS(
-            AF_INET6, (PUCHAR)&value.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_proxy->sin6_addr));
-    } else {
-        INET_SET_ADDRESS(_globals.family, (PUCHAR)&key.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&destination));
-        INET_SET_ADDRESS(_globals.family, (PUCHAR)&value.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&proxy));
-    }
-
-    key.destination_port = htons(destination_port);
-    value.destination_port = htons(proxy_port);
-    key.protocol = protocol;
-
-    if (add) {
-        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
-    } else {
-        REQUIRE(bpf_map_delete_elem(map_fd, &key) == 0);
-    }
+    _globals_initialized = true;
 }
 
 void
 connect_redirect_test(
-    _In_ const struct bpf_object* object,
     _In_ client_socket_t* sender_socket,
     _In_ sockaddr_storage& destination,
     _In_ sockaddr_storage& proxy,
@@ -376,8 +381,7 @@ connect_redirect_test(
     uint64_t authentication_id;
 
     // Update policy in the map to redirect the connection to the proxy.
-    _update_policy_map(
-        object, destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
+    _update_policy_map(destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
 
     {
         impersonation_helper_t helper(_globals.user_type);
@@ -399,20 +403,15 @@ connect_redirect_test(
         REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
     }
 
-    _validate_audit_map_entry(object, authentication_id);
+    _validate_audit_map_entry(authentication_id);
 
     // Remove entry from policy map.
     add_policy = false;
-    _update_policy_map(
-        object, destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
+    _update_policy_map(destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
 }
 
 void
-authorize_test(
-    _In_ const struct bpf_object* object,
-    _In_ client_socket_t* sender_socket,
-    _Inout_ sockaddr_storage& destination,
-    bool dual_stack)
+authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& destination, bool dual_stack)
 {
     uint64_t authentication_id;
     // Default behavior of the eBPF program is to block the connection.
@@ -432,17 +431,11 @@ authorize_test(
         sender_socket->complete_async_receive(1000, true);
     }
 
-    _validate_audit_map_entry(object, authentication_id);
+    _validate_audit_map_entry(authentication_id);
 
     // Now update the policy map to allow the connection and test again.
     connect_redirect_test(
-        object,
-        sender_socket,
-        destination,
-        destination,
-        _globals.destination_port,
-        _globals.destination_port,
-        dual_stack);
+        sender_socket, destination, destination, _globals.destination_port, _globals.destination_port, dual_stack);
 }
 
 void
@@ -468,26 +461,22 @@ get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket)
 }
 
 void
-authorize_test_wrapper(_In_ const struct bpf_object* object, bool dual_stack, _In_ sockaddr_storage& destination)
+authorize_test_wrapper(bool dual_stack, _In_ sockaddr_storage& destination)
 {
     client_socket_t* sender_socket = nullptr;
 
     get_client_socket(dual_stack, &sender_socket);
-    authorize_test(object, sender_socket, destination, dual_stack);
+    authorize_test(sender_socket, destination, dual_stack);
     delete sender_socket;
 }
 
 void
-connect_redirect_test_wrapper(
-    _In_ const struct bpf_object* object,
-    _In_ sockaddr_storage& destination,
-    _In_ sockaddr_storage& proxy,
-    bool dual_stack)
+connect_redirect_test_wrapper(_In_ sockaddr_storage& destination, _In_ sockaddr_storage& proxy, bool dual_stack)
 {
     client_socket_t* sender_socket = nullptr;
     get_client_socket(dual_stack, &sender_socket);
     connect_redirect_test(
-        object, sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
+        sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
     delete sender_socket;
 }
 
@@ -501,7 +490,7 @@ connect_redirect_test_wrapper(
         const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                              \
         const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";                             \
         printf("CONNECT: " #destination " | %s | %s | %s\n", protocol_string, family_string, dual_stack_string); \
-        authorize_test_wrapper(_bpf_object, dual_stack, addresses.##destination##);                              \
+        authorize_test_wrapper(dual_stack, addresses.##destination##);                                           \
     }
 
 // Declare connection_authorization_* test functions.
@@ -574,22 +563,21 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv
 // Dual stack socket, IPv6, UDP
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, IPPROTO_UDP)
 
-#define DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(original_destination, new_destination)              \
-    void connection_redirection_tests_##original_destination##_##new_destination##(                      \
-        ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)      \
-    {                                                                                                    \
-        _globals.family = family;                                                                        \
-        _globals.protocol = protocol;                                                                    \
-        const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                \
-        const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                      \
-        const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";                     \
-        printf(                                                                                          \
-            "REDIRECT: " #original_destination " -> " #new_destination " | %s | %s | %s\n",              \
-            protocol_string,                                                                             \
-            family_string,                                                                               \
-            dual_stack_string);                                                                          \
-        connect_redirect_test_wrapper(                                                                   \
-            _bpf_object, addresses.##original_destination##, addresses.##new_destination##, dual_stack); \
+#define DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(original_destination, new_destination)                           \
+    void connection_redirection_tests_##original_destination##_##new_destination##(                                   \
+        ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)                   \
+    {                                                                                                                 \
+        _globals.family = family;                                                                                     \
+        _globals.protocol = protocol;                                                                                 \
+        const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                             \
+        const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                                   \
+        const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";                                  \
+        printf(                                                                                                       \
+            "REDIRECT: " #original_destination " -> " #new_destination " | %s | %s | %s\n",                           \
+            protocol_string,                                                                                          \
+            family_string,                                                                                            \
+            dual_stack_string);                                                                                       \
+        connect_redirect_test_wrapper(addresses.##original_destination##, addresses.##new_destination##, dual_stack); \
     }
 
 // Declare connection_redirection_* test functions.
@@ -697,9 +685,8 @@ DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6,
 int
 main(int argc, char* argv[])
 {
-    // Initialize globals and load & attach the eBPF programs, once.
+    // Initialize globals
     _initialize_test_globals();
-    _load_and_attach_ebpf_programs(&_bpf_object);
 
     Catch::Session session;
 
@@ -737,8 +724,5 @@ main(int argc, char* argv[])
     session.run();
 
     // Clean up.
-    if (_bpf_object != nullptr) {
-        bpf_object__close(_bpf_object);
-    }
     WSACleanup();
 }
