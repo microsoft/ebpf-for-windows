@@ -110,6 +110,7 @@ Function CreateScheduledTask(taskName, taskFile)
 	g_Trace.TraceEvent oTraceEvent
 
 	' Create the scheduled task
+	Dim taskFilePath : taskFilePath = FsObject.BuildPath(g_installPath, taskFile)
 	Dim oResults: Set oResults = ExecuteAndTraceWithResults("schtasks.exe /create /f /tn " + taskName + " /xml """ + taskFilePath + """", g_trace)
 	if oResults.ExitCode <> 0 Then
 		CreateScheduledTask = False
