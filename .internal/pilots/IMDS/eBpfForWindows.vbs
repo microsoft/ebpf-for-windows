@@ -290,6 +290,7 @@ Function CopyFilesToPath(sourcePath, destPath)
 	End If
 End Function
 
+' This function installs the given kernel driver.
 Function InstallEbpfDriver(driverName, driverPath)
 	On Error Resume Next
 	Const THIS_FUNCTION_NAME = "InstallEbpfDriver"
@@ -332,7 +333,6 @@ Function InstallEbpfDriver(driverName, driverPath)
 		LogEvent EBPF_LOG_WARNING, THIS_FUNCTION_NAME, "Driver '" + driverName + ".sys' already installed.", 0
 	End If            
 End Function
-
 
 ' This function stops then uninstalls the given kernel driver.
 Function UninstallEbpfDriver(driverName)
