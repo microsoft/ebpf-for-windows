@@ -43,6 +43,12 @@ permissions:
   contents: read
   security-events: write # Required by codeql task
 
+applications:
+  # Configure SegmentHeap from application manifest file
+  - name: ebpf-for-windows
+    path: ${{github.workspace}}
+    manifest: ${{github.workspace}}\.github\workflows\ebpf-application.manifest
+
 jobs:
   build:
     timeout-minutes: 90
