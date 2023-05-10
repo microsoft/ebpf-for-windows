@@ -397,7 +397,7 @@ class bpf_code_generator
     bool
     is_section_valid(const ELFIO::section* section);
 
-    int pe_section_name_counter;
+    int pe_section_name_counter{};
     std::map<unsafe_string, section_t> sections;
     section_t* current_section;
     ELFIO::elfio reader;
