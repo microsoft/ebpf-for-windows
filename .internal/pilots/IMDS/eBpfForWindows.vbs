@@ -284,34 +284,55 @@ Function CopyFilesToPath(sourcePath, destPath)
 
 	' Copy the files to the destination folder
 	FsObject.CopyFolder sourcePath, destPath, True
-	FsObject.CopyFolder sourcePath, destPath, True
 	If Err.number <> 0 Then
 		LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "Failed to copy files from " + sourcePath + " to " + destPath, Err.number
 		CopyFilesToPath = False
 	End If
 End Function
 
-' This function starts the given kernel driver (for delayed start).
-Function StartEbpfDriver(driverName)
+Function InstallEbpfDriver(driverName, driverPath)
 	On Error Resume Next
-	Const THIS_FUNCTION_NAME = "StartEbpfDriver"
-	Dim objService, serviceQuery, errReturnCode
+	Const THIS_FUNCTION_NAME = "InstallEbpfDriver"
+	Dim objService, driverFullPath, errReturnCode
+	
+	LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Installing driver '" + driverName + ".sys'...", 0
 
-	LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Starting driver '" + driverName + ".sys'...", 0
-
-	serviceQuery = "Select * from Win32_BaseService where Name='" + driverName + "'"
-	Set colServices = WmiService.ExecQuery(serviceQuery)		
-	For Each objService in colServices
-		errReturnCode = objService.StartService()
-		If errReturnCode = 0 Then
-			InstallEbpfDriver = EBPF_DRIVER_START_SUCCEEDED
-			LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Successfully started '" + driverName + ".sys'", errReturnCode
+	driverFullPath = FsObject.BuildPath(driverPath, driverName + ".sys")
+		
+	oServiceAlreadyInstalled = CheckDriverInstalled(driverName)
+	If oServiceAlreadyInstalled = False Then
+		
+		' Create the driver service
+		Dim exec : Set exec = WshShell.Exec("sc.exe create " + driverName + " type=kernel start=auto binpath=""" + driverFullPath + """")				
+		While exec.Status = WshRunning
+			WScript.Sleep 1
+		Wend
+		If exec.Status = WshFailed Then
+			InstallEbpfDriver = EBPF_DRIVER_INSTALL_FAILED
+			LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "FAILED installing '" + driverName + ".sys'", exec.Status
 		Else
-			InstallEbpfDriver = EBPF_DRIVER_START_FAILED
-			LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "FAILED starting '" + driverName + ".sys'", errReturnCode
-		End If
-	Next			
+			InstallEbpfDriver = EBPF_DRIVER_INSTALL_SUCCEEDED
+			LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Successfully installed '" + driverName + ".sys'", exec.Status
+			
+			serviceQuery = "Select * from Win32_BaseService where Name='" + driverName + "'"
+			Set colServices = WmiService.ExecQuery(serviceQuery)		
+			For Each objService in colServices
+				errReturnCode = objService.StartService()
+				If errReturnCode = 0 Then
+					InstallEbpfDriver = EBPF_DRIVER_START_SUCCEEDED
+					LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Successfully started '" + driverName + ".sys'", errReturnCode
+				Else
+					InstallEbpfDriver = EBPF_DRIVER_START_FAILED
+					LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "FAILED starting '" + driverName + ".sys'", errReturnCode
+				End If
+			Next			
+		End If		
+	Else
+		InstallEbpfDriver = EBPF_DRIVER_ALREADY_INSTALLED
+		LogEvent EBPF_LOG_WARNING, THIS_FUNCTION_NAME, "Driver '" + driverName + ".sys' already installed.", 0
+	End If            
 End Function
+
 
 ' This function stops then uninstalls the given kernel driver.
 Function UninstallEbpfDriver(driverName)

@@ -72,7 +72,7 @@ Function MoveFilesToPath(sourcePath, destPath)
 		.setAttribute "destPath", destPath
 		If Not FsObject.FolderExists(destPath) Then		
 			call FsObject.CreateFolder(destPath)
-			If TraceError(g_Trace, "Failed to create folder " + destPath) = 0 Then
+			If TraceError(g_Trace, "Failed to create folder " + destPath) <> 0 Then
 				MoveFilesToPath = False
 			End If
 		End If
@@ -82,12 +82,12 @@ Function MoveFilesToPath(sourcePath, destPath)
 		' Move all files and subfolders from the source folder to the destination folder
 		Set oTraceEvent = g_Trace.CreateEvent("INFO")
 		With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
-			call FsObject.MoveFiles(sourcePath & "\*.*", destPath & "\", True)		
+			call FsObject.MoveFile(sourcePath & "\*.*", destPath & "\")		
 			If TraceError(g_Trace, "Failed to move files from " + sourcePath + " to " + destPath) <> 0 Then
 				MoveFilesToPath = False
 			End If
 
-			call FsObject.MoveFolder(sourcePath & "\*", destPath & "\", True)
+			call FsObject.MoveFolder(sourcePath & "\*", destPath & "\")
 			If TraceError(g_Trace, "Failed to move subfolders from " + sourcePath + " to " + destPath) <> 0 Then
 				MoveFilesToPath = False
 			End If
@@ -213,7 +213,7 @@ Function InstallEbpfDriver(driverName)
 	End With
 	g_Trace.TraceEvent oTraceEvent
 
-	if ExecuteAndTraceWithResults("sc.exe create " + driverName + " type=kernel start=auto binpath=""" + driverFullPath + """", g_trace).ExitCode <> 0
+	if ExecuteAndTraceWithResults("sc.exe create " + driverName + " type=kernel start=auto binpath=""" + driverFullPath + """", g_trace).ExitCode <> 0 Then
 		InstallEbpfDriver = False
 	End If
 End Function
