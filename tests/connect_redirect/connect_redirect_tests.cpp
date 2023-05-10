@@ -201,7 +201,7 @@ _initialize_test_globals()
     _globals.attach_v6_program = false;
 
     // Read v4 addresses.
-    printf("Reading v4 addresses.\n");
+    printf("Reading remote v4 addresses.\n");
     if (_remote_ip_v4 != "") {
         get_address_from_string(
             _remote_ip_v4, _globals.addresses[socket_family_t::IPv4].remote_address, false, &family);
@@ -210,6 +210,7 @@ _initialize_test_globals()
         REQUIRE(family == AF_INET);
         v4_addresses++;
     }
+    printf("Reading local v4 addresses.\n");
     if (_local_ip_v4 != "") {
         get_address_from_string(_local_ip_v4, _globals.addresses[socket_family_t::IPv4].local_address, false, &family);
         REQUIRE(family == AF_INET);
@@ -217,6 +218,7 @@ _initialize_test_globals()
         REQUIRE(family == AF_INET);
         v4_addresses++;
     }
+    printf("Reading vip v4 addresses.\n");
     if (_vip_v4 != "") {
         get_address_from_string(_vip_v4, _globals.addresses[socket_family_t::IPv4].vip_address, false, &family);
         REQUIRE(family == AF_INET);
@@ -229,6 +231,7 @@ _initialize_test_globals()
         _globals.attach_v4_program = true;
     }
 
+    printf("Setting v4 loopback/v6 map addresses.\n");
     IN4ADDR_SETLOOPBACK((PSOCKADDR_IN)&_globals.addresses[socket_family_t::IPv4].loopback_address);
     IN6ADDR_SETV4MAPPED(
         (PSOCKADDR_IN6)&_globals.addresses[socket_family_t::Dual].loopback_address,
@@ -237,18 +240,20 @@ _initialize_test_globals()
         0);
 
     // Read v6 addresses.
-    printf("Reading v6 addresses.\n");
+    printf("Reading remote v6 addresses.\n");
     if (_remote_ip_v6 != "") {
         get_address_from_string(
             _remote_ip_v6, _globals.addresses[socket_family_t::IPv6].remote_address, false, &family);
         REQUIRE(family == AF_INET6);
         v6_addresses++;
     }
+    printf("Reading local v6 addresses.\n");
     if (_local_ip_v6 != "") {
         get_address_from_string(_local_ip_v6, _globals.addresses[socket_family_t::IPv6].local_address, false, &family);
         REQUIRE(family == AF_INET6);
         v6_addresses++;
     }
+    printf("Reading vip v6 addresses.\n");
     if (_vip_v6 != "") {
         get_address_from_string(_vip_v6, _globals.addresses[socket_family_t::IPv6].vip_address, false, &family);
         REQUIRE(family == AF_INET6);
@@ -258,6 +263,7 @@ _initialize_test_globals()
     if (v6_addresses != 0) {
         _globals.attach_v6_program = true;
     }
+    printf("Setting v6 loopback address.\n");
     IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[socket_family_t::IPv6].loopback_address);
 
     // Load the user token.
@@ -728,14 +734,15 @@ main(int argc, char* argv[])
         return 1;
     }
 
-    // Initialize globals
+    // Initialize globals.
     printf("Initializing globals...\n");
     _initialize_test_globals();
 
-    // Run the test command.
+    // Run the test commands.
     printf("Running tests...\n");
     session.run();
 
     // Clean up.
+    printf("Cleaning up Winsock.\n");
     WSACleanup();
 }
