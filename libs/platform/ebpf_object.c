@@ -129,7 +129,7 @@ _ebpf_object_tracking_list_insert(_Inout_ ebpf_core_object_t* object)
 Done:
     ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
 
-    return EBPF_SUCCESS;
+    return return_value;
 }
 
 _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static void _ebpf_object_tracking_list_remove(
