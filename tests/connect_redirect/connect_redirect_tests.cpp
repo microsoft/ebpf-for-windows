@@ -495,7 +495,6 @@ connect_redirect_test_wrapper(
     void connection_authorization_tests_##destination##(                                                         \
         ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)              \
     {                                                                                                            \
-        _initialize_test_globals();                                                                              \
         _globals.family = family;                                                                                \
         _globals.protocol = protocol;                                                                            \
         const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                        \
@@ -579,7 +578,6 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv
     void connection_redirection_tests_##original_destination##_##new_destination##(                      \
         ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)      \
     {                                                                                                    \
-        _initialize_test_globals();                                                                      \
         _globals.family = family;                                                                        \
         _globals.protocol = protocol;                                                                    \
         const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                \
@@ -699,6 +697,10 @@ DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6,
 int
 main(int argc, char* argv[])
 {
+    // Initialize globals and load & attach the eBPF programs, once.
+    _initialize_test_globals();
+    _load_and_attach_ebpf_programs(&_bpf_object);
+
     Catch::Session session;
 
     // Use Catch's composite command line parser.
@@ -731,14 +733,12 @@ main(int argc, char* argv[])
         return 1;
     }
 
-    // Initialize globals and load & attach the eBPF programs, once.
-    _initialize_test_globals();
-    _load_and_attach_ebpf_programs(&_bpf_object);
-
     // Run the test command.
     session.run();
 
     // Clean up.
-    bpf_object__close(_bpf_object);
+    if (_bpf_object != nullptr) {
+        bpf_object__close(_bpf_object);
+    }
     WSACleanup();
 }
