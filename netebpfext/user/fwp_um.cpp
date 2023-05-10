@@ -874,13 +874,16 @@ _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) FWPS_CONN
     FwpsQueryConnectionRedirectState0(
         _In_ HANDLE redirectRecords, _In_ HANDLE redirectHandle, _Outptr_opt_result_maybenull_ void** redirectContext)
 {
-    // Skip fault injection as the return is FWPS_CONNECTION_NOT_REDIRECTED.
-    UNREFERENCED_PARAMETER(redirectRecords);
-    UNREFERENCED_PARAMETER(redirectHandle);
-
     if (redirectContext) {
         *redirectContext = NULL;
     }
+
+    if (ebpf_fault_injection_inject_fault()) {
+        return FWPS_CONNECTION_REDIRECTED_BY_SELF;
+    }
+
+    UNREFERENCED_PARAMETER(redirectRecords);
+    UNREFERENCED_PARAMETER(redirectHandle);
 
     return FWPS_CONNECTION_NOT_REDIRECTED;
 }

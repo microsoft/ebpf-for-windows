@@ -295,18 +295,20 @@ static int32_t
 _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
 {
     NTSTATUS status;
-    BOOLEAN access_allowed;
+    BOOLEAN access_allowed = FALSE;
     net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
-    int32_t is_admin;
+    int32_t is_admin = 0;
 
     sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     status = _perform_access_check(
         _net_ebpf_ext_security_descriptor_admin, sock_addr_ctx->access_information, &access_allowed);
 
+    if (!NT_SUCCESS(status)) {
+        return is_admin;
+    }
+
     if (access_allowed) {
         is_admin = 1;
-    } else {
-        is_admin = 0;
     }
 
     return is_admin;
