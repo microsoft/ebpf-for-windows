@@ -64,20 +64,19 @@ typedef struct _close_bpf_object
         }
     }
 } close_bpf_object_t;
-typedef std::unique_ptr<bpf_object, close_bpf_object_t> _bpf_object_uptr;
 
 typedef struct _test_globals
 {
-    user_type_t user_type;
-    HANDLE user_token;
-    ADDRESS_FAMILY family;
-    IPPROTO protocol;
-    uint16_t destination_port;
-    uint16_t proxy_port;
-    test_addresses_t addresses[socket_family_t::Max];
-    bool attach_v4_program;
-    bool attach_v6_program;
-    _bpf_object_uptr bpf_object;
+    user_type_t user_type = STANDARD_USER;
+    HANDLE user_token = nullptr;
+    ADDRESS_FAMILY family = 0;
+    IPPROTO protocol = IPPROTO_IPV4;
+    uint16_t destination_port = 0;
+    uint16_t proxy_port = 0;
+    test_addresses_t addresses[socket_family_t::Max] = {0};
+    bool attach_v4_program = false;
+    bool attach_v6_program = false;
+    std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object;
 } test_globals_t;
 
 static test_globals_t _globals;
@@ -188,79 +187,6 @@ _get_user_type(std::string& user_type_string)
 }
 
 static void
-_validate_audit_map_entry(uint64_t authentication_id)
-{
-    bpf_map* audit_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "audit_map");
-    REQUIRE(audit_map != nullptr);
-
-    fd_t map_fd = bpf_map__fd(audit_map);
-
-    uint64_t process_id = get_current_pid_tgid();
-    sock_addr_audit_entry_t entry = {0};
-    int result = bpf_map_lookup_elem(map_fd, &process_id, &entry);
-    REQUIRE(result == 0);
-
-    REQUIRE(process_id == entry.process_id);
-    REQUIRE(entry.logon_id == authentication_id);
-    SECURITY_LOGON_SESSION_DATA* data = NULL;
-    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
-    REQUIRE(result == ERROR_SUCCESS);
-
-    if (_globals.user_type == user_type_t::ADMINISTRATOR) {
-        REQUIRE(entry.is_admin == 1);
-    } else {
-        REQUIRE(entry.is_admin == 0);
-    }
-
-    REQUIRE(entry.local_port != 0);
-
-    LsaFreeReturnBuffer(data);
-}
-
-static void
-_update_policy_map(
-    _In_ sockaddr_storage& destination,
-    _In_ sockaddr_storage& proxy,
-    uint16_t destination_port,
-    uint16_t proxy_port,
-    uint32_t protocol,
-    bool dual_stack,
-    bool add)
-{
-    bpf_map* policy_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "policy_map");
-    REQUIRE(policy_map != nullptr);
-
-    fd_t map_fd = bpf_map__fd(policy_map);
-
-    // Insert / delete redirect policy entry in the map.
-    destination_entry_t key = {0};
-    destination_entry_t value = {0};
-
-    if (_globals.family == AF_INET && dual_stack) {
-        struct sockaddr_in6* v6_destination = (struct sockaddr_in6*)&destination;
-        struct sockaddr_in6* v6_proxy = (struct sockaddr_in6*)&proxy;
-
-        INET_SET_ADDRESS(
-            AF_INET6, (PUCHAR)&key.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_destination->sin6_addr));
-        INET_SET_ADDRESS(
-            AF_INET6, (PUCHAR)&value.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_proxy->sin6_addr));
-    } else {
-        INET_SET_ADDRESS(_globals.family, (PUCHAR)&key.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&destination));
-        INET_SET_ADDRESS(_globals.family, (PUCHAR)&value.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&proxy));
-    }
-
-    key.destination_port = htons(destination_port);
-    value.destination_port = htons(proxy_port);
-    key.protocol = protocol;
-
-    if (add) {
-        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
-    } else {
-        REQUIRE(bpf_map_delete_elem(map_fd, &key) == 0);
-    }
-}
-
-static void
 _initialize_test_globals()
 {
     if (_globals_initialized) {
@@ -364,6 +290,79 @@ _initialize_test_globals()
     }
 
     _globals_initialized = true;
+}
+
+static void
+_validate_audit_map_entry(uint64_t authentication_id)
+{
+    bpf_map* audit_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "audit_map");
+    REQUIRE(audit_map != nullptr);
+
+    fd_t map_fd = bpf_map__fd(audit_map);
+
+    uint64_t process_id = get_current_pid_tgid();
+    sock_addr_audit_entry_t entry = {0};
+    int result = bpf_map_lookup_elem(map_fd, &process_id, &entry);
+    REQUIRE(result == 0);
+
+    REQUIRE(process_id == entry.process_id);
+    REQUIRE(entry.logon_id == authentication_id);
+    SECURITY_LOGON_SESSION_DATA* data = NULL;
+    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    if (_globals.user_type == user_type_t::ADMINISTRATOR) {
+        REQUIRE(entry.is_admin == 1);
+    } else {
+        REQUIRE(entry.is_admin == 0);
+    }
+
+    REQUIRE(entry.local_port != 0);
+
+    LsaFreeReturnBuffer(data);
+}
+
+static void
+_update_policy_map(
+    _In_ sockaddr_storage& destination,
+    _In_ sockaddr_storage& proxy,
+    uint16_t destination_port,
+    uint16_t proxy_port,
+    uint32_t protocol,
+    bool dual_stack,
+    bool add)
+{
+    bpf_map* policy_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "policy_map");
+    REQUIRE(policy_map != nullptr);
+
+    fd_t map_fd = bpf_map__fd(policy_map);
+
+    // Insert / delete redirect policy entry in the map.
+    destination_entry_t key = {0};
+    destination_entry_t value = {0};
+
+    if (_globals.family == AF_INET && dual_stack) {
+        struct sockaddr_in6* v6_destination = (struct sockaddr_in6*)&destination;
+        struct sockaddr_in6* v6_proxy = (struct sockaddr_in6*)&proxy;
+
+        INET_SET_ADDRESS(
+            AF_INET6, (PUCHAR)&key.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_destination->sin6_addr));
+        INET_SET_ADDRESS(
+            AF_INET6, (PUCHAR)&value.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_proxy->sin6_addr));
+    } else {
+        INET_SET_ADDRESS(_globals.family, (PUCHAR)&key.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&destination));
+        INET_SET_ADDRESS(_globals.family, (PUCHAR)&value.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&proxy));
+    }
+
+    key.destination_port = htons(destination_port);
+    value.destination_port = htons(proxy_port);
+    key.protocol = protocol;
+
+    if (add) {
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
+    } else {
+        REQUIRE(bpf_map_delete_elem(map_fd, &key) == 0);
+    }
 }
 
 void
