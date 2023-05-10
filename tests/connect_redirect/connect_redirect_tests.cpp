@@ -684,9 +684,6 @@ DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6,
 int
 main(int argc, char* argv[])
 {
-    // Initialize globals
-    _initialize_test_globals();
-
     Catch::Session session;
 
     // Use Catch's composite command line parser.
@@ -718,6 +715,9 @@ main(int argc, char* argv[])
         printf("Unable to load Winsock: %d\n", error);
         return 1;
     }
+
+    // Initialize globals
+    _initialize_test_globals();
 
     // Run the test command.
     session.run();
