@@ -61,6 +61,12 @@ permissions:
   contents: read  # Required by actions/checkout to fetch code.
   issues: write # Required to create issues.
 
+applications:
+  # Configure SegmentHeap from application manifest file
+  - name: ebpf-for-windows
+    path: ${{github.workspace}}
+    manifest: ${{github.workspace}}\.github\workflows\ebpf-application.manifest
+
 jobs:
   run_test:
     timeout-minutes: 60
