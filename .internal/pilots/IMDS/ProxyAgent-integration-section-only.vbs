@@ -110,8 +110,8 @@ Function CreateScheduledTask(taskName, taskFile)
 	g_Trace.TraceEvent oTraceEvent
 
 	' Create the scheduled task
-	Dim taskFilePath : taskFilePath = FsObject.BuildPath(g_installPath, taskFile)
-	if ExecuteAndTraceWithResults("schtasks.exe /create /f /tn " + taskName + " /xml """ + taskFilePath + """", g_trace).ExitCode <> 0 Then
+	Dim oResults: Set oResults = ExecuteAndTraceWithResults("schtasks.exe /create /f /tn " + taskName + " /xml """ + taskFilePath + """", g_trace)
+	if oResults.ExitCode <> 0 Then
 		CreateScheduledTask = False
 	End If
 End Function
@@ -213,7 +213,8 @@ Function InstallEbpfDriver(driverName)
 	End With
 	g_Trace.TraceEvent oTraceEvent
 
-	if ExecuteAndTraceWithResults("sc.exe create " + driverName + " type=kernel start=auto binpath=""" + driverFullPath + """", g_trace).ExitCode <> 0 Then
+	Dim oResults: Set oResults = ExecuteAndTraceWithResults("sc.exe create " + driverName + " type=kernel start=auto binpath=""" + driverFullPath + """", g_trace)
+	if oResults.ExitCode <> 0 Then
 		InstallEbpfDriver = False
 	End If
 End Function
