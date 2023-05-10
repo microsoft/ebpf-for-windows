@@ -322,10 +322,6 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
         ebpf_assert(program != NULL);
     }
 
-    if (link->state == EBPF_LINK_STATE_INITIAL || link->state == EBPF_LINK_STATE_DETACHED) {
-        ebpf_assert(link->program == NULL);
-    }
-
     ebpf_lock_unlock(&link->attach_lock, state);
 
     if (!link_is_detaching) {
