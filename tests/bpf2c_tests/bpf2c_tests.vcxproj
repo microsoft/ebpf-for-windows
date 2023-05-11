@@ -116,6 +116,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\external\ubpf\external\bpf_conformance\src\bpf_assembler.cc" />
     <ClCompile Include="..\..\tools\bpf2c\bpf_code_generator.cpp" />
     <CopyFileToFolders Include="bpf_test.cpp">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
@@ -123,15 +124,14 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <FileType>CppCode</FileType>
     </CopyFileToFolders>
-    <ClCompile Include="bpf_assembler.cpp" />
     <ClCompile Include="elf_bpf.cpp" />
     <ClCompile Include="raw_bpf.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\external\ubpf\external\bpf_conformance\src\bpf_assembler.h" />
     <ClInclude Include="..\..\tools\bpf2c\bpf_code_generator.h" />
     <ClInclude Include="..\..\tools\bpf2c\btf.h" />
     <ClInclude Include="..\..\tools\bpf2c\btf_parser.h" />
-    <ClInclude Include="bpf_assembler.h" />
     <CopyFileToFolders Include="test_helpers.h">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>

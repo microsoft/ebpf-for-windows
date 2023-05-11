@@ -74,6 +74,70 @@ typedef struct _ebpf_id_entry
 // case this becomes a hash table.
 static _Guarded_by_(_ebpf_object_tracking_list_lock) ebpf_id_entry_t _ebpf_id_table[1024];
 
+/**
+ * @brief An enum of operations that can be performed on an object reference.
+ */
+typedef enum _ebpf_object_reference_operationEBPF_OBJECT_INITIALIZE
+{
+    EBPF_OBJECT_CREATE,
+    EBPF_OBJECT_ACQUIRE,
+    EBPF_OBJECT_RELEASE,
+    EBPF_OBJECT_DESTROY,
+} ebpf_object_reference_operation_t;
+
+/**
+ * @brief A history of object references. This is used to track
+ * down the source of a reference leak and use after free bugs.
+ * This is a circular buffer of the last 1024 references with the
+ * next index to write to stored in _ebpf_object_reference_history_index.
+ */
+static _Guarded_by_(_ebpf_object_reference_history_lock) struct _ebpf_object_reference_entry
+{
+    uintptr_t object : 64;
+    ebpf_file_id_t file_id : 16;
+    unsigned int line : 32;
+    ebpf_object_reference_operation_t operation : 16;
+} _ebpf_object_reference_history[1024];
+
+/**
+ * @brief The index of the next entry to write to in the reference history.
+ * This is updated atomically using interlocked operations and should be used
+ * modulo count of _ebpf_object_reference_history.
+ */
+static _Guarded_by_(_ebpf_object_reference_history_lock) size_t _ebpf_object_reference_history_index = 0;
+
+static ebpf_lock_t _ebpf_object_reference_history_lock = {0};
+
+static inline void
+_update_reference_history(void* object, ebpf_object_reference_operation_t operation, uint32_t file_id, uint32_t line)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_reference_history_lock);
+
+    size_t index = _ebpf_object_reference_history_index++;
+    index %= EBPF_COUNT_OF(_ebpf_object_reference_history);
+
+    _ebpf_object_reference_history[index].object = (uintptr_t)object;
+    _ebpf_object_reference_history[index].operation = operation;
+    _ebpf_object_reference_history[index].file_id = file_id;
+    _ebpf_object_reference_history[index].line = line;
+
+    ebpf_lock_unlock(&_ebpf_object_reference_history_lock, state);
+}
+
+/**
+ * @brief Add an entry to the reference history.
+ *
+ * @param[in] object Object being referenced.
+ * @param[in] acquire True if this is an acquire reference, false if it is a release reference.
+ * @param[in] file_id Id of the file where the reference was acquired or released.
+ * @param[in] line Line number in the file where the reference was acquired or released.
+ */
+void
+ebpf_object_update_reference_history(void* object, bool acquire, uint32_t file_id, uint32_t line)
+{
+    _update_reference_history(object, acquire ? EBPF_OBJECT_ACQUIRE : EBPF_OBJECT_RELEASE, file_id, line);
+}
+
 // Get the ID last stored at a given index.
 static inline ebpf_id_t
 _get_id_from_index(uint32_t index)
@@ -102,7 +166,7 @@ _get_index_from_id(ebpf_id_t id, _Out_ uint32_t* index)
 }
 
 static ebpf_result_t
-_ebpf_object_tracking_list_insert(_Inout_ ebpf_core_object_t* object)
+_ebpf_object_tracking_list_insert(_Inout_ ebpf_core_object_t* object, ebpf_file_id_t file_id, uint32_t line)
 {
     int new_index;
     ebpf_result_t return_value;
@@ -122,6 +186,7 @@ _ebpf_object_tracking_list_insert(_Inout_ ebpf_core_object_t* object)
     _ebpf_id_table[new_index].counter++;
     _ebpf_id_table[new_index].reference_count = 1;
     _ebpf_id_table[new_index].object = object;
+    _update_reference_history(&_ebpf_id_table[new_index], EBPF_OBJECT_CREATE, file_id, line);
     object->id = _get_id_from_index(new_index);
 
     return_value = EBPF_SUCCESS;
@@ -133,7 +198,7 @@ Done:
 }
 
 _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static void _ebpf_object_tracking_list_remove(
-    _In_ const ebpf_core_object_t* object)
+    _In_ const ebpf_core_object_t* object, ebpf_file_id_t file_id, uint32_t line)
 {
     uint32_t index;
     ebpf_result_t return_value = _get_index_from_id(object->id, &index);
@@ -144,6 +209,7 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static void _ebpf_object_
 
     // Under lock, so un-protected access is ok.
     _ebpf_id_table[index].reference_count--;
+    _update_reference_history(&_ebpf_id_table[index], EBPF_OBJECT_RELEASE, file_id, line);
     ebpf_assert(_ebpf_id_table[index].reference_count >= 0);
     _ebpf_id_table[index].object = NULL;
 }
@@ -153,6 +219,8 @@ ebpf_object_tracking_initiate()
 {
     ebpf_lock_create(&_ebpf_object_tracking_list_lock);
     memset(_ebpf_id_table, 0, sizeof(_ebpf_id_table));
+    memset(_ebpf_object_reference_history, 0, sizeof(_ebpf_object_reference_history));
+    _ebpf_object_reference_history_index = 0;
 }
 
 void
@@ -169,7 +237,9 @@ ebpf_object_initialize(
     _Inout_ ebpf_core_object_t* object,
     ebpf_object_type_t object_type,
     ebpf_free_object_t free_function,
-    ebpf_object_get_program_type_t get_program_type_function)
+    ebpf_object_get_program_type_t get_program_type_function,
+    ebpf_file_id_t file_id,
+    uint32_t line)
 {
     EBPF_LOG_MESSAGE_POINTER_ENUM(
         EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object initialized", object, object_type);
@@ -181,13 +251,15 @@ ebpf_object_initialize(
     object->free_function = free_function;
     object->get_program_type = get_program_type_function;
     ebpf_list_initialize(&object->object_list_entry);
+    _update_reference_history(object, EBPF_OBJECT_CREATE, file_id, line);
 
-    return _ebpf_object_tracking_list_insert(object);
+    return _ebpf_object_tracking_list_insert(object, file_id, line);
 }
 
 void
-ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object)
+ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object, uint32_t file_id, uint32_t line)
 {
+    _update_reference_history(object, EBPF_OBJECT_ACQUIRE, file_id, line);
     if (object->base.marker != _ebpf_object_marker) {
         __fastfail(FAST_FAIL_INVALID_ARG);
     }
@@ -206,7 +278,7 @@ ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object)
  * @retval false Reference was not acquired.
  */
 static bool
-_ebpf_object_try_acquire_reference(_Inout_ ebpf_base_object_t* object)
+_ebpf_object_try_acquire_reference(_Inout_ ebpf_base_object_t* object, uint32_t file_id, uint32_t line)
 {
     if (object->marker != _ebpf_object_marker) {
         __fastfail(FAST_FAIL_INVALID_ARG);
@@ -224,15 +296,17 @@ _ebpf_object_try_acquire_reference(_Inout_ ebpf_base_object_t* object)
 
         if (ebpf_interlocked_compare_exchange_int64(&object->reference_count, new_ref_count + 1, new_ref_count) ==
             new_ref_count) {
+            _update_reference_history(object, EBPF_OBJECT_ACQUIRE, file_id, line);
             return true;
         }
     }
 }
 
 void
-ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object)
+ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object, uint32_t file_id, uint32_t line)
 {
     int64_t new_ref_count;
+    _update_reference_history(object, EBPF_OBJECT_RELEASE, file_id, line);
 
     if (!object) {
         return;
@@ -254,12 +328,13 @@ ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object)
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
         EBPF_LOG_MESSAGE_POINTER_ENUM(
             EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object terminated", object, object->type);
-        _ebpf_object_tracking_list_remove(object);
+        _ebpf_object_tracking_list_remove(object, file_id, line);
         ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
     }
 
     // Free the object outside the lock.
     if (new_ref_count == 0) {
+        _update_reference_history(object, EBPF_OBJECT_DESTROY, file_id, line);
         object->base.marker = ~object->base.marker;
         object->free_function(object);
     }
@@ -340,7 +415,9 @@ void
 ebpf_object_reference_next_object(
     _In_opt_ const ebpf_core_object_t* previous_object,
     ebpf_object_type_t type,
-    _Outptr_result_maybenull_ ebpf_core_object_t** next_object)
+    _Outptr_result_maybenull_ ebpf_core_object_t** next_object,
+    uint32_t file_id,
+    uint32_t line)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
     ebpf_lock_state_t state;
@@ -362,7 +439,7 @@ ebpf_object_reference_next_object(
         if (_ebpf_id_table[index].object == NULL) {
             continue;
         }
-        if (!_ebpf_object_try_acquire_reference(&_ebpf_id_table[index].object->base)) {
+        if (!_ebpf_object_try_acquire_reference(&_ebpf_id_table[index].object->base, file_id, line)) {
             continue;
         }
         *next_object = _ebpf_id_table[index].object;
@@ -370,10 +447,14 @@ ebpf_object_reference_next_object(
     }
 
     ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
+    if (*next_object != NULL) {
+        _update_reference_history(*next_object, EBPF_OBJECT_ACQUIRE, file_id, line);
+    }
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
+ebpf_object_reference_by_id(
+    ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object, uint32_t file_id, uint32_t line)
 {
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
 
@@ -385,7 +466,7 @@ ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outpt
         } else {
             ebpf_core_object_t* found = _ebpf_id_table[index].object;
             if ((found != NULL) && (found->type == object_type)) {
-                if (_ebpf_object_try_acquire_reference(&found->base)) {
+                if (_ebpf_object_try_acquire_reference(&found->base, file_id, line)) {
                     *object = found;
                 } else {
                     return_value = EBPF_KEY_NOT_FOUND;
@@ -397,6 +478,9 @@ ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outpt
     }
 
     ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
+    if (return_value == EBPF_SUCCESS) {
+        _update_reference_history(*object, EBPF_OBJECT_ACQUIRE, file_id, line);
+    }
     return return_value;
 }
 
@@ -421,10 +505,14 @@ _ebpf_object_compare(_In_ const ebpf_base_object_t* object, _In_ const void* con
 
 ebpf_result_t
 ebpf_object_reference_by_handle(
-    ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
+    ebpf_handle_t handle,
+    ebpf_object_type_t object_type,
+    _Outptr_ ebpf_core_object_t** object,
+    uint32_t file_id,
+    uint32_t line)
 {
     return ebpf_reference_base_object_by_handle(
-        handle, _ebpf_object_compare, &object_type, (ebpf_base_object_t**)object);
+        handle, _ebpf_object_compare, &object_type, (ebpf_base_object_t**)object, file_id, line);
 }
 
 _Must_inspect_result_ char*
@@ -440,7 +528,7 @@ ebpf_duplicate_string(_In_z_ const char* source)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_object_acquire_id_reference(ebpf_id_t id, ebpf_object_type_t object_type)
+ebpf_object_acquire_id_reference(ebpf_id_t id, ebpf_object_type_t object_type, uint32_t file_id, uint32_t line)
 {
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
 
@@ -451,20 +539,8 @@ ebpf_object_acquire_id_reference(ebpf_id_t id, ebpf_object_type_t object_type)
     }
 
     ebpf_id_entry_t* entry = &_ebpf_id_table[index];
-    ebpf_assert(entry->reference_count);
-    if (entry->reference_count == 0) {
-        if (entry->object == NULL) {
-
-            // Do not allow access to entries that are not in use.
-            result = EBPF_INVALID_ARGUMENT;
-        } else {
-
-            // This can _never_ happen.  If the object pointer is not null, the ref-count HAS TO BE _at_ _least_ 1.
-            // This conditon is indicative of a severe internal error.
-            ebpf_assert(0);
-            result = EBPF_FAILED;
-        }
-        goto Done;
+    if (entry->reference_count <= 0) {
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     }
 
     // ref count is non-zero
@@ -487,6 +563,7 @@ ebpf_object_acquire_id_reference(ebpf_id_t id, ebpf_object_type_t object_type)
     // We're under lock so un-protected access is ok.
     entry->reference_count++;
     result = EBPF_SUCCESS;
+    _update_reference_history(entry, EBPF_OBJECT_ACQUIRE, file_id, line);
 
 Done:
     ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
@@ -494,7 +571,7 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_object_release_id_reference(ebpf_id_t id, ebpf_object_type_t object_type)
+ebpf_object_release_id_reference(ebpf_id_t id, ebpf_object_type_t object_type, uint32_t file_id, uint32_t line)
 {
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
 
@@ -505,19 +582,8 @@ ebpf_object_release_id_reference(ebpf_id_t id, ebpf_object_type_t object_type)
     }
 
     ebpf_id_entry_t* entry = &_ebpf_id_table[index];
-    ebpf_assert(entry->reference_count);
-    if (entry->reference_count == 0) {
-        if (entry->object == NULL) {
-
-            // Do not allow access to entries that are not in use.
-            result = EBPF_INVALID_ARGUMENT;
-        } else {
-
-            // This can _never_ happen.  If the object pointer is not null, the ref-count HAS TO BE _at_ _least_ 1.
-            // This condition is indicative of a severe internal error.
-            result = EBPF_FAILED;
-        }
-        goto Done;
+    if (entry->reference_count <= 0) {
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     }
 
     // ref count is non-zero
@@ -537,8 +603,10 @@ ebpf_object_release_id_reference(ebpf_id_t id, ebpf_object_type_t object_type)
     entry->reference_count--;
     ebpf_assert(entry->reference_count >= 0);
     result = EBPF_SUCCESS;
+    _update_reference_history(entry, EBPF_OBJECT_RELEASE, file_id, line);
 
 Done:
     ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
+
     return result;
 }

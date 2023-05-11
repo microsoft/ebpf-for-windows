@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define EBPF_FILE_ID EBPF_FILE_ID_LINK
+
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
 #include "ebpf_handle.h"
@@ -136,7 +138,7 @@ ebpf_link_create(
 
     // Note: This must be the last thing done in this function as it inserts the object into the global list.
     // After this point, the object can be accessed by other threads.
-    ebpf_result_t result = ebpf_object_initialize(&local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL);
+    ebpf_result_t result = EBPF_OBJECT_INITIALIZE(&local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL);
     if (result != EBPF_SUCCESS) {
         retval = EBPF_NO_MEMORY;
         goto Exit;
@@ -310,7 +312,7 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     ebpf_program_t* program = NULL;
     bool link_is_detaching = false;
 
-    ebpf_object_acquire_reference((ebpf_core_object_t*)link);
+    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)link);
 
     state = ebpf_lock_lock(&link->attach_lock);
 
@@ -351,7 +353,7 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     ebpf_lock_unlock(&link->attach_lock, state);
 
 Done:
-    ebpf_object_release_reference((ebpf_core_object_t*)link);
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)link);
 
     EBPF_RETURN_VOID();
 }
