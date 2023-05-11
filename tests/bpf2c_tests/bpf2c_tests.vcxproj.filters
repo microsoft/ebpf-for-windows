@@ -25,10 +25,10 @@
     <ClCompile Include="..\..\tools\bpf2c\bpf_code_generator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bpf_assembler.cpp">
+    <ClCompile Include="elf_bpf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="elf_bpf.cpp">
+    <ClCompile Include="..\..\external\ubpf\external\bpf_conformance\src\bpf_assembler.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -42,7 +42,7 @@
     <ClInclude Include="..\..\tools\bpf2c\btf_parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bpf_assembler.h">
+    <ClInclude Include="..\..\external\ubpf\external\bpf_conformance\src\bpf_assembler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
