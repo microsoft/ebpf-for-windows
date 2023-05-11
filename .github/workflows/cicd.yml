@@ -33,11 +33,6 @@ permissions:
   security-events: write # Required by codeql task.
   issues: write # Required to create issues.
 
-applications:
-  # Configure SegmentHeap from application manifest file
-  - name: ebpf-for-windows
-    path: .
-    manifest: ./.github/workflows/ebpf-application.manifest
 
 jobs:
   # Jobs to run on pull, push, and schedule.
