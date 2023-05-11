@@ -359,6 +359,16 @@ netebpfext_unit_invoke_sock_addr_program(
     auto client_context = (test_sock_addr_client_context_t*)client_binding_context;
     auto sock_addr_context = (bpf_sock_addr_t*)context;
     int action;
+    int32_t is_admin = 0;
+
+    auto sock_addr_extension_data =
+        client_context->base.helper->get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
+    auto sock_addr_program_data = (ebpf_program_data_t*)sock_addr_extension_data.data;
+
+    // Test _ebpf_sock_addr_is_current_admin global helper function.
+    bpf_sock_addr_is_current_admin_t is_current_admin = reinterpret_cast<bpf_sock_addr_is_current_admin_t>(
+        sock_addr_program_data->global_helper_function_addresses->helper_function_address[1]);
+    is_admin = is_current_admin(sock_addr_context);
 
     // Verify context fields match what the netebpfext helper set.
     // Note that the helper sets the first four bytes of the address to the
@@ -378,6 +388,11 @@ netebpfext_unit_invoke_sock_addr_program(
         action = _get_sock_addr_action(sock_addr_context->user_port);
     } else {
         action = client_context->sock_addr_action;
+    }
+
+    if (!is_admin) {
+        // If the user is not admin, then the action is always block.
+        action = SOCK_ADDR_TEST_ACTION_BLOCK;
     }
 
     switch (action) {
