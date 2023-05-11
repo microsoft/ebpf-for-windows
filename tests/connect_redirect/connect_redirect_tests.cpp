@@ -698,7 +698,7 @@ main(int argc, char* argv[])
     Catch::Session session;
 
     // Initialize test globals.
-    printf("Initializing globals...\n");
+    printf("Initializing test globals...\n");
     _initialize_test_globals();
 
     // Use Catch's composite command line parser.
