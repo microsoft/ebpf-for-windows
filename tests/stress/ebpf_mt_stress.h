@@ -53,8 +53,8 @@ struct test_control_info
     // The number of threads allocated per jit program.
     uint32_t threads_count{0};
 
-    // The run time for each jit program test thread in seconds.
-    uint32_t duration{0};
+    // The run time for each jit program test thread in minutes.
+    uint32_t duration_minutes{0};
 
     // Flag to enable verbose progress output.
     bool verbose_output{false};
@@ -63,7 +63,7 @@ struct test_control_info
     bool extension_restart_enabled{false};
 
     // Delay between extension restarts (in milliseconds).
-    uint32_t extension_restart_delay{0};
+    uint32_t extension_restart_delay_ms{0};
 
     // Programs to load.
     std::vector<std::string> programs;
@@ -82,7 +82,7 @@ struct stress_test_thread_context
     std::string file_name;
     bpf_prog_type program_type;
     ebpf_execution_type_t execution_type;
-    uint32_t runtime{0};
+    uint32_t duration_minutes{0};
     fd_t map_fd;
     ebpf_result_t result;
 };
