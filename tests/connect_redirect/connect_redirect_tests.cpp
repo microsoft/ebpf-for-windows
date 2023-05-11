@@ -34,8 +34,6 @@ static std::string _local_ip_v4;
 static std::string _local_ip_v6;
 static std::string _remote_ip_v4;
 static std::string _remote_ip_v6;
-static uint16_t _destination_port = 4444;
-static uint16_t _proxy_port = 4443;
 static std::string _user_name;
 static std::string _password;
 static std::string _user_type_string;
@@ -71,8 +69,8 @@ typedef struct _test_globals
     HANDLE user_token = nullptr;
     ADDRESS_FAMILY family = 0;
     IPPROTO protocol = IPPROTO_IPV4;
-    uint16_t destination_port = 0;
-    uint16_t proxy_port = 0;
+    uint16_t destination_port = 4444;
+    uint16_t proxy_port = 4443;
     test_addresses_t addresses[socket_family_t::Max] = {0};
     bool attach_v4_program = false;
     bool attach_v6_program = false;
@@ -197,8 +195,6 @@ _initialize_test_globals()
     ADDRESS_FAMILY family;
     uint32_t v4_addresses = 0;
     uint32_t v6_addresses = 0;
-    _globals.attach_v4_program = false;
-    _globals.attach_v6_program = false;
 
     // Read v4 addresses.
     printf("Reading remote v4 addresses.\n");
@@ -226,10 +222,9 @@ _initialize_test_globals()
         REQUIRE(family == AF_INET);
         v4_addresses++;
     }
+    printf("Read v4 addresses: v4_addresses=%d\n", v4_addresses);
     REQUIRE((v4_addresses == 0 || v4_addresses == 3));
-    if (v4_addresses != 0) {
-        _globals.attach_v4_program = true;
-    }
+    _globals.attach_v4_program = (v4_addresses != 0);
 
     printf("Setting v4 loopback/v6 map addresses.\n");
     IN4ADDR_SETLOOPBACK((PSOCKADDR_IN)&_globals.addresses[socket_family_t::IPv4].loopback_address);
@@ -259,10 +254,10 @@ _initialize_test_globals()
         REQUIRE(family == AF_INET6);
         v6_addresses++;
     }
+    printf("Read v6_addresses: v6_addresses=%d\n", v6_addresses);
     REQUIRE((v6_addresses == 0 || v6_addresses == 3));
-    if (v6_addresses != 0) {
-        _globals.attach_v6_program = true;
-    }
+    _globals.attach_v6_program = (v6_addresses != 0);
+
     printf("Setting v6 loopback address.\n");
     IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[socket_family_t::IPv6].loopback_address);
 
@@ -270,8 +265,8 @@ _initialize_test_globals()
     printf("Loading user token.\n");
     _globals.user_type = _get_user_type(_user_type_string);
     _globals.user_token = _log_on_user(_user_name, _password);
-    _globals.destination_port = _destination_port;
-    _globals.proxy_port = _proxy_port;
+    _globals.destination_port = _globals.destination_port;
+    _globals.proxy_port = _globals.proxy_port;
 
     // Load and attach the programs.
     printf("Loading and attaching programs.\n");
@@ -702,6 +697,10 @@ main(int argc, char* argv[])
 {
     Catch::Session session;
 
+    // Initialize test globals.
+    printf("Initializing globals...\n");
+    _initialize_test_globals();
+
     // Use Catch's composite command line parser.
     using namespace Catch::Clara;
     auto cli = session.cli() | Opt(_vip_v4, "v4 Virtual / Load Balanced IP")["-v"]["--virtual-ip-v4"]("IPv4 VIP") |
@@ -710,12 +709,11 @@ main(int argc, char* argv[])
                Opt(_local_ip_v6, "v6 local IP")["-l"]["--local-ip-v6"]("Local IPv6 IP") |
                Opt(_remote_ip_v4, "v4 Remote IP")["-r"]["--remote-ip-v4"]("IPv4 Remote IP") |
                Opt(_remote_ip_v6, "v6 Remote IP")["-r"]["--remote-ip-v6"]("IPv6 Remote IP") |
-               Opt(_destination_port, "Destination Port")["-t"]["--destination-port"]("Destination Port") |
-               Opt(_proxy_port, "Proxy Port")["-pt"]["--proxy-port"]("Proxy Port") |
+               Opt(_globals.destination_port, "Destination Port")["-t"]["--destination-port"]("Destination Port") |
+               Opt(_globals.proxy_port, "Proxy Port")["-pt"]["--proxy-port"]("Proxy Port") |
                Opt(_user_name, "User Name")["-u"]["--user-name"]("User Name") |
                Opt(_password, "Password")["-w"]["--password"]("Password") |
                Opt(_user_type_string, "User Type")["-x"]["--user-type"]("User Type");
-
     session.cli(cli);
 
     // Parse the command line.
@@ -733,10 +731,6 @@ main(int argc, char* argv[])
         printf("Unable to load Winsock: %d\n", error);
         return 1;
     }
-
-    // Initialize globals.
-    printf("Initializing globals...\n");
-    _initialize_test_globals();
 
     // Run the test commands.
     printf("Running tests...\n");
