@@ -150,7 +150,7 @@ Function CreateEbpfTracingTasks()
 		CreateEbpfTracingTasks = False
 		Exit Function
 	End If
-	if CreateScheduledTask(EBPF_TRACING_PERIODIC_TASK_NAME, EBPF_TRACING_PERIODIC_TASK_FILENAME) <> 0 False Then
+	if CreateScheduledTask(EBPF_TRACING_PERIODIC_TASK_NAME, EBPF_TRACING_PERIODIC_TASK_FILENAME) <> 0 Then
 		call DeleteEbpfTracingTasks()
 		CreateEbpfTracingTasks = False
 	End If
