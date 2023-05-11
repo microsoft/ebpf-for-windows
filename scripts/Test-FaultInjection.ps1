@@ -28,7 +28,7 @@ $timer.Interval = 300000
 
 # When the watchdog timer fires, kill the test binary.
 Register-ObjectEvent -InputObject $timer -EventName Elapsed -Action {
-    Write-Error "Test binary exceede time"
+    Write-Error "Test binary exceeded time"
     Get-Process -Name $TestProgram | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 
