@@ -95,26 +95,44 @@ Function MoveFilesToPath(sourcePath, destPath)
 	End If
 End Function
 
-' This function creates a scheduled task from a given XML file.
+' Creates a scheduled task using the given task file returns the exitcode of schtasks
 Function CreateScheduledTask(taskName, taskFile)
 	On Error Resume Next
-	Const THIS_FUNCTION_NAME = "CreateScheduledTask"
-	
-	CreateScheduledTask = True
-	
-	Set oTraceEvent = g_Trace.CreateEvent("INFO")
-	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
-		.setAttribute "taskName", taskName
-		.setAttribute "taskFilePath", taskFilePath
-	End With
-	g_Trace.TraceEvent oTraceEvent
 
-	' Create the scheduled task
-	Dim taskFilePath : taskFilePath = FsObject.BuildPath(g_installPath, taskFile)
-	Dim oResults: Set oResults = ExecuteAndTraceWithResults("schtasks.exe /create /f /tn " + taskName + " /xml """ + taskFilePath + """", g_trace)
-	if oResults.ExitCode <> 0 Then
-		CreateScheduledTask = False
+	Dim oResults, oTraceEvent, taskCommand
+
+	taskCommand = "%SystemRoot%\System32\schtasks.exe /create /tn " & taskName & " /xml " & taskFile
+	Set oResults = ExecuteAndTraceWithResults(taskCommand, g_Trace)
+
+	If oResults.ExitCode = 0 Then
+		Set oTraceEvent = g_Trace.CreateEvent("INFO")
+		With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement("CreateScheduledTask"))
+			.setAttribute "task", CStr(taskName)
+		End With
+		g_Trace.TraceEvent oTraceEvent
 	End If
+
+	CreateScheduledTask = oResults.ExitCode
+End Function
+
+' Delete a scheduled task returns the exitcode of schtasks
+Function DeleteScheduledTask(taskName)
+	On Error Resume Next
+
+	Dim oResults, oTraceEvent, taskCommand
+
+	taskCommand = "%SystemRoot%\System32\schtasks.exe /delete /tn " & taskName & " /f"
+	Set oResults = ExecuteAndTraceWithResults(taskCommand, g_Trace)
+
+	If oResults.ExitCode = 0 Then
+		Set oTraceEvent = g_Trace.CreateEvent("INFO")
+		With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement("DeleteScheduledTask"))
+			.setAttribute "task", CStr(taskName)
+		End With
+		g_Trace.TraceEvent oTraceEvent
+	End If
+
+	DeleteScheduledTask = oResults.ExitCode
 End Function
 
 ' This function creates tasks to start eBPF tracing at boot, and execute periodic rundowns
@@ -128,10 +146,11 @@ Function CreateEbpfTracingTasks()
 	call DeleteEbpfTracingTasks()
 
 	' Create the scheduled tasks
-	if CreateScheduledTask(EBPF_TRACING_STARTUP_TASK_NAME, EBPF_TRACING_STARTUP_TASK_FILENAME) = False Then
+	if CreateScheduledTask(EBPF_TRACING_STARTUP_TASK_NAME, EBPF_TRACING_STARTUP_TASK_FILENAME) <> 0 Then
 		CreateEbpfTracingTasks = False
+		Exit Function
 	End If
-	if CreateScheduledTask(EBPF_TRACING_PERIODIC_TASK_NAME, EBPF_TRACING_PERIODIC_TASK_FILENAME) = False Then
+	if CreateScheduledTask(EBPF_TRACING_PERIODIC_TASK_NAME, EBPF_TRACING_PERIODIC_TASK_FILENAME) <> 0 False Then
 		call DeleteEbpfTracingTasks()
 		CreateEbpfTracingTasks = False
 	End If
@@ -165,22 +184,12 @@ Function DeleteEbpfTracingTasks()
 	End If
 
 	' Delete the startup task. if it already exists
-	Set oTraceEvent = g_Trace.CreateEvent("INFO")
-	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
-		.setAttribute "DeleteEbpfTask", EBPF_TRACING_STARTUP_TASK_NAME
-	End With
-	g_Trace.TraceEvent oTraceEvent
-	If ExecuteAndTraceWithResults("schtasks /delete /f /tn " + EBPF_TRACING_STARTUP_TASK_NAME, g_trace).ExitCode <> 0 Then
+	if DeleteScheduledTask(EBPF_TRACING_STARTUP_TASK_NAME) <> 0 Then
 		DeleteEbpfTracingTasks = False
 	End If
 
 	' Delete the periodic task. if it already exists
-	Set oTraceEvent = g_Trace.CreateEvent("INFO")
-	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
-		.setAttribute "DeleteEbpfTask", EBPF_TRACING_PERIODIC_TASK_NAME
-	End With
-	g_Trace.TraceEvent oTraceEvent
-	If ExecuteAndTraceWithResults("schtasks /delete /f /tn " + EBPF_TRACING_PERIODIC_TASK_NAME).ExitCode <> 0 Then
+	if DeleteScheduledTask(EBPF_TRACING_PERIODIC_TASK_NAME) <> 0 Then
 		DeleteEbpfTracingTasks = False
 	End If
 End Function
@@ -303,7 +312,7 @@ Function InstallEbpf(sourcePath)
 		End If
 	End If
 
-	' Copy the files to the install path
+	' Move the files to the install path
 	If Len(sourcePath) > 0 Then
 		if Not MoveFilesToPath(sourcePath, g_installPath) Then
 			InstallEbpf = False
