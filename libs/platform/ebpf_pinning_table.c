@@ -14,6 +14,8 @@
 // key. Delete erases the entry from the ebpf_hash_table_t, but doesn't free the memory associated with the
 // ebpf_pinning_entry_t.
 
+#define EBPF_FILE_ID EBPF_FILE_ID_PINNING_TABLE
+
 #include "ebpf_core_structs.h"
 #include "ebpf_object.h"
 #include "ebpf_pinning_table.h"
@@ -40,7 +42,7 @@ _ebpf_pinning_entry_free(_Frees_ptr_opt_ ebpf_pinning_entry_t* pinning_entry)
     if (!pinning_entry) {
         return;
     }
-    ebpf_object_release_reference(pinning_entry->object);
+    EBPF_OBJECT_RELEASE_REFERENCE(pinning_entry->object);
     ebpf_free(pinning_entry->path.value);
     ebpf_free(pinning_entry);
 }
@@ -143,7 +145,7 @@ ebpf_pinning_table_insert(
     }
 
     new_pinning_entry->object = object;
-    ebpf_object_acquire_reference(object);
+    EBPF_OBJECT_ACQUIRE_REFERENCE(object);
     new_key = &new_pinning_entry->path;
 
     state = ebpf_lock_lock(&pinning_table->lock);
@@ -187,7 +189,7 @@ ebpf_pinning_table_find(
 
     if (return_value == EBPF_SUCCESS) {
         *object = (*existing_pinning_entry)->object;
-        ebpf_object_acquire_reference(*object);
+        EBPF_OBJECT_ACQUIRE_REFERENCE(*object);
     }
 
     ebpf_lock_unlock(&pinning_table->lock, state);
@@ -304,7 +306,7 @@ ebpf_pinning_table_enumerate_entries(
         new_entry->object = (*next_pinning_entry)->object;
 
         // Take reference on underlying ebpf_object.
-        ebpf_object_acquire_reference(new_entry->object);
+        EBPF_OBJECT_ACQUIRE_REFERENCE(new_entry->object);
 
         // Duplicate pinning object path.
         result = ebpf_duplicate_utf8_string(&new_entry->path, &(*next_pinning_entry)->path);
@@ -391,7 +393,7 @@ ebpf_pinning_entries_release(uint16_t entry_count, _In_opt_count_(entry_count) e
         ebpf_pinning_entry_t* entry = &pinning_entries[index];
         ebpf_free(entry->path.value);
         entry->path.value = NULL;
-        ebpf_object_release_reference(entry->object);
+        EBPF_OBJECT_RELEASE_REFERENCE(entry->object);
     }
     ebpf_free(pinning_entries);
     EBPF_RETURN_VOID();

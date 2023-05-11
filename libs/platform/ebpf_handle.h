@@ -57,6 +57,8 @@ extern "C"
      *
      * @param[in] handle Handle to find in table.
      * @param[out] object Pointer to memory that contains object success.
+     * @param[in] file_id File ID of the caller.
+     * @param[in] line Line number of the caller.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
      */
@@ -64,7 +66,9 @@ extern "C"
         ebpf_handle_t handle,
         _In_opt_ ebpf_compare_object_t compare_function,
         _In_opt_ const void* context,
-        _Outptr_ struct _ebpf_base_object** object);
+        _Outptr_ struct _ebpf_base_object** object,
+        uint32_t file_id,
+        uint32_t line);
 
 #ifdef __cplusplus
 }

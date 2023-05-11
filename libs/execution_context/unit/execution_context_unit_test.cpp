@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define EBPF_FILE_ID EBPF_FILE_ID_EXECUTION_CONTEXT_UNIT_TESTS
+
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
@@ -101,7 +103,7 @@ template <typename T> class ebpf_object_deleter
     void
     operator()(T* object)
     {
-        ebpf_object_release_reference(reinterpret_cast<ebpf_core_object_t*>(object));
+        EBPF_OBJECT_RELEASE_REFERENCE(reinterpret_cast<ebpf_core_object_t*>(object));
     }
 };
 
