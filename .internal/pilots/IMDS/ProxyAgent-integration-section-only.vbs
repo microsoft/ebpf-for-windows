@@ -100,8 +100,7 @@ Function CreateScheduledTask(taskName, taskFile)
 	On Error Resume Next
 
 	Dim oResults, oTraceEvent, taskCommand
-
-	taskCommand = "%SystemRoot%\System32\schtasks.exe /create /tn " & taskName & " /xml " & taskFile
+	taskCommand = "%SystemRoot%\System32\schtasks.exe /create /tn " + taskName + " /xml """ + taskFile + """"
 	Set oResults = ExecuteAndTraceWithResults(taskCommand, g_Trace)
 
 	If oResults.ExitCode = 0 Then
@@ -141,16 +140,20 @@ Function CreateEbpfTracingTasks()
 	Const THIS_FUNCTION_NAME = "CreateEbpfTracingTasks"
 
 	CreateEbpfTracingTasks = true
+	Dim taskFilePath
 
 	' Delete the tasks if they already exist
 	call DeleteEbpfTracingTasks()
 
 	' Create the scheduled tasks
-	if CreateScheduledTask(EBPF_TRACING_STARTUP_TASK_NAME, EBPF_TRACING_STARTUP_TASK_FILENAME) <> 0 Then
+	taskFilePath = FsObject.BuildPath(g_installPath, EBPF_TRACING_STARTUP_TASK_FILENAME)
+	if CreateScheduledTask(EBPF_TRACING_STARTUP_TASK_NAME, taskFilePath) <> 0 Then
 		CreateEbpfTracingTasks = False
 		Exit Function
 	End If
-	if CreateScheduledTask(EBPF_TRACING_PERIODIC_TASK_NAME, EBPF_TRACING_PERIODIC_TASK_FILENAME) <> 0 Then
+	
+	taskFilePath = FsObject.BuildPath(g_installPath, EBPF_TRACING_PERIODIC_TASK_FILENAME)
+	if CreateScheduledTask(EBPF_TRACING_PERIODIC_TASK_NAME, taskFilePath) <> 0 Then
 		call DeleteEbpfTracingTasks()
 		CreateEbpfTracingTasks = False
 	End If
@@ -172,7 +175,7 @@ Function DeleteEbpfTracingTasks()
 		End With
 		g_Trace.TraceEvent oTraceEvent
 		
-		If ExecuteAndTraceWithResults("cmd.exe /c """"" + scriptPath + """ stop """ + g_tracingPath + """""", g_trace).ExitCode <> 0 Then
+		If ExecuteAndTraceWithResults("""" + scriptPath + """ stop """ + g_tracingPath + """", g_trace).ExitCode <> 0 Then
 			DeleteEbpfTracingTasks = False
 		End If
 	Else
