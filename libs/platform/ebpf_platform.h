@@ -875,54 +875,6 @@ extern "C"
     int64_t
     ebpf_interlocked_xor_int64(_Inout_ volatile int64_t* destination, int64_t mask);
 
-    /**
-     * @brief Helper function that allocates and initializes an NPI provider characteristics structure.
-     *
-     * @param[in] interface_id The interface ID of the NPI provider.
-     * @param[in] provider_module_id The module ID of the NPI provider.
-     * @param[in] npi_specific_characteristics The NPI specific characteristics.
-     * @param[in] attach_client_callback The attach client callback.
-     * @param[in] detach_client_callback The detach client callback.
-     * @param[in] provider_cleanup_binding_context_callback The provider cleanup binding context callback.
-     * @param[out] provider_characteristics Pointer to memory that will contain the
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  operation.
-     */
-    ebpf_result_t
-    ebpf_allocate_and_initialize_npi_provider_characteristics(
-        _In_ const GUID* interface_id,
-        _In_ const GUID* provider_module_id,
-        _In_opt_ const void* npi_specific_characteristics,
-        _In_ NPI_PROVIDER_ATTACH_CLIENT_FN attach_client_callback,
-        _In_ NPI_PROVIDER_DETACH_CLIENT_FN detach_client_callback,
-        _In_opt_ PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN provider_cleanup_binding_context_callback,
-        _Outptr_ const NPI_PROVIDER_CHARACTERISTICS** provider_characteristics);
-
-    /**
-     * @brief Helper function that allocates and initializes an NPI client characteristics structure.
-     *
-     * @param[in] interface_id The interface ID for the NPI.
-     * @param[in] client_module_id The client module ID.
-     * @param[in] npi_specific_characteristics The NPI specific characteristics.
-     * @param[in] attach_provider_callback The attach provider callback.
-     * @param[in] detach_provider_callback The detach provider callback.
-     * @param[in] client_cleanup_binding_context_callback The client cleanup binding context callback.
-     * @param[out] client_characteristics Pointer to the client characteristics.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  operation.
-     */
-    ebpf_result_t
-    ebpf_allocate_and_initialize_npi_client_characteristics(
-        _In_ const GUID* interface_id,
-        _In_ const GUID* client_module_id,
-        _In_opt_ const void* npi_specific_characteristics,
-        _In_ NPI_CLIENT_ATTACH_PROVIDER_FN attach_provider_callback,
-        _In_ NPI_CLIENT_DETACH_PROVIDER_FN detach_provider_callback,
-        _In_opt_ PNPI_CLIENT_CLEANUP_BINDING_CONTEXT_FN client_cleanup_binding_context_callback,
-        _Outptr_ const NPI_CLIENT_CHARACTERISTICS** client_characteristics);
-
     _Must_inspect_result_ ebpf_result_t
     ebpf_guid_create(_Out_ GUID* new_guid);
 

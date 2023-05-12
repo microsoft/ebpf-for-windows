@@ -89,19 +89,43 @@ typedef struct _ebpf_native_module
     ebpf_native_handle_cleanup_context_t handle_cleanup_context;
 } ebpf_native_module_t;
 
-static GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
-                                   0xc847aac8,
-                                   0xa6f2,
-                                   0x4b53,
-                                   {0xae, 0xa3, 0xf4, 0xa9, 0x4b, 0x9a, 0x80, 0xcb}};
+static const GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
+                                         0xc847aac8,
+                                         0xa6f2,
+                                         0x4b53,
+                                         {0xae, 0xa3, 0xf4, 0xa9, 0x4b, 0x9a, 0x80, 0xcb}};
 
-static GUID _ebpf_native_provider_id = {/* 5e24d2f5-f799-42c3-a945-87feefd930a7 */
-                                        0x5e24d2f5,
-                                        0xf799,
-                                        0x42c3,
-                                        {0xa9, 0x45, 0x87, 0xfe, 0xef, 0xd9, 0x30, 0xa7}};
+static const NPI_MODULEID _ebpf_native_provider_module_id = {
+    sizeof(NPI_MODULEID),
+    MIT_GUID,
+    {
+        /* 5e24d2f5-f799-42c3-a945-87feefd930a7 */
+        0x5e24d2f5,
+        0xf799,
+        0x42c3,
+        {0xa9, 0x45, 0x87, 0xfe, 0xef, 0xd9, 0x30, 0xa7},
+    },
+};
 
-static NPI_PROVIDER_CHARACTERISTICS* _ebpf_native_provider_characteristics = NULL;
+static NPI_PROVIDER_ATTACH_CLIENT_FN _ebpf_native_provider_attach_client_callback;
+static NPI_PROVIDER_DETACH_CLIENT_FN _ebpf_native_provider_detach_client_callback;
+
+static const NPI_PROVIDER_CHARACTERISTICS _ebpf_native_provider_characteristics = {
+    0,
+    sizeof(_ebpf_native_provider_characteristics),
+    _ebpf_native_provider_attach_client_callback,
+    _ebpf_native_provider_detach_client_callback,
+    NULL,
+    {
+        EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+        sizeof(NPI_REGISTRATION_INSTANCE),
+        &_ebpf_native_npi_id,
+        &_ebpf_native_provider_module_id,
+        0,
+        NULL,
+    },
+};
+
 static HANDLE _ebpf_native_nmr_provider_handle = NULL;
 
 #define EBPF_CLIENT_TABLE_BUCKET_COUNT 64
@@ -374,8 +398,6 @@ ebpf_native_terminate()
         ebpf_assert(status == STATUS_SUCCESS);
     }
     _ebpf_native_nmr_provider_handle = NULL;
-    ebpf_free(_ebpf_native_provider_characteristics);
-    _ebpf_native_provider_characteristics = NULL;
 
     // All native modules should be cleaned up by now.
     ebpf_assert(!_ebpf_native_client_table || ebpf_hash_table_key_count(_ebpf_native_client_table) == 0);
@@ -406,7 +428,7 @@ _ebpf_native_release_reference_internal(void* base_object, ebpf_file_id_t file_i
 
 static NTSTATUS
 _ebpf_native_provider_attach_client_callback(
-    HANDLE nmr_binding_handle,
+    _In_ HANDLE nmr_binding_handle,
     _In_ const void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
     _In_ const void* client_binding_context,
@@ -572,21 +594,8 @@ ebpf_native_initiate()
     }
     hash_table_created = true;
 
-    return_value = ebpf_allocate_and_initialize_npi_provider_characteristics(
-        &_ebpf_native_npi_id,
-        &_ebpf_native_provider_id,
-        NULL,
-        _ebpf_native_provider_attach_client_callback,
-        _ebpf_native_provider_detach_client_callback,
-        NULL,
-        &_ebpf_native_provider_characteristics);
-
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
     NTSTATUS status =
-        NmrRegisterProvider(_ebpf_native_provider_characteristics, NULL, &_ebpf_native_nmr_provider_handle);
+        NmrRegisterProvider(&_ebpf_native_provider_characteristics, NULL, &_ebpf_native_nmr_provider_handle);
     if (!NT_SUCCESS(status)) {
         return_value = EBPF_NO_MEMORY;
         goto Done;
@@ -599,8 +608,6 @@ Done:
             _ebpf_native_client_table = NULL;
         }
         ebpf_lock_destroy(&_ebpf_native_client_table_lock);
-        ebpf_free(_ebpf_native_provider_characteristics);
-        _ebpf_native_provider_characteristics = NULL;
     }
 
     EBPF_RETURN_RESULT(return_value);

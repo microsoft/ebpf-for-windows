@@ -7,6 +7,7 @@
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
+#include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
 #include "ebpf_native.h"
@@ -50,10 +51,11 @@ typedef struct _ebpf_program
     } code_or_vm;
 
     // NMR client handles for program information providers.
-    const NPI_CLIENT_CHARACTERISTICS* general_program_information_client_characteristics;
+    NPI_CLIENT_CHARACTERISTICS general_program_information_client_characteristics;
     HANDLE general_program_information_nmr_handle;
-    const NPI_CLIENT_CHARACTERISTICS* type_specific_program_information_client_characteristics;
+    NPI_CLIENT_CHARACTERISTICS type_specific_program_information_client_characteristics;
     HANDLE type_specific_program_information_nmr_handle;
+    NPI_MODULEID module_id;
 
     EX_RUNDOWN_REF program_information_rundown_reference;
 
@@ -91,6 +93,44 @@ static struct
 {
     int reserved;
 } _ebpf_program_information_client_dispatch_table;
+
+static NPI_CLIENT_ATTACH_PROVIDER_FN _ebpf_program_general_program_information_attach_provider;
+static NPI_CLIENT_DETACH_PROVIDER_FN _ebpf_program_general_program_information_detach_provider;
+
+static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_general_program_information_client_characteristics = {
+    0,
+    sizeof(_ebpf_program_general_program_information_client_characteristics),
+    _ebpf_program_general_program_information_attach_provider,
+    _ebpf_program_general_program_information_detach_provider,
+    NULL,
+    {
+        EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+        sizeof(NPI_REGISTRATION_INSTANCE),
+        &EBPF_PROGRAM_INFO_EXTENSION_IID,
+        NULL,
+        0,
+        NULL,
+    },
+};
+
+static NPI_CLIENT_ATTACH_PROVIDER_FN _ebpf_program_type_specific_program_information_attach_provider;
+static NPI_CLIENT_DETACH_PROVIDER_FN _ebpf_program_type_specific_program_information_detach_provider;
+
+static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_type_specific_program_information_client_characteristics = {
+    0,
+    sizeof(_ebpf_program_type_specific_program_information_client_characteristics),
+    _ebpf_program_type_specific_program_information_attach_provider,
+    _ebpf_program_type_specific_program_information_detach_provider,
+    NULL,
+    {
+        EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+        sizeof(NPI_REGISTRATION_INSTANCE),
+        &EBPF_PROGRAM_INFO_EXTENSION_IID,
+        NULL,
+        0,
+        NULL,
+    },
+};
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program);
 
@@ -136,8 +176,8 @@ _ebpf_program_compute_program_information_hash(
 
 static NTSTATUS
 _ebpf_program_general_program_information_attach_provider(
-    HANDLE nmr_binding_handle,
-    _Inout_ void* client_context,
+    _In_ HANDLE nmr_binding_handle,
+    _In_ void* client_context,
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
     const ebpf_extension_data_t* provider_data =
@@ -175,11 +215,11 @@ _ebpf_program_general_program_information_attach_provider(
 
     if (memcmp(
             &provider_registration_instance->ModuleId->Guid,
-            &ebpf_general_helper_function_module_id,
-            sizeof(ebpf_general_helper_function_module_id)) != 0) {
+            &ebpf_general_helper_function_module_id.Guid,
+            sizeof(GUID)) != 0) {
         status = STATUS_NOINTERFACE;
         // This is expected as the attach callback will be called for each provider of NPI
-        // ebpf_program_information_extension_interface_id.
+        // EBPF_PROGRAM_INFO_EXTENSION_IID.
         goto Done;
     }
 
@@ -241,8 +281,8 @@ _ebpf_program_general_program_information_detach_provider(void* client_binding_c
 
 static NTSTATUS
 _ebpf_program_type_specific_program_information_attach_provider(
-    HANDLE nmr_binding_handle,
-    _Inout_ void* client_context,
+    _In_ HANDLE nmr_binding_handle,
+    _In_ void* client_context,
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
     const ebpf_extension_data_t* provider_data =
@@ -304,12 +344,9 @@ _ebpf_program_type_specific_program_information_attach_provider(
         goto Done;
     }
 
-    if (memcmp(
-            &provider_registration_instance->ModuleId->Guid,
-            &program->parameters.program_type,
-            sizeof(ebpf_general_helper_function_module_id)) != 0) {
+    if (memcmp(&provider_registration_instance->ModuleId->Guid, &program->parameters.program_type, sizeof(GUID)) != 0) {
         // This is expected as the attach callback will be called for each provider of NPI
-        // ebpf_program_information_extension_interface_id.
+        // EBPF_PROGRAM_INFO_EXTENSION_IID.
         status = STATUS_NOINTERFACE;
         goto Done;
     }
@@ -556,11 +593,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_epoch_free(_In_opt_
         }
     }
 
-    ebpf_free((void*)program->general_program_information_client_characteristics);
-    program->general_program_information_client_characteristics = NULL;
-    ebpf_free((void*)program->type_specific_program_information_client_characteristics);
-    program->type_specific_program_information_client_characteristics = NULL;
-
     ebpf_lock_destroy(&program->lock);
 
     switch (program->parameters.code_type) {
@@ -609,7 +641,6 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     ebpf_utf8_string_t local_file_name = {NULL, 0};
     ebpf_utf8_string_t local_hash_type_name = {NULL, 0};
     uint8_t* local_program_info_hash = NULL;
-    GUID module_id;
 
     local_program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_PROGRAM);
     if (!local_program) {
@@ -619,7 +650,9 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
 
     memset(local_program, 0, sizeof(ebpf_program_t));
 
-    retval = ebpf_guid_create(&module_id);
+    local_program->module_id.Type = MIT_GUID;
+    local_program->module_id.Length = sizeof(local_program->module_id);
+    retval = ebpf_guid_create(&local_program->module_id.Guid);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -700,39 +733,22 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     local_program->parameters.program_info_hash_type = local_hash_type_name;
     local_hash_type_name.value = NULL;
 
+    local_program->general_program_information_client_characteristics =
+        _ebpf_program_general_program_information_client_characteristics;
+    local_program->general_program_information_client_characteristics.ClientRegistrationInstance.ModuleId =
+        &local_program->module_id;
+    local_program->type_specific_program_information_client_characteristics =
+        _ebpf_program_type_specific_program_information_client_characteristics;
+    local_program->type_specific_program_information_client_characteristics.ClientRegistrationInstance.ModuleId =
+        &local_program->module_id;
+
     // Mark the program_information_rundown_reference as rundown to prevent programs
     // from using it.
     ExInitializeRundownProtection(&local_program->program_information_rundown_reference);
     ExWaitForRundownProtectionRelease(&local_program->program_information_rundown_reference);
 
-    retval = ebpf_allocate_and_initialize_npi_client_characteristics(
-        &ebpf_program_information_extension_interface_id,
-        &module_id,
-        NULL,
-        _ebpf_program_general_program_information_attach_provider,
-        _ebpf_program_general_program_information_detach_provider,
-        NULL,
-        &local_program->general_program_information_client_characteristics);
-
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    retval = ebpf_allocate_and_initialize_npi_client_characteristics(
-        &ebpf_program_information_extension_interface_id,
-        &module_id,
-        NULL,
-        _ebpf_program_type_specific_program_information_attach_provider,
-        _ebpf_program_type_specific_program_information_detach_provider,
-        NULL,
-        &local_program->type_specific_program_information_client_characteristics);
-
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
     NTSTATUS status = NmrRegisterClient(
-        local_program->general_program_information_client_characteristics,
+        &local_program->general_program_information_client_characteristics,
         local_program,
         &local_program->general_program_information_nmr_handle);
 
@@ -742,7 +758,7 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     }
 
     status = NmrRegisterClient(
-        local_program->type_specific_program_information_client_characteristics,
+        &local_program->type_specific_program_information_client_characteristics,
         local_program,
         &local_program->type_specific_program_information_nmr_handle);
 

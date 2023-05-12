@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ebpf_api.h"
+#include "ebpf_extension_uuids.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
@@ -49,16 +50,6 @@ typedef struct _close_bpf_link
 typedef std::unique_ptr<bpf_link, close_bpf_link_t> bpf_link_ptr;
 
 extern bool _ebpf_platform_is_preemptible;
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-    extern GUID ebpf_program_information_extension_interface_id;
-    extern GUID ebpf_hook_extension_interface_id;
-#ifdef __cplusplus
-}
-#endif
 
 typedef class _emulate_dpc
 {
@@ -129,22 +120,10 @@ typedef class _single_instance_hook : public _hook_helper
         attach_provider_data.supported_program_type = program_type;
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
+        module_id.Guid = attach_type;
 
-        ebpf_result_t result = ebpf_allocate_and_initialize_npi_provider_characteristics(
-            &ebpf_hook_extension_interface_id,
-            &attach_type,
-            &provider_data,
-            (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
-            (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
-            nullptr,
-            &provider_characteristics);
-        if (result != EBPF_SUCCESS) {
-            throw std::runtime_error("ebpf_allocate_and_initialize_npi_provider_characteristics failed");
-        }
-
-        NTSTATUS status = NmrRegisterProvider(provider_characteristics, this, &nmr_provider_handle);
+        NTSTATUS status = NmrRegisterProvider(&provider_characteristics, this, &nmr_provider_handle);
         if (status != STATUS_SUCCESS) {
-            ebpf_free((void*)provider_characteristics);
             throw std::runtime_error("NmrRegisterProvider failed");
         }
     }
@@ -157,7 +136,6 @@ typedef class _single_instance_hook : public _hook_helper
         } else {
             ebpf_assert(status == STATUS_SUCCESS);
         }
-        ebpf_free((void*)provider_characteristics);
     }
 
     uint32_t
@@ -325,7 +303,25 @@ typedef class _single_instance_hook : public _hook_helper
 
     ebpf_extension_data_t provider_data = {
         EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(attach_provider_data), &attach_provider_data};
-    const NPI_PROVIDER_CHARACTERISTICS* provider_characteristics;
+    NPI_MODULEID module_id = {
+        sizeof(NPI_MODULEID),
+        MIT_GUID,
+    };
+    const NPI_PROVIDER_CHARACTERISTICS provider_characteristics = {
+        0,
+        sizeof(provider_characteristics),
+        (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
+        (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
+        NULL,
+        {
+            EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+            sizeof(NPI_REGISTRATION_INSTANCE),
+            &EBPF_HOOK_EXTENSION_IID,
+            &module_id,
+            0,
+            &provider_data,
+        },
+    };
     HANDLE nmr_provider_handle;
 
     PNPI_REGISTRATION_INSTANCE client_registration_instance;
@@ -552,21 +548,11 @@ typedef class _program_info_provider
         }
         ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
 
-        ebpf_result_t return_value = ebpf_allocate_and_initialize_npi_provider_characteristics(
-            &ebpf_program_information_extension_interface_id,
-            &program_data->program_info->program_type_descriptor.program_type,
-            provider_data,
-            (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
-            (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
-            nullptr,
-            &provider_characteristics);
-        if (return_value != EBPF_SUCCESS) {
-            throw std::runtime_error("ebpf_allocate_and_initialize_npi_provider_characteristics failed");
-        }
+        module_id.Guid = program_data->program_info->program_type_descriptor.program_type;
+        provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics = provider_data;
 
-        NTSTATUS status = NmrRegisterProvider(provider_characteristics, this, &nmr_provider_handle);
+        NTSTATUS status = NmrRegisterProvider(&provider_characteristics, this, &nmr_provider_handle);
         if (status != STATUS_SUCCESS) {
-            ebpf_free((void*)provider_characteristics);
             throw std::runtime_error("NmrRegisterProvider failed");
         }
     }
@@ -578,7 +564,6 @@ typedef class _program_info_provider
         } else {
             ebpf_assert(status == STATUS_SUCCESS);
         }
-        ebpf_free((void*)provider_characteristics);
     }
 
   private:
@@ -617,8 +602,26 @@ typedef class _program_info_provider
     ebpf_program_type_t program_type;
 
     const ebpf_extension_data_t* provider_data;
+    NPI_MODULEID module_id = {
+        sizeof(NPI_MODULEID),
+        MIT_GUID,
+    };
 
-    const NPI_PROVIDER_CHARACTERISTICS* provider_characteristics;
+    NPI_PROVIDER_CHARACTERISTICS provider_characteristics{
+        0,
+        sizeof(NPI_PROVIDER_CHARACTERISTICS),
+        (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
+        (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
+        NULL,
+        {
+            EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+            sizeof(NPI_REGISTRATION_INSTANCE),
+            &EBPF_PROGRAM_INFO_EXTENSION_IID,
+            &module_id,
+            0,
+            NULL,
+        },
+    };
     HANDLE nmr_provider_handle;
 } program_info_provider_t;
 

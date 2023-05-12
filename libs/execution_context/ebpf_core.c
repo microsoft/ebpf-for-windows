@@ -18,14 +18,17 @@
 
 #include <errno.h>
 
-GUID ebpf_program_information_extension_interface_id;
-GUID ebpf_hook_extension_interface_id;
-
-GUID ebpf_general_helper_function_module_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
-                                               0x8d2a1d3f,
-                                               0x9ce6,
-                                               0x473d,
-                                               {0xb4, 0x8e, 0x17, 0xaa, 0x5c, 0x55, 0x81, 0xfe}};
+const NPI_MODULEID ebpf_general_helper_function_module_id = {
+    sizeof(ebpf_general_helper_function_module_id),
+    MIT_GUID,
+    {
+        /* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
+        0x8d2a1d3f,
+        0x9ce6,
+        0x473d,
+        {0xb4, 0x8e, 0x17, 0xaa, 0x5c, 0x55, 0x81, 0xfe},
+    },
+};
 
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
@@ -114,13 +117,31 @@ static const ebpf_extension_data_t _ebpf_global_helper_function_extension_data =
     sizeof(_ebpf_global_helper_function_program_data),
     &_ebpf_global_helper_function_program_data};
 
-static const NPI_PROVIDER_CHARACTERISTICS* _ebpf_global_helper_function_provider_characteristics = NULL;
+static NPI_PROVIDER_ATTACH_CLIENT_FN _ebpf_general_helper_function_provider_attach_client;
+static NPI_PROVIDER_DETACH_CLIENT_FN _ebpf_general_helper_function_provider_detach_client;
+
+static const NPI_PROVIDER_CHARACTERISTICS _ebpf_global_helper_function_provider_characteristics = {
+    0,
+    sizeof(_ebpf_global_helper_function_provider_characteristics),
+    _ebpf_general_helper_function_provider_attach_client,
+    _ebpf_general_helper_function_provider_detach_client,
+    NULL,
+    {
+        EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+        sizeof(NPI_REGISTRATION_INSTANCE),
+        &EBPF_PROGRAM_INFO_EXTENSION_IID,
+        &ebpf_general_helper_function_module_id,
+        0,
+        &_ebpf_global_helper_function_extension_data,
+    },
+};
+
 static HANDLE _ebpf_global_helper_function_nmr_binding_handle = NULL;
 
-NTSTATUS
-ebpf_general_helper_function_provider_attach_client(
-    HANDLE nmr_binding_handle,
-    _Inout_ void* provider_context,
+static NTSTATUS
+_ebpf_general_helper_function_provider_attach_client(
+    _In_ HANDLE nmr_binding_handle,
+    _In_ void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
     _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
@@ -138,8 +159,8 @@ ebpf_general_helper_function_provider_attach_client(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS
-ebpf_general_helper_function_provider_detach_client(_Inout_ void* provider_binding_context)
+static NTSTATUS
+_ebpf_general_helper_function_provider_detach_client(_In_ void* provider_binding_context)
 {
     UNREFERENCED_PARAMETER(provider_binding_context);
 
@@ -153,9 +174,6 @@ ebpf_core_initiate()
 {
     ebpf_result_t return_value;
     NTSTATUS status;
-
-    ebpf_program_information_extension_interface_id = EBPF_PROGRAM_INFO_EXTENSION_IID;
-    ebpf_hook_extension_interface_id = EBPF_HOOK_EXTENSION_IID;
 
     return_value = ebpf_platform_initiate();
     if (return_value != EBPF_SUCCESS) {
@@ -207,20 +225,8 @@ ebpf_core_initiate()
     _ebpf_global_helper_program_info.count_of_program_type_specific_helpers = ebpf_core_helper_functions_count;
     _ebpf_global_helper_program_info.program_type_specific_helper_prototype = ebpf_core_helper_function_prototype;
 
-    return_value = ebpf_allocate_and_initialize_npi_provider_characteristics(
-        &ebpf_program_information_extension_interface_id,
-        &ebpf_general_helper_function_module_id,
-        &_ebpf_global_helper_function_extension_data,
-        ebpf_general_helper_function_provider_attach_client,
-        ebpf_general_helper_function_provider_detach_client,
-        NULL,
-        &_ebpf_global_helper_function_provider_characteristics);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
     status = NmrRegisterProvider(
-        _ebpf_global_helper_function_provider_characteristics, NULL, &_ebpf_global_helper_function_nmr_binding_handle);
+        &_ebpf_global_helper_function_provider_characteristics, NULL, &_ebpf_global_helper_function_nmr_binding_handle);
 
     if (!NT_SUCCESS(status)) {
         return_value = EBPF_NO_MEMORY;
@@ -251,9 +257,6 @@ ebpf_core_terminate()
         }
         _ebpf_global_helper_function_nmr_binding_handle = NULL;
     }
-
-    ebpf_free((void*)_ebpf_global_helper_function_provider_characteristics);
-    _ebpf_global_helper_function_provider_characteristics = NULL;
 
     ebpf_program_terminate();
 

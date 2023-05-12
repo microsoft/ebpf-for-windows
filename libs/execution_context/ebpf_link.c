@@ -5,6 +5,7 @@
 
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
+#include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
 #include "ebpf_object.h"
@@ -33,18 +34,37 @@ typedef struct _ebpf_link
 {
     ebpf_core_object_t object;
     ebpf_lock_t lock;
-    _Guarded_by_(lock) GUID module_id;
+    _Guarded_by_(lock) NPI_MODULEID module_id;
     _Guarded_by_(lock) ebpf_program_t* program;
     _Guarded_by_(lock) ebpf_attach_type_t attach_type;
     _Guarded_by_(lock) bpf_attach_type_t bpf_attach_type;
     _Guarded_by_(lock) enum bpf_link_type link_type;
     _Guarded_by_(lock) ebpf_program_type_t program_type;
     _Guarded_by_(lock) ebpf_extension_data_t client_data;
-    _Guarded_by_(lock) const NPI_CLIENT_CHARACTERISTICS* client_characteristics;
+    _Guarded_by_(lock) NPI_CLIENT_CHARACTERISTICS client_characteristics;
     _Guarded_by_(lock) HANDLE nmr_client_handle;
     _Guarded_by_(lock) bool provider_attached;
     _Guarded_by_(lock) ebpf_link_state_t state;
 } ebpf_link_t;
+
+static NPI_CLIENT_ATTACH_PROVIDER_FN _ebpf_link_client_attach_provider;
+static NPI_CLIENT_DETACH_PROVIDER_FN _ebpf_link_client_detach_provider;
+
+static const NPI_CLIENT_CHARACTERISTICS _ebpf_link_client_characteristics = {
+    0,
+    sizeof(_ebpf_link_client_characteristics),
+    _ebpf_link_client_attach_provider,
+    _ebpf_link_client_detach_provider,
+    NULL,
+    {
+        EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+        sizeof(NPI_REGISTRATION_INSTANCE),
+        &EBPF_HOOK_EXTENSION_IID,
+        NULL,
+        0,
+        NULL,
+    },
+};
 
 _Requires_lock_held_(link->lock) static void _ebpf_link_set_state(
     _Inout_ ebpf_link_t* link, ebpf_link_state_t new_state);
@@ -89,10 +109,12 @@ C_ASSERT(
 
 NTSTATUS
 _ebpf_link_client_attach_provider(
-    HANDLE nmr_binding_handle,
-    _Inout_ void* client_context,
+    _In_ HANDLE nmr_binding_handle,
+    _In_ void* client_context,
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
+    EBPF_LOG_ENTRY();
+
     NTSTATUS status;
     ebpf_link_t* link = (ebpf_link_t*)client_context;
     void* provider_binding_context;
@@ -110,6 +132,13 @@ _ebpf_link_client_attach_provider(
     // Verify that that the provider is using the same version of the extension as the client.
     if (provider_data->version > EBPF_ATTACH_PROVIDER_DATA_VERSION ||
         provider_data->size < sizeof(ebpf_extension_data_t)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_LINK,
+            "Attach provider data version is not compatible.",
+            provider_data->version,
+            provider_data->size);
+
         status = STATUS_INVALID_PARAMETER;
         goto Done;
     }
@@ -117,22 +146,30 @@ _ebpf_link_client_attach_provider(
     ebpf_attach_provider_data_t* attach_provider_data = (ebpf_attach_provider_data_t*)provider_data->data;
 
     if (provider_registration_instance->ModuleId->Type != MIT_GUID) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "Attach provider ModuleId type is not GUID.");
         status = STATUS_INVALID_PARAMETER;
         goto Done;
     }
 
     if (memcmp(&provider_registration_instance->ModuleId->Guid, &link->attach_type, sizeof(link->attach_type)) != 0) {
-        status = STATUS_INVALID_PARAMETER;
+        // This is not the provider we are looking for.
+        status = STATUS_NOINTERFACE;
         goto Done;
     }
 
     if (memcmp(&attach_provider_data->supported_program_type, &link->program_type, sizeof(link->program_type)) != 0) {
-        status = STATUS_INVALID_PARAMETER;
+        // This is not the provider we are looking for.
+        status = STATUS_NOINTERFACE;
         goto Done;
     }
 
     // Only one provider can be attached to a link.
     if (link->provider_attached) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_LINK,
+            "Attach provider called on link with provider already attached.");
         status = STATUS_INVALID_PARAMETER;
         goto Done;
     }
@@ -147,6 +184,8 @@ _ebpf_link_client_attach_provider(
         nmr_binding_handle, link, &_ebpf_link_dispatch_table, &provider_binding_context, &provider_dispatch);
 
     if (!NT_SUCCESS(status)) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "NmrClientAttachProvider failed", status);
         goto Done;
     }
 
@@ -159,16 +198,19 @@ Done:
     if (lock_held)
         ebpf_lock_unlock(&link->lock, state);
 
-    return status;
+    EBPF_RETURN_NTSTATUS(status);
 }
 
 NTSTATUS
 _ebpf_link_client_detach_provider(void* client_binding_context)
 {
+    EBPF_LOG_ENTRY();
+
     ebpf_link_t* link = (ebpf_link_t*)client_binding_context;
     ebpf_lock_state_t state = ebpf_lock_lock(&link->lock);
     link->provider_attached = false;
     ebpf_lock_unlock(&link->lock, state);
+    EBPF_LOG_EXIT();
     return STATUS_SUCCESS;
 }
 
@@ -220,9 +262,15 @@ ebpf_link_create(
         memcpy((void*)local_link->client_data.data, context_data, context_data_length);
     }
 
-    local_link->module_id = module_id;
+    local_link->module_id.Guid = module_id;
+    local_link->module_id.Type = MIT_GUID;
+    local_link->module_id.Length = sizeof(local_link->module_id);
     local_link->attach_type = attach_type;
     local_link->state = EBPF_LINK_STATE_INITIAL;
+
+    local_link->client_characteristics = _ebpf_link_client_characteristics;
+    local_link->client_characteristics.ClientRegistrationInstance.ModuleId = &local_link->module_id;
+    local_link->client_characteristics.ClientRegistrationInstance.NpiSpecificCharacteristics = &local_link->client_data;
 
     ebpf_lock_unlock(&local_link->lock, state);
     lock_held = false;
@@ -231,6 +279,8 @@ ebpf_link_create(
     // After this point, the object can be accessed by other threads.
     ebpf_result_t result = EBPF_OBJECT_INITIALIZE(&local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL);
     if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "ebpf_object_initialize failed for link", result);
         retval = EBPF_NO_MEMORY;
         goto Exit;
     }
@@ -264,6 +314,8 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
 
     // If the link is already attached, fail.
     if (link->state != EBPF_LINK_STATE_INITIAL) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "Link is already attached to a program.");
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -278,25 +330,13 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
     ebpf_program_attach_link(program, link);
     link_attached_to_program = true;
 
-    // Attach the link to the attach provider.
-    return_value = ebpf_allocate_and_initialize_npi_client_characteristics(
-        &ebpf_hook_extension_interface_id,
-        &link->module_id,
-        &link->client_data,
-        _ebpf_link_client_attach_provider,
-        _ebpf_link_client_detach_provider,
-        NULL,
-        &link->client_characteristics);
-
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
     ebpf_lock_unlock(&link->lock, state);
     lock_held = false;
 
-    NTSTATUS status = NmrRegisterClient(link->client_characteristics, link, &link->nmr_client_handle);
+    NTSTATUS status = NmrRegisterClient(&link->client_characteristics, link, &link->nmr_client_handle);
     if (status != STATUS_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "NmrRegisterClient failed", status);
         return_value = EBPF_NO_MEMORY;
         goto Done;
     }
@@ -336,11 +376,6 @@ Done:
             link->nmr_client_handle = NULL;
         }
 
-        if (link->client_characteristics) {
-            ebpf_free((void*)link->client_characteristics);
-            link->client_characteristics = NULL;
-        }
-
         if (link_attached_to_program) {
             ebpf_program_detach_link(program, link);
             link_attached_to_program = false;
@@ -368,6 +403,7 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     lock_held = true;
 
     if (link->state != EBPF_LINK_STATE_ATTACHED) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "Link is not attached to a program.");
         goto Done;
     }
 
@@ -391,8 +427,6 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     lock_held = true;
 
     link->nmr_client_handle = NULL;
-    ebpf_free((void*)link->client_characteristics);
-    link->client_characteristics = NULL;
 
     ebpf_program_detach_link(link->program, link);
 
@@ -456,6 +490,11 @@ _ebpf_link_instance_invoke_batch_begin(
 
     return_value = ebpf_program_reference_providers(link->program);
     if (return_value != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_LINK,
+            "Program information provider is not loaded.",
+            link->attach_type);
         goto Done;
     }
     provider_reference_held = true;

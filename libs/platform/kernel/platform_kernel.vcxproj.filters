@@ -67,9 +67,6 @@
     <ClCompile Include="..\ebpf_interlocked.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_extension.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ebpf_crypto_hash.c">
       <Filter>Source Files</Filter>
     </ClCompile>
