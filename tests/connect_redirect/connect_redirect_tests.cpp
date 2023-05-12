@@ -223,6 +223,7 @@ _initialize_test_globals()
         v4_addresses++;
     }
     printf("Read v4 addresses: v4_addresses=%d\n", v4_addresses);
+    INFO("Read v4 addresses: v4_addresses=" << v4_addresses);
     REQUIRE((v4_addresses == 0 || v4_addresses == 3));
     _globals.attach_v4_program = (v4_addresses != 0);
 
@@ -494,6 +495,7 @@ connect_redirect_test_wrapper(_In_ sockaddr_storage& destination, _In_ sockaddr_
     void connection_authorization_tests_##destination##(                                                         \
         ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)              \
     {                                                                                                            \
+        _initialize_test_globals();\
         _globals.family = family;                                                                                \
         _globals.protocol = protocol;                                                                            \
         const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                        \
@@ -577,6 +579,7 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv
     void connection_redirection_tests_##original_destination##_##new_destination##(                                   \
         ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)                   \
     {                                                                                                                 \
+        _initialize_test_globals();\
         _globals.family = family;                                                                                     \
         _globals.protocol = protocol;                                                                                 \
         const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                             \
@@ -740,10 +743,6 @@ main(int argc, char* argv[])
         printf("Unable to load Winsock: %d\n", error);
         return 1;
     }
-
-    // Initialize test globals.
-    printf("Initializing test globals...\n");
-    _initialize_test_globals();
 
     // Run the test commands.
     printf("Running tests...\n");
