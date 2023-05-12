@@ -3,7 +3,6 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include "bpf_assembler.h"
 #include "bpf_code_generator.h"
 #include "catch_wrapper.hpp"
 #include "test_helpers.h"
@@ -13,6 +12,11 @@ extern "C"
 {
 #include "ubpf.h"
 }
+
+// Note: The bpf_assembler.h file is not included here because it has a conflicting definition of
+// the bpf_insn struct.
+std::vector<ebpf_inst>
+bpf_assembler(std::istream& input);
 
 #define SEPARATOR "\\"
 

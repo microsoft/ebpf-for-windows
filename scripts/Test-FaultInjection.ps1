@@ -22,6 +22,16 @@ Set-Content -Path ($TestProgram + ".fault.log") ""
 
 $iteration = 0
 
+$timer = New-Object System.Timers.Timer
+# Set timer for 5 minutes
+$timer.Interval = 300000
+
+# When the watchdog timer fires, kill the test binary.
+Register-ObjectEvent -InputObject $timer -EventName Elapsed -Action {
+    Write-Error "Test binary exceeded time"
+    Get-Process -Name $TestProgram | Stop-Process -Force -ErrorAction SilentlyContinue
+}
+
 # Rerun failing tests until they pass
 while ($true) {
     $previous_passed_tests = $passed_tests
@@ -45,8 +55,14 @@ while ($true) {
     write-host "Running iteration #" $iteration
     $remaining_tests | ForEach-Object { write-host "Running: $_" }
 
+    # Start the watchdog timer
+    $timer.Start()
+
     # Run the test binary with any remaining tests.
     & $TestProgram "-d yes" "--verbosity=quiet" "-f remaining_tests.txt"
+
+    # Stop the watchdog timer
+    $timer.Stop()
 
     if ($LASTEXITCODE -eq 0) {
         write-host "All tests passed"
