@@ -697,10 +697,6 @@ main(int argc, char* argv[])
 {
     Catch::Session session;
 
-    // Initialize test globals.
-    printf("Initializing test globals...\n");
-    _initialize_test_globals();
-
     // Use Catch's composite command line parser.
     using namespace Catch::Clara;
     auto cli = session.cli() | Opt(_vip_v4, "v4 Virtual / Load Balanced IP")["-v"]["--virtual-ip-v4"]("IPv4 VIP") |
@@ -722,6 +718,23 @@ main(int argc, char* argv[])
     if (returnCode != 0) {
         return returnCode;
     }
+
+    // Debug parameter values.
+    printf("Parameter values:\n");
+    printf("VIP v4: %s\n", _vip_v4.c_str());
+    printf("VIP v6: %s\n", _vip_v6.c_str());
+    printf("Local IP v4: %s\n", _local_ip_v4.c_str());
+    printf("Local IP v6: %s\n", _local_ip_v6.c_str());
+    printf("Remote IP v4: %s\n", _remote_ip_v4.c_str());
+    printf("Remote IP v6: %s\n", _remote_ip_v6.c_str());
+    printf("Destination Port: %d\n", _globals.destination_port);
+    printf("Proxy Port: %d\n", _globals.proxy_port);
+    printf("User Name: %s\n", _user_name.c_str());
+    printf("User Type: %s\n", _user_type_string.c_str());
+
+    // Initialize test globals.
+    printf("Initializing test globals...\n");
+    _initialize_test_globals();
 
     // Set up Windows Sockets.
     WSAData data;
