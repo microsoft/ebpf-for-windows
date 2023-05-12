@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #define CATCH_CONFIG_MAIN
+#include "bpf_helpers.h"
 #include "catch_wrapper.hpp"
 #include "ebpf_fault_injection.h"
 #include "netebpf_ext_helper.h"
@@ -366,7 +367,7 @@ netebpfext_unit_invoke_sock_addr_program(
     auto sock_addr_program_data = (ebpf_program_data_t*)sock_addr_extension_data.data;
 
     // Test _ebpf_sock_addr_is_current_admin global helper function.
-    bpf_sock_addr_is_current_admin_t is_current_admin = reinterpret_cast<bpf_sock_addr_is_current_admin_t>(
+    bpf_is_current_admin_t is_current_admin = reinterpret_cast<bpf_is_current_admin_t>(
         sock_addr_program_data->global_helper_function_addresses->helper_function_address[1]);
     is_admin = is_current_admin(sock_addr_context);
 
@@ -391,7 +392,7 @@ netebpfext_unit_invoke_sock_addr_program(
     }
 
     if (!is_admin) {
-        // If the user is not admin, then the action is always block.
+        // If the user is not admin, then the action is block.
         action = SOCK_ADDR_TEST_ACTION_BLOCK;
     }
 

@@ -175,26 +175,6 @@ EBPF_HELPER(uint64_t, bpf_sock_addr_get_current_pid_tgid, (bpf_sock_addr_t * ctx
     ((bpf_sock_addr_get_current_pid_tgid_t)BPF_FUNC_sock_addr_get_current_pid_tgid)
 #endif
 
-#define SOCK_ADDR_GLOBAL_HELPER_FN_BASE 0xFFFF
-
-typedef enum
-{
-    BPF_FUNC_sock_addr_is_current_admin = SOCK_ADDR_GLOBAL_HELPER_FN_BASE + 1,
-} ebpf_sock_addr_global_helper_id_t;
-
-/**
- * @brief Get current is_admin access (sock_addr global only).
- *
- * @param[in] ctx Pointer to bpf_sock_addr_t context.
- *
- * @returns a 32-bit integer containing the is_admin 0 or 1.
- *
- */
-EBPF_HELPER(int32_t, bpf_sock_addr_is_current_admin, (bpf_sock_addr_t * ctx));
-#ifndef __doxygen
-#define bpf_sock_addr_is_current_admin ((bpf_sock_addr_is_current_admin_t)BPF_FUNC_sock_addr_is_current_admin)
-#endif
-
 /**
  * @brief Handle socket operation. Currently supports ingress/egress connection initialization.
  *
