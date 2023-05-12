@@ -533,7 +533,7 @@ Done:
 }
 
 static NTSTATUS
-_ebpf_native_provider_detach_client_callback(_In_ const void* provider_binding_context)
+_ebpf_native_provider_detach_client_callback(_In_ void* provider_binding_context)
 {
     ebpf_native_module_t* context = (ebpf_native_module_t*)provider_binding_context;
 
