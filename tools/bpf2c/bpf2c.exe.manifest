@@ -4,8 +4,8 @@
 # Overrides the default heap implementation with segment heap.
 
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
-  <assemblyIdentity name="bpf2c" type="win32" version="1.0.0.0"></assemblyIdentity>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v3" manifestVersion="1.0">
+  <assemblyIdentity name="bpf2c" type="win32" version="1.0.0.0" processorArchitecture="*"></assemblyIdentity>
   <asmv3:application>
     <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">
       <heapType>SegmentHeap</heapType>
