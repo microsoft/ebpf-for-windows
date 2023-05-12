@@ -223,7 +223,7 @@ _initialize_test_globals()
         v4_addresses++;
     }
     printf("Read v4 addresses: v4_addresses=%d\n", v4_addresses);
-    REQUIRE((v4_addresses == 0 || v4_addresses == 3));
+    REQUIRE(v4_addresses == 0 || v4_addresses == 3);
     _globals.attach_v4_program = (v4_addresses != 0);
 
     printf("Setting v4 loopback/v6 map addresses.\n");
@@ -732,10 +732,6 @@ main(int argc, char* argv[])
     printf("User Name: %s\n", _user_name.c_str());
     printf("User Type: %s\n", _user_type_string.c_str());
 
-    // Initialize test globals.
-    printf("Initializing test globals...\n");
-    _initialize_test_globals();
-
     // Set up Windows Sockets.
     WSAData data;
     printf("Initializing Winsock...\n");
@@ -744,6 +740,10 @@ main(int argc, char* argv[])
         printf("Unable to load Winsock: %d\n", error);
         return 1;
     }
+
+    // Initialize test globals.
+    printf("Initializing test globals...\n");
+    _initialize_test_globals();
 
     // Run the test commands.
     printf("Running tests...\n");
