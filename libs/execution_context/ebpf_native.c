@@ -429,9 +429,9 @@ _ebpf_native_release_reference_internal(void* base_object, ebpf_file_id_t file_i
 static NTSTATUS
 _ebpf_native_provider_attach_client_callback(
     _In_ HANDLE nmr_binding_handle,
-    _In_ const void* provider_context,
+    _In_ void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
-    _In_ const void* client_binding_context,
+    _In_ void* client_binding_context,
     _In_ const void* client_dispatch,
     _Out_ void** provider_binding_context,
     _Out_ const void** provider_dispatch)

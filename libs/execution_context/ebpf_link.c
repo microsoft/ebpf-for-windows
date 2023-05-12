@@ -177,6 +177,9 @@ _ebpf_link_client_attach_provider(
     link->link_type = attach_provider_data->link_type;
     link->bpf_attach_type = attach_provider_data->bpf_attach_type;
 
+    ebpf_lock_unlock(&link->lock, state);
+    lock_held = false;
+
     status = NmrClientAttachProvider(
         nmr_binding_handle, link, &_ebpf_link_dispatch_table, &provider_binding_context, &provider_dispatch);
 
@@ -186,6 +189,8 @@ _ebpf_link_client_attach_provider(
         goto Done;
     }
 
+    state = ebpf_lock_lock(&link->lock);
+    lock_held = true;
     link->provider_attached = true;
 
 Done:
