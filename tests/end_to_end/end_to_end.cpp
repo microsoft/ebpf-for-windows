@@ -66,19 +66,6 @@ CATCH_REGISTER_LISTENER(_watchdog)
 
 extern thread_local bool ebpf_non_preemptible;
 
-typedef struct _close_bpf_object
-{
-    void
-    operator()(_In_opt_ _Post_invalid_ bpf_object* object)
-    {
-        if (object != nullptr) {
-            bpf_object__close(object);
-        }
-    }
-} close_bpf_object_t;
-
-typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
-
 std::vector<uint8_t>
 prepare_ip_packet(uint16_t ethernet_type)
 {

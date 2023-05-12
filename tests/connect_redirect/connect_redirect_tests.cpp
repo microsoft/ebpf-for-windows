@@ -52,17 +52,6 @@ typedef struct _test_addresses
     struct sockaddr_storage vip_address;
 } test_addresses_t;
 
-typedef struct _close_bpf_object
-{
-    void
-    operator()(_In_opt_ _Post_invalid_ bpf_object* object)
-    {
-        if (object != nullptr) {
-            bpf_object__close(object);
-        }
-    }
-} close_bpf_object_t;
-
 typedef struct _test_globals
 {
     user_type_t user_type = STANDARD_USER;
@@ -74,7 +63,7 @@ typedef struct _test_globals
     test_addresses_t addresses[socket_family_t::Max] = {0};
     bool attach_v4_program = false;
     bool attach_v6_program = false;
-    std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object;
+    bpf_object_ptr bpf_object;
 } test_globals_t;
 
 static test_globals_t _globals;
@@ -196,8 +185,9 @@ _initialize_test_globals()
     uint32_t v4_addresses = 0;
     uint32_t v6_addresses = 0;
 
+    printf("Initializing test globals.\n");
+
     // Read v4 addresses.
-    printf("Reading remote v4 addresses.\n");
     if (_remote_ip_v4 != "") {
         get_address_from_string(
             _remote_ip_v4, _globals.addresses[socket_family_t::IPv4].remote_address, false, &family);
@@ -206,7 +196,6 @@ _initialize_test_globals()
         REQUIRE(family == AF_INET);
         v4_addresses++;
     }
-    printf("Reading local v4 addresses.\n");
     if (_local_ip_v4 != "") {
         get_address_from_string(_local_ip_v4, _globals.addresses[socket_family_t::IPv4].local_address, false, &family);
         REQUIRE(family == AF_INET);
@@ -214,7 +203,6 @@ _initialize_test_globals()
         REQUIRE(family == AF_INET);
         v4_addresses++;
     }
-    printf("Reading vip v4 addresses.\n");
     if (_vip_v4 != "") {
         get_address_from_string(_vip_v4, _globals.addresses[socket_family_t::IPv4].vip_address, false, &family);
         REQUIRE(family == AF_INET);
@@ -222,12 +210,8 @@ _initialize_test_globals()
         REQUIRE(family == AF_INET);
         v4_addresses++;
     }
-    printf("Read v4 addresses: v4_addresses=%d\n", v4_addresses);
-    INFO("Read v4 addresses: v4_addresses=" << v4_addresses);
     REQUIRE((v4_addresses == 0 || v4_addresses == 3));
     _globals.attach_v4_program = (v4_addresses != 0);
-
-    printf("Setting v4 loopback/v6 map addresses.\n");
     IN4ADDR_SETLOOPBACK((PSOCKADDR_IN)&_globals.addresses[socket_family_t::IPv4].loopback_address);
     IN6ADDR_SETV4MAPPED(
         (PSOCKADDR_IN6)&_globals.addresses[socket_family_t::Dual].loopback_address,
@@ -236,41 +220,33 @@ _initialize_test_globals()
         0);
 
     // Read v6 addresses.
-    printf("Reading remote v6 addresses.\n");
     if (_remote_ip_v6 != "") {
         get_address_from_string(
             _remote_ip_v6, _globals.addresses[socket_family_t::IPv6].remote_address, false, &family);
         REQUIRE(family == AF_INET6);
         v6_addresses++;
     }
-    printf("Reading local v6 addresses.\n");
     if (_local_ip_v6 != "") {
         get_address_from_string(_local_ip_v6, _globals.addresses[socket_family_t::IPv6].local_address, false, &family);
         REQUIRE(family == AF_INET6);
         v6_addresses++;
     }
-    printf("Reading vip v6 addresses.\n");
     if (_vip_v6 != "") {
         get_address_from_string(_vip_v6, _globals.addresses[socket_family_t::IPv6].vip_address, false, &family);
         REQUIRE(family == AF_INET6);
         v6_addresses++;
     }
-    printf("Read v6_addresses: v6_addresses=%d\n", v6_addresses);
     REQUIRE((v6_addresses == 0 || v6_addresses == 3));
     _globals.attach_v6_program = (v6_addresses != 0);
-
-    printf("Setting v6 loopback address.\n");
     IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[socket_family_t::IPv6].loopback_address);
 
     // Load the user token.
-    printf("Loading user token.\n");
     _globals.user_type = _get_user_type(_user_type_string);
     _globals.user_token = _log_on_user(_user_name, _password);
     _globals.destination_port = _globals.destination_port;
     _globals.proxy_port = _globals.proxy_port;
 
     // Load and attach the programs.
-    printf("Loading and attaching programs.\n");
     native_module_helper_t helper("cgroup_sock_addr2");
     _globals.bpf_object.reset(bpf_object__open(helper.get_file_name().c_str()));
     REQUIRE(_globals.bpf_object.get() != nullptr);
@@ -340,7 +316,6 @@ _update_policy_map(
     bool dual_stack,
     bool add)
 {
-    printf("Updating policy map.\n");
     bpf_map* policy_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "policy_map");
     REQUIRE(policy_map != nullptr);
 
@@ -473,7 +448,6 @@ authorize_test_wrapper(bool dual_stack, _In_ sockaddr_storage& destination)
 {
     client_socket_t* sender_socket = nullptr;
 
-    printf("Running authorize_test_wrapper()\n");
     get_client_socket(dual_stack, &sender_socket);
     authorize_test(sender_socket, destination, dual_stack);
     delete sender_socket;
@@ -484,7 +458,6 @@ connect_redirect_test_wrapper(_In_ sockaddr_storage& destination, _In_ sockaddr_
 {
     client_socket_t* sender_socket = nullptr;
 
-    printf("Running connect_redirect_test_wrapper()\n");
     get_client_socket(dual_stack, &sender_socket);
     connect_redirect_test(
         sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
@@ -495,7 +468,7 @@ connect_redirect_test_wrapper(_In_ sockaddr_storage& destination, _In_ sockaddr_
     void connection_authorization_tests_##destination##(                                                         \
         ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)              \
     {                                                                                                            \
-        _initialize_test_globals();\
+        _initialize_test_globals();                                                                              \
         _globals.family = family;                                                                                \
         _globals.protocol = protocol;                                                                            \
         const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                        \
@@ -579,7 +552,7 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv
     void connection_redirection_tests_##original_destination##_##new_destination##(                                   \
         ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)                   \
     {                                                                                                                 \
-        _initialize_test_globals();\
+        _initialize_test_globals();                                                                                   \
         _globals.family = family;                                                                                     \
         _globals.protocol = protocol;                                                                                 \
         const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                             \
@@ -724,16 +697,16 @@ main(int argc, char* argv[])
 
     // Debug parameter values.
     printf("Parameter values:\n");
-    printf("VIP v4: %s\n", _vip_v4.c_str());
-    printf("VIP v6: %s\n", _vip_v6.c_str());
-    printf("Local IP v4: %s\n", _local_ip_v4.c_str());
-    printf("Local IP v6: %s\n", _local_ip_v6.c_str());
-    printf("Remote IP v4: %s\n", _remote_ip_v4.c_str());
-    printf("Remote IP v6: %s\n", _remote_ip_v6.c_str());
-    printf("Destination Port: %d\n", _globals.destination_port);
-    printf("Proxy Port: %d\n", _globals.proxy_port);
-    printf("User Name: %s\n", _user_name.c_str());
-    printf("User Type: %s\n", _user_type_string.c_str());
+    printf("- VIP v4: %s\n", _vip_v4.c_str());
+    printf("- VIP v6: %s\n", _vip_v6.c_str());
+    printf("- Local IP v4: %s\n", _local_ip_v4.c_str());
+    printf("- Local IP v6: %s\n", _local_ip_v6.c_str());
+    printf("- Remote IP v4: %s\n", _remote_ip_v4.c_str());
+    printf("- Remote IP v6: %s\n", _remote_ip_v6.c_str());
+    printf("- Destination Port: %d\n", _globals.destination_port);
+    printf("- Proxy Port: %d\n", _globals.proxy_port);
+    printf("- User Name: %s\n", _user_name.c_str());
+    printf("- User Type: %s\n", _user_type_string.c_str());
 
     // Set up Windows Sockets.
     WSAData data;
@@ -744,11 +717,11 @@ main(int argc, char* argv[])
         return 1;
     }
 
-    // Run the test commands.
+    // Run the tests.
     printf("Running tests...\n");
     session.run();
 
-    // Clean up.
+    // Clean up Windows Sockets.
     printf("Cleaning up Winsock.\n");
     WSACleanup();
 }

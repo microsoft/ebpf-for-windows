@@ -473,13 +473,10 @@ function Invoke-ConnectRedirectTestsOnVM
             -StandardUserPassword $StandardUserPassword `
             -UserType $UserType `
             -WorkingDirectory $WorkingDirectory
-
         Write-Log "Invoke-ConnectRedirectTest finished on $VM"
-    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $StandardUser, $UnsecurePassword, $UserType, "eBPF", $LogFileName) -ErrorAction Stop
 
-    Write-Log "Stopping $ProgramName on $VM1"
+    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $StandardUser, $UnsecurePassword, $UserType, "eBPF", $LogFileName) -ErrorAction Stop
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
-    Write-Log "Stopping $ProgramName on $VM2"
     Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName
 
     # Remove standard user on VM1.
