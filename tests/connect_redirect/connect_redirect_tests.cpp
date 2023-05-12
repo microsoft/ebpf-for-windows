@@ -223,7 +223,7 @@ _initialize_test_globals()
         v4_addresses++;
     }
     printf("Read v4 addresses: v4_addresses=%d\n", v4_addresses);
-    REQUIRE(v4_addresses == 0 || v4_addresses == 3);
+    REQUIRE((v4_addresses == 0 || v4_addresses == 3));
     _globals.attach_v4_program = (v4_addresses != 0);
 
     printf("Setting v4 loopback/v6 map addresses.\n");
@@ -735,7 +735,7 @@ main(int argc, char* argv[])
     // Set up Windows Sockets.
     WSAData data;
     printf("Initializing Winsock...\n");
-    int error = WSAStartup(2, &data);
+    int error = WSAStartup(MAKEWORD(2, 2), &data);
     if (error != 0) {
         printf("Unable to load Winsock: %d\n", error);
         return 1;
