@@ -210,17 +210,6 @@ exit:
     return status;
 }
 
-struct bpf_object_ptr_deleter
-{
-    void
-    operator()(_In_opt_ _Post_invalid_ bpf_object* raw_ptr)
-    {
-        bpf_object__close(raw_ptr);
-        raw_ptr = nullptr;
-    }
-};
-using bpf_object_ptr = std::unique_ptr<bpf_object, bpf_object_ptr_deleter>;
-
 // Structure to store bpf_object_ptr elements.  A fixed-size table of these entries is shared between the 'creator',
 // 'attacher' and the 'destroyer' threads.
 struct object_table_entry

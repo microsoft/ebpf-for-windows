@@ -243,8 +243,6 @@ _initialize_test_globals()
     // Load the user token.
     _globals.user_type = _get_user_type(_user_type_string);
     _globals.user_token = _log_on_user(_user_name, _password);
-    _globals.destination_port = _globals.destination_port;
-    _globals.proxy_port = _globals.proxy_port;
 
     // Load and attach the programs.
     native_module_helper_t helper("cgroup_sock_addr2");
