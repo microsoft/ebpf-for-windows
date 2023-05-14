@@ -937,15 +937,17 @@ TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
     */
 }
 
-TEST_CASE("native_program_load_attach", "[regression]")
+void
+test_sock_addr_native_program_load_attach(const char* file_name)
 {
     int result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
     uint32_t next_id;
-    const char* file_name = "regression\\cgroup_sock_addr2_0.9.0.sys";
+    std::string file_name_string = std::string("regression\\") + std::string(file_name);
+    const char* file_name_with_path = file_name_string.c_str();
 
-    result = _program_load_helper(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd);
+    result = _program_load_helper(file_name_with_path, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd);
     REQUIRE(result == 0);
 
     bpf_program* v4_program = bpf_object__find_program_by_name(object, "connect_redirect4");
@@ -973,3 +975,11 @@ TEST_CASE("native_program_load_attach", "[regression]")
     // We have closed handles to the programs. Program should be unloaded now.
     REQUIRE(bpf_prog_get_next_id(0, &next_id) == -ENOENT);
 }
+
+#define DECLARE_REGRESSION_TEST_CASE(version)                                                         \
+    TEST_CASE("test_native_program_load_attach-regression-" #version)                                 \
+    {                                                                                                 \
+        test_sock_addr_native_program_load_attach((const char*)"cgroup_sock_addr2_"##version ".sys"); \
+    }
+
+DECLARE_REGRESSION_TEST_CASE("0.9.0")
