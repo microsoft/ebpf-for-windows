@@ -44,7 +44,7 @@ typedef struct _ebpf_extension_data
 {
     uint16_t version;
     size_t size;
-    void* data;
+    const void* data;
 } ebpf_extension_data_t;
 
 typedef struct _ebpf_attach_provider_data
@@ -72,4 +72,5 @@ typedef struct _ebpf_execution_context_state
 
 #define EBPF_ATTACH_CLIENT_DATA_VERSION 0
 #define EBPF_ATTACH_PROVIDER_DATA_VERSION 1
+#define EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION 0
 #define EBPF_MAX_GENERAL_HELPER_FUNCTION 0xFFFF
