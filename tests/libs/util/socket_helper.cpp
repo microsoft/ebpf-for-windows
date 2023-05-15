@@ -40,13 +40,10 @@ get_address_from_string(
             address.ss_family = AF_INET;
             INETADDR_SET_ADDRESS((PSOCKADDR)&address, INETADDR_ADDRESS(address_info->ai_addr));
         }
-    } else if (address_info->ai_family == AF_INET6) {
+    } else {
+        REQUIRE(address_info->ai_family == AF_INET6);
         address.ss_family = AF_INET6;
         INETADDR_SET_ADDRESS((PSOCKADDR)&address, INETADDR_ADDRESS(address_info->ai_addr));
-    } else {
-        int ai_family = address_info->ai_family;
-        freeaddrinfo(address_info);
-        FAIL("get_address_from_string: unsupported ai_family (" << ai_family << " )");
     }
 
     if (address_family != nullptr) {

@@ -250,7 +250,7 @@ _initialize_test_globals()
     REQUIRE(_globals.bpf_object.get() != nullptr);
     REQUIRE(bpf_object__load(_globals.bpf_object.get()) == 0);
     if (_globals.attach_v4_program) {
-        printf("Attaching v4 program\n");
+        printf("Attaching IPv4 program\n");
         bpf_program* connect_program_v4 =
             bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_redirect4");
         REQUIRE(connect_program_v4 != nullptr);
@@ -260,7 +260,7 @@ _initialize_test_globals()
         REQUIRE(result == 0);
     }
     if (_globals.attach_v6_program) {
-        printf("Attaching v6 program\n");
+        printf("Attaching IPv6 program\n");
         bpf_program* connect_program_v6 =
             bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_redirect6");
         REQUIRE(connect_program_v6 != nullptr);
@@ -306,8 +306,8 @@ _validate_audit_map_entry(uint64_t authentication_id)
 
 static void
 _update_policy_map(
-    _In_ sockaddr_storage& destination,
-    _In_ sockaddr_storage& proxy,
+    _In_ const sockaddr_storage& destination,
+    _In_ const sockaddr_storage& proxy,
     uint16_t destination_port,
     uint16_t proxy_port,
     uint32_t protocol,
@@ -351,7 +351,7 @@ void
 connect_redirect_test(
     _In_ client_socket_t* sender_socket,
     _In_ sockaddr_storage& destination,
-    _In_ sockaddr_storage& proxy,
+    _In_ const sockaddr_storage& proxy,
     uint16_t destination_port,
     uint16_t proxy_port,
     bool dual_stack)
@@ -452,7 +452,7 @@ authorize_test_wrapper(bool dual_stack, _In_ sockaddr_storage& destination)
 }
 
 void
-connect_redirect_test_wrapper(_In_ sockaddr_storage& destination, _In_ sockaddr_storage& proxy, bool dual_stack)
+connect_redirect_test_wrapper(_In_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy, bool dual_stack)
 {
     client_socket_t* sender_socket = nullptr;
 
@@ -695,12 +695,12 @@ main(int argc, char* argv[])
 
     // Debug parameter values.
     printf("Parameter values:\n");
-    printf("- VIP v4: %s\n", _vip_v4.c_str());
-    printf("- VIP v6: %s\n", _vip_v6.c_str());
-    printf("- Local IP v4: %s\n", _local_ip_v4.c_str());
-    printf("- Local IP v6: %s\n", _local_ip_v6.c_str());
-    printf("- Remote IP v4: %s\n", _remote_ip_v4.c_str());
-    printf("- Remote IP v6: %s\n", _remote_ip_v6.c_str());
+    printf("- Virtual IPv4 address: %s\n", _vip_v4.c_str());
+    printf("- Virtual IPv6 address: %s\n", _vip_v6.c_str());
+    printf("- Local IPv4: %s\n", _local_ip_v4.c_str());
+    printf("- Local IPv6: %s\n", _local_ip_v6.c_str());
+    printf("- Remote IPv4: %s\n", _remote_ip_v4.c_str());
+    printf("- Remote IPv6: %s\n", _remote_ip_v6.c_str());
     printf("- Destination Port: %d\n", _globals.destination_port);
     printf("- Proxy Port: %d\n", _globals.proxy_port);
     printf("- User Name: %s\n", _user_name.c_str());
