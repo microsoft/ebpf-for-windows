@@ -63,10 +63,8 @@
 
 typedef struct _ebpf_epoch_state
 {
-    int64_t epoch; // The highest epoch seen by this epoch state.
-#if defined(_DEBUG)
-    bool is_preemptible;
-#endif
+    int64_t is_preemptible : 1; // Is the thread preemptible?
+    int64_t epoch : 63;         // The highest epoch seen by this epoch state.
 } ebpf_epoch_state_t;
 
 #define EBPF_EPOCH_THREAD_TABLE_SIZE \
@@ -354,9 +352,7 @@ ebpf_epoch_enter()
 
     // Capture the current epoch.
     epoch_entry->epoch = _ebpf_current_epoch;
-#if defined(_DEBUG)
     epoch_entry->is_preemptible = is_preemptible;
-#endif
 
     // Release the CPU lock.
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, state);
@@ -368,18 +364,16 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
 {
     uint32_t current_cpu = _ebpf_epoch_get_cpu_id_from_state(epoch_state);
     // Capture preemptible state outside lock
-    bool is_preemptible = ebpf_is_preemptible();
+    bool is_preemptible = epoch_state->is_preemptible ? true : false;
     bool release_free_list = false;
 
-#if defined(_DEBUG)
-    ebpf_assert(epoch_state->is_preemptible == is_preemptible);
-#endif
-
+    ebpf_assert(is_preemptible == ebpf_is_preemptible());
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
 
     // Mark the epoch state as available.
     ebpf_assert(epoch_state->epoch != 0);
     epoch_state->epoch = 0;
+    epoch_state->is_preemptible = false;
 
     // Mark the epoch state as not stale.
     _ebpf_epoch_cpu_table[current_cpu].stale = false;
