@@ -51,15 +51,36 @@ static GUID _ebpf_native_provider_id = {/* 5e24d2f5-f799-42c3-a945-87feefd930a7 
                                         0x42c3,
                                         {0xa9, 0x45, 0x87, 0xfe, 0xef, 0xd9, 0x30, 0xa7}};
 
+static NPI_CLIENT_ATTACH_PROVIDER_FN _test_helper_client_attach_provider;
+static NPI_CLIENT_DETACH_PROVIDER_FN _test_helper_client_detach_provider;
+
 typedef struct _service_context
 {
     std::wstring name;
     std::wstring file_path;
     intptr_t handle{};
-    GUID module_id{};
+    NPI_MODULEID module_id{
+        sizeof(NPI_MODULEID),
+        MIT_GUID,
+    };
     HMODULE dll;
     bool loaded;
-    ebpf_extension_client_t* binding_context;
+    HANDLE nmr_client_handle;
+    NPI_CLIENT_CHARACTERISTICS nmr_client_characteristics = {
+        0,
+        sizeof(NPI_CLIENT_CHARACTERISTICS),
+        _test_helper_client_attach_provider,
+        _test_helper_client_detach_provider,
+        nullptr,
+        {
+            0,
+            sizeof(NPI_REGISTRATION_INSTANCE),
+            &_bpf2c_npi_id,
+            &module_id,
+            0,
+            nullptr,
+        },
+    };
     bool delete_pending = false;
 } service_context_t;
 
@@ -286,8 +307,16 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
     std::unique_lock lock(_service_path_to_context_mutex);
     for (auto& [path, context] : _service_path_to_context_map) {
         if (context->loaded) {
-            // Deregister client.
-            ebpf_extension_unload(context->binding_context);
+            if (context->nmr_client_handle) {
+                NTSTATUS status = NmrDeregisterClient(context->nmr_client_handle);
+                if (status == STATUS_PENDING) {
+                    // Wait for the deregistration to complete.
+                    NmrWaitForClientDeregisterComplete(context->nmr_client_handle);
+                } else {
+                    REQUIRE(NT_SUCCESS(status));
+                }
+                context->nmr_client_handle = nullptr;
+            }
         }
         // The service should have been marked for deletion till now.
         REQUIRE((context->delete_pending || get_native_module_failures()));
@@ -299,6 +328,35 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
     _service_path_to_context_map.clear();
 }
 #pragma warning(pop)
+
+static struct
+{
+    int reserved;
+} _test_helper_client_dispatch_table;
+
+static NTSTATUS
+_test_helper_client_attach_provider(
+    _In_ HANDLE nmr_binding_handle,
+    _In_ void* client_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
+{
+    UNREFERENCED_PARAMETER(provider_registration_instance);
+    void* provider_binding_context = NULL;
+    const void* provider_dispatch_table = NULL;
+    return NmrClientAttachProvider(
+        nmr_binding_handle,
+        client_context,
+        &_test_helper_client_dispatch_table,
+        &provider_binding_context,
+        &provider_dispatch_table);
+}
+
+static NTSTATUS
+_test_helper_client_detach_provider(_In_ void* client_binding_context)
+{
+    UNREFERENCED_PARAMETER(client_binding_context);
+    return STATUS_SUCCESS;
+}
 
 static void
 _preprocess_load_native_module(_Inout_ service_context_t* context)
@@ -325,27 +383,9 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
 
     metadata_table_t* table = get_function();
     REQUIRE(table != nullptr);
+    context->nmr_client_characteristics.ClientRegistrationInstance.NpiSpecificCharacteristics = table;
 
-    int client_binding_context = 0;
-    void* provider_binding_context = nullptr;
-    const ebpf_extension_data_t* returned_provider_data;
-    const ebpf_extension_dispatch_table_t* returned_provider_dispatch_table;
-
-    // Register as client.
-    ebpf_result_t result = ebpf_extension_load(
-        &context->binding_context,
-        &_bpf2c_npi_id,
-        &_ebpf_native_provider_id,
-        &context->module_id,
-        &client_binding_context,
-        (const ebpf_extension_data_t*)table,
-        nullptr,
-        &provider_binding_context,
-        &returned_provider_data,
-        &returned_provider_dispatch_table,
-        nullptr);
-
-    REQUIRE((result == EBPF_SUCCESS || get_native_module_failures()));
+    REQUIRE(NT_SUCCESS(NmrRegisterClient(&context->nmr_client_characteristics, context, &context->nmr_client_handle)));
 
     context->loaded = true;
 }
@@ -367,7 +407,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _preprocess
             std::unique_lock lock(_service_path_to_context_mutex);
             auto context = _service_path_to_context_map.find(service_path);
             if (context != _service_path_to_context_map.end()) {
-                context->second->module_id = request->module_id;
+                context->second->module_id.Guid = request->module_id;
 
                 if (context->second->loaded) {
                     REQUIRE(get_native_module_failures());
@@ -765,7 +805,7 @@ get_service_details_for_file(
     for (auto& [path, context] : _service_path_to_context_map) {
         if (context->file_path == file_path) {
             *service_name = context->name.c_str();
-            *provider_guid = context->module_id;
+            *provider_guid = context->module_id.Guid;
             return EBPF_SUCCESS;
         }
     }
