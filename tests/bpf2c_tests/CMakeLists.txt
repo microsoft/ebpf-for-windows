@@ -5,8 +5,8 @@ add_executable("bpf2c_tests"
   ../../tools/bpf2c/bpf_code_generator.h
   ../../tools/bpf2c/bpf_code_generator.cpp
 
-  bpf_assembler.h
-  bpf_assembler.cpp
+  ../../external/ubpf/external/bpf_conformance/src/bpf_assembler.h
+  ../../external/ubpf/external/bpf_conformance/src/bpf_assembler.cc
 
   raw_bpf.cpp
   elf_bpf.cpp

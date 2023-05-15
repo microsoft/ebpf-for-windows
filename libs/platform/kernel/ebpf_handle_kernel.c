@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define EBPF_FILE_ID EBPF_FILE_ID_HANDLE
+
 #include "ebpf_handle.h"
 #include "framework.h"
 
@@ -59,7 +61,7 @@ ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ ebpf_base_object_t* obje
         goto Done;
     }
 
-    object->acquire_reference(object);
+    EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT(object);
     file_object->FsContext2 = object;
 
     *handle = (ebpf_handle_t)file_handle;
@@ -94,7 +96,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_h
     ebpf_handle_t handle,
     _In_opt_ ebpf_compare_object_t compare_function,
     _In_opt_ const void* context,
-    _Outptr_ struct _ebpf_base_object** object)
+    _Outptr_ struct _ebpf_base_object** object,
+    uint32_t file_id,
+    uint32_t line)
 {
     ebpf_result_t return_value;
     NTSTATUS status;
@@ -126,7 +130,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_h
         }
     }
 
-    local_object->acquire_reference(local_object);
+    local_object->acquire_reference(local_object, file_id, line);
     *object = local_object;
     return_value = EBPF_SUCCESS;
 
