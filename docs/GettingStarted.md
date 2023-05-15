@@ -39,7 +39,7 @@ install it directly from [here](https://www.microsoft.com/en-us/download/details
     >Note: as multiple versions of WDKs cannot coexist side-by-side, you may be asked to uninstall previous versions.
 1. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe) (version **11.0.1**).
  Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
-1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.31 or higher**), which can be installed to a location
+1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.3.1 or higher**), which can be installed to a location
  such as "C:\Program Files (x86)\NuGet\".
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages
@@ -121,10 +121,12 @@ To build with the specific compile time options for disabling JIT compiler and/o
 1. `DisableJIT` - Compile eBPF's *Execution Context* without support for eBPF JIT compiler.
 1. `DisableInterpreter` - Compile eBPF's *Execution Context* without support for eBPF interpreter.
 
+Both options are set when compiling with the "NativeOnlyDebug" or "NativeOnlyRelease" configurations.
+
 #### Building using Visual Studio IDE
 
 1. Open the `ebpf-for-windows.sln` solution.
-1. Switch the configuration to "`Debug`|`x64`".
+1. Switch the configuration to "`Debug`|`x64`".  To build with the JIT and Interpreter disabled, switch the configuration to "`NativeOnlyDebug`|`x64`" instead.
 1. Rebuild the solution.
 
 ##### Setting compile time options when building from Visual Studio IDE
