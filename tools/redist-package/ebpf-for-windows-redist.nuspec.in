@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!-- Copyright (c) Microsoft Corporation
+     SPDX-License-Identifier: MIT
+  -->
+<package>
+	<metadata>
+		<title>eBPF for Windows Redist</title>
+		<id>eBPF-for-Windows-Redist</id>
+		<version>{version}</version>
+		<authors>eBPF for Windows Contributors</authors>
+		<owners>eBPF for Windows Contributors</owners>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<license type="expression">MIT</license>
+		<projectUrl>https://github.com/Microsoft/ebpf-for-windows</projectUrl>
+		<repository type="git" url="https://github.com/microsoft/ebpf-for-windows.git"/>
+		<tags>resdist redistributable ebpf</tags>
+		<description>eBPF for Windows Redistributable</description>
+		<readme>README.md</readme>
+	</metadata>
+	<files>
+		<file src="..\..\tools\redist-package\README.md" target="."/>
+		<file src="bpf2c.exe" target="package\bin"/>
+		<file src="bpf2c.pdb" target="package\bin"/>
+		<file src="bpftool.exe" target="package\bin"/>
+		<file src="bpftool.pdb" target="package\bin"/>
+		<file src="ebpfapi.dll" target="package\bin"/>
+		<file src="ebpfapi.pdb" target="package\bin"/>
+		<file src="ebpfnetsh.dll" target="package\bin"/>
+		<file src="ebpfnetsh.pdb" target="package\bin"/>
+		<!--eBPF drivers-->
+		<file src="eBPFCore.sys" target="package\bin\drivers"/>
+		<file src="eBPFCore.pdb" target="package\bin\drivers"/>
+		<file src="NetEbpfExt.sys" target="package\bin\drivers"/>
+		<file src="NetEbpfExt.pdb" target="package\bin\drivers"/>
+		<!--eBPF tracing -->
+		<file src="..\..\scripts\ebpf_tracing.cmd" target="package\bin"/>
+		<file src="..\..\scripts\ebpf_tracing_startup_task.xml" target="package\bin"/>
+		<file src="..\..\scripts\ebpf_tracing_periodic_task.xml" target="package\bin"/>
+
+		<!--Temporary inclusion of the VC++ Redist-->
+		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\concrt140.dll" target="package\bin"/>
+		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\msvcp140.dll" target="package\bin"/>
+		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\msvcp140_1.dll" target="package\bin"/>
+		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\msvcp140_2.dll" target="package\bin"/>
+		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\msvcp140_atomic_wait.dll" target="package\bin"/>
+		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\msvcp140_codecvt_ids.dll" target="package\bin"/>
+		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\vccorlib140.dll" target="package\bin"/>
+		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\vcruntime140.dll" target="package\bin"/>
+		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\vcruntime140_1.dll" target="package\bin"/>
+	</files>
+</package>

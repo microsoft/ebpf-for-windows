@@ -17,6 +17,7 @@
 #include "common_tests.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_structs.h"
+#include "native_helper.hpp"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 #include "watchdog.h"
@@ -35,7 +36,9 @@ connection_test(
     _Inout_ receiver_socket_t& receiver_socket,
     uint32_t protocol)
 {
-    struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
+    native_module_helper_t helper("cgroup_sock_addr");
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -162,8 +165,9 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
     bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
+    native_module_helper_t helper("cgroup_sock_addr");
 
-    struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -254,7 +258,8 @@ connection_monitor_test(
     uint32_t protocol,
     bool disconnect)
 {
-    struct bpf_object* object = bpf_object__open("sockops.o");
+    native_module_helper_t helper("sockops");
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -430,7 +435,8 @@ TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
 
 TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 {
-    struct bpf_object* object = bpf_object__open("sockops.o");
+    native_module_helper_t helper("sockops");
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);

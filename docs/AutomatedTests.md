@@ -19,6 +19,7 @@ Tests in this category currently include:
 * bpf2c_tests.exe: This unit tests bpf2c conversion.
 * netebpfext_unit.exe: This unit tests netebpfext logic.
 * unit_tests.exe: This unit tests logic in ebpfcore, libbpf, and netsh.
+* ebpf_stress_tests_um.exe: This tests the user mode 'mock' scaffolding's resilience in multi-threaded stress scenarios.
 
 ## Kernel tests
 Whereas unit tests run in user-mode and test the static libraries, kernel tests exercise the actual
@@ -33,6 +34,7 @@ Tests in this category currently include:
 * sample_ext_app.exe: This tests the sample extension driver.
 * socket_tests.exe: This tests eBPF programs that attach to socket events.
 * xdp_tests.exe: This tests eBPF programs that attach to XDP.
+* ebpf_stress_tests_km.exe: This tests the in-kernel eBPF sub-system's resilience in multi-threaded stress scenarios.
 
 ## Fuzz tests
 All APIs exposed to developers of apps, eBPF programs, or runtime extensions should be fuzz tested
@@ -68,6 +70,7 @@ Fault injection tests inject faults in order to test behavior under fault condit
 
 Tests in this category currently include:
 * unit_tests.exe: The unit test discussed above, but run under fault injection conditions.
+* netebpfext_unit.exe: The unit test discussed above, but run under fault injection conditions.
 
 ## Performance tests
 Performance tests check for performance regressions across builds.

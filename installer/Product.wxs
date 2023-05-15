@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 <?define ProductVersion="022C44B5-8969-4B75-8DB0-73F98B1BD7DC"?>
 <?define UpgradeCode="B6BCACB1-C872-4159-ABCB-43A50668056C"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:ui="http://schemas.microsoft.com/wix/UIExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
-	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="0.7.0" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
+	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="0.9.0" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
 		<Package Description="eBPF for Windows" InstallerVersion="301" Compressed="yes" InstallScope="perMachine" Manufacturer="Microsoft" Platform="x64" />
 		<MajorUpgrade AllowSameVersionUpgrades="yes"
 					  Disallow="yes" DisallowUpgradeErrorMessage="An older version of [ProductName] is already installed. Please remove it first."
@@ -680,6 +680,54 @@ SPDX-License-Identifier: MIT
 			<Component Id="BPFTOOL_TESTS.PDB" DiskId="1" Guid="{8D3E4E35-14D0-45BD-B5E5-036B8C4777C5}">
 				<File Id="BPFTOOL_TESTS.PDB" Name="bpftool_test.pdb" Source="$(var.bpftool_tests.TargetDir)bpftool_tests.pdb" />
 			</Component>
+			<Component Id="CGROUP_COUNT_CONNECT4.O" DiskId="1" Guid="{226DB1EF-7DF8-4D9C-BAE3-7ACFE28FE580}">
+				<File Id="CGROUP_COUNT_CONNECT4.O" Name="cgroup_count_connect4.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_count_connect4.o" />
+			</Component>
+			<Component Id="CGROUP_COUNT_CONNECT4.SYS" DiskId="1" Guid="{E91552C6-EC5B-4DEC-B5D2-23E0054498E4}">
+				<File Id="CGROUP_COUNT_CONNECT4.SYS" Name="cgroup_count_connect4.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_count_connect4.sys" />
+			</Component>
+			<Component Id="CGROUP_COUNT_CONNECT4_UM.DLL" DiskId="1" Guid="{814BAEF7-7FEC-442C-8FE4-74F06C9BE10B}">
+				<File Id="CGROUP_COUNT_CONNECT4_UM.DLL" Name="cgroup_count_connect4_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_count_connect4_um.dll" />
+			</Component>
+			<Component Id="CGROUP_COUNT_CONNECT4_UM.PDB" DiskId="1" Guid="{3F6D5AAA-F99E-4EB6-B084-CECBD974A850}">
+				<File Id="CGROUP_COUNT_CONNECT4_UM.PDB" Name="cgroup_count_connect4.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_count_connect4_um.pdb" />
+			</Component>
+			<Component Id="CGROUP_COUNT_CONNECT6.O" DiskId="1" Guid="{D5DE9C5B-4337-4557-80E4-6269E8FB0D89}">
+				<File Id="CGROUP_COUNT_CONNECT6.O" Name="cgroup_count_connect6.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_count_connect6.o" />
+			</Component>
+			<Component Id="CGROUP_COUNT_CONNECT6.SYS" DiskId="1" Guid="{ADD6BF4A-631D-4157-8F5A-4D9CEC13CB82}">
+				<File Id="CGROUP_COUNT_CONNECT6.SYS" Name="cgroup_count_connect6.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_count_connect6.sys" />
+			</Component>
+			<Component Id="CGROUP_COUNT_CONNECT6_UM.DLL" DiskId="1" Guid="{8F638443-533A-459F-91D8-BE0788D5E7E6}">
+				<File Id="CGROUP_COUNT_CONNECT6_UM.DLL" Name="cgroup_count_connect6_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_count_connect6_um.dll" />
+			</Component>
+			<Component Id="CGROUP_COUNT_CONNECT6_UM.PDB" DiskId="1" Guid="{510478D0-0F1E-428E-998C-7347470459F6}">
+				<File Id="CGROUP_COUNT_CONNECT6_UM.PDB" Name="cgroup_count_connect6.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_count_connect6_um.pdb" />
+			</Component>
+			<Component Id="CGROUP_MT_CONNECT4.O" DiskId="1" Guid="{BE21906A-A547-42A5-8B24-5690049546C1}">
+				<File Id="CGROUP_MT_CONNECT4.O" Name="cgroup_mt_connect4.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_mt_connect4.o" />
+			</Component>
+			<Component Id="CGROUP_MT_CONNECT4.SYS" DiskId="1" Guid="{9E8935F1-4B11-4F04-956A-547945F67758}">
+				<File Id="CGROUP_MT_CONNECT4.SYS" Name="cgroup_mt_connect4.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_mt_connect4.sys" />
+			</Component>
+			<Component Id="CGROUP_MT_CONNECT4_UM.DLL" DiskId="1" Guid="{459D9477-D7B8-4521-AA35-9CB0336531D8}">
+				<File Id="CGROUP_MT_CONNECT4_UM.DLL" Name="cgroup_mt_connect4_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_mt_connect4_um.dll" />
+			</Component>
+			<Component Id="CGROUP_MT_CONNECT4_UM.PDB" DiskId="1" Guid="{4B4FAAB3-DBFF-411B-94CC-C85FF2FDE633}">
+				<File Id="CGROUP_MT_CONNECT4_UM.PDB" Name="cgroup_mt_connect4.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_mt_connect4_um.pdb" />
+			</Component>
+			<Component Id="CGROUP_MT_CONNECT6.O" DiskId="1" Guid="{E0BC11FC-4A26-4E03-9BAA-75126DB4286F}">
+				<File Id="CGROUP_MT_CONNECT6.O" Name="cgroup_mt_connect6.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_mt_connect6.o" />
+			</Component>
+			<Component Id="CGROUP_MT_CONNECT6.SYS" DiskId="1" Guid="{7868E2CD-1DEE-4022-8584-A7634E6BB3A5}">
+				<File Id="CGROUP_MT_CONNECT6.SYS" Name="cgroup_mt_connect6.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_mt_connect6.sys" />
+			</Component>
+			<Component Id="CGROUP_MT_CONNECT6_UM.DLL" DiskId="1" Guid="{0C5566A3-73DA-4894-8B2F-1281EF6C7B30}">
+				<File Id="CGROUP_MT_CONNECT6_UM.DLL" Name="cgroup_mt_connect6_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_mt_connect6_um.dll" />
+			</Component>
+			<Component Id="CGROUP_MT_CONNECT6_UM.PDB" DiskId="1" Guid="{DE4318D8-6EE3-417D-924D-8B83BB7F2FFB}">
+				<File Id="CGROUP_MT_CONNECT6_UM.PDB" Name="cgroup_mt_connect6.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_mt_connect6_um.pdb" />
+			</Component>
 			<Component Id="CGROUP_SOCK_ADDR.O" DiskId="1" Guid="{6AF0B01D-554F-4918-8D00-AA4104DD5BE0}">
 				<File Id="CGROUP_SOCK_ADDR.O" Name="cgroup_sock_addr.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\cgroup_sock_addr.o" />
 			</Component>
@@ -947,6 +995,18 @@ SPDX-License-Identifier: MIT
 			</Component>
 			<Component Id="XDP_TESTS.PDB" DiskId="1" Guid="{5540AA7D-73F0-418B-995B-8A9C163C3939}">
 				<File Id="XDP_TESTS.PDB" Name="xdp_tests.pdb" Source="$(var.xdp_tests.TargetDir)xdp_tests.pdb" />
+			</Component>
+			<Component Id="EBPF_STRESS_TESTS_KM.EXE" DiskId="1" Guid="{321DF939-A3CE-4FA1-A9E0-980A83C10855}">
+				<File Id="EBPF_STRESS_TESTS_KM.EXE" Name="ebpf_stress_tests_km.exe" Source="$(var.ebpf_stress_tests_km.TargetDir)ebpf_stress_tests_km.exe" />
+			</Component>
+			<Component Id="EBPF_STRESS_TESTS_KM.PDB" DiskId="1" Guid="{47013057-2AE5-4A42-BAE5-BF1D08983F5E}">
+				<File Id="EBPF_STRESS_TESTS_KM.PDB" Name="ebpf_stress_tests_km.pdb" Source="$(var.ebpf_stress_tests_km.TargetDir)ebpf_stress_tests_km.pdb" />
+			</Component>
+			<Component Id="EBPF_STRESS_TESTS_UM.EXE" DiskId="1" Guid="{E156A698-CD2F-49BF-86B0-C0E1AECE51CF}">
+				<File Id="EBPF_STRESS_TESTS_UM.EXE" Name="ebpf_stress_tests_um.exe" Source="$(var.ebpf_stress_tests_um.TargetDir)ebpf_stress_tests_um.exe" />
+			</Component>
+			<Component Id="EBPF_STRESS_TESTS_UM.PDB" DiskId="1" Guid="{C4A2836B-A59E-491D-A6B2-246EFCB622BA}">
+				<File Id="EBPF_STRESS_TESTS_UM.PDB" Name="ebpf_stress_tests_um.pdb" Source="$(var.ebpf_stress_tests_um.TargetDir)ebpf_stress_tests_um.pdb" />
 			</Component>
 		</ComponentGroup>
 

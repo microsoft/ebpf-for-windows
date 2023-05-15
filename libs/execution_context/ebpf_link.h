@@ -17,6 +17,9 @@ extern "C"
     /**
      * @brief Create a new link object.
      *
+     * @param[in] attach_type Attach type to load.
+     * @param[in] context_data Data to be passed to the hook provider.
+     * @param[in] context_data_length Length of the data to be passed to the hook
      * @param[out] link Pointer to memory that will contain the link object
      *  on success.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
@@ -24,25 +27,11 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_link_create(_Outptr_ ebpf_link_t** link);
-
-    /**
-     * @brief Initialize this link object and load the associated hook
-     *  provider if needed.
-     *
-     * @param[in, out] link The link object to initialize.
-     * @param[in] attach_type Attach type to load.
-     * @param[in] context_data Data to be passed to the hook provider.
-     * @param[in] context_data_length Length of the data to be passed to the hook
-     *  provider.
-     * @retval EBPF_SUCCESS The operation was successful.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_link_initialize(
-        _Inout_ ebpf_link_t* link,
+    ebpf_link_create(
         ebpf_attach_type_t attach_type,
         _In_reads_(context_data_length) const uint8_t* context_data,
-        size_t context_data_length);
+        size_t context_data_length,
+        _Outptr_ ebpf_link_t** link);
 
     /**
      * @brief Attach a program to this link object.

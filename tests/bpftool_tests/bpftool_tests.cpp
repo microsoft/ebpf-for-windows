@@ -6,6 +6,7 @@
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "ebpf_api.h"
+#include "native_helper.hpp"
 
 #include <cstdarg>
 #include <filesystem>
@@ -68,7 +69,7 @@ TEST_CASE("prog help", "[prog][help]")
     REQUIRE(result == 0);
 }
 
-TEST_CASE("prog load map_in_map.o", "[prog][load]")
+TEST_CASE("prog load map_in_map", "[prog][load]")
 {
     int result;
     std::string output;
@@ -77,7 +78,10 @@ TEST_CASE("prog load map_in_map.o", "[prog][load]")
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
-    output = run_command("bpftool --legacy prog load map_in_map.o map_in_map", &result);
+    char command[80];
+    sprintf_s(
+        command, sizeof(command), "bpftool --legacy prog load map_in_map%s map_in_map", EBPF_PROGRAM_FILE_EXTENSION);
+    output = run_command(command, &result);
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
@@ -121,8 +125,11 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
 {
     int result;
     std::string output;
+    char command[80];
+    sprintf_s(
+        command, sizeof(command), "bpftool --legacy prog load droppacket%s droppacket", EBPF_PROGRAM_FILE_EXTENSION);
 
-    output = run_command("bpftool --legacy prog load droppacket.o droppacket", &result);
+    output = run_command(command, &result);
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
@@ -204,8 +211,11 @@ TEST_CASE("prog prog run", "[prog][load]")
 {
     int result;
     std::string output;
+    char command[80];
+    sprintf_s(
+        command, sizeof(command), "bpftool --legacy prog load droppacket%s droppacket", EBPF_PROGRAM_FILE_EXTENSION);
 
-    output = run_command("bpftool --legacy prog load droppacket.o droppacket", &result);
+    output = run_command(command, &result);
     REQUIRE(output == "");
     REQUIRE(result == 0);
 

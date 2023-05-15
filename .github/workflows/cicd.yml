@@ -57,6 +57,8 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-native-only
+      build_msi: true
+      build_nuget: true
       build_options: /p:DisableJIT='True' /p:DisableInterpreter='True'
 
   cmake:
@@ -75,7 +77,8 @@ jobs:
     with:
       name: unit_tests
       pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
-      test_command: .\unit_tests.exe -d yes
+      # Exclude [processes] test that CodeCoverage can't work with.
+      test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: true
@@ -146,6 +149,25 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver
       build_artifact: Build-x64
+      environment: ebpf_cicd_tests
+      # driver test copies dumps to testlog folder.
+      gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
+
+  # Run the native-only driver tests on self-hosted runners.
+  driver_native_only:
+    # Always run this job.
+    # Only run this on repos that have self-host runners.
+    needs: regular_native-only
+    if: github.repository == 'microsoft/ebpf-for-windows'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      name: driver
+      build_artifact: Build-x64-native-only
       environment: ebpf_cicd_tests
       # driver test copies dumps to testlog folder.
       gather_dumps: false
@@ -399,7 +421,41 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
-      test_command: .\ebpf_stress_tests_um -jtt=32 -jtd=300
+      test_command: .\ebpf_stress_tests_um -tt=32 -td=10
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      leak_detection: false
+      gather_dumps: true
+      capture_etw: true
+
+  # Run multi-threaded stress tests against the kernel mode eBPF sub-system.
+  # The '-td' parameter specifies the run time per test, so the total run-time will be a multiple of the total number
+  # of tests, as each test is run sequentially.
+  kernel_mode_multi_threaded_stress_test:
+    needs: regular
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: kernel_mode_multi_threaded_stress
+      test_command: .\ebpf_stress_tests_km -tt=32 -td=10
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      leak_detection: false
+      gather_dumps: true
+      capture_etw: true
+
+  # Run multi-threaded stress tests against the kernel mode eBPF sub-system with extension restart enabled.
+  # The '-td' parameter specifies the run time per test, so the total run-time will be a multiple of the total number
+  # of tests, as each test is run sequentially.
+  kernel_mode_multi_threaded_stress_extension_restart_test:
+    needs: regular
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: kernel_mode_multi_threaded_stress_extension_restart
+      test_command: .\ebpf_stress_tests_km -tt=32 -td=10 -er=true -erd=250
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false

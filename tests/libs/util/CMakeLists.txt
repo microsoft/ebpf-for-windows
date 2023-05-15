@@ -10,6 +10,9 @@ add_library("test_util" STATIC
   ioctl_helper.h
   ioctl_helper.cpp
 
+  native_helper.hpp
+  native_helper.cpp
+
   netsh_helper.cpp
 
   program_helper.h

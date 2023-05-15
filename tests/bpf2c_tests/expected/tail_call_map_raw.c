@@ -117,7 +117,7 @@ caller(void* context)
     if ((caller_helpers[0].tail_call) && (r0 == 0))
 #line 32 "sample/tail_call_map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r6 offset=0 imm=0
 #line 34 "sample/tail_call_map.c"
     r1 = r6;
     // EBPF_OP_MOV64_REG pc=9 dst=r2 src=r0 offset=0 imm=0
@@ -135,7 +135,7 @@ caller(void* context)
     if ((caller_helpers[1].tail_call) && (r0 == 0))
 #line 34 "sample/tail_call_map.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=6
+    // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=6
 #line 37 "sample/tail_call_map.c"
     r0 = IMMEDIATE(6);
     // EBPF_OP_EXIT pc=13 dst=r0 src=r0 offset=0 imm=0
@@ -224,7 +224,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

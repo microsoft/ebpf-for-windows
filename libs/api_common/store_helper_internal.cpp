@@ -18,11 +18,11 @@ _open_ebpf_store_key(_Out_ ebpf_registry_key_t* store_key)
     // Open root registry path.
     *store_key = nullptr;
 
-    // First try to open the HKLM registry key.
-    uint32_t result = open_registry_key(root_registry_key_local_machine, EBPF_STORE_REGISTRY_PATH, KEY_READ, store_key);
+    // First try to open the HKCU registry key.
+    uint32_t result = open_registry_key(root_registry_key_current_user, EBPF_STORE_REGISTRY_PATH, KEY_READ, store_key);
     if (result != ERROR_SUCCESS) {
-        // Failed to open ebpf store path in HKLM. Fall back to HKCU.
-        result = open_registry_key(root_registry_key_current_user, EBPF_STORE_REGISTRY_PATH, KEY_READ, store_key);
+        // Failed to open ebpf store path in HKCU. Fall back to HKLM.
+        result = open_registry_key(root_registry_key_local_machine, EBPF_STORE_REGISTRY_PATH, KEY_READ, store_key);
     }
 
     return result;

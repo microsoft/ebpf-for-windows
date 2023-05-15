@@ -73,9 +73,18 @@ jobs:
       with:
         submodules: 'recursive'
 
+    - name: Configure Windows Error Reporting to make a local copy of any crashes that occur.
+      id: configure_windows_error_reporting
+      if: steps.skip_check.outputs.should_skip != 'true'
+      run: |
+        mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
+        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
+        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}" -PropertyType ExpandString -ErrorAction SilentlyContinue
+
     - name: Initialize CodeQL
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/init@7df0ce34898d659f95c0c4a09eaa8d4e32ee64db
+      uses: github/codeql-action/init@29b1f65c5e92e24fe6b6647da1eaabe529cec70f
       with:
         languages: 'cpp'
 
@@ -182,13 +191,13 @@ jobs:
         tar -xf ..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
 
     - name: Zip Build Output
-      if: steps.skip_check.outputs.should_skip != 'true'
+      if: always() && (steps.skip_check.outputs.should_skip != 'true')
       working-directory: ${{github.workspace}}
       run: |
         Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{ matrix.configurations }}.zip
 
     - name: Upload Build Output
-      if: steps.skip_check.outputs.should_skip != 'true'
+      if: always() && (steps.skip_check.outputs.should_skip != 'true')
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{inputs.build_artifact}}-${{matrix.configurations}}
@@ -212,8 +221,38 @@ jobs:
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ebpf-for-windows - NuGet package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
-        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.nupkg
+        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows.*.nupkg
+
+    - name: Build the NuGet Redist package
+      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\redist-package
+
+    - name: Upload the NuGet Redist package
+      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      with:
+        name: ebpf-for-windows - NuGet Redist package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
+        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows-Redist.*.nupkg
+
+    - name: Check for crash dumps
+      # Check for crash dumps even if the workflow failed.
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
+      uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
+      id: check_dumps
+      with:
+        files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
+
+    - name: Upload any crash dumps
+      # Upload crash dumps even if the workflow failed.
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true')
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      id: upload_crash_dumps
+      with:
+        name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
+        path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        retention-days: 5
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/analyze@7df0ce34898d659f95c0c4a09eaa8d4e32ee64db
+      uses: github/codeql-action/analyze@29b1f65c5e92e24fe6b6647da1eaabe529cec70f

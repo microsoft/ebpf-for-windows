@@ -60,29 +60,33 @@ BEGIN
 \n                   [[interface=]<string>]\
 \n                   [[pinned=]none|first|all]\
 \n                   [[execution=]jit|interpret]\
+\n                   [[compartment=]<integer>\
 \n\
 \nParameters:\
 \n\
-\n      Tag         Value\
-\n      filename  - Filename or path to ELF file containing the\
-\n                  program.\
-\n      type      - A string used as if it were a section name, to\
-\n                  determine the program type and expected attach\
-\n                  type.\
-\n      pinpath   - Optionally the name to pin the program to.\
-\n      interface - Optionally the friendly name or index of a\
-\n                  network interface to which an XDP program should be attached.\
-\n                  If the interface is not specified (or index is set to 0),\
-\n                  the XDP program is attached to all network interfaces.\
-\n                  The command fails if this parameter is specified for program types\
-\n                  other than XDP.\
-\n      pinned    - One of the following values:\
-\n                   none: Load all programs without pinning any.\
+\n      Tag           Value\
+\n      filename    - Filename or path to ELF file containing the\
+\n                    program.\
+\n      type        - A string used as if it were a section name, to\
+\n                    determine the program type and expected attach\
+\n                    type.\
+\n      pinpath     - Optionally the name to pin the program to.\
+\n      interface   - Optionally the friendly name or index of a\
+\n                    network interface to which an XDP program should be attached.\
+\n                    If the interface is not specified (or index is set to 0),\
+\n                    the XDP program is attached to all network interfaces.\
+\n                    The command fails if this parameter is specified for program types\
+\n                    other than XDP.\
+\n      compartment - Optionally the ID of a network compartment to which a program\
+\n                    should be attached. The command fails if this parameter is\
+\n                    specified for program types other than CGROUP_SOCK_ADDR.\
+\n      pinned      - One of the following values:\
+\n                     none: Load all programs without pinning any.\
 \n                   first: Pin the first program in the file.\
-\n                   all: Pin all programs in the file.\
-\n      execution - One of the following values:\
-\n                   jit: Convert the program to machine code.\
-\n                   interpret: Run the program as byte code.\
+\n                     all: Pin all programs in the file.\
+\n      execution   - One of the following values:\
+\n                     jit: Convert the program to machine code.\
+\n                     interpret: Run the program as byte code.\
 \n\
 \nRemarks: Loads programs from a file and pins them if requested.\
 \n"
@@ -247,6 +251,14 @@ BEGIN
 \n\
 \nRemarks: Shows pinned program paths.\
 \n"
+
+    HLP_EBPF_SHOW_PROCESSES  "Shows processes using eBPF.\n"
+    HLP_EBPF_SHOW_PROCESSES_EX "\
+\nUsage: %1!s!\
+\n\
+\nRemarks: Shows processes using eBPF.\
+\n"
+
 
 
 END

@@ -13,6 +13,10 @@
 #include <string>
 #include <vector>
 
+// The CNG algorithm name to use must be listed in
+// https://learn.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers
+#define EBPF_HASH_ALGORITHM "SHA256"
+
 class bpf_code_generator
 {
   public:
@@ -219,13 +223,15 @@ class bpf_code_generator
      * @param[in] program_type Program type GUID for the section.
      * @param[in] attach_type Expected attach type GUID for the section.
      * @param[in] program_info_hash Optional bytes containing hash of the program info.
+     * @param[in] program_info_hash_type Optional bytes containing hash type of the program info.
      */
     void
     parse(
         const unsafe_string& section_name,
         const GUID& program_type,
         const GUID& attach_type,
-        const std::optional<std::vector<uint8_t>>& program_info_hash);
+        const std::optional<std::vector<uint8_t>>& program_info_hash,
+        const std::string& program_info_hash_type);
 
     /**
      * @brief Parse global data (currently map information) in the eBPF file.
@@ -285,6 +291,7 @@ class bpf_code_generator
         // Indices of the maps used in this section.
         std::set<size_t> referenced_map_indices;
         std::map<unsafe_string, helper_function_t> helper_functions;
+        std::string program_info_hash_type{};
     } section_t;
 
     typedef struct _line_info
@@ -314,7 +321,8 @@ class bpf_code_generator
     set_program_and_attach_type_and_hash(
         const GUID& program_type,
         const GUID& attach_type,
-        const std::optional<std::vector<uint8_t>>& program_info_hash);
+        const std::optional<std::vector<uint8_t>>& program_info_hash,
+        const std::string& program_info_hash_type);
 
     /**
      * @brief Extract the helper function and map relocation data from the eBPF file.
@@ -389,7 +397,7 @@ class bpf_code_generator
     bool
     is_section_valid(const ELFIO::section* section);
 
-    int pe_section_name_counter;
+    int pe_section_name_counter{};
     std::map<unsafe_string, section_t> sections;
     section_t* current_section;
     ELFIO::elfio reader;

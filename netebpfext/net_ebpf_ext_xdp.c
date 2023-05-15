@@ -406,11 +406,7 @@ Exit:
         ExFreePool(packet_buffer);
     }
 
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
-    }
-
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 static void
@@ -528,11 +524,7 @@ _net_ebpf_ext_receive_inject_cloned_nbl(
     }
 
 Exit:
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
-    }
-
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 static void
@@ -664,7 +656,7 @@ net_ebpf_ext_layer_2_classify(
     }
 
     if (nbl == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Null NBL");
+        NET_EBPF_EXT_LOG_MESSAGE(NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "Null NBL");
         goto Done;
     }
 
@@ -683,7 +675,7 @@ net_ebpf_ext_layer_2_classify(
     net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
     if (net_buffer == NULL) {
         NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "net_buffer not present");
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "net_buffer not present");
 
         // nothing to do
         goto Done;
@@ -792,7 +784,7 @@ _ebpf_xdp_context_create(
     // Context is optional.
     if (data_in == NULL || data_size_in == 0) {
         NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Data is required");
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "Data is required");
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -870,7 +862,7 @@ _ebpf_xdp_context_delete(
     net_ebpf_xdp_md_t* xdp_context = (net_ebpf_xdp_md_t*)context;
 
     // Copy the packet data to the output buffer.
-    if (data_out != NULL && data_size_out != NULL) {
+    if (data_out != NULL && data_size_out != NULL && xdp_context->base.data != NULL) {
         size_t data_size = *data_size_out;
         size_t xdp_data_size = (char*)(xdp_context->base.data_end) - (char*)(xdp_context->base.data);
         if (data_size > xdp_data_size) {
@@ -906,5 +898,5 @@ _ebpf_xdp_context_delete(
     }
 
     ExFreePool(xdp_context);
-    NET_EBPF_EXT_LOG_FUNCTION_SUCCESS();
+    NET_EBPF_EXT_LOG_EXIT();
 }

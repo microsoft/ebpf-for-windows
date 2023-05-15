@@ -795,6 +795,24 @@ extern "C"
      * @return Returns the original value of memory pointed to by
      *  destination.
      */
+    int64_t
+    ebpf_interlocked_compare_exchange_int64(_Inout_ volatile int64_t* destination, int64_t exchange, int64_t comparand);
+
+    /**
+     * @brief Performs an atomic operation that compares the input value pointed
+     *  to by destination with the value of comparand and replaces it with
+     *  exchange.
+     *
+     * @param[in, out] destination A pointer to the input value that is compared
+     *  with the value of comparand.
+     * @param[in] exchange Specifies the output value pointed to by destination
+     *  if the input value pointed to by destination equals the value of
+     *  comparand.
+     * @param[in] comparand Specifies the value that is compared with the input
+     *  value pointed to by destination.
+     * @return Returns the original value of memory pointed to by
+     *  destination.
+     */
     void*
     ebpf_interlocked_compare_exchange_pointer(
         _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comparand);
@@ -1184,14 +1202,16 @@ extern "C"
     /**
      * @brief Create a cryptographic hash object.
      *
-     * @param[in] algorithm The algorithm to use. Recommended values are "SHA256".
+     * @param[in] algorithm The algorithm to use. Recommended value is "SHA256".
+     *  The CNG algorithm name to use is listed in
+     *  https://learn.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers
      * @param[out] hash The hash object.
      * @return EBPF_SUCCESS The hash object was created.
      * @return EBPF_NO_MEMORY Unable to allocate memory for the hash object.
      * @return EBPF_INVALID_ARGUMENT The algorithm is not supported.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_cryptographic_hash_create(_In_z_ const wchar_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash);
+    ebpf_cryptographic_hash_create(_In_ const ebpf_utf8_string_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash);
 
     /**
      * @brief Destroy a cryptographic hash object.
@@ -1325,6 +1345,18 @@ extern "C"
      */
     void
     ebpf_leave_critical_region();
+
+    /**
+     * @brief Convert the provided UTF-8 string into a UTF-16LE string.
+     *
+     * @param[in] input UTF-8 string to convert.
+     * @param[out] output Converted UTF-16LE string.
+     * @retval EBPF_SUCCESS The conversion was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for the conversion.
+     * @retval EBPF_INVALID_ARGUMENT Unable to convert the string.
+     */
+    ebpf_result_t
+    ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output);
 
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"

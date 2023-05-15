@@ -138,7 +138,7 @@ caller(void* context)
     if ((caller_helpers[0].tail_call) && (r0 == 0))
 #line 27 "sample/tail_call_bad.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=6 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=6 dst=r6 src=r0 offset=0 imm=0
 #line 27 "sample/tail_call_bad.c"
     r6 = r0;
     // EBPF_OP_MOV64_REG pc=7 dst=r2 src=r10 offset=0 imm=0
@@ -159,12 +159,12 @@ caller(void* context)
     if ((caller_helpers[1].tail_call) && (r0 == 0))
 #line 29 "sample/tail_call_bad.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=12 dst=r0 src=r0 offset=2 imm=0
+    // EBPF_OP_JEQ_IMM pc=12 dst=r0 src=r0 offset=2 imm=0
 #line 30 "sample/tail_call_bad.c"
     if (r0 == IMMEDIATE(0))
 #line 30 "sample/tail_call_bad.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=13 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=13 dst=r1 src=r0 offset=0 imm=1
 #line 30 "sample/tail_call_bad.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXW pc=14 dst=r0 src=r1 offset=0 imm=0
@@ -260,7 +260,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

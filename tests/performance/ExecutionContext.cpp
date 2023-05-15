@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define EBPF_FILE_ID EBPF_FILE_ID_PERFORMANCE_TESTS
+
 #define TEST_AREA "ExecutionContext"
 
 #include "performance.h"
@@ -26,13 +28,11 @@ typedef class _ebpf_program_test_state
         // ebpf_core_initiate() since that initializes the interface GUID.
         program_info_provider = new _program_info_provider(EBPF_PROGRAM_TYPE_XDP);
 
-        REQUIRE(ebpf_program_create(&program) == EBPF_SUCCESS);
-
-        REQUIRE(ebpf_program_initialize(program, &parameters) == EBPF_SUCCESS);
+        REQUIRE(ebpf_program_create(&parameters, &program) == EBPF_SUCCESS);
     }
     ~_ebpf_program_test_state()
     {
-        ebpf_object_release_reference(reinterpret_cast<ebpf_core_object_t*>(program));
+        EBPF_OBJECT_RELEASE_REFERENCE(reinterpret_cast<ebpf_core_object_t*>(program));
         delete program_info_provider;
         ebpf_core_terminate();
     }
@@ -111,7 +111,7 @@ typedef class _ebpf_map_test_state
     }
     ~_ebpf_map_test_state()
     {
-        ebpf_object_release_reference((ebpf_core_object_t*)map);
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
         ebpf_core_terminate();
     }
 
@@ -257,7 +257,7 @@ typedef class _ebpf_map_lpm_trie_test_state
 
     ~_ebpf_map_lpm_trie_test_state()
     {
-        ebpf_object_release_reference((ebpf_core_object_t*)map);
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
         ebpf_core_terminate();
     }
 

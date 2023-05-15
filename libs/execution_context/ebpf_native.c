@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define EBPF_FILE_ID EBPF_FILE_ID_NATIVE
+
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
 #include "ebpf_native.h"
@@ -54,6 +56,20 @@ typedef enum _ebpf_native_module_state
     MODULE_STATE_UNLOADING,
 } ebpf_native_module_state_t;
 
+typedef struct _ebpf_native_handle_cleanup_information
+{
+    size_t count_of_program_handles;
+    ebpf_handle_t* program_handles;
+    size_t count_of_map_handles;
+    ebpf_handle_t* map_handles;
+} ebpf_native_handle_cleanup_info_t;
+
+typedef struct _ebpf_native_handle_cleanup_context
+{
+    ebpf_native_handle_cleanup_info_t* handle_information;
+    ebpf_preemptible_work_item_t* handle_cleanup_work_item;
+} ebpf_native_handle_cleanup_context_t;
+
 typedef struct _ebpf_native_module
 {
     ebpf_base_object_t base;
@@ -69,7 +85,8 @@ typedef struct _ebpf_native_module
     size_t program_count;
     HANDLE nmr_binding_handle;
     ebpf_list_entry_t list_entry;
-    ebpf_preemptible_work_item_t* cleanup_workitem;
+    ebpf_preemptible_work_item_t* cleanup_work_item;
+    ebpf_native_handle_cleanup_context_t handle_cleanup_context;
 } ebpf_native_module_t;
 
 static GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -152,7 +169,8 @@ _ebpf_native_is_map_in_map(_In_ const ebpf_native_map_t* map)
 }
 
 static void
-_ebpf_native_clean_up_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* maps, size_t map_count, bool unpin)
+_ebpf_native_clean_up_maps(
+    _In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* maps, size_t map_count, bool unpin, bool close_handles)
 {
     for (uint32_t count = 0; count < map_count; count++) {
         ebpf_native_map_t* map = &maps[count];
@@ -170,8 +188,9 @@ _ebpf_native_clean_up_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* 
             ebpf_free(map->pin_path.value);
 #pragma warning(pop)
         }
-        if (map->handle != ebpf_handle_invalid) {
+        if (close_handles && map->handle != ebpf_handle_invalid) {
             ebpf_assert_success(ebpf_handle_close(map->handle));
+            map->handle = ebpf_handle_invalid;
         }
     }
 
@@ -179,16 +198,20 @@ _ebpf_native_clean_up_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* 
 }
 
 static void
-_ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program_t* programs, size_t count_of_programs)
+_ebpf_native_clean_up_programs(
+    _In_reads_(count_of_programs) ebpf_native_program_t* programs, size_t count_of_programs, bool close_handles)
 {
     for (uint32_t i = 0; i < count_of_programs; i++) {
         if (programs[i].handle != ebpf_handle_invalid) {
             ebpf_program_t* program_object = NULL;
-            ebpf_assert_success(ebpf_object_reference_by_handle(
+            ebpf_assert_success(EBPF_OBJECT_REFERENCE_BY_HANDLE(
                 programs[i].handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program_object));
             ebpf_assert_success(ebpf_program_register_for_helper_changes(program_object, NULL, NULL));
-            ebpf_object_release_reference((ebpf_core_object_t*)program_object);
-            ebpf_assert_success(ebpf_handle_close(programs[i].handle));
+            EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program_object);
+            if (close_handles) {
+                ebpf_assert_success(ebpf_handle_close(programs[i].handle));
+                programs[i].handle = ebpf_handle_invalid;
+            }
         }
         ebpf_free(programs[i].addresses_changed_callback_context);
         programs[i].addresses_changed_callback_context = NULL;
@@ -200,8 +223,8 @@ _ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program
 static void
 _ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
 {
-    _ebpf_native_clean_up_maps(module->maps, module->map_count, false);
-    _ebpf_native_clean_up_programs(module->programs, module->program_count);
+    _ebpf_native_clean_up_maps(module->maps, module->map_count, false, true);
+    _ebpf_native_clean_up_programs(module->programs, module->program_count, true);
 
     module->maps = NULL;
     module->map_count = 0;
@@ -210,7 +233,7 @@ _ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
 
     // Note: Do not free module->service_name here explicitly.
     // It will be freed automatically when workitem is freed.
-    ebpf_free_preemptible_work_item(module->cleanup_workitem);
+    ebpf_free_preemptible_work_item(module->cleanup_work_item);
 
     ebpf_lock_destroy(&module->lock);
 
@@ -236,8 +259,8 @@ _Requires_lock_held_(module->lock) static ebpf_result_t _ebpf_native_unload(_Ino
     module->state = MODULE_STATE_UNLOADING;
 
     // Queue pre-allocated work item to unload the driver.
-    work_item = module->cleanup_workitem;
-    module->cleanup_workitem = NULL;
+    work_item = module->cleanup_work_item;
+    module->cleanup_work_item = NULL;
     module->service_name = NULL;
 
     ebpf_queue_preemptible_work_item(work_item);
@@ -246,15 +269,26 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-void
-ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
+_Requires_exclusive_lock_held_(module->lock) static void _ebpf_native_acquire_reference_under_lock(
+    _Inout_ ebpf_native_module_t* module)
 {
     ebpf_assert(module->base.marker == _ebpf_native_marker);
 
-    int64_t new_ref_count = ebpf_interlocked_increment_int64(&module->base.reference_count);
-    if (new_ref_count == 1) {
+    if (module->base.reference_count != 0) {
+        module->base.reference_count++;
+    } else {
         __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     }
+}
+
+void
+ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
+{
+    ebpf_lock_state_t state = 0;
+
+    state = ebpf_lock_lock(&module->lock);
+    _ebpf_native_acquire_reference_under_lock(module);
+    ebpf_lock_unlock(&module->lock, state);
 }
 
 void
@@ -262,6 +296,7 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
 {
     int64_t new_ref_count;
     ebpf_lock_state_t module_lock_state = 0;
+    bool lock_acquired = false;
 
     if (!module) {
         EBPF_RETURN_VOID();
@@ -269,7 +304,10 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
 
     ebpf_assert(module->base.marker == _ebpf_native_marker);
 
-    new_ref_count = ebpf_interlocked_decrement_int64(&module->base.reference_count);
+    module_lock_state = ebpf_lock_lock(&module->lock);
+    lock_acquired = true;
+
+    new_ref_count = --module->base.reference_count;
     if (new_ref_count < 0) {
         __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     }
@@ -277,7 +315,6 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
     if (new_ref_count == 1) {
         // Check if all the program references have been released. If that
         // is the case, explicitly unload the driver, if it is safe to do so.
-        module_lock_state = ebpf_lock_lock(&module->lock);
         if (!module->detaching) {
             // If the module is not yet marked as detaching, and reference
             // count is 1, it means all the program references have been
@@ -291,7 +328,11 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
             ebpf_assert_success(_ebpf_native_unload(module));
         }
         ebpf_lock_unlock(&module->lock, module_lock_state);
+        lock_acquired = false;
     } else if (new_ref_count == 0) {
+        ebpf_lock_unlock(&module->lock, module_lock_state);
+        lock_acquired = false;
+
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
         // Delete entry from hash table.
         ebpf_assert_success(
@@ -309,6 +350,10 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
 
         // Clean up the native module.
         _ebpf_native_clean_up_module(module);
+    }
+
+    if (lock_acquired) {
+        ebpf_lock_unlock(&module->lock, module_lock_state);
     }
 
     EBPF_RETURN_VOID();
@@ -332,6 +377,23 @@ ebpf_native_terminate()
     ebpf_lock_destroy(&_ebpf_native_client_table_lock);
 
     EBPF_RETURN_VOID();
+}
+
+void
+ebpf_object_update_reference_history(void* object, bool acquire, uint32_t file_id, uint32_t line);
+
+static void
+_ebpf_native_acquire_reference_internal(void* base_object, ebpf_file_id_t file_id, uint32_t line)
+{
+    ebpf_object_update_reference_history(base_object, true, file_id, line);
+    ebpf_native_acquire_reference(base_object);
+}
+
+static void
+_ebpf_native_release_reference_internal(void* base_object, ebpf_file_id_t file_id, uint32_t line)
+{
+    ebpf_object_update_reference_history(base_object, false, file_id, line);
+    ebpf_native_release_reference(base_object);
 }
 
 static NTSTATUS
@@ -395,8 +457,8 @@ _ebpf_native_provider_attach_client_callback(
 
     ebpf_lock_create(&client_context->lock);
     client_context->base.marker = _ebpf_native_marker;
-    client_context->base.acquire_reference = ebpf_native_acquire_reference;
-    client_context->base.release_reference = ebpf_native_release_reference;
+    client_context->base.acquire_reference = _ebpf_native_acquire_reference_internal;
+    client_context->base.release_reference = _ebpf_native_release_reference_internal;
     // Acquire "attach" reference. Released when detach is called for this module.
     client_context->base.reference_count = 1;
     client_context->client_module_id = *client_module_id;
@@ -659,7 +721,7 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
     ebpf_core_object_t* object;
     ebpf_handle_t inner_map_handle = ebpf_handle_invalid;
     uint16_t info_size = (uint16_t)sizeof(info);
-    ebpf_result_t result = ebpf_object_reference_by_handle(original_map_handle, EBPF_OBJECT_MAP, &object);
+    ebpf_result_t result = EBPF_OBJECT_REFERENCE_BY_HANDLE(original_map_handle, EBPF_OBJECT_MAP, &object);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -700,7 +762,7 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
     }
 
 Exit:
-    ebpf_object_release_reference(object);
+    EBPF_OBJECT_RELEASE_REFERENCE(object);
     EBPF_RETURN_RESULT(result);
 }
 
@@ -826,7 +888,11 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
 
 Done:
     if (result != EBPF_SUCCESS) {
-        _ebpf_native_clean_up_maps(module->maps, module->map_count, true);
+        // Copy the handles in the cleanup context.
+        for (size_t i = 0; i < module->map_count; i++) {
+            module->handle_cleanup_context.handle_information->map_handles[i] = module->maps[i].handle;
+        }
+        _ebpf_native_clean_up_maps(module->maps, module->map_count, true, false);
         module->maps = NULL;
         module->map_count = 0;
     }
@@ -1002,8 +1068,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
     size_t program_count = 0;
     size_t program_name_length = 0;
     size_t section_name_length = 0;
+    size_t hash_type_length = 0;
     uint8_t* program_name = NULL;
     uint8_t* section_name = NULL;
+    uint8_t* hash_type_name = NULL;
 
     // Get the programs.
     module->table->programs(&programs, &program_count);
@@ -1030,8 +1098,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
         program_name_length = strnlen_s(program->program_name, BPF_OBJ_NAME_LEN);
         section_name_length = strnlen_s(program->section_name, BPF_OBJ_NAME_LEN);
+        hash_type_length = strnlen_s(program->program_info_hash_type, BPF_OBJ_NAME_LEN);
+
         if (program_name_length == 0 || program_name_length >= BPF_OBJ_NAME_LEN || section_name_length == 0 ||
-            section_name_length >= BPF_OBJ_NAME_LEN) {
+            section_name_length >= BPF_OBJ_NAME_LEN || hash_type_length == 0 || hash_type_length >= BPF_OBJ_NAME_LEN) {
             result = EBPF_INVALID_ARGUMENT;
             break;
         }
@@ -1064,6 +1134,15 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
         parameters.program_info_hash = program->program_info_hash;
         parameters.program_info_hash_length = program->program_info_hash_length;
 
+        hash_type_name = ebpf_allocate_with_tag(hash_type_length, EBPF_POOL_TAG_NATIVE);
+        if (hash_type_name == NULL) {
+            result = EBPF_NO_MEMORY;
+            break;
+        }
+        memcpy(hash_type_name, program->program_info_hash_type, hash_type_length);
+        parameters.program_info_hash_type.value = hash_type_name;
+        parameters.program_info_hash_type.length = hash_type_length;
+
         result = ebpf_program_create_and_initialize(&parameters, &native_program->handle);
         if (result != EBPF_SUCCESS) {
             break;
@@ -1071,8 +1150,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
         ebpf_free(program_name);
         ebpf_free(section_name);
+        ebpf_free(hash_type_name);
         program_name = NULL;
         section_name = NULL;
+        hash_type_name = NULL;
 
         // Load machine code.
         result = ebpf_core_load_code(
@@ -1101,7 +1182,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
         context->native_program = native_program;
 
         ebpf_program_t* program_object = NULL;
-        result = ebpf_object_reference_by_handle(
+        result = EBPF_OBJECT_REFERENCE_BY_HANDLE(
             native_program->handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program_object);
         if (result != EBPF_SUCCESS) {
             ebpf_free(context);
@@ -1110,7 +1191,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
         result = ebpf_program_register_for_helper_changes(program_object, _ebpf_native_helper_address_changed, context);
 
-        ebpf_object_release_reference((ebpf_core_object_t*)program_object);
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program_object);
 
         if (result != EBPF_SUCCESS) {
             ebpf_free(context);
@@ -1127,13 +1208,18 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
     }
 
     if (result != EBPF_SUCCESS) {
-        _ebpf_native_clean_up_programs(module->programs, module->program_count);
+        // Copy the handles in the cleanup context.
+        for (size_t i = 0; i < module->program_count; i++) {
+            module->handle_cleanup_context.handle_information->program_handles[i] = module->programs[i].handle;
+        }
+        _ebpf_native_clean_up_programs(module->programs, module->program_count, false);
         module->programs = NULL;
         module->program_count = 0;
     }
 
     ebpf_free(program_name);
     ebpf_free(section_name);
+    ebpf_free(hash_type_name);
     return result;
 }
 
@@ -1157,6 +1243,104 @@ _ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
     return count_of_programs;
 }
 
+static void
+_ebpf_native_close_handles_work_item(_In_opt_ const void* context)
+{
+    if (context == NULL) {
+        return;
+    }
+
+    ebpf_native_handle_cleanup_info_t* handle_info = (ebpf_native_handle_cleanup_info_t*)context;
+    for (uint32_t i = 0; i < handle_info->count_of_program_handles; i++) {
+        if (handle_info->program_handles[i] != ebpf_handle_invalid) {
+            (void)ebpf_handle_close(handle_info->program_handles[i]);
+            handle_info->program_handles[i] = ebpf_handle_invalid;
+        }
+    }
+    for (uint32_t i = 0; i < handle_info->count_of_map_handles; i++) {
+        if (handle_info->map_handles[i] != ebpf_handle_invalid) {
+            (void)ebpf_handle_close(handle_info->map_handles[i]);
+            handle_info->map_handles[i] = ebpf_handle_invalid;
+        }
+    }
+
+    ebpf_free(handle_info->program_handles);
+    ebpf_free(handle_info->map_handles);
+}
+
+static void
+_ebpf_native_clean_up_handle_cleanup_context(_Inout_ ebpf_native_handle_cleanup_context_t* cleanup_context)
+{
+    if (cleanup_context == NULL) {
+        return;
+    }
+
+    if (cleanup_context->handle_information != NULL) {
+        ebpf_free(cleanup_context->handle_information->map_handles);
+        ebpf_free(cleanup_context->handle_information->program_handles);
+    }
+
+    if (cleanup_context->handle_cleanup_work_item != NULL) {
+        // ebpf_free_preemptible_work_item() will free the handle_information.
+        ebpf_free_preemptible_work_item(cleanup_context->handle_cleanup_work_item);
+
+    } else {
+        ebpf_free(cleanup_context->handle_information);
+    }
+}
+
+static ebpf_result_t
+_ebpf_native_initialize_handle_cleanup_context(
+    size_t program_handle_count, size_t map_handle_count, _Inout_ ebpf_native_handle_cleanup_context_t* cleanup_context)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    memset(cleanup_context, 0, sizeof(ebpf_native_handle_cleanup_context_t));
+
+    cleanup_context->handle_information =
+        (ebpf_native_handle_cleanup_info_t*)ebpf_allocate(sizeof(ebpf_native_handle_cleanup_info_t));
+    if (cleanup_context->handle_information == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    if (map_handle_count > 0) {
+        cleanup_context->handle_information->map_handles =
+            (ebpf_handle_t*)ebpf_allocate(sizeof(ebpf_handle_t) * map_handle_count);
+        if (cleanup_context->handle_information->map_handles == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+    }
+    cleanup_context->handle_information->count_of_map_handles = map_handle_count;
+
+    cleanup_context->handle_information->program_handles =
+        (ebpf_handle_t*)ebpf_allocate(sizeof(ebpf_handle_t) * program_handle_count);
+    if (cleanup_context->handle_information->program_handles == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+    cleanup_context->handle_information->count_of_program_handles = program_handle_count;
+
+    for (size_t i = 0; i < map_handle_count; i++) {
+        cleanup_context->handle_information->map_handles[i] = ebpf_handle_invalid;
+    }
+    for (size_t i = 0; i < program_handle_count; i++) {
+        cleanup_context->handle_information->program_handles[i] = ebpf_handle_invalid;
+    }
+
+    result = ebpf_allocate_preemptible_work_item(
+        &cleanup_context->handle_cleanup_work_item,
+        _ebpf_native_close_handles_work_item,
+        cleanup_context->handle_information);
+
+Done:
+    if (result != EBPF_SUCCESS) {
+        _ebpf_native_clean_up_handle_cleanup_context(cleanup_context);
+    }
+    return result;
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_native_load(
     _In_reads_(service_name_length) const wchar_t* service_name,
@@ -1174,8 +1358,8 @@ ebpf_native_load(
     ebpf_native_module_t* module = NULL;
     ebpf_native_module_t** existing_module = NULL;
     wchar_t* local_service_name = NULL;
-    ebpf_handle_t local_module_hande = ebpf_handle_invalid;
-    ebpf_preemptible_work_item_t* cleanup_workitem = NULL;
+    ebpf_handle_t local_module_handle = ebpf_handle_invalid;
+    ebpf_preemptible_work_item_t* cleanup_work_item = NULL;
 
     local_service_name = ebpf_allocate_with_tag((size_t)service_name_length + 2, EBPF_POOL_TAG_NATIVE);
     if (local_service_name == NULL) {
@@ -1184,7 +1368,7 @@ ebpf_native_load(
     }
     memcpy(local_service_name, (uint8_t*)service_name, service_name_length);
 
-    result = ebpf_allocate_preemptible_work_item(&cleanup_workitem, _ebpf_native_unload_work_item, local_service_name);
+    result = ebpf_allocate_preemptible_work_item(&cleanup_work_item, _ebpf_native_unload_work_item, local_service_name);
     if (result != EBPF_SUCCESS) {
         ebpf_free(local_service_name);
         goto Done;
@@ -1240,8 +1424,9 @@ ebpf_native_load(
     module->state = MODULE_STATE_INITIALIZING;
     ebpf_lock_unlock(&module->lock, state);
 
-    // Create handle for the native module.
-    result = ebpf_handle_create(&local_module_hande, (ebpf_base_object_t*)module);
+    // Create handle for the native module. This should be the last step in initialization which can fail.
+    // Else, we can have a case where the same thread enters epoch recursively.
+    result = ebpf_handle_create(&local_module_handle, (ebpf_base_object_t*)module);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -1254,17 +1439,18 @@ ebpf_native_load(
     state = ebpf_lock_lock(&module->lock);
     module->state = MODULE_STATE_INITIALIZED;
     module->service_name = local_service_name;
-    module->cleanup_workitem = cleanup_workitem;
+    module->cleanup_work_item = cleanup_work_item;
 
-    cleanup_workitem = NULL;
+    cleanup_work_item = NULL;
+    local_service_name = NULL;
 
     ebpf_lock_unlock(&module->lock, state);
 
     // Get map and program count;
     *count_of_maps = _ebpf_native_get_count_of_maps(module);
     *count_of_programs = _ebpf_native_get_count_of_programs(module);
-    *module_handle = local_module_hande;
-    local_module_hande = ebpf_handle_invalid;
+    *module_handle = local_module_handle;
+    local_module_handle = ebpf_handle_invalid;
 
 Done:
     if (table_lock_acquired) {
@@ -1272,10 +1458,10 @@ Done:
         table_lock_acquired = false;
     }
     if (result != EBPF_SUCCESS) {
-        ebpf_free_preemptible_work_item(cleanup_workitem);
+        ebpf_free_preemptible_work_item(cleanup_work_item);
     }
-    if (local_module_hande != ebpf_handle_invalid) {
-        ebpf_assert_success(ebpf_handle_close(local_module_hande));
+    if (local_module_handle != ebpf_handle_invalid) {
+        ebpf_assert_success(ebpf_handle_close(local_module_handle));
     }
 
     EBPF_RETURN_RESULT(result);
@@ -1300,6 +1486,7 @@ ebpf_native_load_programs(
     wchar_t* local_service_name = NULL;
     bool module_referenced = false;
     bool maps_created = false;
+    bool cleanup_context_created = false;
 
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
@@ -1344,7 +1531,7 @@ ebpf_native_load_programs(
 
     // Take a reference on the native module before releasing the lock.
     // This will ensure the driver cannot unload while we are processing this request.
-    ebpf_native_acquire_reference(module);
+    _ebpf_native_acquire_reference_under_lock(module);
     module_referenced = true;
 
     ebpf_lock_unlock(&module->lock, module_state);
@@ -1353,6 +1540,19 @@ ebpf_native_load_programs(
     // Release hash table lock.
     ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
     lock_acquired = false;
+
+    // Create handle cleanup context and work item. This is used to close the handles in a work item in case of failure.
+    result = _ebpf_native_initialize_handle_cleanup_context(
+        count_of_program_handles, count_of_map_handles, &module->handle_cleanup_context);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_VERBOSE,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "ebpf_native_load_programs: _ebpf_native_initialize_handle_cleanup_context failed",
+            *module_id);
+        goto Done;
+    }
+    cleanup_context_created = true;
 
     // Create maps.
     result = _ebpf_native_create_maps(module);
@@ -1409,12 +1609,26 @@ Done:
     }
     if (result != EBPF_SUCCESS) {
         if (maps_created) {
-            _ebpf_native_clean_up_maps(module->maps, module->map_count, true);
+            for (uint32_t i = 0; i < module->map_count; i++) {
+                module->handle_cleanup_context.handle_information->map_handles[i] = module->maps[i].handle;
+            }
+            _ebpf_native_clean_up_maps(module->maps, module->map_count, true, false);
             module->maps = NULL;
             module->map_count = 0;
         }
         ebpf_free(local_service_name);
+
+        if (cleanup_context_created) {
+            // Queue work item to close map and program handles.
+            ebpf_queue_preemptible_work_item(module->handle_cleanup_context.handle_cleanup_work_item);
+            module->handle_cleanup_context.handle_cleanup_work_item = NULL;
+            module->handle_cleanup_context.handle_information = NULL;
+        }
+    } else {
+        // Success case. No need to close program and map handles. Clean up handle cleanup context.
+        _ebpf_native_clean_up_handle_cleanup_context(&module->handle_cleanup_context);
     }
+
     if (module_referenced) {
         ebpf_native_release_reference(module);
         module_referenced = false;

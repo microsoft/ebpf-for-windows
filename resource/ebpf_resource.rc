@@ -47,8 +47,8 @@ LANGUAGE LANG_ENGLISH,
     //
 
     VS_VERSION_INFO VERSIONINFO
-    FILEVERSION 0, 0, 0, 1
-    PRODUCTVERSION 0, 0, 0, 1
+    FILEVERSION EBPF_VERSION_MAJOR, EBPF_VERSION_MINOR, EBPF_VERSION_REVISION
+    PRODUCTVERSION EBPF_VERSION_MAJOR, EBPF_VERSION_MINOR, EBPF_VERSION_REVISION
     FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
     FILEFLAGS 0x1L
@@ -64,10 +64,10 @@ LANGUAGE LANG_ENGLISH,
             BLOCK "040904b0"
                 BEGIN
                     VALUE "CompanyName", "Microsoft"
-                    VALUE "FileDescription", EBPF_FILE_DESCRIPTION " " GIT_COMMIT_ID
-                    VALUE "FileVersion", EBPF_VERSION
+                    VALUE "FileDescription", EBPF_FILE_DESCRIPTION
+                    VALUE "FileVersion", GIT_COMMIT_ID
                     VALUE "InternalName", EBPF_FILE_NAME
-                    VALUE "LegalCopyright", "Copyright (C) 2022"
+                    VALUE "LegalCopyright", "Copyright (C) 2023"
                     VALUE "OriginalFilename", EBPF_FILE_NAME,
                     VALUE "ProductName", EBPF_PRODUCT_NAME
                     VALUE "ProductVersion", EBPF_VERSION

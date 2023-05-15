@@ -439,11 +439,8 @@ net_ebpf_extension_sock_ops_flow_established_classify(
 
     local_flow_context = (net_ebpf_extension_sock_ops_wfp_flow_context_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (local_flow_context == NULL) {
-        result = EBPF_NO_MEMORY;
-        NET_EBPF_EXT_LOG_FUNCTION_ERROR(result);
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, local_flow_context, "flow_context", result);
     memset(local_flow_context, 0, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t));
 
     // Associate the filter context with the filter context.
@@ -600,7 +597,7 @@ _ebpf_sock_ops_context_create(
     // This provider doesn't support data.
     if (data_in != NULL || data_size_in != 0) {
         NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Data is not supported");
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "Data is not supported");
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -608,7 +605,7 @@ _ebpf_sock_ops_context_create(
     // This provider requires context.
     if (context_in == NULL || context_size_in < sizeof(bpf_sock_ops_t)) {
         NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_ERROR, "Context is required");
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "Context is required");
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -643,6 +640,7 @@ _ebpf_sock_ops_context_destroy(
     _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
     UNREFERENCED_PARAMETER(data_out);
     if (context == NULL) {
         return;
@@ -660,5 +658,5 @@ _ebpf_sock_ops_context_destroy(
     }
 
     ExFreePool(context);
-    NET_EBPF_EXT_LOG_FUNCTION_SUCCESS();
+    NET_EBPF_EXT_LOG_EXIT();
 }

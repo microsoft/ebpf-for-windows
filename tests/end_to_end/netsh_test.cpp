@@ -766,7 +766,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     verify_no_programs_exist();
 
-    // (Negative) Load program with program type that does not support interface parameter.
+    // (Negative) Load program with program type that does not support the interface parameter.
     output = _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", L"bind", L"interface=1", &result);
     REQUIRE(
         strcmp(
@@ -779,6 +779,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", nullptr, nullptr, &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 196614\n") == 0);
     REQUIRE(result == NO_ERROR);
+
     // Detach the program.
     output = _run_netsh_command(handle_ebpf_set_program, L"196614", L"", nullptr, &result);
     REQUIRE(output == "");
@@ -800,4 +801,63 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     REQUIRE(result == NO_ERROR);
 
     ebpf_epoch_flush();
+}
+
+TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
+{
+    _test_helper_netsh test_helper;
+
+    // Load a program pinned.
+    int result;
+
+    // Load program with pinpath and compaetment=1.
+    std::string output = run_netsh_command_with_args(
+        handle_ebpf_add_program, &result, 4, L"cgroup_sock_addr.o", L"cgroup/connect4", L"mypinpath", L"compartment=1");
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(result == NO_ERROR);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output == "Unpinned 196609 from mypinpath\n");
+    verify_no_programs_exist();
+
+    // (Negative) Load program with incorrect compartment id.
+    output = _run_netsh_command(
+        handle_ebpf_add_program, L"cgroup_sock_addr.o", L"cgroup/connect4", L"compartment=0", &result);
+    REQUIRE(strcmp(output.c_str(), "Compartment parameter is invalid.\n") == 0);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    verify_no_programs_exist();
+
+    // (Negative) Load program with program type that does not support the compartment parameter.
+    output = _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", L"bind", L"compartment=1", &result);
+    REQUIRE(
+        strcmp(
+            output.c_str(),
+            "Compartment parameter is not allowed for program types that don't support compartments.\n") == 0);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    verify_no_programs_exist();
+
+    ebpf_epoch_flush();
+}
+
+TEST_CASE("show processes", "[netsh][processes]")
+{
+    _test_helper_netsh test_helper;
+    int result;
+    std::string output = run_netsh_command_with_args(handle_ebpf_show_processes, &result, 0);
+
+    TOKEN_ELEVATION token_elevation = {0};
+    DWORD return_length = 0;
+    if (!GetTokenInformation(
+            GetCurrentProcessToken(), TokenElevation, &token_elevation, sizeof(token_elevation), &return_length) ||
+        !token_elevation.TokenIsElevated) {
+        REQUIRE(output == "This command requires running as Administrator\n");
+        REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    } else {
+        // There are no real eBPF handles used in this test so the result should be empty.
+        REQUIRE(
+            output == "\n"
+                      "  PID  Name\n"
+                      "=====  ==============\n");
+        REQUIRE(result == NO_ERROR);
+    }
 }

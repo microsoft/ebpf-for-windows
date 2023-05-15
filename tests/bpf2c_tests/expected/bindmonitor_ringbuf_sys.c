@@ -246,7 +246,7 @@ bind_monitor(void* context)
     if (r2 != IMMEDIATE(0))
 #line 23 "sample/bindmonitor_ringbuf.c"
         goto label_1;
-        // EBPF_OP_LDXDW pc=2 dst=r2 src=r1 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=2 dst=r2 src=r1 offset=0 imm=0
 #line 25 "sample/bindmonitor_ringbuf.c"
     r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
     // EBPF_OP_LDXDW pc=3 dst=r3 src=r1 offset=8 imm=0
@@ -257,7 +257,7 @@ bind_monitor(void* context)
     if (r2 >= r3)
 #line 25 "sample/bindmonitor_ringbuf.c"
         goto label_1;
-        // EBPF_OP_SUB64_REG pc=5 dst=r3 src=r2 offset=0 imm=0
+    // EBPF_OP_SUB64_REG pc=5 dst=r3 src=r2 offset=0 imm=0
 #line 26 "sample/bindmonitor_ringbuf.c"
     r3 -= r2;
     // EBPF_OP_LDDW pc=6 dst=r1 src=r0 offset=0 imm=0
@@ -317,7 +317,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

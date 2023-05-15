@@ -260,7 +260,7 @@ lookup(void* context)
     if ((lookup_helpers[0].tail_call) && (r0 == 0))
 #line 24 "sample/bad_map_name.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=7 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=7 dst=r1 src=r0 offset=0 imm=0
 #line 24 "sample/bad_map_name.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=8 dst=r0 src=r0 offset=0 imm=1
@@ -271,7 +271,7 @@ lookup(void* context)
     if (r1 == IMMEDIATE(0))
 #line 25 "sample/bad_map_name.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=0
 #line 25 "sample/bad_map_name.c"
     r0 = IMMEDIATE(0);
 label_1:
@@ -313,7 +313,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

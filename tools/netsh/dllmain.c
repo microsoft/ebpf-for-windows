@@ -6,6 +6,7 @@
 #include "links.h"
 #include "maps.h"
 #include "pins.h"
+#include "processes.h"
 #include "programs.h"
 #include "resource.h"
 
@@ -42,6 +43,7 @@ DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
 #define CMD_EBPF_SHOW_LINKS L"links"
 #define CMD_EBPF_SHOW_MAPS L"maps"
 #define CMD_EBPF_SHOW_PINS L"pins"
+#define CMD_EBPF_SHOW_PROCESSES L"processes"
 
 #define CMD_EBPF_ADD_PROGRAM L"program"
 #define CMD_EBPF_DELETE_PROGRAM L"program"
@@ -70,6 +72,7 @@ CMD_ENTRY g_EbpfShowCommandTable[] = {
     CREATE_CMD_ENTRY(EBPF_SHOW_LINKS, handle_ebpf_show_links),
     CREATE_CMD_ENTRY(EBPF_SHOW_MAPS, handle_ebpf_show_maps),
     CREATE_CMD_ENTRY(EBPF_SHOW_PINS, handle_ebpf_show_pins),
+    CREATE_CMD_ENTRY(EBPF_SHOW_PROCESSES, handle_ebpf_show_processes),
     CREATE_CMD_ENTRY(EBPF_SHOW_PROGRAMS, handle_ebpf_show_programs),
     CREATE_CMD_ENTRY(EBPF_SHOW_SECTIONS, handle_ebpf_show_sections),
     CREATE_CMD_ENTRY(EBPF_SHOW_VERIFICATION, handle_ebpf_show_verification),
@@ -77,12 +80,12 @@ CMD_ENTRY g_EbpfShowCommandTable[] = {
 #else
 typedef struct _CMD_ENTRY_ORIGINAL
 {
-    _Field_z_ const wchar_t* pwszCmdToken;          // The token for the command
-    PFN_HANDLE_CMD pfnCmdHandler; // The function which handles this command
-    unsigned long dwShortCmdHelpToken;              // The short help message
+    _Field_z_ const wchar_t* pwszCmdToken; // The token for the command
+    PFN_HANDLE_CMD pfnCmdHandler;          // The function which handles this command
+    unsigned long dwShortCmdHelpToken;     // The short help message
     unsigned long
         dwCmdHlpToken; // The message to display if the only thing after the command is a help token (HELP, /?, -?, ?)
-    unsigned long dwFlags;               // Flags (see CMD_FLAGS_xxx above)
+    unsigned long dwFlags;              // Flags (see CMD_FLAGS_xxx above)
     PNS_OSVERSIONCHECK pOsVersionCheck; // Check for the version of the OS this command can run against
 } CMD_ENTRY_ORIGINAL, *PCMD_ENTRY_ORIGINAL;
 #define CREATE_CMD_ENTRY_ORIGINAL(t, f)                           \
@@ -92,11 +95,11 @@ typedef struct _CMD_ENTRY_ORIGINAL
 
 typedef struct _CMD_ENTRY_LONG
 {
-    _Field_z_ const wchar_t* pwszCmdToken;      // The token for the command
-    PFN_HANDLE_CMD pfnCmdHandler; // The function which handles this command
-    unsigned long dwShortCmdHelpToken;          // The short help message
+    _Field_z_ const wchar_t* pwszCmdToken; // The token for the command
+    PFN_HANDLE_CMD pfnCmdHandler;          // The function which handles this command
+    unsigned long dwShortCmdHelpToken;     // The short help message
     unsigned long
-        dwCmdHlpToken;                  // The message to display if the only thing after the command is a help token (HELP, /?, -?, ?)
+        dwCmdHlpToken; // The message to display if the only thing after the command is a help token (HELP, /?, -?, ?)
     unsigned long dwFlags;              // Flags (see CMD_FLAGS_xxx above)
     PNS_OSVERSIONCHECK pOsVersionCheck; // Check for the version of the OS this command can run against
     void* pfnCustomHelpFn;
@@ -129,6 +132,7 @@ CMD_ENTRY_ORIGINAL g_EbpfShowCommandTableOriginal[] = {
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_LINKS, handle_ebpf_show_links),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_MAPS, handle_ebpf_show_maps),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_PINS, handle_ebpf_show_pins),
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_PROCESSES, handle_ebpf_show_processes),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_PROGRAMS, handle_ebpf_show_programs),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_SECTIONS, handle_ebpf_show_sections),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_VERIFICATION, handle_ebpf_show_verification),
@@ -138,6 +142,7 @@ CMD_ENTRY_LONG g_EbpfShowCommandTableLong[] = {
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_LINKS, handle_ebpf_show_links),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_MAPS, handle_ebpf_show_maps),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_PINS, handle_ebpf_show_pins),
+    CREATE_CMD_ENTRY_LONG(EBPF_SHOW_PROCESSES, handle_ebpf_show_processes),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_PROGRAMS, handle_ebpf_show_programs),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_SECTIONS, handle_ebpf_show_sections),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_VERIFICATION, handle_ebpf_show_verification),

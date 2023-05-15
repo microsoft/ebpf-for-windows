@@ -117,7 +117,7 @@ DropPacket(void* context)
     if (r2 != IMMEDIATE(17))
 #line 37 "sample/unsafe/droppacket_unsafe.c"
         goto label_2;
-        // EBPF_OP_LDXH pc=4 dst=r1 src=r1 offset=24 imm=0
+    // EBPF_OP_LDXH pc=4 dst=r1 src=r1 offset=24 imm=0
 #line 38 "sample/unsafe/droppacket_unsafe.c"
     r1 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(24));
     // EBPF_OP_BE pc=5 dst=r1 src=r0 offset=0 imm=16
@@ -130,7 +130,7 @@ DropPacket(void* context)
     if (r1 > IMMEDIATE(8))
 #line 38 "sample/unsafe/droppacket_unsafe.c"
         goto label_2;
-        // EBPF_OP_MOV64_IMM pc=7 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=7 dst=r1 src=r0 offset=0 imm=0
 #line 38 "sample/unsafe/droppacket_unsafe.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXDW pc=8 dst=r10 src=r1 offset=-8 imm=0
@@ -154,12 +154,12 @@ DropPacket(void* context)
     if ((DropPacket_helpers[0].tail_call) && (r0 == 0))
 #line 40 "sample/unsafe/droppacket_unsafe.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=14 dst=r0 src=r0 offset=3 imm=0
+    // EBPF_OP_JEQ_IMM pc=14 dst=r0 src=r0 offset=3 imm=0
 #line 41 "sample/unsafe/droppacket_unsafe.c"
     if (r0 == IMMEDIATE(0))
 #line 41 "sample/unsafe/droppacket_unsafe.c"
         goto label_1;
-        // EBPF_OP_LDXDW pc=15 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=15 dst=r1 src=r0 offset=0 imm=0
 #line 42 "sample/unsafe/droppacket_unsafe.c"
     r1 = *(uint64_t*)(uintptr_t)(r0 + OFFSET(0));
     // EBPF_OP_ADD64_IMM pc=16 dst=r1 src=r0 offset=0 imm=1
@@ -211,7 +211,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 7;
+    version->minor = 9;
     version->revision = 0;
 }
 

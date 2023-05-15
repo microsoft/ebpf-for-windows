@@ -25,7 +25,7 @@ image that can be loaded and used as an eBPF program.
 
 From the root of the eBPF-For-Windows project (from a VS Developer Command Prompt), after building the project, run:
 ```
-powershell scripts\Convert-BpfToNative.ps1 -ProgramName my_program
+powershell scripts\Convert-BpfToNative.ps1 -FileName my_program
 ```
 Where my_program is the name of your BPF program without the extension. This will produce a native image in x64\Release
 with name of my_program.sys.
@@ -60,7 +60,7 @@ registers are mapped to local variables in the generated C function and each eBP
 equivalent C operations. In addition, the generated C file also contains bindings for any helper functions referenced
 by the eBPF program and any maps the eBPF program uses.
 
-## Step 4 – Compile generated C code into native COFF file
+## Step 4 – Compile generated C code into native COFF (Common Object File Format) file
 
 The fourth step is to use a standard C compiler (GCC, MSVC, or Clang) to generate an x64/ARM64 COFF file with Windows
 calling conventions. The C file will expose a single top-level global variable that allows the skeleton code to find
@@ -124,8 +124,12 @@ typedef struct _program_entry
     size_t bpf_instruction_count;
     ebpf_program_type_t* program_type;
     ebpf_attach_type_t* expected_attach_type;
+    const uint8_t* program_info_hash;
+    size_t program_info_hash_length;
+    const char* program_info_hash_type;
 } program_entry_t;
 ```
+The program_entry t contains the hash, hash length and the hash algorithm type [(CNG)](https://learn.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers) used to generate the hash.
 
 The skeleton framework then uses NMR to publish this information to the eBPF execution context.
 
@@ -200,10 +204,15 @@ points and meta-data about the programs.
 
 6) At this point, the eBPF execution context is free to invoke the eBPF programs.
 
-7) In response to a detach on either the helper function or the map contract, the driver unregisters its program
+7) In response to a reattach notification on the program contract, the driver performs the following steps:
+   - It hashes the program information and compares it with the hash stored in the program.
+   - It rejects the program if the hash does not match.
+This ensures that the verifier and the program use the same program information. The verifier uses this information to check the program safety.
+
+8) In response to a detach on either the helper function or the map contract, the driver unregisters its program
 contract.
 
-8) When the OS calls unload on the driver, the driver unregisters all of its contracts and waits for the
+9) When the OS calls unload on the driver, the driver unregisters all of its contracts and waits for the
 notification that the eBPF execution context has detached before completing unloading.
 
 ### Note about native code generation samples shipped with ebpf-for-windows.

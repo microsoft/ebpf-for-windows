@@ -56,6 +56,12 @@ _prog_type_supports_interface(bpf_prog_type prog_type)
     return (prog_type == BPF_PROG_TYPE_XDP);
 }
 
+bool
+_prog_type_supports_compartment(bpf_prog_type prog_type)
+{
+    return (prog_type == BPF_PROG_TYPE_CGROUP_SOCK_ADDR);
+}
+
 _Must_inspect_result_ ebpf_result_t
 _process_interface_parameter(
     _In_ const _Null_terminated_ wchar_t* interface_parameter, bpf_prog_type prog_type, _Out_ uint32_t* if_index)
@@ -68,6 +74,27 @@ _process_interface_parameter(
         }
     } else {
         std::cerr << "Interface parameter is not allowed for program types that don't support interfaces." << std::endl;
+        result = EBPF_INVALID_ARGUMENT;
+    }
+    return result;
+}
+
+_Must_inspect_result_ ebpf_result_t
+_process_compartment_parameter(
+    _In_ const _Null_terminated_ wchar_t* compartment_parameter,
+    bpf_prog_type prog_type,
+    _Out_ COMPARTMENT_ID* compartment_id)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    if (_prog_type_supports_compartment(prog_type)) {
+        *compartment_id = (COMPARTMENT_ID)_wtoi(compartment_parameter);
+        if (*compartment_id == 0) {
+            std::cerr << "Compartment parameter is invalid." << std::endl;
+            result = EBPF_INVALID_ARGUMENT;
+        }
+    } else {
+        std::cerr << "Compartment parameter is not allowed for program types that don't support compartments."
+                  << std::endl;
         result = EBPF_INVALID_ARGUMENT;
     }
     return result;
@@ -107,13 +134,15 @@ handle_ebpf_add_program(
         {TOKEN_PINPATH, NS_REQ_ZERO, FALSE},
         {TOKEN_INTERFACE, NS_REQ_ZERO, FALSE},
         {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
-        {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE}};
+        {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE},
+        {TOKEN_COMPARTMENT, NS_REQ_ZERO, FALSE}};
     const int FILENAME_INDEX = 0;
     const int TYPE_INDEX = 1;
     const int PINPATH_INDEX = 2;
     const int INTERFACE_INDEX = 3;
     const int PINNED_INDEX = 4;
     const int EXECUTION_INDEX = 5;
+    const int COMPARTMENT_INDEX = 6;
 
     unsigned long tag_type[_countof(tags)] = {0};
 
@@ -127,6 +156,7 @@ handle_ebpf_add_program(
     pinned_type_t pinned_type = PT_FIRST; // Like bpftool, we default to pin first.
     ebpf_execution_type_t execution = EBPF_EXECUTION_JIT;
     wchar_t* interface_parameter = nullptr;
+    wchar_t* compartment_parameter = nullptr;
 
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
@@ -163,6 +193,9 @@ handle_ebpf_add_program(
                 _countof(_ebpf_execution_type_enum),
                 _ebpf_execution_type_enum,
                 (unsigned long*)&execution);
+            break;
+        case COMPARTMENT_INDEX:
+            compartment_parameter = argv[current_index + i];
             break;
         default:
             status = ERROR_INVALID_SYNTAX;
@@ -212,6 +245,16 @@ handle_ebpf_add_program(
         if (result == EBPF_SUCCESS) {
             attach_parameters = &if_index;
             attach_parameters_size = sizeof(if_index);
+        } else {
+            return ERROR_SUPPRESS_OUTPUT;
+        }
+    }
+    COMPARTMENT_ID compartment_id = UNSPECIFIED_COMPARTMENT_ID;
+    if (compartment_parameter != nullptr) {
+        result = _process_compartment_parameter(compartment_parameter, bpf_program__type(program), &compartment_id);
+        if (result == EBPF_SUCCESS) {
+            attach_parameters = &compartment_id;
+            attach_parameters_size = sizeof(compartment_id);
         } else {
             return ERROR_SUPPRESS_OUTPUT;
         }
@@ -727,10 +770,10 @@ handle_ebpf_show_programs(
             continue;
         }
 
-        status =
+        ebpf_result_t result =
             ebpf_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name);
-        if (status != ERROR_SUCCESS) {
-            break;
+        if (result != EBPF_SUCCESS) {
+            continue;
         }
 
         if (filename.empty() || strcmp(program_file_name, filename.c_str()) == 0) {

@@ -9,6 +9,10 @@
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 
+// The CNG algorithm name to use must be listed in
+// https://learn.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers
+#define EBPF_HASH_ALGORITHM "SHA256"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -34,6 +38,7 @@ extern "C"
         ebpf_code_type_t code_type;
         const uint8_t* program_info_hash;
         size_t program_info_hash_length;
+        ebpf_utf8_string_t program_info_hash_type;
     } ebpf_program_parameters_t;
 
     typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);
@@ -56,29 +61,16 @@ extern "C"
     ebpf_program_terminate();
 
     /**
-     * @brief Create a new program instance.
+     * @brief Create a new program instance and initialize a program instance from the provided program parameters.
      *
+     * @param[in] program_parameters Program parameters to be used to initialize
      * @param[out] program Pointer to memory that will contain the program instance.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_create(_Outptr_ ebpf_program_t** program);
-
-    /**
-     * @brief Initialize a program instance from the provided program
-     *  parameters.
-     *
-     * @param[in, out] program Program instance to initialize.
-     * @param[in] program_parameters Program parameters to be used to initialize
-     *  the program instance.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  program instance.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program_parameters_t* program_parameters);
+    ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _Outptr_ ebpf_program_t** program);
 
     /**
      * @brief Get the original file name of the program.

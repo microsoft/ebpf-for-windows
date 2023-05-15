@@ -48,12 +48,12 @@
       <AdditionalLibraryDirectories>$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(DisableJIT)'=='Release|True'">
+  <ItemDefinitionGroup Condition="'$(DisableJIT)'=='True'">
     <ClCompile>
         <PreprocessorDefinitions>CONFIG_BPF_JIT_DISABLED;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(DisableInterpreter)'=='Release|True'">
+  <ItemDefinitionGroup Condition="'$(DisableInterpreter)'=='True'">
     <ClCompile>
         <PreprocessorDefinitions>CONFIG_BPF_INTERPRETER_DISABLED;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
