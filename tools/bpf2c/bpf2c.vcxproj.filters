@@ -58,4 +58,7 @@
     </None>
     <None Include="templates\user_mode_bpf2c.vcxproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="bpf2c.exe.manifest" />
+  </ItemGroup>
 </Project>
