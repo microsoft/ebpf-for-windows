@@ -109,3 +109,16 @@ ebpf_cryptographic_hash_get_hash(
 
     return EBPF_SUCCESS;
 }
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_cryptographic_hash_get_hash_length(_In_ const ebpf_cryptographic_hash_t* hash, _Out_ size_t* length)
+{
+    NTSTATUS nt_status;
+    unsigned long property_length;
+    nt_status =
+        BCryptGetProperty(hash->hash_handle, BCRYPT_HASH_LENGTH, (PUCHAR)length, sizeof(*length), &property_length, 0);
+    if (!NT_SUCCESS(nt_status)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    return EBPF_SUCCESS;
+}

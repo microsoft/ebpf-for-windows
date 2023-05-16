@@ -34,7 +34,6 @@ set(platform_user_sources
 
   ebpf_error.c
   ebpf_etw.c
-  ebpf_extension.c
   ebpf_hash_table.c
   ebpf_interlocked.c
   ebpf_serialize.c
