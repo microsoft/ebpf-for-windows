@@ -24,11 +24,9 @@ get_address_from_string(
     int error = 0;
     // Initialize the remote address.
     ADDRINFO* address_info = nullptr;
-    ADDRINFO hints = {};
-    hints.ai_family = AF_UNSPEC;
 
     // Try converting address string to IP address.
-    error = getaddrinfo(address_string.data(), nullptr, &hints, &address_info);
+    error = getaddrinfo(address_string.data(), nullptr, nullptr, &address_info);
     if (error != 0) {
         FAIL("getaddrinfo for" << address_string << " failed with " << WSAGetLastError());
     }
@@ -45,7 +43,6 @@ get_address_from_string(
         address.ss_family = AF_INET6;
         INETADDR_SET_ADDRESS((PSOCKADDR)&address, INETADDR_ADDRESS(address_info->ai_addr));
     }
-
     if (address_family != nullptr) {
         *address_family = static_cast<ADDRESS_FAMILY>(address_info->ai_family);
     }
