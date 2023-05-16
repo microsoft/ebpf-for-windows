@@ -336,3 +336,29 @@ function Initialize-NetworkInterfacesOnVMs
         } -ArgumentList ($Interfaces, "eBPF", $LogFileName) -ErrorAction Stop
     }
 }
+
+function Get-RegressionTestArtifacts
+{
+    $ArifactVersionList = @("0.9.0")
+    $RegressionTestArtifactsPath = "$pwd\regression"
+    mkdir $RegressionTestArtifactsPath
+
+    # Download regression test artifacts for each version.
+    foreach ($ArtifactVersion in $ArifactVersionList)
+    {
+        $DownloadPath = "$RegressionTestArtifactsPath\$ArtifactVersion"
+        mkdir $DownloadPath
+        $ArtifactName = "v$ArtifactVersion/Build-x64-native-only-Release.$ArtifactVersion.zip"
+        $ArtifactUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/" + $ArtifactName
+
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $ArtifactUrl -OutFile "$DownloadPath\artifact.zip"
+
+        Write-Log "Extracting $ArtifactName"
+        Expand-Archive -Path "$DownloadPath\artifact.zip" -DestinationPath $DownloadPath -Force
+        Expand-Archive -Path "$DownloadPath\build-Release.zip" -DestinationPath $DownloadPath -Force
+
+        Move-Item -Path "$DownloadPath\Release\cgroup_sock_addr2.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
+        Remove-Item -Path $DownloadPath -Force -Recurse
+    }
+}

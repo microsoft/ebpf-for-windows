@@ -63,21 +63,6 @@ _km_test_init()
             // No programs specified on the command line, so use the preferred default.
             _global_test_control_info.programs.push_back({"cgroup_sock_addr"});
         }
-
-        if (_global_test_control_info.programs.size()) {
-            LOG_INFO("test programs:");
-            for (const auto& program : _global_test_control_info.programs) {
-                LOG_INFO("\t{}", program);
-            }
-        }
-
-        LOG_INFO("test threads per program    : {}", _global_test_control_info.threads_count);
-        LOG_INFO("test duration (in minutes)  : {}", _global_test_control_info.duration);
-        LOG_INFO("test verbose output         : {}", _global_test_control_info.verbose_output);
-        LOG_INFO("test extension restart      : {}", _global_test_control_info.extension_restart_enabled);
-        if (_global_test_control_info.extension_restart_enabled) {
-            LOG_INFO("test extension restart delay: {} ms", _global_test_control_info.extension_restart_delay);
-        }
     });
 }
 
@@ -168,6 +153,8 @@ _restart_extension(const std::string& extension_name, uint32_t timeout)
     SC_HANDLE scm_handle = nullptr;
     SC_HANDLE service_handle = nullptr;
 
+    REQUIRE(extension_name.size() != 0);
+
     // Get a handle to the SCM database.
     scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
     if (scm_handle == nullptr) {
@@ -180,7 +167,7 @@ _restart_extension(const std::string& extension_name, uint32_t timeout)
     service_handle = OpenService(
         scm_handle, ws_extension_name.c_str(), (SERVICE_STOP | SERVICE_QUERY_STATUS | SERVICE_ENUMERATE_DEPENDENTS));
     if (service_handle == nullptr) {
-        LOG_ERROR("FATAL ERROR: OpenService failed. Error: {}", GetLastError());
+        LOG_ERROR("FATAL ERROR: OpenService failed. Service:{}, Error: {}", extension_name, GetLastError());
         CloseServiceHandle(scm_handle);
         status = false;
         goto exit;
@@ -208,6 +195,45 @@ exit:
     }
 
     return status;
+}
+
+static std::thread
+_start_extension_restart_thread(
+    const std::string& extension_name, uint32_t restart_delay_ms, uint32_t thread_lifetime_minutes)
+{
+    return std::thread(
+        [&](uint32_t local_restart_delay_ms, uint32_t local_thread_lifetime_minutes) {
+            // Delay the start of this thread for a bit to allow the ebpf programs to attach successfully. There's a
+            // window where if the extension is unloading/unloaded, an incoming attach might fail.
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+
+            // Bump up the priority of this thread so it doesn't get bogged down by the test threads.
+            if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)) {
+                auto error = GetLastError();
+                LOG_WARN(
+                    "WARNING:{} - Failed to increase 'extension restart' thread priority. Error: {}", __func__, error);
+            }
+
+            using sc = std::chrono::steady_clock;
+            auto endtime = sc::now() + std::chrono::minutes(local_thread_lifetime_minutes);
+            while (sc::now() < endtime) {
+
+                // Drivers can sometimes take some time to stop and (re)start and we need to poll until we can determine
+                // the final status. 10 (ten) seconds seems a reasonable time for this polling.
+                constexpr uint32_t RESTART_TIMEOUT_SECONDS = 10;
+                LOG_VERBOSE("Toggling extension state for {} extension...", extension_name);
+                if (!_restart_extension(extension_name, RESTART_TIMEOUT_SECONDS)) {
+                    exit(-1);
+                }
+
+                LOG_VERBOSE(
+                    "Next restart for {} extension after a delay of {} ms", extension_name, local_restart_delay_ms);
+                std::this_thread::sleep_for(std::chrono::milliseconds(local_restart_delay_ms));
+            }
+            LOG_INFO("**** Extension restart thread done. Exiting. ****");
+        },
+        restart_delay_ms,
+        thread_lifetime_minutes);
 }
 
 // Structure to store bpf_object_ptr elements.  A fixed-size table of these entries is shared between the 'creator',
@@ -263,7 +289,7 @@ struct thread_context
     thread_role_type role{};
     uint32_t thread_index{};
     uint32_t compartment_id{};
-    uint32_t duration{};
+    uint32_t duration_minutes{};
     bool extension_restart_enabled{};
     fd_t map_fd;
     fd_t program_fd;
@@ -520,7 +546,7 @@ static void
 _test_thread_function(thread_context& context)
 {
     using sc = std::chrono::steady_clock;
-    auto endtime = sc::now() + std::chrono::minutes(context.duration);
+    auto endtime = sc::now() + std::chrono::minutes(context.duration_minutes);
     while (sc::now() < endtime) {
         if (context.role == thread_role_type::CREATOR) {
             _do_creator_work(context);
@@ -619,7 +645,7 @@ _mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control
             }
             context_entry.thread_index = (compartment_id - 1);
             context_entry.compartment_id = compartment_id;
-            context_entry.duration = test_control_info.duration;
+            context_entry.duration_minutes = test_control_info.duration_minutes;
             context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
             compartment_id++;
 
@@ -628,43 +654,13 @@ _mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control
             thread_entry = std::move(std::thread(_test_thread_function, std::ref(context_entry)));
         }
 
+        // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
         if (test_control_info.extension_restart_enabled) {
-
-            // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
-            extension_restart_thread_table.push_back(std::thread([&]() {
-                // Delay the start of this thread for a bit to allow the ebpf programs to attach successfully. There's a
-                // window where if the extension is unloading/unloaded, an incoming attach might fail.
-                std::this_thread::sleep_for(std::chrono::seconds(3));
-
-                // Bump up the priority of this thread so it doesn't get bogged down by the test threads.
-                if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)) {
-                    auto error = GetLastError();
-                    LOG_WARN(
-                        "WARNING:{} - Failed to increase 'extension restart' thread priority. Error: {}",
-                        __func__,
-                        error);
-                }
-
-                using sc = std::chrono::steady_clock;
-                auto endtime = sc::now() + std::chrono::minutes(test_control_info.duration);
-                while (sc::now() < endtime) {
-
-                    // Drivers can sometimes take some time to stop and (re)start and we need to poll until we can
-                    // determine the final status. 10 (ten) seconds seems a reasonable time for this polling.
-                    constexpr uint32_t RESTART_TIMEOUT_SECONDS = 10;
-                    LOG_VERBOSE("Toggling extension state for {} extension...", program_attribs.extension_name);
-                    if (!_restart_extension(program_attribs.extension_name, RESTART_TIMEOUT_SECONDS)) {
-                        exit(-1);
-                    }
-
-                    LOG_VERBOSE(
-                        "Next restart for {} extension after a delay of {} ms",
-                        program_attribs.extension_name,
-                        test_control_info.extension_restart_delay);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(test_control_info.extension_restart_delay));
-                }
-                LOG_INFO("**** Extension restart thread done. Exiting. ****");
-            }));
+            auto restart_thread = _start_extension_restart_thread(
+                std::ref(program_attribs.extension_name),
+                test_control_info.extension_restart_delay_ms,
+                test_control_info.duration_minutes);
+            extension_restart_thread_table.push_back(std::move(restart_thread));
         }
     }
 
@@ -839,7 +835,7 @@ _invoke_test_thread_function(thread_context& context)
     // will/should resume once the extension is reloaded. Note that the count will not exactly match the actual connect
     // attempts as the program will not be invoked for connect attempts made while the extension is restarting.
     using sc = std::chrono::steady_clock;
-    auto endtime = sc::now() + std::chrono::minutes(context.duration);
+    auto endtime = sc::now() + std::chrono::minutes(context.duration_minutes);
     while (sc::now() < endtime) {
 
         uint16_t key = remote_port;
@@ -893,8 +889,6 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
         total_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
     std::vector<std::thread> test_thread_table(total_threads);
 
-    // Another table for the 'extension restart' thread.
-    std::vector<std::thread> extension_restart_thread_table{};
     std::vector<std::pair<std::string, std::string>> program_file_map_names = {
         {{"cgroup_count_connect4.sys"}, {"connect4_count_map"}},
         {{"cgroup_count_connect6.sys"}, {"connect6_count_map"}}};
@@ -911,7 +905,7 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
         context_entry.role = (i == 0 ? thread_role_type::MONITOR_IPV4 : thread_role_type::MONITOR_IPV6);
         context_entry.thread_index = i;
         context_entry.compartment_id = UNSPECIFIED_COMPARTMENT_ID;
-        context_entry.duration = test_control_info.duration;
+        context_entry.duration_minutes = test_control_info.duration_minutes;
         context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
 
         // Now create the thread.
@@ -919,41 +913,15 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
         thread_entry = std::move(std::thread(_invoke_test_thread_function, std::ref(context_entry)));
     }
 
+    // Another table for the 'extension restart' threads.
+    std::vector<std::thread> extension_restart_thread_table{};
+
+    // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
+    std::string extension_name = {"netebpfext"};
     if (test_control_info.extension_restart_enabled) {
-
-        // Start the 'extension stop-and-restart' thread for extension for this program type.
-        extension_restart_thread_table.push_back(std::thread([&]() {
-            // Delay the start of this thread for a bit to allow the ebpf programs to attach successfully. There's a
-            // window where if the extension is unloading/unloaded, an incoming attach might fail.
-            std::this_thread::sleep_for(std::chrono::seconds(3));
-
-            // Bump up the priority of this thread so it doesn't get bogged down by the test threads.
-            if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)) {
-                error = GetLastError();
-                LOG_WARN("WARNING:{} - Unable to increase 'extension restart' thread priority", __func__, error);
-            }
-
-            std::string extension_name = {"netebpfext"};
-            using sc = std::chrono::steady_clock;
-            auto endtime = sc::now() + std::chrono::minutes(test_control_info.duration);
-            while (sc::now() < endtime) {
-                LOG_VERBOSE("Toggling extension state for '{}' extension...", extension_name.c_str());
-
-                // Drivers can sometimes take some time to stop and (re)start and we need to poll until we can
-                // determine the final status. 10 (ten) seconds seems a reasonable timeout for this polling.
-                constexpr uint32_t RESTART_TIMEOUT_SECONDS = 10;
-                if (!_restart_extension(extension_name, RESTART_TIMEOUT_SECONDS)) {
-                    exit(-1);
-                }
-
-                LOG_VERBOSE(
-                    "Next restart for {} extension after a delay of {} ms",
-                    extension_name,
-                    test_control_info.extension_restart_delay);
-                std::this_thread::sleep_for(std::chrono::milliseconds(test_control_info.extension_restart_delay));
-            }
-            LOG_INFO("**** Extension restart thread done. Exiting. ****");
-        }));
+        auto restart_thread = _start_extension_restart_thread(
+            std::ref(extension_name), test_control_info.extension_restart_delay_ms, test_control_info.duration_minutes);
+        extension_restart_thread_table.push_back(std::move(restart_thread));
     }
 
     // Wait for threads to terminate.
@@ -989,7 +957,7 @@ _invoke_mt_sockaddr_thread_function(thread_context& context)
     (reinterpret_cast<PSOCKADDR_IN>(&remote_endpoint))->sin_port = htons(remote_port);
 
     using sc = std::chrono::steady_clock;
-    auto endtime = sc::now() + std::chrono::minutes(context.duration);
+    auto endtime = sc::now() + std::chrono::minutes(context.duration_minutes);
     while (sc::now() < endtime) {
 
         // Now send out a small burst of TCP 'connect' attempts for the duration of the test.  We do this to increase
@@ -1035,7 +1003,7 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
         context_entry.is_native_program = true;
         context_entry.role = thread_role_type::MONITOR_IPV6;
         context_entry.thread_index = i;
-        context_entry.duration = test_control_info.duration;
+        context_entry.duration_minutes = test_control_info.duration_minutes;
         context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
 
         // Now create the thread.
@@ -1043,43 +1011,15 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
         thread_entry = std::move(std::thread(_invoke_mt_sockaddr_thread_function, std::ref(context_entry)));
     }
 
-    // Another table for the 'extension restart' thread.
+    // Another table for the 'extension restart' threads.
     std::vector<std::thread> extension_restart_thread_table{};
+
+    // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
+    std::string extension_name = {"netebpfext"};
     if (test_control_info.extension_restart_enabled) {
-
-        // Start the 'extension stop-and-restart' thread for extension for this program type.
-        extension_restart_thread_table.push_back(std::thread([&]() {
-            // Delay the start of this thread for a bit to allow the ebpf programs to attach successfully. There's a
-            // window where if the extension is unloading/unloaded, an incoming attach might fail.
-            std::this_thread::sleep_for(std::chrono::seconds(3));
-
-            // Bump up the priority of this thread so it doesn't get bogged down by the test threads.
-            if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)) {
-                error = GetLastError();
-                LOG_WARN("WARNING:{} - Unable to increase 'extension restart' thread priority", __func__, error);
-            }
-
-            std::string extension_name = {"netebpfext"};
-            using sc = std::chrono::steady_clock;
-            auto endtime = sc::now() + std::chrono::minutes(test_control_info.duration);
-            while (sc::now() < endtime) {
-                LOG_VERBOSE("Toggling extension state for '{}' extension...", extension_name.c_str());
-
-                // Drivers can sometimes take some time to stop and (re)start and we need to poll until we can
-                // determine the final status. 10 (ten) seconds seems a reasonable timeout for this polling.
-                constexpr uint32_t RESTART_TIMEOUT_SECONDS = 10;
-                if (!_restart_extension(extension_name, RESTART_TIMEOUT_SECONDS)) {
-                    exit(-1);
-                }
-
-                LOG_VERBOSE(
-                    "Next restart for {} extension after a delay of {} ms",
-                    extension_name,
-                    test_control_info.extension_restart_delay);
-                std::this_thread::sleep_for(std::chrono::milliseconds(test_control_info.extension_restart_delay));
-            }
-            LOG_INFO("**** Extension restart thread done. Exiting. ****");
-        }));
+        auto restart_thread = _start_extension_restart_thread(
+            std::ref(extension_name), test_control_info.extension_restart_delay_ms, test_control_info.duration_minutes);
+        extension_restart_thread_table.push_back(std::move(restart_thread));
     }
 
     // Wait for threads to terminate.
@@ -1093,6 +1033,18 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
         for (auto& t : extension_restart_thread_table) {
             t.join();
         }
+    }
+}
+
+static void
+_print_test_control_info(const test_control_info& test_control_info)
+{
+    LOG_INFO("test threads per program    : {}", test_control_info.threads_count);
+    LOG_INFO("test duration (in minutes)  : {}", test_control_info.duration_minutes);
+    LOG_INFO("test verbose output         : {}", test_control_info.verbose_output);
+    LOG_INFO("test extension restart      : {}", test_control_info.extension_restart_enabled);
+    if (test_control_info.extension_restart_enabled) {
+        LOG_INFO("test extension restart delay: {} ms", test_control_info.extension_restart_delay_ms);
     }
 }
 
@@ -1110,6 +1062,8 @@ TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[mt_stress_test]")
     _km_test_init();
     LOG_INFO("\nStarting test *** jit_load_attach_detach_unload_random_v4_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
+
+    _print_test_control_info(local_test_control_info);
     _mt_prog_load_stress_test(EBPF_EXECUTION_JIT, local_test_control_info);
 }
 
@@ -1125,12 +1079,12 @@ TEST_CASE("native_load_attach_detach_unload_random_v4_test", "[mt_stress_test]")
     _km_test_init();
     LOG_INFO("\nStarting test *** native_load_attach_detach_unload_random_v4_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
-    if (!local_test_control_info.extension_restart_enabled) {
 
-        // Enable the 'extension restart' thread to enable user mode error suppression.
-        // (The restart delay is set to a default value or the value specified (if any) on the command line)
-        local_test_control_info.extension_restart_enabled = true;
-    }
+    // Enforce enabling of the 'extension restart' thread for this test for increased stress.
+    // (The restart delay is set to the default value or the value specified (if any) on the command line.)
+    local_test_control_info.extension_restart_enabled = true;
+
+    _print_test_control_info(local_test_control_info);
     _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
 
@@ -1146,15 +1100,15 @@ TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[mt_stress_
     _km_test_init();
     LOG_INFO("\nStarting test *** native_unique_load_attach_detach_unload_random_v4_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
-    if (!local_test_control_info.extension_restart_enabled) {
 
-        // Enable the 'extension restart' thread.
-        // (The restart delay is set to a default value or the value specified (if any) on the command line.
-        local_test_control_info.extension_restart_enabled = true;
-    }
+    // Enforce enabling of the 'extension restart' thread for this test for increased stress.
+    // (The restart delay is set to the default value or the value specified (if any) on the command line.)
+    local_test_control_info.extension_restart_enabled = true;
 
     // Use a unique native driver for each 'creator' thread.
     local_test_control_info.use_unique_native_programs = true;
+
+    _print_test_control_info(local_test_control_info);
     _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
 
@@ -1184,7 +1138,12 @@ TEST_CASE("native_invoke_program_restart_extension_v4_test", "[mt_stress_test]")
     _km_test_init();
     LOG_INFO("\nStarting test *** native_invoke_program_restart_extension_v4_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
+
+    // Enforce enabling of the 'extension restart' thread for this test for increased stress.
+    // (The restart delay is set to the default value or the value specified (if any) on the command line.)
     local_test_control_info.extension_restart_enabled = true;
+
+    _print_test_control_info(local_test_control_info);
     _mt_invoke_prog_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
 
@@ -1206,10 +1165,12 @@ TEST_CASE("sockaddr_invoke_program_test", "[mt_stress_test]")
     //    We ignore the result of the 'connect' attempt as the intent here is to test the parallel invocation of the
     //    WFP callout and ensure this test doesn't cause kernel mode crashes.
     //
-    // 3. Start the 'extension restart' thread in parallel to continuously restart the netebpf extension.
+    // 3. If specified, start the 'extension restart' thread as well to continuously restart the netebpf extension.
 
     _km_test_init();
     LOG_INFO("\nStarting test *** sockaddr_invoke_program_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
+
+    _print_test_control_info(local_test_control_info);
     _mt_sockaddr_invoke_program_test(local_test_control_info);
 }

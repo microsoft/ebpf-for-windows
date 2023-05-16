@@ -18,12 +18,6 @@
 
 #include "bpf_helpers.h"
 
-// https://github.com/vbpf/ebpf-verifier/issues/427
-// An issue in the ebpf-verifier causes it to fail on bpf_printk format strings.
-// Until that is fixed, defined bpf_printk as a no-op.
-#undef bpf_printk
-#define bpf_printk(fmt, ...)
-
 #define FALSE 0
 #define TRUE 1
 

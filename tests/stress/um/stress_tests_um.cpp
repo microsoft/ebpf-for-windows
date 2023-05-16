@@ -69,7 +69,7 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
 {
     uint32_t count{0};
     using sc = std::chrono::steady_clock;
-    auto endtime = sc::now() + std::chrono::minutes(test_params.runtime);
+    auto endtime = sc::now() + std::chrono::minutes(test_params.duration_minutes);
     while (sc::now() < endtime) {
 
         LOG_VERBOSE(
@@ -131,7 +131,7 @@ _droppacket_stress_thread_function(const stress_test_thread_context& test_params
     UNREFERENCED_PARAMETER(test_params);
     uint32_t count{0};
     using sc = std::chrono::steady_clock;
-    auto endtime = sc::now() + std::chrono::minutes(test_params.runtime);
+    auto endtime = sc::now() + std::chrono::minutes(test_params.duration_minutes);
     while (sc::now() < endtime) {
 
         LOG_VERBOSE(
@@ -259,7 +259,7 @@ um_test_init()
             LOG_INFO("\t{}", program);
         }
         LOG_INFO("test threads per program  : {}", _test_control_info.threads_count);
-        LOG_INFO("test duration (in minutes): {}", _test_control_info.duration);
+        LOG_INFO("test duration (in minutes): {}", _test_control_info.duration_minutes);
         LOG_INFO("test verbose output       : {}", _test_control_info.verbose_output);
     });
 }
@@ -306,7 +306,7 @@ TEST_CASE("load_attach_detach_unload_sequential_test", "[mt_stress_test]")
         local_context.file_name = program_attributes.jit_file_name;
         local_context.program_type = program_attributes.program_type;
         local_context.execution_type = program_attributes.execution_type;
-        local_context.runtime = _test_control_info.duration;
+        local_context.duration_minutes = _test_control_info.duration_minutes;
 
         // ...And spawn the required test threads.
         auto [tv, ttc] = spawn_test_threads(
