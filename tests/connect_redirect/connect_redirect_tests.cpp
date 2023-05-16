@@ -452,7 +452,8 @@ authorize_test_wrapper(bool dual_stack, _In_ sockaddr_storage& destination)
 }
 
 void
-connect_redirect_test_wrapper(_In_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy, bool dual_stack)
+connect_redirect_test_wrapper(
+    _In_ sockaddr_storage& destination, _Inout_ const sockaddr_storage& proxy, bool dual_stack)
 {
     client_socket_t* sender_socket = nullptr;
 
