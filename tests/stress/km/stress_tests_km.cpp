@@ -1224,3 +1224,13 @@ TEST_CASE("sockaddr_invoke_program_test", "[mt_stress_test]")
     test_control_info local_test_control_info = _global_test_control_info;
     _mt_sockaddr_invoke_program_test(local_test_control_info);
 }
+
+/*
+TEST_CASE("bindtailcall_invoke_program_test", "[mt_stress_test]")
+{
+    _km_test_init();
+    LOG_INFO("\nStarting test *** bindtailcall_invoke_program_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+    //_mt_sockaddr_invoke_program_test(local_test_control_info);
+}
+*/
