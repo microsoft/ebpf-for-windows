@@ -24,7 +24,6 @@ get_address_from_string(
     int error = 0;
     // Initialize the remote address.
     ADDRINFO* address_info = nullptr;
-
     // Try converting address string to IP address.
     error = getaddrinfo(address_string.data(), nullptr, nullptr, &address_info);
     if (error != 0) {
