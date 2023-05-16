@@ -350,7 +350,7 @@ _update_policy_map(
 void
 connect_redirect_test(
     _In_ client_socket_t* sender_socket,
-    _In_ sockaddr_storage& destination,
+    _Inout_ sockaddr_storage& destination,
     _In_ const sockaddr_storage& proxy,
     uint16_t destination_port,
     uint16_t proxy_port,
@@ -442,7 +442,7 @@ get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket)
 }
 
 void
-authorize_test_wrapper(bool dual_stack, _In_ sockaddr_storage& destination)
+authorize_test_wrapper(bool dual_stack, _Inout_ sockaddr_storage& destination)
 {
     client_socket_t* sender_socket = nullptr;
 
@@ -453,7 +453,7 @@ authorize_test_wrapper(bool dual_stack, _In_ sockaddr_storage& destination)
 
 void
 connect_redirect_test_wrapper(
-    _In_ sockaddr_storage& destination, _Inout_ const sockaddr_storage& proxy, bool dual_stack)
+    _Inout_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy, bool dual_stack)
 {
     client_socket_t* sender_socket = nullptr;
 
