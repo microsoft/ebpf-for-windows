@@ -62,10 +62,10 @@ get_test_control_info()
     test_control_info test_control{0};
 
     test_control.threads_count = _test_threads_count_arg;
-    test_control.duration = _test_duration_arg;
+    test_control.duration_minutes = _test_duration_arg;
     test_control.verbose_output = _test_verbose_output_arg;
     test_control.extension_restart_enabled = _extension_restart_arg;
-    test_control.extension_restart_delay = _extension_restart_delay_arg;
+    test_control.extension_restart_delay_ms = _extension_restart_delay_arg;
     test_control.programs = _jit_programs;
 
     return test_control;
