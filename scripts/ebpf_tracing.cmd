@@ -82,6 +82,15 @@ if "%command%"=="periodic" (
 		mkdir "!traceCommittedPath!"
 	)
 
+	@rem Obtain rundown state
+	@rem Get the current date and time in a format suitable for file names.
+	for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do (
+		set "dt=%%a"
+		set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
+		set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
+		set "timestamp=!YYYY!!MM!!DD!_!HH!!Min!!Sec!"
+	)
+
     @rem Run down the WFP state.
     pushd "!trace_path!"
     netsh wfp show state
@@ -93,17 +102,8 @@ if "%command%"=="periodic" (
 		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory.
 		for %%F in ("!wfp_state_file_cab!") do (
 			if %%~zF LEQ %max_file_size_bytes% (
-
-				@rem Get the current date and time in a format suitable for file names.
-				for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do (
-					set "dt=%%a"
-					set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
-					set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
-					set "timestamp=!YYYY!!MM!!DD!_!HH!!Min!!Sec!"
-
-					@rem Move the .CAB file to the 'traceCommittedPath' directory.
-					move /y "!wfp_state_file_cab!" "!traceCommittedPath!\wfpstate_!timestamp!.cab" >nul
-				)
+				@rem Move the .CAB file to the 'traceCommittedPath' directory.
+				move /y "!wfp_state_file_cab!" "!traceCommittedPath!\wfpstate_!timestamp!.cab" >nul
 			) else (
 
 				@rem If the .CAB file size is greater than 'max_file_size_mb', then delete it.
@@ -111,96 +111,67 @@ if "%command%"=="periodic" (
 			)
 		)
 	)
-	   
-    @rem Run down the bpf program state.
+
+    @rem Run down the program state using bpftool
     pushd "!trace_path!"
-    netsh wfp show state
-    popd
-    set "wfp_state_file_cab=!trace_path!\wfpstate.cab"
-	makecab "!trace_path!\wfpstate.xml" "!wfp_state_file_cab!"
-	if exist "!wfp_state_file_cab!" (
+    @rem Capture program output
+	echo bpftool.exe -p prog >> bpf_state.txt
+	bpftool.exe -p prog >> bpf_state.txt
+
+    @rem Capture link output
+	echo bpftool.exe -p link >> bpf_state.txt
+	bpftool.exe -p link >> bpf_state.txt
+
+    @rem Capture map output
+	echo bpftool.exe -p map >> bpf_state.txt
+	bpftool.exe -p map >> bpf_state.txt
+
+    @rem Capture map content output. This requires the map id value to be passed in.
+	@rem This script parses the 'Bpftool.exe map' output to extract the map ids to be passed into the 'bpftool.exe map dump' command
+	@rem Store 'bpftool.exe -j map' output
+	for /F "usebackq" %%A in (`bpftool.exe -j map`) do set "jsonString=%%A"
+
+	@rem Clean the output to parse it.
+	@rem Remove the outer brackets '[' and ']'
+	set "jsonString=!jsonString:~1,-1!"
+	@rem Remove other characters from the output: '{', '}', and '"'
+	set "jsonString=!jsonString:{=%!"
+	set "jsonString=!jsonString:}=%!"
+	set "jsonString=!jsonString:"=%!"
+
+	@rem Split the string into key,value pairs
+	@REM for %%A in ("%jsonString:,=" "%") do (
+	for %%A in ("!jsonString:,=" "!") do (
+		set "jsonKeyValue=%%~A"
+
+		@rem Split each pair into separate key and value variables
+		for /F "tokens=1,2 delims=:" %%B in ("!jsonKeyValue!") do (
+			set "key=%%B"
+			set "value=%%C"
+		)
+
+		@rem If the 'key' is 'id', then use the 'value' (id value) to capture the output of 'bpftool.exe map dump'
+		if "!key!"=="id" (
+			echo bpftool.exe map dump id !value! >> bpf_state.txt
+			bpftool.exe map dump id !value! >> bpf_state.txt
+		)
+	)
+    set "bpf_state_file=!trace_path!\bpf_state.txt"
+	if exist "!bpf_state_file!" (
 
 		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory.
-		for %%F in ("!wfp_state_file_cab!") do (
+		for %%F in ("!bpf_state_file!") do (
 			if %%~zF LEQ %max_file_size_bytes% (
-
-				@rem Get the current date and time in a format suitable for file names.
-				for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do (
-					set "dt=%%a"
-					set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
-					set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
-					set "timestamp=!YYYY!!MM!!DD!_!HH!!Min!!Sec!"
-
-					@rem Move the .CAB file to the 'traceCommittedPath' directory.
-					move /y "!wfp_state_file_cab!" "!traceCommittedPath!\wfpstate_!timestamp!.cab" >nul
-				)
+				@rem Move the .CAB file to the 'traceCommittedPath' directory.
+				move /y "!bpf_state_file!" "!traceCommittedPath!\bpfstate_!timestamp!.txt" >nul
 			) else (
 
 				@rem If the .CAB file size is greater than 'max_file_size_mb', then delete it.
-				del "!wfp_state_file_cab!"
+				del "!bpf_state_file!"
 			)
 		)
 	)
-
-
-
-
-@echo off
-setlocal enabledelayedexpansion
-
-del bpf_state.txt
-echo bpftool.exe -p prog >> bpf_state.txt
-bpftool.exe -p prog >> bpf_state.txt
-
-echo bpftool.exe -p link >> bpf_state.txt
-bpftool.exe -p link >> bpf_state.txt
-
-echo bpftool.exe -p map >> bpf_state.txt
-bpftool.exe -p map >> bpf_state.txt
-
-REM Store output into json variable
-for /F "usebackq" %%A in (`bpftool -j map`) do set "jsonString=%%A"
-
-REM Remove the outer brackets [ ] from the JSON string
-set "jsonString=%jsonString:~1,-1%"
-
-REM Remove characters: " { } ,
-set "jsonString=%jsonString:{=%%"
-set "jsonString=%jsonString:}=%%"
-set "jsonString=%jsonString:"=%%"
-
-echo %jsonString%
-
-REM Split the string into single key,value pairs
-for %%A in ("%jsonString:,=" "%") do (
-  set "jsonKeyValue=%%~A"
-
-  REM Split the string into key and value variables
-  for /F "tokens=1,2 delims=:" %%B in ("!jsonKeyValue!") do (
-    set "key=%%B"
-    set "value=%%C"
-  )
-  echo Key:[!key!]
-  echo Value: !value!
-
-if "!key!"=="id" (
-echo bpftool.exe map dump id !value! >> bpf_state.txt
-bpftool.exe map dump id !value! >> bpf_state.txt
-)
-
-
-)
-
-
-
-
-
-
-
-
-
-
-
+    popd
 
 	@rem Iterate over all the .etl files in the 'trace_path' directory, sorted in descending order by name,
 	@rem and skip the first 'num_etl_files_to_keep' files (i.e., the newest 'num_etl_files_to_keep' files).
@@ -210,6 +181,9 @@ bpftool.exe map dump id !value! >> bpf_state.txt
 
 	@rem Iterate over all the WFP-state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_wfp_state_files`.
 	for /f "skip=%max_committed_wfp_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.cab"') do ( del "!traceCommittedPath!\%%f" )
+
+	@rem Iterate over all the bpf state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_wfp_state_files`.
+	for /f "skip=%max_committed_wfp_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\bpfstate*.txt"') do ( del "!traceCommittedPath!\%%f" )
 
 	@rem Iterate over all the .ETL files in the 'traceCommittedPath' directory, and delete the older files overflowing `max_committed_folder_size_mb`.
 	set size=0
