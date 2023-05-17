@@ -72,7 +72,7 @@ reflect_packet(void* context)
     if (r3 > r2)
 #line 29 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXH pc=6 dst=r4 src=r1 offset=12 imm=0
+        // EBPF_OP_LDXH pc=6 dst=r4 src=r1 offset=12 imm=0
 #line 34 "sample/reflect_packet.c"
     r4 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(12));
     // EBPF_OP_JEQ_IMM pc=7 dst=r4 src=r0 offset=56 imm=56710
@@ -80,12 +80,12 @@ reflect_packet(void* context)
     if (r4 == IMMEDIATE(56710))
 #line 34 "sample/reflect_packet.c"
         goto label_1;
-    // EBPF_OP_JNE_IMM pc=8 dst=r4 src=r0 offset=200 imm=8
+        // EBPF_OP_JNE_IMM pc=8 dst=r4 src=r0 offset=200 imm=8
 #line 34 "sample/reflect_packet.c"
     if (r4 != IMMEDIATE(8))
 #line 34 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_MOV64_REG pc=9 dst=r4 src=r1 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=9 dst=r4 src=r1 offset=0 imm=0
 #line 35 "sample/reflect_packet.c"
     r4 = r1;
     // EBPF_OP_ADD64_IMM pc=10 dst=r4 src=r0 offset=0 imm=34
@@ -96,7 +96,7 @@ reflect_packet(void* context)
     if (r4 > r2)
 #line 35 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXB pc=12 dst=r4 src=r1 offset=23 imm=0
+        // EBPF_OP_LDXB pc=12 dst=r4 src=r1 offset=23 imm=0
 #line 41 "sample/reflect_packet.c"
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(23));
     // EBPF_OP_JNE_IMM pc=13 dst=r4 src=r0 offset=195 imm=17
@@ -104,12 +104,12 @@ reflect_packet(void* context)
     if (r4 != IMMEDIATE(17))
 #line 41 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXB pc=14 dst=r4 src=r1 offset=14 imm=0
+        // EBPF_OP_LDXB pc=14 dst=r4 src=r1 offset=14 imm=0
 #line 41 "sample/reflect_packet.c"
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(14));
     // EBPF_OP_LSH64_IMM pc=15 dst=r4 src=r0 offset=0 imm=2
 #line 41 "sample/reflect_packet.c"
-    r4 <<= IMMEDIATE(2);
+    r4 <<= (IMMEDIATE(2) & 63);
     // EBPF_OP_AND64_IMM pc=16 dst=r4 src=r0 offset=0 imm=60
 #line 41 "sample/reflect_packet.c"
     r4 &= IMMEDIATE(60);
@@ -127,7 +127,7 @@ reflect_packet(void* context)
     if (r4 > r2)
 #line 41 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXH pc=21 dst=r2 src=r3 offset=2 imm=0
+        // EBPF_OP_LDXH pc=21 dst=r2 src=r3 offset=2 imm=0
 #line 47 "sample/reflect_packet.c"
     r2 = *(uint16_t*)(uintptr_t)(r3 + OFFSET(2));
     // EBPF_OP_JNE_IMM pc=22 dst=r2 src=r0 offset=186 imm=7459
@@ -135,12 +135,12 @@ reflect_packet(void* context)
     if (r2 != IMMEDIATE(7459))
 #line 47 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXB pc=23 dst=r2 src=r1 offset=5 imm=0
+        // EBPF_OP_LDXB pc=23 dst=r2 src=r1 offset=5 imm=0
 #line 15 "sample/./xdp_common.h"
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(5));
     // EBPF_OP_LSH64_IMM pc=24 dst=r2 src=r0 offset=0 imm=8
 #line 15 "sample/./xdp_common.h"
-    r2 <<= IMMEDIATE(8);
+    r2 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=25 dst=r3 src=r1 offset=4 imm=0
 #line 15 "sample/./xdp_common.h"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(4));
@@ -155,7 +155,7 @@ reflect_packet(void* context)
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(1));
     // EBPF_OP_LSH64_IMM pc=29 dst=r2 src=r0 offset=0 imm=8
 #line 15 "sample/./xdp_common.h"
-    r2 <<= IMMEDIATE(8);
+    r2 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=30 dst=r3 src=r1 offset=0 imm=0
 #line 15 "sample/./xdp_common.h"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(0));
@@ -167,7 +167,7 @@ reflect_packet(void* context)
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(3));
     // EBPF_OP_LSH64_IMM pc=33 dst=r3 src=r0 offset=0 imm=8
 #line 15 "sample/./xdp_common.h"
-    r3 <<= IMMEDIATE(8);
+    r3 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=34 dst=r4 src=r1 offset=2 imm=0
 #line 15 "sample/./xdp_common.h"
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(2));
@@ -176,7 +176,7 @@ reflect_packet(void* context)
     r3 |= r4;
     // EBPF_OP_LSH64_IMM pc=36 dst=r3 src=r0 offset=0 imm=16
 #line 15 "sample/./xdp_common.h"
-    r3 <<= IMMEDIATE(16);
+    r3 <<= (IMMEDIATE(16) & 63);
     // EBPF_OP_OR64_REG pc=37 dst=r3 src=r2 offset=0 imm=0
 #line 15 "sample/./xdp_common.h"
     r3 |= r2;
@@ -209,7 +209,7 @@ reflect_packet(void* context)
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=47 dst=r3 src=r0 offset=0 imm=16
 #line 17 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(16);
+    r3 >>= (IMMEDIATE(16) & 63);
     // EBPF_OP_STXB pc=48 dst=r1 src=r3 offset=8 imm=0
 #line 17 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(8)) = (uint8_t)r3;
@@ -218,7 +218,7 @@ reflect_packet(void* context)
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=50 dst=r3 src=r0 offset=0 imm=24
 #line 17 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(24);
+    r3 >>= (IMMEDIATE(24) & 63);
     // EBPF_OP_STXB pc=51 dst=r1 src=r3 offset=9 imm=0
 #line 17 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(9)) = (uint8_t)r3;
@@ -227,7 +227,7 @@ reflect_packet(void* context)
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(6)) = (uint8_t)r2;
     // EBPF_OP_RSH64_IMM pc=53 dst=r2 src=r0 offset=0 imm=8
 #line 17 "sample/./xdp_common.h"
-    r2 >>= IMMEDIATE(8);
+    r2 >>= (IMMEDIATE(8) & 63);
     // EBPF_OP_STXB pc=54 dst=r1 src=r2 offset=7 imm=0
 #line 17 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(7)) = (uint8_t)r2;
@@ -239,7 +239,7 @@ reflect_packet(void* context)
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(10)) = (uint8_t)r2;
     // EBPF_OP_RSH64_IMM pc=57 dst=r2 src=r0 offset=0 imm=8
 #line 17 "sample/./xdp_common.h"
-    r2 >>= IMMEDIATE(8);
+    r2 >>= (IMMEDIATE(8) & 63);
     // EBPF_OP_STXB pc=58 dst=r1 src=r2 offset=11 imm=0
 #line 17 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(11)) = (uint8_t)r2;
@@ -270,7 +270,7 @@ label_1:
     if (r3 > r2)
 #line 55 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_MOV64_REG pc=67 dst=r3 src=r1 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=67 dst=r3 src=r1 offset=0 imm=0
 #line 55 "sample/reflect_packet.c"
     r3 = r1;
     // EBPF_OP_ADD64_IMM pc=68 dst=r3 src=r0 offset=0 imm=62
@@ -281,7 +281,7 @@ label_1:
     if (r3 > r2)
 #line 61 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXB pc=70 dst=r2 src=r1 offset=20 imm=0
+        // EBPF_OP_LDXB pc=70 dst=r2 src=r1 offset=20 imm=0
 #line 61 "sample/reflect_packet.c"
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(20));
     // EBPF_OP_JNE_IMM pc=71 dst=r2 src=r0 offset=137 imm=17
@@ -289,7 +289,7 @@ label_1:
     if (r2 != IMMEDIATE(17))
 #line 61 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXH pc=72 dst=r2 src=r1 offset=56 imm=0
+        // EBPF_OP_LDXH pc=72 dst=r2 src=r1 offset=56 imm=0
 #line 67 "sample/reflect_packet.c"
     r2 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(56));
     // EBPF_OP_JNE_IMM pc=73 dst=r2 src=r0 offset=135 imm=7459
@@ -297,12 +297,12 @@ label_1:
     if (r2 != IMMEDIATE(7459))
 #line 67 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXB pc=74 dst=r2 src=r1 offset=5 imm=0
+        // EBPF_OP_LDXB pc=74 dst=r2 src=r1 offset=5 imm=0
 #line 15 "sample/./xdp_common.h"
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(5));
     // EBPF_OP_LSH64_IMM pc=75 dst=r2 src=r0 offset=0 imm=8
 #line 15 "sample/./xdp_common.h"
-    r2 <<= IMMEDIATE(8);
+    r2 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=76 dst=r3 src=r1 offset=4 imm=0
 #line 15 "sample/./xdp_common.h"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(4));
@@ -317,7 +317,7 @@ label_1:
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(1));
     // EBPF_OP_LSH64_IMM pc=80 dst=r2 src=r0 offset=0 imm=8
 #line 15 "sample/./xdp_common.h"
-    r2 <<= IMMEDIATE(8);
+    r2 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=81 dst=r3 src=r1 offset=0 imm=0
 #line 15 "sample/./xdp_common.h"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(0));
@@ -329,7 +329,7 @@ label_1:
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(3));
     // EBPF_OP_LSH64_IMM pc=84 dst=r3 src=r0 offset=0 imm=8
 #line 15 "sample/./xdp_common.h"
-    r3 <<= IMMEDIATE(8);
+    r3 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=85 dst=r4 src=r1 offset=2 imm=0
 #line 15 "sample/./xdp_common.h"
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(2));
@@ -338,7 +338,7 @@ label_1:
     r3 |= r4;
     // EBPF_OP_LSH64_IMM pc=87 dst=r3 src=r0 offset=0 imm=16
 #line 15 "sample/./xdp_common.h"
-    r3 <<= IMMEDIATE(16);
+    r3 <<= (IMMEDIATE(16) & 63);
     // EBPF_OP_OR64_REG pc=88 dst=r3 src=r2 offset=0 imm=0
 #line 15 "sample/./xdp_common.h"
     r3 |= r2;
@@ -371,7 +371,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=98 dst=r3 src=r0 offset=0 imm=16
 #line 17 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(16);
+    r3 >>= (IMMEDIATE(16) & 63);
     // EBPF_OP_STXB pc=99 dst=r1 src=r3 offset=8 imm=0
 #line 17 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(8)) = (uint8_t)r3;
@@ -380,7 +380,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=101 dst=r3 src=r0 offset=0 imm=24
 #line 17 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(24);
+    r3 >>= (IMMEDIATE(24) & 63);
     // EBPF_OP_STXB pc=102 dst=r1 src=r3 offset=9 imm=0
 #line 17 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(9)) = (uint8_t)r3;
@@ -389,7 +389,7 @@ label_1:
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(6)) = (uint8_t)r2;
     // EBPF_OP_RSH64_IMM pc=104 dst=r2 src=r0 offset=0 imm=8
 #line 17 "sample/./xdp_common.h"
-    r2 >>= IMMEDIATE(8);
+    r2 >>= (IMMEDIATE(8) & 63);
     // EBPF_OP_STXB pc=105 dst=r1 src=r2 offset=7 imm=0
 #line 17 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(7)) = (uint8_t)r2;
@@ -401,7 +401,7 @@ label_1:
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(10)) = (uint8_t)r2;
     // EBPF_OP_RSH64_IMM pc=108 dst=r2 src=r0 offset=0 imm=8
 #line 17 "sample/./xdp_common.h"
-    r2 >>= IMMEDIATE(8);
+    r2 >>= (IMMEDIATE(8) & 63);
     // EBPF_OP_STXB pc=109 dst=r1 src=r2 offset=11 imm=0
 #line 17 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(11)) = (uint8_t)r2;
@@ -410,7 +410,7 @@ label_1:
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(47));
     // EBPF_OP_LSH64_IMM pc=111 dst=r3 src=r0 offset=0 imm=8
 #line 32 "sample/./xdp_common.h"
-    r3 <<= IMMEDIATE(8);
+    r3 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=112 dst=r2 src=r1 offset=46 imm=0
 #line 32 "sample/./xdp_common.h"
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(46));
@@ -422,7 +422,7 @@ label_1:
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(49));
     // EBPF_OP_LSH64_IMM pc=115 dst=r2 src=r0 offset=0 imm=8
 #line 32 "sample/./xdp_common.h"
-    r2 <<= IMMEDIATE(8);
+    r2 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=116 dst=r4 src=r1 offset=48 imm=0
 #line 32 "sample/./xdp_common.h"
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(48));
@@ -431,7 +431,7 @@ label_1:
     r2 |= r4;
     // EBPF_OP_LSH64_IMM pc=118 dst=r2 src=r0 offset=0 imm=16
 #line 32 "sample/./xdp_common.h"
-    r2 <<= IMMEDIATE(16);
+    r2 <<= (IMMEDIATE(16) & 63);
     // EBPF_OP_OR64_REG pc=119 dst=r2 src=r3 offset=0 imm=0
 #line 32 "sample/./xdp_common.h"
     r2 |= r3;
@@ -440,7 +440,7 @@ label_1:
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(51));
     // EBPF_OP_LSH64_IMM pc=121 dst=r4 src=r0 offset=0 imm=8
 #line 32 "sample/./xdp_common.h"
-    r4 <<= IMMEDIATE(8);
+    r4 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=122 dst=r3 src=r1 offset=50 imm=0
 #line 32 "sample/./xdp_common.h"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(50));
@@ -452,7 +452,7 @@ label_1:
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(53));
     // EBPF_OP_LSH64_IMM pc=125 dst=r3 src=r0 offset=0 imm=8
 #line 32 "sample/./xdp_common.h"
-    r3 <<= IMMEDIATE(8);
+    r3 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=126 dst=r5 src=r1 offset=52 imm=0
 #line 32 "sample/./xdp_common.h"
     r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(52));
@@ -461,13 +461,13 @@ label_1:
     r3 |= r5;
     // EBPF_OP_LSH64_IMM pc=128 dst=r3 src=r0 offset=0 imm=16
 #line 32 "sample/./xdp_common.h"
-    r3 <<= IMMEDIATE(16);
+    r3 <<= (IMMEDIATE(16) & 63);
     // EBPF_OP_OR64_REG pc=129 dst=r3 src=r4 offset=0 imm=0
 #line 32 "sample/./xdp_common.h"
     r3 |= r4;
     // EBPF_OP_LSH64_IMM pc=130 dst=r3 src=r0 offset=0 imm=32
 #line 32 "sample/./xdp_common.h"
-    r3 <<= IMMEDIATE(32);
+    r3 <<= (IMMEDIATE(32) & 63);
     // EBPF_OP_OR64_REG pc=131 dst=r3 src=r2 offset=0 imm=0
 #line 32 "sample/./xdp_common.h"
     r3 |= r2;
@@ -476,7 +476,7 @@ label_1:
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(39));
     // EBPF_OP_LSH64_IMM pc=133 dst=r4 src=r0 offset=0 imm=8
 #line 32 "sample/./xdp_common.h"
-    r4 <<= IMMEDIATE(8);
+    r4 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=134 dst=r2 src=r1 offset=38 imm=0
 #line 32 "sample/./xdp_common.h"
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(38));
@@ -488,7 +488,7 @@ label_1:
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(41));
     // EBPF_OP_LSH64_IMM pc=137 dst=r2 src=r0 offset=0 imm=8
 #line 32 "sample/./xdp_common.h"
-    r2 <<= IMMEDIATE(8);
+    r2 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=138 dst=r5 src=r1 offset=40 imm=0
 #line 32 "sample/./xdp_common.h"
     r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(40));
@@ -500,7 +500,7 @@ label_1:
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint64_t)r3;
     // EBPF_OP_LSH64_IMM pc=141 dst=r2 src=r0 offset=0 imm=16
 #line 32 "sample/./xdp_common.h"
-    r2 <<= IMMEDIATE(16);
+    r2 <<= (IMMEDIATE(16) & 63);
     // EBPF_OP_OR64_REG pc=142 dst=r2 src=r4 offset=0 imm=0
 #line 32 "sample/./xdp_common.h"
     r2 |= r4;
@@ -509,7 +509,7 @@ label_1:
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(43));
     // EBPF_OP_LSH64_IMM pc=144 dst=r3 src=r0 offset=0 imm=8
 #line 32 "sample/./xdp_common.h"
-    r3 <<= IMMEDIATE(8);
+    r3 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=145 dst=r4 src=r1 offset=42 imm=0
 #line 32 "sample/./xdp_common.h"
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(42));
@@ -521,7 +521,7 @@ label_1:
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(45));
     // EBPF_OP_LSH64_IMM pc=148 dst=r4 src=r0 offset=0 imm=8
 #line 32 "sample/./xdp_common.h"
-    r4 <<= IMMEDIATE(8);
+    r4 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=149 dst=r5 src=r1 offset=44 imm=0
 #line 32 "sample/./xdp_common.h"
     r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(44));
@@ -530,13 +530,13 @@ label_1:
     r4 |= r5;
     // EBPF_OP_LSH64_IMM pc=151 dst=r4 src=r0 offset=0 imm=16
 #line 32 "sample/./xdp_common.h"
-    r4 <<= IMMEDIATE(16);
+    r4 <<= (IMMEDIATE(16) & 63);
     // EBPF_OP_OR64_REG pc=152 dst=r4 src=r3 offset=0 imm=0
 #line 32 "sample/./xdp_common.h"
     r4 |= r3;
     // EBPF_OP_LSH64_IMM pc=153 dst=r4 src=r0 offset=0 imm=32
 #line 32 "sample/./xdp_common.h"
-    r4 <<= IMMEDIATE(32);
+    r4 <<= (IMMEDIATE(32) & 63);
     // EBPF_OP_OR64_REG pc=154 dst=r4 src=r2 offset=0 imm=0
 #line 32 "sample/./xdp_common.h"
     r4 |= r2;
@@ -575,7 +575,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=166 dst=r3 src=r0 offset=0 imm=48
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(48);
+    r3 >>= (IMMEDIATE(48) & 63);
     // EBPF_OP_STXB pc=167 dst=r1 src=r3 offset=28 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(28)) = (uint8_t)r3;
@@ -584,7 +584,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=169 dst=r3 src=r0 offset=0 imm=56
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(56);
+    r3 >>= (IMMEDIATE(56) & 63);
     // EBPF_OP_STXB pc=170 dst=r1 src=r3 offset=29 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(29)) = (uint8_t)r3;
@@ -593,7 +593,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=172 dst=r3 src=r0 offset=0 imm=32
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(32);
+    r3 >>= (IMMEDIATE(32) & 63);
     // EBPF_OP_STXB pc=173 dst=r1 src=r3 offset=26 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(26)) = (uint8_t)r3;
@@ -602,7 +602,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=175 dst=r3 src=r0 offset=0 imm=40
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(40);
+    r3 >>= (IMMEDIATE(40) & 63);
     // EBPF_OP_STXB pc=176 dst=r1 src=r3 offset=27 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(27)) = (uint8_t)r3;
@@ -611,7 +611,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=178 dst=r3 src=r0 offset=0 imm=16
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(16);
+    r3 >>= (IMMEDIATE(16) & 63);
     // EBPF_OP_STXB pc=179 dst=r1 src=r3 offset=24 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(24)) = (uint8_t)r3;
@@ -620,7 +620,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=181 dst=r3 src=r0 offset=0 imm=24
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(24);
+    r3 >>= (IMMEDIATE(24) & 63);
     // EBPF_OP_STXB pc=182 dst=r1 src=r3 offset=25 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(25)) = (uint8_t)r3;
@@ -629,7 +629,7 @@ label_1:
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(22)) = (uint8_t)r2;
     // EBPF_OP_RSH64_IMM pc=184 dst=r2 src=r0 offset=0 imm=8
 #line 34 "sample/./xdp_common.h"
-    r2 >>= IMMEDIATE(8);
+    r2 >>= (IMMEDIATE(8) & 63);
     // EBPF_OP_STXB pc=185 dst=r1 src=r2 offset=23 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(23)) = (uint8_t)r2;
@@ -641,7 +641,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=188 dst=r3 src=r0 offset=0 imm=48
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(48);
+    r3 >>= (IMMEDIATE(48) & 63);
     // EBPF_OP_STXB pc=189 dst=r1 src=r3 offset=36 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(36)) = (uint8_t)r3;
@@ -650,7 +650,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=191 dst=r3 src=r0 offset=0 imm=56
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(56);
+    r3 >>= (IMMEDIATE(56) & 63);
     // EBPF_OP_STXB pc=192 dst=r1 src=r3 offset=37 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(37)) = (uint8_t)r3;
@@ -659,7 +659,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=194 dst=r3 src=r0 offset=0 imm=32
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(32);
+    r3 >>= (IMMEDIATE(32) & 63);
     // EBPF_OP_STXB pc=195 dst=r1 src=r3 offset=34 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(34)) = (uint8_t)r3;
@@ -668,7 +668,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=197 dst=r3 src=r0 offset=0 imm=40
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(40);
+    r3 >>= (IMMEDIATE(40) & 63);
     // EBPF_OP_STXB pc=198 dst=r1 src=r3 offset=35 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(35)) = (uint8_t)r3;
@@ -677,7 +677,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=200 dst=r3 src=r0 offset=0 imm=16
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(16);
+    r3 >>= (IMMEDIATE(16) & 63);
     // EBPF_OP_STXB pc=201 dst=r1 src=r3 offset=32 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(32)) = (uint8_t)r3;
@@ -686,7 +686,7 @@ label_1:
     r3 = r2;
     // EBPF_OP_RSH64_IMM pc=203 dst=r3 src=r0 offset=0 imm=24
 #line 34 "sample/./xdp_common.h"
-    r3 >>= IMMEDIATE(24);
+    r3 >>= (IMMEDIATE(24) & 63);
     // EBPF_OP_STXB pc=204 dst=r1 src=r3 offset=33 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(33)) = (uint8_t)r3;
@@ -695,7 +695,7 @@ label_1:
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(30)) = (uint8_t)r2;
     // EBPF_OP_RSH64_IMM pc=206 dst=r2 src=r0 offset=0 imm=8
 #line 34 "sample/./xdp_common.h"
-    r2 >>= IMMEDIATE(8);
+    r2 >>= (IMMEDIATE(8) & 63);
     // EBPF_OP_STXB pc=207 dst=r1 src=r2 offset=31 imm=0
 #line 34 "sample/./xdp_common.h"
     *(uint8_t*)(uintptr_t)(r1 + OFFSET(31)) = (uint8_t)r2;
