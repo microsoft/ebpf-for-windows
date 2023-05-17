@@ -111,6 +111,96 @@ if "%command%"=="periodic" (
 			)
 		)
 	)
+	   
+    @rem Run down the bpf program state.
+    pushd "!trace_path!"
+    netsh wfp show state
+    popd
+    set "wfp_state_file_cab=!trace_path!\wfpstate.cab"
+	makecab "!trace_path!\wfpstate.xml" "!wfp_state_file_cab!"
+	if exist "!wfp_state_file_cab!" (
+
+		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory.
+		for %%F in ("!wfp_state_file_cab!") do (
+			if %%~zF LEQ %max_file_size_bytes% (
+
+				@rem Get the current date and time in a format suitable for file names.
+				for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do (
+					set "dt=%%a"
+					set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
+					set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
+					set "timestamp=!YYYY!!MM!!DD!_!HH!!Min!!Sec!"
+
+					@rem Move the .CAB file to the 'traceCommittedPath' directory.
+					move /y "!wfp_state_file_cab!" "!traceCommittedPath!\wfpstate_!timestamp!.cab" >nul
+				)
+			) else (
+
+				@rem If the .CAB file size is greater than 'max_file_size_mb', then delete it.
+				del "!wfp_state_file_cab!"
+			)
+		)
+	)
+
+
+
+
+@echo off
+setlocal enabledelayedexpansion
+
+del bpf_state.txt
+echo bpftool.exe -p prog >> bpf_state.txt
+bpftool.exe -p prog >> bpf_state.txt
+
+echo bpftool.exe -p link >> bpf_state.txt
+bpftool.exe -p link >> bpf_state.txt
+
+echo bpftool.exe -p map >> bpf_state.txt
+bpftool.exe -p map >> bpf_state.txt
+
+REM Store output into json variable
+for /F "usebackq" %%A in (`bpftool -j map`) do set "jsonString=%%A"
+
+REM Remove the outer brackets [ ] from the JSON string
+set "jsonString=%jsonString:~1,-1%"
+
+REM Remove characters: " { } ,
+set "jsonString=%jsonString:{=%%"
+set "jsonString=%jsonString:}=%%"
+set "jsonString=%jsonString:"=%%"
+
+echo %jsonString%
+
+REM Split the string into single key,value pairs
+for %%A in ("%jsonString:,=" "%") do (
+  set "jsonKeyValue=%%~A"
+
+  REM Split the string into key and value variables
+  for /F "tokens=1,2 delims=:" %%B in ("!jsonKeyValue!") do (
+    set "key=%%B"
+    set "value=%%C"
+  )
+  echo Key:[!key!]
+  echo Value: !value!
+
+if "!key!"=="id" (
+echo bpftool.exe map dump id !value! >> bpf_state.txt
+bpftool.exe map dump id !value! >> bpf_state.txt
+)
+
+
+)
+
+
+
+
+
+
+
+
+
+
+
 
 	@rem Iterate over all the .etl files in the 'trace_path' directory, sorted in descending order by name,
 	@rem and skip the first 'num_etl_files_to_keep' files (i.e., the newest 'num_etl_files_to_keep' files).
