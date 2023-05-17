@@ -699,6 +699,65 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
     cleanup();
 }
 
+void
+bindmonitor_mt_test(_In_ struct bpf_object* object)
+{
+    UNREFERENCED_PARAMETER(object);
+    WSAData data;
+    SOCKET sockets[2];
+    REQUIRE(WSAStartup(2, &data) == 0);
+
+    // First and second binds should succeed.
+    REQUIRE(perform_bind(&sockets[0], 30000) == 0);
+    REQUIRE(perform_bind(&sockets[1], 30001) == 0);
+    printf("Successfully bound first two sockets\n");
+
+    WSACleanup();
+}
+
+#define MAX_TAIL_CALL_PROGS 35
+TEST_CASE("bindmonitor_mt_tailcall_native_test", "[native_tests]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "bindmonitor_mt_tailcall.sys",
+        BPF_PROG_TYPE_BIND,
+        "BindMonitor_Caller",
+        EBPF_EXECUTION_NATIVE,
+        nullptr,
+        0,
+        hook);
+    object = _helper.get_object();
+    printf("Successfully loaded program\n");
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "bind_tail_call_map");
+    REQUIRE(prog_map_fd > 0);
+
+    // Setup tail calls.
+    for (int index = 0; index < MAX_TAIL_CALL_PROGS; index++) {
+        char prog_name[32];
+        snprintf(prog_name, sizeof(prog_name), "%s%d", "BindMonitor_Callee", index);
+        struct bpf_program* callee = bpf_object__find_program_by_name(object, prog_name);
+        REQUIRE(callee != nullptr);
+
+        fd_t callee_fd = bpf_program__fd(callee);
+        REQUIRE(callee_fd > 0);
+
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee_fd, 0) == 0);
+        printf("Successfully loaded callee [%s] [%d]\n", prog_name, index);
+    }
+
+    // Perform bind test.
+    bindmonitor_mt_test(object);
+
+    // Clean up tail calls.
+    for (int index = 0; index < MAX_TAIL_CALL_PROGS; index++) {
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    }
+    printf("Successfully cleaned up\n");
+}
+
 #define SOCKET_TEST_PORT 0x3bbf
 
 TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
