@@ -4,23 +4,12 @@
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
+#include "common_tests.h"
 #include "ebpf_mt_stress.h"
 #include "program_helper.h"
 #include "test_helper.hpp"
 
 // Data returned by a successful _program_load() call.
-struct free_bpf_object_ptr
-{
-    void
-    operator()(_In_opt_ _Post_invalid_ bpf_object* raw_ptr)
-    {
-        if (raw_ptr != nullptr) {
-            bpf_object__close(raw_ptr);
-        }
-    }
-};
-
-using bpf_object_ptr = std::unique_ptr<bpf_object, free_bpf_object_ptr>;
 struct program_object_info
 {
     fd_t fd{0};
