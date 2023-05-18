@@ -150,6 +150,15 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).template</Outputs>
     </CustomBuild>
+    <CustomBuild Include="bpf2c.exe.manifest.in">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile bpf2c.exe.manifest.in -OutputFile $(OutputPath)bpf2c.exe.manifest</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)bpf2c.exe.manifest</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile bpf2c.exe.manifest.in -OutputFile $(OutputPath)bpf2c.exe.manifest</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)bpf2c.exe.manifest</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile bpf2c.exe.manifest.in -OutputFile $(OutputPath)bpf2c.exe.manifest</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutputPath)bpf2c.exe.manifest</Outputs>
+    </CustomBuild>
     <ClCompile Include="bpf_code_generator.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -186,7 +195,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="bpf2c.exe.manifest" />
+    <Manifest Include="$(OutputPath)bpf2c.exe.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

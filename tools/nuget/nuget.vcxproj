@@ -89,15 +89,6 @@ NuGet.exe pack $(OutDir)ebpf-for-windows.nuspec -OutputDirectory $(OutDir)</Comm
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\nuget\ebpf-for-windows.nuspec.in -OutputFile $(OutDir)ebpf-for-windows.nuspec
 NuGet.exe pack $(OutDir)ebpf-for-windows.nuspec -OutputDirectory $(OutDir)</Command>
     </CustomBuild>
-    <CustomBuild Include="bpf2c.exe.manifest.in">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-ManifestVersion.ps1 -InputFile $(SolutionDir)tools\bpf2c\bpf2c.exe.manifest.in -OutputFile $(SolutionDir)tools\bpf2c\bpf2c.exe.manifest
-      </Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-ManifestVersion.ps1 -InputFile $(SolutionDir)tools\bpf2c\bpf2c.exe.manifest.in -OutputFile $(SolutionDir)tools\bpf2c\bpf2c.exe.manifest
-      </Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-ManifestVersion.ps1 -InputFile $(SolutionDir)tools\bpf2c\bpf2c.exe.manifest.in -OutputFile $(SolutionDir)tools\bpf2c\bpf2c.exe.manifest
-      </Command>
-    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\ebpfapi\ebpfapi.vcxproj">

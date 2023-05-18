@@ -50,6 +50,9 @@
     <CustomBuild Include="bpf2c_driver.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="bpf2c.exe.manifest.in">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="templates\kernel_mode_bpf2c.vcxproj" />
@@ -59,6 +62,6 @@
     <None Include="templates\user_mode_bpf2c.vcxproj" />
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="bpf2c.exe.manifest" />
+    <Manifest Include="$(OutputPath)bpf2c.exe.manifest" />
   </ItemGroup>
 </Project>
