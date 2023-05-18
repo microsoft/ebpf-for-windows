@@ -105,28 +105,27 @@ if "%command%"=="periodic" (
 				@rem Move the .CAB file to the 'traceCommittedPath' directory.
 				move /y "!wfp_state_file_cab!" "!traceCommittedPath!\wfpstate_!timestamp!.cab" >nul
 			) else (
-
 				@rem If the .CAB file size is greater than 'max_file_size_mb', then delete it.
 				del "!wfp_state_file_cab!"
 			)
 		)
 	)
 
-    @rem Run down the program state using bpftool
-    pushd "!trace_path!"
-    @rem Capture program output
+	@rem Run down the program state using bpftool
+	pushd "!trace_path!"
+	@rem Capture program output
 	echo bpftool.exe -p prog >> bpf_state.txt
 	bpftool.exe -p prog >> bpf_state.txt
 
-    @rem Capture link output
+	@rem Capture link output
 	echo bpftool.exe -p link >> bpf_state.txt
 	bpftool.exe -p link >> bpf_state.txt
 
-    @rem Capture map output
+	@rem Capture map output
 	echo bpftool.exe -p map >> bpf_state.txt
 	bpftool.exe -p map >> bpf_state.txt
 
-    @rem Capture map content output. This requires the map id value to be passed in.
+	@rem Capture map content output. This requires the map id value to be passed in.
 	@rem This script parses the 'Bpftool.exe map' output to extract the map ids to be passed into the 'bpftool.exe map dump' command
 	@rem Store 'bpftool.exe -j map' output
 	for /F "usebackq" %%A in (`bpftool.exe -j map`) do set "jsonString=%%A"
@@ -156,22 +155,20 @@ if "%command%"=="periodic" (
 			bpftool.exe map dump id !value! >> bpf_state.txt
 		)
 	)
-    set "bpf_state_file=!trace_path!\bpf_state.txt"
+	set "bpf_state_file=!trace_path!\bpf_state.txt"
 	if exist "!bpf_state_file!" (
-
 		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory.
 		for %%F in ("!bpf_state_file!") do (
 			if %%~zF LEQ %max_file_size_bytes% (
-				@rem Move the .CAB file to the 'traceCommittedPath' directory.
+				@rem Move the file to the 'traceCommittedPath' directory.
 				move /y "!bpf_state_file!" "!traceCommittedPath!\bpfstate_!timestamp!.txt" >nul
 			) else (
-
-				@rem If the .CAB file size is greater than 'max_file_size_mb', then delete it.
+				@rem If the file size is greater than 'max_file_size_mb', then delete it.
 				del "!bpf_state_file!"
 			)
 		)
 	)
-    popd
+	popd
 
 	@rem Iterate over all the .etl files in the 'trace_path' directory, sorted in descending order by name,
 	@rem and skip the first 'num_etl_files_to_keep' files (i.e., the newest 'num_etl_files_to_keep' files).
