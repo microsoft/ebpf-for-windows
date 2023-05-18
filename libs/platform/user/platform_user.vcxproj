@@ -34,6 +34,7 @@
     <ClCompile Include="..\ebpf_state.c" />
     <ClCompile Include="..\ebpf_trampoline.c" />
     <ClCompile Include="ebpf_fault_injection.cpp" />
+    <ClCompile Include="ebpf_global_new_delete.cpp" />
     <ClCompile Include="ebpf_handle_user.c" />
     <ClCompile Include="ebpf_leak_detector.cpp" />
     <ClCompile Include="ebpf_native_user.c" />

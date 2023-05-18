@@ -91,6 +91,9 @@
     <ClCompile Include="ebpf_fault_injection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ebpf_global_new_delete.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ebpf_epoch.h">

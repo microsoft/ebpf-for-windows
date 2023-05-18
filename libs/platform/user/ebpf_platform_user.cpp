@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_fault_injection.h"
+#include "ebpf_global_new_delete.hpp"
 #include "ebpf_leak_detector.h"
 #include "ebpf_symbol_decoder.h"
 #include "ebpf_tracelog.h"
@@ -325,6 +326,8 @@ ebpf_platform_initiate()
         return EBPF_SUCCESS;
     }
 
+    ebpf_platform_new_delete_state_t::reset();
+
     try {
         _ebpf_platform_maximum_group_count = GetMaximumProcessorGroupCount();
         _ebpf_platform_maximum_processor_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
@@ -362,7 +365,12 @@ ebpf_platform_initiate()
         return EBPF_NO_MEMORY;
     }
 
-    return _initialize_thread_pool();
+    ebpf_result_t result = _initialize_thread_pool();
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+    ebpf_platform_new_delete_state_t::enable();
+    return EBPF_SUCCESS;
 }
 
 void
@@ -372,6 +380,8 @@ ebpf_platform_terminate()
     if (count != 0) {
         return;
     }
+
+    ebpf_platform_new_delete_state_t::disable();
 
     ExWaitForRundownProtectionRelease(&_ebpf_platform_preemptible_work_items_rundown);
 
@@ -399,6 +409,8 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
 {
+    ebpf_platform_new_delete_state_t::suppress_t suppress_new_delete;
+
     ebpf_assert(size);
     if (size > ebpf_fuzzing_memory_limit) {
         return nullptr;
@@ -465,6 +477,8 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) v
 void
 ebpf_free(_Frees_ptr_opt_ void* memory)
 {
+    ebpf_platform_new_delete_state_t::suppress_t suppress_new_delete;
+
     if (_ebpf_leak_detector_ptr) {
         _ebpf_leak_detector_ptr->unregister_allocation(reinterpret_cast<uintptr_t>(memory));
     }
@@ -474,6 +488,8 @@ ebpf_free(_Frees_ptr_opt_ void* memory)
 __drv_allocatesMem(Mem) _Must_inspect_result_
     _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
 {
+    ebpf_platform_new_delete_state_t::suppress_t suppress_new_delete;
+
     if (size > ebpf_fuzzing_memory_limit) {
         return nullptr;
     }

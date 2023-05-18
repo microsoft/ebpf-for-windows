@@ -9,6 +9,7 @@
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_fault_injection.h"
+#include "ebpf_global_new_delete.hpp"
 #include "ebpf_platform.h"
 #include "hash.h"
 #include "helpers.h"
@@ -243,6 +244,7 @@ GlueCreateFileW(
 bool
 GlueCloseHandle(HANDLE object_handle)
 {
+    ebpf_platform_new_delete_state_t::suppress_t new_delete_state_suppressor;
     if (object_handle == (HANDLE)CREATE_FILE_HANDLE) {
         return TRUE;
     }
@@ -269,6 +271,8 @@ GlueDuplicateHandle(
     bool inherit_handle,
     unsigned long options)
 {
+    ebpf_platform_new_delete_state_t::suppress_t new_delete_state_suppressor;
+
     UNREFERENCED_PARAMETER(source_process_handle);
     UNREFERENCED_PARAMETER(target_process_handle);
     UNREFERENCED_PARAMETER(desired_access);
@@ -292,6 +296,8 @@ _complete_overlapped(_Inout_ void* context, size_t output_buffer_length, ebpf_re
 bool
 GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
 {
+    ebpf_platform_new_delete_state_t::suppress_t new_delete_state_suppressor;
+
     UNREFERENCED_PARAMETER(file_handle);
     bool return_value = FALSE;
     if (overlapped != nullptr) {
@@ -436,6 +442,8 @@ GlueDeviceIoControl(
     _Out_ unsigned long* bytes_returned,
     _Inout_ OVERLAPPED* overlapped)
 {
+    ebpf_platform_new_delete_state_t::suppress_t new_delete_state_suppressor;
+
     UNREFERENCED_PARAMETER(device_handle);
     UNREFERENCED_PARAMETER(io_control_code);
 
@@ -522,6 +530,8 @@ Fail:
 
 _Requires_lock_not_held_(_fd_to_handle_mutex) int Glue_open_osfhandle(intptr_t os_file_handle, int flags)
 {
+    ebpf_platform_new_delete_state_t::suppress_t new_delete_state_suppressor;
+
     UNREFERENCED_PARAMETER(flags);
     try {
         fd_t fd = static_cast<fd_t>(InterlockedIncrement(&_ebpf_file_descriptor_counter));
@@ -535,6 +545,8 @@ _Requires_lock_not_held_(_fd_to_handle_mutex) int Glue_open_osfhandle(intptr_t o
 
 _Requires_lock_not_held_(_fd_to_handle_mutex) intptr_t Glue_get_osfhandle(int file_descriptor)
 {
+    ebpf_platform_new_delete_state_t::suppress_t new_delete_state_suppressor;
+
     if (file_descriptor == ebpf_fd_invalid) {
         errno = EINVAL;
         return ebpf_handle_invalid;
@@ -552,6 +564,8 @@ _Requires_lock_not_held_(_fd_to_handle_mutex) intptr_t Glue_get_osfhandle(int fi
 
 _Requires_lock_not_held_(_fd_to_handle_mutex) int Glue_close(int file_descriptor)
 {
+    ebpf_platform_new_delete_state_t::suppress_t new_delete_state_suppressor;
+
     if (file_descriptor == ebpf_fd_invalid) {
         errno = EINVAL;
         return ebpf_handle_invalid;
@@ -572,6 +586,8 @@ _Requires_lock_not_held_(_fd_to_handle_mutex) int Glue_close(int file_descriptor
 _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_create_service(
     _In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
+    ebpf_platform_new_delete_state_t::suppress_t new_delete_state_suppressor;
+
     *service_handle = (SC_HANDLE)0;
     try {
         std::wstring service_path(SERVICE_PATH_PREFIX);
@@ -599,6 +615,8 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_create_se
 
 _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_delete_service(SC_HANDLE handle)
 {
+    ebpf_platform_new_delete_state_t::suppress_t new_delete_state_suppressor;
+
     std::unique_lock lock(_service_path_to_context_mutex);
     for (auto& [path, context] : _service_path_to_context_map) {
         if (context->handle == (intptr_t)handle) {
@@ -710,6 +728,9 @@ _Requires_lock_not_held_(_fd_to_handle_mutex) static void _rundown_osfhandles()
 void
 clear_program_info_cache();
 
+void
+ebpf_verifier_clear_thread_local_state();
+
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
     try {
@@ -724,6 +745,7 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         clear_program_info_cache();
         if (api_initialized) {
             ebpf_api_terminate();
+            ebpf_verifier_clear_thread_local_state();
         }
         if (ec_initialized) {
             ebpf_core_terminate();

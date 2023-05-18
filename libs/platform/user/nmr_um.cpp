@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_fault_injection.h"
+#include "ebpf_global_new_delete.hpp"
 #include "nmr_impl.h"
 
 nmr_t _nmr::singleton;
@@ -12,6 +13,8 @@ NmrRegisterProvider(
     _In_opt_ __drv_aliasesMem void* provider_context,
     _Out_ HANDLE* nmr_provider_handle)
 {
+    ebpf_platform_new_delete_state_t::suppress_t no_new_delete;
+
     if (ebpf_fault_injection_inject_fault()) {
         return STATUS_NO_MEMORY;
     }
@@ -27,6 +30,8 @@ NmrRegisterProvider(
 NTSTATUS
 NmrDeregisterProvider(_In_ HANDLE nmr_provider_handle)
 {
+    ebpf_platform_new_delete_state_t::suppress_t no_new_delete;
+
     try {
         if (_nmr::get().deregister_provider(nmr_provider_handle)) {
             return STATUS_PENDING;
@@ -41,6 +46,7 @@ NmrDeregisterProvider(_In_ HANDLE nmr_provider_handle)
 void
 NmrProviderDetachClientComplete(_In_ HANDLE nmr_binding_handle)
 {
+    ebpf_platform_new_delete_state_t::suppress_t no_new_delete;
     try {
         _nmr::get().binding_detach_client_complete(nmr_binding_handle);
     } catch (std::bad_alloc) {
@@ -51,6 +57,7 @@ NmrProviderDetachClientComplete(_In_ HANDLE nmr_binding_handle)
 NTSTATUS
 NmrWaitForProviderDeregisterComplete(_In_ HANDLE nmr_provider_handle)
 {
+    ebpf_platform_new_delete_state_t::suppress_t no_new_delete;
     try {
         _nmr::get().wait_for_deregister_provider(nmr_provider_handle);
         return STATUS_SUCCESS;
@@ -65,6 +72,7 @@ NmrRegisterClient(
     _In_opt_ __drv_aliasesMem void* client_context,
     _Out_ HANDLE* nmr_client_handle)
 {
+    ebpf_platform_new_delete_state_t::suppress_t no_new_delete;
     if (ebpf_fault_injection_inject_fault()) {
         return STATUS_NO_MEMORY;
     }
@@ -80,6 +88,7 @@ NmrRegisterClient(
 NTSTATUS
 NmrDeregisterClient(_In_ HANDLE nmr_client_handle)
 {
+    ebpf_platform_new_delete_state_t::suppress_t no_new_delete;
     try {
         if (_nmr::get().deregister_client(nmr_client_handle)) {
             return STATUS_PENDING;
@@ -94,6 +103,7 @@ NmrDeregisterClient(_In_ HANDLE nmr_client_handle)
 void
 NmrClientDetachProviderComplete(_In_ HANDLE nmr_binding_handle)
 {
+    ebpf_platform_new_delete_state_t::suppress_t no_new_delete;
     try {
         _nmr::get().binding_detach_provider_complete(nmr_binding_handle);
     } catch (std::bad_alloc) {
@@ -104,6 +114,7 @@ NmrClientDetachProviderComplete(_In_ HANDLE nmr_binding_handle)
 NTSTATUS
 NmrWaitForClientDeregisterComplete(_In_ HANDLE nmr_client_handle)
 {
+    ebpf_platform_new_delete_state_t::suppress_t no_new_delete;
     try {
         _nmr::get().wait_for_deregister_client(nmr_client_handle);
         return STATUS_SUCCESS;
@@ -120,6 +131,7 @@ NmrClientAttachProvider(
     _Out_ void** provider_binding_context,
     _Out_ const void** provider_dispatch)
 {
+    ebpf_platform_new_delete_state_t::suppress_t no_new_delete;
     if (ebpf_fault_injection_inject_fault()) {
         return STATUS_NO_MEMORY;
     }

@@ -325,6 +325,10 @@ ebpf_fault_injection_uninitialize() noexcept
 bool
 ebpf_fault_injection_inject_fault() noexcept
 {
+    // Suppress fault injection if an exception is already in progress.
+    if (std::uncaught_exceptions() > 0) {
+        return false;
+    }
     try {
         if (_ebpf_fault_injection_singleton) {
             return _ebpf_fault_injection_singleton->inject_fault();

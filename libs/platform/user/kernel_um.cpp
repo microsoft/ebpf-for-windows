@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_fault_injection.h"
+#include "ebpf_global_new_delete.hpp"
 #include "ebpf_platform.h"
 #include "kernel_um.h"
 
@@ -230,6 +231,7 @@ unsigned long __cdecl DbgPrintEx(
 void
 ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref)
 {
+    ebpf_platform_new_delete_state_t::suppress_t suppress_new_delete;
 #pragma warning(push)
 #pragma warning(suppress : 6001) // Uninitialized memory. The rundown_ref is used as a key in a map and is not
                                  // dereferenced.
@@ -240,18 +242,21 @@ ExInitializeRundownProtection(_Out_ EX_RUNDOWN_REF* rundown_ref)
 void
 ExReInitializeRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref)
 {
+    ebpf_platform_new_delete_state_t::suppress_t suppress_new_delete;
     rundown_ref_table_t::instance().reinitialize_rundown_ref(rundown_ref);
 }
 
 void
 ExWaitForRundownProtectionRelease(_Inout_ EX_RUNDOWN_REF* rundown_ref)
 {
+    ebpf_platform_new_delete_state_t::suppress_t suppress_new_delete;
     rundown_ref_table_t::instance().wait_for_rundown_ref(rundown_ref);
 }
 
 BOOLEAN
 ExAcquireRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref)
 {
+    ebpf_platform_new_delete_state_t::suppress_t suppress_new_delete;
     if (rundown_ref_table_t::instance().acquire_rundown_ref(rundown_ref)) {
         return TRUE;
     } else {
@@ -262,6 +267,7 @@ ExAcquireRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref)
 void
 ExReleaseRundownProtection(_Inout_ EX_RUNDOWN_REF* rundown_ref)
 {
+    ebpf_platform_new_delete_state_t::suppress_t suppress_new_delete;
     rundown_ref_table_t::instance().release_rundown_ref(rundown_ref);
 }
 
