@@ -158,11 +158,23 @@ ebpf_program_terminate()
 _Requires_lock_not_held_(program->lock) static void _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
+    ebpf_lock_state_t state;
+    state = ebpf_lock_lock(&program->lock);
     while (!ebpf_list_is_empty(&program->links)) {
         ebpf_list_entry_t* entry = program->links.Flink;
         ebpf_core_object_t* object = CONTAINING_RECORD(entry, ebpf_core_object_t, object_list_entry);
+        // Acquire a reference on the object to prevent it from going away.
+        EBPF_OBJECT_ACQUIRE_REFERENCE(object);
+
+        // Release the lock before calling detach.
+        ebpf_lock_unlock(&program->lock, state);
         ebpf_link_detach_program((ebpf_link_t*)object);
+
+        EBPF_OBJECT_RELEASE_REFERENCE(object);
+        state = ebpf_lock_lock(&program->lock);
     }
+    ebpf_lock_unlock(&program->lock, state);
+
     EBPF_RETURN_VOID();
 }
 
