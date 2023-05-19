@@ -77,7 +77,7 @@ enum class AluOperations
     Mod,
     Xor,
     Mov,
-    Ashr,
+    Arsh,
     ByteOrder,
 };
 
@@ -600,13 +600,42 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(std::format("{} &= {};", destination, source));
                 break;
             case AluOperations::Lsh:
-                output.lines.push_back(std::format("{} <<= {};", destination, source));
+                if (is64bit) {
+
+                    // Shifts of >= 64 bits on 64-bit values result in undefined behavior so mask off the msb of the
+                    // shift size, i.e., the 'source' in this case.
+                    // Note: The 'duplication' of the following two lines for the 32-bit variant is deliberate as this
+                    // allows the use of the (applicable) native size for the shift_mask variable, thus doing away with
+                    // 'casting' that would otherwise be required. This also makes the code more readable.
+                    uint64_t shift_mask = 0x3F;
+                    output.lines.push_back(std::format("{} <<= ({} & {});", destination, source, shift_mask));
+                } else {
+
+                    // Shifts of >= 32 bits on 32-bit values result in undefined behavior so mask off the msb of the
+                    // shift size, i.e., the 'source' in this case.
+                    uint32_t shift_mask = 0x1F;
+                    output.lines.push_back(std::format("{} <<= ({} & {});", destination, source, shift_mask));
+                }
                 break;
             case AluOperations::Rsh:
                 if (is64bit) {
-                    output.lines.push_back(std::format("{} >>= {};", destination, source));
+
+                    // Shifts of >= 64 bits on 64-bit values result in undefined behavior so mask off the msb of the
+                    // shift size, i.e., the 'source' in this case.
+                    // Note: The 'duplication' of the following two lines for the 32-bit variant is deliberate as this
+                    // allows the use of the (applicable) native size for the shift_mask variable, thus doing away with
+                    // 'casting' that would otherwise be required. This also makes the code more readable.
+                    uint64_t shift_mask = 0x3F;
+                    output.lines.push_back(std::format("{} >>= ({} & {});", destination, source, shift_mask));
                 } else {
-                    output.lines.push_back(std::format("{} = (uint32_t){} >> {};", destination, destination, source));
+
+                    // Shifts of >= 32 bits on 32-bit values result in undefined behavior so mask off the msb of the
+                    // shift size, i.e., the 'source' in this case.
+                    // The one 'uint32_t' cast here is required to truncate the destination register's initial value to
+                    // 32 bits prior to using it, given that this is a 32-bit rsh operation.
+                    uint32_t shift_mask = 0x1F;
+                    output.lines.push_back(std::format("{} = (uint32_t){};", destination, destination));
+                    output.lines.push_back(std::format("{} >>= ({} & {});", destination, source, shift_mask));
                 }
                 break;
             case AluOperations::Neg:
@@ -632,12 +661,16 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             case AluOperations::Mov:
                 output.lines.push_back(std::format("{} = {};", destination, source));
                 break;
-            case AluOperations::Ashr:
+            case AluOperations::Arsh:
                 if (is64bit) {
-                    output.lines.push_back(
-                        std::format("{} = (int64_t){} >> (uint32_t){};", destination, destination, source));
+                    uint64_t shift_mask = 0x3F;
+                    output.lines.push_back(std::format(
+                        "{} = (int64_t){} >> (uint32_t)({} & {});", destination, destination, source, shift_mask));
                 } else {
-                    output.lines.push_back(std::format("{} = (int32_t){} >> {};", destination, destination, source));
+                    uint32_t shift_mask = 0x1F;
+                    output.lines.push_back(std::format("{} = (int32_t){};", destination, destination));
+                    output.lines.push_back(std::format(
+                        "{} = (int32_t){} >> (uint32_t)({} & {});", destination, destination, source, shift_mask));
                 }
                 break;
             case AluOperations::ByteOrder: {
