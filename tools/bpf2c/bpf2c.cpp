@@ -189,7 +189,7 @@ main(int argc, char** argv)
               [&]() {
                   std::cerr << argv[0]
                             << " is a tool to generate C code"
-                               "from an ELF file containing BPF byte code."
+                               " from an ELF file containing BPF byte code."
                             << std::endl;
                   std::cerr << "Options are:" << std::endl;
                   for (auto [option, tuple] : options) {
