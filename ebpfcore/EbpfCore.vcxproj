@@ -126,7 +126,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </Midl>
     <Link>
-      <AdditionalDependencies>ubpf_kernel.lib;%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(SDK_LIB_PATH)\uuid.lib;$(DDK_LIB_PATH)\netio.lib;$(DDK_LIB_PATH)\ksecdd.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(SDK_LIB_PATH)\uuid.lib;$(DDK_LIB_PATH)\netio.lib;$(DDK_LIB_PATH)\ksecdd.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <DriverSign>
@@ -172,7 +172,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </Midl>
     <Link>
-      <AdditionalDependencies>ubpf_kernel.lib;%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(SDK_LIB_PATH)\uuid.lib;$(DDK_LIB_PATH)\netio.lib;$(DDK_LIB_PATH)\ksecdd.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(SDK_LIB_PATH)\uuid.lib;$(DDK_LIB_PATH)\netio.lib;$(DDK_LIB_PATH)\ksecdd.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <DriverSign>
@@ -217,6 +217,9 @@
     </ProjectReference>
     <ProjectReference Include="..\libs\platform\kernel\platform_kernel.vcxproj">
       <Project>{fc3f9998-4085-4767-8386-5453f07c3aad}</Project>
+    </ProjectReference>
+    <ProjectReference Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'" Include="..\libs\ubpf\kernel\ubpf_kernel.vcxproj">
+      <Project>{675b59f8-089e-40b5-8388-56254447cfa3}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

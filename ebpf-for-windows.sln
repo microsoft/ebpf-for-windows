@@ -201,6 +201,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "installer", "installer", "{8CA48236-9B24-4841-B3E2-496C31ABBB23}"
 EndProject
 Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "ebpf-for-windows", "installer\ebpf-for-windows.wixproj", "{FE9B26CD-E885-4881-90D7-A096131C5C4A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{BA065B6A-38F8-4197-8F66-87C84AFAD513} = {BA065B6A-38F8-4197-8F66-87C84AFAD513}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpf_stress_tests_um", "tests\stress\um\ebpf_stress_tests_um.vcxproj", "{E51A27F5-A1D5-40DA-A09B-850203D6B13D}"
 	ProjectSection(ProjectDependencies) = postProject

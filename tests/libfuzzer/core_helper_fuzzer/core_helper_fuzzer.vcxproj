@@ -99,8 +99,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>$(FuzzerLibs);mincore.lib;ubpf_user.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OutDir);$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
@@ -111,7 +111,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OutDir);$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
@@ -121,8 +121,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>$(FuzzerLibs);mincore.lib;ubpf_user.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OutDir);$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -133,8 +133,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(FuzzerLibs);mincore.lib;ubpf_user.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OutDir);$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
@@ -146,7 +146,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OutDir);$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -163,6 +163,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\libs\platform\user\platform_user.vcxproj">
       <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
+    </ProjectReference>
+    <ProjectReference Condition="'$(DisableJIT)'!='True'" Include="..\..\..\libs\ubpf\user\ubpf_user.vcxproj">
+      <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\netebpfext\user\netebpfext_user.vcxproj">
       <Project>{630bb78f-6211-41d8-8e3a-096e22e169ef}</Project>
