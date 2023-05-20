@@ -173,6 +173,7 @@ jobs:
       gather_dumps: false
       # driver tests manually gather code coverage
       code_coverage: false
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   ossar:
     # Always run this job.

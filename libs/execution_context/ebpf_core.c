@@ -2328,7 +2328,7 @@ ebpf_core_get_protocol_handler_properties(
     *minimum_request_size = 0;
     *minimum_reply_size = 0;
 
-    if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
+    if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < 0) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
@@ -2388,7 +2388,7 @@ ebpf_core_invoke_protocol_handler(
     ebpf_operation_header_t* request = (ebpf_operation_header_t*)input_buffer;
     ebpf_operation_header_t* reply = (ebpf_operation_header_t*)output_buffer;
 
-    if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
+    if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < 0) {
         retval = EBPF_OPERATION_NOT_SUPPORTED;
         goto Done;
     }

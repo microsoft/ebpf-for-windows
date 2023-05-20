@@ -275,13 +275,13 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
     }
 
 #if defined(CONFIG_BPF_JIT_DISABLED)
-#define JIT_LOAD_RESULT -EOTHER
+#define JIT_LOAD_RESULT -ENOTSUP
 #else
 #define JIT_LOAD_RESULT 0
 #endif
 
 #if defined(CONFIG_BPF_INTERPRETER_DISABLED)
-#define INTERPRET_LOAD_RESULT -EOTHER
+#define INTERPRET_LOAD_RESULT -ENOTSUP
 #else
 #define INTERPRET_LOAD_RESULT 0
 #endif
@@ -291,7 +291,7 @@ _get_expected_jit_result(int32_t expected_result)
 {
 #if defined(CONFIG_BPF_JIT_DISABLED)
     UNREFERENCED_PARAMETER(expected_result);
-    return -EOTHER;
+    return -ENOTSUP;
 #else
     return expected_result;
 #endif
