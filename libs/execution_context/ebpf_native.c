@@ -1314,10 +1314,10 @@ _ebpf_native_clean_up_handle_cleanup_context(_Inout_ ebpf_native_handle_cleanup_
         ebpf_free(cleanup_context->handle_information->map_handles);
         ebpf_free(cleanup_context->handle_information->program_handles);
         ebpf_free(cleanup_context->handle_information->process_state);
-    }
 
-    if (cleanup_context->handle_information->process_handle != 0) {
-        ebpf_platform_dereference_process(cleanup_context->handle_information->process_handle);
+        if (cleanup_context->handle_information->process_handle != 0) {
+            ebpf_platform_dereference_process(cleanup_context->handle_information->process_handle);
+        }
     }
 
     if (cleanup_context->handle_cleanup_work_item != NULL) {
