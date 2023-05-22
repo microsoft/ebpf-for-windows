@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_epoch.h"
+#include "ebpf_tracelog.h"
 
 // Brief summary of how epoch tracking works.
 // Each free operation increments the _ebpf_current_epoch, the freed memory is stamped with that epoch, and the

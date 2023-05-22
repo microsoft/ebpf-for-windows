@@ -16,6 +16,7 @@
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_program_types.h"
 #include "ebpf_state.h"
+#include "ebpf_tracelog.h"
 #include "ubpf.h"
 
 #include <stdlib.h>

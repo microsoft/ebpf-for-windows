@@ -4,6 +4,7 @@
 #define EBPF_FILE_ID EBPF_FILE_ID_HANDLE
 
 #include "ebpf_handle.h"
+#include "ebpf_tracelog.h"
 #include "framework.h"
 
 extern DEVICE_OBJECT*

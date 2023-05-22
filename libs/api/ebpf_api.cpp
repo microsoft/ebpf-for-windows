@@ -14,6 +14,7 @@
 #include "ebpf_protocol.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
+#include "ebpf_tracelog.h"
 #include "framework.h"
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union

@@ -86,6 +86,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\libs\platform\ebpf_tracelog.c" />
     <ClCompile Include="..\ebpf_stress_tests.cpp" />
     <ClCompile Include="stress_tests_km.cpp" />
   </ItemGroup>

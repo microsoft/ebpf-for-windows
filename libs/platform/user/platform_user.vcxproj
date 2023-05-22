@@ -24,7 +24,7 @@
     <ClCompile Include="..\ebpf_crypto_hash.c" />
     <ClCompile Include="..\ebpf_epoch.c" />
     <ClCompile Include="..\ebpf_error.c" />
-    <ClCompile Include="..\ebpf_etw.c" />
+    <ClCompile Include="..\ebpf_tracelog.c" />
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_interlocked.c" />
     <ClCompile Include="..\ebpf_object.c" />
@@ -50,6 +50,7 @@
     <ClInclude Include="..\ebpf_platform.h" />
     <ClInclude Include="..\ebpf_ring_buffer.h" />
     <ClInclude Include="..\ebpf_state.h" />
+    <ClInclude Include="..\ebpf_tracelog.h" />
     <ClInclude Include="ebpf_fault_injection.h" />
     <ClInclude Include="ebpf_leak_detector.h" />
     <ClInclude Include="ebpf_rundown.h" />

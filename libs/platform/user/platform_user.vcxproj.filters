@@ -61,7 +61,7 @@
     <ClCompile Include="..\ebpf_error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_etw.c">
+    <ClCompile Include="..\ebpf_tracelog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ebpf_native_user.c">
@@ -139,6 +139,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ebpf_fault_injection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ebpf_tracelog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,5 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#pragma once
+
+#include "ebpf_platform.h"
 
 TRACELOGGING_DECLARE_PROVIDER(net_ebpf_ext_tracelog_provider);
 

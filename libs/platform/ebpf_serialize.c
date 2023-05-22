@@ -5,6 +5,7 @@
 // various eBPF structures to/from ebpf_operation_*_request/reply_t structures.
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
+#include "ebpf_tracelog.h"
 
 /**
  * @brief Serialized program type descriptor.

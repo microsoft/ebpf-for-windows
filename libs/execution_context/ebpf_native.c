@@ -3,6 +3,7 @@
 
 #define EBPF_FILE_ID EBPF_FILE_ID_NATIVE
 
+#include "..\libs\platform\ebpf_tracelog.h"
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
 #include "ebpf_native.h"

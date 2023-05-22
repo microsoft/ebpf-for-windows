@@ -11,6 +11,7 @@
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "ebpf_ring_buffer.h"
+#include "ebpf_tracelog.h"
 
 typedef struct _ebpf_core_map
 {

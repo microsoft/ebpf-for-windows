@@ -131,6 +131,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\libs\platform\ebpf_tracelog.c" />
     <ClCompile Include="..\..\..\libs\thunk\mock\mock.cpp" />
     <ClCompile Include="..\..\end_to_end\test_helper.cpp" />
     <ClCompile Include="..\ebpf_stress_tests.cpp" />

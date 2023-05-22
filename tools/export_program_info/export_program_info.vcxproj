@@ -146,6 +146,7 @@ $(OutputPath)export_program_info.exe</Command>
     <ClCompile Include="..\..\libs\api_common\registry_helper.cpp" />
     <ClCompile Include="..\..\libs\api_common\store_helper_internal.cpp" />
     <ClCompile Include="..\..\libs\api_common\utilities.cpp" />
+    <ClCompile Include="..\..\libs\platform\ebpf_tracelog.c" />
     <ClCompile Include="export_program_info.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>

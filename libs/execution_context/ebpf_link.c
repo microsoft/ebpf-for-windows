@@ -11,6 +11,7 @@
 #include "ebpf_object.h"
 #include "ebpf_platform.h"
 #include "ebpf_program.h"
+#include "ebpf_tracelog.h"
 
 /**
  * @brief State of the link between program and provider.
