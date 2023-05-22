@@ -70,8 +70,7 @@ if "%command%"=="periodic" (
 		mkdir "!traceCommittedPath!"
 	)
 
-	@rem Obtain rundown state
-	@rem Get the current date and time in a format suitable for file names.
+	@rem Get the current date and time in a format suitable for appending to file names.
 	for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do (
 		set "dt=%%a"
 		set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
@@ -89,17 +88,8 @@ if "%command%"=="periodic" (
 		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory.
 		for %%F in ("!wfp_state_file_xml!") do (
 			if %%~zF LEQ %max_file_size_bytes% (
-
-				@rem Get the current date and time in a format suitable for file names.
-				for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do (
-					set "dt=%%a"
-					set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
-					set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
-					set "timestamp=!YYYY!!MM!!DD!_!HH!!Min!!Sec!"
-
-					@rem Move the .XML file to the 'traceCommittedPath' directory.
-					move /y "!wfp_state_file_xml!" "!traceCommittedPath!\wfpstate_!timestamp!.xml" >nul
-				)
+				@rem Move the .XML file to the 'traceCommittedPath' directory.
+				move /y "!wfp_state_file_xml!" "!traceCommittedPath!\wfpstate_!timestamp!.xml" >nul
 			) else (
 
 				@rem If the .XML file size is greater than 'max_file_size_mb', then delete it.
