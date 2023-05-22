@@ -155,8 +155,8 @@ if "%command%"=="periodic" (
 		move /y "!trace_path!\%%f" "!traceCommittedPath!" >nul
 	)
 
-	@rem Iterate over all the WFP-state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_wfp_state_files`.
-	for /f "skip=%max_committed_wfp_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.xml"') do ( del "!traceCommittedPath!\%%f" )
+	@rem Iterate over all the WFP-state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_rundown_state_files`.
+	for /f "skip=%max_committed_rundown_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.xml"') do ( del "!traceCommittedPath!\%%f" )
 
 	@rem Iterate over all the bpf state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_rundown_state_files`.
 	for /f "skip=%max_committed_rundown_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\bpfstate*.txt"') do ( del "!traceCommittedPath!\%%f" )
