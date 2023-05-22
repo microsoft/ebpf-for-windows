@@ -58,6 +58,8 @@ typedef enum _ebpf_native_module_state
 
 typedef struct _ebpf_native_handle_cleanup_information
 {
+    intptr_t process_handle;
+    ebpf_process_state_t* process_state;
     size_t count_of_program_handles;
     ebpf_handle_t* program_handles;
     size_t count_of_map_handles;
@@ -309,6 +311,7 @@ _Requires_exclusive_lock_held_(module->lock) static void _ebpf_native_acquire_re
 void
 ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 {
+    EBPF_LOG_ENTRY();
     ebpf_lock_state_t state = 0;
 
     state = ebpf_lock_lock(&module->lock);
@@ -319,6 +322,7 @@ ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 void
 ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* module)
 {
+    EBPF_LOG_ENTRY();
     int64_t new_ref_count;
     ebpf_lock_state_t module_lock_state = 0;
     bool lock_acquired = false;
@@ -1272,6 +1276,10 @@ _ebpf_native_close_handles_work_item(_In_opt_ const void* context)
     }
 
     ebpf_native_handle_cleanup_info_t* handle_info = (ebpf_native_handle_cleanup_info_t*)context;
+
+    // Attach process to this worker thread.
+    ebpf_platform_attach_process(handle_info->process_handle, handle_info->process_state);
+
     for (uint32_t i = 0; i < handle_info->count_of_program_handles; i++) {
         if (handle_info->program_handles[i] != ebpf_handle_invalid) {
             (void)ebpf_handle_close(handle_info->program_handles[i]);
@@ -1287,6 +1295,12 @@ _ebpf_native_close_handles_work_item(_In_opt_ const void* context)
 
     ebpf_free(handle_info->program_handles);
     ebpf_free(handle_info->map_handles);
+
+    // Detach process from this worker thread.
+    ebpf_platform_detach_process(handle_info->process_state);
+
+    // Release the reference on the process object.
+    ebpf_platform_dereference_process(handle_info->process_handle);
 }
 
 static void
@@ -1299,12 +1313,16 @@ _ebpf_native_clean_up_handle_cleanup_context(_Inout_ ebpf_native_handle_cleanup_
     if (cleanup_context->handle_information != NULL) {
         ebpf_free(cleanup_context->handle_information->map_handles);
         ebpf_free(cleanup_context->handle_information->program_handles);
+        ebpf_free(cleanup_context->handle_information->process_state);
+    }
+
+    if (cleanup_context->handle_information->process_handle != 0) {
+        ebpf_platform_dereference_process(cleanup_context->handle_information->process_handle);
     }
 
     if (cleanup_context->handle_cleanup_work_item != NULL) {
         // ebpf_free_preemptible_work_item() will free the handle_information.
         ebpf_free_preemptible_work_item(cleanup_context->handle_cleanup_work_item);
-
     } else {
         ebpf_free(cleanup_context->handle_information);
     }
@@ -1350,10 +1368,21 @@ _ebpf_native_initialize_handle_cleanup_context(
         cleanup_context->handle_information->program_handles[i] = ebpf_handle_invalid;
     }
 
+    cleanup_context->handle_information->process_state = ebpf_allocate_process_state();
+    if (cleanup_context->handle_information->process_state == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
     result = ebpf_allocate_preemptible_work_item(
         &cleanup_context->handle_cleanup_work_item,
         _ebpf_native_close_handles_work_item,
         cleanup_context->handle_information);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    cleanup_context->handle_information->process_handle = ebpf_platform_reference_process();
 
 Done:
     if (result != EBPF_SUCCESS) {
