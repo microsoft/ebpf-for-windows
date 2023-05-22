@@ -1298,6 +1298,7 @@ _ebpf_native_close_handles_work_item(_In_opt_ const void* context)
 
     // Detach process from this worker thread.
     ebpf_platform_detach_process(handle_info->process_state);
+    ebpf_free(handle_info->process_state);
 
     // Release the reference on the process object.
     ebpf_platform_dereference_process(handle_info->process_handle);
