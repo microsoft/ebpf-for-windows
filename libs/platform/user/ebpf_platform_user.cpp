@@ -1237,7 +1237,7 @@ ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
 
     vsprintf_s(output.data(), output.size(), format, arg_list);
     // Remove the trailing null.
-    output.resize(bytes_written - 1);
+    output.pop_back();
 
     std::unique_lock<std::mutex> lock(_ebpf_platform_printk_output_lock);
     _ebpf_platform_printk_output.emplace_back(std::move(output));
