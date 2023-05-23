@@ -2787,6 +2787,9 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     // Run the program.
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
 
+    // The program should have returned -EBPF_NO_MORE_TAIL_CALLS.
+    REQUIRE(opts.retval == -EBPF_NO_MORE_TAIL_CALLS);
+
     // Read the map to determine how many times the program was called.
     REQUIRE(bpf_map_lookup_elem(canary_map_fd, &key, &value) == 0);
 
@@ -2795,4 +2798,63 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
 
     // Close the map and programs.
     bpf_object__close(object);
+}
+
+TEST_CASE("sequential_tail_call", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    struct bpf_object* object = bpf_object__open("tail_call_sequential_um.dll");
+    REQUIRE(object != nullptr);
+
+    // Load the BPF program.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Get the map used to store the next program to call.
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "map");
+
+    // Get the map used to record the number of times the program was called.
+    struct bpf_map* canary_map = bpf_object__find_map_by_name(object, "canary");
+
+    // Get the fd of the map.
+    fd_t map_fd = bpf_map__fd(map);
+
+    // Get the fd of the canary map.
+    fd_t canary_map_fd = bpf_map__fd(canary_map);
+
+    fd_t first_program_fd = ebpf_fd_invalid;
+
+    // Add each program to the map.
+    for (uint32_t i = 0; i < MAX_TAIL_CALL_CNT + 1; i++) {
+        std::string program_name = "sequential";
+        program_name += std::to_string(i);
+        struct bpf_program* program = bpf_object__find_program_by_name(object, program_name.c_str());
+        REQUIRE(program != nullptr);
+
+        // Get the fd for the program.
+        fd_t program_fd = bpf_program__fd(program);
+        if (i == 0) {
+            first_program_fd = program_fd;
+        }
+
+        uint32_t key = i;
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &program_fd, 0) == 0);
+    }
+
+    // Invoke the first program in the chain.
+    bpf_test_run_opts opts = {};
+    opts.repeat = 1;
+
+    // Run the program.
+    REQUIRE(bpf_prog_test_run_opts(first_program_fd, &opts) == 0);
+
+    // Read the map to determine how many times the program was called.
+    uint32_t key = 0;
+    uint32_t value = 0;
+    REQUIRE(bpf_map_lookup_elem(canary_map_fd, &key, &value) == 0);
+
+    // The program should have been called MAX_TAIL_CALL_CNT times.
+    REQUIRE(value == MAX_TAIL_CALL_CNT);
+
+    // The last program should have returned -EBPF_NO_MORE_TAIL_CALLS.
+    REQUIRE(opts.retval == -EBPF_NO_MORE_TAIL_CALLS);
 }
