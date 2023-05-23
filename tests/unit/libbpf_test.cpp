@@ -17,6 +17,10 @@
 #include <stop_token>
 #include <thread>
 
+#if !defined(MAX_TAIL_CALL_CNT)
+#define MAX_TAIL_CALL_CNT 32
+#endif
+
 // libbpf.h uses enum types and generates the
 // following warning whenever an enum type is used below:
 // "The enum type 'bpf_attach_type' is unscoped.
@@ -2742,4 +2746,53 @@ TEST_CASE("libbpf_load_stress", "[libbpf]")
     for (auto& thread : threads) {
         thread.join();
     }
+}
+
+TEST_CASE("recursive_tail_call", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    struct bpf_object* object = bpf_object__open("tail_call_recursive_um.dll");
+    REQUIRE(object != nullptr);
+
+    // Load the BPF program.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "recurse");
+    REQUIRE(program != nullptr);
+
+    // Get the map used to store the next program to call.
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "map");
+
+    // Get the map used to record the number of times the program was called.
+    struct bpf_map* canary_map = bpf_object__find_map_by_name(object, "canary");
+
+    // Get the fd for the program.
+    fd_t program_fd = bpf_program__fd(program);
+
+    // Get the fd of the map.
+    fd_t map_fd = bpf_map__fd(map);
+
+    // Get the fd of the canary map.
+    fd_t canary_map_fd = bpf_map__fd(canary_map);
+
+    uint32_t key = 0;
+    REQUIRE(bpf_map_update_elem(map_fd, &key, &program_fd, 0) == 0);
+
+    uint32_t value = 0;
+    REQUIRE(bpf_map_update_elem(canary_map_fd, &key, &value, 0) == 0);
+
+    bpf_test_run_opts opts = {};
+    opts.repeat = 1;
+
+    // Run the program.
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    // Read the map to determine how many times the program was called.
+    REQUIRE(bpf_map_lookup_elem(canary_map_fd, &key, &value) == 0);
+
+    // The program should have been called MAX_TAIL_CALL_CNT times.
+    REQUIRE(value == MAX_TAIL_CALL_CNT);
+
+    // Close the map and programs.
+    bpf_object__close(object);
 }
