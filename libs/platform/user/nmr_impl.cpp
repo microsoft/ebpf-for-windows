@@ -4,6 +4,7 @@
 #include "nmr_impl.h"
 
 #define NMR_WAIT_TIMEOUT_SECONDS 10
+#define NMR_WAIT_MAX_RETRIES 12
 
 _nmr::nmr_provider_handle
 _nmr::register_provider(_In_ const NPI_PROVIDER_CHARACTERISTICS& characteristics, _In_opt_ const void* context)
@@ -301,7 +302,7 @@ _nmr::remove(_Inout_ collection_t& collection, _In_ collection_t::value_type::fi
 
     // Wait for bindings to reach zero if requested.
     if (it->second.binding_count > 0) {
-        for (;;) {
+        for (size_t i = 0; i < NMR_WAIT_MAX_RETRIES; i++) {
             // Wait NMR_WAIT_TIMEOUT_SECONDS seconds for bindings to reach zero.
             if (bindings_changed.wait_for(l, std::chrono::seconds(NMR_WAIT_TIMEOUT_SECONDS), [&]() {
                     return it->second.binding_count == 0;
@@ -310,6 +311,9 @@ _nmr::remove(_Inout_ collection_t& collection, _In_ collection_t::value_type::fi
             }
             // Assert and continue waiting if bindings are still not zero.
             ebpf_assert(it->second.binding_count == 0);
+        }
+        if (it->second.binding_count > 0) {
+            __fastfail(0);
         }
     }
 

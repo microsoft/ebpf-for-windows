@@ -237,10 +237,14 @@ GlueCreateFileW(
     UNREFERENCED_PARAMETER(flags_and_attributes);
     UNREFERENCED_PARAMETER(template_file);
 
+    if (ebpf_fault_injection_inject_fault()) {
+        return INVALID_HANDLE_VALUE;
+    }
+
     return (HANDLE)CREATE_FILE_HANDLE;
 }
 
-bool
+BOOL
 GlueCloseHandle(HANDLE object_handle)
 {
     if (object_handle == (HANDLE)CREATE_FILE_HANDLE) {
@@ -252,21 +256,20 @@ GlueCloseHandle(HANDLE object_handle)
     if (!found) {
         // No duplicates. Close the handle.
         if (!(ebpf_api_close_handle(handle) == EBPF_SUCCESS || ebpf_fuzzing_enabled)) {
-            throw std::runtime_error("ebpf_api_close_handle failed");
+            __fastfail(FAST_FAIL_INVALID_ARG);
         }
     }
 
     return TRUE;
 }
 
-bool
-GlueDuplicateHandle(
+_Success_(return != FALSE) BOOL GlueDuplicateHandle(
     HANDLE source_process_handle,
     HANDLE source_handle,
     HANDLE target_process_handle,
     _Out_ HANDLE* target_handle,
     unsigned long desired_access,
-    bool inherit_handle,
+    BOOL inherit_handle,
     unsigned long options)
 {
     UNREFERENCED_PARAMETER(source_process_handle);
@@ -274,6 +277,12 @@ GlueDuplicateHandle(
     UNREFERENCED_PARAMETER(desired_access);
     UNREFERENCED_PARAMETER(inherit_handle);
     UNREFERENCED_PARAMETER(options);
+
+    if (ebpf_fault_injection_inject_fault()) {
+        SetLastError(ERROR_OUTOFMEMORY);
+        return FALSE;
+    }
+
     // Return the same value for duplicated handle.
     *target_handle = source_handle;
     return !!_duplicate_handles.reference_or_add(reinterpret_cast<ebpf_handle_t>(source_handle));
@@ -289,7 +298,7 @@ _complete_overlapped(_Inout_ void* context, size_t output_buffer_length, ebpf_re
     SetEvent(overlapped->hEvent);
 }
 
-bool
+BOOL
 GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
 {
     UNREFERENCED_PARAMETER(file_handle);
@@ -425,8 +434,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _preprocess
     }
 }
 
-bool
-GlueDeviceIoControl(
+_Success_(return != FALSE) BOOL GlueDeviceIoControl(
     HANDLE device_handle,
     unsigned long io_control_code,
     _In_reads_bytes_(input_buffer_size) void* input_buffer,
@@ -436,6 +444,11 @@ GlueDeviceIoControl(
     _Out_ unsigned long* bytes_returned,
     _Inout_ OVERLAPPED* overlapped)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        SetLastError(ERROR_OUTOFMEMORY);
+        return FALSE;
+    }
+
     UNREFERENCED_PARAMETER(device_handle);
     UNREFERENCED_PARAMETER(io_control_code);
 
@@ -522,6 +535,10 @@ Fail:
 
 _Requires_lock_not_held_(_fd_to_handle_mutex) int Glue_open_osfhandle(intptr_t os_file_handle, int flags)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        errno = ENOMEM;
+        return -1;
+    }
     UNREFERENCED_PARAMETER(flags);
     try {
         fd_t fd = static_cast<fd_t>(InterlockedIncrement(&_ebpf_file_descriptor_counter));
@@ -569,9 +586,13 @@ _Requires_lock_not_held_(_fd_to_handle_mutex) int Glue_close(int file_descriptor
     }
 }
 
-_Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_create_service(
+_Success_(return == 0) _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_create_service(
     _In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
+    if (ebpf_fault_injection_inject_fault()) {
+        return ERROR_OUTOFMEMORY;
+    }
+
     *service_handle = (SC_HANDLE)0;
     try {
         std::wstring service_path(SERVICE_PATH_PREFIX);
