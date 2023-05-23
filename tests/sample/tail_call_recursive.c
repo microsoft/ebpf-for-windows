@@ -29,6 +29,8 @@ SEC("xdp_prog") int recurse(struct xdp_md* ctx)
         return 0;
     }
 
+    bpf_printk("recurse: *value=%d\n", *value);
+
     // Record that we've been called.
     (*value)++;
 

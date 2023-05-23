@@ -33,6 +33,7 @@ SEC("maps") struct bpf_map canary = {BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeo
         if (!value) {                                          \
             return 1;                                          \
         }                                                      \
+        bpf_printk("sequential" #X ": *value=%d\n", *value);   \
         if (*value != X) {                                     \
             return 1;                                          \
         }                                                      \

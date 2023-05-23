@@ -21,6 +21,9 @@
 #define MAX_TAIL_CALL_CNT 32
 #endif
 
+std::vector<std::string>
+ebpf_platform_printk_output();
+
 // libbpf.h uses enum types and generates the
 // following warning whenever an enum type is used below:
 // "The enum type 'bpf_attach_type' is unscoped.
@@ -2762,18 +2765,23 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
 
     // Get the map used to store the next program to call.
     struct bpf_map* map = bpf_object__find_map_by_name(object, "map");
+    REQUIRE(map != nullptr);
 
     // Get the map used to record the number of times the program was called.
     struct bpf_map* canary_map = bpf_object__find_map_by_name(object, "canary");
+    REQUIRE(canary_map != nullptr);
 
     // Get the fd for the program.
     fd_t program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
 
     // Get the fd of the map.
     fd_t map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
 
     // Get the fd of the canary map.
     fd_t canary_map_fd = bpf_map__fd(canary_map);
+    REQUIRE(canary_map_fd > 0);
 
     uint32_t key = 0;
     REQUIRE(bpf_map_update_elem(map_fd, &key, &program_fd, 0) == 0);
@@ -2784,8 +2792,20 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     bpf_test_run_opts opts = {};
     opts.repeat = 1;
 
+    // Clear previous printk output.
+    auto unused_output = ebpf_platform_printk_output();
+
     // Run the program.
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    // Capture printk output from the program.
+    auto output = ebpf_platform_printk_output();
+
+    // Verify that the printk output is correct.
+    REQUIRE(output.size() == MAX_TAIL_CALL_CNT);
+    for (size_t i = 0; i < MAX_TAIL_CALL_CNT; i++) {
+        REQUIRE(output[i] == std::format("recurse: *value={}", i));
+    }
 
     // The program should have returned -EBPF_NO_MORE_TAIL_CALLS.
     REQUIRE(opts.retval == -EBPF_NO_MORE_TAIL_CALLS);
@@ -2811,15 +2831,19 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
 
     // Get the map used to store the next program to call.
     struct bpf_map* map = bpf_object__find_map_by_name(object, "map");
+    REQUIRE(map != nullptr);
 
     // Get the map used to record the number of times the program was called.
     struct bpf_map* canary_map = bpf_object__find_map_by_name(object, "canary");
+    REQUIRE(canary_map != nullptr);
 
     // Get the fd of the map.
     fd_t map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
 
     // Get the fd of the canary map.
     fd_t canary_map_fd = bpf_map__fd(canary_map);
+    REQUIRE(canary_map_fd > 0);
 
     fd_t first_program_fd = ebpf_fd_invalid;
 
@@ -2832,6 +2856,8 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
 
         // Get the fd for the program.
         fd_t program_fd = bpf_program__fd(program);
+        REQUIRE(program_fd > 0);
+
         if (i == 0) {
             first_program_fd = program_fd;
         }
@@ -2844,8 +2870,20 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     bpf_test_run_opts opts = {};
     opts.repeat = 1;
 
+    // Clear previous printk output.
+    auto unused_output = ebpf_platform_printk_output();
+
     // Run the program.
     REQUIRE(bpf_prog_test_run_opts(first_program_fd, &opts) == 0);
+
+    // Capture printk output from the program.
+    auto output = ebpf_platform_printk_output();
+
+    // Verify that the printk output is correct.
+    REQUIRE(output.size() == MAX_TAIL_CALL_CNT);
+    for (size_t i = 0; i < MAX_TAIL_CALL_CNT; i++) {
+        REQUIRE(output[i] == std::format("sequential{}: *value={}", i, i));
+    }
 
     // Read the map to determine how many times the program was called.
     uint32_t key = 0;
