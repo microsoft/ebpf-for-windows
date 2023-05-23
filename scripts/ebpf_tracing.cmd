@@ -42,7 +42,7 @@ if "%trace_path%" == "" (
 )
 
 :run_command
-@rem Uncomment ECHOs below for debugging purposes.
+@rem Uncomment the ECHOs below for debugging purposes.
 @rem ----------------------------------------------
 @rem echo Running with the following parameter values:
 @rem echo command=%command%
@@ -227,8 +227,8 @@ echo - When called with the 'stop' command, it will:
 echo 	- Stop then delete the logman session, and delete the 'trace_path' directory.
 echo - When called with the 'periodic' command, it will:
 echo 	- Run 'netsh wfp show state' into the 'trace_path' directory, and if the file is under 'max_file_size_mb', it will move it into the 'trace_path\committed' subfolder, adding a timestamp to its name.
-echo    - Run down the program state using bpftool, to capture the program output: link, map, and map content outputs, and store them in "bpf_state.txt".
-echo 	- Iterate over all the '.xml' files in the 'trace_path\committed' subfolder and delete the older files overflowing 'max_committed_wfp_state_files'.
+echo    - Run down the program state using bpftool, to capture the program output: link, map, and map content outputs, and store them in "bpf_state.txt". Like done for the WFP state, if the file is under 'max_file_size_mb', it will move it into the 'trace_path\committed' subfolder, adding a timestamp to its name.
+echo 	- Iterate over all the '.xml' files in the 'trace_path\committed' subfolder and delete the older files overflowing 'max_committed_rundown_state_files'.
 echo 	- Iterate over all the '.etl' files in the 'trace_path' directory, sorted in descending order by 'date modified', skip the first files summing up to 'max_committed_folder_size_mb' and move the others into the 'trace_path\committed' subfolder.
 echo:
 echo Examples:
