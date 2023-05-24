@@ -129,7 +129,9 @@ typedef class _single_instance_hook : public _hook_helper
     }
     ~_single_instance_hook()
     {
-        detach();
+        // Best effort cleanup. Ignore errors.
+        (void)ebpf_link_detach(link_object);
+        (void)ebpf_link_close(link_object);
         NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
         if (status == STATUS_PENDING) {
             NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
