@@ -2,14 +2,13 @@
 '------------- EBPF Install/Uninstall Functions --------------------
 '-------------------------------------------------------------------
 ' String constants
-Const EBPF_EBPFCORE_DRIVER_NAME				= "eBPFCore"
-Const EBPF_EXTENSION_DRIVER_NAME			= "NetEbpfExt"
-Const EBPF_NETSH_EXTENSION_NAME				= "ebpfnetsh.dll"
-Const EBPF_TRACING_STARTUP_TASK_NAME		= "eBpfTracingStartupTask"
-Const EBPF_TRACING_STARTUP_TASK_FILENAME	= "ebpf_tracing_startup_task.xml"
-Const EBPF_TRACING_PERIODIC_TASK_NAME		= "eBpfTracingPeriodicTask"
-Const EBPF_TRACING_PERIODIC_TASK_FILENAME	= "ebpf_tracing_periodic_task.xml"
-Const EBPF_TRACING_TASK_CMD					= "ebpf_tracing.cmd"
+Const EBPF_EBPFCORE_DRIVER_NAME             = "eBPFCore"
+Const EBPF_EXTENSION_DRIVER_NAME            = "NetEbpfExt"
+Const EBPF_TRACING_STARTUP_TASK_NAME        = "eBpfTracingStartupTask"
+Const EBPF_TRACING_STARTUP_TASK_FILENAME    = "ebpf_tracing_startup_task.xml"
+Const EBPF_TRACING_PERIODIC_TASK_NAME       = "eBpfTracingPeriodicTask"
+Const EBPF_TRACING_PERIODIC_TASK_FILENAME   = "ebpf_tracing_periodic_task.xml"
+Const EBPF_TRACING_TASK_CMD                 = "ebpf_tracing.cmd"
 
 ' Global variables
 Dim WmiService : Set WmiService = GetObject("winmgmts:\\.\root\cimv2")
@@ -67,16 +66,12 @@ Function MoveFilesToPath(sourcePath, destPath)
 	MoveFilesToPath = True	
 
 	' Create the destination folder if it doesn't exist
-	Set oTraceEvent = g_Trace.CreateEvent("INFO")
-	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
-		.setAttribute "destPath", destPath
-		If Not FsObject.FolderExists(destPath) Then		
-			call FsObject.CreateFolder(destPath)
-			If TraceError(g_Trace, "Failed to create folder " + destPath) <> 0 Then
-				MoveFilesToPath = False
-			End If
+	If Not FsObject.FolderExists(destPath) Then		
+		call FsObject.CreateFolder(destPath)
+		If TraceError(g_Trace, "Failed to create folder " + destPath) <> 0 Then
+			MoveFilesToPath = False
 		End If
-	End With
+	End If
 
 	If MoveFilesToPath = True Then
 		' Move all files and subfolders from the source folder to the destination folder
@@ -100,7 +95,8 @@ Function CreateScheduledTask(taskName, taskFile)
 	On Error Resume Next
 
 	Dim oResults, oTraceEvent, taskCommand
-	taskCommand = "%SystemRoot%\System32\schtasks.exe /create /tn " + taskName + " /xml """ + taskFile + """"
+
+	taskCommand = "%SystemRoot%\System32\schtasks.exe /create /tn " & taskName & " /xml """ & taskFile & """"
 	Set oResults = ExecuteAndTraceWithResults(taskCommand, g_Trace)
 
 	If oResults.ExitCode = 0 Then
@@ -268,7 +264,7 @@ Function UninstallEbpfDriver(driverName)
 			UninstallEbpfDriver = False
 			Set oTraceEvent = g_Trace.CreateEvent("ERROR")
 			With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
-				.setAttribute "Deleteriver", "False"
+				.setAttribute "deleteDriver", "False"
 				.setAttribute "driverFullPath", driverFullPath
 			End With		
 			g_Trace.TraceEvent oTraceEvent
@@ -350,11 +346,6 @@ Function UninstallEbpf(shouldDeleteEbpfTracingTasks)
 	UninstallEbpf = True
 
 	if Not FsObject.FolderExists(g_installPath) Then
-		Set oTraceEvent = g_Trace.CreateEvent("WARNING")
-		With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
-			.setAttribute "eBpfNotInstalled", g_installPath
-		End With
-		g_Trace.TraceEvent oTraceEvent
 		UninstallEbpf = False
 		' Not exiting: we still want to try to remove the drivers and tracing tasks, in case they were installed in a different location
 	End If
@@ -362,6 +353,7 @@ Function UninstallEbpf(shouldDeleteEbpfTracingTasks)
 	Set oTraceEvent = g_Trace.CreateEvent("INFO")
 	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
 		.setAttribute "g_installPath", g_installPath
+		.setAttribute "installationPathPresent", FsObject.FolderExists(g_installPath)
 	End With
 	g_Trace.TraceEvent oTraceEvent
 
@@ -373,10 +365,8 @@ Function UninstallEbpf(shouldDeleteEbpfTracingTasks)
 		UninstallEbpf = False
 	End If
 
-	If shouldDeleteEbpfTracingTasks Then
-		if DeleteEbpfTracingTasks() = False Then
-			UninstallEbpf = False
-		End If
+	If shouldDeleteEbpfTracingTasks And DeleteEbpfTracingTasks() = False Then
+		UninstallEbpf = False
 	End If
 
 	if RemoveSystemPath(g_installPath) = False Then
