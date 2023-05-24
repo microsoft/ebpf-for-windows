@@ -1592,11 +1592,6 @@ _initialize_ebpf_maps_native(
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        if (map != nullptr) {
-            clean_up_ebpf_map(map);
-            map = nullptr;
-        }
-
         clean_up_ebpf_maps(maps);
     }
     EBPF_RETURN_RESULT(result);
