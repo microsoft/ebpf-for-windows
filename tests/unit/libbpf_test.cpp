@@ -17,6 +17,9 @@
 #include <stop_token>
 #include <thread>
 
+// The helper function definitions in bpf_helpers.h conflict with the definitions
+// in libbpf.h, but this code needs to use MAX_TAIL_CALL_CNT from bpf_helpers.h.
+// Work around this by defining MAX_TAIL_CALL_CNT here.
 #if !defined(MAX_TAIL_CALL_CNT)
 #define MAX_TAIL_CALL_CNT 32
 #endif
