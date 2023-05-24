@@ -984,6 +984,11 @@ test_sock_addr_native_program_load_attach(const char* file_name)
 
 DECLARE_REGRESSION_TEST_CASE("0.9.0")
 
+// The below tests try to load native drivers for invalid programs (that will fail verification).
+// Since verification can be skipped in bpf2c for only Debug builds, these tests are applicable
+// only for Debug build.
+#ifdef _DEBUG
+
 static void
 _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, int expected_result)
 {
@@ -1001,11 +1006,6 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
         REQUIRE(bpf_prog_get_next_id(0, &next_id) == -ENOENT);
     }
 }
-
-// The below tests try to load native drivers for invalid programs (that will fail verification).
-// Since verification can be skipped in bpf2c for only Debug builds, these tests are applicable
-// only for Debug build.
-#ifdef _DEBUG
 
 TEST_CASE("load_native_program_invalid1", "[native][negative]")
 {
