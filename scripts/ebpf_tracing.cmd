@@ -220,7 +220,7 @@ echo   /max_committed_rundown_state_files count - Number (most recent) of each t
 echo:
 echo Behaviour:
 echo - When called with the 'start' command, it will:
-echo 	- Setup the logman session named as defined in 'trace_name', capping circular-log file size to 'max_file_size_mb', and generating every 'rundown_period'.
+echo 	- Set up the logman session named as defined in 'trace_name', capping circular-log file size to 'max_file_size_mb', and generating every 'rundown_period'.
 echo    - Configure the WFP/eBPF events to be monitored
 echo    - Start the session within the given 'trace_path' directory.
 echo - When called with the 'stop' command, it will:
