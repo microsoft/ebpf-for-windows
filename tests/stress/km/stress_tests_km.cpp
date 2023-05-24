@@ -110,11 +110,15 @@ _set_extension_state(SC_HANDLE service_handle, service_state_type service_state,
             // Service is not in the expected state(s) so (re)send a stop code to the service.
             LOG_VERBOSE("Issuing extension STOP...");
             SERVICE_STATUS service_status{};
-            if (!ControlService(service_handle, SERVICE_CONTROL_STOP, &service_status)) {
-                LOG_ERROR("FATAL_ERROR. ControlService(STOP) failed. Error: {}", GetLastError());
-                return false;
-            }
+
+            // We ignore the return status here as this API returns an error if the driver is actually stopping or
+            // already in a stopped state which is basically a no-op for us. This can happen if the driver goes into a
+            // 'stopping/stopped' state _after_ the QueryServiceStatusEx above returns.
+            (void)ControlService(service_handle, SERVICE_CONTROL_STOP, &service_status);
             LOG_VERBOSE("Issued extension STOP");
+
+            // Sleep for a bit to let the SCM process our command.
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
             continue;
         }
 
@@ -133,14 +137,14 @@ _set_extension_state(SC_HANDLE service_handle, service_state_type service_state,
 
         // Service is not in the expected state(s) so attempt to (re)start the service.
         LOG_VERBOSE("Issuing extension START...");
-        auto ret = system("net start NetEbpfExt > NUL");
-        if (ret != 0) {
-            LOG_ERROR("FATAL ERROR: starting extension via system() failed. Errno: {}", errno);
-            return false;
-        }
+
+        // We ignore the return status here as this API returns an error if the driver is actually starting or is
+        // already running which is a no-op for us. This can happen if the driver goes into a 'start pending/running'
+        // state _after_ the QueryServiceStatusEx above returns.
+        (void)system("net start NetEbpfExt >NUL 2>&1");
+        LOG_VERBOSE("Issued extension START");
 
         // Sleep for a bit to let the SCM process our command.
-        LOG_VERBOSE("Issued extension START");
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
     return true;
@@ -297,11 +301,18 @@ struct thread_context
 };
 
 static void
-_do_creator_work(thread_context& context)
+_do_creator_work(thread_context& context, std::time_t endtime_seconds)
 {
     // Wait for an entry to become available.
-    LOG_VERBOSE("(CREATOR)[{}] - Starting object table scan...", context.thread_index);
     for (auto& entry : context.object_table) {
+
+        // Abort operations if we're past the test duration time quantum.
+        using sc = std::chrono::system_clock;
+        auto timenow = sc::now();
+        std::time_t timenow_seconds = std::chrono::system_clock::to_time_t(timenow);
+        if (timenow_seconds >= endtime_seconds) {
+            break;
+        }
 
         // Do an un-protected read of 'entry.available' flag to avoid an un-necessary lock if the entry _is_ in use.
         if (entry.available) {
@@ -406,8 +417,8 @@ _do_creator_work(thread_context& context)
                     }
                 } catch (...) {
 
-                    // If the 'extension restart' thread is enabled (-jre=true specified on the command line), errors
-                    // in any/all of the ebpfapi calls in the above 'try' block are expected and are ignored.
+                    // If the 'extension restart' thread is enabled, errors in any/all of the ebpfapi calls in the
+                    // above 'try' block are expected and are ignored.
                     if (context.extension_restart_enabled) {
                         continue;
                     }
@@ -427,14 +438,20 @@ _do_creator_work(thread_context& context)
             }
         }
     }
-    LOG_VERBOSE("(CREATOR)[{}] - Done object table scan.", context.thread_index);
 }
 
 static void
-_do_attacher_work(thread_context& context)
+_do_attacher_work(thread_context& context, std::time_t endtime_seconds)
 {
-    LOG_VERBOSE("(ATTACHER)[{}] - Starting object table scan...", context.thread_index);
     for (auto& entry : context.object_table) {
+
+        // Abort operations if we're past the test duration time quantum.
+        using sc = std::chrono::system_clock;
+        auto timenow = sc::now();
+        std::time_t timenow_seconds = std::chrono::system_clock::to_time_t(timenow);
+        if (timenow_seconds >= endtime_seconds) {
+            break;
+        }
 
         // Do an un-protected read of 'entry.available' flag to avoid an un-necessary lock if the entry is not in use.
         if (!entry.available) {
@@ -508,14 +525,20 @@ _do_attacher_work(thread_context& context)
             }
         }
     }
-    LOG_VERBOSE("(ATTACHER)[{}] - Done object table scan", context.thread_index);
 }
 
 static void
-_do_destroyer_work(thread_context& context)
+_do_destroyer_work(thread_context& context, std::time_t endtime_seconds)
 {
-    LOG_VERBOSE("(DESTROYER)[{}] - Starting object table scan...", context.thread_index);
     for (auto& entry : context.object_table) {
+
+        // Abort operations if we're past the test duration time quantum.
+        using sc = std::chrono::system_clock;
+        auto timenow = sc::now();
+        std::time_t timenow_seconds = std::chrono::system_clock::to_time_t(timenow);
+        if (timenow_seconds >= endtime_seconds) {
+            break;
+        }
 
         // Do an un-protected read of 'entry.available' flag to avoid an un-necessary lock if the entry not in use.
         if (!entry.available) {
@@ -539,27 +562,40 @@ _do_destroyer_work(thread_context& context)
                 context.compartment_id);
         }
     }
-    LOG_VERBOSE("(DESTROYER)[{}] - Done object table scan", context.thread_index);
 }
 
 static void
 _test_thread_function(thread_context& context)
 {
-    using sc = std::chrono::steady_clock;
+    LOG_VERBOSE(
+        "**** {}[{}] thread started. ****",
+        (context.role == thread_role_type::CREATOR    ? "CREATOR"
+         : context.role == thread_role_type::ATTACHER ? "ATTACHER"
+                                                      : "DESTROYER"),
+        context.thread_index);
+
+    using sc = std::chrono::system_clock;
+    auto timenow = sc::now();
+    std::time_t timenow_seconds = std::chrono::system_clock::to_time_t(timenow);
     auto endtime = sc::now() + std::chrono::minutes(context.duration_minutes);
-    while (sc::now() < endtime) {
+    std::time_t endtime_seconds = std::chrono::system_clock::to_time_t(endtime);
+    while (timenow_seconds < endtime_seconds) {
+
         if (context.role == thread_role_type::CREATOR) {
-            _do_creator_work(context);
+            _do_creator_work(context, endtime_seconds);
         } else if (context.role == thread_role_type::ATTACHER) {
-            _do_attacher_work(context);
+            _do_attacher_work(context, endtime_seconds);
         } else {
             REQUIRE(context.role == thread_role_type::DESTROYER);
-            _do_destroyer_work(context);
+            _do_destroyer_work(context, endtime_seconds);
         }
+
+        timenow = sc::now();
+        timenow_seconds = std::chrono::system_clock::to_time_t(timenow);
     }
 
     LOG_VERBOSE(
-        "****{}[{}] thread done. Exiting. ****",
+        "**** {}[{}] thread done. Exiting. ****",
         (context.role == thread_role_type::CREATOR    ? "CREATOR"
          : context.role == thread_role_type::ATTACHER ? "ATTACHER"
                                                       : "DESTROYER"),
@@ -1048,7 +1084,7 @@ _print_test_control_info(const test_control_info& test_control_info)
     }
 }
 
-TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[mt_stress_test]")
+TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[jit_mt_stress_test]")
 {
     // This test attempts to load the same JIT'ed ebpf program multiple times in different threads.  This test
     // supports two modes:
@@ -1067,7 +1103,7 @@ TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[mt_stress_test]")
     _mt_prog_load_stress_test(EBPF_EXECUTION_JIT, local_test_control_info);
 }
 
-TEST_CASE("native_load_attach_detach_unload_random_v4_test", "[mt_stress_test]")
+TEST_CASE("native_load_attach_detach_unload_random_v4_test", "[native_mt_stress_test]")
 {
     // This test attempts to load the same native ebpf program multiple times in different threads. Specifically:
     //
@@ -1088,7 +1124,7 @@ TEST_CASE("native_load_attach_detach_unload_random_v4_test", "[mt_stress_test]")
     _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
 
-TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[mt_stress_test]")
+TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_stress_test]")
 {
     // This test attempts to load a unique native ebpf program multiple times in different threads. Specifically:
     //
@@ -1112,7 +1148,7 @@ TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[mt_stress_
     _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
 
-TEST_CASE("native_invoke_program_restart_extension_v4_test", "[mt_stress_test]")
+TEST_CASE("native_invoke_program_restart_extension_v4_test", "[native_mt_stress_test]")
 {
     // Test layout:
     // 1. Create 2 'monitor' threads:
@@ -1147,7 +1183,7 @@ TEST_CASE("native_invoke_program_restart_extension_v4_test", "[mt_stress_test]")
     _mt_invoke_prog_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
 
-TEST_CASE("sockaddr_invoke_program_test", "[mt_stress_test]")
+TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
 {
     // Test layout:
     // 1. Load the "cgroup_mt_connect6.sys" native ebpf program.
