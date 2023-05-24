@@ -69,7 +69,4 @@
       <Filter>Bad Object Files</Filter>
     </CopyFileToFolders>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
 </Project>
