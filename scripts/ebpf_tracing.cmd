@@ -9,7 +9,7 @@ set "command="
 set "trace_path="
 set "trace_name=ebpf_diag"
 set "rundown_period=0:35:00"
-set "max_file_size_mb=40"
+set "max_file_size_mb=30"
 set "max_committed_folder_size_mb=200"
 set "max_committed_rundown_state_files=1"
 
