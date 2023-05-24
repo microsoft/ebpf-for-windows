@@ -311,7 +311,6 @@ _Requires_exclusive_lock_held_(module->lock) static void _ebpf_native_acquire_re
 void
 ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 {
-    EBPF_LOG_ENTRY();
     ebpf_lock_state_t state = 0;
 
     state = ebpf_lock_lock(&module->lock);
@@ -322,7 +321,6 @@ ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 void
 ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* module)
 {
-    EBPF_LOG_ENTRY();
     int64_t new_ref_count;
     ebpf_lock_state_t module_lock_state = 0;
     bool lock_acquired = false;
