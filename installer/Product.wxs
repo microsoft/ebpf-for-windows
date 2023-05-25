@@ -969,6 +969,30 @@ SPDX-License-Identifier: MIT
 			<Component Id="TAIL_CALL_MULTIPLE_UM.PDB" DiskId="1" Guid="{D918F2DB-BC80-406F-B0AD-0C340D5EF280}">
 				<File Id="TAIL_CALL_MULTIPLE_UM.PDB" Name="tail_call_multiple_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_multiple_um.pdb" />
 			</Component>
+			<Component Id="TAIL_CALL_RECURSIVE.O" DiskId="1" Guid="{7469C19C-7706-44B7-BA35-6F27195F311A}">
+				<File Id="TAIL_CALL_RECURSIVE.O" Name="tail_call_recursive.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_recursive.o" />
+			</Component>
+			<Component Id="TAIL_CALL_RECURSIVE.SYS" DiskId="1" Guid="{7CD426F6-CCAE-4AC6-B40C-D1B0A4414060}">
+				<File Id="TAIL_CALL_RECURSIVE.SYS" Name="tail_call_recursive.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_recursive.sys" />
+			</Component>
+			<Component Id="TAIL_CALL_RECURSIVE_UM.DLL" DiskId="1" Guid="{5C3070EC-3332-42FA-83EA-136AC5A83756}">
+				<File Id="TAIL_CALL_RECURSIVE_UM.DLL" Name="tail_call_recursive_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_recursive_um.dll" />
+			</Component>
+			<Component Id="TAIL_CALL_RECURSIVE_UM.PDB" DiskId="1" Guid="{1C2725AA-66B1-414B-89F1-66EE492C04DE}">
+				<File Id="TAIL_CALL_RECURSIVE_UM.PDB" Name="tail_call_recursive_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_recursive_um.pdb" />
+			</Component>
+			<Component Id="TAIL_CALL_SEQUENTIAL.O" DiskId="1" Guid="{4AA3C7E5-1AAD-4587-9569-7D017D24120B}">
+				<File Id="TAIL_CALL_SEQUENTIAL.O" Name="tail_call_sequential.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_sequential.o" />
+			</Component>
+			<Component Id="TAIL_CALL_SEQUENTIAL.SYS" DiskId="1" Guid="{614AA5D9-66B6-45A9-B51B-1EF31EF4517E}">
+				<File Id="TAIL_CALL_SEQUENTIAL.SYS" Name="tail_call_sequential.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_sequential.sys" />
+			</Component>
+			<Component Id="TAIL_CALL_SEQUENTIAL_UM.DLL" DiskId="1" Guid="{A32C7BFC-77A8-4C7E-A57A-DE30FE7647DF}">
+				<File Id="TAIL_CALL_SEQUENTIAL_UM.DLL" Name="tail_call_sequential_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_sequential_um.dll" />
+			</Component>
+			<Component Id="TAIL_CALL_SEQUENTIAL_UM.PDB" DiskId="1" Guid="{7389D611-5068-465E-BFE8-BA485B5C2AC4}">
+				<File Id="TAIL_CALL_SEQUENTIAL_UM.PDB" Name="tail_call_sequential_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_sequential_um.pdb" />
+			</Component>
 			<Component Id="TEST_SAMPLE_EBPF.O" DiskId="1" Guid="{5E7F82E9-9631-44C6-A597-18DD96C87C44}">
 				<File Id="TEST_SAMPLE_EBPF.O" Name="test_sample_ebpf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\test_sample_ebpf.o" />
 			</Component>

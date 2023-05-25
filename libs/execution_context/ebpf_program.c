@@ -1338,7 +1338,8 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (state->count == MAX_TAIL_CALL_CNT) {
+    if (state->count == (MAX_TAIL_CALL_CNT - 1)) {
+        EBPF_OBJECT_RELEASE_REFERENCE(&((ebpf_program_t*)next_program)->object);
         return EBPF_NO_MORE_TAIL_CALLS;
     }
 
