@@ -1208,6 +1208,21 @@ ebpf_result_to_win32_error_code(ebpf_result_t result)
     return RtlNtStatusToDosError(ebpf_result_to_ntstatus(result));
 }
 
+static std::vector<std::string> _ebpf_platform_printk_output;
+static std::mutex _ebpf_platform_printk_output_lock;
+
+/**
+ * @brief Get the strings written via bpf_printk.
+ *
+ * @return Vector of strings written via bpf_printk.
+ */
+std::vector<std::string>
+ebpf_platform_printk_output()
+{
+    std::unique_lock<std::mutex> lock(_ebpf_platform_printk_output_lock);
+    return std::move(_ebpf_platform_printk_output);
+}
+
 long
 ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
 {
@@ -1216,6 +1231,17 @@ ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
         putchar('\n');
         bytes_written++;
     }
+
+    std::string output;
+    output.resize(bytes_written);
+
+    vsprintf_s(output.data(), output.size(), format, arg_list);
+    // Remove the trailing null.
+    output.pop_back();
+
+    std::unique_lock<std::mutex> lock(_ebpf_platform_printk_output_lock);
+    _ebpf_platform_printk_output.emplace_back(std::move(output));
+
     return bytes_written;
 }
 
