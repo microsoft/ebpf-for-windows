@@ -937,6 +937,7 @@ ebpf_platform_reference_process()
 _Ret_maybenull_ ebpf_process_state_t*
 ebpf_allocate_process_state()
 {
+    // Skipping fault injection as call to ebpf_allocate() covers it.
     ebpf_process_state_t* state = ebpf_allocate(sizeof(ebpf_process_state_t));
     return state;
 }

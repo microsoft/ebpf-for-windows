@@ -1417,6 +1417,7 @@ Done:
 _Ret_maybenull_ ebpf_process_state_t*
 ebpf_allocate_process_state()
 {
+    // Skipping fault injection as call to ebpf_allocate() covers it.
     ebpf_process_state_t* state = (ebpf_process_state_t*)ebpf_allocate(sizeof(ebpf_process_state_t));
     return state;
 }
@@ -1432,12 +1433,14 @@ ebpf_platform_reference_process()
 void
 ebpf_platform_dereference_process(intptr_t process_handle)
 {
+    // This is a no-op for the user mode implementation.
     UNREFERENCED_PARAMETER(process_handle);
 }
 
 void
 ebpf_platform_attach_process(intptr_t process_handle, _Inout_ ebpf_process_state_t* state)
 {
+    // This is a no-op for the user mode implementation.
     UNREFERENCED_PARAMETER(process_handle);
     UNREFERENCED_PARAMETER(state);
 }
@@ -1445,5 +1448,6 @@ ebpf_platform_attach_process(intptr_t process_handle, _Inout_ ebpf_process_state
 void
 ebpf_platform_detach_process(_In_ ebpf_process_state_t* state)
 {
+    // This is a no-op for the user mode implementation.
     UNREFERENCED_PARAMETER(state);
 }
