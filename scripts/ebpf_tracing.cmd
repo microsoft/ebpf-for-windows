@@ -55,7 +55,7 @@ if "%trace_path%" == "" (
 
 @rem Internal constants
 set /a num_etl_files_to_keep=1
-set /a max_file_size_bytes=!max_file_size_mb!*1000000
+set /a max_file_size_bytes=!max_file_size_mb!*1024*1024
 
 if not exist "!trace_path!" (
 	echo Creating trace_path "!trace_path!"
