@@ -1425,6 +1425,15 @@ _update_hash_map_entry_with_handle(
         goto Done;
     }
 
+    // Store the new object ID as the value.
+    result =
+        ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value_object->id, hash_table_operation);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Hash table update failed.", result);
+        goto Done;
+    }
+
     // Release the reference on the old ID stored here, if any.
     ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
     if (old_id) {
@@ -1436,15 +1445,6 @@ _update_hash_map_entry_with_handle(
         if (result == EBPF_STALE_ID) {
             result = EBPF_SUCCESS;
         }
-    }
-
-    // Store the new object ID as the value.
-    result =
-        ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value_object->id, hash_table_operation);
-    if (result != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_NTSTATUS(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Hash table update failed.", result);
-        goto Done;
     }
 
     // Acquire a reference to the id table entry for the new incoming id. This operation _cannot_ fail as we already
