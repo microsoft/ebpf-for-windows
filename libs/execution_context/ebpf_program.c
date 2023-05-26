@@ -1795,6 +1795,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_program_create_and_initialize(
     _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
 
@@ -1810,7 +1811,7 @@ ebpf_program_create_and_initialize(
 
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
-    return retval;
+    EBPF_RETURN_RESULT(retval);
 }
 
 typedef struct _ebpf_helper_id_to_index
