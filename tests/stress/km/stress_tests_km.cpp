@@ -1083,7 +1083,7 @@ _setup_tailcall_program(bpf_object* object, const std::string map_name)
             std::string bind_program_name{"BindMonitor_Callee"};
             bind_program_name += std::to_string(index);
 
-            // Try to get a handle to the 'BindMonitor_Calleexxindex' program.
+            // Try to get a handle to the 'BindMonitor_Callee<index>' program.
             bpf_program* callee = bpf_object__find_program_by_name(object, bind_program_name.c_str());
 
             if (callee == nullptr) {
