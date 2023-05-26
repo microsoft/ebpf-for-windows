@@ -1119,7 +1119,7 @@ _setup_tailcall_program(bpf_object* object, const std::string map_name)
             std::string bind_program_name{"BindMonitor_Callee"};
             bind_program_name += std::to_string(index);
 
-            // Try to get a handle to the 'BindMonitor_Calleexxindex' program.
+            // Try to get a handle to the 'BindMonitor_Callee<index>' program.
             bpf_program* callee = bpf_object__find_program_by_name(object, bind_program_name.c_str());
 
             if (callee == nullptr) {
@@ -1169,11 +1169,7 @@ _invoke_mt_bindmonitor_tailcall_thread_function(thread_context& context)
     INETADDR_SETANY(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
     uint16_t remote_port = SOCKET_TEST_PORT + static_cast<uint16_t>(context.thread_index);
 
-    if (context.role == thread_role_type::MONITOR_IPV4) {
-        (reinterpret_cast<PSOCKADDR_IN>(&remote_endpoint))->sin_port = htons(remote_port);
-    } else {
-        (reinterpret_cast<PSOCKADDR_IN6>(&remote_endpoint))->sin6_port = htons(remote_port);
-    }
+    SS_PORT(&remote_endpoint) = htons(remote_port);
 
     REQUIRE(bind(socket_handle, (PSOCKADDR)&remote_endpoint, sizeof(remote_endpoint)) == 0);
     LOG_VERBOSE("Thread[{}] bind success to port:{}", context.thread_index, remote_port);
