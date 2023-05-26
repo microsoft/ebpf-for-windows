@@ -13,7 +13,12 @@
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 
-constexpr int MAX_TAIL_CALL_PROGS = 32;
+// The helper function definitions in bpf_helpers.h conflict with the definitions
+// in libbpf.h, but this code needs to use MAX_TAIL_CALL_CNT from bpf_helpers.h.
+// Work around this by defining MAX_TAIL_CALL_CNT here.
+#if !defined(MAX_TAIL_CALL_CNT)
+#define MAX_TAIL_CALL_CNT 32
+#endif
 
 // Note: The 'program' and 'execution' types are not required for km tests.
 static const std::map<std::string, test_program_attributes> _test_program_info = {
@@ -1087,10 +1092,10 @@ _print_test_control_info(const test_control_info& test_control_info)
 }
 
 static void
-_cleanup_tailcall_program(const fd_t& prog_map_fd)
+_clean_up_tail_call_program(const fd_t& prog_map_fd)
 {
-    // Cleanup tail calls
-    for (int index = 0; index < MAX_TAIL_CALL_PROGS; index++) {
+    // Clean up tail calls.
+    for (int index = 0; index < MAX_TAIL_CALL_CNT; index++) {
         REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
     }
 
@@ -1098,7 +1103,7 @@ _cleanup_tailcall_program(const fd_t& prog_map_fd)
 }
 
 static fd_t
-_setup_tailcall_program(bpf_object* object, const std::string map_name)
+_set_up_tailcall_program(bpf_object* object, const std::string map_name)
 {
     REQUIRE(object != nullptr);
 
@@ -1113,8 +1118,8 @@ _setup_tailcall_program(bpf_object* object, const std::string map_name)
     }
     LOG_VERBOSE("({}) Opened fd:{} for map:{}", __func__, prog_map_fd, map_name.c_str());
 
-    // Setup tail calls
-    for (int index = 0; index < MAX_TAIL_CALL_PROGS; index++) {
+    // Set up tail calls.
+    for (int index = 0; index < MAX_TAIL_CALL_CNT; index++) {
         try {
             std::string bind_program_name{"BindMonitor_Callee"};
             bind_program_name += std::to_string(index);
@@ -1153,17 +1158,17 @@ _setup_tailcall_program(bpf_object* object, const std::string map_name)
 static void
 _invoke_mt_bindmonitor_tailcall_thread_function(thread_context& context)
 {
-    // Test bind
+    // Test bind.
     SOCKET socket_handle;
     SOCKADDR_STORAGE remote_endpoint{};
 
     if (context.role == thread_role_type::MONITOR_IPV4) {
-        socket_handle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
         remote_endpoint.ss_family = AF_INET;
     } else {
-        socket_handle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
+        ASSERT(context.role == thread_role_type::MONITOR_IPV6);
         remote_endpoint.ss_family = AF_INET6;
     }
+    socket_handle = WSASocket(remote_endpoint.ss_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
     REQUIRE(socket_handle != INVALID_SOCKET);
 
     INETADDR_SETANY(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
@@ -1182,9 +1187,9 @@ static std::pair<bpf_object_ptr, fd_t>
 _load_attach_tail_program(
     const std::string& file_name,
     uint32_t thread_index,
-    const ebpf_attach_type_t attach_type,
+    ebpf_attach_type_t attach_type,
     const std::string program_name,
-    const bpf_prog_type program_type)
+    bpf_prog_type program_type)
 {
     bpf_object_ptr object_ptr;
     bpf_object* object_raw_ptr = nullptr;
@@ -1276,7 +1281,7 @@ _load_attach_tail_program(
 }
 
 static void
-_mt_bindmonitor_tailcall_invoke_program_test(const test_control_info& test_control_info)
+_mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_control_info)
 {
     WSAData data{};
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
@@ -1291,8 +1296,8 @@ _mt_bindmonitor_tailcall_invoke_program_test(const test_control_info& test_contr
     auto [program_object, _] =
         _load_attach_tail_program(file_name, 0, EBPF_ATTACH_TYPE_BIND, program_name, program_type);
 
-    // Setup the tail call programs.
-    fd_t map_fd = _setup_tailcall_program(program_object.get(), map_name);
+    // Set up the tail call programs.
+    fd_t map_fd = _set_up_tailcall_program(program_object.get(), map_name);
 
     // Needed for thread_context initialization.
     constexpr uint32_t MAX_BIND_PROGRAM = 1;
@@ -1352,10 +1357,10 @@ _mt_bindmonitor_tailcall_invoke_program_test(const test_control_info& test_contr
         }
     }
 
-    // Cleanup tailcall programs.
-    _cleanup_tailcall_program(map_fd);
+    // Clean up tail call programs.
+    _clean_up_tail_call_program(map_fd);
 
-    // Cleanup WSA.
+    // Clean up Winsock.
     WSACleanup();
 }
 
@@ -1486,19 +1491,19 @@ TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
     _mt_sockaddr_invoke_program_test(local_test_control_info);
 }
 
-TEST_CASE("bindmonitor_tailcall_invoke_program_test", "[native_mt_stress_test]")
+TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]")
 {
     // Test layout:
     // 1. Load the "bindmonitor_mt_tailcall.sys" native ebpf program.
-    // 2. Load 32 tailcall programs.
+    // 2. Load MAX_TAIL_CALL_CNT tail call tail call programs.
     // 3. Create the specified # of threads.
     //   - Each thread will invoke the TCP 'bind'.
-    //   - This will invoke 32 tail call programs for permit.
+    //   - This will invoke MAX_TAIL_CALL_CNT tail call programs for permit.
 
     _km_test_init();
     LOG_INFO("\nStarting test *** bindmonitor_tailcall_invoke_program_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
 
     _print_test_control_info(local_test_control_info);
-    _mt_bindmonitor_tailcall_invoke_program_test(local_test_control_info);
+    _mt_bindmonitor_tail_call_invoke_program_test(local_test_control_info);
 }

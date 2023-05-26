@@ -19,15 +19,12 @@
 #include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
 
-// Define a macro for the maximum number of tail call programs
-#define MAX_TAIL_CALL_PROGS 32
-
 SEC("maps")
 struct bpf_map_def bind_tail_call_map = {
     .type = BPF_MAP_TYPE_PROG_ARRAY,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),
-    .max_entries = MAX_TAIL_CALL_PROGS};
+    .max_entries = MAX_TAIL_CALL_CNT};
 
 SEC("bind")
 bind_action_t
@@ -39,7 +36,7 @@ BindMonitor_Caller(bind_md_t* ctx)
     return BIND_DENY;
 }
 
-// Define a macro that defines a program which calls a tail call function for the bind hook.
+// Define a macro that defines a program which tail calls a function for the bind hook.
 #define DEFINE_BIND_TAIL_FUNC(x)                        \
     SEC("bind/" #x)                                     \
     bind_action_t BindMonitor_Callee##x(bind_md_t* ctx) \
