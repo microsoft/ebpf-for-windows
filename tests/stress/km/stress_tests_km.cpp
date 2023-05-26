@@ -1092,18 +1092,7 @@ _print_test_control_info(const test_control_info& test_control_info)
 }
 
 static void
-_clean_up_tail_call_program(const fd_t& prog_map_fd)
-{
-    // Clean up tail calls.
-    for (int index = 0; index < MAX_TAIL_CALL_CNT; index++) {
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
-    }
-
-    LOG_VERBOSE("{} Cleanup done for map={}", __func__, prog_map_fd);
-}
-
-static fd_t
-_set_up_tailcall_program(bpf_object* object, const std::string map_name)
+_set_up_tailcall_program(bpf_object* object, const std::string& map_name)
 {
     REQUIRE(object != nullptr);
 
@@ -1151,8 +1140,6 @@ _set_up_tailcall_program(bpf_object* object, const std::string map_name)
             // No need to terminate. We don't care about user mode issues here.
         }
     }
-
-    return prog_map_fd;
 }
 
 static void
@@ -1297,7 +1284,7 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
         _load_attach_tail_program(file_name, 0, EBPF_ATTACH_TYPE_BIND, program_name, program_type);
 
     // Set up the tail call programs.
-    fd_t map_fd = _set_up_tailcall_program(program_object.get(), map_name);
+    _set_up_tailcall_program(program_object.get(), map_name);
 
     // Needed for thread_context initialization.
     constexpr uint32_t MAX_BIND_PROGRAM = 1;
@@ -1357,9 +1344,6 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
             t.join();
         }
     }
-
-    // Clean up tail call programs.
-    _clean_up_tail_call_program(map_fd);
 
     // Clean up Winsock.
     WSACleanup();
