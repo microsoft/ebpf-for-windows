@@ -95,6 +95,8 @@ extern "C"
     typedef uintptr_t ebpf_lock_t;
     typedef uint8_t ebpf_lock_state_t;
 
+    typedef struct _ebpf_process_state ebpf_process_state_t;
+
     // A self-relative security descriptor.
     typedef struct _SECURITY_DESCRIPTOR ebpf_security_descriptor_t;
     typedef struct _GENERIC_MAPPING ebpf_security_generic_mapping_t;
@@ -1053,6 +1055,48 @@ extern "C"
     uint32_t
     ebpf_platform_thread_id();
 
+    /**
+     * @brief Allocate memory for process state. Caller needs to call ebpf_free()
+     *  to free the memory.
+     *
+     * @return Pointer to the process state.
+     */
+    _Ret_maybenull_ ebpf_process_state_t*
+    ebpf_allocate_process_state();
+
+    /**
+     * @brief Get a handle to the current process.
+     *
+     * @return Handle to the current process.
+     */
+    intptr_t
+    ebpf_platform_reference_process();
+
+    /**
+     * @brief Dereference a handle to a process.
+     *
+     * @param[in] process_handle to the process.
+     */
+    void
+    ebpf_platform_dereference_process(intptr_t process_handle);
+
+    /**
+     * @brief Attach to the specified process.
+     *
+     * @param[in] handle to the process.
+     * @param[in,out] state Pointer to the process state.
+     */
+    void
+    ebpf_platform_attach_process(intptr_t process_handle, _Inout_ ebpf_process_state_t* state);
+
+    /**
+     * @brief Detach from the current process.
+     *
+     * @param[in] state Pointer to the process state.
+     */
+    void
+    ebpf_platform_detach_process(_In_ ebpf_process_state_t* state);
+
     TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
 
     _Must_inspect_result_ ebpf_result_t
@@ -1286,7 +1330,7 @@ extern "C"
         TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),                      \
         TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_FUNCTION_ENTRY_EXIT), \
         TraceLoggingOpcode(WINEVENT_OPCODE_START),                      \
-        TraceLoggingString(__FUNCTION__, "<=="));
+        TraceLoggingString(__FUNCTION__, "==>"));
 
 #define EBPF_LOG_EXIT()                                                 \
     TraceLoggingWrite(                                                  \
@@ -1295,7 +1339,7 @@ extern "C"
         TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),                      \
         TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_FUNCTION_ENTRY_EXIT), \
         TraceLoggingOpcode(WINEVENT_OPCODE_STOP),                       \
-        TraceLoggingString(__FUNCTION__, "==>"));
+        TraceLoggingString(__FUNCTION__, "<=="));
 
 #define EBPF_RETURN_ERROR(error)                   \
     do {                                           \

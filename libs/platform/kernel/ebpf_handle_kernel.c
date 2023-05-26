@@ -67,6 +67,10 @@ ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ ebpf_base_object_t* obje
     *handle = (ebpf_handle_t)file_handle;
     file_handle = 0;
     return_value = EBPF_SUCCESS;
+
+    EBPF_LOG_MESSAGE_UINT64(
+        EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_CORE, "ebpf_handle_create: returning handle", *handle);
+
 Done:
     if (file_object) {
         ObDereferenceObject(file_object);
@@ -83,6 +87,10 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_handle_close(ebpf_handle_t handle)
 {
     EBPF_LOG_ENTRY();
+
+    EBPF_LOG_MESSAGE_UINT64(
+        EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_CORE, "ebpf_handle_close: closing handle", (uint64_t)handle);
+
     NTSTATUS status = ObCloseHandle((HANDLE)handle, UserMode);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ObCloseHandle, status);

@@ -15,6 +15,11 @@ static uint32_t _ebpf_platform_maximum_processor_count = 0;
 extern DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
+typedef struct _ebpf_process_state
+{
+    KAPC_STATE state;
+} ebpf_process_state_t;
+
 typedef struct _ebpf_memory_descriptor
 {
     MDL memory_descriptor_list;
@@ -919,4 +924,38 @@ ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar
 Done:
     ebpf_free(unicode_string);
     return retval;
+}
+
+intptr_t
+ebpf_platform_reference_process()
+{
+    PEPROCESS process = PsGetCurrentProcess();
+    ObReferenceObject(process);
+    return (intptr_t)process;
+}
+
+_Ret_maybenull_ ebpf_process_state_t*
+ebpf_allocate_process_state()
+{
+    // Skipping fault injection as call to ebpf_allocate() covers it.
+    ebpf_process_state_t* state = ebpf_allocate(sizeof(ebpf_process_state_t));
+    return state;
+}
+
+void
+ebpf_platform_dereference_process(intptr_t process_handle)
+{
+    ObDereferenceObject((PEPROCESS)process_handle);
+}
+
+void
+ebpf_platform_attach_process(intptr_t process_handle, _Inout_ ebpf_process_state_t* state)
+{
+    KeStackAttachProcess((PEPROCESS)process_handle, &state->state);
+}
+
+void
+ebpf_platform_detach_process(_In_ ebpf_process_state_t* state)
+{
+    KeUnstackDetachProcess(&state->state);
 }
