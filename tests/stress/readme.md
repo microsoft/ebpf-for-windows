@@ -104,7 +104,7 @@ Sample command line invocations:
 - Delay of 250 ms between successive extension restarts.
 
 ## 1.6. bindmonitor_tail_call_invoke_program_test
-This test first loads a specific native eBPF program. It then loads all the MAX_TAIL_CALL_CNT tail call programs and updates the program array map. It then creates the specified # of threads where each thread attempts a TCP 'bind' to the port. The test set up ensures that the `thread_index` passed in each `thread_context` is unique to that thread.
+This test first loads a specific native eBPF program. It then loads all the MAX_TAIL_CALL_CNT tail call programs and updates the program array map. It then creates the specified # of threads where each thread attempts a TCP 'bind' to the port. The test setup ensures that the `thread_index` passed in each `thread_context` is unique to that thread.
 
 This causes the invocation of the in-kernel eBPF tail call programs to be executed in sequence. The last tail call program returns a PERMIT verdict.
 
