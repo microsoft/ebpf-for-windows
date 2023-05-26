@@ -1156,7 +1156,7 @@ _set_up_tailcall_program(bpf_object* object, const std::string map_name)
 }
 
 static void
-_invoke_mt_bindmonitor_tailcall_thread_function(thread_context& context)
+_invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
 {
     // Test bind.
     SOCKET socket_handle;
@@ -1330,7 +1330,8 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
 
         // Now create the thread.
         auto& thread_entry = test_thread_table[i];
-        thread_entry = std::move(std::thread(_invoke_mt_bindmonitor_tailcall_thread_function, std::ref(context_entry)));
+        thread_entry =
+            std::move(std::thread(_invoke_mt_bindmonitor_tail_call_thread_function, std::ref(context_entry)));
     }
 
     // Another table for the 'extension restart' threads.
