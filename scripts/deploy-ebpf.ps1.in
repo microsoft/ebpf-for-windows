@@ -19,8 +19,6 @@ $source_directory="."
     "ebpfforwindows.wprp",
     "ebpfnetsh.dll",
     "ebpfnetsh.pdb",
-    "ebpfsvc.exe",
-    "ebpfsvc.pdb",
     "export_program_info.exe",
     "export_program_info.pdb",
     "MSVCP140D.dll",
@@ -30,6 +28,10 @@ $source_directory="."
     "ucrtbased.dll",
     "VCRUNTIME140_1D.dll",
     "VCRUNTIME140D.dll")
+
+[System.Collections.ArrayList]$built_runtime_jit_files=@(
+    "ebpfsvc.exe",
+    "ebpfsvc.pdb")
 
 [System.Collections.ArrayList]$source_msi_files=@(
     "ebpf-for-windows-{version}.msi")
@@ -194,6 +196,7 @@ $source_directory="."
     "xdp_tests.pdb")
 
 [System.Collections.ArrayList]$built_files= $built_runtime_files
+[System.Collections.ArrayList]$built_jit_files= $built_runtime_jit_files
 [System.Collections.ArrayList]$source_files= $source_script_files
 $destination_directory="C:\Temp"
 $error.clear()
@@ -253,6 +256,11 @@ OPTIONS:
     { @("-t", "--test") -contains $_ }
         {
             $built_files= $built_runtime_files + $built_test_files
+            break
+        }
+    { @("-t", "--jittest") -contains $_ }
+        {
+            $built_files= $built_runtime_files + $built_runtime_jit_files + $built_test_files
             break
         }
     default

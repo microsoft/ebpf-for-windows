@@ -32,6 +32,7 @@ load(int argc, char** argv)
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
+    // TODO(#1121): update this utility to be capable of using bindmonitor.sys.
     object = bpf_object__open("bindmonitor.o");
     if (object == nullptr) {
         fprintf(stderr, "Failed to open port quota eBPF program\n");
