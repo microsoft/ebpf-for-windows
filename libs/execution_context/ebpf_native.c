@@ -3,13 +3,13 @@
 
 #define EBPF_FILE_ID EBPF_FILE_ID_NATIVE
 
-#include "..\libs\platform\ebpf_tracelog.h"
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
 #include "ebpf_native.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "ebpf_protocol.h"
+#include "ebpf_tracelog.h"
 
 #include <intrin.h>
 
@@ -280,7 +280,7 @@ _Requires_lock_held_(module->lock) static ebpf_result_t _ebpf_native_unload(_Ino
             EBPF_TRACELOG_LEVEL_INFO,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "_ebpf_native_unload: module already unloading",
-            module->client_module_id);
+            &module->client_module_id);
         result = EBPF_SUCCESS;
         goto Done;
     }
@@ -351,7 +351,7 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
                 EBPF_TRACELOG_LEVEL_INFO,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "ebpf_native_release_reference: all program references released. Unloading module",
-                module->client_module_id);
+                &module->client_module_id);
 
             ebpf_assert_success(_ebpf_native_unload(module));
         }
@@ -371,7 +371,7 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* modu
             EBPF_TRACELOG_LEVEL_INFO,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_release_reference: ref is 0, complete detach callback",
-            module->client_module_id);
+            &module->client_module_id);
 
         // All references to the module have been released. Safe to complete the detach callback.
         NmrProviderDetachClientComplete(module->nmr_binding_handle);
@@ -453,7 +453,7 @@ _ebpf_native_provider_attach_client_callback(
         EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_NATIVE,
         "_ebpf_native_client_attach_callback: Called for",
-        *client_module_id);
+        client_module_id);
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = 0;
     ebpf_native_module_t** module = NULL;
@@ -479,7 +479,7 @@ _ebpf_native_provider_attach_client_callback(
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "The metadata table size is wrong for client module. The version of bpf2c used to generate this module "
             "may be too old.",
-            *client_module_id);
+            client_module_id);
         goto Done;
     }
 
@@ -511,7 +511,7 @@ _ebpf_native_provider_attach_client_callback(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "_ebpf_native_client_attach_callback: Module already exists",
-            *client_module_id);
+            client_module_id);
         goto Done;
     }
     result = ebpf_hash_table_update(
@@ -546,7 +546,7 @@ _ebpf_native_provider_detach_client_callback(_In_ void* provider_binding_context
         EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_NATIVE,
         "_ebpf_native_client_detach_callback: Called for",
-        context->client_module_id);
+        &context->client_module_id);
     // 1. Find the entry in the hash table using "client_id"
     // 2. Release the "attach" reference on the native module.
     // 3. Return EBPF_PENDING
@@ -693,7 +693,7 @@ _ebpf_native_initialize_maps(
                     EBPF_TRACELOG_LEVEL_ERROR,
                     EBPF_TRACELOG_KEYWORD_NATIVE,
                     "_ebpf_native_initialize_maps: map pin path too long",
-                    *module_id);
+                    module_id);
                 result = EBPF_INVALID_ARGUMENT;
                 goto Done;
             }
@@ -867,7 +867,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "_ebpf_native_create_maps: module already detaching / unloading",
-                module->client_module_id);
+                &module->client_module_id);
             break;
         }
 
@@ -964,7 +964,7 @@ _ebpf_native_resolve_maps_for_program(_In_ ebpf_native_module_t* module, _In_ co
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "_ebpf_native_resolve_maps_for_program: map indices not within range",
-                module->client_module_id);
+                &module->client_module_id);
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
     }
@@ -1002,7 +1002,7 @@ _ebpf_native_resolve_maps_for_program(_In_ ebpf_native_module_t* module, _In_ co
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "_ebpf_native_resolve_maps_for_program: map address changed",
-                module->client_module_id);
+                &module->client_module_id);
             goto Done;
         }
         native_maps[map_indices[i]].entry->address = (void*)map_addresses[i];
@@ -1054,7 +1054,7 @@ _ebpf_native_resolve_helpers_for_program(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_core_resolve_helper failed",
-            module->client_module_id);
+            &module->client_module_id);
         goto Done;
     }
 
@@ -1442,7 +1442,7 @@ ebpf_native_load(
     if (result != EBPF_SUCCESS) {
         result = EBPF_OBJECT_NOT_FOUND;
         EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_NATIVE, "ebpf_native_load: module not found", *module_id);
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_NATIVE, "ebpf_native_load: module not found", module_id);
         goto Done;
     }
     module = *existing_module;
@@ -1459,7 +1459,7 @@ ebpf_native_load(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "ebpf_native_load: module is detaching / unloading",
-                *module_id);
+                module_id);
         } else {
             // This client has already been initialized.
             result = EBPF_OBJECT_ALREADY_EXISTS;
@@ -1468,7 +1468,7 @@ ebpf_native_load(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "ebpf_native_load: module already initialized",
-                *module_id);
+                module_id);
         }
         goto Done;
     }
@@ -1484,7 +1484,7 @@ ebpf_native_load(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load: Failed to create handle.",
-            *module_id);
+            module_id);
         goto Done;
     }
 
@@ -1550,7 +1550,7 @@ ebpf_native_load_programs(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_programs: module not found",
-            *module_id);
+            module_id);
         goto Done;
     }
     module = *existing_module;
@@ -1566,7 +1566,7 @@ ebpf_native_load_programs(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "ebpf_native_load_programs: module already detaching / unloading",
-                *module_id);
+                module_id);
         } else {
             // This client has already been loaded.
             result = EBPF_OBJECT_ALREADY_EXISTS;
@@ -1574,7 +1574,7 @@ ebpf_native_load_programs(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "ebpf_native_load_programs: programs already loaded / loading",
-                *module_id);
+                module_id);
         }
         goto Done;
     }
@@ -1601,7 +1601,7 @@ ebpf_native_load_programs(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_programs: _ebpf_native_initialize_handle_cleanup_context failed",
-            *module_id);
+            module_id);
         goto Done;
     }
     cleanup_context_created = true;
@@ -1613,7 +1613,7 @@ ebpf_native_load_programs(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_programs: map creation failed",
-            *module_id);
+            module_id);
         goto Done;
     }
     maps_created = true;
@@ -1625,7 +1625,7 @@ ebpf_native_load_programs(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_programs: program load failed",
-            *module_id);
+            module_id);
         goto Done;
     }
 

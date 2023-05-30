@@ -206,7 +206,7 @@ extern "C"
         ebpf_tracelog_level_t trace_level,
         ebpf_tracelog_keyword_t keyword,
         _In_z_ const char* message,
-        _In_ ebpf_result_t error);
+        ebpf_result_t error);
 #define EBPF_LOG_MESSAGE_ERROR(trace_level, keyword, message, error)                 \
     if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) { \
         ebpf_log_message_error(_##trace_level##, _##keyword##, message, error);      \
@@ -229,8 +229,8 @@ extern "C"
         ebpf_tracelog_keyword_t keyword,
         _In_z_ const char* message,
         _In_z_ const char* string,
-        _In_ const GUID guid1,
-        _In_ const GUID guid2);
+        _In_ const GUID* guid1,
+        _In_ const GUID* guid2);
 #define EBPF_LOG_MESSAGE_GUID_GUID_STRING(trace_level, keyword, message, string, guid1, guid2)            \
     if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) {                      \
         ebpf_log_message_guid_guid_string(_##trace_level##, _##keyword##, message, string, guid1, guid2); \
@@ -241,8 +241,8 @@ extern "C"
         ebpf_tracelog_level_t trace_level,
         ebpf_tracelog_keyword_t keyword,
         _In_z_ const char* message,
-        _In_ const GUID guid1,
-        _In_ const GUID guid2);
+        _In_ const GUID* guid1,
+        _In_ const GUID* guid2);
 #define EBPF_LOG_MESSAGE_GUID_GUID(trace_level, keyword, message, guid1, guid2)            \
     if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) {       \
         ebpf_log_message_guid_guid(_##trace_level##, _##keyword##, message, guid1, guid2); \
@@ -253,7 +253,7 @@ extern "C"
         ebpf_tracelog_level_t trace_level,
         ebpf_tracelog_keyword_t keyword,
         _In_z_ const char* message,
-        _In_ const GUID guid);
+        _In_ const GUID* guid);
 #define EBPF_LOG_MESSAGE_GUID(trace_level, keyword, message, guid)                   \
     if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) { \
         ebpf_log_message_guid(_##trace_level##, _##keyword##, message, guid);        \
@@ -373,7 +373,7 @@ extern "C"
             EBPF_TRACELOG_EVENT_API_ERROR,                  \
             TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),   \
             TraceLoggingKeyword((keyword)),                 \
-            TraceLoggingGuid((guid), (#guid)),              \
+            TraceLoggingGuid((*guid), (#guid)),             \
             TraceLoggingString(#api, "Api"),                \
             TraceLoggingWinError(last_error));              \
     } while (false);

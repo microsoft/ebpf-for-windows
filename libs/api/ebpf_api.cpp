@@ -2935,7 +2935,7 @@ _load_native_programs(
     error = invoke_ioctl(request, reply_buffer);
     if (error != ERROR_SUCCESS) {
         result = win32_error_code_to_ebpf_result(error);
-        EBPF_LOG_WIN32_GUID_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, *module_id, invoke_ioctl);
+        EBPF_LOG_WIN32_GUID_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, module_id, invoke_ioctl);
         goto Done;
     }
 
@@ -3016,8 +3016,8 @@ _ebpf_program_load_native(
         EBPF_TRACELOG_KEYWORD_API,
         "_ebpf_program_load_native",
         file_name,
-        service_name_guid,
-        provider_module_id);
+        &service_name_guid,
+        &provider_module_id);
 
     try {
         // Create a driver service with a random name.

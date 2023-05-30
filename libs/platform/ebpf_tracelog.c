@@ -30,7 +30,7 @@ ebpf_trace_initiate()
     }
 }
 
-// Prevent tail call optimization of the call to TraceLoggingUnregister to resolve verifier stop C4/DD
+// Prevent tail call optimization of the call to TraceLoggingUnregister to resolve driver verifier stop C4/DD
 // "An attempt was made to unload a driver without calling EtwUnregister".
 #pragma optimize("", off)
 void
@@ -538,27 +538,27 @@ __declspec(noinline) void ebpf_log_message_guid_guid_string(
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
     _In_z_ const char* string,
-    _In_ const GUID guid1,
-    _In_ const GUID guid2)
+    _In_ const GUID* guid1,
+    _In_ const GUID* guid2)
 {
     switch (trace_level) {
     CASE_LOG_ALWAYS:
-        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_LOG_ALWAYS, keyword, message, string, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_LOG_ALWAYS, keyword, message, string, *guid1, *guid2);
         break;
     CASE_CRITICAL:
-        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_CRITICAL, keyword, message, string, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_CRITICAL, keyword, message, string, *guid1, *guid2);
         break;
     CASE_LEVEL_ERROR:
-        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_ERROR, keyword, message, string, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_ERROR, keyword, message, string, *guid1, *guid2);
         break;
     CASE_WARNING:
-        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_WARNING, keyword, message, string, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_WARNING, keyword, message, string, *guid1, *guid2);
         break;
     CASE_INFO:
-        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_INFO, keyword, message, string, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_INFO, keyword, message, string, *guid1, *guid2);
         break;
     CASE_VERBOSE:
-        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_VERBOSE, keyword, message, string, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_VERBOSE, keyword, message, string, *guid1, *guid2);
         break;
     }
 }
@@ -614,27 +614,27 @@ __declspec(noinline) void ebpf_log_message_guid_guid(
     ebpf_tracelog_level_t trace_level,
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
-    _In_ const GUID guid1,
-    _In_ const GUID guid2)
+    _In_ const GUID* guid1,
+    _In_ const GUID* guid2)
 {
     switch (trace_level) {
     CASE_LOG_ALWAYS:
-        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_LOG_ALWAYS, keyword, message, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_LOG_ALWAYS, keyword, message, *guid1, *guid2);
         break;
     CASE_CRITICAL:
-        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_CRITICAL, keyword, message, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_CRITICAL, keyword, message, *guid1, *guid2);
         break;
     CASE_LEVEL_ERROR:
-        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_ERROR, keyword, message, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_ERROR, keyword, message, *guid1, *guid2);
         break;
     CASE_WARNING:
-        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_WARNING, keyword, message, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_WARNING, keyword, message, *guid1, *guid2);
         break;
     CASE_INFO:
-        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_INFO, keyword, message, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_INFO, keyword, message, *guid1, *guid2);
         break;
     CASE_VERBOSE:
-        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_VERBOSE, keyword, message, guid1, guid2);
+        EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_VERBOSE, keyword, message, *guid1, *guid2);
         break;
     }
 }
@@ -689,26 +689,26 @@ __declspec(noinline) void ebpf_log_message_guid(
     ebpf_tracelog_level_t trace_level,
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
-    _In_ const GUID guid)
+    _In_ const GUID* guid)
 {
     switch (trace_level) {
     CASE_LOG_ALWAYS:
-        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_LOG_ALWAYS, keyword, message, guid);
+        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_LOG_ALWAYS, keyword, message, *guid);
         break;
     CASE_CRITICAL:
-        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_CRITICAL, keyword, message, guid);
+        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_CRITICAL, keyword, message, *guid);
         break;
     CASE_LEVEL_ERROR:
-        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_ERROR, keyword, message, guid);
+        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_ERROR, keyword, message, *guid);
         break;
     CASE_WARNING:
-        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_WARNING, keyword, message, guid);
+        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_WARNING, keyword, message, *guid);
         break;
     CASE_INFO:
-        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_INFO, keyword, message, guid);
+        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_INFO, keyword, message, *guid);
         break;
     CASE_VERBOSE:
-        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_VERBOSE, keyword, message, guid);
+        EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_VERBOSE, keyword, message, *guid);
         break;
     }
 }
@@ -978,10 +978,7 @@ __declspec(noinline) void ebpf_log_message_uint64_uint64(
         break;                                                                             \
     }
 __declspec(noinline) void ebpf_log_message_error(
-    ebpf_tracelog_level_t trace_level,
-    ebpf_tracelog_keyword_t keyword,
-    _In_z_ const char* message,
-    _In_ ebpf_result_t error)
+    ebpf_tracelog_level_t trace_level, ebpf_tracelog_keyword_t keyword, _In_z_ const char* message, ebpf_result_t error)
 {
     switch (trace_level) {
     CASE_LOG_ALWAYS:
