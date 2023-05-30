@@ -983,3 +983,49 @@ test_sock_addr_native_program_load_attach(const char* file_name)
     }
 
 DECLARE_REGRESSION_TEST_CASE("0.9.0")
+
+// The below tests try to load native drivers for invalid programs (that will fail verification).
+// Since verification can be skipped in bpf2c for only Debug builds, these tests are applicable
+// only for Debug build.
+#ifdef _DEBUG
+
+static void
+_load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, int expected_result)
+{
+    int result;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+    uint32_t next_id;
+
+    result = _program_load_helper(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd);
+    REQUIRE(result == expected_result);
+
+    if (result != 0) {
+        // If load failed, no programs or maps should be loaded.
+        REQUIRE(bpf_map_get_next_id(0, &next_id) == -ENOENT);
+        REQUIRE(bpf_prog_get_next_id(0, &next_id) == -ENOENT);
+    }
+}
+
+TEST_CASE("load_native_program_invalid1", "[native][negative]")
+{
+    _load_invalid_program("invalid_maps1.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
+}
+TEST_CASE("load_native_program_invalid2", "[native][negative]")
+{
+    _load_invalid_program("invalid_maps2.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
+}
+TEST_CASE("load_native_program_invalid3", "[native][negative]")
+{
+    _load_invalid_program("invalid_helpers.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
+}
+TEST_CASE("load_native_program_invalid4", "[native][negative]")
+{
+    _load_invalid_program("empty.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
+}
+TEST_CASE("load_native_program_invalid5", "[native][negative]")
+{
+    _load_invalid_program("invalid_maps3.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
+}
+
+#endif

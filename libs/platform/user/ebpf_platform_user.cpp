@@ -38,6 +38,11 @@ static EX_RUNDOWN_REF _ebpf_platform_preemptible_work_items_rundown;
 
 ebpf_leak_detector_ptr _ebpf_leak_detector_ptr;
 
+typedef struct _ebpf_process_state
+{
+    uint8_t unused;
+} ebpf_process_state_t;
+
 /**
  * @brief Environment variable to enable fault injection testing.
  *
@@ -1434,4 +1439,42 @@ ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar
 Done:
     ebpf_free(unicode_string);
     return retval;
+}
+
+_Ret_maybenull_ ebpf_process_state_t*
+ebpf_allocate_process_state()
+{
+    // Skipping fault injection as call to ebpf_allocate() covers it.
+    ebpf_process_state_t* state = (ebpf_process_state_t*)ebpf_allocate(sizeof(ebpf_process_state_t));
+    return state;
+}
+
+intptr_t
+ebpf_platform_reference_process()
+{
+
+    HANDLE process = GetCurrentProcess();
+    return (intptr_t)process;
+}
+
+void
+ebpf_platform_dereference_process(intptr_t process_handle)
+{
+    // This is a no-op for the user mode implementation.
+    UNREFERENCED_PARAMETER(process_handle);
+}
+
+void
+ebpf_platform_attach_process(intptr_t process_handle, _Inout_ ebpf_process_state_t* state)
+{
+    // This is a no-op for the user mode implementation.
+    UNREFERENCED_PARAMETER(process_handle);
+    UNREFERENCED_PARAMETER(state);
+}
+
+void
+ebpf_platform_detach_process(_In_ ebpf_process_state_t* state)
+{
+    // This is a no-op for the user mode implementation.
+    UNREFERENCED_PARAMETER(state);
 }
