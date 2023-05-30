@@ -394,13 +394,15 @@ ebpf_native_terminate()
 
     // ebpf_provider_unload is blocking call until all the
     // native modules have been detached.
-    NTSTATUS status = NmrDeregisterProvider(_ebpf_native_nmr_provider_handle);
-    if (status == STATUS_PENDING) {
-        NmrWaitForProviderDeregisterComplete(_ebpf_native_nmr_provider_handle);
-    } else {
-        ebpf_assert(status == STATUS_SUCCESS);
+    if (_ebpf_native_nmr_provider_handle) {
+        NTSTATUS status = NmrDeregisterProvider(_ebpf_native_nmr_provider_handle);
+        if (status == STATUS_PENDING) {
+            NmrWaitForProviderDeregisterComplete(_ebpf_native_nmr_provider_handle);
+        } else {
+            ebpf_assert(status == STATUS_SUCCESS);
+        }
+        _ebpf_native_nmr_provider_handle = NULL;
     }
-    _ebpf_native_nmr_provider_handle = NULL;
 
     // All native modules should be cleaned up by now.
     ebpf_assert(!_ebpf_native_client_table || ebpf_hash_table_key_count(_ebpf_native_client_table) == 0);
