@@ -91,6 +91,8 @@ $source_directory="."
     "cgroup_sock_addr2_um.dll",
     "cgroup_sock_addr2_um.pdb",
     "cgroup_sock_addr2.sys",
+    "connect_redirect_tests.exe",
+    "connect_redirect_tests.pdb",
     "decap_permit_packet.o",
     "decap_permit_packet_um.dll",
     "decap_permit_packet_um.pdb",
