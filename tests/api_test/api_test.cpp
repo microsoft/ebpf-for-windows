@@ -36,8 +36,10 @@ CATCH_REGISTER_LISTENER(_watchdog)
 #define EBPF_EXTENSION_DRIVER_BINARY_NAME L"netebpfext.sys"
 #define EBPF_EXTENSION_DRIVER_NAME L"netebpfext"
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #define EBPF_SERVICE_BINARY_NAME L"ebpfsvc.exe"
 #define EBPF_SERVICE_NAME L"ebpfsvc"
+#endif
 
 #define DROP_PACKET_PROGRAM_COUNT 1
 #define BIND_MONITOR_PROGRAM_COUNT 1
@@ -59,8 +61,10 @@ static service_install_helper
 static service_install_helper
     _ebpf_extension_driver_helper(EBPF_EXTENSION_DRIVER_NAME, EBPF_EXTENSION_DRIVER_BINARY_NAME, SERVICE_KERNEL_DRIVER);
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static service_install_helper
     _ebpf_service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
+#endif
 
 static int
 _program_load_helper(
