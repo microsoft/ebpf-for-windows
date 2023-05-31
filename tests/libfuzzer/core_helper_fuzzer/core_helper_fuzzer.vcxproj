@@ -98,6 +98,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\libs\platform\ebpf_tracelog.c" />
     <ClCompile Include="..\..\netebpfext_unit\netebpf_ext_helper.cpp" />
     <ClCompile Include="libfuzz_harness.cpp" />
   </ItemGroup>

@@ -3,6 +3,7 @@
 
 #include "ebpf_epoch.h"
 #include "ebpf_ring_buffer.h"
+#include "ebpf_tracelog.h"
 
 typedef struct _ebpf_ring_buffer
 {

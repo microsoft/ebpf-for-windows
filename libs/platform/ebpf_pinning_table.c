@@ -19,6 +19,7 @@
 #include "ebpf_core_structs.h"
 #include "ebpf_object.h"
 #include "ebpf_pinning_table.h"
+#include "ebpf_tracelog.h"
 
 #define EBPF_PINNING_TABLE_BUCKET_COUNT 64
 
@@ -167,7 +168,7 @@ ebpf_pinning_table_insert(
 Done:
     _ebpf_pinning_entry_free(new_pinning_entry);
     if (return_value == EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Pinned object", *path);
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Pinned object", path);
     }
 
     EBPF_RETURN_RESULT(return_value);
@@ -222,7 +223,7 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
 
     // Log the free of the path before freeing the entry (which may contain the path).
     if (return_value == EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Unpinned object", *path);
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Unpinned object", path);
     }
 
     if (entry != NULL) {

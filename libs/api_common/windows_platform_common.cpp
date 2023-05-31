@@ -10,6 +10,7 @@
 #include "ebpf_protocol.h"
 #include "ebpf_registry_helper.h"
 #include "ebpf_serialize.h"
+#include "ebpf_tracelog.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"

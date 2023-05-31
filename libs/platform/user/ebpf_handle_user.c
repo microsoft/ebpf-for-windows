@@ -3,6 +3,7 @@
 
 #define EBPF_FILE_ID EBPF_FILE_ID_HANDLE
 #include "ebpf_handle.h"
+#include "ebpf_tracelog.h"
 
 typedef ebpf_base_object_t* ebpf_handle_entry_t;
 

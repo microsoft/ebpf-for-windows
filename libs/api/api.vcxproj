@@ -117,6 +117,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\platform\ebpf_tracelog.c" />
     <ClCompile Include="bpf_syscall.cpp" />
     <ClCompile Include="ebpf_api.cpp" />
     <ClCompile Include="libbpf_errno.cpp" />

@@ -3,6 +3,7 @@
 
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
+#include "ebpf_tracelog.h"
 
 #include "rpc_interface_c.c"
 

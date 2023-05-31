@@ -3,6 +3,7 @@
 
 #include "ebpf_handle.h"
 #include "ebpf_object.h"
+#include "ebpf_tracelog.h"
 
 #include <intrin.h>
 

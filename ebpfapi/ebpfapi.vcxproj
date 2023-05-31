@@ -144,6 +144,7 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\libs\platform\ebpf_tracelog.c" />
     <ClCompile Include="..\libs\thunk\windows\platform.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="rpc_client.cpp" />

@@ -4,6 +4,7 @@
 #include "ebpf_epoch.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_tracelog.h"
 
 #pragma pack(push)
 #pragma pack(1)

@@ -22,6 +22,9 @@
     <ClCompile Include="libfuzz_harness.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\libs\platform\ebpf_tracelog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\end_to_end\test_helper.hpp">
