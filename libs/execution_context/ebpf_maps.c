@@ -1425,6 +1425,8 @@ _update_hash_map_entry_with_handle(
         goto Done;
     }
 
+    //Store the content of old object ID.
+    ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
     // Store the new object ID as the value.
     result =
         ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value_object->id, hash_table_operation);
@@ -1435,7 +1437,6 @@ _update_hash_map_entry_with_handle(
     }
 
     // Release the reference on the old ID stored here, if any.
-    ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
     if (old_id) {
 
         // Release the reference on the old ID's id table entry. The object may already have been deleted, so an
