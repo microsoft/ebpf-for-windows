@@ -245,7 +245,7 @@ _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
     version->minor = 9;
-    version->revision = 0;
+    version->revision = 1;
 }
 
 metadata_table_t bpf_metadata_table = {sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version};
