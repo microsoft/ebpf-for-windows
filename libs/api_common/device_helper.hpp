@@ -4,6 +4,7 @@
 #pragma once
 
 #include "ebpf_api.h"
+#include "ebpf_tracelog.h"
 #include "platform.h"
 
 // Device type

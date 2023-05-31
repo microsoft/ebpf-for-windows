@@ -3,6 +3,7 @@
 
 #include "ebpf_async.h"
 #include "ebpf_epoch.h"
+#include "ebpf_tracelog.h"
 
 typedef struct _ebpf_async_tracker
 {

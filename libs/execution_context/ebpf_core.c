@@ -15,6 +15,7 @@
 #include "ebpf_program.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
+#include "ebpf_tracelog.h"
 
 #include <errno.h>
 

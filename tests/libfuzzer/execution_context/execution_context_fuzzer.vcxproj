@@ -102,6 +102,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\libs\platform\ebpf_tracelog.c" />
     <ClCompile Include="libfuzz_harness.cpp" />
   </ItemGroup>
   <ItemGroup>

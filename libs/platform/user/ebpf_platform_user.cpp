@@ -4,6 +4,7 @@
 #include "ebpf_fault_injection.h"
 #include "ebpf_leak_detector.h"
 #include "ebpf_symbol_decoder.h"
+#include "ebpf_tracelog.h"
 #include "ebpf_utilities.h"
 
 #include <TraceLoggingProvider.h>

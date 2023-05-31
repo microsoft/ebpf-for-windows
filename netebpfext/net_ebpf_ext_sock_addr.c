@@ -144,7 +144,7 @@
                     original_context->protocol,                         \
                     original_context->msg_src_ip##family##,             \
                     ntohs(original_context->msg_src_port),              \
-                    original_context->msg_src_ip##family##,             \
+                    original_context->user_ip##family##,                \
                     ntohs(original_context->user_port),                 \
                     verdict);                                           \
             }                                                           \

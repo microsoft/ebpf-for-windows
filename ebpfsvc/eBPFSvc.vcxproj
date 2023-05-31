@@ -157,6 +157,7 @@
     <ClInclude Include="svc_common.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\libs\platform\ebpf_tracelog.c" />
     <ClCompile Include="..\libs\thunk\windows\platform.cpp" />
     <ClCompile Include="rpc_api.cpp" />
     <ClCompile Include="rpc_util.cpp" />

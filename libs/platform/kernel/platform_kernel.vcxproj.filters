@@ -58,7 +58,7 @@
     <ClCompile Include="..\ebpf_error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_etw.c">
+    <ClCompile Include="..\ebpf_tracelog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ebpf_native_kernel.c">
@@ -82,9 +82,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_pinning_table.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ebpf_platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="framework.h">
@@ -127,6 +124,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_ring_buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ebpf_platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ebpf_tracelog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
