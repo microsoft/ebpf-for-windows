@@ -245,13 +245,13 @@ echo 	- Stop then delete the logman session, and delete the 'trace_path' directo
 echo - When called with the 'periodic' command, it will:
 echo 	- Run 'netsh wfp show state' into the 'trace_path' directory, and if the file is under 'max_file_size_mb', it will move it into the 'trace_path\committed' subfolder, adding a timestamp to its name.
 echo    - Run down the program state using bpftool, to capture the program output: link, map, and map content outputs, and store them in "bpf_state.txt". Like done for the WFP state, if the file is under 'max_file_size_mb', it will move it into the 'trace_path\committed' subfolder, adding a timestamp to its name.
-echo      NOTE: If 'compress_rundown_state_files' option is set to 'true', both the WFP and bpftool state files will be compressed into '.cab' files.
+echo      NOTE: If the 'compress_rundown_state_files' option is set to 'true', both the WFP and the bpftool state files will be compressed into '.cab' files.
 echo 	- Iterate over all the run down state files in the 'trace_path\committed' subfolder and delete the older files overflowing 'max_committed_rundown_state_files'.
 echo 	- Iterate over all the '.etl' files in the 'trace_path' directory, sorted in descending order by 'date modified', skip the first files summing up to 'max_committed_folder_size_mb' and move the others into the 'trace_path\committed' subfolder.
 echo:
 echo Examples:
 echo    ebpf_tracing.cmd start /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF" /rundown_period 0:35:00 /max_file_size_mb 20
 echo    ebpf_tracing.cmd stop /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF"
-echo    ebpf_tracing.cmd periodic /trace_path "%SystemRoot%\Logs\eBPF" /max_file_size_mb 20 /max_committed_folder_size_mb 30 /max_committed_rundown_state_files 1 /compress_rundown_state_files true
+echo    ebpf_tracing.cmd periodic /trace_path "%SystemRoot%\Logs\eBPF" /max_file_size_mb 20 /max_committed_folder_size_mb 30 /max_committed_rundown_state_files 1 /compress_rundown_state_files false
 endlocal
 exit /b 1
