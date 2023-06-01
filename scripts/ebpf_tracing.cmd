@@ -93,7 +93,7 @@ if "%command%"=="periodic" (
 	)
 	if exist "!wfp_state_file!" (
 
-		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory, othewise delete it.
+		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory, otherwise delete it.
 		for %%F in ("!wfp_state_file!") do (
 			if %%~zF LEQ %max_file_size_bytes% (
 				if "%compress_rundown_state_files%" == "true" (
@@ -150,7 +150,7 @@ if "%command%"=="periodic" (
 		set "bpf_state_file=!trace_path!\bpf_state.txt"
 	)
 	if exist "!bpf_state_file!" (
-		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory, othewise delete it.
+		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory, otherwise delete it.
 		for %%F in ("!bpf_state_file!") do (
 			if %%~zF LEQ %max_file_size_bytes% (
 				if "%compress_rundown_state_files%" == "true" (
