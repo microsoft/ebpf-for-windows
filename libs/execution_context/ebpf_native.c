@@ -179,6 +179,11 @@ _ebpf_native_helper_address_changed(
 static void
 _ebpf_native_unload_work_item(_In_opt_ const void* service)
 {
+    // We do not need epoch awareness here. Specifically:
+    // 1. We're not touching any epoch managed objects in this code path.
+    // 2. Far more importantly, in the case where ebpfcore is shutting down, this work item will get executed _after_
+    //    the 'epoch' functionality has already been shut down.
+
     // Do not free "service" here. It is freed by platform.
     if (service != NULL) {
         ebpf_native_unload_driver((const wchar_t*)service);
@@ -1276,6 +1281,8 @@ _ebpf_native_close_handles_work_item(_In_opt_ const void* context)
         return;
     }
 
+    // NOTE: This work item does not need epoch protection as we end up calling into the OS to close a handle, which in
+    // turn calls back into the ebpfcore driver and that path _is_ epoch protected.
     ebpf_native_handle_cleanup_info_t* handle_info = (ebpf_native_handle_cleanup_info_t*)context;
 
     // Attach process to this worker thread.
