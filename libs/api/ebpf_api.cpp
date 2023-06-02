@@ -23,7 +23,7 @@
 #include "map_descriptors.hpp"
 #define _PEPARSE_WINDOWS_CONFLICTS
 #include "pe-parse/parse.h"
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #include "rpc_client.h"
 extern "C"
 {
@@ -204,7 +204,7 @@ ebpf_api_initiate() noexcept
     // it will be re-attempted before an IOCTL call is made.
     (void)initialize_device_handle();
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     RPC_STATUS status = initialize_rpc_binding();
 
     if (status != RPC_S_OK) {
@@ -227,7 +227,7 @@ ebpf_api_terminate() noexcept
     clear_ebpf_provider_data();
     _clean_up_ebpf_objects();
     clean_up_device_handle();
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     clean_up_rpc_binding();
 #endif
     ebpf_trace_terminate();
@@ -761,7 +761,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static ebpf_result_t
 _create_program(
     ebpf_program_type_t program_type,
@@ -2539,7 +2539,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
     EBPF_RETURN_RESULT(result);
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_load_bytes(
     _In_ const ebpf_program_type_t* program_type,
@@ -2752,7 +2752,7 @@ ebpf_object_load(_Inout_ struct bpf_object* object) noexcept
             goto Done;
         }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
         result = _ebpf_object_load_programs(object);
 #else
         result = EBPF_OPERATION_NOT_SUPPORTED;

@@ -25,7 +25,7 @@ bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_
         return libbpf_err(-EINVAL);
     }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     fd_t program_fd;
     ebpf_result_t result = ebpf_program_load_bytes(
         program_type,
@@ -85,7 +85,7 @@ bpf_prog_load(
         return libbpf_err(-EINVAL);
     }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     char* log_buffer = (opts) ? opts->log_buf : nullptr;
     size_t log_buffer_size = (opts) ? opts->log_size : 0;
 

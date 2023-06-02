@@ -548,7 +548,7 @@ ebpf_api_elf_enumerate_sections(
     _Outptr_result_maybenull_ ebpf_section_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept;
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 /**
  * @brief Load an eBPF programs from raw instructions.
  *

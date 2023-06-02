@@ -13,11 +13,11 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_RESOLVE_HELPER,
     EBPF_OPERATION_RESOLVE_MAP,
 #endif
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     EBPF_OPERATION_CREATE_PROGRAM,
 #endif
     EBPF_OPERATION_CREATE_MAP,
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     EBPF_OPERATION_LOAD_CODE,
 #endif
     EBPF_OPERATION_MAP_FIND_ELEMENT,
@@ -99,7 +99,7 @@ typedef struct _ebpf_operation_resolve_map_reply
 } ebpf_operation_resolve_map_reply_t;
 #endif
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 typedef struct _ebpf_operation_create_program_request
 {
     struct _ebpf_operation_header header;
@@ -116,7 +116,7 @@ typedef struct _ebpf_operation_create_program_reply
 } ebpf_operation_create_program_reply_t;
 #endif
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 typedef struct _ebpf_operation_load_code_request
 {
     struct _ebpf_operation_header header;

@@ -37,7 +37,7 @@ typedef class _ebpf_program_test_state
         ebpf_core_terminate();
     }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     void
     prepare_jit_program()
     {
@@ -272,7 +272,7 @@ static ebpf_program_test_state_t* _ebpf_program_test_state_instance = nullptr;
 static ebpf_map_test_state_t* _ebpf_map_test_state_instance = nullptr;
 static ebpf_map_lpm_trie_test_state_t* _ebpf_map_lpm_trie_test_state_instance = nullptr;
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static void
 _ebpf_program_invoke()
 {
@@ -422,7 +422,7 @@ test_bpf_map_lookup_lru_elem(bool preemptible)
     measure.run_test();
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 void
 test_program_invoke_jit(bool preemptible)
 {

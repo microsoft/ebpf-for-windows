@@ -118,7 +118,7 @@ parse_test_file(const std::string& data_file)
     return {prefix, mem, result, instructions};
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 ubpf_vm*
 prepare_ubpf_vm(const std::vector<ebpf_inst> instructions)
 {
