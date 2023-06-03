@@ -241,6 +241,14 @@ class bpf_code_generator
     parse();
 
     /**
+     * @brief Parse legacy map information in the eBPF file.
+     *
+     * @param[in] section_name Section in the ELF file to parse legacy maps in.
+     */
+    void
+    parse_legacy_maps_section(const unsafe_string& name);
+
+    /**
      * @brief Generate C code from the parsed eBPF file.
      *
      * @param[in] section_name Section in the ELF file to generate C code for.

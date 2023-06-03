@@ -357,6 +357,14 @@ bpf_code_generator::extract_program(const bpf_code_generator::unsafe_string& sec
     }
 }
 
+// Legacy (non-BTF) maps sections are identified as any section called "maps", or matching "maps/<map-name>".
+static bool
+is_legacy_map_section(const std::string& name)
+{
+    std::string maps_prefix = "maps/";
+    return name == "maps" || (name.length() > 5 && name.compare(0, maps_prefix.length(), maps_prefix) == 0);
+}
+
 void
 bpf_code_generator::visit_symbols(symbol_visitor_t visitor, const unsafe_string& section_name)
 {
@@ -464,40 +472,105 @@ bpf_code_generator::parse()
         }
     }
 
-    // Parse the older maps section if it exists.
-    map_section = get_optional_section("maps");
-    if (map_section) {
-        size_t data_size = map_section->get_size();
-        size_t map_count = data_size / sizeof(ebpf_map_definition_in_file_t);
-
-        if (data_size % sizeof(ebpf_map_definition_in_file_t) != 0) {
-            throw bpf_code_generator_exception(
-                "bad maps section size, must be a multiple of " +
-                std::to_string(sizeof(ebpf_map_definition_in_file_t)));
+    // Parse any older maps sections.
+    // Parse all maps sections.
+    for (auto& section : reader.sections) {
+        std::string name = section->get_name();
+        if (is_legacy_map_section(name)) {
+            parse_legacy_maps_section(name);
         }
+    }
+}
 
-        visit_symbols(
-            [&](const unsafe_string& unsafe_symbol_name,
-                uint64_t symbol_value,
-                unsigned char bind,
-                unsigned char symbol_type,
-                uint64_t symbol_size) {
-                UNREFERENCED_PARAMETER(bind);
-                UNREFERENCED_PARAMETER(symbol_type);
-                if (symbol_size != sizeof(ebpf_map_definition_in_file_t)) {
-                    throw bpf_code_generator_exception("invalid map size");
-                }
+static std::tuple<std::string, ELFIO::Elf_Half>
+get_symbol_name_and_section_index(ELFIO::const_symbol_section_accessor& symbols, ELFIO::Elf_Xword index)
+{
+    std::string symbol_name;
+    ELFIO::Elf64_Addr value{};
+    ELFIO::Elf_Xword size{};
+    unsigned char bind{};
+    unsigned char type{};
+    ELFIO::Elf_Half section_index{};
+    unsigned char other{};
+    symbols.get_symbol(index, symbol_name, value, size, bind, type, section_index, other);
+    return {symbol_name, section_index};
+}
 
-                map_definitions[unsafe_symbol_name].definition =
-                    *reinterpret_cast<const ebpf_map_definition_in_file_t*>(map_section->get_data() + symbol_value);
+// We should consider refactoring the code that parses ELF files into a form that can be used by both ebpf-verifier and
+// bpf2c.
+void
+bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
+{
+    auto map_section = get_optional_section(name);
+    if (!map_section) {
+        return;
+    }
 
-                map_definitions[unsafe_symbol_name].index = symbol_value / sizeof(ebpf_map_definition_in_file_t);
-            },
-            "maps");
+    // Count the number of symbols that point into this maps section.
+    ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
+    int map_count = 0;
+    for (ELFIO::Elf_Xword index = 0; index < symbols.get_symbols_num(); index++) {
+        auto [symbol_name, section_index] = get_symbol_name_and_section_index(symbols, index);
+        if ((section_index == map_section->get_index()) && !symbol_name.empty())
+            map_count++;
+    }
+    if (map_count == 0) {
+        return;
+    }
 
-        if (map_definitions.size() != map_count) {
-            throw bpf_code_generator_exception("bad maps section, map must have associated symbol");
+    size_t data_size = map_section->get_size();
+    size_t map_record_size = data_size / map_count;
+
+    if (data_size % map_record_size != 0) {
+        throw bpf_code_generator_exception(
+            "bad maps section size, must be a multiple of " + std::to_string(map_record_size));
+    }
+
+    size_t old_map_count = map_definitions.size();
+    for (ELFIO::Elf_Xword i = 0; i < symbols.get_symbols_num(); i++) {
+        std::string unsafe_symbol_name;
+        ELFIO::Elf64_Addr symbol_value{};
+        unsigned char symbol_bind{};
+        unsigned char symbol_type{};
+        ELFIO::Elf_Half symbol_section_index{};
+        unsigned char symbol_other{};
+        ELFIO::Elf_Xword symbol_size{};
+
+        symbols.get_symbol(
+            i,
+            unsafe_symbol_name,
+            symbol_value,
+            symbol_size,
+            symbol_bind,
+            symbol_type,
+            symbol_section_index,
+            symbol_other);
+
+        if (symbol_section_index == map_section->get_index()) {
+            if (symbol_size != map_record_size) {
+                throw bpf_code_generator_exception("invalid map size");
+            }
+            if (symbol_value > map_section->get_size()) {
+                throw bpf_code_generator_exception("invalid symbol value");
+            }
+            if ((symbol_value + symbol_size) > map_section->get_size()) {
+                throw bpf_code_generator_exception("invalid symbol value");
+            }
+
+            // Copy the data from the record into an ebpf_map_definition_in_file_t structure,
+            // zero-padding any extra, and being careful not to overflow the buffer.
+            map_definitions[unsafe_symbol_name].definition = {};
+            memcpy(
+                &map_definitions[unsafe_symbol_name].definition,
+                map_section->get_data() + symbol_value,
+                min(sizeof(map_definitions[unsafe_symbol_name].definition), map_record_size));
+
+            map_definitions[unsafe_symbol_name].index = symbol_value / map_record_size;
         }
+    }
+
+    if (map_definitions.size() != old_map_count + map_count) {
+        throw bpf_code_generator_exception("bad maps section, map must have associated symbol");
     }
 }
 
