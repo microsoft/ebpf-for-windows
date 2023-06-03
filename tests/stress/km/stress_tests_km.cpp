@@ -1146,7 +1146,7 @@ static void
 _invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
 {
     // Test bind.
-    SOCKET socket_handle;
+    SOCKET socket_handle = INVALID_SOCKET;
     SOCKADDR_STORAGE remote_endpoint{};
 
     if (context.role == thread_role_type::MONITOR_IPV4) {
@@ -1155,19 +1155,51 @@ _invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
         ASSERT(context.role == thread_role_type::MONITOR_IPV6);
         remote_endpoint.ss_family = AF_INET6;
     }
-    socket_handle = WSASocket(remote_endpoint.ss_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
-    REQUIRE(socket_handle != INVALID_SOCKET);
 
-    INETADDR_SETANY(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
     uint16_t remote_port = SOCKET_TEST_PORT + static_cast<uint16_t>(context.thread_index);
+    using sc = std::chrono::steady_clock;
+    auto endtime = sc::now() + std::chrono::minutes(context.duration_minutes);
+    while (sc::now() < endtime) {
 
-    SS_PORT(&remote_endpoint) = htons(remote_port);
+        // Now send out a small burst of TCP 'bind' attempts for the duration of the test.  We do this to increase
+        // the probability of a collision between the program invocation and the extension being restarted at the same
+        // time.
+        constexpr uint32_t BURST_SIZE = 4;
 
-    REQUIRE(bind(socket_handle, (PSOCKADDR)&remote_endpoint, sizeof(remote_endpoint)) == 0);
-    LOG_VERBOSE("Thread[{}] bind success to port:{}", context.thread_index, remote_port);
+        for (uint32_t i = 0; i < BURST_SIZE; i++) {
+            // Create a socket.
+            socket_handle = WSASocket(remote_endpoint.ss_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
+            REQUIRE(socket_handle != INVALID_SOCKET);
 
-    // Close socket.
-    closesocket(socket_handle);
+            INETADDR_SETANY(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
+            SS_PORT(&remote_endpoint) = htons(remote_port);
+
+            // Forcefully bind to the same port in use using socket option SO_REUSEADDR.
+            // Use-case: multicast sockets bind to same port.
+            // Reason for using SO_REUSEADDR option: WSAEADDRINUSE error was reported where
+            // the socket was still in the process of closing.
+            const char optval = 1;
+            setsockopt(socket_handle, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
+            // Bind the socket.
+            LOG_VERBOSE("Thread[{}] - binding to port:{}", context.thread_index, remote_port);
+            int result = bind(socket_handle, (PSOCKADDR)&remote_endpoint, sizeof(remote_endpoint));
+            if (result != 0) {
+                LOG_VERBOSE(
+                    "Thread[{}] bind result:{} {} to port:{}",
+                    context.thread_index,
+                    result,
+                    WSAGetLastError(),
+                    remote_port);
+                closesocket(socket_handle);
+            }
+            REQUIRE(result == 0);
+
+            LOG_VERBOSE("Thread[{}] bind success to port:{}", context.thread_index, remote_port);
+            closesocket(socket_handle);
+        }
+    }
+    LOG_VERBOSE("Thread[{}] Done.", context.thread_index);
 }
 
 static std::pair<bpf_object_ptr, fd_t>
