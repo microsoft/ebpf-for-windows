@@ -156,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\libs\execution_context\unit\execution_context_unit_test.cpp" />
+    <ClCompile Include="..\..\libs\platform\ebpf_tracelog.c" />
     <ClCompile Include="..\..\libs\platform\unit\platform_unit_test.cpp" />
     <ClCompile Include="..\..\libs\thunk\mock\mock.cpp" />
     <ClCompile Include="..\end_to_end\end_to_end.cpp" />

@@ -25,6 +25,9 @@
     <ClCompile Include="netebpf_ext_helper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\libs\platform\ebpf_tracelog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="netebpf_ext_helper.h">

@@ -33,7 +33,8 @@ set(platform_user_sources
   ebpf_platform.h
 
   ebpf_error.c
-  ebpf_etw.c
+  ebpf_tracelog.h
+  ebpf_tracelog.c
   ebpf_hash_table.c
   ebpf_interlocked.c
   ebpf_serialize.c

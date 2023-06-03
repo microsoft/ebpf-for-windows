@@ -28,7 +28,7 @@
     <ClCompile Include="..\ebpf_crypto_hash.c" />
     <ClCompile Include="..\ebpf_epoch.c" />
     <ClCompile Include="..\ebpf_error.c" />
-    <ClCompile Include="..\ebpf_etw.c" />
+    <ClCompile Include="..\ebpf_tracelog.c" />
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_interlocked.c" />
     <ClCompile Include="..\ebpf_object.c" />

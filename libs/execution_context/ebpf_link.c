@@ -11,6 +11,7 @@
 #include "ebpf_object.h"
 #include "ebpf_platform.h"
 #include "ebpf_program.h"
+#include "ebpf_tracelog.h"
 
 /**
  * @brief State of the link between program and provider.
@@ -493,7 +494,7 @@ _ebpf_link_instance_invoke_batch_begin(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_LINK,
             "Program information provider is not loaded.",
-            link->attach_type);
+            &link->attach_type);
         goto Done;
     }
     provider_reference_held = true;

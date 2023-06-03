@@ -42,6 +42,9 @@
     <ClCompile Include="..\libs\thunk\windows\platform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\libs\platform\ebpf_tracelog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resource\ebpf_resource.rc">

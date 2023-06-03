@@ -3,6 +3,7 @@
 
 #include "ebpf_epoch.h"
 #include "ebpf_state.h"
+#include "ebpf_tracelog.h"
 
 #define EBPF_MAX_STATE_ENTRIES 64
 

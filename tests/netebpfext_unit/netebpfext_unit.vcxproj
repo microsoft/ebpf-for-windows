@@ -115,6 +115,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\libs\platform\ebpf_tracelog.c" />
     <ClCompile Include="netebpfext_unit.cpp" />
     <ClCompile Include="netebpf_ext_helper.cpp" />
   </ItemGroup>

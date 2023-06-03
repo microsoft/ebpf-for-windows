@@ -16,6 +16,7 @@
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_program_types.h"
 #include "ebpf_state.h"
+#include "ebpf_tracelog.h"
 #include "ubpf.h"
 
 #include <stdlib.h>
@@ -341,7 +342,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "Program information provider version mismatch.",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         status = STATUS_INVALID_PARAMETER;
         goto Done;
     }
@@ -351,7 +352,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "Program information provider module ID type mismatch.",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         status = STATUS_INVALID_PARAMETER;
         goto Done;
     }
@@ -384,7 +385,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "Program information provider already attached.",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         status = STATUS_INVALID_PARAMETER;
         goto Done;
     }
@@ -403,7 +404,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_PROGRAM,
                 "Program information provider hash mismatch.",
-                program->parameters.program_type);
+                &program->parameters.program_type);
             status = STATUS_INVALID_PARAMETER;
             goto Done;
         }
@@ -415,7 +416,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "An extension cannot have empty program_data",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         // An extension cannot have empty program_data.
         status = STATUS_INVALID_PARAMETER;
         goto Done;
@@ -426,7 +427,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "An extension cannot have required_irql higher than HIGH_LEVEL",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         status = STATUS_INVALID_PARAMETER;
         goto Done;
     }
@@ -439,7 +440,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "An extension cannot have a mismatch between the number of helper functions and the number of helper "
             "function addresses",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         status = STATUS_INVALID_PARAMETER;
         goto Done;
     }
@@ -452,7 +453,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "An extension cannot have a mismatch between the number of helper functions and the number of helper "
             "function addresses",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         status = STATUS_INVALID_PARAMETER;
         goto Done;
     }
@@ -1059,7 +1060,7 @@ _ebpf_program_update_jit_helpers(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "The extension is not loaded for program type",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Exit;
     }
@@ -1081,7 +1082,7 @@ _ebpf_program_update_jit_helpers(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_PROGRAM,
                 "A program info provider cannot modify helper function count upon reload",
-                program->parameters.program_type);
+                &program->parameters.program_type);
             return_value = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
@@ -1131,7 +1132,7 @@ _ebpf_program_update_jit_helpers(
                     EBPF_TRACELOG_LEVEL_ERROR,
                     EBPF_TRACELOG_KEYWORD_PROGRAM,
                     "program_info->program_type_specific_helper_prototype can not be NULL",
-                    program->parameters.program_type);
+                    &program->parameters.program_type);
                 return_value = EBPF_INVALID_ARGUMENT;
                 goto Exit;
             }
@@ -1153,7 +1154,7 @@ _ebpf_program_update_jit_helpers(
                     EBPF_TRACELOG_LEVEL_ERROR,
                     EBPF_TRACELOG_KEYWORD_PROGRAM,
                     "program_info->global_helper_prototype can not be NULL",
-                    program->parameters.program_type);
+                    &program->parameters.program_type);
                 return_value = EBPF_INVALID_ARGUMENT;
                 goto Exit;
             }
@@ -1444,7 +1445,7 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "The extension is not loaded for program type",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
@@ -1615,7 +1616,7 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "The extension is not loaded for program type",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Exit;
     }
@@ -1627,7 +1628,7 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "General helper provider not loaded",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Exit;
     }
@@ -2146,7 +2147,7 @@ ebpf_program_execute_test_run(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "The extension is not loaded for program type",
-            program->parameters.program_type);
+            &program->parameters.program_type);
         return_value = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
