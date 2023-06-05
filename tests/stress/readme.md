@@ -65,18 +65,18 @@ This test extends the ```native_load_attach_detach_unload_random_v4_test``` to u
 - Extension restart enabled.
 
 
-## 1.4. native_invoke_program_restart_extension_v4_test
-This test loads 2 specific native eBPF programs in a dedicated thread and then continues to ensure their invocation
-while continuosly restarting the netebpfext extension.
+## 1.4. native_invoke_v4_v6_programs_restart_extension_test
+This test loads 2 specific native eBPF programs, each in a dedicated thread and then continues to ensure their
+invocation while continuously restarting the netebpfext extension.
 
 This test ignores the `-tt`, `-er` and `-erd` commandline parameters.
 
 Sample command line invocations:
 
-### 1.4.1. `ebpf_stress_test_km native_invoke_program_restart_extension_v4_test`
+### 1.4.1. `ebpf_stress_test_km native_invoke_v4_v6_programs_restart_extension_test`
 - Uses default values for all supported options.
 
-### 1.4.2. `ebpf_stress_test_km -td=15 -vo=true native_invoke_program_restart_extension_v4_test`
+### 1.4.2. `ebpf_stress_test_km -td=15 -vo=true native_invoke_v4_v6_programs_restart_extension_test`
 - Runs test for 15 minutes.
 - Verbose test trace output enabled.
 
