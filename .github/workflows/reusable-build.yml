@@ -124,7 +124,7 @@ jobs:
         cache-name: cache-nuget-modules
       with:
         path: packages
-        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}
+        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}-v2
 
     - name: Restore NuGet packages
       if: steps.skip_check.outputs.should_skip != 'true'
@@ -139,7 +139,7 @@ jobs:
         cache-name: cache-verifier-project
       with:
         path: external/ebpf-verifier/build
-        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}-${{ hashFiles('external/Directory.Build.props')}}
+        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}-${{ hashFiles('external/Directory.Build.props')}}-v2
 
     - name: Create verifier project
       if: steps.skip_check.outputs.should_skip != 'true'
@@ -176,7 +176,7 @@ jobs:
     - name: Copy LLVM libs for Fuzzing & Address Sanitizing
       if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
+      run: copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.35.32215\bin\Hostx64\x64\clang*" .
 
     - name: Download demo repository
       if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
