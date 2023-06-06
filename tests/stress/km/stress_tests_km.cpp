@@ -1164,7 +1164,8 @@ _invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
         // Now send out a small burst of TCP 'bind' attempts for the duration of the test.  We do this to increase
         // the probability of a collision between the program invocation and the extension being restarted at the same
         // time.
-        constexpr uint32_t BURST_SIZE = 4;
+        constexpr uint32_t BURST_SIZE = 5;
+        int result = 0;
 
         for (uint32_t i = 0; i < BURST_SIZE; i++) {
             // Create a socket.
@@ -1175,25 +1176,33 @@ _invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
             SS_PORT(&remote_endpoint) = htons(remote_port);
 
             // Forcefully bind to the same port in use using socket option SO_REUSEADDR.
-            // Use-case: multicast sockets bind to same port.
-            // Reason for using SO_REUSEADDR option: WSAEADDRINUSE error was reported where
-            // the socket was still in the process of closing.
+            // One of the use-case: multicast sockets.
             const char optval = 1;
             setsockopt(socket_handle, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+            if (result != 0) {
+                LOG_ERROR(
+                    "Thread[{}] setsockopt result:{} {} to port:{}",
+                    context.thread_index,
+                    result,
+                    WSAGetLastError(),
+                    remote_port);
+                closesocket(socket_handle);
+                REQUIRE(result == 0);
+            }
 
             // Bind the socket.
             LOG_VERBOSE("Thread[{}] - binding to port:{}", context.thread_index, remote_port);
-            int result = bind(socket_handle, (PSOCKADDR)&remote_endpoint, sizeof(remote_endpoint));
+            result = bind(socket_handle, (PSOCKADDR)&remote_endpoint, sizeof(remote_endpoint));
             if (result != 0) {
-                LOG_VERBOSE(
+                LOG_ERROR(
                     "Thread[{}] bind result:{} {} to port:{}",
                     context.thread_index,
                     result,
                     WSAGetLastError(),
                     remote_port);
                 closesocket(socket_handle);
+                REQUIRE(result == 0);
             }
-            REQUIRE(result == 0);
 
             LOG_VERBOSE("Thread[{}] bind success to port:{}", context.thread_index, remote_port);
             closesocket(socket_handle);
