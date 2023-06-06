@@ -1117,21 +1117,21 @@ _set_up_tailcall_program(bpf_object* object, const std::string& map_name)
             bpf_program* callee = bpf_object__find_program_by_name(object, bind_program_name.c_str());
 
             if (callee == nullptr) {
-                LOG_VERBOSE("({}) - bpf_object__find_program_by_name() failed. errno: {}", bind_program_name, errno);
+                LOG_ERROR("({}) - bpf_object__find_program_by_name() failed. errno: {}", bind_program_name, errno);
                 REQUIRE(callee != nullptr);
             }
             LOG_VERBOSE("({}) - bpf_object__find_program_by_name() success.", bind_program_name);
 
             fd_t callee_fd = bpf_program__fd(callee);
             if (callee_fd < 0) {
-                LOG_VERBOSE("({}) - bpf_program__fd() failed. errno: {}", bind_program_name, errno);
+                LOG_ERROR("({}) - bpf_program__fd() failed. errno: {}", bind_program_name, errno);
                 REQUIRE(callee_fd > 0);
             }
             LOG_VERBOSE("({}) - bpf_program__fd() for callee_fd:{} success.", bind_program_name, callee_fd);
 
             uint32_t result = bpf_map_update_elem(prog_map_fd, &index, &callee_fd, 0);
             if (result < 0) {
-                LOG_VERBOSE("({}) - bpf_map_update_elem() failed. errno: {}", bind_program_name, errno);
+                LOG_ERROR("({}) - bpf_map_update_elem() failed. errno: {}", bind_program_name, errno);
                 REQUIRE(result == ERROR_SUCCESS);
             }
             LOG_VERBOSE("({}) - bpf_map_update_elem() for callee_fd:{} success.", bind_program_name, callee_fd);
@@ -1178,7 +1178,7 @@ _invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
             // Forcefully bind to the same port in use using socket option SO_REUSEADDR.
             // One of the use-case: multicast sockets.
             const char optval = 1;
-            setsockopt(socket_handle, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+            result = setsockopt(socket_handle, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
             if (result != 0) {
                 LOG_ERROR(
                     "Thread[{}] setsockopt result:{} {} to port:{}",
