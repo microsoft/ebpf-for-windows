@@ -12,6 +12,7 @@ set "rundown_period=0:35:00"
 set "max_file_size_mb=30"
 set "max_committed_folder_size_mb=200"
 set "max_committed_rundown_state_files=1"
+set "compress_rundown_state_files=true"
 
 :parse_args
 if "%~1" == "" goto :validate_args
@@ -24,6 +25,7 @@ if "%~1" == "/rundown_period" set rundown_period=%~2 & shift & shift & goto :par
 if "%~1" == "/max_file_size_mb" set max_file_size_mb=%~2 & shift & shift & goto :parse_args
 if "%~1" == "/max_committed_folder_size_mb" set max_committed_folder_size_mb=%~2 & shift & shift & goto :parse_args
 if "%~1" == "/max_committed_rundown_state_files" set max_committed_rundown_state_files=%~2 & shift & shift & goto :parse_args
+if "%~1" == "/compress_rundown_state_files" set compress_rundown_state_files=%~2 & shift & shift & goto :parse_args
 echo Unknown parameter: "%~1"
 goto :usage
 
@@ -52,6 +54,7 @@ if "%trace_path%" == "" (
 @rem echo max_file_size_mb=%max_file_size_mb%
 @rem echo max_committed_folder_size_mb=%max_committed_folder_size_mb%
 @rem echo max_committed_rundown_state_files=%max_committed_rundown_state_files%
+@rem echo compress_rundown_state_files=%compress_rundown_state_files%
 
 @rem Internal constants
 set /a num_etl_files_to_keep=1
@@ -82,18 +85,24 @@ if "%command%"=="periodic" (
     pushd "!trace_path!"
     netsh wfp show state
     popd
-    set "wfp_state_file_xml=!trace_path!\wfpstate.xml"
-	if exist "!wfp_state_file_xml!" (
+	if "%compress_rundown_state_files%" == "true" (
+		set "wfp_state_file=!trace_path!\wfpstate.cab"
+		makecab "!trace_path!\wfpstate.xml" "!wfp_state_file!"
+	) else (
+		set "wfp_state_file=!trace_path!\wfpstate.xml"
+	)
+	if exist "!wfp_state_file!" (
 
-		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory.
-		for %%F in ("!wfp_state_file_xml!") do (
+		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory, otherwise delete it.
+		for %%F in ("!wfp_state_file!") do (
 			if %%~zF LEQ %max_file_size_bytes% (
-				@rem Move the .XML file to the 'traceCommittedPath' directory.
-				move /y "!wfp_state_file_xml!" "!traceCommittedPath!\wfpstate_!timestamp!.xml" >nul
+				if "%compress_rundown_state_files%" == "true" (
+					move /y "!wfp_state_file!" "!traceCommittedPath!\wfpstate_!timestamp!.cab" >nul
+				) else (
+					move /y "!wfp_state_file!" "!traceCommittedPath!\wfpstate_!timestamp!.xml" >nul
+				)
 			) else (
-
-				@rem If the .XML file size is greater than 'max_file_size_mb', then delete it.
-				del "!wfp_state_file_xml!"
+				del "!wfp_state_file!"
 			)
 		)
 	)
@@ -134,15 +143,22 @@ if "%command%"=="periodic" (
 			bpftool.exe map dump id !value! >> bpf_state.txt
 		)
 	)
-	set "bpf_state_file=!trace_path!\bpf_state.txt"
+	if "%compress_rundown_state_files%" == "true" (
+		set "bpf_state_file=!trace_path!\bpf_state.cab"
+		makecab "!trace_path!\bpf_state.txt" "!bpf_state_file!"
+	) else (
+		set "bpf_state_file=!trace_path!\bpf_state.txt"
+	)
 	if exist "!bpf_state_file!" (
-		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory.
+		@rem If the file size is less or equal than 'max_file_size_mb', then move it to the 'traceCommittedPath' directory, otherwise delete it.
 		for %%F in ("!bpf_state_file!") do (
 			if %%~zF LEQ %max_file_size_bytes% (
-				@rem Move the file to the 'traceCommittedPath' directory.
-				move /y "!bpf_state_file!" "!traceCommittedPath!\bpfstate_!timestamp!.txt" >nul
+				if "%compress_rundown_state_files%" == "true" (
+					move /y "!bpf_state_file!" "!traceCommittedPath!\bpfstate_!timestamp!.cab" >nul
+				) else (
+					move /y "!bpf_state_file!" "!traceCommittedPath!\bpfstate_!timestamp!.txt" >nul
+				)
 			) else (
-				@rem If the file size is greater than 'max_file_size_mb', then delete it.
 				del "!bpf_state_file!"
 			)
 		)
@@ -156,10 +172,10 @@ if "%command%"=="periodic" (
 	)
 
 	@rem Iterate over all the WFP-state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_rundown_state_files`.
-	for /f "skip=%max_committed_rundown_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate*.xml"') do ( del "!traceCommittedPath!\%%f" )
+	for /f "skip=%max_committed_rundown_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate_*.*"') do ( del "!traceCommittedPath!\%%f" )
 
 	@rem Iterate over all the bpf state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_rundown_state_files`.
-	for /f "skip=%max_committed_rundown_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\bpfstate*.txt"') do ( del "!traceCommittedPath!\%%f" )
+	for /f "skip=%max_committed_rundown_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\bpfstate_*.*"') do ( del "!traceCommittedPath!\%%f" )
 
 	@rem Iterate over all the .ETL files in the 'traceCommittedPath' directory, and delete the older files overflowing `max_committed_folder_size_mb`.
 	set size=0
@@ -210,13 +226,14 @@ echo Usage: ebpf_tracing.cmd command /trace_path path [/trace_name name] [/rundo
 echo:
 echo Valid parameters:
 echo:
-echo   <command>                                - (mandatory) Valid values are: [start, stop, periodic]
-echo   /trace_path path                         - (mandatory) Path into which the tracing will be located (creates it if it does not exist).
-echo   /trace_name name                         - Name of the logman trace (Default: "ebpf_diag")
-echo   /rundown_period period                   - Period, expressed as (H:mm:ss), for saving and generating a new ETL log, and for generating a WFP state snapshot (Default: 0:35:00).
-echo   /max_file_size_mb size                   - Maximum size set for an ETL log (Default: 20).
-echo   /max_committed_folder_size_mb size       - Maximum overall size for (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 200)
-echo   /max_committed_rundown_state_files count - Number (most recent) of each type of rundown state file to keep in the main 'trace_path\committed' (Default: 1).
+echo   <command>                                  - (mandatory) Valid values are: [start, stop, periodic]
+echo   /trace_path path                           - (mandatory) Path into which the tracing will be located (creates it if it does not exist).
+echo   /trace_name name                           - Name of the logman trace (Default: "ebpf_diag")
+echo   /rundown_period period                     - Period, expressed as (H:mm:ss), for saving and generating a new ETL log, and for generating a WFP state snapshot (Default: 0:35:00).
+echo   /max_file_size_mb size                     - Maximum size set for an ETL log (Default: 20).
+echo   /max_committed_folder_size_mb size         - Maximum overall size for (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 200)
+echo   /max_committed_rundown_state_files count   - Number (most recent) of each type of rundown state file to keep in the main 'trace_path\committed' (Default: 1).
+echo   /compress_rundown_state_files [true,false] - Compress the rundown state files (Default: 'true').
 echo:
 echo Behaviour:
 echo - When called with the 'start' command, it will:
@@ -228,12 +245,13 @@ echo 	- Stop then delete the logman session, and delete the 'trace_path' directo
 echo - When called with the 'periodic' command, it will:
 echo 	- Run 'netsh wfp show state' into the 'trace_path' directory, and if the file is under 'max_file_size_mb', it will move it into the 'trace_path\committed' subfolder, adding a timestamp to its name.
 echo    - Run down the program state using bpftool, to capture the program output: link, map, and map content outputs, and store them in "bpf_state.txt". Like done for the WFP state, if the file is under 'max_file_size_mb', it will move it into the 'trace_path\committed' subfolder, adding a timestamp to its name.
-echo 	- Iterate over all the '.xml' files in the 'trace_path\committed' subfolder and delete the older files overflowing 'max_committed_rundown_state_files'.
+echo      NOTE: If the 'compress_rundown_state_files' option is set to 'true', both the WFP and the bpftool state files will be compressed into '.cab' files.
+echo 	- Iterate over all the run down state files in the 'trace_path\committed' subfolder and delete the older files overflowing 'max_committed_rundown_state_files'.
 echo 	- Iterate over all the '.etl' files in the 'trace_path' directory, sorted in descending order by 'date modified', skip the first files summing up to 'max_committed_folder_size_mb' and move the others into the 'trace_path\committed' subfolder.
 echo:
 echo Examples:
 echo    ebpf_tracing.cmd start /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF" /rundown_period 0:35:00 /max_file_size_mb 20
 echo    ebpf_tracing.cmd stop /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF"
-echo    ebpf_tracing.cmd periodic /trace_path "%SystemRoot%\Logs\eBPF" /max_file_size_mb 20 /max_committed_folder_size_mb 30 /max_committed_rundown_state_files 1
+echo    ebpf_tracing.cmd periodic /trace_path "%SystemRoot%\Logs\eBPF" /max_file_size_mb 20 /max_committed_folder_size_mb 30 /max_committed_rundown_state_files 1 /compress_rundown_state_files false
 endlocal
 exit /b 1
