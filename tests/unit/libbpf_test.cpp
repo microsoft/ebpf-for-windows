@@ -1195,9 +1195,9 @@ _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
     struct bpf_program* callee = bpf_object__find_program_by_name(object, "callee");
     REQUIRE(callee != nullptr);
 
-    struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "map");
     REQUIRE(map != nullptr);
-    struct bpf_map* canary_map = bpf_object__next_map(object, map);
+    struct bpf_map* canary_map = bpf_object__find_map_by_name(object, "canary");
     REQUIRE(canary_map != nullptr);
 
     int callee_fd = bpf_program__fd(callee);
@@ -1391,7 +1391,7 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
-    struct bpf_map* map = bpf_object__next_map(xdp_object, nullptr);
+    struct bpf_map* map = bpf_object__find_map_by_name(xdp_object, "map");
     REQUIRE(map != nullptr);
 
     // Load a program of any other type.

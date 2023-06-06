@@ -27,6 +27,9 @@ typedef struct _process_entry
     uint8_t name[64];
 } process_entry_t;
 
+// This file uses the old style of defining maps to test that the old style
+// is still supported.
+
 SEC("maps")
 struct bpf_map_def process_map = {
     .type = BPF_MAP_TYPE_HASH,

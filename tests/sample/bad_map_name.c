@@ -13,9 +13,13 @@
 
 #include "bpf_helpers.h"
 
-SEC("maps")
-struct bpf_map_def this_map_has_a_name_that_is_longer_than_what_the_ebpfcore_driver_can_support = {
-    .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, uint32_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 1);
+} this_map_has_a_name_that_is_longer_than_what_the_ebpfcore_driver_can_support SEC(".maps");
 
 SEC("xdp_prog") int lookup(struct xdp_md* ctx)
 {

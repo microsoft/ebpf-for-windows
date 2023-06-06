@@ -67,26 +67,26 @@ TEST_CASE("show disassembly bpf_call.o", "[netsh][disassembly]")
     REQUIRE(result == NO_ERROR);
     output = strip_paths(output);
     REQUIRE(
-        output == "; ./tests/sample/bpf_call.c:18\n"
+        output == "; ./tests/sample/bpf_call.c:24\n"
                   "; SEC(\"xdp_prog\") int func(struct xdp_md* ctx)\n"
                   "       0:	r1 = 0\n"
-                  "; ./tests/sample/bpf_call.c:20\n"
+                  "; ./tests/sample/bpf_call.c:26\n"
                   ";     uint32_t key = 0;\n"
                   "       1:	*(u32 *)(r10 - 4) = r1\n"
                   "       2:	r1 = 42\n"
-                  "; ./tests/sample/bpf_call.c:21\n"
+                  "; ./tests/sample/bpf_call.c:27\n"
                   ";     uint32_t value = 42;\n"
                   "       3:	*(u32 *)(r10 - 8) = r1\n"
                   "       4:	r2 = r10\n"
                   "       5:	r2 += -4\n"
                   "       6:	r3 = r10\n"
                   "       7:	r3 += -8\n"
-                  "; ./tests/sample/bpf_call.c:22\n"
+                  "; ./tests/sample/bpf_call.c:28\n"
                   ";     int result = bpf_map_update_elem(&map, &key, &value, 0);\n"
                   "       8:	r1 = map_fd 1\n"
                   "      10:	r4 = 0\n"
                   "      11:	r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)\n"
-                  "; ./tests/sample/bpf_call.c:23\n"
+                  "; ./tests/sample/bpf_call.c:29\n"
                   ";     return result;\n"
                   "      12:	exit\n\n");
 }
@@ -216,8 +216,8 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
                   "==================  ====  =====  =======  ========\n"
-                  "      hash_of_maps     4      4        1  outer_map\n"
                   "             array     4      4        1  inner_map\n"
+                  "      hash_of_maps     4      4        1  outer_map\n"
                   "             array     4      4        1  port_map\n");
 }
 
@@ -267,8 +267,8 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
                   "==================  ====  =====  =======  ========\n"
-                  "              hash    56      4        1  ingress_connection_policy_map\n"
-                  "              hash    56      4        1  egress_connection_policy_map\n");
+                  "              hash    56      4        1  egress_connection_policy_map\n"
+                  "              hash    56      4        1  ingress_connection_policy_map\n");
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
@@ -323,10 +323,10 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "\n"
                   "Verification report:\n"
                   "\n"
-                  "; ./tests/sample/unsafe/droppacket_unsafe.c:37\n"
+                  "; ./tests/sample/unsafe/droppacket_unsafe.c:41\n"
                   ";     if (ip_header->Protocol == IPPROTO_UDP) {\n"
                   "2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1) for read)\n"
-                  "; ./tests/sample/unsafe/droppacket_unsafe.c:38\n"
+                  "; ./tests/sample/unsafe/droppacket_unsafe.c:42\n"
                   ";         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {\n"
                   "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2) for read)\n"
                   "\n"
@@ -497,8 +497,8 @@ TEST_CASE("show programs", "[netsh][programs]")
                   "Program type   : xdp\n"
                   "Mode           : JIT\n"
                   "# map IDs      : 2\n"
-                  "map IDs        : 65538\n"
-                  "                 131073\n"
+                  "map IDs        : 131073\n"
+                  "                 65538\n"
                   "# pinned paths : 1\n"
                   "# links        : 1\n"
                   "\n"
