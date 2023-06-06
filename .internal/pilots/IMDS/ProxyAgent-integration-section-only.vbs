@@ -19,7 +19,6 @@ Dim g_installPath: g_installPath = FsObject.BuildPath(WshShell.ExpandEnvironment
 ' Adds a new path to the System path, unless the path is already present in the system path.
 Function AddSystemPath(pathToAdd)
 	On Error Resume Next
-	Const THIS_FUNCTION_NAME = "AddSystemPath"
 
 	AddSystemPath = True
 	
@@ -30,7 +29,7 @@ Function AddSystemPath(pathToAdd)
 	End If
 
 	Set oTraceEvent = g_Trace.CreateEvent("INFO")		
-	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
+	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement("AddSystemPath"))
 		.setAttribute "pathToAdd", pathToAdd
 	End With
 	g_Trace.TraceEvent oTraceEvent
@@ -39,7 +38,6 @@ End Function
 ' Removes the given path from the System path, unless the path isn't present.
 Function RemoveSystemPath(pathToRemove)
 	On Error Resume Next
-	Const THIS_FUNCTION_NAME = "RemoveSystemPath"
 
 	RemoveSystemPath =  True
 
@@ -52,7 +50,7 @@ Function RemoveSystemPath(pathToRemove)
 	End If
 
 	Set oTraceEvent = g_Trace.CreateEvent("INFO")		
-	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
+	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement("RemoveSystemPath"))
 		.setAttribute "pathToRemove", pathToRemove
 	End With
 	g_Trace.TraceEvent oTraceEvent
@@ -61,7 +59,6 @@ End Function
 ' This function moves the files from the source folder to the destination folder
 Function MoveFilesToPath(sourcePath, destPath)
 	On Error Resume Next
-	Const THIS_FUNCTION_NAME = "MoveFilesToPath"
 
 	MoveFilesToPath = True	
 
@@ -76,7 +73,7 @@ Function MoveFilesToPath(sourcePath, destPath)
 	If MoveFilesToPath = True Then
 		' Move all files and subfolders from the source folder to the destination folder
 		Set oTraceEvent = g_Trace.CreateEvent("INFO")
-		With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
+		With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement("MoveFilesToPath"))
 			call FsObject.MoveFile(sourcePath & "\*.*", destPath & "\")		
 			If TraceError(g_Trace, "Failed to move files from " + sourcePath + " to " + destPath) <> 0 Then
 				MoveFilesToPath = False
@@ -133,7 +130,6 @@ End Function
 ' This function creates tasks to start eBPF tracing at boot, and execute periodic rundowns
 Function CreateEbpfTracingTasks()
 	On Error Resume Next
-	Const THIS_FUNCTION_NAME = "CreateEbpfTracingTasks"
 
 	CreateEbpfTracingTasks = true
 	Dim taskFilePath
@@ -211,13 +207,12 @@ End Function
 ' This function installs the given kernel driver.
 Function InstallEbpfDriver(driverName)
 	On Error Resume Next
-	Const THIS_FUNCTION_NAME = "InstallEbpfDriver"
 
 	InstallEbpfDriver = True
 	Dim driverFullPath: driverFullPath = FsObject.BuildPath(g_installPath, "\drivers\" + driverName + ".sys")
 	
 	Set oTraceEvent = g_Trace.CreateEvent("INFO")
-	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
+	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement("InstallEbpfDriver"))
 		.setAttribute "driverFullPath", driverFullPath
 	End With
 	g_Trace.TraceEvent oTraceEvent
@@ -272,86 +267,14 @@ Function UninstallEbpfDriver(driverName)
 	Next
 End Function
 
-' This function installs eBPF for Windows on the machine and returns true successful, false otherwise
-Function InstallEbpf(sourcePath)
-	On Error Resume Next
-
-	Const THIS_FUNCTION_NAME = "InstallEbpf"
-	Dim eBpfCoreAlreadyInstalled, eBpfNetExtAlreadyInstalled
-	Dim errReturnCode
-
-	InstallEbpf = True
-
-	Set oTraceEvent = g_Trace.CreateEvent("INFO")
-	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
-		.setAttribute "g_installPath", g_installPath
-	End With
-	g_Trace.TraceEvent oTraceEvent
-
-	' Check if eBPF for Windows is already installed
-	eBpfCoreAlreadyInstalled = CheckDriverInstalled(EBPF_EBPFCORE_DRIVER_NAME)
-	eBpfNetExtAlreadyInstalled = CheckDriverInstalled(EBPF_EXTENSION_DRIVER_NAME)
-	If eBpfCoreAlreadyInstalled = True And eBpfNetExtAlreadyInstalled = True Then
-		Set oTraceEvent = g_Trace.CreateEvent("INFO")
-		With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
-			.setAttribute "eBpfAlreadyInstalled", g_installPath
-		End With
-		g_Trace.TraceEvent oTraceEvent
-		Exit Function
-	Else
-		If eBpfCoreAlreadyInstalled <> eBpfNetExtAlreadyInstalled Then
-			InstallEbpf = False
-			Set oTraceEvent = g_Trace.CreateEvent("ERROR")
-			With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
-				.setAttribute "eBpfCoreAlreadyInstalled", eBpfCoreAlreadyInstalled
-				.setAttribute "eBpfNetExtAlreadyInstalled", eBpfNetExtAlreadyInstalled
-			End With
-			g_Trace.TraceEvent oTraceEvent
-			Exit Function
-		End If
-	End If
-
-	' Move the files to the install path
-	If Len(sourcePath) > 0 Then
-		if Not MoveFilesToPath(sourcePath, g_installPath) Then
-			InstallEbpf = False
-			Exit Function
-		End If
-	End If
-
-	' Install the drivers and add the install path to the system path
-	If InstallEbpfDriver(EBPF_EBPFCORE_DRIVER_NAME) = False Then
-		InstallEbpf = False
-		Exit Function
-	End If
-
-	If InstallEbpfDriver(EBPF_EXTENSION_DRIVER_NAME) = False Then
-		InstallEbpf = False
-		call UninstallEbpfDriver(EBPF_EBPFCORE_DRIVER_NAME)
-		Exit Function
-	End If
-	
-	if AddSystemPath(g_installPath) = False Then
-		InstallEbpf = False
-	End If
-End Function
-
 ' This function uninstalls eBPF for Windows on the machine and returns true successful, false otherwise
 Function UninstallEbpf(shouldDeleteEbpfTracingTasks)
 	On Error Resume Next
-
-	Const THIS_FUNCTION_NAME = "UninstallEbpf"
-	Dim errReturnCode
-
+	
 	UninstallEbpf = True
 
-	if Not FsObject.FolderExists(g_installPath) Then
-		UninstallEbpf = False
-		' Not exiting: we still want to try to remove the drivers and tracing tasks, in case they were installed in a different location
-	End If
-
 	Set oTraceEvent = g_Trace.CreateEvent("INFO")
-	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement(THIS_FUNCTION_NAME))
+	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement("UninstallEbpf"))
 		.setAttribute "g_installPath", g_installPath
 		.setAttribute "installationPathPresent", FsObject.FolderExists(g_installPath)
 	End With
@@ -365,7 +288,7 @@ Function UninstallEbpf(shouldDeleteEbpfTracingTasks)
 		UninstallEbpf = False
 	End If
 
-	If shouldDeleteEbpfTracingTasks And DeleteEbpfTracingTasks() = False Then
+	If shouldDeleteEbpfTracingTasks = True And DeleteEbpfTracingTasks() = False Then
 		UninstallEbpf = False
 	End If
 
@@ -373,8 +296,44 @@ Function UninstallEbpf(shouldDeleteEbpfTracingTasks)
 		UninstallEbpf = False
 	End If
 
-	FsObject.DeleteFolder g_installPath, True
-	If TraceError(g_Trace, "Failed to delete folder " + g_installPath) <> 0 Then
-		UninstallEbpf = False
+	call DeleteFolder(g_installPath)
+End Function
+
+' This function installs eBPF for Windows on the machine and returns true successful, false otherwise
+Function CleanInstallEbpf(sourcePath)
+	On Error Resume Next
+
+	CleanInstallEbpf = True
+
+	Set oTraceEvent = g_Trace.CreateEvent("INFO")
+	With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement("CleanInstallEbpf"))
+		.setAttribute "sourcePath", sourcePath
+		.setAttribute "g_installPath", g_installPath
+		.setAttribute "installationPathPresent", FsObject.FolderExists(g_installPath)
+	End With
+	g_Trace.TraceEvent oTraceEvent
+
+	CleanInstallEbpf = UninstallEbpf(False)
+
+	' Move the files to the install path
+	if Not MoveFilesToPath(sourcePath, g_installPath) Then
+		CleanInstallEbpf = False
+		Exit Function
+	End If
+
+	' Install the drivers and add the install path to the system path
+	If InstallEbpfDriver(EBPF_EBPFCORE_DRIVER_NAME) = False Then
+		CleanInstallEbpf = False
+		Exit Function
+	End If
+
+	If InstallEbpfDriver(EBPF_EXTENSION_DRIVER_NAME) = False Then
+		CleanInstallEbpf = False
+		call UninstallEbpfDriver(EBPF_EBPFCORE_DRIVER_NAME)
+		Exit Function
+	End If
+	
+	if AddSystemPath(g_installPath) = False Then
+		CleanInstallEbpf = False
 	End If
 End Function
