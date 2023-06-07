@@ -728,7 +728,7 @@ enum class program_map_usage : uint32_t
 };
 
 static std::pair<bpf_object_ptr, fd_t>
-_load_attach_program(const std::string& file_name, uint32_t thread_index)
+_load_attach_program(const std::string& file_name, enum bpf_attach_type attach_type, uint32_t thread_index)
 {
     bpf_object_ptr object_ptr;
     bpf_object* object_raw_ptr = nullptr;
@@ -800,7 +800,7 @@ _load_attach_program(const std::string& file_name, uint32_t thread_index)
 
     // Enforce the 'unspecified' compartment id. In the absence of additional compartments in the system, (as of now)
     // a non-existent id causes a kernel assert in netebpfext.sys debug builds.
-    result = bpf_prog_attach(program_fd, UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_CONNECT, 0);
+    result = bpf_prog_attach(program_fd, UNSPECIFIED_COMPARTMENT_ID, attach_type, 0);
     if (result != 0) {
         LOG_ERROR(
             "{}({}) FATAL ERROR: bpf_prog_attach({}) failed. program:{}, errno:{}",
@@ -820,8 +820,11 @@ _load_attach_program(const std::string& file_name, uint32_t thread_index)
 static void
 _prep_program(thread_context& context, program_map_usage map_usage)
 {
-    // Stash the object pointer as well need it at 'close' time.
-    auto [program_object, program_fd] = _load_attach_program(context.file_name, context.thread_index);
+    enum bpf_attach_type attach_type =
+        context.role == thread_role_type::MONITOR_IPV4 ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
+    auto [program_object, program_fd] = _load_attach_program(context.file_name, attach_type, context.thread_index);
+
+    // Stash the object pointer as we'll need it at 'close' time.
     auto& entry = context.object_table[context.thread_index];
     entry.object = std::move(program_object);
     context.program_fd = program_fd;
@@ -918,8 +921,7 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
     REQUIRE(error == 0);
 
     // As of now, we support a maximum of 2 ebpf test programs for this test.
-    // constexpr uint32_t MAX_TCP_CONNECT_PROGRAMS = 2; FIXME!!! (blocked on Issue #2351)
-    constexpr uint32_t MAX_TCP_CONNECT_PROGRAMS = 1;
+    constexpr uint32_t MAX_TCP_CONNECT_PROGRAMS = 2;
 
     // Storage for object pointers for each ebpf program file opened by bpf_object__open().
     std::vector<object_table_entry> object_table(MAX_TCP_CONNECT_PROGRAMS);
@@ -935,7 +937,7 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
     std::vector<std::pair<std::string, std::string>> program_file_map_names = {
         {{"cgroup_count_connect4.sys"}, {"connect4_count_map"}},
         {{"cgroup_count_connect6.sys"}, {"connect6_count_map"}}};
-    // ASSERT(program_file_map_names.size() == MAX_TCP_CONNECT_PROGRAMS); FIXME!!! (blocked on Issue #2351)
+    ASSERT(program_file_map_names.size() == MAX_TCP_CONNECT_PROGRAMS);
 
     for (uint32_t i = 0; i < total_threads; i++) {
 
@@ -1030,7 +1032,7 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
     REQUIRE(error == 0);
 
-    auto [program_object, _] = _load_attach_program({"cgroup_mt_connect6.sys"}, 0);
+    auto [program_object, _] = _load_attach_program({"cgroup_mt_connect6.sys"}, BPF_CGROUP_INET6_CONNECT, 0);
 
     // Not used, needed for thread_context initialization.
     std::vector<object_table_entry> dummy_table(1);
@@ -1454,7 +1456,7 @@ TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_
     _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
 
-TEST_CASE("native_invoke_program_restart_extension_v4_test", "[native_mt_stress_test]")
+TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_stress_test]")
 {
     // Test layout:
     // 1. Create 2 'monitor' threads:
@@ -1484,6 +1486,9 @@ TEST_CASE("native_invoke_program_restart_extension_v4_test", "[native_mt_stress_
     // Enforce enabling of the 'extension restart' thread for this test for increased stress.
     // (The restart delay is set to the default value or the value specified (if any) on the command line.)
     local_test_control_info.extension_restart_enabled = true;
+
+    // This test needs only 2 threads (one per program).
+    local_test_control_info.threads_count = 2;
 
     _print_test_control_info(local_test_control_info);
     _mt_invoke_prog_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
