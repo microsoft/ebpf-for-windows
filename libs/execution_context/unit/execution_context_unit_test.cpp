@@ -1173,6 +1173,7 @@ extern bool _ebpf_platform_code_integrity_enabled;
     std::map<std::string, ebpf_handle_t> map_handles;                                     \
     create_various_objects(program_handles, map_handles);
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 // These tests exist to verify ebpf_core's parsing of messages.
 // See libbpf_test.cpp for invalid parameter but correctly formed message cases.
 TEST_CASE("EBPF_OPERATION_RESOLVE_HELPER", "[execution_context][negative]")
@@ -1243,7 +1244,9 @@ TEST_CASE("EBPF_OPERATION_RESOLVE_MAP", "[execution_context][negative]")
     resolve_map_request->program_handle = program_handles[0];
     REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_INVALID_ARGUMENT);
 }
+#endif
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
@@ -1298,6 +1301,7 @@ TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
     create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
     REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
 }
+#endif
 
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
 {
@@ -1345,6 +1349,7 @@ TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
     REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_MAP, request, reply) == EBPF_INVALID_ARGUMENT);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
 {
 
@@ -1388,6 +1393,7 @@ TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
     }
     _ebpf_platform_code_integrity_enabled = false;
 }
+#endif
 
 TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE", "[execution_context][negative]")
 {
@@ -1648,6 +1654,7 @@ TEST_CASE("EBPF_OPERATION_LINK_PROGRAM", "[execution_context][negative]")
     REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
@@ -1658,6 +1665,7 @@ TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
     // Wrong EC function.
     REQUIRE(invoke_protocol(EBPF_OPERATION_GET_EC_FUNCTION, request, reply) == EBPF_INVALID_ARGUMENT);
 }
+#endif
 
 TEST_CASE("EBPF_OPERATION_GET_PROGRAM_INFO", "[execution_context][negative]")
 {

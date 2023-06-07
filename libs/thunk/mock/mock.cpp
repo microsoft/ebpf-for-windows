@@ -1,10 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #include "api_service.h"
+#endif
 #include "ebpf_api.h"
 #include "mock.h"
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #include "rpc_interface_h.h"
+#endif
 
 std::function<decltype(_close)> close_handler;
 std::function<decltype(CancelIoEx)> cancel_io_ex_handler;
@@ -182,6 +186,7 @@ _stop_service(SC_HANDLE service_handle)
 
 } // namespace Platform
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 // RPC related mock functions.
 
 RPC_STATUS
@@ -213,3 +218,4 @@ ebpf_rpc_load_program(
     ebpf_clear_thread_local_storage();
     return result;
 }
+#endif

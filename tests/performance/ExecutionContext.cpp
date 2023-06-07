@@ -37,6 +37,7 @@ typedef class _ebpf_program_test_state
         ebpf_core_terminate();
     }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     void
     prepare_jit_program()
     {
@@ -70,6 +71,7 @@ typedef class _ebpf_program_test_state
                 reinterpret_cast<uint8_t*>(byte_code.data()),
                 byte_code.size() * sizeof(ebpf_instruction_t)) == EBPF_SUCCESS);
     }
+#endif
 
     void
     test(void* context)
@@ -270,11 +272,13 @@ static ebpf_program_test_state_t* _ebpf_program_test_state_instance = nullptr;
 static ebpf_map_test_state_t* _ebpf_map_test_state_instance = nullptr;
 static ebpf_map_lpm_trie_test_state_t* _ebpf_map_lpm_trie_test_state_instance = nullptr;
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static void
 _ebpf_program_invoke()
 {
     _ebpf_program_test_state_instance->test(nullptr);
 }
+#endif
 
 static void
 _map_find_read_test(uint32_t cpu_id)
@@ -418,6 +422,7 @@ test_bpf_map_lookup_lru_elem(bool preemptible)
     measure.run_test();
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 void
 test_program_invoke_jit(bool preemptible)
 {
@@ -444,6 +449,7 @@ test_program_invoke_interpret(bool preemptible)
     _performance_measure measure(__FUNCTION__, preemptible, _ebpf_program_invoke, iterations);
     measure.run_test();
 }
+#endif
 
 template <size_t route_count>
 void
