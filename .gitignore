@@ -12,6 +12,8 @@
 /**/[Rr]elease/**
 /**/[Dd]ebug/**
 /**/FuzzerDebug/**
+/**/NativeOnlyDebug/**
+/**/NativeOnlyRelease/**
 /**/[Tt]arget/**
 
 # All kinds of output and temporary files that should not be checked in.

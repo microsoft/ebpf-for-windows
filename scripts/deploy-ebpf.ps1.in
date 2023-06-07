@@ -19,8 +19,6 @@ $source_directory="."
     "ebpfforwindows.wprp",
     "ebpfnetsh.dll",
     "ebpfnetsh.pdb",
-    "ebpfsvc.exe",
-    "ebpfsvc.pdb",
     "export_program_info.exe",
     "export_program_info.pdb",
     "MSVCP140D.dll",
@@ -30,6 +28,10 @@ $source_directory="."
     "ucrtbased.dll",
     "VCRUNTIME140_1D.dll",
     "VCRUNTIME140D.dll")
+
+[System.Collections.ArrayList]$built_runtime_jit_files=@(
+    "ebpfsvc.exe",
+    "ebpfsvc.pdb")
 
 [System.Collections.ArrayList]$source_msi_files=@(
     "ebpf-for-windows-{version}.msi")
@@ -48,6 +50,10 @@ $source_directory="."
     "bindmonitor_ringbuf_um.dll",
     "bindmonitor_ringbuf_um.pdb",
     "bindmonitor_ringbuf.sys",
+    "bindmonitor_mt_tailcall.o",
+    "bindmonitor_mt_tailcall_um.dll",
+    "bindmonitor_mt_tailcall_um.pdb",
+    "bindmonitor_mt_tailcall.sys",
     "bindmonitor_tailcall.o",
     "bindmonitor_tailcall_um.dll",
     "bindmonitor_tailcall_um.pdb",
@@ -89,6 +95,8 @@ $source_directory="."
     "cgroup_sock_addr2_um.dll",
     "cgroup_sock_addr2_um.pdb",
     "cgroup_sock_addr2.sys",
+    "connect_redirect_tests.exe",
+    "connect_redirect_tests.pdb",
     "decap_permit_packet.o",
     "decap_permit_packet_um.dll",
     "decap_permit_packet_um.pdb",
@@ -107,13 +115,18 @@ $source_directory="."
     "ebpf_stress_tests_um.exe",
     "ebpf_stress_tests_um.pdb",
     "empty_um.dll",
+    "empty.sys",
     "encap_reflect_packet.o",
     "encap_reflect_packet_um.dll",
     "encap_reflect_packet_um.pdb",
     "encap_reflect_packet.sys",
     "invalid_maps1_um.dll",
+    "invalid_maps1.sys",
     "invalid_maps2_um.dll",
+    "invalid_maps2.sys",
     "invalid_maps3_um.dll",
+    "invalid_maps3.sys",
+    "invalid_helpers.sys",
     "invalid_helpers_um.dll",
     "map.o",
     "map_in_map.o",
@@ -194,6 +207,7 @@ $source_directory="."
     "xdp_tests.pdb")
 
 [System.Collections.ArrayList]$built_files= $built_runtime_files
+[System.Collections.ArrayList]$built_jit_files= $built_runtime_jit_files
 [System.Collections.ArrayList]$source_files= $source_script_files
 $destination_directory="C:\Temp"
 $error.clear()
@@ -253,6 +267,11 @@ OPTIONS:
     { @("-t", "--test") -contains $_ }
         {
             $built_files= $built_runtime_files + $built_test_files
+            break
+        }
+    { @("-t", "--jittest") -contains $_ }
+        {
+            $built_files= $built_runtime_files + $built_runtime_jit_files + $built_test_files
             break
         }
     default

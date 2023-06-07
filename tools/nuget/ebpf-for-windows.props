@@ -6,7 +6,9 @@
         ToolsVersion="15.0">
   <PropertyGroup>
     <LibraryType Condition="'$(Configuration)'=='Debug'">mdd</LibraryType>
+    <LibraryType Condition="'$(Configuration)'=='NativeOnlyDebug'">mdd</LibraryType>
     <LibraryType Condition="'$(Configuration)'=='Release'">md</LibraryType>
+    <LibraryType Condition="'$(Configuration)'=='NativeOnlyRelease'">md</LibraryType>
   </PropertyGroup>
   <ItemGroup>
     <EbpfLibs Include="$(MSBuildThisFileDirectory)\lib\x86_64\$(LibraryType)\*.lib" />

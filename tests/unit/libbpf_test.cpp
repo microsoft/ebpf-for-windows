@@ -34,19 +34,35 @@ ebpf_platform_printk_output();
 #pragma warning(disable : 26812)
 
 #define CONCAT(s1, s2) s1 s2
-#define DECLARE_ALL_TEST_CASES(_name, _group, _function)                              \
-                                                                                      \
-    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); }       \
-    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); } \
-    TEST_CASE(CONCAT(_name, "-interpret"), _group) { _function(EBPF_EXECUTION_INTERPRET); }
+#define DECLARE_TEST_CASE(_name, _group, _function, _suffix, _execution_type) \
+    TEST_CASE(CONCAT(_name, _suffix), _group) { _function(_execution_type); }
+#define DECLARE_NATIVE_TEST(_name, _group, _function) \
+    DECLARE_TEST_CASE(_name, _group, _function, "-native", EBPF_EXECUTION_NATIVE)
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+#define DECLARE_JIT_TEST(_name, _group, _function) \
+    DECLARE_TEST_CASE(_name, _group, _function, "-jit", EBPF_EXECUTION_JIT)
+#else
+#define DECLARE_JIT_TEST(_name, _group, _function)
+#endif
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#define DECLARE_INTERPRET_TEST(_name, _group, _function) \
+    DECLARE_TEST_CASE(_name, _group, _function, "-interpret", EBPF_EXECUTION_INTERPRET)
+#else
+#define DECLARE_INTERPRET_TEST(_name, _group, _function)
+#endif
 
-#define DECLARE_JIT_TEST_CASES(_name, _group, _function)                        \
-                                                                                \
-    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); } \
-    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
+#define DECLARE_ALL_TEST_CASES(_name, _group, _function) \
+    DECLARE_JIT_TEST(_name, _group, _function)           \
+    DECLARE_NATIVE_TEST(_name, _group, _function)        \
+    DECLARE_INTERPRET_TEST(_name, _group, _function)
+
+#define DECLARE_JIT_TEST_CASES(_name, _group, _function) \
+    DECLARE_JIT_TEST(_name, _group, _function)           \
+    DECLARE_NATIVE_TEST(_name, _group, _function)
 
 const int nonexistent_fd = 12345678;
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("libbpf load program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
@@ -60,10 +76,12 @@ TEST_CASE("libbpf load program", "[libbpf][deprecated]")
 
     bpf_object__close(object);
 }
+#endif
 
 std::vector<uint8_t>
 prepare_udp_packet(uint16_t udp_length, uint16_t ethernet_type);
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
@@ -165,6 +183,7 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
 
     bpf_object__close(object);
 }
+#endif
 
 TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
 {
@@ -218,8 +237,12 @@ TEST_CASE("invalid bpf_load_program", "[libbpf][deprecated]")
         log_buffer,
         sizeof(log_buffer));
     REQUIRE(program_fd < 0);
+#if !defined(CONFIG_BPF_JIT_DISABLED)
     REQUIRE(errno == EACCES);
     REQUIRE(strcmp(log_buffer, "\n0:  (r0.type == number)\n\n") == 0);
+#else
+    REQUIRE(errno == ENOTSUP);
+#endif
 }
 
 TEST_CASE("invalid bpf_prog_load", "[libbpf]")
@@ -237,8 +260,12 @@ TEST_CASE("invalid bpf_prog_load", "[libbpf]")
     int program_fd = bpf_prog_load(
         BPF_PROG_TYPE_XDP, "name", "license", (struct bpf_insn*)instructions, _countof(instructions), &opts);
     REQUIRE(program_fd < 0);
+#if !defined(CONFIG_BPF_JIT_DISABLED)
     REQUIRE(errno == EACCES);
     REQUIRE(strcmp(log_buffer, "\n0:  (r0.type == number)\n\n") == 0);
+#else
+    REQUIRE(errno == ENOTSUP);
+#endif
 }
 
 TEST_CASE("invalid bpf_load_program - wrong type", "[libbpf][deprecated]")
@@ -276,6 +303,7 @@ TEST_CASE("invalid bpf_prog_load - wrong type", "[libbpf]")
     REQUIRE(errno == EINVAL);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
@@ -367,6 +395,7 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 
     Platform::_close(program_fd);
 }
+#endif
 
 // Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
 #define BPF_LD_MAP_FD(reg, fd) \
@@ -403,6 +432,7 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 #define BPF_REG_10 R10_STACK_POINTER
 #define BPF_ADD 0
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
@@ -592,6 +622,7 @@ TEST_CASE("libbpf program attach", "[libbpf]")
 
     bpf_object__close(object);
 }
+#endif
 
 void
 test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info[2])
@@ -621,6 +652,7 @@ test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info
 
 #define TEST_IFINDEX 17
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -878,6 +910,7 @@ TEST_CASE("libbpf map", "[libbpf]")
 
     bpf_object__close(object);
 }
+#endif
 
 TEST_CASE("libbpf create queue", "[libbpf]")
 {
@@ -983,6 +1016,7 @@ TEST_CASE("libbpf create ringbuf", "[libbpf]")
     Platform::_close(map_fd);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("libbpf map binding", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -1175,6 +1209,7 @@ TEST_CASE("libbpf obj pinning", "[libbpf]")
 
     bpf_object__close(object);
 }
+#endif
 
 static void
 _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
@@ -1262,11 +1297,13 @@ _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
     bpf_object__close(object);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("good_tail_call-jit", "[libbpf]")
 {
     // Verify that 42 is returned, which is done by the callee.
     _ebpf_test_tail_call("tail_call.o", 42);
 }
+#endif
 
 TEST_CASE("good_tail_call-native", "[libbpf]")
 {
@@ -1274,10 +1311,12 @@ TEST_CASE("good_tail_call-native", "[libbpf]")
     _ebpf_test_tail_call("tail_call_um.dll", 42);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("bad_tail_call-jit", "[libbpf]")
 {
     _ebpf_test_tail_call("tail_call_bad.o", (uint32_t)(-EBPF_INVALID_ARGUMENT));
 }
+#endif
 
 TEST_CASE("bad_tail_call-native", "[libbpf]")
 {
@@ -1433,6 +1472,7 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
 
 DECLARE_ALL_TEST_CASES("disallow setting bind fd in xdp prog array", "[libbpf]", _test_bind_fd_to_prog_array);
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
@@ -1472,6 +1512,7 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     bpf_object__close(bind_object);
     bpf_object__close(xdp_object);
 }
+#endif
 
 static void
 _enumerate_program_ids_test(ebpf_execution_type_t execution_type)
@@ -1825,6 +1866,7 @@ TEST_CASE("enumerate map IDs", "[libbpf]")
     Platform::_close(fd2);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("enumerate link IDs", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
@@ -2212,6 +2254,7 @@ TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
 
     Platform::_close(link_fd);
 }
+#endif
 
 TEST_CASE("libbpf_prog_type_by_name_test", "[libbpf]")
 {
@@ -2379,6 +2422,7 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
     bpf_object__close(object);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("bpf_object__load with .o", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -2577,6 +2621,7 @@ TEST_CASE("BPF_PROG_ATTACH", "[libbpf]")
     attr.attach_type = BPF_XDP;
     REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == -ENOTSUP);
 }
+#endif
 
 // Test bpf() with the following command ids:
 // BPF_MAP_CREATE, BPF_MAP_UPDATE_ELEM, BPF_MAP_LOOKUP_ELEM,

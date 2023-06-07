@@ -650,6 +650,18 @@ SPDX-License-Identifier: MIT
 			<Component Id="BINDMONITOR_RINGBUF_UM.PDB" DiskId="1" Guid="{FB8688DC-43FB-475A-ADB5-B669A97A435C}">
 				<File Id="BINDMONITOR_RINGBUF_UM.PDB" Name="bindmonitor_ringbuf_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_ringbuf_um.pdb" />
 			</Component>
+			<Component Id="BINDMONITOR_MT_TAILCALL.O" DiskId="1" Guid="{5AF0DDDA-205B-440D-9F2F-B3554A22F2B1}">
+				<File Id="BINDMONITOR_MT_TAILCALL.O" Name="bindmonitor_mt_tailcall.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_mt_tailcall.o" />
+			</Component>
+			<Component Id="BINDMONITOR_MT_TAILCALL.SYS" DiskId="1" Guid="{BAFF9117-CF1D-40DD-8B4A-5B72F181DB99}">
+				<File Id="BINDMONITOR_MT_TAILCALL.SYS" Name="bindmonitor_mt_tailcall.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_mt_tailcall.sys" />
+			</Component>
+			<Component Id="BINDMONITOR_MT_TAILCALL_UM.DLL" DiskId="1" Guid="{72FEF59C-A7D8-4BB5-B11E-5A125073723E}">
+				<File Id="BINDMONITOR_MT_TAILCALL_UM.DLL" Name="bindmonitor_mt_tailcall_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_mt_tailcall_um.dll" />
+			</Component>
+			<Component Id="BINDMONITOR_MT_TAILCALL_UM.PDB" DiskId="1" Guid="{70AD50CC-C376-4FD4-900E-1157F9A74A12}">
+				<File Id="BINDMONITOR_MT_TAILCALL_UM.PDB" Name="bindmonitor_mt_tailcall_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_mt_tailcall_um.pdb" />
+			</Component>
 			<Component Id="BINDMONITOR_TAILCALL.O" DiskId="1" Guid="{6A37AE43-179A-46BD-97D5-3D02B6807765}">
 				<File Id="BINDMONITOR_TAILCALL.O" Name="bindmonitor_tailcall.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bindmonitor_tailcall.o" />
 			</Component>
