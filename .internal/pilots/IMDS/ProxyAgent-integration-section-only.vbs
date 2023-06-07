@@ -167,7 +167,7 @@ Function DeleteEbpfTracingTasks()
 		End With
 		g_Trace.TraceEvent oTraceEvent
 		
-		If ExecuteAndTraceWithResults("""" + scriptPath + """ stop """ + g_tracingPath + """", g_trace).ExitCode <> 0 Then
+		If ExecuteAndTraceWithResults("""" + scriptPath + """ stop /trace_path """ + g_tracingPath + """", g_trace).ExitCode <> 0 Then
 			DeleteEbpfTracingTasks = False
 		End If
 	Else
