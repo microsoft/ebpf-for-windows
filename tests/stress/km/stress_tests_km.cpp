@@ -254,6 +254,7 @@ struct object_table_entry
     std::unique_ptr<std::mutex> lock{nullptr};
     _Guarded_by_(lock) bool available{true};
     _Guarded_by_(lock) bpf_object_ptr object{nullptr};
+    _Guarded_by_(lock) bool loaded{false};
     bool attach{false};
 
     // The following fields are for debugging this test itself.
@@ -396,6 +397,11 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                     continue;
                 }
 
+                // Move on if the bpf program has already been loaded by some other 'creator' thread.
+                if (entry.loaded) {
+                    continue;
+                }
+
                 try {
                     auto result = bpf_object__load(entry.object.get());
                     if (result != 0) {
@@ -441,6 +447,7 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                         errno);
                     exit(-1);
                 }
+                entry.loaded = true;
                 LOG_VERBOSE("(CREATOR)[{}][{}] - Object loaded.", context.thread_index, entry.index);
             }
         }
@@ -561,6 +568,7 @@ _do_destroyer_work(thread_context& context, std::time_t endtime_seconds)
             bpf_object__close(entry.object.get());
             entry.object.release();
             entry.available = true;
+            entry.loaded = false;
 
             LOG_VERBOSE(
                 "(DESTROYER)[{}][{}] - Destroyed. comparment_id: {}",
