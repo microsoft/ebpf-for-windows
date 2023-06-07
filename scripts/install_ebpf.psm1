@@ -70,11 +70,13 @@ function Register-eBPFComponents
     }
 
     # Install user mode service.
-    .\eBPFSvc.exe install 2>&1 | Write-Log
-    if ($LASTEXITCODE -ne 0) {
-        throw ("Failed to create eBPF user mode service.")
-    } else {
-        Write-Log "eBPF user mode service created." -ForegroundColor Green
+    if (Test-Path -Path "ebpfsvc.exe") {
+        .\eBPFSvc.exe install 2>&1 | Write-Log
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Failed to create eBPF user mode service.")
+        } else {
+            Write-Log "eBPF user mode service created." -ForegroundColor Green
+        }
     }
 
     # Add the eBPF netsh helper.

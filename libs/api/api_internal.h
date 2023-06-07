@@ -548,6 +548,7 @@ ebpf_api_elf_enumerate_sections(
     _Outptr_result_maybenull_ ebpf_section_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept;
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 /**
  * @brief Load an eBPF programs from raw instructions.
  *
@@ -580,6 +581,7 @@ ebpf_program_load_bytes(
     _Out_writes_opt_(log_buffer_size) char* log_buffer,
     size_t log_buffer_size,
     _Out_ fd_t* program_fd) noexcept;
+#endif
 
 /**
  * @brief Get eBPF program type for the specified bpf program type.

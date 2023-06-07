@@ -27,8 +27,10 @@ CATCH_REGISTER_LISTENER(_watchdog)
 
 #define EBPF_EXTENSION_DRIVER_BINARY_NAME L"sample_ebpf_ext.sys"
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #define EBPF_SERVICE_BINARY_NAME L"ebpfsvc.exe"
 #define EBPF_SERVICE_NAME L"ebpfsvc"
+#endif
 
 static service_install_helper
     _ebpf_core_driver_helper(EBPF_CORE_DRIVER_NAME, EBPF_CORE_DRIVER_BINARY_NAME, SERVICE_KERNEL_DRIVER);
@@ -36,8 +38,10 @@ static service_install_helper
 static service_install_helper
     _ebpf_extension_driver_helper(SAMPLE_EBPF_EXT_NAME_W, EBPF_EXTENSION_DRIVER_BINARY_NAME, SERVICE_KERNEL_DRIVER);
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static service_install_helper
     _ebpf_service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
+#endif
 
 struct _sample_extension_helper
 {

@@ -53,16 +53,31 @@ CATCH_REGISTER_LISTENER(_watchdog)
 #define BPF_ATTACH_TYPE_INVALID 100
 
 #define CONCAT(s1, s2) s1 s2
-#define DECLARE_ALL_TEST_CASES(_name, _group, _function)                              \
-                                                                                      \
-    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); }       \
-    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); } \
-    TEST_CASE(CONCAT(_name, "-interpret"), _group) { _function(EBPF_EXECUTION_INTERPRET); }
+#define DECLARE_TEST_CASE(_name, _group, _function, _suffix, _execution_type) \
+    TEST_CASE(CONCAT(_name, _suffix), _group) { _function(_execution_type); }
+#define DECLARE_NATIVE_TEST(_name, _group, _function) \
+    DECLARE_TEST_CASE(_name, _group, _function, "-native", EBPF_EXECUTION_NATIVE)
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+#define DECLARE_JIT_TEST(_name, _group, _function) \
+    DECLARE_TEST_CASE(_name, _group, _function, "-jit", EBPF_EXECUTION_JIT)
+#else
+#define DECLARE_JIT_TEST(_name, _group, _function)
+#endif
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#define DECLARE_INTERPRET_TEST(_name, _group, _function) \
+    DECLARE_TEST_CASE(_name, _group, _function, "-interpret", EBPF_EXECUTION_INTERPRET)
+#else
+#define DECLARE_INTERPRET_TEST(_name, _group, _function)
+#endif
 
-#define DECLARE_JIT_TEST_CASES(_name, _group, _function)                        \
-                                                                                \
-    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); } \
-    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
+#define DECLARE_ALL_TEST_CASES(_name, _group, _function) \
+    DECLARE_JIT_TEST(_name, _group, _function)           \
+    DECLARE_NATIVE_TEST(_name, _group, _function)        \
+    DECLARE_INTERPRET_TEST(_name, _group, _function)
+
+#define DECLARE_JIT_TEST_CASES(_name, _group, _function) \
+    DECLARE_JIT_TEST(_name, _group, _function)           \
+    DECLARE_NATIVE_TEST(_name, _group, _function)
 
 extern thread_local bool ebpf_non_preemptible;
 
@@ -1114,21 +1129,25 @@ _cgroup_sock_addr_load_test(
     _cgroup_load_test(file, name, EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type, execution_type);
 }
 
-#define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(file, name, attach_type)                            \
-    TEST_CASE(                                                                                 \
-        "cgroup_sockaddr_load_test_" #name "_" #attach_type "_"                                \
-        "jit",                                                                                 \
-        "[cgroup_sock_addr]")                                                                  \
-    {                                                                                          \
-        _cgroup_sock_addr_load_test(file ".o", name, attach_type, EBPF_EXECUTION_JIT);         \
-    }                                                                                          \
-    TEST_CASE(                                                                                 \
-        "cgroup_sockaddr_load_test_" #name "_" #attach_type "_"                                \
-        "native",                                                                              \
-        "[cgroup_sock_addr]")                                                                  \
-    {                                                                                          \
-        _cgroup_sock_addr_load_test(file "_um.dll", name, attach_type, EBPF_EXECUTION_NATIVE); \
+#define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST2(file, name, attach_type, name_suffix, file_suffix, execution_type) \
+    TEST_CASE("cgroup_sockaddr_load_test_" name "_" #attach_type "_" name_suffix, "[cgroup_sock_addr]")        \
+    {                                                                                                          \
+        _cgroup_sock_addr_load_test(file file_suffix, name, attach_type, execution_type);                      \
     }
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+#define DECLARE_CGROUP_SOCK_ADDR_LOAD_JIT_TEST(file, name, attach_type) \
+    DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST2(file, name, attach_type, "jit", ".o", EBPF_EXECUTION_JIT)
+#else
+#define DECLARE_CGROUP_SOCK_ADDR_LOAD_JIT_TEST(file, name, attach_type)
+#endif
+
+#define DECLARE_CGROUP_SOCK_ADDR_LOAD_NATIVE_TEST(file, name, attach_type) \
+    DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST2(file, name, attach_type, "native", "_um.dll", EBPF_EXECUTION_NATIVE)
+
+#define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(file, name, attach_type) \
+    DECLARE_CGROUP_SOCK_ADDR_LOAD_JIT_TEST(file, name, attach_type) \
+    DECLARE_CGROUP_SOCK_ADDR_LOAD_NATIVE_TEST(file, name, attach_type)
 
 DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
     SAMPLE_PATH "cgroup_sock_addr", "authorize_connect4", EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
@@ -1139,6 +1158,7 @@ DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
 DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
     SAMPLE_PATH "cgroup_sock_addr", "authorize_recv_accept6", EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT);
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("cgroup_sockops_load_test", "[cgroup_sockops]")
 {
     _cgroup_load_test(
@@ -1148,6 +1168,7 @@ TEST_CASE("cgroup_sockops_load_test", "[cgroup_sockops]")
         EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS,
         EBPF_EXECUTION_JIT);
 }
+#endif
 
 TEST_CASE("verify_test0", "[sample_extension]")
 {
@@ -1192,6 +1213,7 @@ TEST_CASE("verify_test1", "[sample_extension]")
     REQUIRE(result == 0);
 }
 
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("map_pinning_test", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
@@ -1252,7 +1274,9 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
 
     bpf_object__close(unique_object.release());
 }
+#endif
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
@@ -1332,6 +1356,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
         bpf_object__close(unique_object[i].release());
     }
 }
+#endif
 
 TEST_CASE("pinned_map_enum", "[end_to_end]")
 {
@@ -1340,6 +1365,7 @@ TEST_CASE("pinned_map_enum", "[end_to_end]")
     ebpf_test_pinned_map_enum();
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 // This test uses ebpf_link_close() to test implicit detach.
 TEST_CASE("implicit_detach", "[end_to_end]")
 {
@@ -1439,7 +1465,9 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     bpf_link__disconnect(link);
     REQUIRE(bpf_link__destroy(link) == 0);
 }
+#endif
 
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("explicit_detach", "[end_to_end]")
 {
     // This test case does the following:
@@ -1532,6 +1560,7 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     // exits checks if all the objects in EC have been deleted.
     hook.detach_and_close_link(&link);
 }
+#endif
 
 TEST_CASE("create_map", "[end_to_end]")
 {
@@ -1688,6 +1717,7 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
     }
 }
 
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("printk", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
@@ -1739,6 +1769,7 @@ TEST_CASE("printk", "[end_to_end]")
     // so subtract 6 from the length to get the expected return value.
     REQUIRE(hook_result == output.length() - 6);
 }
+#endif
 
 TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
 TEST_CASE("xdp-reflect-v6-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET6); }
@@ -1755,6 +1786,7 @@ TEST_CASE("xdp-encap-reflect-v6-interpret", "[xdp_tests]")
     _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
 }
 
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED) || !defined(CONFIG_BPF_JIT_DISABLED)
 static void
 _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
 {
@@ -1794,7 +1826,9 @@ _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRES
         REQUIRE(memcmp(ipv6, inner_ip_datagram.data(), inner_ip_datagram.size()) == 0);
     }
 }
+#endif
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("xdp-decapsulate-permit-v4-jit", "[xdp_tests]")
 {
     _xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET);
@@ -1803,6 +1837,8 @@ TEST_CASE("xdp-decapsulate-permit-v6-jit", "[xdp_tests]")
 {
     _xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET6);
 }
+#endif
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("xdp-decapsulate-permit-v4-interpret", "[xdp_tests]")
 {
     _xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
@@ -1838,6 +1874,7 @@ TEST_CASE("link_tests", "[end_to_end]")
 
     hook.detach();
 }
+#endif
 
 static void
 _map_reuse_test(ebpf_execution_type_t execution_type)
@@ -2021,6 +2058,7 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
 
 DECLARE_JIT_TEST_CASES("auto_pinned_maps", "[end_to_end]", _auto_pinned_maps_test);
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
@@ -2090,6 +2128,7 @@ TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
     REQUIRE(ebpf_object_unpin("/custompath/global/outer_map") == EBPF_SUCCESS);
     REQUIRE(ebpf_object_unpin("/custompath/global/port_map") == EBPF_SUCCESS);
 }
+#endif
 
 static void
 _map_reuse_invalid_test(ebpf_execution_type_t execution_type)

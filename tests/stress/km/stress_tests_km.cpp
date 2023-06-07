@@ -13,6 +13,13 @@
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 
+// The helper function definitions in bpf_helpers.h conflict with the definitions
+// in libbpf.h, but this code needs to use MAX_TAIL_CALL_CNT from bpf_helpers.h.
+// Work around this by defining MAX_TAIL_CALL_CNT here.
+#if !defined(MAX_TAIL_CALL_CNT)
+#define MAX_TAIL_CALL_CNT 32
+#endif
+
 // Note: The 'program' and 'execution' types are not required for km tests.
 static const std::map<std::string, test_program_attributes> _test_program_info = {
     {{"cgroup_sock_addr"},
@@ -247,6 +254,7 @@ struct object_table_entry
     std::unique_ptr<std::mutex> lock{nullptr};
     _Guarded_by_(lock) bool available{true};
     _Guarded_by_(lock) bpf_object_ptr object{nullptr};
+    _Guarded_by_(lock) bool loaded{false};
     bool attach{false};
 
     // The following fields are for debugging this test itself.
@@ -389,6 +397,11 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                     continue;
                 }
 
+                // Move on if the bpf program has already been loaded by some other 'creator' thread.
+                if (entry.loaded) {
+                    continue;
+                }
+
                 try {
                     auto result = bpf_object__load(entry.object.get());
                     if (result != 0) {
@@ -434,6 +447,7 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                         errno);
                     exit(-1);
                 }
+                entry.loaded = true;
                 LOG_VERBOSE("(CREATOR)[{}][{}] - Object loaded.", context.thread_index, entry.index);
             }
         }
@@ -554,6 +568,7 @@ _do_destroyer_work(thread_context& context, std::time_t endtime_seconds)
             bpf_object__close(entry.object.get());
             entry.object.release();
             entry.available = true;
+            entry.loaded = false;
 
             LOG_VERBOSE(
                 "(DESTROYER)[{}][{}] - Destroyed. comparment_id: {}",
@@ -721,7 +736,7 @@ enum class program_map_usage : uint32_t
 };
 
 static std::pair<bpf_object_ptr, fd_t>
-_load_attach_program(const std::string& file_name, uint32_t thread_index)
+_load_attach_program(const std::string& file_name, enum bpf_attach_type attach_type, uint32_t thread_index)
 {
     bpf_object_ptr object_ptr;
     bpf_object* object_raw_ptr = nullptr;
@@ -793,7 +808,7 @@ _load_attach_program(const std::string& file_name, uint32_t thread_index)
 
     // Enforce the 'unspecified' compartment id. In the absence of additional compartments in the system, (as of now)
     // a non-existent id causes a kernel assert in netebpfext.sys debug builds.
-    result = bpf_prog_attach(program_fd, UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_CONNECT, 0);
+    result = bpf_prog_attach(program_fd, UNSPECIFIED_COMPARTMENT_ID, attach_type, 0);
     if (result != 0) {
         LOG_ERROR(
             "{}({}) FATAL ERROR: bpf_prog_attach({}) failed. program:{}, errno:{}",
@@ -813,8 +828,11 @@ _load_attach_program(const std::string& file_name, uint32_t thread_index)
 static void
 _prep_program(thread_context& context, program_map_usage map_usage)
 {
-    // Stash the object pointer as well need it at 'close' time.
-    auto [program_object, program_fd] = _load_attach_program(context.file_name, context.thread_index);
+    enum bpf_attach_type attach_type =
+        context.role == thread_role_type::MONITOR_IPV4 ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
+    auto [program_object, program_fd] = _load_attach_program(context.file_name, attach_type, context.thread_index);
+
+    // Stash the object pointer as we'll need it at 'close' time.
     auto& entry = context.object_table[context.thread_index];
     entry.object = std::move(program_object);
     context.program_fd = program_fd;
@@ -911,8 +929,7 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
     REQUIRE(error == 0);
 
     // As of now, we support a maximum of 2 ebpf test programs for this test.
-    // constexpr uint32_t MAX_TCP_CONNECT_PROGRAMS = 2; FIXME!!! (blocked on Issue #2351)
-    constexpr uint32_t MAX_TCP_CONNECT_PROGRAMS = 1;
+    constexpr uint32_t MAX_TCP_CONNECT_PROGRAMS = 2;
 
     // Storage for object pointers for each ebpf program file opened by bpf_object__open().
     std::vector<object_table_entry> object_table(MAX_TCP_CONNECT_PROGRAMS);
@@ -928,7 +945,7 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
     std::vector<std::pair<std::string, std::string>> program_file_map_names = {
         {{"cgroup_count_connect4.sys"}, {"connect4_count_map"}},
         {{"cgroup_count_connect6.sys"}, {"connect6_count_map"}}};
-    // ASSERT(program_file_map_names.size() == MAX_TCP_CONNECT_PROGRAMS); FIXME!!! (blocked on Issue #2351)
+    ASSERT(program_file_map_names.size() == MAX_TCP_CONNECT_PROGRAMS);
 
     for (uint32_t i = 0; i < total_threads; i++) {
 
@@ -1023,7 +1040,7 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
     REQUIRE(error == 0);
 
-    auto [program_object, _] = _load_attach_program({"cgroup_mt_connect6.sys"}, 0);
+    auto [program_object, _] = _load_attach_program({"cgroup_mt_connect6.sys"}, BPF_CGROUP_INET6_CONNECT, 0);
 
     // Not used, needed for thread_context initialization.
     std::vector<object_table_entry> dummy_table(1);
@@ -1082,6 +1099,305 @@ _print_test_control_info(const test_control_info& test_control_info)
     if (test_control_info.extension_restart_enabled) {
         LOG_INFO("test extension restart delay: {} ms", test_control_info.extension_restart_delay_ms);
     }
+}
+
+static void
+_set_up_tailcall_program(bpf_object* object, const std::string& map_name)
+{
+    REQUIRE(object != nullptr);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, map_name.c_str());
+    if (prog_map_fd < 0) {
+        LOG_ERROR(
+            "({}) FATAL ERROR: bpf_object__find_map_fd_by_name({}) failed. Errno:{}",
+            __func__,
+            map_name.c_str(),
+            errno);
+        REQUIRE(prog_map_fd >= 0);
+    }
+    LOG_VERBOSE("({}) Opened fd:{} for map:{}", __func__, prog_map_fd, map_name.c_str());
+
+    // Set up tail calls.
+    for (int index = 0; index < MAX_TAIL_CALL_CNT; index++) {
+        try {
+            std::string bind_program_name{"BindMonitor_Callee"};
+            bind_program_name += std::to_string(index);
+
+            // Try to get a handle to the 'BindMonitor_Callee<index>' program.
+            bpf_program* callee = bpf_object__find_program_by_name(object, bind_program_name.c_str());
+
+            if (callee == nullptr) {
+                LOG_ERROR("({}) - bpf_object__find_program_by_name() failed. errno: {}", bind_program_name, errno);
+                REQUIRE(callee != nullptr);
+            }
+            LOG_VERBOSE("({}) - bpf_object__find_program_by_name() success.", bind_program_name);
+
+            fd_t callee_fd = bpf_program__fd(callee);
+            if (callee_fd < 0) {
+                LOG_ERROR("({}) - bpf_program__fd() failed. errno: {}", bind_program_name, errno);
+                REQUIRE(callee_fd > 0);
+            }
+            LOG_VERBOSE("({}) - bpf_program__fd() for callee_fd:{} success.", bind_program_name, callee_fd);
+
+            uint32_t result = bpf_map_update_elem(prog_map_fd, &index, &callee_fd, 0);
+            if (result < 0) {
+                LOG_ERROR("({}) - bpf_map_update_elem() failed. errno: {}", bind_program_name, errno);
+                REQUIRE(result == ERROR_SUCCESS);
+            }
+            LOG_VERBOSE("({}) - bpf_map_update_elem() for callee_fd:{} success.", bind_program_name, callee_fd);
+
+        } catch (...) {
+            // No need to terminate. We don't care about user mode issues here.
+        }
+    }
+}
+
+static void
+_invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
+{
+    // Test bind.
+    SOCKET socket_handle = INVALID_SOCKET;
+    SOCKADDR_STORAGE remote_endpoint{};
+
+    if (context.role == thread_role_type::MONITOR_IPV4) {
+        remote_endpoint.ss_family = AF_INET;
+    } else {
+        ASSERT(context.role == thread_role_type::MONITOR_IPV6);
+        remote_endpoint.ss_family = AF_INET6;
+    }
+
+    uint16_t remote_port = SOCKET_TEST_PORT + static_cast<uint16_t>(context.thread_index);
+    using sc = std::chrono::steady_clock;
+    auto endtime = sc::now() + std::chrono::minutes(context.duration_minutes);
+    while (sc::now() < endtime) {
+
+        // Now send out a small burst of TCP 'bind' attempts for the duration of the test.  We do this to increase
+        // the probability of a collision between the program invocation and the extension being restarted at the same
+        // time.
+        constexpr uint32_t BURST_SIZE = 5;
+        int result = 0;
+
+        for (uint32_t i = 0; i < BURST_SIZE; i++) {
+            // Create a socket.
+            socket_handle = WSASocket(remote_endpoint.ss_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
+            REQUIRE(socket_handle != INVALID_SOCKET);
+
+            INETADDR_SETANY(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
+            SS_PORT(&remote_endpoint) = htons(remote_port);
+
+            // Forcefully bind to the same port in use using socket option SO_REUSEADDR.
+            // One of the use-case: multicast sockets.
+            const char optval = 1;
+            result = setsockopt(socket_handle, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+            if (result != 0) {
+                LOG_ERROR(
+                    "Thread[{}] setsockopt result:{} {} to port:{}",
+                    context.thread_index,
+                    result,
+                    WSAGetLastError(),
+                    remote_port);
+                closesocket(socket_handle);
+                REQUIRE(result == 0);
+            }
+
+            // Bind the socket.
+            LOG_VERBOSE("Thread[{}] - binding to port:{}", context.thread_index, remote_port);
+            result = bind(socket_handle, (PSOCKADDR)&remote_endpoint, sizeof(remote_endpoint));
+            if (result != 0) {
+                LOG_ERROR(
+                    "Thread[{}] bind result:{} {} to port:{}",
+                    context.thread_index,
+                    result,
+                    WSAGetLastError(),
+                    remote_port);
+                closesocket(socket_handle);
+                REQUIRE(result == 0);
+            }
+
+            LOG_VERBOSE("Thread[{}] bind success to port:{}", context.thread_index, remote_port);
+            closesocket(socket_handle);
+        }
+    }
+    LOG_VERBOSE("Thread[{}] Done.", context.thread_index);
+}
+
+static std::pair<bpf_object_ptr, fd_t>
+_load_attach_tail_program(
+    const std::string& file_name,
+    uint32_t thread_index,
+    ebpf_attach_type_t attach_type,
+    const std::string program_name,
+    bpf_prog_type program_type)
+{
+    bpf_object_ptr object_ptr;
+    bpf_object* object_raw_ptr = nullptr;
+    bpf_link* link = nullptr;
+
+    // Get the 'object' ptr for the program associated with this thread.
+    object_raw_ptr = bpf_object__open(file_name.c_str());
+    if (object_raw_ptr == nullptr) {
+        LOG_ERROR(
+            "{}({}) FATAL ERROR: bpf_object__open({}) failed. errno:{}",
+            __func__,
+            thread_index,
+            file_name.c_str(),
+            errno);
+        REQUIRE(object_raw_ptr != nullptr);
+    }
+    LOG_VERBOSE("{}({}) Opened file:{}", __func__, thread_index, file_name.c_str());
+
+    // Load the program.
+    auto result = bpf_object__load(object_raw_ptr);
+    if (result != 0) {
+        LOG_ERROR(
+            "{}({}) FATAL ERROR: bpf_object__load({}) failed. errno:{}",
+            __func__,
+            thread_index,
+            file_name.c_str(),
+            errno);
+        REQUIRE(result == 0);
+    }
+    object_ptr.reset(object_raw_ptr);
+    LOG_VERBOSE("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
+
+    // Load program by name.
+    bpf_program* program = bpf_object__find_program_by_name(object_raw_ptr, program_name.c_str());
+    if (program == nullptr) {
+        LOG_ERROR(
+            "{}({}) FATAL ERROR: bpf_object__find_program_by_name({}) failed. errno:{}",
+            __func__,
+            thread_index,
+            file_name.c_str(),
+            errno);
+        REQUIRE(program != nullptr);
+    }
+    LOG_VERBOSE(
+        "{}({}) Found program object for program:{}, file_name:{}",
+        __func__,
+        thread_index,
+        program->program_name,
+        file_name.c_str());
+
+    // Set the program type.
+    bpf_program__set_type(program, program_type);
+
+    // Get the fd for this program.
+    fd_t program_fd = bpf_program__fd(program);
+    if (program_fd < 0) {
+        LOG_ERROR(
+            "{}({}) FATAL ERROR: bpf_program__fd({}) failed. program:{}, errno:{}",
+            __func__,
+            thread_index,
+            file_name.c_str(),
+            program->program_name,
+            errno);
+        REQUIRE(program_fd >= 0);
+    }
+    LOG_VERBOSE(
+        "{}({}) Opened fd:{}, for program:{}, file_name:{}",
+        __func__,
+        thread_index,
+        program_fd,
+        program->program_name,
+        file_name.c_str());
+
+    result = ebpf_program_attach(program, &attach_type, nullptr, 0, &link);
+    if (result != ERROR_SUCCESS) {
+        LOG_ERROR(
+            "{}({}) FATAL ERROR: bpf_prog_attach({}) failed. program:{}, errno:{}",
+            __func__,
+            thread_index,
+            file_name.c_str(),
+            program->program_name,
+            errno);
+        REQUIRE(result == ERROR_SUCCESS);
+    }
+    LOG_VERBOSE(
+        "{}({}) Attached program:{}, file_name:{}", __func__, thread_index, program->program_name, file_name.c_str());
+
+    return std::make_pair(std::move(object_ptr), program_fd);
+}
+
+static void
+_mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_control_info)
+{
+    WSAData data{};
+    auto error = WSAStartup(MAKEWORD(2, 2), &data);
+    REQUIRE(error == 0);
+
+    std::string file_name = "bindmonitor_mt_tailcall.sys";
+    std::string map_name = "bind_tail_call_map";
+    std::string program_name = "BindMonitor_Caller";
+    bpf_prog_type program_type = BPF_PROG_TYPE_BIND;
+
+    // Load the program.
+    auto [program_object, _] =
+        _load_attach_tail_program(file_name, 0, EBPF_ATTACH_TYPE_BIND, program_name, program_type);
+
+    // Set up the tail call programs.
+    _set_up_tailcall_program(program_object.get(), map_name);
+
+    // Needed for thread_context initialization.
+    constexpr uint32_t MAX_BIND_PROGRAM = 1;
+
+    // Storage for object pointers for each ebpf program file opened by bpf_object__open().
+    std::vector<object_table_entry> object_table(MAX_BIND_PROGRAM);
+    for (uint32_t index = 0; auto& entry : object_table) {
+        entry.available = true;
+        entry.lock = std::make_unique<std::mutex>();
+        entry.object = std::move(program_object);
+        entry.attach = !(index % 2) ? true : false;
+        entry.index = index++;
+        entry.reuse_count = 0;
+        entry.tag = 0xC001DEA2;
+    }
+
+    size_t total_threads = test_control_info.threads_count;
+    std::vector<thread_context> thread_context_table(
+        total_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
+    std::vector<std::thread> test_thread_table(total_threads);
+    for (uint32_t i = 0; i < total_threads; i++) {
+
+        // First, prepare the context for this thread.
+        auto& context_entry = thread_context_table[i];
+        context_entry.is_native_program = true;
+        context_entry.role = thread_role_type::MONITOR_IPV6;
+        context_entry.thread_index = i;
+        context_entry.duration_minutes = test_control_info.duration_minutes;
+        context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
+
+        // Now create the thread.
+        auto& thread_entry = test_thread_table[i];
+        thread_entry =
+            std::move(std::thread(_invoke_mt_bindmonitor_tail_call_thread_function, std::ref(context_entry)));
+    }
+
+    // Another table for the 'extension restart' threads.
+    std::vector<std::thread> extension_restart_thread_table{};
+
+    // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
+    std::string extension_name = {"netebpfext"};
+    if (test_control_info.extension_restart_enabled) {
+        auto restart_thread = _start_extension_restart_thread(
+            std::ref(extension_name), test_control_info.extension_restart_delay_ms, test_control_info.duration_minutes);
+        extension_restart_thread_table.push_back(std::move(restart_thread));
+    }
+
+    // Wait for threads to terminate.
+    LOG_INFO("waiting on {} test threads...", test_thread_table.size());
+    for (auto& t : test_thread_table) {
+        t.join();
+    }
+
+    if (test_control_info.extension_restart_enabled) {
+        LOG_INFO("waiting on {} extension restart threads...", extension_restart_thread_table.size());
+        for (auto& t : extension_restart_thread_table) {
+            t.join();
+        }
+    }
+
+    // Clean up Winsock.
+    WSACleanup();
 }
 
 TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[jit_mt_stress_test]")
@@ -1148,7 +1464,7 @@ TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_
     _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
 
-TEST_CASE("native_invoke_program_restart_extension_v4_test", "[native_mt_stress_test]")
+TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_stress_test]")
 {
     // Test layout:
     // 1. Create 2 'monitor' threads:
@@ -1178,6 +1494,9 @@ TEST_CASE("native_invoke_program_restart_extension_v4_test", "[native_mt_stress_
     // Enforce enabling of the 'extension restart' thread for this test for increased stress.
     // (The restart delay is set to the default value or the value specified (if any) on the command line.)
     local_test_control_info.extension_restart_enabled = true;
+
+    // This test needs only 2 threads (one per program).
+    local_test_control_info.threads_count = 2;
 
     _print_test_control_info(local_test_control_info);
     _mt_invoke_prog_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
@@ -1209,4 +1528,21 @@ TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
 
     _print_test_control_info(local_test_control_info);
     _mt_sockaddr_invoke_program_test(local_test_control_info);
+}
+
+TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]")
+{
+    // Test layout:
+    // 1. Load the "bindmonitor_mt_tailcall.sys" native ebpf program.
+    // 2. Load MAX_TAIL_CALL_CNT tail call programs.
+    // 3. Create the specified number of threads.
+    //   - Each thread will invoke the TCP 'bind'.
+    //   - This will invoke MAX_TAIL_CALL_CNT tail call programs for permit.
+
+    _km_test_init();
+    LOG_INFO("\nStarting test *** bindmonitor_tailcall_invoke_program_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+
+    _print_test_control_info(local_test_control_info);
+    _mt_bindmonitor_tail_call_invoke_program_test(local_test_control_info);
 }
