@@ -1521,8 +1521,8 @@ TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]"
 {
     // Test layout:
     // 1. Load the "bindmonitor_mt_tailcall.sys" native ebpf program.
-    // 2. Load MAX_TAIL_CALL_CNT tail call tail call programs.
-    // 3. Create the specified # of threads.
+    // 2. Load MAX_TAIL_CALL_CNT tail call programs.
+    // 3. Create the specified number of threads.
     //   - Each thread will invoke the TCP 'bind'.
     //   - This will invoke MAX_TAIL_CALL_CNT tail call programs for permit.
 
