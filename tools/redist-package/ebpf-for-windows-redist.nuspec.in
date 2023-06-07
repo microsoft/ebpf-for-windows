@@ -38,14 +38,14 @@
 		<file src="..\..\scripts\ebpf_tracing_periodic_task.xml" target="package\bin"/>
 
 		<!--Temporary inclusion of the VC++ Redist-->
-		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\concrt140.dll" target="package\bin"/>
-		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\msvcp140.dll" target="package\bin"/>
-		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\msvcp140_1.dll" target="package\bin"/>
-		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\msvcp140_2.dll" target="package\bin"/>
-		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\msvcp140_atomic_wait.dll" target="package\bin"/>
-		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\msvcp140_codecvt_ids.dll" target="package\bin"/>
-		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\vccorlib140.dll" target="package\bin"/>
-		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\vcruntime140.dll" target="package\bin"/>
-		<file src="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.34.31931\x64\Microsoft.VC143.CRT\vcruntime140_1.dll" target="package\bin"/>
+		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\concrt140.dll" target="package\bin"/>
+		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\msvcp140.dll" target="package\bin"/>
+		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\msvcp140_1.dll" target="package\bin"/>
+		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\msvcp140_2.dll" target="package\bin"/>
+		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\msvcp140_atomic_wait.dll" target="package\bin"/>
+		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\msvcp140_codecvt_ids.dll" target="package\bin"/>
+		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\vccorlib140.dll" target="package\bin"/>
+		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\vcruntime140.dll" target="package\bin"/>
+		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\vcruntime140_1.dll" target="package\bin"/>
 	</files>
 </package>

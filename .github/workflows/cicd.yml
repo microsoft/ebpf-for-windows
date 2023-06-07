@@ -59,7 +59,7 @@ jobs:
       build_artifact: Build-x64-native-only
       build_msi: true
       build_nuget: true
-      build_options: /p:DisableJIT='True' /p:DisableInterpreter='True'
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   cmake:
     # Always run this job.
@@ -173,6 +173,7 @@ jobs:
       gather_dumps: false
       # driver tests manually gather code coverage
       code_coverage: false
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   ossar:
     # Always run this job.

@@ -9,12 +9,20 @@
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyDebug|x64">
+      <Configuration>NativeOnlyDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="FuzzerDebug|x64">
       <Configuration>FuzzerDebug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyRelease|x64">
+      <Configuration>NativeOnlyRelease</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -38,6 +46,13 @@
     <CharacterSet>Unicode</CharacterSet>
     <KernelConfiguration>Debug</KernelConfiguration>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <KernelConfiguration>Debug</KernelConfiguration>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -52,6 +67,13 @@
     <CharacterSet>Unicode</CharacterSet>
     <KernelConfiguration>Release</KernelConfiguration>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <KernelConfiguration>Release</KernelConfiguration>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -60,14 +82,23 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
@@ -76,7 +107,20 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -97,6 +141,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -153,6 +209,22 @@
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)'=='NativeOnlyDebug'">
+    <CustomBuild Include="unsafe\*.c">
+      <FileType>CppCode</FileType>
+      <Command>clang $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true -SkipVerification $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
+      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+    </CustomBuild>
+  </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='FuzzerDebug'">
     <CustomBuild Include="unsafe\*.c">
       <FileType>CppCode</FileType>
@@ -170,6 +242,17 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='Release'">
+    <CustomBuild Include="unsafe\*.c">
+      <FileType>CppCode</FileType>
+      <Command>clang $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <BuildInParallel>true</BuildInParallel>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)'=='NativeOnlyRelease'">
     <CustomBuild Include="unsafe\*.c">
       <FileType>CppCode</FileType>
       <Command>clang $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>

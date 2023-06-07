@@ -13,6 +13,14 @@
       <Configuration>FuzzerDebug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyDebug|x64">
+      <Configuration>NativeOnlyDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyRelease|x64">
+      <Configuration>NativeOnlyRelease</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
@@ -32,6 +40,12 @@
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -39,6 +53,12 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
@@ -52,20 +72,32 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -87,6 +119,23 @@
     <Manifest>
       <InputResourceManifests>bpf2c.exe.manifest;1</InputResourceManifests>
     </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;ENABLE_SKIP_VERIFY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\ubpf\vm;$(OutDir);$(OutDir)..\Debug;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(FuzzerLibs);%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PreBuildEvent>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
     <ClCompile>
@@ -123,32 +172,62 @@
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
+    <ClCompile>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\ubpf\vm;$(OutDir);$(OutDir)..\Release;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(FuzzerLibs);%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PreBuildEvent>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\tests\libs\util\hash.cpp" />
     <ClCompile Include="bpf2c.cpp" />
     <CustomBuild Include="bpf2c_dll.c">
       <FileType>CppCode</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
       </AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
       </AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
+      </AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).template</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(OutputPath)%(Filename).template</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutputPath)%(Filename).template</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).template</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">$(OutputPath)%(Filename).template</Outputs>
     </CustomBuild>
     <CustomBuild Include="bpf2c_driver.c">
       <FileType>CppCode</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).template</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(OutputPath)%(Filename).template</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutputPath)%(Filename).template</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).template</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">$(OutputPath)%(Filename).template</Outputs>
     </CustomBuild>
     <CustomBuild Include="bpf2c.exe.manifest.in">
       <FileType>Document</FileType>
@@ -158,6 +237,10 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)bpf2c.exe.manifest</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile bpf2c.exe.manifest.in -OutputFile $(OutputPath)bpf2c.exe.manifest</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutputPath)bpf2c.exe.manifest</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile bpf2c.exe.manifest.in -OutputFile $(OutputPath)bpf2c.exe.manifest</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile bpf2c.exe.manifest.in -OutputFile $(OutputPath)bpf2c.exe.manifest</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(OutputPath)bpf2c.exe.manifest</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">$(OutputPath)bpf2c.exe.manifest</Outputs>
     </CustomBuild>
     <ClCompile Include="bpf_code_generator.cpp" />
   </ItemGroup>
@@ -165,8 +248,10 @@
     <ClInclude Include="..\..\external\ebpf-verifier\src\btf_parser.h" />
     <ClInclude Include="..\..\include\bpf2c.h">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
     </ClInclude>
     <ClInclude Include="..\..\tests\libs\util\hash.h" />
     <ClInclude Include="bpf_code_generator.h" />
@@ -188,6 +273,7 @@
     </None>
     <None Include="templates\sources.def">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
     </None>
     <None Include="templates\user_mode_bpf2c.vcxproj">

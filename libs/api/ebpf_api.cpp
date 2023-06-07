@@ -23,11 +23,15 @@
 #include "map_descriptors.hpp"
 #define _PEPARSE_WINDOWS_CONFLICTS
 #include "pe-parse/parse.h"
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #include "rpc_client.h"
 extern "C"
 {
 #include "ubpf.h"
 }
+#else
+typedef unsigned char boolean;
+#endif
 #include "Verifier.h"
 #include "utilities.hpp"
 #include "windows_platform_common.hpp"
@@ -200,6 +204,7 @@ ebpf_api_initiate() noexcept
     // it will be re-attempted before an IOCTL call is made.
     (void)initialize_device_handle();
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     RPC_STATUS status = initialize_rpc_binding();
 
     if (status != RPC_S_OK) {
@@ -207,6 +212,7 @@ ebpf_api_initiate() noexcept
         clean_up_rpc_binding();
         EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(status));
     }
+#endif
 
     // Load provider data from ebpf store. This is best effort
     // as there may be no data present in the store.
@@ -221,7 +227,9 @@ ebpf_api_terminate() noexcept
     clear_ebpf_provider_data();
     _clean_up_ebpf_objects();
     clean_up_device_handle();
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     clean_up_rpc_binding();
+#endif
     ebpf_trace_terminate();
 }
 
@@ -753,6 +761,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static ebpf_result_t
 _create_program(
     ebpf_program_type_t program_type,
@@ -797,6 +806,7 @@ _create_program(
 Exit:
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(error));
 }
+#endif
 
 void
 ebpf_free_string(_In_opt_ _Post_invalid_ const char* error_message) EBPF_NO_EXCEPT
@@ -2529,6 +2539,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
     EBPF_RETURN_RESULT(result);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_load_bytes(
     _In_ const ebpf_program_type_t* program_type,
@@ -2707,6 +2718,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
     }
     EBPF_RETURN_RESULT(result);
 }
+#endif
 
 // This logic is intended to be similar to libbpf's bpf_object__load_xattr().
 _Must_inspect_result_ ebpf_result_t
@@ -2740,7 +2752,11 @@ ebpf_object_load(_Inout_ struct bpf_object* object) noexcept
             goto Done;
         }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
         result = _ebpf_object_load_programs(object);
+#else
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+#endif
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
         goto Done;
