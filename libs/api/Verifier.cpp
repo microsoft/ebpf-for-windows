@@ -59,7 +59,7 @@ struct _thread_local_storage_cache
 };
 
 static ebpf_pin_type_t
-_get_pin_type_for_map(const btf_type_data& btf_data, btf_type_id id)
+_get_pin_type_for_btf_map(const btf_type_data& btf_data, btf_type_id id)
 {
     auto map_struct = btf_data.get_kind(id);
     for (const auto& member : std::get<BTF_KIND_STRUCT>(map_struct).members) {
@@ -174,7 +174,7 @@ _get_program_and_map_names(
                     map.max_entries,
                     type_id_to_fd_map[map.inner_map_fd],
                     symbol_value,
-                    _get_pin_type_for_map(btf_data, map.original_fd));
+                    _get_pin_type_for_btf_map(btf_data, map.original_fd));
 
                 map_names.emplace_back(symbol_value, symbol_name);
                 return true;
