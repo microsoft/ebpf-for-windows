@@ -103,6 +103,24 @@ Sample command line invocations:
 - Extension restart enabled.
 - Delay of 250 ms between successive extension restarts.
 
+## 1.6. bindmonitor_tail_call_invoke_program_test
+This test first loads a specific native eBPF program. It then loads all the MAX_TAIL_CALL_CNT tail call programs and updates the program array map. It then creates the specified number of threads where each thread attempts a TCP 'bind' to the same port continuously in a loop. The test setup guarantees that the `thread_index` passed in each `thread_context` is unique to that thread, so that each thread gets a unique port (base_port + thread_index).
+
+This causes the invocation of the in-kernel eBPF tail call programs to be executed in sequence. The last tail call program returns a PERMIT verdict.
+
+This test can be run with or without the extension restart option.
+
+Sample command line invocations:
+
+### 1.6.1. `ebpf_stress_test_km bindmonitor_tail_call_invoke_program_test`
+- Uses default values for all supported options.
+
+### 1.6.2. `ebpf_stress_test_km -tt=32 -td=15 -vo=true -er=true -erd=250 bindmonitor_tail_call_invoke_program_test`
+- Creates 32 test threads.
+- Runs test for 15 minutes.
+- Verbose test trace output enabled.
+- Extension restart enabled.
+- Delay of 250 ms between successive extension restarts.
 
 # 2.0. ebpf_stress_test_um.exe (test sources in .\um\)
 
