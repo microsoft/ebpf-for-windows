@@ -21,6 +21,9 @@
 #define FALSE 0
 #define TRUE 1
 
+// Leaving the maps in the old map format due to https://github.com/vbpf/ebpf-verifier/issues/502.
+// TODO: update this when that is fixed.
+
 #define DECLARE_MAP(TYPE)                              \
     SEC("maps")                                        \
     struct _ebpf_map_definition_in_file TYPE##_map = { \

@@ -1230,9 +1230,9 @@ _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
     struct bpf_program* callee = bpf_object__find_program_by_name(object, "callee");
     REQUIRE(callee != nullptr);
 
-    struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "map");
     REQUIRE(map != nullptr);
-    struct bpf_map* canary_map = bpf_object__next_map(object, map);
+    struct bpf_map* canary_map = bpf_object__find_map_by_name(object, "canary");
     REQUIRE(canary_map != nullptr);
 
     int callee_fd = bpf_program__fd(callee);
@@ -1430,7 +1430,7 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
     // Load the program(s).
     REQUIRE(bpf_object__load(xdp_object) == 0);
 
-    struct bpf_map* map = bpf_object__next_map(xdp_object, nullptr);
+    struct bpf_map* map = bpf_object__find_map_by_name(xdp_object, "map");
     REQUIRE(map != nullptr);
 
     // Load a program of any other type.
@@ -2116,7 +2116,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     int program_fd = bpf_program__fd(program);
     REQUIRE(program_fd > 0);
 
-    struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "dropped_packet_map");
     REQUIRE(map != nullptr);
 
     const char* map_name = bpf_map__name(map);
@@ -2136,7 +2136,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(map_info[0].max_entries == 1);
     REQUIRE(strcmp(map_info[0].name, map_name) == 0);
 
-    map = bpf_object__next_map(object, map);
+    map = bpf_object__find_map_by_name(object, "interface_index_map");
     REQUIRE(map != nullptr);
     map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
@@ -2386,10 +2386,10 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
 
     struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
@@ -2405,10 +2405,10 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
     // The maps should now have FDs.
     map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);

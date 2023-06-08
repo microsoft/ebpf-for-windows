@@ -19,12 +19,13 @@
 
 #define VALUE_SIZE 32
 
-SEC("maps")
-struct bpf_map utility_map = {
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(uint32_t),
-    .value_size = sizeof(ebpf_utility_helpers_data_t),
-    .max_entries = UTILITY_MAP_SIZE};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, uint32_t);
+    __type(value, ebpf_utility_helpers_data_t);
+    __uint(max_entries, UTILITY_MAP_SIZE);
+} utility_map SEC(".maps");
 
 SEC("xdp")
 int

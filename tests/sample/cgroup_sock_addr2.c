@@ -20,19 +20,21 @@
 #define AF_INET 2
 #define AF_INET6 0x17
 
-SEC("maps")
-struct bpf_map_def policy_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(destination_entry_t),
-    .value_size = sizeof(destination_entry_t),
-    .max_entries = 100};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, destination_entry_t);
+    __type(value, destination_entry_t);
+    __uint(max_entries, 100);
+} policy_map SEC(".maps");
 
-SEC("maps")
-struct bpf_map_def audit_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(uint64_t),
-    .value_size = sizeof(sock_addr_audit_entry_t),
-    .max_entries = 100};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, uint64_t);
+    __type(value, sock_addr_audit_entry_t);
+    __uint(max_entries, 100);
+} audit_map SEC(".maps");
 
 __inline void
 update_audit_map_entry(bpf_sock_addr_t* ctx)

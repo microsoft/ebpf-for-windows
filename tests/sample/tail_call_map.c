@@ -13,18 +13,22 @@
 
 #include "bpf_helpers.h"
 
-SEC("maps")
-struct bpf_map outer_map = {
-    .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
-    .key_size = sizeof(uint32_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1,
-    // inner_map_idx refers to the map index in the same ELF object.
-    .inner_map_idx = 1}; // (uint32_t)&inner_map
+struct
+{
+    __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+    __type(key, uint32_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 1);
+} inner_map SEC(".maps");
 
-SEC("maps")
-struct bpf_map_def inner_map = {
-    .type = BPF_MAP_TYPE_PROG_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+    __type(key, uint32_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 1);
+    __array(values, inner_map);
+} outer_map SEC(".maps");
 
 SEC("xdp_prog") int caller(struct xdp_md* ctx)
 {

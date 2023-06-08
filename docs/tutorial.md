@@ -776,9 +776,12 @@ CPUs.
 ```
 #include "bpf_helpers.h"
 
-SEC("maps")
-struct bpf_map map =
-    {sizeof(struct bpf_map), BPF_MAP_TYPE_PERCPU_ARRAY, 2, 4, 512};
+struct {
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY),
+    __type(key, uin16_t),
+    __type(value, uin32_t),
+    __uint(max_entries, 512);
+} map SEC(".maps");
 
 SEC("myprog")
 int func()

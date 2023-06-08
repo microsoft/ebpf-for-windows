@@ -5,15 +5,19 @@
 #include "net/ip.h"
 #include "socket_tests_common.h"
 
-SEC("maps")
-struct bpf_map_def connection_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(connection_tuple_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, connection_tuple_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 1);
+} connection_map SEC(".maps");
 
-SEC("maps")
-struct bpf_map_def audit_map = {.type = BPF_MAP_TYPE_RINGBUF, .max_entries = 256 * 1024};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 256 * 1024);
+} audit_map SEC(".maps");
 
 inline int
 handle_v4(bpf_sock_ops_t* ctx, bool outbound, bool connected)

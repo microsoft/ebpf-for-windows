@@ -303,6 +303,14 @@ class bpf_code_generator
     } line_info_t;
 
     typedef std::map<unsafe_string, std::map<size_t, line_info_t>> btf_section_to_instruction_to_line_info_t;
+    typedef std::function<void(
+        const unsafe_string& name,
+        ELFIO::Elf64_Addr value,
+        unsigned char binding,
+        unsigned char type,
+        ELFIO::Elf_Xword size)>
+        symbol_visitor_t;
+
     /**
      * @brief Extract the eBPF byte code from the eBPF file.
      *
@@ -396,6 +404,14 @@ class bpf_code_generator
 
     bool
     is_section_valid(const ELFIO::section* section);
+
+    /**
+     * @brief Invoke the visitor for each symbol in the ELF file section.
+     *
+     * @param[in] visitor Visitor to invoke.
+     */
+    void
+    visit_symbols(symbol_visitor_t visitor, const unsafe_string& section_name);
 
     int pe_section_name_counter{};
     std::map<unsafe_string, section_t> sections;

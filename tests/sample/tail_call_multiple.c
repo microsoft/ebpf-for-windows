@@ -13,8 +13,13 @@
 
 #include "bpf_helpers.h"
 
-SEC("maps")
-struct bpf_map map = {BPF_MAP_TYPE_PROG_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 10};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+    __type(key, uint32_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 10);
+} map SEC(".maps");
 
 SEC("xdp_prog") int caller(struct xdp_md* ctx)
 {
