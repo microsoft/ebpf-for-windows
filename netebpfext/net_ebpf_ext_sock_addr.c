@@ -693,13 +693,6 @@ _net_ebpf_ext_sock_addr_update_redirect_handle(uint64_t filter_id, HANDLE redire
 
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
     InsertTailList(&_net_ebpf_ext_redirect_handle_list, &entry->list_entry);
-
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-        "ANUSA: Adding new redirect handle",
-        filter_id,
-        (uint64_t)redirect_handle);
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 
 Exit:
@@ -718,13 +711,6 @@ _net_ebpf_ext_sock_addr_delete_redirect_handle(uint64_t filter_id)
         net_ebpf_extension_redirect_handle_entry_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_redirect_handle_entry_t, list_entry);
         if (entry->filter_id == filter_id) {
-
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-                "ANUSA: DELETING redirect handle",
-                filter_id,
-                (uint64_t)entry->redirect_handle);
             RemoveEntryList(list_entry);
             ExFreePool(entry);
             break;
@@ -747,12 +733,6 @@ _net_ebpf_ext_sock_addr_get_redirect_handle(uint64_t filter_id, _Out_ HANDLE* re
         net_ebpf_extension_redirect_handle_entry_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_redirect_handle_entry_t, list_entry);
         if (entry->filter_id == filter_id) {
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-                "ANUSA: FOUND redirect handle",
-                filter_id,
-                (uint64_t)entry->redirect_handle);
             *redirect_handle = entry->redirect_handle;
             status = STATUS_SUCCESS;
             break;
