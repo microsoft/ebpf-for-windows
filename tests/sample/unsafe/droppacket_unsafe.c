@@ -21,9 +21,13 @@
 #include "net/ip.h"
 #include "net/udp.h"
 
-SEC("maps")
-struct bpf_map_def port_map = {
-    .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint64_t), .max_entries = 1};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, uint32_t);
+    __type(value, uint64_t);
+    __uint(max_entries, 1);
+} port_map SEC(".maps");
 
 SEC("xdp")
 int

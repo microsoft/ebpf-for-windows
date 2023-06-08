@@ -48,7 +48,7 @@ static map_entry_t _maps[] = {
          10,                      // Maximum number of entries allowed in the map.
          0,                       // Inner map index.
          PIN_NONE,                // Pinning type for the map.
-         0,                       // Identifier for a map template.
+         10,                      // Identifier for a map template.
          0,                       // The id of the inner map template.
      },
      "map"},
@@ -75,54 +75,54 @@ static uint16_t caller_maps[] = {
 #pragma code_seg(push, "xdp_prog")
 static uint64_t
 caller(void* context)
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
 {
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     // Prologue
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     register uint64_t r0 = 0;
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     register uint64_t r1 = 0;
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     register uint64_t r2 = 0;
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     register uint64_t r3 = 0;
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     register uint64_t r4 = 0;
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     register uint64_t r5 = 0;
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     register uint64_t r10 = 0;
 
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     r1 = (uintptr_t)context;
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_LDDW pc=0 dst=r2 src=r0 offset=0 imm=0
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=2 dst=r3 src=r0 offset=0 imm=0
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=5
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     r0 = caller_helpers[0].address
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
          (r1, r2, r3, r4, r5);
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
     if ((caller_helpers[0].tail_call) && (r0 == 0))
-#line 24 "sample/tail_call_multiple.c"
+#line 29 "sample/tail_call_multiple.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
-#line 27 "sample/tail_call_multiple.c"
+        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
+#line 32 "sample/tail_call_multiple.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
-#line 27 "sample/tail_call_multiple.c"
+#line 32 "sample/tail_call_multiple.c"
     return r0;
-#line 27 "sample/tail_call_multiple.c"
+#line 32 "sample/tail_call_multiple.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -140,54 +140,54 @@ static uint16_t callee0_maps[] = {
 #pragma code_seg(push, "xdp_pr~1")
 static uint64_t
 callee0(void* context)
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
 {
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     // Prologue
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     register uint64_t r0 = 0;
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     register uint64_t r1 = 0;
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     register uint64_t r2 = 0;
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     register uint64_t r3 = 0;
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     register uint64_t r4 = 0;
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     register uint64_t r5 = 0;
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     register uint64_t r10 = 0;
 
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     r1 = (uintptr_t)context;
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_LDDW pc=0 dst=r2 src=r0 offset=0 imm=0
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=2 dst=r3 src=r0 offset=0 imm=9
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=5
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     r0 = callee0_helpers[0].address
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
          (r1, r2, r3, r4, r5);
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
     if ((callee0_helpers[0].tail_call) && (r0 == 0))
-#line 35 "sample/tail_call_multiple.c"
+#line 40 "sample/tail_call_multiple.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
-#line 38 "sample/tail_call_multiple.c"
+        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
+#line 43 "sample/tail_call_multiple.c"
     r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
-#line 38 "sample/tail_call_multiple.c"
+#line 43 "sample/tail_call_multiple.c"
     return r0;
-#line 38 "sample/tail_call_multiple.c"
+#line 43 "sample/tail_call_multiple.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -197,31 +197,31 @@ static GUID callee1_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72,
 #pragma code_seg(push, "xdp_pr~2")
 static uint64_t
 callee1(void* context)
-#line 41 "sample/tail_call_multiple.c"
+#line 46 "sample/tail_call_multiple.c"
 {
-#line 41 "sample/tail_call_multiple.c"
+#line 46 "sample/tail_call_multiple.c"
     // Prologue
-#line 41 "sample/tail_call_multiple.c"
+#line 46 "sample/tail_call_multiple.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 41 "sample/tail_call_multiple.c"
+#line 46 "sample/tail_call_multiple.c"
     register uint64_t r0 = 0;
-#line 41 "sample/tail_call_multiple.c"
+#line 46 "sample/tail_call_multiple.c"
     register uint64_t r1 = 0;
-#line 41 "sample/tail_call_multiple.c"
+#line 46 "sample/tail_call_multiple.c"
     register uint64_t r10 = 0;
 
-#line 41 "sample/tail_call_multiple.c"
+#line 46 "sample/tail_call_multiple.c"
     r1 = (uintptr_t)context;
-#line 41 "sample/tail_call_multiple.c"
+#line 46 "sample/tail_call_multiple.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=3
-#line 41 "sample/tail_call_multiple.c"
+#line 46 "sample/tail_call_multiple.c"
     r0 = IMMEDIATE(3);
     // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
-#line 41 "sample/tail_call_multiple.c"
+#line 46 "sample/tail_call_multiple.c"
     return r0;
-#line 41 "sample/tail_call_multiple.c"
+#line 46 "sample/tail_call_multiple.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

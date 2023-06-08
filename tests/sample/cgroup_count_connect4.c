@@ -16,9 +16,13 @@
 #include "net/ip.h"
 #include "socket_tests_common.h"
 
-SEC("maps")
-struct bpf_map_def connect4_count_map = {
-    .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(uint16_t), .value_size = sizeof(uint64_t), .max_entries = 1};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, uint16_t);
+    __type(value, uint64_t);
+    __uint(max_entries, 1);
+} connect4_count_map SEC(".maps");
 
 const uint16_t remote_port = SOCKET_TEST_PORT;
 

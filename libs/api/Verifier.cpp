@@ -4,6 +4,10 @@
 #include "Verifier.h"
 #include "api_common.hpp"
 #include "api_internal.h"
+#define ebpf_inst ebpf_inst_btf
+#include "btf.h"
+#include "btf_parser.h"
+#undef ebpf_inst
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
@@ -54,12 +58,119 @@ struct _thread_local_storage_cache
     ~_thread_local_storage_cache() { ebpf_clear_thread_local_storage(); }
 };
 
+static ebpf_pin_type_t
+_get_pin_type_for_btf_map(const btf_type_data& btf_data, btf_type_id id)
+{
+    auto map_struct = btf_data.get_kind(id);
+    for (const auto& member : std::get<BTF_KIND_STRUCT>(map_struct).members) {
+        if (member.name == "pinning") {
+            // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
+            auto pining_type_id = member.type;
+            // Dereference the pointer type.
+            pining_type_id = btf_data.dereference_pointer(pining_type_id);
+            // Get the array type.
+            auto pining_type = btf_data.get_kind(pining_type_id);
+            if (pining_type.index() != BTF_KIND_ARRAY) {
+                throw std::runtime_error("pinning field is not an array");
+            }
+            // Value is encoded as the number of elements in the array.
+            return static_cast<ebpf_pin_type_t>(std::get<BTF_KIND_ARRAY>(pining_type).count_of_elements);
+        }
+    }
+    return PIN_NONE;
+}
+
+/**
+ * @brief Invoke the visitor for each symbol in the specified section.
+ *
+ * @param[in] symbols Symbol table.
+ * @param[in] required_section_index Section index to match.
+ * @param[in] visitor Visitor to invoke for each symbol. Return false to stop iteration.
+ */
+static void
+_for_each_symbol(
+    const ELFIO::const_symbol_section_accessor& symbols,
+    ELFIO::Elf_Half required_section_index,
+    std::function<bool(const std::string&, ELFIO::Elf64_Addr)> visitor)
+{
+    for (ELFIO::Elf_Xword i = 0; i < symbols.get_symbols_num(); i++) {
+        string symbol_name;
+        ELFIO::Elf64_Addr symbol_value{};
+        unsigned char symbol_bind{};
+        unsigned char symbol_type{};
+        ELFIO::Elf_Half symbol_section_index{};
+        unsigned char symbol_other{};
+        ELFIO::Elf_Xword symbol_size{};
+
+        symbols.get_symbol(
+            i, symbol_name, symbol_value, symbol_size, symbol_bind, symbol_type, symbol_section_index, symbol_other);
+
+        if (symbol_section_index != required_section_index) {
+            continue;
+        }
+
+        if (!visitor(symbol_name, symbol_value)) {
+            break;
+        }
+    }
+}
+
+/**
+ * @brief Parse the BTF data, gather the list of verifier map descriptors, and populate the cache.
+ *
+ * @param[in] reader Elf reader.
+ * @param[in] map_names Mapping from section offset to map name.
+ */
+static void
+_parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<section_offset_to_map_t>& map_names)
+{
+    auto btf_section = reader.sections[".BTF"];
+    if (!btf_section) {
+        // It is an error if the BTF section is missing.
+        throw std::runtime_error("BTF section is missing");
+    }
+
+    btf_type_data btf_data =
+        std::vector<uint8_t>(btf_section->get_data(), btf_section->get_data() + btf_section->get_size());
+
+    std::vector<EbpfMapDescriptor> btf_map_descriptors;
+    std::map<std::string, size_t> btf_map_name_to_index;
+
+    btf_map_name_to_index = parse_btf_map_sections(btf_data, btf_map_descriptors);
+
+    // Prevail requires that the fds assigned to maps are sequential.
+    // Build a map from the original type id to the pseudo-fd.
+    std::map<int, int> type_id_to_fd_map;
+    int pseudo_fd = 1;
+    // Gather the typeids for each map and assign a pseudo-fd to each map.
+    for (auto& map_descriptor : btf_map_descriptors) {
+        if (type_id_to_fd_map.find(map_descriptor.original_fd) == type_id_to_fd_map.end()) {
+            type_id_to_fd_map[map_descriptor.original_fd] = pseudo_fd++;
+        }
+    }
+
+    // For each map in map_names, find the corresponding map descriptor and cache the map handle.
+    for (auto& entry : map_names) {
+        auto& btf_map_descriptor = btf_map_descriptors[btf_map_name_to_index[entry.map_name]];
+        auto pin_type = _get_pin_type_for_btf_map(btf_data, btf_map_descriptor.original_fd);
+        cache_map_handle(
+            ebpf_handle_invalid,
+            type_id_to_fd_map[btf_map_descriptor.original_fd],
+            btf_map_descriptor.type,
+            btf_map_descriptor.key_size,
+            btf_map_descriptor.value_size,
+            btf_map_descriptor.max_entries,
+            type_id_to_fd_map[btf_map_descriptor.inner_map_fd],
+            entry.section_offset,
+            pin_type);
+    }
+}
+
 static void
 _get_program_and_map_names(
     _In_ const string& path,
     _Inout_ vector<section_program_map_t>& section_to_program_map,
-    _Inout_ vector<section_offset_to_map_t>& map_names,
-    uint32_t expected_map_count) noexcept(false)
+    _Inout_ vector<section_offset_to_map_t>& map_names) noexcept(false)
 {
     ELFIO::elfio reader;
     size_t symbols_count = 0;
@@ -69,6 +180,7 @@ _get_program_and_map_names(
     }
 
     ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
+
     for (const auto& section : reader.sections) {
         const string name = section->get_name();
         bool found = false;
@@ -86,35 +198,23 @@ _get_program_and_map_names(
             continue;
         }
 
-        auto section_index = section->get_index();
+        // Find the first symbol in the section.
         bool symbol_found = false;
+        _for_each_symbol(
+            symbols, section->get_index(), [&](const std::string& symbol_name, ELFIO::Elf64_Addr symbol_value) {
+                // Look for the first symbol in the section.
+                if (symbol_value != 0) {
+                    return true;
+                }
+                if (symbol_name.empty()) {
+                    return true;
+                }
 
-        for (int i = 0; i < symbols.get_symbols_num(); i++) {
-            string symbol_name;
-            ELFIO::Elf64_Addr symbol_value{};
-            unsigned char symbol_bind{};
-            unsigned char symbol_type{};
-            ELFIO::Elf_Half symbol_section_index{};
-            unsigned char symbol_other{};
-            ELFIO::Elf_Xword symbol_size{};
-
-            symbols.get_symbol(
-                i,
-                symbol_name,
-                symbol_value,
-                symbol_size,
-                symbol_bind,
-                symbol_type,
-                symbol_section_index,
-                symbol_other);
-
-            if (!symbol_name.empty() && symbol_section_index == section_index && symbol_value == 0) {
                 symbol_found = true;
                 section_to_program_map[index].program_name = symbol_name;
                 symbols_count++;
-                break;
-            }
-        }
+                return false;
+            });
 
         if (!symbol_found) {
             throw std::runtime_error(string("Program name not found for section ") + name);
@@ -122,40 +222,28 @@ _get_program_and_map_names(
     }
 
     ELFIO::section* maps_section = reader.sections["maps"];
-    if (maps_section) {
-        ELFIO::Elf_Half map_section_index = maps_section->get_index();
+    ELFIO::section* btf_maps_section = reader.sections[".maps"];
+    if (maps_section || btf_maps_section) {
 
-        for (ELFIO::Elf_Xword i = 0; i < symbols.get_symbols_num(); i++) {
-            string symbol_name;
-            ELFIO::Elf64_Addr symbol_value{};
-            unsigned char symbol_bind{};
-            unsigned char symbol_type{};
-            ELFIO::Elf_Half symbol_section_index{};
-            unsigned char symbol_other{};
-            ELFIO::Elf_Xword symbol_size{};
-
-            symbols.get_symbol(
-                i,
-                symbol_name,
-                symbol_value,
-                symbol_size,
-                symbol_bind,
-                symbol_type,
-                symbol_section_index,
-                symbol_other);
-
-            if (symbol_section_index == map_section_index) {
+        _for_each_symbol(
+            symbols,
+            btf_maps_section ? btf_maps_section->get_index() : maps_section->get_index(),
+            [&](const std::string& symbol_name, ELFIO::Elf64_Addr symbol_value) {
                 map_names.emplace_back(symbol_value, symbol_name);
-            }
-        }
-    }
-
-    if (expected_map_count != map_names.size()) {
-        throw std::runtime_error(string("Map name not found for some maps."));
+                return true;
+            });
     }
 
     if (symbols_count != section_to_program_map.size()) {
         throw std::runtime_error(string("Program name not found for some sections."));
+    }
+
+    if (btf_maps_section) {
+        _parse_btf_map_info_and_populate_cache(reader, map_names);
+    }
+
+    if (get_map_descriptor_size() != map_names.size()) {
+        throw std::runtime_error(string("Map name not found for some maps."));
     }
 }
 
@@ -266,7 +354,7 @@ load_byte_code(
             section_to_program_map.emplace_back(iterator->section_name, std::string());
         }
 
-        _get_program_and_map_names(file_name, section_to_program_map, map_names, (uint32_t)get_map_descriptor_size());
+        _get_program_and_map_names(file_name, section_to_program_map, map_names);
 
         auto map_descriptors = get_all_map_descriptors();
         for (const auto& descriptor : map_descriptors) {

@@ -183,7 +183,7 @@ static map_entry_t _maps[] = {
          1,                  // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
          PIN_NONE,           // Pinning type for the map.
-         0,                  // Identifier for a map template.
+         13,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
      "port_map"},

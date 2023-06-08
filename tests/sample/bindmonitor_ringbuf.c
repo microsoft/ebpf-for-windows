@@ -13,8 +13,11 @@
 
 #include "bpf_helpers.h"
 
-SEC("maps")
-struct bpf_map_def process_map = {.type = BPF_MAP_TYPE_RINGBUF, .max_entries = 256 * 1024};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 256 * 1024);
+} process_map SEC(".maps");
 
 SEC("bind")
 bind_action_t

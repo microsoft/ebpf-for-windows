@@ -18,9 +18,13 @@
 
 #include "bpf_helpers.h"
 
-SEC("maps")
-struct bpf_map_def test_map = {
-    .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, uint32_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 1);
+} test_map SEC(".maps");
 
 SEC("xdp")
 uint32_t

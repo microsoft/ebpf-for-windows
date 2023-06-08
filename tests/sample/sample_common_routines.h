@@ -7,7 +7,7 @@
 #include "sample_test_common.h"
 
 inline int
-test_utility_helper_functions(struct bpf_map* utility_map)
+test_utility_helper_functions(void* utility_map)
 {
     uint32_t keys[UTILITY_MAP_SIZE] = {0, 1};
     ebpf_utility_helpers_data_t test_data = {0};

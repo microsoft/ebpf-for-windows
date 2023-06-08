@@ -31,20 +31,29 @@ typedef struct _audit_entry
     int32_t is_admin;
 } audit_entry_t;
 
-SEC("maps")
-struct bpf_map_def process_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(uint64_t),
-    .value_size = sizeof(process_entry_t),
-    .max_entries = 1024};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, uint64_t);
+    __type(value, process_entry_t);
+    __uint(max_entries, 1024);
+} process_map SEC(".maps");
 
-SEC("maps")
-struct bpf_map_def audit_map = {
-    .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(uint64_t), .value_size = sizeof(audit_entry_t), .max_entries = 1024};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, uint64_t);
+    __type(value, audit_entry_t);
+    __uint(max_entries, 1024);
+} audit_map SEC(".maps");
 
-SEC("maps")
-struct bpf_map_def limits_map = {
-    .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, uint32_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 1);
+} limits_map SEC(".maps");
 
 inline void
 update_audit_entry(bind_md_t* ctx)

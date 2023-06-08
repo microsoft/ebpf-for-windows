@@ -14,22 +14,24 @@
 #include "bpf_helpers.h"
 #include "socket_tests_common.h"
 
-SEC("maps")
-struct bpf_map_def ingress_connection_policy_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(connection_tuple_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, connection_tuple_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 1);
+} ingress_connection_policy_map SEC(".maps");
 
-SEC("maps")
-struct bpf_map_def egress_connection_policy_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(connection_tuple_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, connection_tuple_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 1);
+} egress_connection_policy_map SEC(".maps");
 
 __inline int
-authorize_v4(bpf_sock_addr_t* ctx, struct bpf_map_def* connection_policy_map)
+authorize_v4(bpf_sock_addr_t* ctx, void* connection_policy_map)
 {
     connection_tuple_t tuple_key = {0};
     int* verdict = NULL;
@@ -44,7 +46,7 @@ authorize_v4(bpf_sock_addr_t* ctx, struct bpf_map_def* connection_policy_map)
 }
 
 __inline int
-authorize_v6(bpf_sock_addr_t* ctx, struct bpf_map_def* connection_policy_map)
+authorize_v6(bpf_sock_addr_t* ctx, void* connection_policy_map)
 {
     connection_tuple_t tuple_key = {0};
     int* verdict;
