@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_epoch.h"
-#include "ebpf_platform.h"
+#include "ebpf_hash_table.h"
 
 // Buckets contain an array of pointers to value and keys.
 // Buckets are immutable once inserted in to the hash-table and replaced when
@@ -243,6 +243,37 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ const ebpf_hash_bucket_heade
     size_t entry_size = EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key) + key_size;
 
     return (ebpf_hash_bucket_entry_t*)(offset + (size_t)index * entry_size);
+}
+
+/**
+ * @brief Given a pointer to a key, determine it's location in the hash table
+ * and return a cookie for that location.
+ *
+ * @param[in] hash_table Hash table to search.
+ * @param[in] key Key to search for.
+ * @param[out] cookie Cookie if the key was found.
+ * @retval EBPF_SUCCESS Key was found.
+ * @retval EBPF_KEY_NOT_FOUND Key was not found.
+ */
+static ebpf_result_t
+_ebpf_hash_table_key_to_cookie(
+    _In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Out_ uint64_t* cookie)
+{
+    uint32_t hash = _ebpf_hash_table_compute_hash(hash_table, key);
+    size_t bucket_index = hash % hash_table->bucket_count;
+    size_t data_index = 0;
+    ebpf_hash_bucket_header_t* bucket = hash_table->buckets[bucket_index].header;
+    if (!bucket) {
+        return EBPF_KEY_NOT_FOUND;
+    }
+    for (data_index = 0; data_index < bucket->count; data_index++) {
+        ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, data_index);
+        if (_ebpf_hash_table_compare(hash_table, key, entry->key) == 0) {
+            *cookie = ((uint64_t)bucket_index << 32) | data_index;
+            return EBPF_SUCCESS;
+        }
+    }
+    return EBPF_KEY_NOT_FOUND;
 }
 
 /**
@@ -747,78 +778,91 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_next_key_pointer_and_value(
+ebpf_hash_table_iterate(
     _In_ const ebpf_hash_table_t* hash_table,
-    _In_opt_ const uint8_t* previous_key,
-    _Outptr_ uint8_t** next_key_pointer,
-    _Outptr_opt_ uint8_t** value)
+    _Inout_ uint64_t* cookie,
+    _Outptr_ const uint8_t** next_key,
+    _Outptr_opt_ uint8_t** next_value)
 {
-    ebpf_result_t result = EBPF_SUCCESS;
-    uint32_t hash;
-    ebpf_hash_bucket_entry_t* next_entry = NULL;
-    size_t bucket_index;
-    size_t data_index;
-    bool found_entry = false;
-
-    if (!hash_table || !next_key_pointer) {
+    uint32_t bucket = 0;
+    uint32_t data_index = 0;
+    ebpf_result_t result;
+    if (!hash_table || !cookie || !next_key) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    hash = (previous_key != NULL) ? _ebpf_hash_table_compute_hash(hash_table, previous_key) : 0;
+    bucket = (uint32_t)(*cookie >> 32);
+    data_index = (uint32_t)(*cookie & UINT32_MAX);
 
-    for (bucket_index = hash % hash_table->bucket_count; bucket_index < hash_table->bucket_count; bucket_index++) {
-        ebpf_hash_bucket_header_t* bucket = hash_table->buckets[bucket_index].header;
+    if (bucket >= hash_table->bucket_count) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    *next_key = NULL;
+    if (next_value) {
+        *next_value = NULL;
+    }
+
+    for (; bucket < hash_table->bucket_count; bucket++) {
+        ebpf_hash_bucket_header_t* bucket_header = hash_table->buckets[bucket].header;
+
         // Skip empty buckets.
-        if (!bucket) {
+        if (!bucket_header) {
             continue;
         }
 
-        // Pick first entry if no previous key.
-        if (!previous_key) {
-            next_entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, 0);
-            break;
+        // If we are at the end of the current bucket, visit the next bucket.
+        if (data_index >= bucket_header->count) {
+            data_index = 0;
+            continue;
         }
 
-        for (data_index = 0; data_index < bucket->count; data_index++) {
-            ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, data_index);
-            if (!entry) {
-                result = EBPF_INVALID_ARGUMENT;
-                goto Done;
-            }
-            // Do we have the previous key?
-            if (found_entry) {
-                // Yes, then this is the next key.
-                next_entry = entry;
-                break;
-            }
-
-            // Is this the previous key?
-            if (_ebpf_hash_table_compare(hash_table, previous_key, entry->key) == 0) {
-                // Yes, record its location.
-                found_entry = true;
-            }
+        ebpf_hash_bucket_entry_t* entry =
+            _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket_header, data_index);
+        data_index++;
+        *next_key = entry->key;
+        if (next_value) {
+            *next_value = entry->data;
         }
-        if (next_entry) {
-            break;
-        }
+        result = EBPF_SUCCESS;
+        break;
     }
-    if (!next_entry) {
+
+    *cookie = ((uint64_t)bucket << 32) | data_index;
+
+    if (!*next_key) {
         result = EBPF_NO_MORE_KEYS;
         goto Done;
     }
 
     result = EBPF_SUCCESS;
 
-    if (value) {
-        *value = next_entry->data;
+Done:
+    return result;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_hash_table_next_key_pointer_and_value(
+    _In_ const ebpf_hash_table_t* hash_table,
+    _In_opt_ const uint8_t* previous_key,
+    _Outptr_ uint8_t** next_key_pointer,
+    _Outptr_opt_ uint8_t** value)
+{
+    ebpf_result_t result;
+    uint64_t cookie = 0;
+    if (previous_key) {
+        result = _ebpf_hash_table_key_to_cookie(hash_table, previous_key, &cookie);
+        // If the previous key is not present, return EBPF_KEY_NOT_FOUND.
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
+        // Point cookie to the next key.
+        cookie++;
     }
 
-    *next_key_pointer = next_entry->key;
-
-Done:
-
-    return result;
+    return ebpf_hash_table_iterate(hash_table, &cookie, next_key_pointer, value);
 }
 
 _Must_inspect_result_ ebpf_result_t

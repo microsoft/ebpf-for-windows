@@ -8,6 +8,7 @@
 #include "ebpf_async.h"
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_platform.h"
@@ -150,6 +151,29 @@ TEST_CASE("hash_table_test", "[platform]")
     // Existing bucket, with backup.
     REQUIRE(ebpf_hash_table_update(table, key_3.data(), data_3.data(), EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table) == 3);
+
+    // Iterate through all keys.
+    uint64_t cookie = 0;
+    uint8_t keys_found = 0;
+    const uint8_t* key = nullptr;
+    uint8_t* value = nullptr;
+    for (size_t count = 0; count < 3; count++) {
+        REQUIRE(ebpf_hash_table_iterate(table, &cookie, &key, &value) == EBPF_SUCCESS);
+        if (memcmp(key, key_1.data(), key_1.size()) == 0) {
+            REQUIRE(memcmp(value, data_1.data(), data_1.size()) == 0);
+            keys_found |= 1 << 0;
+        } else if (memcmp(key, key_2.data(), key_2.size()) == 0) {
+            REQUIRE(memcmp(value, data_2.data(), data_2.size()) == 0);
+            keys_found |= 1 << 1;
+        } else if (memcmp(key, key_3.data(), key_3.size()) == 0) {
+            REQUIRE(memcmp(value, data_3.data(), data_3.size()) == 0);
+            keys_found |= 1 << 2;
+        } else {
+            REQUIRE(false);
+        }
+    }
+    REQUIRE(ebpf_hash_table_iterate(table, &cookie, &key, &value) == EBPF_NO_MORE_KEYS);
+    REQUIRE(keys_found == 0x7);
 
     // Find the first
     REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);

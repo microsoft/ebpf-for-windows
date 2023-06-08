@@ -17,6 +17,7 @@
 #define EBPF_FILE_ID EBPF_FILE_ID_PINNING_TABLE
 
 #include "ebpf_core_structs.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_object.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_tracelog.h"
