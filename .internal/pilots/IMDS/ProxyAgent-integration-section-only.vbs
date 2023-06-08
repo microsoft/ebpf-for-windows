@@ -72,18 +72,15 @@ Function MoveFilesToPath(sourcePath, destPath)
 
 	If MoveFilesToPath = True Then
 		' Move all files and subfolders from the source folder to the destination folder
-		Set oTraceEvent = g_Trace.CreateEvent("INFO")
-		With oTraceEvent.appendChild(oTraceEvent.ownerDocument.createElement("MoveFilesToPath"))
-			call FsObject.MoveFile(sourcePath & "\*.*", destPath & "\")		
-			If TraceError(g_Trace, "Failed to move files from " + sourcePath + " to " + destPath) <> 0 Then
-				MoveFilesToPath = False
-			End If
+		call FsObject.MoveFile(sourcePath & "\*.*", destPath & "\")		
+		If TraceError(g_Trace, "Failed to move files from " + sourcePath + " to " + destPath) <> 0 Then
+			MoveFilesToPath = False
+		End If
 
-			call FsObject.MoveFolder(sourcePath & "\*", destPath & "\")
-			If TraceError(g_Trace, "Failed to move subfolders from " + sourcePath + " to " + destPath) <> 0 Then
-				MoveFilesToPath = False
-			End If
-		End With
+		call FsObject.MoveFolder(sourcePath & "\*", destPath & "\")
+		If TraceError(g_Trace, "Failed to move subfolders from " + sourcePath + " to " + destPath) <> 0 Then
+			MoveFilesToPath = False
+		End If
 	End If
 End Function
 
@@ -288,8 +285,10 @@ Function UninstallEbpf(shouldDeleteEbpfTracingTasks)
 		UninstallEbpf = False
 	End If
 
-	If shouldDeleteEbpfTracingTasks = True And DeleteEbpfTracingTasks() = False Then
-		UninstallEbpf = False
+	If shouldDeleteEbpfTracingTasks = True Then
+		If DeleteEbpfTracingTasks() = False Then
+			UninstallEbpf = False
+		End If
 	End If
 
 	if RemoveSystemPath(g_installPath) = False Then
