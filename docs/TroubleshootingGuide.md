@@ -5,7 +5,7 @@ This document contains a troubleshooting guide for issues related to eBPF.
 # What Kind of Issue Are You Having ?
 
 - [The eBPF program is not getting invoked](#troubleshooting-general-ebpf-program-issues)
-- [The eBPF program is not behaving as expected](#troubleshooting-issues-related-to-a-specific-program-type)
+- [A specific eBPF program is not behaving as expected](#troubleshooting-issues-related-to-a-specific-program-type)
 
 --------------------
 
@@ -405,7 +405,7 @@ Then, attempt to load the program again. If this continues to fail, you will nee
 
 --------------------
 
-#Troubleshooting Issues Related to a Specific Program Type
+# Troubleshooting Issues Related to a Specific Program Type
 
 - [Program Type BPF\_PROG\_TYPE\_CGROUP\_SOCK\_ADDR Issues](#program-type-bpf_prog_type_cgroup_sock_addr-issues)
 
