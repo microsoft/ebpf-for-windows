@@ -30,3 +30,9 @@ coverage:
     project:
       default:
         threshold: 2%
+
+ignore:
+  # Ignore generated files.
+  - "x64/"
+  # Ignore sample code.
+  - "tests/sample"
