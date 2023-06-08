@@ -2,14 +2,14 @@ This document contains a troubleshooting guide for issues related to eBPF.
 
 --------------------
 
-#What Kind of Issue Are You Having ?
+# What Kind of Issue Are You Having ?
 
 - [The eBPF program is not getting invoked](#troubleshooting-general-ebpf-program-issues)
 - [The eBPF program is not behaving as expected](#troubleshooting-issues-related-to-a-specific-program-type)
 
 --------------------
 
-#Troubleshooting General eBPF Program Issues
+# Troubleshooting General eBPF Program Issues
 
 If the eBPF program is not getting invoked at all, walk through the following steps to determine where the issue is and resolve it:
 
@@ -334,12 +334,13 @@ In this output, use the `map_ids` from the above output. Map usage is up to the 
 }
 
 {
-    "id" : 131331, "type" : "lru_hash",
-                            "name" : "audit_map",
-                                     "flags" : 0,
-                                     "bytes_key" : 8,
-                                     "bytes_value" : 24,
-                                     "max_entries" : 1000
+    "id" : 131331,
+    "type" : "lru_hash",
+    "name" : "audit_map",
+    "flags" : 0,
+    "bytes_key" : 8,
+    "bytes_value" : 24,
+    "max_entries" : 1000
 }
 ```
 
@@ -384,47 +385,11 @@ There are certain errors that likely point to the eBPF client. These errors will
 
 Another possibility is NMR attach failing. When this occurs, you may see error traces in [eBPF diagnostic traces](./Diagnostics.md#ebpf-diagnostic-traces) such as:
 ```
-[0]0C38.0490::2023/05/10-13:48:19.502521000 [EbpfForWindowsProvider]{
-    "ErrorMessage" : "ebpf_program_create returned error", "Error" : 23, "meta":
-    {
-        "provider" : "EbpfForWindowsProvider",
-                     "event" : "EbpfGenericError",
-                               "time" : "2023-05-10T20:48:19.5025210Z",
-                                        "cpu" : 0,
-                                        "pid" : 3128,
-                                        "tid" : 1168,
-                                        "channel" : 11,
-                                        "level" : 2,
-                                        "keywords" : "0x4"
-    }}
+[0]0C38.0490::2023/05/10-13:48:19.502521000 [EbpfForWindowsProvider]{"ErrorMessage":"ebpf_program_create returned error","Error":23,"meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericError","time":"2023-05-10T20:48:19.5025210Z","cpu":0,"pid":3128,"tid":1168,"channel":11,"level":2,"keywords":"0x4"}}
 
-[1]0AE4.1B34::2023/05/10-13:54:44.309563500 [EbpfForWindowsProvider]{
-    "ErrorMessage" : "_ebpf_extension_client_attach_provider returned error", "Error" : -1073741127, "meta":
-    {
-        "provider" : "EbpfForWindowsProvider",
-                     "event" : "EbpfGenericError",
-                               "time" : "2023-05-10T20:54:44.3095635Z",
-                                        "cpu" : 1,
-                                        "pid" : 2788,
-                                        "tid" : 6964,
-                                        "channel" : 11,
-                                        "level" : 2,
-                                        "keywords" : "0x4"
-    }}
+[1]0AE4.1B34::2023/05/10-13:54:44.309563500 [EbpfForWindowsProvider]{"ErrorMessage":"_ebpf_extension_client_attach_provider returned error","Error":-1073741127,"meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericError","time":"2023-05-10T20:54:44.3095635Z","cpu":1,"pid":2788,"tid":6964,"channel":11,"level":2,"keywords":"0x4"}}
 
-[1]0AE4.1B34::2023/05/10-13:54:44.309569900 [EbpfForWindowsProvider]{
-    "ErrorMessage" : "_ebpf_program_load_providers returned error", "Error" : 23, "meta":
-    {
-        "provider" : "EbpfForWindowsProvider",
-                     "event" : "EbpfGenericError",
-                               "time" : "2023-05-10T20:54:44.3095699Z",
-                                        "cpu" : 1,
-                                        "pid" : 2788,
-                                        "tid" : 6964,
-                                        "channel" : 11,
-                                        "level" : 2,
-                                        "keywords" : "0x4"
-    }}
+[1]0AE4.1B34::2023/05/10-13:54:44.309569900 [EbpfForWindowsProvider]{"ErrorMessage":"_ebpf_program_load_providers returned error","Error":23,"meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericError","time":"2023-05-10T20:54:44.3095699Z","cpu":1,"pid":2788,"tid":6964,"channel":11,"level":2,"keywords":"0x4"}}
 ```
 
 The first trace shows `ebpf_program_create` failed. Then, we see that `_ebpf_extension_client_attach_provider` fails, indicating that this is a NMR failure. Furthermore, we see `_ebpf_program_load_providers` which shows that the NMR provider load failed.
@@ -460,29 +425,7 @@ First ensure that you have [verified the eBPF program is configured correctly](#
 
 Once you have confirmed that the program and any maps used are correctly configured, the next thing to look for is whether or not the eBPF platform is performing the redirection. In the [eBPF diagnostic traces](./Diagnostics.md#ebpf-diagnostic-traces), you should look for the following trace:
 ```
-[3]10A8.0A54::2023/04/28-10:31:41.312214200 [NetEbpfExtProvider]{
-    "Message" : "connect_redirect_classify",
-                "TransportEndpointHandle" : 463,
-                "Protocol" : 6,
-                "src_ip" : "0.0.0.0",
-                           "src_port" : 51346,
-                           "dst_ip" : "8.8.8.8",
-                                      "dst_port" : 6666,
-                                      "redirected_ip" : "127.0.0.1",
-                                                        "redirected_port" : 5555,
-                                                        "Verdict" : 1,
-                                                        "meta":
-    {
-        "provider" : "NetEbpfExtProvider",
-                     "event" : "NetEbpfExtGenericMessage",
-                               "time" : "2023-04-28T17:31:41.3122142Z",
-                                        "cpu" : 3,
-                                        "pid" : 4264,
-                                        "tid" : 2644,
-                                        "channel" : 11,
-                                        "level" : 4,
-                                        "keywords" : "0x20"
-    }}
+[3]10A8.0A54::2023/04/28-10:31:41.312214200 [NetEbpfExtProvider]{"Message":"connect_redirect_classify","TransportEndpointHandle":463,"Protocol":6,"src_ip":"0.0.0.0","src_port":51346,"dst_ip":"8.8.8.8","dst_port":6666,"redirected_ip":"127.0.0.1","redirected_port":5555,"Verdict":1,"meta":{"provider":"NetEbpfExtProvider","event":"NetEbpfExtGenericMessage","time":"2023-04-28T17:31:41.3122142Z","cpu":3,"pid":4264,"tid":2644,"channel":11,"level":4,"keywords":"0x20"}}
 ```
 
 From this trace, you should look at the IP properties of the original connection (`src_ip`, `src_port`, `dst_ip`, and `dst_port`) and also of the redirected remote address (`redirected_ip` and `redirected_port`). Note that the `src_ip` value may be `0.0.0.0`, which is expected, as the source address may not be identified at the time of connect redirection. There may be a few cases after looking for this trace:
