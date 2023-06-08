@@ -693,6 +693,13 @@ _net_ebpf_ext_sock_addr_update_redirect_handle(uint64_t filter_id, HANDLE redire
 
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
     InsertTailList(&_net_ebpf_ext_redirect_handle_list, &entry->list_entry);
+
+    NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+        NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
+        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        "ANUSA: Adding new redirect handle",
+        filter_id,
+        (uint64_t)redirect_handle);
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 
 Exit:
@@ -711,6 +718,13 @@ _net_ebpf_ext_sock_addr_delete_redirect_handle(uint64_t filter_id)
         net_ebpf_extension_redirect_handle_entry_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_redirect_handle_entry_t, list_entry);
         if (entry->filter_id == filter_id) {
+
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "ANUSA: DELETING redirect handle",
+                filter_id,
+                (uint64_t)entry->redirect_handle);
             RemoveEntryList(list_entry);
             ExFreePool(entry);
             break;
@@ -733,6 +747,12 @@ _net_ebpf_ext_sock_addr_get_redirect_handle(uint64_t filter_id, _Out_ HANDLE* re
         net_ebpf_extension_redirect_handle_entry_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_redirect_handle_entry_t, list_entry);
         if (entry->filter_id == filter_id) {
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "ANUSA: FOUND redirect handle",
+                filter_id,
+                (uint64_t)entry->redirect_handle);
             *redirect_handle = entry->redirect_handle;
             status = STATUS_SUCCESS;
             break;
@@ -1162,6 +1182,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
     uint32_t result;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
@@ -1231,6 +1252,8 @@ Exit:
     if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
+
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 /*
@@ -1248,6 +1271,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
     uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
@@ -1312,6 +1336,7 @@ Exit:
     _net_ebpf_ext_log_sock_addr_classify(
         "auth_classify", incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, NULL, verdict);
 
+    NET_EBPF_EXT_LOG_EXIT();
     return;
 }
 
@@ -1459,6 +1484,55 @@ Exit:
     NET_EBPF_EXT_RETURN_BOOL(process_classify);
 }
 
+/**
+ * @brief This function determines if this connection has already been redirected by self.
+ *
+ * @param[in] incoming_metadata_values Pointer to the incoming_metadata_values structure.
+ * @param[in] context Pointer to net_ebpf_extension_sock_addr_wfp_filter_context_t associated with WFP filter.
+ *
+ * @returns True if the connection has already been redirected, false otherwise.
+ */
+bool
+_net_ebpf_ext_sock_addr_is_redirected_by_self(
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _In_ const net_ebpf_extension_sock_addr_wfp_filter_context_t* context,
+    _In_ const bpf_sock_addr_t* sock_addr_ctx)
+{
+    HANDLE redirect_handle;
+    FWPS_CONNECTION_REDIRECT_STATE redirect_state;
+    NTSTATUS status;
+
+    for (uint32_t i = 0; i < context->base.filter_ids_count; i++) {
+        status = _net_ebpf_ext_sock_addr_get_redirect_handle(context->base.filter_ids[i], &redirect_handle);
+        if (!NT_SUCCESS(status)) {
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "Failed to find redirect handle for filter id",
+                context->base.filter_ids[i],
+                (uint64_t)sock_addr_ctx->compartment_id);
+            continue;
+        }
+
+        // Fetch redirect state.
+        redirect_state =
+            FwpsQueryConnectionRedirectState(incoming_metadata_values->redirectRecords, redirect_handle, NULL);
+        if (redirect_state == FWPS_CONNECTION_REDIRECTED_BY_SELF ||
+            redirect_state == FWPS_CONNECTION_PREVIOUSLY_REDIRECTED_BY_SELF) {
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "Connection redirected by self, ignoring.",
+                context->base.filter_ids[i],
+                (uint64_t)sock_addr_ctx->compartment_id);
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /*
  * For every eBPF sock_addr program attached to INET_CONNECT attach point (for a given compartment), a WFP filter
  * is added to the WFP CONNECT_REDIRECT (with the compartment Id as filter condition). So, this classify callback
@@ -1480,6 +1554,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
     uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1490,7 +1565,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     bpf_sock_addr_t sock_addr_ctx_original = {0};
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     bool v4_mapped = FALSE;
-    FWPS_CONNECTION_REDIRECT_STATE redirect_state;
     HANDLE redirect_handle;
     uint64_t classify_handle = 0;
     bool classify_handle_acquired = FALSE;
@@ -1507,6 +1581,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "No \"write\" right; exiting.");
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        NET_EBPF_EXT_LOG_ENTRY();
         return;
     }
 
@@ -1564,17 +1639,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         goto Exit;
     }
 
-    // Fetch redirect state.
-    redirect_state = FwpsQueryConnectionRedirectState(incoming_metadata_values->redirectRecords, redirect_handle, NULL);
-    if (redirect_state == FWPS_CONNECTION_REDIRECTED_BY_SELF ||
-        redirect_state == FWPS_CONNECTION_PREVIOUSLY_REDIRECTED_BY_SELF) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "Connection redirected by self, ignoring.",
-            filter->filterId,
-            (uint64_t)sock_addr_ctx->compartment_id);
-
+    if (_net_ebpf_ext_sock_addr_is_redirected_by_self(incoming_metadata_values, filter_context, sock_addr_ctx)) {
         // This connection was previously redirected.
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
@@ -1696,6 +1761,8 @@ Exit:
     if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
+
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 static ebpf_result_t
