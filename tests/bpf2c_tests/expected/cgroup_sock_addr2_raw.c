@@ -17,18 +17,6 @@ static map_entry_t _maps[] = {
     {NULL,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
-         8,                 // Size in bytes of a map key.
-         24,                // Size in bytes of a map value.
-         100,               // Maximum number of entries allowed in the map.
-         0,                 // Inner map index.
-         PIN_NONE,          // Pinning type for the map.
-         27,                // Identifier for a map template.
-         0,                 // The id of the inner map template.
-     },
-     "audit_map"},
-    {NULL,
-     {
-         BPF_MAP_TYPE_HASH, // Type of map.
          24,                // Size in bytes of a map key.
          24,                // Size in bytes of a map value.
          100,               // Maximum number of entries allowed in the map.
@@ -38,6 +26,18 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "policy_map"},
+    {NULL,
+     {
+         BPF_MAP_TYPE_HASH, // Type of map.
+         8,                 // Size in bytes of a map key.
+         24,                // Size in bytes of a map value.
+         100,               // Maximum number of entries allowed in the map.
+         0,                 // Inner map index.
+         PIN_NONE,          // Pinning type for the map.
+         27,                // Identifier for a map template.
+         0,                 // The id of the inner map template.
+     },
+     "audit_map"},
 };
 #pragma data_seg(pop)
 
@@ -166,7 +166,7 @@ label_1:
     r2 += IMMEDIATE(-32);
     // EBPF_OP_LDDW pc=18 dst=r1 src=r0 offset=0 imm=0
 #line 71 "sample/cgroup_sock_addr2.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=1
 #line 71 "sample/cgroup_sock_addr2.c"
     r0 = connect_redirect4_helpers[0].address
@@ -346,7 +346,7 @@ label_2:
     r3 += IMMEDIATE(-72);
     // EBPF_OP_LDDW pc=72 dst=r1 src=r0 offset=0 imm=0
 #line 50 "sample/cgroup_sock_addr2.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_IMM pc=74 dst=r4 src=r0 offset=0 imm=0
 #line 50 "sample/cgroup_sock_addr2.c"
     r4 = IMMEDIATE(0);
@@ -510,7 +510,7 @@ label_1:
     r2 += IMMEDIATE(-32);
     // EBPF_OP_LDDW pc=25 dst=r1 src=r0 offset=0 imm=0
 #line 107 "sample/cgroup_sock_addr2.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=1
 #line 107 "sample/cgroup_sock_addr2.c"
     r0 = connect_redirect6_helpers[0].address
@@ -702,7 +702,7 @@ label_2:
     r3 += IMMEDIATE(-64);
     // EBPF_OP_LDDW pc=82 dst=r1 src=r0 offset=0 imm=0
 #line 50 "sample/cgroup_sock_addr2.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_IMM pc=84 dst=r4 src=r0 offset=0 imm=0
 #line 50 "sample/cgroup_sock_addr2.c"
     r4 = IMMEDIATE(0);

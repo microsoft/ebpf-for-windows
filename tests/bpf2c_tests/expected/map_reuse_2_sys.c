@@ -177,18 +177,6 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 static map_entry_t _maps[] = {
     {NULL,
      {
-         BPF_MAP_TYPE_ARRAY, // Type of map.
-         4,                  // Size in bytes of a map key.
-         4,                  // Size in bytes of a map value.
-         1,                  // Maximum number of entries allowed in the map.
-         0,                  // Inner map index.
-         PIN_GLOBAL_NS,      // Pinning type for the map.
-         13,                 // Identifier for a map template.
-         0,                  // The id of the inner map template.
-     },
-     "inner_map"},
-    {NULL,
-     {
          BPF_MAP_TYPE_HASH_OF_MAPS, // Type of map.
          4,                         // Size in bytes of a map key.
          4,                         // Size in bytes of a map value.
@@ -211,6 +199,18 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "port_map"},
+    {NULL,
+     {
+         BPF_MAP_TYPE_ARRAY, // Type of map.
+         4,                  // Size in bytes of a map key.
+         4,                  // Size in bytes of a map value.
+         1,                  // Maximum number of entries allowed in the map.
+         0,                  // Inner map index.
+         PIN_GLOBAL_NS,      // Pinning type for the map.
+         13,                 // Identifier for a map template.
+         0,                  // The id of the inner map template.
+     },
+     "inner_map"},
 };
 #pragma data_seg(pop)
 
@@ -231,8 +231,8 @@ static GUID lookup_update_program_type_guid = {
 static GUID lookup_update_attach_type_guid = {
     0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
 static uint16_t lookup_update_maps[] = {
+    0,
     1,
-    2,
 };
 
 #pragma code_seg(push, "xdp_prog")
@@ -282,7 +282,7 @@ lookup_update(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=4 dst=r1 src=r0 offset=0 imm=0
 #line 54 "sample/map_reuse_2.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 54 "sample/map_reuse_2.c"
     r0 = lookup_update_helpers[0].address
@@ -356,7 +356,7 @@ label_1:
     r3 += IMMEDIATE(-16);
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=0
 #line 62 "sample/map_reuse_2.c"
-    r1 = POINTER(_maps[2].address);
+    r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_IMM pc=26 dst=r4 src=r0 offset=0 imm=0
 #line 62 "sample/map_reuse_2.c"
     r4 = IMMEDIATE(0);

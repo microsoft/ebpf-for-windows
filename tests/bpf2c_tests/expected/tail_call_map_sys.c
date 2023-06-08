@@ -177,18 +177,6 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 static map_entry_t _maps[] = {
     {NULL,
      {
-         BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
-         4,                       // Size in bytes of a map key.
-         4,                       // Size in bytes of a map value.
-         1,                       // Maximum number of entries allowed in the map.
-         0,                       // Inner map index.
-         PIN_NONE,                // Pinning type for the map.
-         11,                      // Identifier for a map template.
-         0,                       // The id of the inner map template.
-     },
-     "inner_map"},
-    {NULL,
-     {
          BPF_MAP_TYPE_ARRAY_OF_MAPS, // Type of map.
          4,                          // Size in bytes of a map key.
          4,                          // Size in bytes of a map value.
@@ -199,6 +187,18 @@ static map_entry_t _maps[] = {
          11,                         // The id of the inner map template.
      },
      "outer_map"},
+    {NULL,
+     {
+         BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
+         4,                       // Size in bytes of a map key.
+         4,                       // Size in bytes of a map value.
+         1,                       // Maximum number of entries allowed in the map.
+         0,                       // Inner map index.
+         PIN_NONE,                // Pinning type for the map.
+         11,                      // Identifier for a map template.
+         0,                       // The id of the inner map template.
+     },
+     "inner_map"},
 };
 #pragma data_seg(pop)
 
@@ -217,7 +217,7 @@ static helper_function_entry_t caller_helpers[] = {
 static GUID caller_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
 static GUID caller_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
 static uint16_t caller_maps[] = {
-    1,
+    0,
 };
 
 #pragma code_seg(push, "xdp_prog")
@@ -268,7 +268,7 @@ caller(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
 #line 36 "sample/tail_call_map.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 36 "sample/tail_call_map.c"
     r0 = caller_helpers[0].address

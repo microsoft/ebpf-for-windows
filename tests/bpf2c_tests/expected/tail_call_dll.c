@@ -42,18 +42,6 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 static map_entry_t _maps[] = {
     {NULL,
      {
-         BPF_MAP_TYPE_ARRAY, // Type of map.
-         4,                  // Size in bytes of a map key.
-         4,                  // Size in bytes of a map value.
-         1,                  // Maximum number of entries allowed in the map.
-         0,                  // Inner map index.
-         PIN_NONE,           // Pinning type for the map.
-         16,                 // Identifier for a map template.
-         0,                  // The id of the inner map template.
-     },
-     "canary"},
-    {NULL,
-     {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
          4,                       // Size in bytes of a map value.
@@ -64,6 +52,18 @@ static map_entry_t _maps[] = {
          0,                       // The id of the inner map template.
      },
      "map"},
+    {NULL,
+     {
+         BPF_MAP_TYPE_ARRAY, // Type of map.
+         4,                  // Size in bytes of a map key.
+         4,                  // Size in bytes of a map value.
+         1,                  // Maximum number of entries allowed in the map.
+         0,                  // Inner map index.
+         PIN_NONE,           // Pinning type for the map.
+         16,                 // Identifier for a map template.
+         0,                  // The id of the inner map template.
+     },
+     "canary"},
 };
 #pragma data_seg(pop)
 
@@ -123,7 +123,7 @@ caller(void* context)
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r2;
     // EBPF_OP_LDDW pc=2 dst=r2 src=r0 offset=0 imm=0
 #line 37 "sample/tail_call.c"
-    r2 = POINTER(_maps[1].address);
+    r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=4 dst=r3 src=r0 offset=0 imm=9
 #line 37 "sample/tail_call.c"
     r3 = IMMEDIATE(9);
@@ -144,7 +144,7 @@ caller(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 40 "sample/tail_call.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=1
 #line 40 "sample/tail_call.c"
     r0 = caller_helpers[1].address

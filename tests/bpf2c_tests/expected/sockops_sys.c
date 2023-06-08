@@ -177,18 +177,6 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 static map_entry_t _maps[] = {
     {NULL,
      {
-         BPF_MAP_TYPE_RINGBUF, // Type of map.
-         0,                    // Size in bytes of a map key.
-         0,                    // Size in bytes of a map value.
-         262144,               // Maximum number of entries allowed in the map.
-         0,                    // Inner map index.
-         PIN_NONE,             // Pinning type for the map.
-         25,                   // Identifier for a map template.
-         0,                    // The id of the inner map template.
-     },
-     "audit_map"},
-    {NULL,
-     {
          BPF_MAP_TYPE_HASH, // Type of map.
          56,                // Size in bytes of a map key.
          4,                 // Size in bytes of a map value.
@@ -199,6 +187,18 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "connection_map"},
+    {NULL,
+     {
+         BPF_MAP_TYPE_RINGBUF, // Type of map.
+         0,                    // Size in bytes of a map key.
+         0,                    // Size in bytes of a map value.
+         262144,               // Maximum number of entries allowed in the map.
+         0,                    // Inner map index.
+         PIN_NONE,             // Pinning type for the map.
+         25,                   // Identifier for a map template.
+         0,                    // The id of the inner map template.
+     },
+     "audit_map"},
 };
 #pragma data_seg(pop)
 
@@ -458,7 +458,7 @@ label_6:
     r2 += IMMEDIATE(-64);
     // EBPF_OP_LDDW pc=59 dst=r1 src=r0 offset=0 imm=0
 #line 37 "sample/sockops.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=61 dst=r0 src=r0 offset=0 imm=1
 #line 37 "sample/sockops.c"
     r0 = connection_monitor_helpers[0].address
@@ -935,7 +935,7 @@ label_11:
     r2 += IMMEDIATE(-64);
     // EBPF_OP_LDDW pc=212 dst=r1 src=r0 offset=0 imm=0
 #line 62 "sample/sockops.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=214 dst=r0 src=r0 offset=0 imm=1
 #line 62 "sample/sockops.c"
     r0 = connection_monitor_helpers[0].address
@@ -962,7 +962,7 @@ label_12:
     r2 += IMMEDIATE(-64);
     // EBPF_OP_LDDW pc=219 dst=r1 src=r0 offset=0 imm=0
 #line 62 "sample/sockops.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_IMM pc=221 dst=r3 src=r0 offset=0 imm=64
 #line 62 "sample/sockops.c"
     r3 = IMMEDIATE(64);

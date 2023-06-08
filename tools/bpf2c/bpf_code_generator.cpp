@@ -411,53 +411,59 @@ bpf_code_generator::parse()
         auto map_name_to_index = parse_btf_map_sections(data, map_descriptors);
         size_t index = 0;
 
+        std::map<size_t, unsafe_string> map_names_by_offset;
+        // Emit map definitions in the same order as the maps in the .maps section.
         visit_symbols(
             [&](const unsafe_string& unsafe_symbol_name,
                 uint64_t symbol_value,
                 unsigned char bind,
                 unsigned char symbol_type,
                 uint64_t symbol_size) {
-                UNREFERENCED_PARAMETER(symbol_value);
                 UNREFERENCED_PARAMETER(bind);
                 UNREFERENCED_PARAMETER(symbol_type);
                 UNREFERENCED_PARAMETER(symbol_size);
-                if (map_definitions.find(unsafe_symbol_name) == map_definitions.end()) {
-                    if (map_name_to_index.find(unsafe_symbol_name.raw()) == map_name_to_index.end()) {
-                        throw bpf_code_generator_exception("map symbol not found in map section");
-                    }
-                    ebpf_map_definition_in_file_t map_definition{};
-                    EbpfMapDescriptor map_descriptor = map_descriptors[map_name_to_index[unsafe_symbol_name.raw()]];
-
-                    map_definition.type = static_cast<ebpf_map_type_t>(map_descriptor.type);
-                    map_definition.key_size = map_descriptor.key_size;
-                    map_definition.value_size = map_descriptor.value_size;
-                    map_definition.max_entries = map_descriptor.max_entries;
-                    map_definition.id = map_descriptor.original_fd;
-                    map_definition.inner_id = map_descriptor.inner_map_fd != -1 ? map_descriptor.inner_map_fd : 0;
-
-                    // Get pinning data from the BTF data.
-                    auto map_struct = data.get_kind(map_descriptor.original_fd);
-                    for (const auto& member : std::get<BTF_KIND_STRUCT>(map_struct).members) {
-                        if (member.name == "pinning") {
-                            // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
-                            auto pining_type_id = member.type;
-                            // Dereference the pointer type.
-                            pining_type_id = data.dereference_pointer(pining_type_id);
-                            // Get the array type.
-                            auto pining_type = data.get_kind(pining_type_id);
-                            if (pining_type.index() != BTF_KIND_ARRAY) {
-                                throw bpf_code_generator_exception("pinning field is not an array");
-                            }
-                            // Value is encoded as the number of elements in the array.
-                            map_definition.pinning =
-                                static_cast<ebpf_pin_type_t>(std::get<BTF_KIND_ARRAY>(pining_type).count_of_elements);
-                        }
-                    }
-                    map_definitions[unsafe_symbol_name] = {map_definition, index++};
+                if (map_names_by_offset.find(symbol_value) == map_names_by_offset.end()) {
+                    map_names_by_offset[symbol_value] = unsafe_symbol_name;
                 }
             },
             ".maps");
+
+        for (const auto& [offset, unsafe_symbol_name] : map_names_by_offset) {
+            if (map_name_to_index.find(unsafe_symbol_name.raw()) == map_name_to_index.end()) {
+                throw bpf_code_generator_exception("map symbol not found in map section");
+            }
+            ebpf_map_definition_in_file_t map_definition{};
+            EbpfMapDescriptor map_descriptor = map_descriptors[map_name_to_index[unsafe_symbol_name.raw()]];
+
+            map_definition.type = static_cast<ebpf_map_type_t>(map_descriptor.type);
+            map_definition.key_size = map_descriptor.key_size;
+            map_definition.value_size = map_descriptor.value_size;
+            map_definition.max_entries = map_descriptor.max_entries;
+            map_definition.id = map_descriptor.original_fd;
+            map_definition.inner_id = map_descriptor.inner_map_fd != -1 ? map_descriptor.inner_map_fd : 0;
+
+            // Get pinning data from the BTF data.
+            auto map_struct = data.get_kind(map_descriptor.original_fd);
+            for (const auto& member : std::get<BTF_KIND_STRUCT>(map_struct).members) {
+                if (member.name == "pinning") {
+                    // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
+                    auto pining_type_id = member.type;
+                    // Dereference the pointer type.
+                    pining_type_id = data.dereference_pointer(pining_type_id);
+                    // Get the array type.
+                    auto pining_type = data.get_kind(pining_type_id);
+                    if (pining_type.index() != BTF_KIND_ARRAY) {
+                        throw bpf_code_generator_exception("pinning field is not an array");
+                    }
+                    // Value is encoded as the number of elements in the array.
+                    map_definition.pinning =
+                        static_cast<ebpf_pin_type_t>(std::get<BTF_KIND_ARRAY>(pining_type).count_of_elements);
+                }
+            }
+            map_definitions[unsafe_symbol_name] = {map_definition, index++};
+        }
     }
+
     // Parse the older maps section if it exists.
     map_section = get_optional_section("maps");
     if (map_section) {

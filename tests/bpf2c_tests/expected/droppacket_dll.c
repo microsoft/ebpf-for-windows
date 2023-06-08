@@ -44,18 +44,6 @@ static map_entry_t _maps[] = {
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
-         8,                  // Size in bytes of a map value.
-         1,                  // Maximum number of entries allowed in the map.
-         0,                  // Inner map index.
-         PIN_NONE,           // Pinning type for the map.
-         15,                 // Identifier for a map template.
-         0,                  // The id of the inner map template.
-     },
-     "dropped_packet_map"},
-    {NULL,
-     {
-         BPF_MAP_TYPE_ARRAY, // Type of map.
-         4,                  // Size in bytes of a map key.
          4,                  // Size in bytes of a map value.
          1,                  // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
@@ -64,6 +52,18 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "interface_index_map"},
+    {NULL,
+     {
+         BPF_MAP_TYPE_ARRAY, // Type of map.
+         4,                  // Size in bytes of a map key.
+         8,                  // Size in bytes of a map value.
+         1,                  // Maximum number of entries allowed in the map.
+         0,                  // Inner map index.
+         PIN_NONE,           // Pinning type for the map.
+         15,                 // Identifier for a map template.
+         0,                  // The id of the inner map template.
+     },
+     "dropped_packet_map"},
 };
 #pragma data_seg(pop)
 
@@ -135,7 +135,7 @@ DropPacket(void* context)
     r2 += IMMEDIATE(-8);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
 #line 56 "sample/droppacket.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 56 "sample/droppacket.c"
     r0 = DropPacket_helpers[0].address
@@ -251,7 +251,7 @@ label_1:
     r2 += IMMEDIATE(-8);
     // EBPF_OP_LDDW pc=37 dst=r1 src=r0 offset=0 imm=0
 #line 80 "sample/droppacket.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/droppacket.c"
     r0 = DropPacket_helpers[0].address

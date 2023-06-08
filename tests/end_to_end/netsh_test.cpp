@@ -216,9 +216,9 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
                   "==================  ====  =====  =======  ========\n"
-                  "             array     4      4        1  inner_map\n"
                   "      hash_of_maps     4      4        1  outer_map\n"
-                  "             array     4      4        1  port_map\n");
+                  "             array     4      4        1  port_map\n"
+                  "             array     4      4        1  inner_map\n");
 }
 
 // Test a .dll file with multiple programs.
