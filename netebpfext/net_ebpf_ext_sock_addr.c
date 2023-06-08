@@ -1559,7 +1559,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "No \"write\" right; exiting.");
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
-        NET_EBPF_EXT_LOG_ENTRY();
+        NET_EBPF_EXT_LOG_EXIT();
         return;
     }
 
