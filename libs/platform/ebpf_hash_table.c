@@ -849,7 +849,7 @@ ebpf_hash_table_iterate(
         }
 
         // Hash bucket entries are immutable. So we can safely return a pointer to the key and value.
-        // In the case of a delete, the key may be duplicated.
+        // In the case of a delete, keys may be duplicated or skipped.
         ebpf_hash_bucket_entry_t* entry =
             _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket_header, data_index);
         data_index++;
@@ -884,19 +884,72 @@ ebpf_hash_table_next_key_pointer_and_value(
     _Outptr_ uint8_t** next_key_pointer,
     _Outptr_opt_ uint8_t** value)
 {
-    ebpf_result_t result;
-    uint64_t cookie = 0;
-    if (previous_key) {
-        result = _ebpf_hash_table_key_to_cookie(hash_table, previous_key, &cookie);
-        // If the previous key is not present, return EBPF_KEY_NOT_FOUND.
-        if (result != EBPF_SUCCESS) {
-            return result;
-        }
-        // Point cookie to the next key.
-        cookie++;
+    ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t hash;
+    ebpf_hash_bucket_entry_t* next_entry = NULL;
+    size_t bucket_index;
+    size_t data_index;
+    bool found_entry = false;
+
+    if (!hash_table || !next_key_pointer) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
-    return ebpf_hash_table_iterate(hash_table, &cookie, next_key_pointer, value);
+    hash = (previous_key != NULL) ? _ebpf_hash_table_compute_hash(hash_table, previous_key) : 0;
+
+    for (bucket_index = hash % hash_table->bucket_count; bucket_index < hash_table->bucket_count; bucket_index++) {
+        ebpf_hash_bucket_header_t* bucket = hash_table->buckets[bucket_index].header;
+        // Skip empty buckets.
+        if (!bucket) {
+            continue;
+        }
+
+        // Pick first entry if no previous key.
+        if (!previous_key) {
+            next_entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, 0);
+            break;
+        }
+
+        for (data_index = 0; data_index < bucket->count; data_index++) {
+            ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, data_index);
+            if (!entry) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Done;
+            }
+            // Do we have the previous key?
+            if (found_entry) {
+                // Yes, then this is the next key.
+                next_entry = entry;
+                break;
+            }
+
+            // Is this the previous key?
+            if (_ebpf_hash_table_compare(hash_table, previous_key, entry->key) == 0) {
+                // Yes, record its location.
+                found_entry = true;
+            }
+        }
+        if (next_entry) {
+            break;
+        }
+    }
+    if (!next_entry) {
+        result = EBPF_NO_MORE_KEYS;
+        goto Done;
+    }
+
+    result = EBPF_SUCCESS;
+
+    if (value) {
+        *value = next_entry->data;
+    }
+
+    *next_key_pointer = next_entry->key;
+
+Done:
+
+    return result;
 }
 
 _Must_inspect_result_ ebpf_result_t
