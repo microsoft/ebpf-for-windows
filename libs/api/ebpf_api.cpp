@@ -414,8 +414,9 @@ _get_map_descriptor_properties(
     map = _get_ebpf_map_from_handle(handle);
     if (map == nullptr) {
         // Map is not present in the local cache. Query map descriptor from EC.
+        ebpf_id_t id;
         ebpf_id_t inner_map_id;
-        result = query_map_definition(handle, type, key_size, value_size, max_entries, &inner_map_id);
+        result = query_map_definition(handle, &id, type, key_size, value_size, max_entries, &inner_map_id);
         if (result != EBPF_SUCCESS) {
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
@@ -1552,6 +1553,8 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache) noexcep
         }
     }
 
+    map->map_id = map_cache.id;
+    map->map_definition.inner_map_id = map_cache.inner_id;
     map->inner_map_original_fd = map_cache.verifier_map_descriptor.inner_map_fd;
 
     map->pinned = false;
@@ -1873,10 +1876,9 @@ _get_next_map_to_create(std::vector<ebpf_map_t*>& maps) noexcept
         if (map->inner_map == nullptr) {
             // This map requires an inner map template, look up which one.
             for (auto& inner_map : maps) {
-                if (!inner_map) {
-                    continue;
-                }
-                if (inner_map->original_fd == map->inner_map_original_fd) {
+                if ((map->map_definition.inner_map_id != EBPF_ID_NONE &&
+                     inner_map->map_id == map->map_definition.inner_map_id) ||
+                    (map->inner_map_original_fd == inner_map->original_fd)) {
                     map->inner_map = inner_map;
                     break;
                 }
@@ -2006,7 +2008,7 @@ _ebpf_pe_get_map_definitions(
                 map->map_definition.max_entries = entry->definition.max_entries;
                 map->map_definition.pinning = entry->definition.pinning;
                 map->map_definition.inner_map_id = entry->definition.inner_id;
-                map->inner_map_original_fd = entry->definition.inner_map_idx;
+                map->inner_map_original_fd = map_idx_to_verifier_fd(entry->definition.inner_map_idx);
                 map->pinned = false;
                 map->reused = false;
                 map->pin_path = nullptr;
@@ -2477,7 +2479,6 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
 
     clear_map_descriptors();
 
-    // TODO: update ebpf_map_definition_t structure so that it contains flag and pinning information.
     for (int count = 0; count < object->maps.size(); count++) {
         ebpf_map_t* map = _get_next_map_to_create(object->maps);
         if (map == nullptr) {
@@ -2610,26 +2611,23 @@ ebpf_program_load_bytes(
         ebpf_handle_t handle = Platform::_get_osfhandle(map_fd);
 
         // Look up inner map id.
+        uint32_t id;
         uint32_t type;
         uint32_t key_size;
         uint32_t value_size;
         uint32_t max_entries;
         ebpf_id_t inner_map_id;
-        result = query_map_definition(handle, &type, &key_size, &value_size, &max_entries, &inner_map_id);
+        result = query_map_definition(handle, &id, &type, &key_size, &value_size, &max_entries, &inner_map_id);
         if (result != EBPF_SUCCESS) {
             break;
         }
 
-        // Get a file descriptor for the inner map, if any.
-        int inner_map_fd = ebpf_fd_invalid;
-        if (inner_map_id != EBPF_ID_NONE) {
-            result = ebpf_get_map_fd_by_id(inner_map_id, &inner_map_fd);
-            if (result != EBPF_SUCCESS) {
-                break;
-            }
-        }
-
-        handle_map.emplace_back((uint32_t)map_fd, (uint32_t)inner_map_fd, (file_handle_t)handle);
+        handle_map.emplace_back(original_fd_handle_map_t{
+            .original_fd = (uint32_t)map_fd,
+            .id = id,
+            .inner_map_original_fd = 0,
+            .inner_id = inner_map_id,
+            .handle = (file_handle_t)handle});
     }
 
     const char* log_buffer_output = nullptr;
@@ -2639,13 +2637,6 @@ ebpf_program_load_bytes(
 
         uint32_t error_message_size = 0;
         result = ebpf_rpc_load_program(&load_info, &log_buffer_output, &error_message_size);
-    }
-
-    // Close any inner map fds.
-    for (original_fd_handle_map_t& entry : handle_map) {
-        if (entry.inner_map_original_fd != ebpf_fd_invalid) {
-            Platform::_close(entry.inner_map_original_fd);
-        }
     }
 
     if (log_buffer_size > 0) {
@@ -2696,9 +2687,13 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
 
         if (load_info.map_count > 0) {
             for (auto& map : object->maps) {
-                fd_t inner_map_original_fd = (map->inner_map) ? map->inner_map->original_fd : ebpf_fd_invalid;
+                ebpf_id_t inner_map_id = (map->inner_map) ? map->inner_map->map_id : EBPF_ID_NONE;
                 handle_map.emplace_back(
-                    map->original_fd, inner_map_original_fd, reinterpret_cast<file_handle_t>(map->map_handle));
+                    map->original_fd,
+                    map->map_id,
+                    map->inner_map_original_fd,
+                    inner_map_id,
+                    reinterpret_cast<file_handle_t>(map->map_handle));
             }
 
             load_info.handle_map = handle_map.data();

@@ -15,7 +15,8 @@
 #include <cassert>
 #include <stdexcept>
 
-void
+// Parse a legacy (non-BTF) maps section.
+static void
 parse_maps_section_windows(
     std::vector<EbpfMapDescriptor>& verifier_map_descriptors,
     const char* data,
@@ -24,55 +25,69 @@ parse_maps_section_windows(
     const struct ebpf_platform_t*,
     ebpf_verifier_options_t)
 {
+    UNREFERENCED_PARAMETER(verifier_map_descriptors);
+
     if (size % sizeof(ebpf_map_definition_in_file_t) != 0) {
         throw std::runtime_error(
             std::string("bad maps section size, must be a multiple of ") +
             std::to_string(sizeof(ebpf_map_definition_in_file_t)));
     }
 
-    // The map file descriptors that appear in eBPF bytecode start at 1,
-    // in the order the maps appear in the maps section.
-    const int ORIGINAL_FD_OFFSET = 1;
-
+    // Get map definitions from section into a local list.
     auto mapdefs = std::vector<ebpf_map_definition_in_file_t>(
         (ebpf_map_definition_in_file_t*)data, (ebpf_map_definition_in_file_t*)(data + size * map_count));
+
+    // Add map definitions into the map cache.
     for (int i = 0; i < mapdefs.size(); i++) {
         auto& s = mapdefs[i];
         uint32_t section_offset = (i * sizeof(ebpf_map_definition_in_file_t));
-
-        int original_fd = i + ORIGINAL_FD_OFFSET;
-        unsigned int inner_map_original_fd = UINT_MAX;
-        if (s.type == BPF_MAP_TYPE_ARRAY_OF_MAPS || s.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
-            if (s.inner_map_idx != 0) {
-                inner_map_original_fd = (unsigned int)s.inner_map_idx + ORIGINAL_FD_OFFSET;
-            } else if (s.inner_id != 0) {
-                for (int j = 0; j < mapdefs.size(); j++) {
-                    auto& inner_s = mapdefs[j];
-                    if (inner_s.id == s.inner_id && i != j) {
-                        inner_map_original_fd = j + ORIGINAL_FD_OFFSET;
-                        break;
-                    }
-                }
-            }
-        }
+        fd_t inner_map_original_fd = map_idx_to_verifier_fd(s.inner_map_idx);
 
         cache_map_handle(
             ebpf_handle_invalid,
-            original_fd,
+            s.id,
             s.type,
             s.key_size,
             s.value_size,
             s.max_entries,
             inner_map_original_fd,
+            s.inner_id,
             section_offset,
             s.pinning);
+    }
+}
 
-        verifier_map_descriptors.emplace_back(EbpfMapDescriptor{
-            .original_fd = original_fd,
-            .type = (uint32_t)s.type,
-            .key_size = s.key_size,
-            .value_size = s.value_size,
-            .inner_map_fd = inner_map_original_fd});
+static void
+resolve_inner_map_references_windows(std::vector<EbpfMapDescriptor>& verifier_map_descriptors)
+{
+    auto map_descriptors = get_all_map_descriptors();
+    for (auto& map_descriptor : map_descriptors) {
+        // Resolve the inner map original fd.
+        unsigned int inner_map_original_fd = UINT_MAX;
+        if (map_descriptor.verifier_map_descriptor.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
+            map_descriptor.verifier_map_descriptor.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+            uint32_t inner_map_idx = verifier_fd_to_map_idx(map_descriptor.verifier_map_descriptor.inner_map_fd);
+            if ((inner_map_idx >= 0) && (inner_map_idx < map_descriptors.size())) {
+                inner_map_original_fd = map_descriptors.at(inner_map_idx).verifier_map_descriptor.original_fd;
+            } else if (map_descriptor.inner_id != 0) {
+                for (auto& map_descriptor2 : map_descriptors) {
+                    if (map_descriptor2.id == map_descriptor.inner_id) {
+                        inner_map_original_fd = map_descriptor2.verifier_map_descriptor.original_fd;
+                        break;
+                    }
+                }
+            }
+            if (inner_map_original_fd == UINT_MAX) {
+                throw std::runtime_error(
+                    std::string("bad inner map (index ") + std::to_string(inner_map_idx) + std::string(" id ") +
+                    std::to_string(map_descriptor.inner_id) + ") for map " +
+                    std::to_string(map_descriptor.verifier_map_descriptor.original_fd));
+            }
+        }
+
+        map_descriptor.verifier_map_descriptor.inner_map_fd = inner_map_original_fd;
+
+        verifier_map_descriptors.push_back(map_descriptor.verifier_map_descriptor);
     }
 }
 
@@ -84,4 +99,4 @@ const ebpf_platform_t g_ebpf_platform_windows = {
     parse_maps_section_windows,
     get_map_descriptor_windows,
     get_map_type_windows,
-};
+    resolve_inner_map_references_windows};

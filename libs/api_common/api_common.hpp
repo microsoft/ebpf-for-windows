@@ -14,12 +14,30 @@
 #include <map>
 #include <stdexcept>
 
+// The map file descriptors that appear in eBPF bytecode start at 1,
+// in the order the maps appear in the maps sections.
+const int VERIFIER_FD_OFFSET = 1;
+
+inline fd_t
+map_idx_to_verifier_fd(uint32_t idx)
+{
+    return idx + VERIFIER_FD_OFFSET;
+}
+
+inline uint32_t
+verifier_fd_to_map_idx(fd_t fd)
+{
+    return fd - VERIFIER_FD_OFFSET;
+}
+
 typedef struct _map_cache
 {
     ebpf_handle_t handle;
+    uint32_t id;
     size_t section_offset;
     EbpfMapDescriptor verifier_map_descriptor;
     ebpf_pin_type_t pinning;
+    uint32_t inner_id;
 
     _map_cache() : handle(0), section_offset(0), verifier_map_descriptor(), pinning(PIN_NONE) {}
 
@@ -29,12 +47,14 @@ typedef struct _map_cache
 
     _map_cache(
         ebpf_handle_t handle,
+        uint32_t _id,
         int original_fd, // fd as it appears in raw bytecode
         uint32_t type,
         unsigned int key_size,
         unsigned int value_size,
         unsigned int max_entries,
-        unsigned int inner_map_original_fd, // original fd of inner map
+        fd_t inner_map_original_fd,
+        unsigned int _inner_id,
         size_t section_offset,
         ebpf_pin_type_t pinning)
         : handle(handle), section_offset(section_offset), pinning(pinning)
@@ -44,6 +64,8 @@ typedef struct _map_cache
         verifier_map_descriptor.key_size = key_size;
         verifier_map_descriptor.value_size = value_size;
         verifier_map_descriptor.max_entries = max_entries;
+        id = _id;
+        inner_id = _inner_id;
         verifier_map_descriptor.inner_map_fd = inner_map_original_fd;
     }
 } map_cache_t;
@@ -60,12 +82,13 @@ get_file_size(const char* filename, size_t* byte_code_size) noexcept;
 void
 cache_map_handle(
     ebpf_handle_t handle,
-    uint32_t original_fd,
+    uint32_t id,
     uint32_t type,
     uint32_t key_size,
     uint32_t value_size,
     uint32_t max_entries,
     uint32_t inner_map_original_fd,
+    uint32_t inner_id,
     size_t section_offset,
     ebpf_pin_type_t pinning);
 
@@ -150,6 +173,7 @@ ebpf_object_get_info(
 _Must_inspect_result_ ebpf_result_t
 query_map_definition(
     ebpf_handle_t handle,
+    _Out_ uint32_t* id,
     _Out_ uint32_t* type,
     _Out_ uint32_t* key_size,
     _Out_ uint32_t* value_size,

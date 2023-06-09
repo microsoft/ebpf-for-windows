@@ -505,20 +505,24 @@ bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
     if (!map_section) {
         return;
     }
+    size_t data_size = map_section->get_size();
+    if (data_size == 0) {
+        return;
+    }
 
     // Count the number of symbols that point into this maps section.
     ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
     int map_count = 0;
     for (ELFIO::Elf_Xword index = 0; index < symbols.get_symbols_num(); index++) {
         auto [symbol_name, section_index] = get_symbol_name_and_section_index(symbols, index);
-        if ((section_index == map_section->get_index()) && !symbol_name.empty())
+        if ((section_index == map_section->get_index()) && !symbol_name.empty()) {
             map_count++;
+        }
     }
     if (map_count == 0) {
         return;
     }
 
-    size_t data_size = map_section->get_size();
     size_t map_record_size = data_size / map_count;
 
     if (data_size % map_record_size != 0) {
