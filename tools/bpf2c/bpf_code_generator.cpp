@@ -505,10 +505,6 @@ bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
     if (!map_section) {
         return;
     }
-    size_t data_size = map_section->get_size();
-    if (data_size == 0) {
-        return;
-    }
 
     // Count the number of symbols that point into this maps section.
     ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
@@ -523,7 +519,11 @@ bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
         return;
     }
 
+    size_t data_size = map_section->get_size();
     size_t map_record_size = data_size / map_count;
+    if (map_record_size == 0) {
+        return;
+    }
 
     if (data_size % map_record_size != 0) {
         throw bpf_code_generator_exception(
