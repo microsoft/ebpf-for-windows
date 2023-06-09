@@ -851,8 +851,7 @@ _IRQL_requires_(PASSIVE_LEVEL) NTSTATUS NTAPI
     return STATUS_SUCCESS;
 }
 
-void NTAPI
-FwpsRedirectHandleDestroy0(HANDLE redirectHandle)
+_IRQL_requires_(PASSIVE_LEVEL) void NTAPI FwpsRedirectHandleDestroy0(_In_ HANDLE redirectHandle)
 {
     ebpf_free(redirectHandle);
 }
