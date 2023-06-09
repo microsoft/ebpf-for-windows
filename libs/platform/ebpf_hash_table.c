@@ -816,8 +816,8 @@ ebpf_hash_table_iterate(
     _Outptr_ const uint8_t** next_key,
     _Outptr_opt_ uint8_t** next_value)
 {
-    uint32_t bucket = 0;
-    uint32_t data_index = 0;
+    size_t bucket = 0;
+    size_t data_index = 0;
     ebpf_result_t result;
     if (!hash_table || !cookie || !next_key) {
         result = EBPF_INVALID_ARGUMENT;
@@ -861,7 +861,7 @@ ebpf_hash_table_iterate(
         break;
     }
 
-    result = _ebpf_hash_table_compose_cookie(bucket, data_index, cookie);
+    result = _ebpf_hash_table_compose_cookie(hash_table, bucket, data_index, cookie);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }

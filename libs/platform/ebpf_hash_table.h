@@ -34,6 +34,15 @@ extern "C"
         _In_ const uint8_t* key,
         _Inout_ uint8_t* value);
 
+    typedef _Must_inspect_result_ _Ret_writes_maybenull_(size) void* (*ebpf_hash_table_allocate)(size_t size);
+
+    typedef void (*ebpf_hash_table_free)(_Frees_ptr_opt_ void* memory);
+
+    typedef void (*ebpf_hash_table_extract_function)(
+        _In_ const uint8_t* value,
+        _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
+        _Out_ size_t* length_in_bits);
+
     /**
      * @brief Options to pass to ebpf_hash_table_create.
      *
@@ -46,12 +55,9 @@ extern "C"
         size_t key_size;   //< Size of key in bytes.
         size_t value_size; //< Size of value in bytes.
         // Optional fields.
-        void (*extract_function)(
-            _In_ const uint8_t* value,
-            _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
-            _Out_ size_t* length_in_bits); //< Function to extract key from stored value.
-        void* (*allocate)(size_t size);    //< Function to allocate memory - defaults to ebpf_epoch_allocate.
-        void (*free)(void* memory);        //< Function to free memory - defaults to ebpf_epoch_free.
+        ebpf_hash_table_extract_function extract_function; //< Function to extract key from stored value.
+        ebpf_hash_table_allocate allocate; //< Function to allocate memory - defaults to ebpf_epoch_allocate.
+        ebpf_hash_table_free free;         //< Function to free memory - defaults to ebpf_epoch_free.
         size_t bucket_count; //< Number of buckets to use - defaults to EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT.
         size_t max_entries;  //< Maximum number of entries in the hash table - defaults to EBPF_HASH_TABLE_NO_LIMIT.
         size_t supplemental_value_size; //< Size of supplemental value to store in each entry - defaults to 0.
