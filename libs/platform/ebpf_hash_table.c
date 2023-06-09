@@ -246,69 +246,6 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ const ebpf_hash_bucket_heade
 }
 
 /**
- * @brief Given a pointer to a key, determine its location in the hash table
- * and return a cookie for that location.
- *
- * @param[in] hash_table Hash table to search.
- * @param[in] key Key to search for.
- * @param[out] cookie Cookie if the key was found.
- * @retval EBPF_SUCCESS Key was found.
- * @retval EBPF_KEY_NOT_FOUND Key was not found.
- */
-static ebpf_result_t
-_ebpf_hash_table_key_to_cookie(
-    _In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Out_ uint64_t* cookie)
-{
-    uint32_t hash = _ebpf_hash_table_compute_hash(hash_table, key);
-    size_t bucket_index = hash % hash_table->bucket_count;
-    size_t data_index = 0;
-    ebpf_hash_bucket_header_t* bucket = hash_table->buckets[bucket_index].header;
-    if (!bucket) {
-        return EBPF_KEY_NOT_FOUND;
-    }
-    for (data_index = 0; data_index < bucket->count; data_index++) {
-        ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, data_index);
-        if (_ebpf_hash_table_compare(hash_table, key, entry->key) == 0) {
-            *cookie = ((uint64_t)bucket_index << 32) | data_index;
-            return EBPF_SUCCESS;
-        }
-    }
-    return EBPF_KEY_NOT_FOUND;
-}
-
-inline ebpf_result_t
-_ebpf_hash_table_compose_cookie(
-    _In_ const ebpf_hash_table_t* hash_table, size_t bucket_index, size_t data_index, _Out_ uint64_t* cookie)
-{
-    if (bucket_index > UINT32_MAX || data_index > UINT32_MAX) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    if (bucket_index >= hash_table->bucket_count) {
-        *cookie = UINT64_MAX;
-    }
-
-    *cookie = ((uint64_t)bucket_index << 32) | data_index;
-    return EBPF_SUCCESS;
-}
-
-inline ebpf_result_t
-_ebpf_hash_table_decompose_cookie(
-    _In_ const ebpf_hash_table_t* hash_table, uint64_t cookie, _Out_ size_t* bucket_index, _Out_ size_t* data_index)
-{
-    *bucket_index = (size_t)(cookie >> 32);
-    *data_index = (size_t)(cookie & 0xFFFFFFFF);
-
-    if (*bucket_index >= hash_table->bucket_count) {
-        *bucket_index = 0;
-        *data_index = 0;
-        return EBPF_INVALID_ARGUMENT;
-    } else {
-        return EBPF_SUCCESS;
-    }
-}
-
-/**
  * @brief Build a replacement bucket with the given entry inserted at the end.
  * Caller must free the old bucket.
  * Caller must ensure that the entry is not already in the bucket.
@@ -810,74 +747,6 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_iterate(
-    _In_ const ebpf_hash_table_t* hash_table,
-    _Inout_ uint64_t* cookie,
-    _Outptr_ const uint8_t** next_key,
-    _Outptr_opt_ uint8_t** next_value)
-{
-    size_t bucket = 0;
-    size_t data_index = 0;
-    ebpf_result_t result;
-    if (!hash_table || !cookie || !next_key) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
-    result = _ebpf_hash_table_decompose_cookie(hash_table, *cookie, &bucket, &data_index);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    *next_key = NULL;
-    if (next_value) {
-        *next_value = NULL;
-    }
-
-    for (; bucket < hash_table->bucket_count; bucket++) {
-        ebpf_hash_bucket_header_t* bucket_header = hash_table->buckets[bucket].header;
-
-        // Skip empty buckets.
-        if (!bucket_header) {
-            continue;
-        }
-
-        // If we are at the end of the current bucket, visit the next bucket.
-        if (data_index >= bucket_header->count) {
-            data_index = 0;
-            continue;
-        }
-
-        // Hash bucket entries are immutable. So we can safely return a pointer to the key and value.
-        // In the case of a delete, keys may be duplicated or skipped.
-        ebpf_hash_bucket_entry_t* entry =
-            _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket_header, data_index);
-        data_index++;
-        *next_key = entry->key;
-        if (next_value) {
-            *next_value = entry->data;
-        }
-        result = EBPF_SUCCESS;
-        break;
-    }
-
-    result = _ebpf_hash_table_compose_cookie(hash_table, bucket, data_index, cookie);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    if (!*next_key) {
-        result = EBPF_NO_MORE_KEYS;
-        goto Done;
-    }
-
-    result = EBPF_SUCCESS;
-
-Done:
-    return result;
-}
-
-_Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_next_key_pointer_and_value(
     _In_ const ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
@@ -979,4 +848,61 @@ size_t
 ebpf_hash_table_key_count(_In_ const ebpf_hash_table_t* hash_table)
 {
     return hash_table->entry_count;
+}
+
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_hash_table_iterate(
+    _In_ const ebpf_hash_table_t* hash_table,
+    _Inout_ size_t* bucket,
+    _Inout_ size_t* count,
+    _Out_writes_(*count) const uint8_t** keys,
+    _Out_writes_(*count) const uint8_t** values)
+{
+    size_t bucket_index = *bucket;
+    size_t index = 0;
+    size_t remaining_space = *count;
+    size_t next_bucket_count = 0;
+    if (bucket_index >= hash_table->bucket_count) {
+        return EBPF_NO_MORE_KEYS;
+    }
+
+    while (remaining_space > 0) {
+        if (bucket_index >= hash_table->bucket_count) {
+            break;
+        }
+        ebpf_hash_bucket_header_t* bucket_header = hash_table->buckets[bucket_index].header;
+        // Check if the bucket is empty.
+        if (!bucket_header) {
+            bucket_index++;
+            continue;
+        }
+        // Check if the next bucket will fit in the remaining space.
+        next_bucket_count = bucket_header->count;
+        if (remaining_space < next_bucket_count) {
+            break;
+        }
+        // Copy the keys and values.
+        for (size_t i = 0; i < next_bucket_count; i++) {
+            ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket_header, i);
+            if (!entry) {
+                return EBPF_INVALID_ARGUMENT;
+            }
+            keys[index] = entry->key;
+            values[index] = entry->data;
+            index++;
+            remaining_space--;
+        }
+        bucket_index++;
+    }
+
+    // If the bucket_index did not change, then there wasn't enough space to copy the next bucket.
+    if (*bucket == bucket_index) {
+        *count = next_bucket_count;
+        return EBPF_INSUFFICIENT_BUFFER;
+    }
+
+    *bucket = bucket_index;
+    *count = index;
+    return EBPF_SUCCESS;
 }

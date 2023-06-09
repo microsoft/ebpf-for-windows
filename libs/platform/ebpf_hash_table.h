@@ -131,23 +131,29 @@ extern "C"
     ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key);
 
     /**
-     * @brief Iterate through the hash table. If an entry is deleted during iteration, entries may be skipped or
-     * duplicated.
+     * @brief Fetch pointers to keys and values from one or more buckets in the hash table. Whole buckets worth of keys
+     * and values are returned at a time, with *count being the number of keys and values returned. If *count is too small
+     * to hold all the keys and values in the next bucket, EBPF_INSUFFICIENT_BUFFER is returned.
      *
      * @param[in] hash_table Hash-table to iterate.
      * @param[in,out] cookie Cookie to pass to the iterator or NULL to restart. Updated on return.
-     * @param[out] next_key The next key in the hash table.
-     * @param[out] next_value The next value in the hash table.
+     * @param[in,out] count On input, the number of keys and values that can be stored in the buffers. On output, the
+     * number of keys and values returned.
+     * @param[out] keys An array of pointers to keys in the hash table.
+     * @param[out] values An array of pointers to values in the hash table.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was passed to this function.
      * @retval EBPF_NO_MORE_KEYS No more keys.
+     * @retval EBPF_INSUFFICIENT_BUFFER The buffer is too small to hold all the keys and values in the bucket and *count has
+     * been updated to reflect the number of keys and values in the next bucket.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_iterate(
         _In_ const ebpf_hash_table_t* hash_table,
-        _Inout_ uint64_t* cookie,
-        _Outptr_ const uint8_t** next_key,
-        _Outptr_opt_ uint8_t** next_value);
+        _Inout_ size_t* bucket,
+        _Inout_ size_t* count,
+        _Out_writes_(*count) const uint8_t** keys,
+        _Out_writes_(*count) const uint8_t** values);
 
     /**
      * @brief Find the next key in the hash table.
