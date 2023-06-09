@@ -225,6 +225,7 @@ DECLARE_TEST("invalid_maps2", _test_mode::NoVerify);
 DECLARE_TEST("invalid_maps3", _test_mode::NoVerify);
 DECLARE_TEST("map", _test_mode::NoVerify)
 DECLARE_TEST("map_in_map", _test_mode::Verify)
+DECLARE_TEST("map_in_map_legacy", _test_mode::Verify)
 DECLARE_TEST("map_in_map_v2", _test_mode::Verify)
 DECLARE_TEST("map_reuse", _test_mode::Verify)
 DECLARE_TEST("map_reuse_2", _test_mode::Verify)

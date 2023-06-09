@@ -861,6 +861,18 @@ SPDX-License-Identifier: MIT
 			<Component Id="MAP_IN_MAP_UM.PDB" DiskId="1" Guid="{91D709F0-FABE-4EDF-9FB4-61E5EA633EBC}">
 				<File Id="MAP_IN_MAP_UM.PDB" Name="map_in_map_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_um.pdb" />
 			</Component>
+			<Component Id="MAP_IN_MAP_LEGACY.O" DiskId="1" Guid="{89FFF549-4331-43FA-8719-E7D7B113FC97}">
+				<File Id="MAP_IN_MAP_LEGACY.O" Name="map_in_map_legacy.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy.o" />
+			</Component>
+			<Component Id="MAP_IN_MAP_LEGACY.SYS" DiskId="1" Guid="{5DB35CCD-010F-4672-BDF4-FB848CBECDB5}">
+				<File Id="MAP_IN_MAP_LEGACY.SYS" Name="map_in_map_legacy.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy.sys" />
+			</Component>
+			<Component Id="MAP_IN_MAP_LEGACY_UM.DLL" DiskId="1" Guid="{95797C3C-1998-4712-8B65-F40C3B224357}">
+				<File Id="MAP_IN_MAP_LEGACY_UM.DLL" Name="map_in_map_legacy.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy.dll" />
+			</Component>
+			<Component Id="MAP_IN_MAP_LEGACY_UM.PDB" DiskId="1" Guid="{4E316722-513D-4EFB-B761-0F1602903B6B}">
+				<File Id="MAP_IN_MAP_LEGACY_UM.PDB" Name="map_in_map_legacy.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy.pdb" />
+			</Component>
 			<Component Id="MAP_IN_MAP_V2.O" DiskId="1" Guid="{D198FFAB-E146-4ED3-96B3-9FBED450C7D7}">
 				<File Id="MAP_IN_MAP_V2.O" Name="map_in_map_v2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_v2.o" />
 			</Component>
