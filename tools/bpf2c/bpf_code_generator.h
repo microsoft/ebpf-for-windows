@@ -241,9 +241,17 @@ class bpf_code_generator
     parse();
 
     /**
+     * @brief Parse BTF map information in the eBPF file.
+     *
+     * @param[in] section_name Section in the ELF file to parse maps in.
+     */
+    void
+    parse_btf_maps_section(const unsafe_string& name);
+
+    /**
      * @brief Parse legacy map information in the eBPF file.
      *
-     * @param[in] section_name Section in the ELF file to parse legacy maps in.
+     * @param[in] section_name Section in the ELF file to parse maps in.
      */
     void
     parse_legacy_maps_section(const unsafe_string& name);

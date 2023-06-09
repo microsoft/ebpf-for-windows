@@ -2008,7 +2008,7 @@ _ebpf_pe_get_map_definitions(
                 map->map_definition.max_entries = entry->definition.max_entries;
                 map->map_definition.pinning = entry->definition.pinning;
                 map->map_definition.inner_map_id = entry->definition.inner_id;
-                map->inner_map_original_fd = map_idx_to_verifier_fd(entry->definition.inner_map_idx);
+                map->inner_map_original_fd = map_idx_to_original_fd(entry->definition.inner_map_idx);
                 map->pinned = false;
                 map->reused = false;
                 map->pin_path = nullptr;

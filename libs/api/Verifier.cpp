@@ -140,17 +140,23 @@ _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<
 
     // For each map in map_names, find the corresponding map descriptor and cache the map handle.
     for (auto& entry : map_names) {
-        auto& btf_map_descriptor = btf_map_descriptors[btf_map_name_to_index[entry.map_name]];
-        auto pin_type = _get_pin_type_for_btf_map(btf_data, btf_map_descriptor.original_fd);
+        uint32_t idx = (uint32_t)btf_map_name_to_index[entry.map_name];
+        auto& btf_map_descriptor = btf_map_descriptors[idx];
+        // We temporarily stored BTF type ids in the descriptor's fd fields.
+        int btf_type_id = btf_map_descriptor.original_fd;
+        int btf_inner_type_id = btf_map_descriptor.inner_map_fd;
+
+        auto pin_type = _get_pin_type_for_btf_map(btf_data, btf_type_id);
         cache_map_handle(
             ebpf_handle_invalid,
-            btf_map_descriptor.original_fd, // Actually the BTF ID.
+            map_idx_to_original_fd(idx),
+            btf_type_id,
             btf_map_descriptor.type,
             btf_map_descriptor.key_size,
             btf_map_descriptor.value_size,
             btf_map_descriptor.max_entries,
             (uint32_t)ebpf_fd_invalid,
-            btf_map_descriptor.inner_map_fd, // Actually the inner map's BTF ID.
+            btf_inner_type_id,
             entry.section_offset,
             pin_type);
     }

@@ -120,6 +120,7 @@ cache_map_original_file_descriptor_with_handle(
 void
 cache_map_handle(
     ebpf_handle_t handle,
+    uint32_t original_fd,
     uint32_t id,
     uint32_t type,
     uint32_t key_size,
@@ -130,8 +131,6 @@ cache_map_handle(
     size_t section_offset,
     ebpf_pin_type_t pinning)
 {
-    fd_t original_fd = map_idx_to_verifier_fd((uint32_t)_map_file_descriptors.size());
-
     _map_file_descriptors.emplace_back(
         handle,
         (id ? id : EBPF_ID_NONE),

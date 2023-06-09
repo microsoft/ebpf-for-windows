@@ -357,9 +357,17 @@ bpf_code_generator::extract_program(const bpf_code_generator::unsafe_string& sec
     }
 }
 
+// BTF maps sections are identified as any section called ".maps".
+// PREVAIL does not support multiple BTF map sections.
+static bool
+_is_btf_map_section(const std::string& name)
+{
+    return name == ".maps";
+}
+
 // Legacy (non-BTF) maps sections are identified as any section called "maps", or matching "maps/<map-name>".
 static bool
-is_legacy_map_section(const std::string& name)
+_is_legacy_map_section(const std::string& name)
 {
     std::string maps_prefix = "maps/";
     return name == "maps" || (name.length() > 5 && name.compare(0, maps_prefix.length(), maps_prefix) == 0);
@@ -406,11 +414,11 @@ bpf_code_generator::visit_symbols(symbol_visitor_t visitor, const unsafe_string&
     }
 }
 
+// Parse a BTF maps section.
 void
-bpf_code_generator::parse()
+bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
 {
-    // Parse the new .maps section if it exists.
-    auto map_section = get_optional_section(".maps");
+    auto map_section = get_optional_section(name);
     if (map_section) {
         auto btf_section = get_required_section(".BTF");
         btf_type_data data =
@@ -434,7 +442,7 @@ bpf_code_generator::parse()
                     map_names_by_offset[symbol_value] = unsafe_symbol_name;
                 }
             },
-            ".maps");
+            name);
 
         for (const auto& [offset, unsafe_symbol_name] : map_names_by_offset) {
             if (map_name_to_index.find(unsafe_symbol_name.raw()) == map_name_to_index.end()) {
@@ -471,19 +479,24 @@ bpf_code_generator::parse()
             map_definitions[unsafe_symbol_name] = {map_definition, index++};
         }
     }
+}
 
-    // Parse any older maps sections.
-    // Parse all maps sections.
+// Parse global data (currently map information) in the eBPF file.
+void
+bpf_code_generator::parse()
+{
     for (auto& section : reader.sections) {
         std::string name = section->get_name();
-        if (is_legacy_map_section(name)) {
+        if (_is_btf_map_section(name)) {
+            parse_btf_maps_section(name);
+        } else if (_is_legacy_map_section(name)) {
             parse_legacy_maps_section(name);
         }
     }
 }
 
 static std::tuple<std::string, ELFIO::Elf_Half>
-get_symbol_name_and_section_index(ELFIO::const_symbol_section_accessor& symbols, ELFIO::Elf_Xword index)
+_get_symbol_name_and_section_index(ELFIO::const_symbol_section_accessor& symbols, ELFIO::Elf_Xword index)
 {
     std::string symbol_name;
     ELFIO::Elf64_Addr value{};
@@ -510,7 +523,7 @@ bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
     ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
     int map_count = 0;
     for (ELFIO::Elf_Xword index = 0; index < symbols.get_symbols_num(); index++) {
-        auto [symbol_name, section_index] = get_symbol_name_and_section_index(symbols, index);
+        auto [symbol_name, section_index] = _get_symbol_name_and_section_index(symbols, index);
         if ((section_index == map_section->get_index()) && !symbol_name.empty()) {
             map_count++;
         }

@@ -16,18 +16,18 @@
 
 // The map file descriptors that appear in eBPF bytecode start at 1,
 // in the order the maps appear in the maps sections.
-const int VERIFIER_FD_OFFSET = 1;
+const int ORIGINAL_FD_OFFSET = 1;
 
 inline fd_t
-map_idx_to_verifier_fd(uint32_t idx)
+map_idx_to_original_fd(uint32_t idx)
 {
-    return idx + VERIFIER_FD_OFFSET;
+    return idx + ORIGINAL_FD_OFFSET;
 }
 
 inline uint32_t
-verifier_fd_to_map_idx(fd_t fd)
+original_fd_to_map_idx(fd_t fd)
 {
-    return fd - VERIFIER_FD_OFFSET;
+    return fd - ORIGINAL_FD_OFFSET;
 }
 
 typedef struct _map_cache
@@ -39,7 +39,10 @@ typedef struct _map_cache
     ebpf_pin_type_t pinning;
     uint32_t inner_id;
 
-    _map_cache() : handle(0), section_offset(0), verifier_map_descriptor(), pinning(PIN_NONE) {}
+    _map_cache()
+        : handle(0), id(EBPF_ID_NONE), section_offset(0), verifier_map_descriptor(), pinning(PIN_NONE),
+          inner_id(EBPF_ID_NONE)
+    {}
 
     _map_cache(ebpf_handle_t handle, size_t section_offset, EbpfMapDescriptor descriptor, ebpf_pin_type_t pinning)
         : handle(handle), section_offset(section_offset), verifier_map_descriptor(descriptor), pinning(pinning)
@@ -82,6 +85,7 @@ get_file_size(const char* filename, size_t* byte_code_size) noexcept;
 void
 cache_map_handle(
     ebpf_handle_t handle,
+    uint32_t original_fd,
     uint32_t id,
     uint32_t type,
     uint32_t key_size,
