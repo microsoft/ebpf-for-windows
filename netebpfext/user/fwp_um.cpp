@@ -8,8 +8,6 @@
 
 thread_local static FWPS_CONNECT_REQUEST0* _fwp_um_connect_request = nullptr;
 
-static int64_t _wfp_redirect_handle = 0;
-
 // 98849e12-b07d-11ec-9a30-18602489beee
 DEFINE_GUID(
     EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER, 0x98849e12, 0xb07d, 0x11ec, 0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee);
@@ -858,16 +856,14 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void NTAPI
 _IRQL_requires_(PASSIVE_LEVEL) NTSTATUS NTAPI
     FwpsRedirectHandleCreate0(_In_ const GUID* providerGuid, _Reserved_ UINT32 flags, _Out_ HANDLE* redirectHandle)
 {
-    if (ebpf_fault_injection_inject_fault()) {
-        *redirectHandle = 0;
-        return STATUS_NO_MEMORY;
-    }
-
     UNREFERENCED_PARAMETER(providerGuid);
     UNREFERENCED_PARAMETER(flags);
-    UNREFERENCED_PARAMETER(redirectHandle);
 
-    *redirectHandle = (HANDLE)InterlockedIncrement64(&_wfp_redirect_handle);
+    // Fault injection is implicitly introduced by ebpf_allocate().
+    *redirectHandle = (HANDLE)ebpf_allocate(1);
+    if (*redirectHandle == nullptr) {
+        return STATUS_NO_MEMORY;
+    }
 
     return STATUS_SUCCESS;
 }
@@ -875,7 +871,7 @@ _IRQL_requires_(PASSIVE_LEVEL) NTSTATUS NTAPI
 void NTAPI
 FwpsRedirectHandleDestroy0(HANDLE redirectHandle)
 {
-    UNREFERENCED_PARAMETER(redirectHandle);
+    ebpf_free(redirectHandle);
 }
 
 _IRQL_requires_min_(PASSIVE_LEVEL) _IRQL_requires_max_(DISPATCH_LEVEL) FWPS_CONNECTION_REDIRECT_STATE NTAPI
