@@ -94,12 +94,15 @@ set(expected_file_list
   sockops_raw.c
   sockops_sys.c
   map_dll.c
-  map_in_map_dll.c
-  map_in_map_raw.c
-  map_in_map_sys.c
-  map_in_map_v2_dll.c
-  map_in_map_v2_raw.c
-  map_in_map_v2_sys.c
+  map_in_map_btf_dll.c
+  map_in_map_btf_raw.c
+  map_in_map_btf_sys.c
+  map_in_map_legacy_id_dll.c
+  map_in_map_legacy_id_raw.c
+  map_in_map_legacy_id_sys.c
+  map_in_map_legacy_idx_dll.c
+  map_in_map_legacy_idx_raw.c
+  map_in_map_legacy_idx_sys.c
   map_raw.c
   map_reuse_2_dll.c
   map_reuse_2_raw.c

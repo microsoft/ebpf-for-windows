@@ -1637,7 +1637,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_btf_um.dll" : "map_in_map_btf.o");
     struct bpf_object* xdp_object = bpf_object__open(file_name);
     REQUIRE(xdp_object != nullptr);
 
@@ -1753,7 +1753,7 @@ _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
     _test_helper_end_to_end test_helper;
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_btf_um.dll" : "map_in_map_btf.o");
     struct bpf_object* xdp_object = bpf_object__open(file_name);
     REQUIRE(xdp_object != nullptr);
 

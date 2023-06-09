@@ -577,7 +577,7 @@ TEST_CASE("show maps", "[netsh][maps]")
     _test_helper_netsh test_helper;
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_add_program, L"map_in_map.o", nullptr, nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_add_program, L"map_in_map_btf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
 
