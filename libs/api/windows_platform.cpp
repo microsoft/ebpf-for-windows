@@ -26,27 +26,22 @@ static void
 parse_maps_section_windows(
     std::vector<EbpfMapDescriptor>& verifier_map_descriptors,
     const char* data,
-    size_t size,
+    size_t map_record_size,
     int map_count,
     const struct ebpf_platform_t*,
     ebpf_verifier_options_t)
 {
     UNREFERENCED_PARAMETER(verifier_map_descriptors);
 
-    if (size % sizeof(ebpf_map_definition_in_file_t) != 0) {
-        throw std::runtime_error(
-            std::string("bad maps section size, must be a multiple of ") +
-            std::to_string(sizeof(ebpf_map_definition_in_file_t)));
-    }
-
-    // Get map definitions from section into a local list.
-    auto mapdefs = std::vector<ebpf_map_definition_in_file_t>(
-        (ebpf_map_definition_in_file_t*)data, (ebpf_map_definition_in_file_t*)(data + size * map_count));
-
     // Add map definitions into the map cache.
-    for (int i = 0; i < mapdefs.size(); i++) {
-        auto& s = mapdefs[i];
-        uint32_t section_offset = (i * sizeof(ebpf_map_definition_in_file_t));
+    for (int i = 0; i < map_count; i++) {
+        size_t section_offset = (i * map_record_size);
+
+        // Copy the data from the record into an ebpf_map_definition_in_file_t structure,
+        // zero-padding any extra, and being careful not to overflow the buffer.
+        ebpf_map_definition_in_file_t s{};
+        memcpy(&s, data + section_offset, std::min(sizeof(s), map_record_size));
+
         fd_t inner_map_original_fd = is_map_of_maps(s.type) ? map_idx_to_verifier_fd(s.inner_map_idx) : ebpf_fd_invalid;
 
         cache_map_handle(
