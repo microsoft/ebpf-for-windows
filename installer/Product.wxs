@@ -868,10 +868,10 @@ SPDX-License-Identifier: MIT
 				<File Id="MAP_IN_MAP_LEGACY_IDX.SYS" Name="map_in_map_legacy_idx.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_idx.sys" />
 			</Component>
 			<Component Id="MAP_IN_MAP_LEGACY_IDX_UM.DLL" DiskId="1" Guid="{95797C3C-1998-4712-8B65-F40C3B224357}">
-				<File Id="MAP_IN_MAP_LEGACY_IDX_UM.DLL" Name="map_in_map_legacy_idx.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_idx.dll" />
+				<File Id="MAP_IN_MAP_LEGACY_IDX_UM.DLL" Name="map_in_map_legacy_idx_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_idx_um.dll" />
 			</Component>
 			<Component Id="MAP_IN_MAP_LEGACY_IDX_UM.PDB" DiskId="1" Guid="{4E316722-513D-4EFB-B761-0F1602903B6B}">
-				<File Id="MAP_IN_MAP_LEGACY_IDX_UM.PDB" Name="map_in_map_legacy_idx.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_idx.pdb" />
+				<File Id="MAP_IN_MAP_LEGACY_IDX_UM.PDB" Name="map_in_map_legacy_idx_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_idx_um.pdb" />
 			</Component>
 			<Component Id="MAP_IN_MAP_LEGACY_ID.O" DiskId="1" Guid="{D198FFAB-E146-4ED3-96B3-9FBED450C7D7}">
 				<File Id="MAP_IN_MAP_LEGACY_ID.O" Name="map_in_map_legacy_id.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_id.o" />

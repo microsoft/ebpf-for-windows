@@ -15,6 +15,12 @@
 #include <cassert>
 #include <stdexcept>
 
+static bool
+is_map_of_maps(ebpf_map_type_t type)
+{
+    return (type == BPF_MAP_TYPE_ARRAY_OF_MAPS || type == BPF_MAP_TYPE_HASH_OF_MAPS);
+}
+
 // Parse a legacy (non-BTF) maps section.
 static void
 parse_maps_section_windows(
@@ -41,7 +47,7 @@ parse_maps_section_windows(
     for (int i = 0; i < mapdefs.size(); i++) {
         auto& s = mapdefs[i];
         uint32_t section_offset = (i * sizeof(ebpf_map_definition_in_file_t));
-        fd_t inner_map_original_fd = map_idx_to_verifier_fd(s.inner_map_idx);
+        fd_t inner_map_original_fd = is_map_of_maps(s.type) ? map_idx_to_verifier_fd(s.inner_map_idx) : ebpf_fd_invalid;
 
         cache_map_handle(
             ebpf_handle_invalid,
@@ -64,18 +70,17 @@ resolve_inner_map_references_windows(std::vector<EbpfMapDescriptor>& verifier_ma
     for (auto& map_descriptor : map_descriptors) {
         // Resolve the inner map original fd.
         unsigned int inner_map_original_fd = UINT_MAX;
-        if (map_descriptor.verifier_map_descriptor.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
-            map_descriptor.verifier_map_descriptor.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+        if (is_map_of_maps((ebpf_map_type_t)map_descriptor.verifier_map_descriptor.type)) {
             uint32_t inner_map_idx = verifier_fd_to_map_idx(map_descriptor.verifier_map_descriptor.inner_map_fd);
-            if ((inner_map_idx >= 0) && (inner_map_idx < map_descriptors.size())) {
-                inner_map_original_fd = map_descriptors.at(inner_map_idx).verifier_map_descriptor.original_fd;
-            } else if (map_descriptor.inner_id != 0) {
+            if (map_descriptor.inner_id != EBPF_ID_NONE) {
                 for (auto& map_descriptor2 : map_descriptors) {
                     if (map_descriptor2.id == map_descriptor.inner_id) {
                         inner_map_original_fd = map_descriptor2.verifier_map_descriptor.original_fd;
                         break;
                     }
                 }
+            } else if ((inner_map_idx >= 0) && (inner_map_idx < map_descriptors.size())) {
+                inner_map_original_fd = map_descriptors.at(inner_map_idx).verifier_map_descriptor.original_fd;
             }
             if (inner_map_original_fd == UINT_MAX) {
                 throw std::runtime_error(
