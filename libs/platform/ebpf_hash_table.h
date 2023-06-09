@@ -132,8 +132,8 @@ extern "C"
 
     /**
      * @brief Fetch pointers to keys and values from one or more buckets in the hash table. Whole buckets worth of keys
-     * and values are returned at a time, with *count being the number of keys and values returned. If *count is too small
-     * to hold all the keys and values in the next bucket, EBPF_INSUFFICIENT_BUFFER is returned.
+     * and values are returned at a time, with *count being the number of keys and values returned. If *count is too
+     * small to hold all the keys and values in the next bucket, EBPF_INSUFFICIENT_BUFFER is returned.
      *
      * @param[in] hash_table Hash-table to iterate.
      * @param[in,out] cookie Cookie to pass to the iterator or NULL to restart. Updated on return.
@@ -144,8 +144,8 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was passed to this function.
      * @retval EBPF_NO_MORE_KEYS No more keys.
-     * @retval EBPF_INSUFFICIENT_BUFFER The buffer is too small to hold all the keys and values in the bucket and *count has
-     * been updated to reflect the number of keys and values in the next bucket.
+     * @retval EBPF_INSUFFICIENT_BUFFER The buffer is too small to hold all the keys and values in the bucket and *count
+     * has been updated to reflect the number of keys and values in the next bucket.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_iterate(

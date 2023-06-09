@@ -850,7 +850,6 @@ ebpf_hash_table_key_count(_In_ const ebpf_hash_table_t* hash_table)
     return hash_table->entry_count;
 }
 
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_iterate(
     _In_ const ebpf_hash_table_t* hash_table,
