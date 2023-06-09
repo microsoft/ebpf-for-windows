@@ -246,7 +246,7 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ const ebpf_hash_bucket_heade
 }
 
 /**
- * @brief Given a pointer to a key, determine it's location in the hash table
+ * @brief Given a pointer to a key, determine its location in the hash table
  * and return a cookie for that location.
  *
  * @param[in] hash_table Hash table to search.
@@ -274,6 +274,38 @@ _ebpf_hash_table_key_to_cookie(
         }
     }
     return EBPF_KEY_NOT_FOUND;
+}
+
+inline ebpf_result_t
+_ebpf_hash_table_compose_cookie(
+    _In_ const ebpf_hash_table_t* hash_table, size_t bucket_index, size_t data_index, _Out_ uint64_t* cookie)
+{
+    if (bucket_index > UINT32_MAX || data_index > UINT32_MAX) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (bucket_index >= hash_table->bucket_count) {
+        *cookie = UINT64_MAX;
+    }
+
+    *cookie = ((uint64_t)bucket_index << 32) | data_index;
+    return EBPF_SUCCESS;
+}
+
+inline ebpf_result_t
+_ebpf_hash_table_decompose_cookie(
+    _In_ const ebpf_hash_table_t* hash_table, uint64_t cookie, _Out_ size_t* bucket_index, _Out_ size_t* data_index)
+{
+    *bucket_index = (size_t)(cookie >> 32);
+    *data_index = (size_t)(cookie & 0xFFFFFFFF);
+
+    if (*bucket_index >= hash_table->bucket_count) {
+        *bucket_index = 0;
+        *data_index = 0;
+        return EBPF_INVALID_ARGUMENT;
+    } else {
+        return EBPF_SUCCESS;
+    }
 }
 
 /**
@@ -792,11 +824,8 @@ ebpf_hash_table_iterate(
         goto Done;
     }
 
-    bucket = (uint32_t)(*cookie >> 32);
-    data_index = (uint32_t)(*cookie & UINT32_MAX);
-
-    if (bucket >= hash_table->bucket_count) {
-        result = EBPF_INVALID_ARGUMENT;
+    result = _ebpf_hash_table_decompose_cookie(hash_table, *cookie, &bucket, &data_index);
+    if (result != EBPF_SUCCESS) {
         goto Done;
     }
 
@@ -819,6 +848,8 @@ ebpf_hash_table_iterate(
             continue;
         }
 
+        // Hash bucket entries are immutable. So we can safely return a pointer to the key and value.
+        // In the case of a delete, the key may be duplicated.
         ebpf_hash_bucket_entry_t* entry =
             _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket_header, data_index);
         data_index++;
@@ -830,7 +861,10 @@ ebpf_hash_table_iterate(
         break;
     }
 
-    *cookie = ((uint64_t)bucket << 32) | data_index;
+    result = _ebpf_hash_table_compose_cookie(bucket, data_index, cookie);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     if (!*next_key) {
         result = EBPF_NO_MORE_KEYS;

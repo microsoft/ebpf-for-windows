@@ -125,7 +125,8 @@ extern "C"
     ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key);
 
     /**
-     * @brief Iterate through the hash table.
+     * @brief Iterate through the hash table. If an entry is deleted during iteration, entries may be skipped or
+     * duplicated.
      *
      * @param[in] hash_table Hash-table to iterate.
      * @param[in,out] cookie Cookie to pass to the iterator or NULL to restart. Updated on return.
