@@ -45,7 +45,8 @@ typedef struct _map_cache
     {}
 
     _map_cache(ebpf_handle_t handle, size_t section_offset, EbpfMapDescriptor descriptor, ebpf_pin_type_t pinning)
-        : handle(handle), section_offset(section_offset), verifier_map_descriptor(descriptor), pinning(pinning)
+        : handle(handle), id(EBPF_ID_NONE), section_offset(section_offset), verifier_map_descriptor(descriptor),
+          pinning(pinning), inner_id(EBPF_ID_NONE)
     {}
 
     _map_cache(
@@ -105,7 +106,7 @@ get_map_handle(int map_fd);
 std::vector<ebpf_handle_t>
 get_all_map_handles(void);
 
-std::vector<map_cache_t>
+std::vector<map_cache_t>&
 get_all_map_descriptors();
 
 __forceinline int

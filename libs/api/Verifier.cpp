@@ -160,6 +160,10 @@ _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<
             entry.section_offset,
             pin_type);
     }
+
+    // Resolve inner_map_fd for each map.
+    btf_map_descriptors.clear();
+    g_ebpf_platform_windows.resolve_inner_map_references(btf_map_descriptors);
 }
 
 // Parse symbols to get map names for all maps sections.

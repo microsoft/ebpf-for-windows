@@ -582,7 +582,7 @@ bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
                 map_section->get_data() + symbol_value,
                 min(sizeof(map_definitions[unsafe_symbol_name].definition), map_record_size));
 
-            map_definitions[unsafe_symbol_name].index = symbol_value / map_record_size;
+            map_definitions[unsafe_symbol_name].index = old_map_count + (symbol_value / map_record_size);
         }
     }
 

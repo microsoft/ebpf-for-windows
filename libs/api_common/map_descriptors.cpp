@@ -84,7 +84,7 @@ get_all_map_handles()
     return handles;
 }
 
-std::vector<map_cache_t>
+std::vector<map_cache_t>&
 get_all_map_descriptors()
 {
     return _map_file_descriptors;

@@ -1876,6 +1876,9 @@ _get_next_map_to_create(std::vector<ebpf_map_t*>& maps) noexcept
         if (map->inner_map == nullptr) {
             // This map requires an inner map template, look up which one.
             for (auto& inner_map : maps) {
+                if (!inner_map) {
+                    continue;
+                }
                 if ((map->map_definition.inner_map_id != EBPF_ID_NONE &&
                      inner_map->map_id == map->map_definition.inner_map_id) ||
                     (map->inner_map_original_fd == inner_map->original_fd)) {

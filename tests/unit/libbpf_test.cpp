@@ -1631,7 +1631,7 @@ TEST_CASE("simple hash of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYP
 
 // Verify an app can communicate with an eBPF program via an array of maps.
 static void
-_array_of_maps_test(ebpf_execution_type_t execution_type)
+_array_of_btf_maps_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -1686,17 +1686,18 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     bpf_object__close(xdp_object);
 }
 
-DECLARE_JIT_TEST_CASES("array of maps", "[libbpf]", _array_of_maps_test);
+DECLARE_JIT_TEST_CASES("array of btf maps", "[libbpf]", _array_of_btf_maps_test);
 
 // Create a map-in-map using id and inner_id.
 static void
-_array_of_maps2_test(ebpf_execution_type_t execution_type)
+_array_of_id_maps_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_v2_um.dll" : "map_in_map_v2.o");
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_legacy_id_um.dll" : "map_in_map_legacy_id.o");
     struct bpf_object* xdp_object = bpf_object__open(file_name);
     REQUIRE(xdp_object != nullptr);
 
@@ -1745,7 +1746,7 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     bpf_object__close(xdp_object);
 }
 
-DECLARE_JIT_TEST_CASES("array of maps2", "[libbpf]", _array_of_maps2_test);
+DECLARE_JIT_TEST_CASES("array of id maps", "[libbpf]", _array_of_id_maps_test);
 
 static void
 _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)

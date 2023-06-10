@@ -34,8 +34,10 @@ _parse_maps_section_windows(
     UNREFERENCED_PARAMETER(verifier_map_descriptors);
 
     // Add map definitions into the map cache.
+    uint32_t previous_map_count = (uint32_t)get_map_descriptor_size();
     for (int i = 0; i < map_count; i++) {
         size_t section_offset = (i * map_record_size);
+        uint32_t idx = previous_map_count + i;
 
         // Copy the data from the record into an ebpf_map_definition_in_file_t structure,
         // zero-padding any extra, and being careful not to overflow the buffer.
@@ -47,7 +49,7 @@ _parse_maps_section_windows(
 
         cache_map_handle(
             ebpf_handle_invalid,
-            map_idx_to_original_fd(i),
+            map_idx_to_original_fd(idx),
             s.id,
             s.type,
             s.key_size,
@@ -63,7 +65,7 @@ _parse_maps_section_windows(
 static void
 _resolve_inner_map_references_windows(std::vector<EbpfMapDescriptor>& verifier_map_descriptors)
 {
-    auto map_descriptors = get_all_map_descriptors();
+    auto& map_descriptors = get_all_map_descriptors();
     for (auto& map_descriptor : map_descriptors) {
         // Resolve the inner map original fd.
         unsigned int inner_map_original_fd = UINT_MAX;
