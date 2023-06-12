@@ -291,6 +291,97 @@ _sample_ebpf_ext_driver_io_device_control(
             goto Done;
         }
         break;
+    case IOCTL_SAMPLE_EBPF_EXT_CTL_RUN_BATCH:
+        sample_ebpf_ext_batch_run_request_t* batch_run_request = NULL;
+        sample_ebpf_ext_batch_run_reply_t* batch_run_reply = NULL;
+        ebpf_execution_context_state_t context_state = {0};
+        if (input_buffer_length != 0) {
+            // Retrieve the input buffer associated with the request object.
+            status = WdfRequestRetrieveInputBuffer(
+                request,             // Request object.
+                input_buffer_length, // Length of input buffer.
+                &input_buffer,       // Pointer to buffer.
+                &actual_input_length // Length of buffer.
+            );
+
+            if (!NT_SUCCESS(status)) {
+                KdPrintEx(
+                    (DPFLTR_IHVDRIVER_ID,
+                     DPFLTR_INFO_LEVEL,
+                     "%s: Input buffer failure %d\n",
+                     SAMPLE_EBPF_EXT_NAME_A,
+                     status));
+                goto Done;
+            }
+
+            if (input_buffer == NULL) {
+                status = STATUS_INVALID_PARAMETER;
+                goto Done;
+            }
+
+            size_t minimum_request_size = sizeof(sample_ebpf_ext_batch_run_request_t);
+            size_t minimum_reply_size;
+
+            if (actual_input_length < minimum_request_size) {
+                status = STATUS_INVALID_PARAMETER;
+                goto Done;
+            }
+
+            minimum_reply_size = actual_input_length;
+
+            // Be aware: Input and output buffer point to the same memory.
+            if (minimum_reply_size > 0) {
+                // Retrieve output buffer associated with the request object.
+                status = WdfRequestRetrieveOutputBuffer(
+                    request, output_buffer_length, &output_buffer, &actual_output_length);
+                if (!NT_SUCCESS(status)) {
+                    KdPrintEx(
+                        (DPFLTR_IHVDRIVER_ID,
+                         DPFLTR_INFO_LEVEL,
+                         "%s: Output buffer failure %d\n",
+                         SAMPLE_EBPF_EXT_NAME_A,
+                         status));
+                    goto Done;
+                }
+                if (output_buffer == NULL) {
+                    status = STATUS_INVALID_PARAMETER;
+                    goto Done;
+                }
+
+                if (actual_output_length < minimum_reply_size) {
+                    status = STATUS_BUFFER_TOO_SMALL;
+                    goto Done;
+                }
+            }
+
+            batch_run_request = (sample_ebpf_ext_batch_run_request_t*)input_buffer;
+            batch_run_reply = (sample_ebpf_ext_batch_run_reply_t*)output_buffer;
+
+            result = sample_ebpf_extension_invoke_batch_begin_program(&context_state);
+            if (result != EBPF_SUCCESS) {
+                status = STATUS_UNSUCCESSFUL;
+                goto Done;
+            }
+
+            program_context.data_start = batch_run_request->data;
+            program_context.data_end = (uint8_t*)batch_run_request + input_buffer_length;
+
+            // Invoke the eBPF program. Pass the output buffer as program context data.
+            for (uint32_t i = 0; i < batch_run_request->count; i++) {
+                result = sample_ebpf_extension_invoke_batch_program(&program_context, &context_state, &program_result);
+                if (result != EBPF_SUCCESS) {
+                    status = STATUS_UNSUCCESSFUL;
+                    batch_run_reply->status = status;
+                    break;
+                }
+            }
+
+            result = sample_ebpf_extension_invoke_batch_end_program(&context_state);
+        } else {
+            status = STATUS_INVALID_PARAMETER;
+            goto Done;
+        }
+        break;
     case IOCTL_SAMPLE_EBPF_EXT_CTL_PROFILE: {
         size_t minimum_request_size = sizeof(sample_ebpf_ext_profile_request_t);
         size_t minimum_reply_size = sizeof(sample_ebpf_ext_profile_reply_t);

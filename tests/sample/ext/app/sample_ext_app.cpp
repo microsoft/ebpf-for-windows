@@ -85,6 +85,24 @@ struct _sample_extension_helper
                 nullptr) == TRUE);
     }
 
+    void
+    invoke_batch(std::vector<char>& input_buffer, std::vector<char>& output_buffer)
+    {
+        uint32_t count_of_bytes_returned;
+
+        // Issue IOCTL.
+        REQUIRE(
+            ::DeviceIoControl(
+                device_handle,
+                IOCTL_SAMPLE_EBPF_EXT_CTL_RUN,
+                input_buffer.data(),
+                static_cast<uint32_t>(input_buffer.size()),
+                output_buffer.data(),
+                static_cast<uint32_t>(output_buffer.size()),
+                (unsigned long*)&count_of_bytes_returned,
+                nullptr) == TRUE);
+    }
+
   private:
     HANDLE device_handle;
 };
@@ -118,6 +136,39 @@ sample_ebpf_ext_test(_In_ const struct bpf_object* object)
     REQUIRE(memcmp(output_buffer.data(), expected_output, strlen(expected_output)) == 0);
 }
 
+void
+sample_ebpf_ext_test_batch(_In_ const struct bpf_object* object)
+{
+    struct bpf_map* map = nullptr;
+    fd_t map_fd;
+    const char* strings[] = {"rainy", "sunny"};
+    std::vector<std::vector<char>> map_entry_buffers(EBPF_COUNT_OF(strings), std::vector<char>(32));
+    const char* input_string = "rainy rainy rainy rainy rainy";
+    size_t input_string_length = strlen(input_string);
+    std::vector<char> input_buffer(EBPF_OFFSET_OF(sample_ebpf_ext_batch_run_request_t, data), input_string_length);
+    const char* expected_output = "sunny sunny sunny sunny rainy";
+    std::vector<char> output_buffer(256);
+
+    sample_ebpf_ext_batch_run_request_t* request = (sample_ebpf_ext_batch_run_request_t*)input_buffer.data();
+    request->count_of_map_handles = 4;
+    _sample_extension_helper extension;
+
+    // Get map and insert data.
+    map = bpf_object__find_map_by_name(object, "test_map");
+    REQUIRE(map != nullptr);
+    map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
+    for (uint32_t key = 0; key < EBPF_COUNT_OF(strings); key++) {
+        std::copy(strings[key], strings[key] + strlen(strings[key]), map_entry_buffers[key].begin());
+        REQUIRE(bpf_map_update_elem(map_fd, &key, map_entry_buffers[key].data(), EBPF_ANY) == EBPF_SUCCESS);
+    }
+
+    extension.invoke_batch(input_buffer, output_buffer);
+
+    REQUIRE(memcmp(output_buffer.data(), expected_output, strlen(expected_output)) == 0);
+}
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("jit_test", "[sample_ext_test]")
 {
@@ -145,6 +196,18 @@ TEST_CASE("interpret_test", "[sample_ext_test]")
     sample_ebpf_ext_test(object);
 }
 #endif
+
+TEST_CASE("native_test", "[sample_ext_test]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    program_load_attach_helper_t _helper(
+        "test_sample_ebpf.sys", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_ANY, nullptr, 0, hook);
+
+    object = _helper.get_object();
+
+    sample_ebpf_ext_test(object);
+}
 
 void
 utility_helpers_test(ebpf_execution_type_t execution_type)
