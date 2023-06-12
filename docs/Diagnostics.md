@@ -14,18 +14,21 @@ This document contains information about diagnostic tools and outputs used for d
 
 ## WFP State
 
-Use the command `netsh wfp show state` to produce a `wfpstate.xml`. This file shows the WFP state on the system, including all WFP `sublayer`, `callout`, and `filter` objects. This can be used to determine if eBPF objects are correctly configured or if there are other callout objects present which may interfere with eBPF behavior.
+Use the command `netsh wfp show state` to produce a `wfpstate.xml`. This file shows the WFP state on the system,
+including all WFP `sublayer`, `callout`, and `filter` objects. This can be used to determine if eBPF objects are
+correctly configured or if there are other callout objects present that may interfere with eBPF behavior.
 
 The following program types rely on WFP:
-- EBPF_PROGRAM_TYPE_XDP
-- EBPF_PROGRAM_TYPE_BIND
-- EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
-- EBPF_PROGRAM_TYPE_SOCK_OPS
+- BPF_PROG_TYPE_XDP
+- BPF_PROG_TYPE_BIND
+- BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+- BPF_PROG_TYPE_SOCK_OPS
 
 --------------------
 ## bpftool
 
-`bpftool.exe` can be used to show eBPF object state. This is useful when checking if your eBPF program is loaded, attached, and any maps used are properly configured.
+`bpftool.exe` can be used to show eBPF object state. This is useful when checking if your eBPF program is loaded,
+attached, and any maps used are properly configured.
 
 --------------------
 
@@ -39,13 +42,13 @@ For many issues, ETL traces are necessary to further root cause and resolve the 
 
 - `NetEbpfExtProvider`
     - {f2f2ca01-ad02-4a07-9e90-95a2334f3692}
-    - This provider is part of the eBPF platform. This traces content from NetEbpfExt.
+    - This provider is part of the eBPF platform. This traces content from NetEbpfExt.sys.
 - `EbpfForWindowsProvider`
     - {394f321c-5cf4-404c-aa34-4df1428a7f9c}
-    - This provider is part of the eBPF platform. This traces content from ebpfCore.
+    - This provider is part of the eBPF platform. This traces content from ebpfCore.sys.
 - `Microsoft.Windows.Networking.WFP.Callout`
     - {00e7ee66-5b24-5c41-22cb-af98f63e2f90}
-    - This provider is part of windows OS. This traces content from WFP callout actions.
+    - This provider is part of the Windows OS. This traces content from WFP callout actions.
 
 --------------------
 
@@ -67,7 +70,8 @@ logman stop "ebpf_diag_manual" -ets
 
 ### Decoding Traces
 
-Once you have the `etl` file captured with the above providers, you will need to first decode the traces before viewing them.
+Once you have the `etl` file captured with the above providers, you will need to first decode the traces before viewing
+them.
 
 One method for decoding traces is to use the `netsh` tool. The following command can be used for decoding:
 ```
@@ -77,6 +81,7 @@ netsh trace convert <etl file>
 --------------------
 
 ### Viewing Traces
-Once decoded, you can open the file with any text viewing tool. One option for viewing text files is: https://textanalysistool.github.io/
+Once decoded, you can open the file with any text viewing tool. One option for viewing text files is:
+https://textanalysistool.github.io/
 
 --------------------
