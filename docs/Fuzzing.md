@@ -18,9 +18,8 @@ Copy the crash file from the artifact folder to a separate directory,  *verifier
 ### Using the command line
 Run a desired admin CMD locating to the copied files in the new directory, and enter with the following command:
 ```
-windbgx -y SRV*;. -srcpath <your-path-to-ebpf-for-windows> verifier_fuzzer.exe <crash-file-name>
+windbgx -y SRV*;. -srcpath <your-path-to-ebpf-for-windows> -z <dump-file-name>
 ```
-A window containing the windbg debugger opens up and enter ```g``` in the command box of windbg. If an access violation indicating ```Access violation - code c0000005 (first chance)``` shows up, please use ```sxi c0000005``` to ignore this error. Please use ```g``` again to see the line that crashes.
 
 An alternative is to reproduce a crash to use the local latest build and run
 ```
