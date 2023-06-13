@@ -14,15 +14,18 @@ This document contains information about diagnostic tools and outputs used for d
 
 ## WFP State
 
-Use the command `netsh wfp show state` to produce a `wfpstate.xml`. This file shows the WFP state on the system,
-including all WFP `sublayer`, `callout`, and `filter` objects. This can be used to determine if eBPF objects are
-correctly configured or if there are other callout objects present that may interfere with eBPF behavior.
+netebpfext.sys uses the Windows Filtering Platform (WFP) to implement certain eBPF program types. Depending on the
+program and attach type, different WFP objects are expected to be created.
 
 The following program types rely on WFP:
 - BPF_PROG_TYPE_XDP
 - BPF_PROG_TYPE_BIND
 - BPF_PROG_TYPE_CGROUP_SOCK_ADDR
 - BPF_PROG_TYPE_SOCK_OPS
+
+Use the command `netsh wfp show state` to produce a `wfpstate.xml`. This file shows the WFP state on the system,
+including all WFP `sublayer`, `callout`, and `filter` objects. This can be used to determine if eBPF objects are
+correctly configured or if there are other callout objects present that may interfere with eBPF behavior.
 
 --------------------
 ## bpftool
@@ -34,7 +37,7 @@ attached, and any maps used are properly configured.
 
 ## eBPF Diagnostic Traces
 
-For many issues, ETL traces are necessary to further root cause and resolve the issue.
+For some issues, ETL traces are necessary to further root cause and resolve the issue.
 
 --------------------
 

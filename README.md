@@ -63,6 +63,8 @@ in github.  This can also function similar to a mailing list if you subscribe to
 clicking "Watch" (or "Unwatch") and selecting "Custom" -> "Discussions" (or by selecting "All Activity" if
 you want to receive notifications about everything else too).
 
+If you have issues with an eBPF program, start with the [Troubleshooting Guide](docs/TroubleshootingGuide.md).
+
 ## Frequently Asked Questions
 
 ### 1. Is this a fork of eBPF?

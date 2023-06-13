@@ -16,7 +16,7 @@ If the eBPF program is not getting invoked at all, walk through the following st
 resolve it:
 
 1. [Verify eBPF components are running](#verify-ebpf-components-are-running)
-2. [Verify WFP objects are present](#verify-wfp-objects-are-present)
+2. [Verify Windows Filtering Platform (WFP) objects are present](#verify-wfp-objects-are-present)
 3. [Verify the eBPF Program is Configured Correctly](#verify-the-ebpf-program-is-configured-correctly)
 
 --------------------
@@ -284,6 +284,7 @@ This is the expected `callout` and `filter` at the `FWPM_LAYER_ALE_AUTH_CONNECT_
 2. [Verify the eBPF program is attached](#verify-the-ebpf-program-is-attached)
 3. [Verify eBPF maps are properly configured](#verify-ebpf-maps-are-properly-configured)
 4. [eBPF Program Load or Attach Failures](#ebpf-program-load-or-attach-failures)
+5. [Verify the eBPF program passes the verifier](./debugging.md)
 
 --------------------
 
@@ -387,7 +388,7 @@ structures are used in the map and how you can use this output to verify that th
 ### eBPF Program Load or Attach Failures
 
 Once you have [identified that the program is not attached or loaded](#troubleshooting-general-ebpf-program-issues),
-you should first confirm that the eBPF client has attempted to load and attach the program (i.e there were no issues
+you should first confirm that the eBPF client has attempted to load and attach the program (i.e, there were no issues
 within the eBPF client itself). If you have confirmed that the eBPF client has attempted to load/attach the program,
 but it has failed, you can use the following to further debug your issue.
 
@@ -404,11 +405,11 @@ There are a few classes of known issues:
 
 There are certain errors that likely point to the eBPF client. These errors will be present in
 [eBPF diagnostic traces](./Diagnostics.md#ebpf-diagnostic-traces):
-- `ERROR_ACCESS_DENIED` or `STATUS_ACCESS_DENIED`. This means that the user-mode applicaiton is not running as admin or
-  localsystem. This points to an issue with the eBPF client. The resolution here is to run the user-mode application or
+- `ERROR_ACCESS_DENIED` or `STATUS_ACCESS_DENIED`. This means that the user-mode application is not running as admin or
+  localsystem. This points to an issue with the application. The resolution here is to run the user-mode application or
   service as localsystem or admin.
 - `ERROR_FILE_NOT_FOUND`. This indicates that the application tried to open an eBPF program with an invalid path. This
-  points to an issue within the eBPF client. The resolution is to change the path used by the application.
+  points to an issue within the application. The resolution is to change the path used by the application.
 
 **NMR Attach Failures**
 
