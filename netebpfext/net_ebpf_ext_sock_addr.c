@@ -208,13 +208,6 @@ typedef struct _net_ebpf_extension_connection_context
     LIST_ENTRY list_entry;
 } net_ebpf_extension_connection_context_t;
 
-typedef struct _net_ebpf_extension_redirect_handle_entry
-{
-    LIST_ENTRY list_entry;
-    uint64_t filter_id;
-    HANDLE redirect_handle;
-} net_ebpf_extension_redirect_handle_entry_t;
-
 typedef struct _net_ebpf_ext_sock_addr_statistics
 {
     volatile long permit_connection_count;
@@ -226,7 +219,6 @@ static net_ebpf_ext_sock_addr_statistics_t _net_ebpf_ext_statistics;
 
 static EX_SPIN_LOCK _net_ebpf_ext_sock_addr_lock;
 // TODO: Issue #1675 (Use hash table to store connection contexts in netebpfext)
-_Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_redirect_handle_list;
 _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_connect_context_list;
 static uint32_t _net_ebpf_ext_connect_context_count = 0;
 
@@ -393,6 +385,7 @@ const net_ebpf_extension_wfp_filter_parameters_array_t _net_ebpf_extension_sock_
 typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
 {
     net_ebpf_extension_wfp_filter_context_t base;
+    HANDLE redirect_handle;
     uint32_t compartment_id;
     BOOLEAN v4_attach_type;
 } net_ebpf_extension_sock_addr_wfp_filter_context_t;
@@ -462,6 +455,7 @@ _net_ebpf_extension_sock_addr_on_client_attach(
     _In_ const net_ebpf_extension_hook_client_t* attaching_client,
     _In_ const net_ebpf_extension_hook_provider_t* provider_context)
 {
+    NTSTATUS status;
     ebpf_result_t result = EBPF_SUCCESS;
     const ebpf_extension_data_t* client_data = net_ebpf_extension_hook_client_get_client_data(attaching_client);
     uint32_t compartment_id;
@@ -514,6 +508,7 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
     NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
+    filter_context->redirect_handle = NULL;
     filter_context->compartment_id = compartment_id;
 
     // Get the WFP filter parameters for this hook type.
@@ -527,6 +522,17 @@ _net_ebpf_extension_sock_addr_on_client_attach(
     // context to TRUE.
     if (memcmp(filter_parameters_array->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0) {
         filter_context->v4_attach_type = TRUE;
+    }
+
+    // Allocate redirect handle for this filter context, only in the case of INET*_CONNECT attach types.
+    if (memcmp(filter_parameters_array->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0 ||
+        memcmp(filter_parameters_array->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(GUID)) == 0) {
+        status =
+            FwpsRedirectHandleCreate(&EBPF_HOOK_ALE_CONNECT_REDIRECT_PROVIDER, 0, &filter_context->redirect_handle);
+        if (!NT_SUCCESS(status)) {
+            result = EBPF_FAILED;
+        }
+        NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
     }
 
     // Add a single WFP filter at the WFP layer corresponding to the hook type, and set the hook NPI client as the
@@ -547,6 +553,9 @@ _net_ebpf_extension_sock_addr_on_client_attach(
 Exit:
     if (result != EBPF_SUCCESS) {
         if (filter_context != NULL) {
+            if (filter_context->redirect_handle != NULL) {
+                FwpsRedirectHandleDestroy(filter_context->redirect_handle);
+            }
             ExFreePool(filter_context);
         }
     }
@@ -563,6 +572,9 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
             detaching_client);
     ASSERT(filter_context != NULL);
     net_ebpf_extension_delete_wfp_filters(filter_context->base.filter_ids_count, filter_context->base.filter_ids);
+    if (filter_context->redirect_handle != NULL) {
+        FwpsRedirectHandleDestroy(filter_context->redirect_handle);
+    }
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
@@ -671,78 +683,7 @@ _net_ebpf_sock_addr_clean_up_security_descriptor()
 static void
 _net_ebpf_sock_addr_initialize_globals()
 {
-    InitializeListHead(&_net_ebpf_ext_redirect_handle_list);
     InitializeListHead(&_net_ebpf_ext_connect_context_list);
-}
-
-static NTSTATUS
-_net_ebpf_ext_sock_addr_update_redirect_handle(uint64_t filter_id, HANDLE redirect_handle)
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    KIRQL old_irql;
-
-    net_ebpf_extension_redirect_handle_entry_t* entry =
-        (net_ebpf_extension_redirect_handle_entry_t*)ExAllocatePoolUninitialized(
-            NonPagedPoolNx, sizeof(net_ebpf_extension_redirect_handle_entry_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, entry, "redirect_handle", status);
-
-    memset(entry, 0, sizeof(net_ebpf_extension_redirect_handle_entry_t));
-    entry->filter_id = filter_id;
-    entry->redirect_handle = redirect_handle;
-
-    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
-    InsertTailList(&_net_ebpf_ext_redirect_handle_list, &entry->list_entry);
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
-
-Exit:
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
-}
-
-static void
-_net_ebpf_ext_sock_addr_delete_redirect_handle(uint64_t filter_id)
-{
-    KIRQL old_irql;
-
-    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
-
-    LIST_ENTRY* list_entry = _net_ebpf_ext_redirect_handle_list.Flink;
-    while (list_entry != &_net_ebpf_ext_redirect_handle_list) {
-        net_ebpf_extension_redirect_handle_entry_t* entry =
-            CONTAINING_RECORD(list_entry, net_ebpf_extension_redirect_handle_entry_t, list_entry);
-        if (entry->filter_id == filter_id) {
-            RemoveEntryList(list_entry);
-            ExFreePool(entry);
-            break;
-        }
-        list_entry = list_entry->Flink;
-    }
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
-}
-
-static NTSTATUS
-_net_ebpf_ext_sock_addr_get_redirect_handle(uint64_t filter_id, _Out_ HANDLE* redirect_handle)
-{
-    NTSTATUS status = STATUS_NOT_FOUND;
-    KIRQL old_irql;
-
-    old_irql = ExAcquireSpinLockShared(&_net_ebpf_ext_sock_addr_lock);
-
-    LIST_ENTRY* list_entry = _net_ebpf_ext_redirect_handle_list.Flink;
-    while (list_entry != &_net_ebpf_ext_redirect_handle_list) {
-        net_ebpf_extension_redirect_handle_entry_t* entry =
-            CONTAINING_RECORD(list_entry, net_ebpf_extension_redirect_handle_entry_t, list_entry);
-        if (entry->filter_id == filter_id) {
-            *redirect_handle = entry->redirect_handle;
-            status = STATUS_SUCCESS;
-            break;
-        }
-        list_entry = list_entry->Flink;
-    }
-
-    ExReleaseSpinLockShared(&_net_ebpf_ext_sock_addr_lock, old_irql);
-
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 /**
@@ -1124,30 +1065,6 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
 }
 
-NTSTATUS
-net_ebpf_ext_connect_redirect_filter_change_notify(
-    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter)
-{
-    NET_EBPF_EXT_LOG_ENTRY();
-    NTSTATUS status = STATUS_SUCCESS;
-
-    if (callout_notification_type == FWPS_CALLOUT_NOTIFY_ADD_FILTER) {
-        HANDLE redirect_handle;
-        status = FwpsRedirectHandleCreate(&EBPF_HOOK_ALE_CONNECT_REDIRECT_PROVIDER, 0, &redirect_handle);
-        NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status);
-
-        status = _net_ebpf_ext_sock_addr_update_redirect_handle(filter->filterId, redirect_handle);
-        NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status);
-    } else if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
-        _net_ebpf_ext_sock_addr_delete_redirect_handle(filter->filterId);
-    }
-
-    net_ebpf_ext_filter_change_notify(callout_notification_type, filter_key, filter);
-
-Exit:
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
-}
-
 //
 // WFP callout callback functions.
 //
@@ -1162,6 +1079,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
     uint32_t result;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
@@ -1231,6 +1149,8 @@ Exit:
     if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
+
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 /*
@@ -1248,6 +1168,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
     uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
@@ -1312,6 +1233,7 @@ Exit:
     _net_ebpf_ext_log_sock_addr_classify(
         "auth_classify", incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, NULL, verdict);
 
+    NET_EBPF_EXT_LOG_EXIT();
     return;
 }
 
@@ -1480,6 +1402,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
     uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1507,6 +1430,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "No \"write\" right; exiting.");
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        NET_EBPF_EXT_LOG_EXIT();
         return;
     }
 
@@ -1520,6 +1444,11 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             STATUS_INVALID_PARAMETER);
         goto Exit;
     }
+
+    // Populate the sock_addr context with WFP classify input fields.
+    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
+        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
+    memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
 
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
@@ -1553,16 +1482,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
 
     // Get the redirect handle for this filter.
-    status = _net_ebpf_ext_sock_addr_get_redirect_handle(filter->filterId, &redirect_handle);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "Failed to get redirect handle.",
-            filter->filterId,
-            (uint64_t)sock_addr_ctx->compartment_id);
-        goto Exit;
-    }
+    redirect_handle = filter_context->redirect_handle;
+    ASSERT(redirect_handle != NULL);
 
     // Fetch redirect state.
     redirect_state = FwpsQueryConnectionRedirectState(incoming_metadata_values->redirectRecords, redirect_handle, NULL);
@@ -1579,11 +1500,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
     }
-
-    // Populate the sock_addr context with WFP classify input fields.
-    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
-    memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
 
     v4_mapped = (sock_addr_ctx->family == AF_INET6) && IN6_IS_ADDR_V4MAPPED((IN6_ADDR*)sock_addr_ctx->user_ip6);
 
@@ -1696,6 +1612,8 @@ Exit:
     if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
+
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 static ebpf_result_t
