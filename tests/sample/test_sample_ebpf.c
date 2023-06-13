@@ -28,14 +28,6 @@ struct
     __uint(max_entries, 2);
 } test_map SEC(".maps");
 
-struct
-{
-    __uint(type, BPF_MAP_TYPE_ARRAY);
-    __type(key, uint32_t);
-    __uint(value_size, VALUE_SIZE);
-    __uint(max_entries, 1);
-} counter_map SEC(".maps");
-
 SEC("sample_ext")
 int
 test_program_entry(sample_program_context_t* context)
@@ -43,8 +35,6 @@ test_program_entry(sample_program_context_t* context)
     int64_t result;
     uint32_t keys[2] = {0, 1};
     uint8_t* values[2] = {0};
-    uint32_t* counter_value;
-    uint32_t counter_key = 0;
 
     values[0] = bpf_map_lookup_elem(&test_map, &keys[0]);
     values[1] = bpf_map_lookup_elem(&test_map, &keys[1]);
@@ -63,11 +53,6 @@ test_program_entry(sample_program_context_t* context)
                 }
             }
         }
-    }
-
-    counter_value = bpf_map_lookup_elem(&counter_map, &counter_key);
-    if (counter_value) {
-        *counter_value += 1;
     }
 
     result = sample_ebpf_extension_helper_function1(context);

@@ -571,7 +571,6 @@ sample_ebpf_extension_invoke_batch_program(
     ebpf_program_batch_invoke_function_t batch_invoke_program = hook_client->batch_program_invoke;
     const void* client_binding_context = hook_client->client_binding_context;
 
-    // Run the eBPF program using cached copies of batch_invoke_program and client_binding_context.
     return_value = batch_invoke_program(client_binding_context, context, result, state);
 
 Exit:
@@ -594,7 +593,6 @@ sample_ebpf_extension_invoke_batch_end_program(_Inout_ ebpf_execution_context_st
     ebpf_program_batch_end_invoke_function_t batch_end_function = hook_client->end_batch_program_invoke;
     const void* client_binding_context = hook_client->client_binding_context;
 
-    // Run the eBPF program using cached copies of batch_end_function and client_binding_context.
     return_value = batch_end_function(client_binding_context, state);
 
 Exit:
