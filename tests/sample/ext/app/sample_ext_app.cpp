@@ -94,7 +94,7 @@ struct _sample_extension_helper
         REQUIRE(
             ::DeviceIoControl(
                 device_handle,
-                IOCTL_SAMPLE_EBPF_EXT_CTL_RUN,
+                IOCTL_SAMPLE_EBPF_EXT_CTL_RUN_BATCH,
                 input_buffer.data(),
                 static_cast<uint32_t>(input_buffer.size()),
                 output_buffer.data(),
@@ -145,12 +145,14 @@ sample_ebpf_ext_test_batch(_In_ const struct bpf_object* object)
     std::vector<std::vector<char>> map_entry_buffers(EBPF_COUNT_OF(strings), std::vector<char>(32));
     const char* input_string = "rainy rainy rainy rainy rainy";
     size_t input_string_length = strlen(input_string);
-    std::vector<char> input_buffer(EBPF_OFFSET_OF(sample_ebpf_ext_batch_run_request_t, data), input_string_length);
+    std::vector<char> input_buffer(EBPF_OFFSET_OF(sample_ebpf_ext_batch_run_request_t, data) + input_string_length);
     const char* expected_output = "sunny sunny sunny sunny rainy";
     std::vector<char> output_buffer(256);
 
     sample_ebpf_ext_batch_run_request_t* request = (sample_ebpf_ext_batch_run_request_t*)input_buffer.data();
-    request->count_of_map_handles = 4;
+    request->count = 4;
+    memcpy(request->data, input_string, input_string_length);
+    sample_ebpf_ext_batch_run_reply_t* reply = (sample_ebpf_ext_batch_run_reply_t*)output_buffer.data();
     _sample_extension_helper extension;
 
     // Get map and insert data.
@@ -166,7 +168,7 @@ sample_ebpf_ext_test_batch(_In_ const struct bpf_object* object)
 
     extension.invoke_batch(input_buffer, output_buffer);
 
-    REQUIRE(memcmp(output_buffer.data(), expected_output, strlen(expected_output)) == 0);
+    REQUIRE(memcmp(reply->data, expected_output, strlen(expected_output)) == 0);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
@@ -207,6 +209,18 @@ TEST_CASE("native_test", "[sample_ext_test]")
     object = _helper.get_object();
 
     sample_ebpf_ext_test(object);
+}
+
+TEST_CASE("batch_test", "[sample_ext_test]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    program_load_attach_helper_t _helper(
+        "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_ANY, nullptr, 0, hook);
+
+    object = _helper.get_object();
+
+    sample_ebpf_ext_test_batch(object);
 }
 
 void

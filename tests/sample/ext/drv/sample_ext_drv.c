@@ -371,12 +371,15 @@ _sample_ebpf_ext_driver_io_device_control(
                 result = sample_ebpf_extension_invoke_batch_program(&program_context, &context_state, &program_result);
                 if (result != EBPF_SUCCESS) {
                     status = STATUS_UNSUCCESSFUL;
-                    batch_run_reply->status = status;
                     break;
                 }
             }
 
             result = sample_ebpf_extension_invoke_batch_end_program(&context_state);
+            if (result != EBPF_SUCCESS) {
+                status = STATUS_UNSUCCESSFUL;
+                goto Done;
+            }
         } else {
             status = STATUS_INVALID_PARAMETER;
             goto Done;
