@@ -37,7 +37,7 @@ attached, and any maps used are properly configured.
 
 ## eBPF Diagnostic Traces
 
-For some issues, ETL traces are necessary to further root cause and resolve the issue.
+For some issues, Event Trace Logs (ETL) are necessary to further root cause and resolve the issue.
 
 --------------------
 
@@ -73,7 +73,7 @@ logman stop "ebpf_diag_manual" -ets
 
 ### Decoding Traces
 
-Once you have the `etl` file captured with the above providers, you will need to first decode the traces before viewing
+Once you have the `.etl` file captured with the above providers, you will need to first decode the traces before viewing
 them.
 
 One method for decoding traces is to use the `netsh` tool. The following command can be used for decoding:
