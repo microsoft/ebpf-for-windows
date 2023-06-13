@@ -152,7 +152,3 @@ net_ebpf_ext_sock_addr_unregister_providers();
  */
 NTSTATUS
 net_ebpf_ext_sock_addr_register_providers();
-
-NTSTATUS
-net_ebpf_ext_connect_redirect_filter_change_notify(
-    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
