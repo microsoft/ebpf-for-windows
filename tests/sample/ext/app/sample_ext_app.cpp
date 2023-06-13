@@ -211,6 +211,7 @@ TEST_CASE("native_test", "[sample_ext_test]")
     sample_ebpf_ext_test(object);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("batch_test", "[sample_ext_test]")
 {
     struct bpf_object* object = nullptr;
@@ -222,6 +223,7 @@ TEST_CASE("batch_test", "[sample_ext_test]")
 
     sample_ebpf_ext_test_batch(object);
 }
+#endif
 
 void
 utility_helpers_test(ebpf_execution_type_t execution_type)
