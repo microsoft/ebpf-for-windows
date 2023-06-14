@@ -411,7 +411,7 @@ extern "C"
 
     /**
      * @brief Get the set of program information used by the verifier during
-     * the last verification.
+     * the last verification .
      *
      * @param[out] program_info Pointer to the program information used to
      * verify the program.
