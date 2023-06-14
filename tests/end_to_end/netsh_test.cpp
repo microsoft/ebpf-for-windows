@@ -6,8 +6,8 @@
 #pragma warning(disable : 4200)
 #include "bpf/libbpf.h"
 #pragma warning(pop)
+#include "..\..\usersim\src\fault_injection.h"
 #include "ebpf_epoch.h"
-#include "ebpf_fault_injection.h"
 #include "netsh_test_helper.h"
 #include "platform.h"
 #include "test_helper.hpp"
@@ -35,7 +35,7 @@ _test_helper_netsh::_test_helper_netsh() { _ebpf_netsh_objects.clear(); }
 
 _test_helper_netsh::~_test_helper_netsh()
 {
-    if (ebpf_fault_injection_is_enabled()) {
+    if (usersim_fault_injection_is_enabled()) {
         for (auto& object : _ebpf_netsh_objects) {
             bpf_object__close(object);
         }

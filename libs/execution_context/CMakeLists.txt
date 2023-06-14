@@ -21,6 +21,8 @@ set(execution_context_sources
   ebpf_general_helpers.c
 )
 
+add_definitions(-D_AMD64_=1)
+
 #
 # execution_context_user
 #
@@ -35,6 +37,7 @@ target_include_directories("execution_context_user" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_SOURCE_DIR}/external/usersim/inc"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"
 )
 
@@ -61,6 +64,7 @@ target_include_directories("execution_context_kernel" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_SOURCE_DIR}/external/ebpf-verifier/src"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"
 )
 

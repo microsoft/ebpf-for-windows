@@ -26,6 +26,9 @@ endforeach()
 add_library("ebpf_for_windows_base_definitions" INTERFACE)
 target_compile_definitions("ebpf_for_windows_base_definitions" INTERFACE
   $<$<CONFIG:Debug>:_DEBUG>
+  $<$<CONFIG:FuzzerDebug>:_DEBUG>
+  $<$<CONFIG:NativeOnlyDebug>:_DEBUG>
+  $<$<CONFIG:NativeOnlyRelease>:_DEBUG>
   $<$<CONFIG:Release>:NDEBUG>
   $<$<CONFIG:RelWithDebInfo>:NDEBUG>
 )

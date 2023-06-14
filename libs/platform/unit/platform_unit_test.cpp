@@ -367,8 +367,6 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     thread_2.join();
 }
 
-extern bool _ebpf_platform_is_preemptible;
-
 class _signal
 {
   public:
@@ -400,8 +398,6 @@ class _signal
  */
 TEST_CASE("epoch_test_stale_items", "[platform]")
 {
-    _ebpf_platform_is_preemptible = false;
-
     _test_helper test_helper;
     _signal signal_1;
     _signal signal_2;
@@ -409,6 +405,10 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
     if (ebpf_get_cpu_count() < 2) {
         return;
     }
+
+    KIRQL old_irql;
+    KeRaiseIrql(DISPATCH_LEVEL, &old_irql);
+
     size_t const test_iterations = 100;
     for (size_t test_iteration = 0; test_iteration < test_iterations; test_iteration++) {
 
@@ -447,6 +447,8 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         REQUIRE(ebpf_epoch_is_free_list_empty(0));
         REQUIRE(ebpf_epoch_is_free_list_empty(1));
     }
+
+    KeLowerIrql(old_irql);
 }
 
 static auto provider_function = []() { return EBPF_SUCCESS; };

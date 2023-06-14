@@ -19,6 +19,7 @@ target_include_directories("sample_ext_app" PRIVATE
   "${CMAKE_SOURCE_DIR}/tests/libs/common"
   "${CMAKE_SOURCE_DIR}/tests/sample"
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
+  "${CMAKE_SOURCE_DIR}/external/usersim/inc"
   "${WDK_ROOT}/include/${WDK_VERSION}/km"
   "${WDK_ROOT}/include/${WDK_VERSION}/shared"
 )

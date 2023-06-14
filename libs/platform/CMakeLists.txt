@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
+list(APPEND CMAKE_MODULE_PATH
+  "${CMAKE_SOURCE_DIR}/external/FindWDK/cmake"
+)
+
+find_package(WDK REQUIRED)
+
 #
 # platform_{user,kernel}
 #
@@ -55,18 +61,14 @@ add_library("platform_user" STATIC
   ${platform_user_sources}
   user/framework.h
   user/ebpf_handle_user.c
-  user/ebpf_leak_detector.cpp
-  user/ebpf_fault_injection.cpp
   user/ebpf_platform_user.cpp
   user/ebpf_native_user.c
-  user/kernel_um.cpp
-  user/nmr_impl.cpp
-  user/nmr_um.cpp
 )
 
 target_include_directories("platform_user" PRIVATE
   ${platform_kernel_include_dirs}
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
+  "${CMAKE_SOURCE_DIR}/external/usersim/inc"
   "${CMAKE_SOURCE_DIR}/include/user"
 )
 
@@ -103,6 +105,13 @@ target_link_libraries("platform_kernel" PRIVATE
 )
 
 target_compile_definitions("platform_kernel" PRIVATE
+  WINNT=1
+  _WIN64
+  _AMD64_
+  AMD64
+  MSC_NOOPT
+  DEPRECATE_DDK_FUNCTIONS=1
+
   WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP
   WINAPI_PARTITION_DESKTOP=1
   WINAPI_PARTITION_SYSTEM=1
