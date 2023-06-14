@@ -5,8 +5,6 @@
 #define PATH_MAX MAX_PATH
 #define strdup _strdup
 
-#define TEST_LINE 0
-
 static inline int
 libbpf_err(int ret)
 {
