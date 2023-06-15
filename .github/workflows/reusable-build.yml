@@ -183,7 +183,7 @@ jobs:
     - name: Copy LLVM libs for Fuzzing & Address Sanitizing
       if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: copy "${{env.msvc_tools_version}}\bin\Hostx64\x64\clang*" .
+      run: copy "${{env.msvc_tools_path}}\bin\Hostx64\x64\clang*" .
 
     - name: Download demo repository
       if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
