@@ -176,7 +176,10 @@ jobs:
     - name: Copy LLVM libs for Fuzzing & Address Sanitizing
       if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.36.32532\bin\Hostx64\x64\clang*" .
+      shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        copy "%VCToolsInstallDir%\bin\Hostx64\x64\clang*" .
 
     - name: Download demo Debug repository
       if: steps.skip_check.outputs.should_skip != 'true' && (matrix.configurations == 'Debug' || matrix.configurations == 'NativeOnlyDebug')
