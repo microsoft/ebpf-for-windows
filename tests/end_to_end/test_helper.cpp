@@ -57,9 +57,9 @@ typedef struct _service_context
     std::wstring file_path;
     intptr_t handle{};
     GUID module_id{};
-    HMODULE dll;
-    bool loaded;
-    ebpf_extension_client_t* binding_context;
+    HMODULE dll{};
+    bool loaded = false;
+    ebpf_extension_client_t* binding_context = nullptr;
     bool delete_pending = false;
 } service_context_t;
 
