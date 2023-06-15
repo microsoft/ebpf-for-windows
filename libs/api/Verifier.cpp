@@ -61,20 +61,17 @@ struct _thread_local_storage_cache
 static ebpf_pin_type_t
 _get_pin_type_for_btf_map(const libbtf::btf_type_data& btf_data, libbtf::btf_type_id id)
 {
-    auto map_struct = btf_data.get_kind(id);
-    for (const auto& member : std::get<libbtf::BTF_KIND_STRUCT>(map_struct).members) {
+    auto map_struct = btf_data.get_kind_type<libbtf::btf_kind_struct>(id);
+    for (const auto& member : map_struct.members) {
         if (member.name == "pinning") {
             // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
-            auto pining_type_id = member.type;
+            auto pinning_type_id = member.type;
             // Dereference the pointer type.
-            pining_type_id = btf_data.dereference_pointer(pining_type_id);
+            pinning_type_id = btf_data.dereference_pointer(pinning_type_id);
             // Get the array type.
-            auto pining_type = btf_data.get_kind(pining_type_id);
-            if (pining_type.index() != libbtf::BTF_KIND_ARRAY) {
-                throw std::runtime_error("pinning field is not an array");
-            }
+            auto pinning_type = btf_data.get_kind_type<libbtf::btf_kind_array>(pinning_type_id);
             // Value is encoded as the number of elements in the array.
-            return static_cast<ebpf_pin_type_t>(std::get<libbtf::BTF_KIND_ARRAY>(pining_type).count_of_elements);
+            return static_cast<ebpf_pin_type_t>(pinning_type.count_of_elements);
         }
     }
     return PIN_NONE;

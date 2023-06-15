@@ -16,6 +16,7 @@ target_include_directories("bpf2c_plugin" PRIVATE
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm/inc"
   "${CMAKE_SOURCE_DIR}/external/ebpf-verifier/src"
+  "${CMAKE_SOURCE_DIR}/external/ebpf-verifier/external/libbtf"
 )
 
 target_link_libraries("bpf2c_plugin" PRIVATE

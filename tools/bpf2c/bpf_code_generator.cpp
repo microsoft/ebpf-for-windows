@@ -12,11 +12,13 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_code_generator.h"
-#define ebpf_inst ebpf_inst_btf
-#include "btf.h"
-#include "btf_parser.h"
-#undef ebpf_inst
 #include "ebpf_version.h"
+#define ebpf_inst ebpf_inst_btf
+#include "libbtf/btf_map.h"
+#include "libbtf/btf_parse.h"
+#include "libbtf/btf_type_data.h"
+#include "spec_type_descriptors.hpp"
+#undef ebpf_inst
 
 #include <windows.h>
 #include <cassert>
@@ -414,6 +416,18 @@ bpf_code_generator::visit_symbols(symbol_visitor_t visitor, const unsafe_string&
     }
 }
 
+template <typename T>
+static std::vector<T>
+vector_of(const ELFIO::section& sec)
+{
+    auto data = sec.get_data();
+    auto size = sec.get_size();
+    if ((size % sizeof(T) != 0) || size > UINT32_MAX || !data) {
+        throw std::runtime_error("Invalid argument to vector_of");
+    }
+    return {(T*)data, (T*)(data + size)};
+}
+
 // Parse a BTF maps section.
 void
 bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
@@ -421,10 +435,23 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
     auto map_section = get_optional_section(name);
     if (map_section) {
         auto btf_section = get_required_section(".BTF");
-        btf_type_data data =
-            std::vector<uint8_t>(btf_section->get_data(), btf_section->get_data() + btf_section->get_size());
+        std::optional<libbtf::btf_type_data> btf_data = vector_of<std::byte>(*btf_section);
         std::vector<EbpfMapDescriptor> map_descriptors;
-        auto map_name_to_index = parse_btf_map_sections(data, map_descriptors);
+
+        auto map_data = libbtf::parse_btf_map_section(btf_data.value());
+        std::map<std::string, size_t> map_offsets;
+        for (auto& map : map_data) {
+            map_offsets.insert({map.name, map_descriptors.size()});
+            map_descriptors.push_back({
+                .original_fd = static_cast<int>(map.type_id),
+                .type = map.map_type,
+                .key_size = map.key_size,
+                .value_size = map.value_size,
+                .max_entries = map.max_entries,
+                .inner_map_fd = map.inner_map_type_id != 0 ? map.inner_map_type_id : -1,
+            });
+        }
+        auto map_name_to_index = map_offsets;
         size_t index = 0;
 
         std::map<size_t, unsafe_string> map_names_by_offset;
@@ -459,21 +486,17 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
             map_definition.inner_id = map_descriptor.inner_map_fd != -1 ? map_descriptor.inner_map_fd : 0;
 
             // Get pinning data from the BTF data.
-            auto map_struct = data.get_kind(map_descriptor.original_fd);
-            for (const auto& member : std::get<BTF_KIND_STRUCT>(map_struct).members) {
+            auto map_struct = btf_data->get_kind_type<libbtf::btf_kind_struct>(map_descriptor.original_fd);
+            for (const auto& member : map_struct.members) {
                 if (member.name == "pinning") {
                     // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
-                    auto pining_type_id = member.type;
+                    auto pinning_type_id = member.type;
                     // Dereference the pointer type.
-                    pining_type_id = data.dereference_pointer(pining_type_id);
+                    pinning_type_id = btf_data->dereference_pointer(pinning_type_id);
                     // Get the array type.
-                    auto pining_type = data.get_kind(pining_type_id);
-                    if (pining_type.index() != BTF_KIND_ARRAY) {
-                        throw bpf_code_generator_exception("pinning field is not an array");
-                    }
+                    auto pinning_type = btf_data->get_kind_type<libbtf::btf_kind_array>(pinning_type_id);
                     // Value is encoded as the number of elements in the array.
-                    map_definition.pinning =
-                        static_cast<ebpf_pin_type_t>(std::get<BTF_KIND_ARRAY>(pining_type).count_of_elements);
+                    map_definition.pinning = static_cast<ebpf_pin_type_t>(pinning_type.count_of_elements);
                 }
             }
             map_definitions[unsafe_symbol_name] = {map_definition, index++};
@@ -644,14 +667,14 @@ bpf_code_generator::extract_btf_information()
         return;
     }
 
-    std::vector<uint8_t> btf_data(
-        reinterpret_cast<const uint8_t*>(btf->get_data()),
-        reinterpret_cast<const uint8_t*>(btf->get_data()) + btf->get_size());
-    std::vector<uint8_t> btf_ext_data(
-        reinterpret_cast<const uint8_t*>(btf_ext->get_data()),
-        reinterpret_cast<const uint8_t*>(btf_ext->get_data()) + btf_ext->get_size());
+    std::vector<std::byte> btf_data(
+        reinterpret_cast<const std::byte*>(btf->get_data()),
+        reinterpret_cast<const std::byte*>(btf->get_data()) + btf->get_size());
+    std::vector<std::byte> btf_ext_data(
+        reinterpret_cast<const std::byte*>(btf_ext->get_data()),
+        reinterpret_cast<const std::byte*>(btf_ext->get_data()) + btf_ext->get_size());
 
-    btf_parse_line_information(
+    libbtf::btf_parse_line_information(
         btf_data,
         btf_ext_data,
         [&section_line_info = this->section_line_info](
