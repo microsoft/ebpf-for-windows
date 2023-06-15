@@ -83,11 +83,11 @@
   <ItemGroup Condition="'$(Analysis)'==''">
     <CustomBuild Include="ebpf-for-windows-redist.nuspec.in">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\redist-package\ebpf-for-windows-redist.nuspec.in -OutputFile $(OutDir)ebpf-for-windows-redist.nuspec
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\redist-package\ebpf-for-windows-redist.nuspec.in -OutputFile $(OutDir)ebpf-for-windows-redist.nuspec -VCToolsRedistDir '$(VCToolsRedistInstallDir)'
 NuGet.exe pack $(OutDir)ebpf-for-windows-redist.nuspec -OutputDirectory $(OutDir)</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">eBPF-for-Windows-Redist.2023.5.22.nupkg</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">eBPF-for-Windows-Redist.2023.5.22.nupkg</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\redist-package\ebpf-for-windows-redist.nuspec.in -OutputFile $(OutDir)ebpf-for-windows-redist.nuspec
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\redist-package\ebpf-for-windows-redist.nuspec.in -OutputFile $(OutDir)ebpf-for-windows-redist.nuspec -VCToolsRedistDir '$(VCToolsRedistInstallDir)'
 NuGet.exe pack $(OutDir)ebpf-for-windows-redist.nuspec -OutputDirectory $(OutDir)</Command>
     </CustomBuild>
   </ItemGroup>
