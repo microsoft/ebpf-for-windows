@@ -4,9 +4,9 @@ This document contains a troubleshooting guide for issues related to eBPF.
 
 # What Kind of Issue Are You Having ?
 
+- [A specific eBPF program is failing verification](./debugging.md)
 - [The eBPF program is not getting invoked](#troubleshooting-general-ebpf-program-issues)
 - [A specific eBPF program is not behaving as expected](#troubleshooting-issues-related-to-a-specific-program-type)
-- [A specific eBPF program is failing verification](./debugging.md)
 
 --------------------
 
@@ -280,11 +280,11 @@ This is the expected `callout` and `filter` at the `FWPM_LAYER_ALE_AUTH_CONNECT_
 
 ## Verify the eBPF Program is Configured Correctly
 
-1. [Verify the eBPF program is loaded](#verify-the-ebpf-program-is-loaded)
-2. [Verify the eBPF program is attached](#verify-the-ebpf-program-is-attached)
-3. [Verify eBPF maps are properly configured](#verify-ebpf-maps-are-properly-configured)
-4. [eBPF Program Load or Attach Failures](#ebpf-program-load-or-attach-failures)
-5. [Verify the eBPF program passes the verifier](./debugging.md)
+1. [Verify the eBPF program passes the verifier](./debugging.md)
+2. [Verify the eBPF program is loaded](#verify-the-ebpf-program-is-loaded)
+3. [Verify the eBPF program is attached](#verify-the-ebpf-program-is-attached)
+4. [Resolve eBPF Program Load or Attach Failures](#ebpf-program-load-or-attach-failures)
+5. [Verify eBPF maps are properly configured](#verify-ebpf-maps-are-properly-configured)
 
 --------------------
 
