@@ -152,7 +152,7 @@ _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
     version->minor = 9;
-    version->revision = 0;
+    version->revision = 1;
 }
 
 metadata_table_t atomic_instruction_others_metadata_table = {

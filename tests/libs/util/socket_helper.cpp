@@ -127,7 +127,7 @@ _base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_
 }
 
 _client_socket::_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
-    : _base_socket{_sock_type, _protocol, _port, _family}, overlapped{}
+    : _base_socket{_sock_type, _protocol, _port, _family}, overlapped{}, receive_posted(false)
 {}
 
 void
@@ -368,6 +368,7 @@ _server_socket::_server_socket(int _sock_type, int _protocol, uint16_t _port)
     : _base_socket{_sock_type, _protocol, _port, Dual}, overlapped{}
 {
     overlapped.hEvent = INVALID_HANDLE_VALUE;
+    receive_message = nullptr;
 
     GUID guid = WSAID_WSARECVMSG;
     uint32_t bytes;
