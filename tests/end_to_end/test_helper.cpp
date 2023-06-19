@@ -64,9 +64,9 @@ typedef struct _service_context
         sizeof(NPI_MODULEID),
         MIT_GUID,
     };
-    HMODULE dll;
-    bool loaded;
-    HANDLE nmr_client_handle;
+    HMODULE dll{};
+    bool loaded = false;
+    HANDLE nmr_client_handle{};
     NPI_CLIENT_CHARACTERISTICS nmr_client_characteristics = {
         0,
         sizeof(NPI_CLIENT_CHARACTERISTICS),
