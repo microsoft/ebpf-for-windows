@@ -79,6 +79,8 @@ jobs:
       PRE_COMMAND: ${{inputs.pre_test}}
       POST_COMMAND: ${{inputs.post_test}}
       EBPF_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
+      DUMP_PATH: c:/dumps/x64/${{matrix.configurations}}
+      TEST_TIMEOUT: 1800 # Time in seconds
 
     steps:
     - id: skip_check
@@ -101,6 +103,13 @@ jobs:
       with:
         ref: ${{ github.event.workflow_run.head_branch }}
 
+    - name: Install ProcDump
+      id: install_procdump
+      if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
+      run: |
+        choco install -y procdump
+        where procdump.exe
+
     - name: Set up OpenCppCoverage and add to PATH
       id: set_up_opencppcoverage
       if: (inputs.code_coverage == true) && (inputs.environment != 'ebpf_cicd_tests') && (steps.skip_check.outputs.should_skip != 'true')
@@ -112,10 +121,11 @@ jobs:
       id: configure_windows_error_reporting
       if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
       run: |
-        mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        mkdir ${{env.DUMP_PATH}}
         New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
         New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
-        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}" -PropertyType ExpandString -ErrorAction SilentlyContinue
+        $dump_path = "${{env.DUMP_PATH}}".Replace("/", "\")
+        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "$dump_path" -PropertyType ExpandString -ErrorAction SilentlyContinue
 
     - name: Remove existing artifacts
       if: (inputs.environment == 'ebpf_cicd_tests') && (steps.skip_check.outputs.should_skip != 'true')
@@ -198,7 +208,7 @@ jobs:
       shell: cmd
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
+          OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
     - name: Run test without Code Coverage
       if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true')
@@ -305,7 +315,7 @@ jobs:
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       id: check_dumps
       with:
-        files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
+        files: ${{env.DUMP_PATH}}/*.dmp
 
     - name: Upload any crash dumps
       # Upload crash dumps even if the workflow failed.
@@ -314,7 +324,7 @@ jobs:
       id: upload_crash_dumps
       with:
         name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
-        path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        path: ${{env.DUMP_PATH}}
         retention-days: 5
 
     - name: Check for TestLogs
