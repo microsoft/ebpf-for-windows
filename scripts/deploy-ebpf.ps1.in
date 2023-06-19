@@ -363,15 +363,16 @@ foreach ( $file in $source_files ) {
    }
 }
 
-Write-Host "Copying the VC++ Redist (Debug) files from `"$vc_redist_dir`" to `"$destination_directory`" in VM `"$vm`"..."
-
-$files = Get-ChildItem -Path $vc_redist_dir -File
-foreach ($file in $files) {
-    $source_path = $file.FullName
-    $destination_path = Join-Path -Path $destination_directory -ChildPath $file.Name
-    Write-Host " $source_path -> $destination_path"
-    Copy-VMFile "$vm" -SourcePath "$source_path" -DestinationPath "$destination_path" -CreateFullPath -FileSource Host -Force
-    if (! $?) {
-        exit 1
+if ($copy_redist) {
+    Write-Host "Copying the VC++ Redist (Debug) files from `"$vc_redist_dir`" to `"$destination_directory`" in VM `"$vm`"..."
+    $files = Get-ChildItem -Path $vc_redist_dir -File
+    foreach ($file in $files) {
+        $source_path = $file.FullName
+        $destination_path = Join-Path -Path $destination_directory -ChildPath $file.Name
+        Write-Host " $source_path -> $destination_path"
+        Copy-VMFile "$vm" -SourcePath "$source_path" -DestinationPath "$destination_path" -CreateFullPath -FileSource Host -Force
+        if (! $?) {
+            exit 1
+        }
     }
 }
