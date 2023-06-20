@@ -26,9 +26,6 @@ using namespace std::chrono_literals;
 
 extern "C" bool ebpf_fuzzing_enabled;
 
-static bool _is_platform_preemptible = false;
-static KIRQL _original_irql = PASSIVE_LEVEL;
-
 bool _ebpf_capture_corpus = false;
 
 extern "C" metadata_table_t*
@@ -361,12 +358,6 @@ _test_helper_client_detach_provider(_In_ void* client_binding_context)
 static void
 _preprocess_load_native_module(_Inout_ service_context_t* context)
 {
-    // Every time a native module is loaded, flip the virtual IRQL.
-    // This ensures both the code paths are executed in the native module code, when the
-    // test cases are executed.
-    KeRaiseIrql(_is_platform_preemptible ? PASSIVE_LEVEL : DISPATCH_LEVEL, &_original_irql);
-    _is_platform_preemptible = !_is_platform_preemptible;
-
     context->dll = LoadLibraryW(context->file_path.c_str());
     REQUIRE(((context->dll != nullptr) || get_native_module_failures()));
 
@@ -736,8 +727,6 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         duplicate_handle_handler = nullptr;
 
         _expect_native_module_load_failures = false;
-
-        KeLowerIrql(_original_irql);
 
         set_verification_in_progress(false);
     } catch (Catch::TestFailureException&) {
