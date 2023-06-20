@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
-# This script executes the provided test command, waits for 30 minutes and then
-# captures a dump of the test process if it is still running. The dump is
-# captured using the procdump tool from Sysinternals. The dump is saved to the
-# current directory with the name of the test executable and the current date
+# This script executes the provided test command, waits for <timeout in seconds>
+# and then captures a dump of the test process if it is still running. The dump
+# is captured using the procdump tool from Sysinternals. The dump is saved to
+# the <output folder> with the name of the test executable and the current date
 # and time.
 
 if ($args.Count -eq 0) {
