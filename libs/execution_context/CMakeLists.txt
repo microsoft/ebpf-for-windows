@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
+list(APPEND CMAKE_MODULE_PATH
+  "${CMAKE_SOURCE_DIR}/external/usersim/external/FindWDK/cmake"
+)
+
+find_package(WDK REQUIRED)
+
 set(execution_context_sources
   ebpf_core.h
   ebpf_core.c
@@ -20,8 +26,6 @@ set(execution_context_sources
   ebpf_protocol.h
   ebpf_general_helpers.c
 )
-
-add_definitions(-D_AMD64_=1)
 
 #
 # execution_context_user

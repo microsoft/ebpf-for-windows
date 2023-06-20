@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 list(APPEND CMAKE_MODULE_PATH
-  "${CMAKE_SOURCE_DIR}/external/FindWDK/cmake"
+  "${CMAKE_SOURCE_DIR}/external/usersim/external/FindWDK/cmake"
 )
 
 find_package(WDK REQUIRED)
@@ -105,13 +105,6 @@ target_link_libraries("platform_kernel" PRIVATE
 )
 
 target_compile_definitions("platform_kernel" PRIVATE
-  WINNT=1
-  _WIN64
-  _AMD64_
-  AMD64
-  MSC_NOOPT
-  DEPRECATE_DDK_FUNCTIONS=1
-
   WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP
   WINAPI_PARTITION_DESKTOP=1
   WINAPI_PARTITION_SYSTEM=1

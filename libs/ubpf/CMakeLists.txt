@@ -1,12 +1,16 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
+list(APPEND CMAKE_MODULE_PATH
+  "${CMAKE_SOURCE_DIR}/external/usersim/external/FindWDK/cmake"
+)
+
+find_package(WDK REQUIRED)
+
 set(ubpf_sources
   ../../external/ubpf/vm/ebpf.h
   ../../external/ubpf/vm/ubpf_int.h
 )
-
-add_definitions(-D_AMD64_=1)
 
 #
 # ubpf_user
