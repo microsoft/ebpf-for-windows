@@ -63,7 +63,8 @@ permissions:
 
 jobs:
   run_test:
-    timeout-minutes: 60
+    # Due to app-verifier, unit tests take a lot longer to execute. Increase the timeout to 90 minutes.
+    timeout-minutes: 90
 
     strategy:
       matrix:
@@ -80,7 +81,7 @@ jobs:
       POST_COMMAND: ${{inputs.post_test}}
       EBPF_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
       DUMP_PATH: c:/dumps/x64/${{matrix.configurations}}
-      TEST_TIMEOUT: 1800 # Time in seconds
+      TEST_TIMEOUT: 3600 # 1 hour timeout for tests.
 
     steps:
     - id: skip_check
