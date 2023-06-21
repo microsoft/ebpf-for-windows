@@ -22,7 +22,6 @@
 // Permit the test to simulate both Hyper-V Code Integrity.
 bool _ebpf_platform_code_integrity_enabled = false;
 
-extern "C" bool ebpf_fuzzing_enabled = false;
 extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
 _Must_inspect_result_ ebpf_result_t
@@ -51,28 +50,13 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag)
-{
-    ebpf_assert(size);
-    void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size, tag);
-    if (p) {
-        memset(p, 0, size);
-    }
-    return p;
-}
-
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
-{
-    return ebpf_allocate_with_tag(size, EBPF_POOL_TAG_DEFAULT);
-}
-
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
     _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
 {
     return usersim_reallocate(memory, old_size, new_size);
 }
 
+#if 0
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate_with_tag(
     _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size, uint32_t tag)
 {
@@ -80,12 +64,7 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) v
 
     return ebpf_reallocate(memory, old_size, new_size);
 }
-
-void
-ebpf_free(_Frees_ptr_opt_ void* memory)
-{
-    usersim_free(memory);
-}
+#endif
 
 __drv_allocatesMem(Mem) _Must_inspect_result_
     _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
@@ -145,12 +124,16 @@ ebpf_map_memory(size_t length)
 void
 ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
 {
-    if (memory_descriptor) {
-        if (!VirtualFree(memory_descriptor->base, 0, MEM_RELEASE)) {
-            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
-        }
-        ebpf_free(memory_descriptor);
+    EBPF_LOG_ENTRY();
+    if (!memory_descriptor) {
+        EBPF_RETURN_VOID();
     }
+
+    if (!VirtualFree(memory_descriptor->base, 0, MEM_RELEASE)) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
+    }
+    ExFreePool(memory_descriptor);
+    EBPF_RETURN_VOID();
 }
 
 // This code is derived from the sample at:
@@ -298,11 +281,13 @@ void
 ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
 {
     EBPF_LOG_ENTRY();
-    if (ring) {
-        UnmapViewOfFile(ring->primary_view);
-        UnmapViewOfFile(ring->secondary_view);
-        ebpf_free(ring);
+    if (!ring) {
+        EBPF_RETURN_VOID();
     }
+
+    UnmapViewOfFile(ring->primary_view);
+    UnmapViewOfFile(ring->secondary_view);
+    ebpf_free(ring);
     EBPF_RETURN_VOID();
 }
 
@@ -381,32 +366,6 @@ ebpf_safe_size_t_subtract(
     return SUCCEEDED(SizeTSub(minuend, subtrahend, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
-void
-ebpf_lock_create(_Out_ ebpf_lock_t* lock)
-{
-    InitializeSRWLock(reinterpret_cast<PSRWLOCK>(lock));
-}
-
-void
-ebpf_lock_destroy(_In_ _Post_invalid_ ebpf_lock_t* lock)
-{
-    UNREFERENCED_PARAMETER(lock);
-}
-
-_Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
-{
-    AcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
-    return 0;
-}
-
-_Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
-    _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
-{
-    UNREFERENCED_PARAMETER(state);
-    ReleaseSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
-}
-
 uint32_t
 ebpf_random_uint32()
 {
@@ -415,30 +374,13 @@ ebpf_random_uint32()
     return mt();
 }
 
-uint64_t
-ebpf_query_time_since_boot(bool include_suspended_time)
-{
-    uint64_t interrupt_time;
-    if (include_suspended_time) {
-        // QueryUnbiasedInterruptTimePrecise returns A pointer to a ULONGLONG in which to receive the interrupt-time
-        // count in system time units of 100 nanoseconds.
-        // Unbiased Interrupt time is the total time since boot including time spent suspended.
-        // https://docs.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryunbiasedinterrupttimeprecise.
-        QueryUnbiasedInterruptTimePrecise(&interrupt_time);
-    } else {
-        // QueryInterruptTimePrecise returns A pointer to a ULONGLONG in which to receive the interrupt-time count in
-        // system time units of 100 nanoseconds.
-        // (Biased) Interrupt time is the total time since boot excluding time spent suspended.
-        // https://docs.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryinterrupttimeprecise.
-        QueryInterruptTimePrecise(&interrupt_time);
-    }
-
-    return interrupt_time;
-}
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
 {
+    if (KeGetCurrentIrql() >= DISPATCH_LEVEL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
     uintptr_t old_mask = SetThreadAffinityMask(GetCurrentThread(), new_thread_affinity_mask);
     if (old_mask == 0) {
         unsigned long error = GetLastError();
@@ -450,37 +392,7 @@ ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintp
     }
 }
 
-void
-ebpf_restore_current_thread_affinity(uintptr_t old_thread_affinity_mask)
-{
-    SetThreadAffinityMask(GetCurrentThread(), old_thread_affinity_mask);
-}
-
 _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return usersim_get_cpu_count(); }
-
-bool
-ebpf_is_preemptible()
-{
-    return usersim_is_preemptible();
-}
-
-bool
-ebpf_is_non_preemptible_work_item_supported()
-{
-    return true;
-}
-
-uint32_t
-ebpf_get_current_cpu()
-{
-    return KeGetCurrentProcessorNumberEx(NULL);
-}
-
-uint64_t
-ebpf_get_current_thread_id()
-{
-    return usersim_get_current_thread_id();
-}
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
@@ -607,16 +519,6 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
     return usersim_free_timer_work_item((usersim_timer_work_item_t*)work_item);
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_guid_create(_Out_ GUID* new_guid)
-{
-    if (NT_SUCCESS(ExUuidCreate(new_guid))) {
-        return EBPF_SUCCESS;
-    } else {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-}
-
 int32_t
 ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
 {
@@ -696,73 +598,11 @@ ebpf_update_global_helpers(
     return EBPF_SUCCESS;
 }
 
-uint32_t
-ebpf_platform_process_id()
-{
-    return GetCurrentProcessId();
-}
-
-uint32_t
-ebpf_platform_thread_id()
-{
-    return GetCurrentThreadId();
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
 {
     NTSTATUS status = usersim_platform_get_authentication_id(authentication_id);
     return ntstatus_to_ebpf_result(status);
-}
-
-_IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql)
-{
-    UNREFERENCED_PARAMETER(new_irql);
-    return 0;
-}
-
-_IRQL_requires_max_(HIGH_LEVEL) void ebpf_lower_irql(_In_ _Notliteral_ _IRQL_restores_ uint8_t old_irql)
-{
-    UNREFERENCED_PARAMETER(old_irql);
-}
-
-bool
-ebpf_should_yield_processor()
-{
-    return false;
-}
-
-void
-ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state)
-{
-    state->current_irql = KeGetCurrentIrql();
-    if (state->current_irql == DISPATCH_LEVEL) {
-        state->id.cpu = ebpf_get_current_cpu();
-    } else {
-        state->id.thread = ebpf_get_current_thread_id();
-    }
-}
-
-typedef struct _ebpf_semaphore
-{
-    HANDLE semaphore;
-} ebpf_semaphore_t;
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, int maximum_count)
-{
-    *semaphore = (ebpf_semaphore_t*)ebpf_allocate(sizeof(ebpf_semaphore_t));
-    if (*semaphore == nullptr) {
-        return EBPF_NO_MEMORY;
-    }
-
-    (*semaphore)->semaphore = CreateSemaphore(nullptr, initial_count, maximum_count, nullptr);
-    if ((*semaphore)->semaphore == INVALID_HANDLE_VALUE) {
-        ebpf_free(*semaphore);
-        *semaphore = nullptr;
-        return EBPF_NO_MEMORY;
-    }
-    return EBPF_SUCCESS;
 }
 
 void
@@ -772,30 +612,6 @@ ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore)
         ::CloseHandle(semaphore->semaphore);
         ebpf_free(semaphore);
     }
-}
-
-void
-ebpf_semaphore_wait(_In_ ebpf_semaphore_t* semaphore)
-{
-    WaitForSingleObject(semaphore->semaphore, INFINITE);
-}
-
-void
-ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore)
-{
-    ReleaseSemaphore(semaphore->semaphore, 1, nullptr);
-}
-
-void
-ebpf_enter_critical_region()
-{
-    // This is a no-op for the user mode implementation.
-}
-
-void
-ebpf_leave_critical_region()
-{
-    // This is a no-op for the user mode implementation.
 }
 
 ebpf_result_t
@@ -834,40 +650,4 @@ ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar
 Done:
     ebpf_free(unicode_string);
     return retval;
-}
-
-_Ret_maybenull_ ebpf_process_state_t*
-ebpf_allocate_process_state()
-{
-    return (ebpf_process_state_t*)usersim_allocate_process_state();
-}
-
-intptr_t
-ebpf_platform_reference_process()
-{
-
-    HANDLE process = GetCurrentProcess();
-    return (intptr_t)process;
-}
-
-void
-ebpf_platform_dereference_process(intptr_t process_handle)
-{
-    // This is a no-op for the user mode implementation.
-    UNREFERENCED_PARAMETER(process_handle);
-}
-
-void
-ebpf_platform_attach_process(intptr_t process_handle, _Inout_ ebpf_process_state_t* state)
-{
-    // This is a no-op for the user mode implementation.
-    UNREFERENCED_PARAMETER(process_handle);
-    UNREFERENCED_PARAMETER(state);
-}
-
-void
-ebpf_platform_detach_process(_In_ ebpf_process_state_t* state)
-{
-    // This is a no-op for the user mode implementation.
-    UNREFERENCED_PARAMETER(state);
 }

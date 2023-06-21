@@ -85,6 +85,12 @@ extern "C"
         EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE = 1
     } ebpf_code_integrity_state_t;
 
+    // TODO: remove this wrapper and just use KSEMAPHORE.
+    typedef struct _ebpf_semaphore
+    {
+        KSEMAPHORE semaphore;
+    } ebpf_semaphore_t;
+
     typedef struct _ebpf_non_preemptible_work_item ebpf_non_preemptible_work_item_t;
     typedef struct _ebpf_preemptible_work_item ebpf_preemptible_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
@@ -153,17 +159,6 @@ extern "C"
      */
     __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
         _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size);
-
-    /**
-     * @brief Reallocate memory with tag.
-     * @param[in] memory Allocation to be reallocated.
-     * @param[in] old_size Old size of memory to reallocate.
-     * @param[in] new_size New size of memory to reallocate.
-     * @param[in] tag Pool tag to use.
-     * @returns Pointer to memory block allocated, or null on failure.
-     */
-    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate_with_tag(
-        _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size, uint32_t tag);
 
     /**
      * @brief Free memory.
