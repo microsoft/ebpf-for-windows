@@ -22,10 +22,10 @@ $process = Start-Process -PassThru -NoNewWindow -FilePath $args[0] -ArgumentList
 if (!$process.WaitForExit($Timeout * 1000)) {
     $dumpFileName = "$($process.ProcessName)_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').dmp"
     $dumpFilePath = Join-Path $OutputFolder $dumpFileName
-    Write-Host "Capturing dump of $($process.ProcessName) to $dumpFilePath"
+    Write-Output "Capturing dump of $($process.ProcessName) to $dumpFilePath"
     Start-Process -NoNewWindow -Wait -FilePath procdump -ArgumentList "-accepteula -ma $($process.Id) $dumpFilePath"
     if (!$process.HasExited) {
-        Write-Host "Killing $($process.ProcessName)"
+        Write-Output "Killing $($process.ProcessName)"
         $process.Kill()
     }
 }
