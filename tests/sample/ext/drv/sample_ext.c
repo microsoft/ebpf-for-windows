@@ -316,7 +316,7 @@ _sample_ebpf_extension_update_store_entries()
         (GUID*)&EBPF_ATTACH_TYPE_SAMPLE,
         BPF_PROG_TYPE_SAMPLE,
         BPF_ATTACH_TYPE_SAMPLE};
-    status = _ebpf_store_update_section_information(&section_info, 1);
+    status = ebpf_store_update_section_information(&section_info, 1);
     if (!NT_SUCCESS(status)) {
         return status;
     }
@@ -328,7 +328,7 @@ _sample_ebpf_extension_update_store_entries()
                          .ProviderRegistrationInstance.NpiSpecificCharacteristics;
     program_data = (ebpf_program_data_t*)extension_data->data;
 
-    status = _ebpf_store_update_program_information(program_data->program_info, 1);
+    status = ebpf_store_update_program_information(program_data->program_info, 1);
 
     return status;
 }

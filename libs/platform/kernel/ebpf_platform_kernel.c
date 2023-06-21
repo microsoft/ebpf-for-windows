@@ -763,7 +763,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_update_global_helpers(
     _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
 {
-    NTSTATUS status = _ebpf_store_update_global_helper_information(helper_info, helper_info_count);
+    NTSTATUS status = ebpf_store_update_global_helper_information(helper_info, helper_info_count);
     ebpf_result_t result = NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_FAILED;
 
     return result;

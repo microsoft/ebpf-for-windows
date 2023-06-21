@@ -129,8 +129,5 @@
     <ClInclude Include="..\ebpf_platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\ebpf_tracelog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

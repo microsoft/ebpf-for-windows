@@ -5,14 +5,15 @@
 
 #include "ebpf_program_types.h"
 #include "ebpf_registry_helper.h"
+#include "ebpf_store_helper.h"
 #include "ebpf_windows.h"
 
 #ifdef USER_MODE
 extern ebpf_registry_key_t ebpf_root_registry_key;
 #endif
 
-static uint32_t
-_ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provider_key)
+uint32_t
+ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provider_key)
 {
     __return_type status = _SUCCESS;
     ebpf_registry_key_t root_key = NULL;
@@ -41,8 +42,8 @@ Exit:
     return status;
 }
 
-static __return_type
-_ebpf_store_update_helper_prototype(
+__return_type
+ebpf_store_update_helper_prototype(
     ebpf_registry_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info)
 {
     __return_type status = _SUCCESS;
@@ -89,8 +90,8 @@ Exit:
  *
  * @returns Status of the operation.
  */
-static __return_type
-_ebpf_store_update_section_information(
+__return_type
+ebpf_store_update_section_information(
     _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count)
 {
     __return_type status = _SUCCESS;
@@ -102,7 +103,7 @@ _ebpf_store_update_section_information(
     }
 
     // Open (or create) provider registry path.
-    status = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    status = ebpf_store_open_or_create_provider_registry_key(&provider_key);
     if (!IS_SUCCESS(status)) {
         goto Exit;
     }
@@ -180,8 +181,8 @@ Exit:
  *
  * @returns Status of the operation.
  */
-static __return_type
-_ebpf_store_update_program_information(
+__return_type
+ebpf_store_update_program_information(
     _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count)
 {
     __return_type status = _SUCCESS;
@@ -193,7 +194,7 @@ _ebpf_store_update_program_information(
     }
 
     // Open (or create) provider registry path.
-    status = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    status = ebpf_store_open_or_create_provider_registry_key(&provider_key);
     if (!IS_SUCCESS(status)) {
         goto Exit;
     }
@@ -275,7 +276,7 @@ _ebpf_store_update_program_information(
 
             // Iterate over all the helper prototypes and save in registry.
             for (uint32_t count = 0; count < program_info[i].count_of_program_type_specific_helpers; count++) {
-                status = _ebpf_store_update_helper_prototype(
+                status = ebpf_store_update_helper_prototype(
                     helper_info_key, &(program_info[i].program_type_specific_helper_prototype[count]));
                 if (!IS_SUCCESS(status)) {
                     close_registry_key(program_key);
@@ -308,8 +309,8 @@ Exit:
  *
  * @returns Status of the operation.
  */
-static __return_type
-_ebpf_store_update_global_helper_information(
+__return_type
+ebpf_store_update_global_helper_information(
     _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
 {
     __return_type status = _SUCCESS;
@@ -321,7 +322,7 @@ _ebpf_store_update_global_helper_information(
     }
 
     // Open (or create) provider registry path.
-    status = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    status = ebpf_store_open_or_create_provider_registry_key(&provider_key);
     if (!IS_SUCCESS(status)) {
         goto Exit;
     }
@@ -334,7 +335,7 @@ _ebpf_store_update_global_helper_information(
 
     for (uint32_t i = 0; i < helper_info_count; i++) {
 
-        status = _ebpf_store_update_helper_prototype(helper_info_key, &helper_info[i]);
+        status = ebpf_store_update_helper_prototype(helper_info_key, &helper_info[i]);
         if (!IS_SUCCESS(status)) {
             goto Exit;
         }

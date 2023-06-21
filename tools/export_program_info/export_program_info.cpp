@@ -50,7 +50,7 @@ export_all_program_information()
     uint32_t status = ERROR_SUCCESS;
     size_t array_size = _countof(program_information_array);
     for (uint32_t i = 0; i < array_size; i++) {
-        status = _ebpf_store_update_program_information(program_information_array[i], 1);
+        status = ebpf_store_update_program_information(program_information_array[i], 1);
         if (status != ERROR_SUCCESS) {
             break;
         }
@@ -64,7 +64,7 @@ export_all_section_information()
 {
     uint32_t status = ERROR_SUCCESS;
     for (const auto& section : _section_information) {
-        status = _ebpf_store_update_section_information(section.section_info, (uint32_t)section.section_info_count);
+        status = ebpf_store_update_section_information(section.section_info, (uint32_t)section.section_info_count);
         if (status != ERROR_SUCCESS) {
             break;
         }
@@ -76,7 +76,7 @@ export_all_section_information()
 int
 export_global_helper_information()
 {
-    return _ebpf_store_update_global_helper_information(
+    return ebpf_store_update_global_helper_information(
         ebpf_core_helper_function_prototype, ebpf_core_helper_functions_count);
 }
 
