@@ -85,11 +85,7 @@ extern "C"
         EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE = 1
     } ebpf_code_integrity_state_t;
 
-    // TODO: remove this wrapper and just use KSEMAPHORE.
-    typedef struct _ebpf_semaphore
-    {
-        KSEMAPHORE semaphore;
-    } ebpf_semaphore_t;
+    typedef KSEMAPHORE ebpf_semaphore_t;
 
     typedef struct _ebpf_non_preemptible_work_item ebpf_non_preemptible_work_item_t;
     typedef struct _ebpf_preemptible_work_item ebpf_preemptible_work_item_t;
@@ -1212,8 +1208,6 @@ extern "C"
      */
     void
     ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state);
-
-    typedef struct _ebpf_semaphore ebpf_semaphore_t;
 
     /**
      * @brief Create a semaphore.

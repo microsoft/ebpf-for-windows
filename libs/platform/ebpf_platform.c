@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_platform.h"
 #include "ebpf_tracelog.h"
 
 bool ebpf_fuzzing_enabled = false;
@@ -154,20 +155,20 @@ ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, 
         return EBPF_NO_MEMORY;
     }
 
-    KeInitializeSemaphore(&(*semaphore)->semaphore, initial_count, maximum_count);
+    KeInitializeSemaphore(*semaphore, initial_count, maximum_count);
     return EBPF_SUCCESS;
 }
 
 void
 ebpf_semaphore_wait(_In_ ebpf_semaphore_t* semaphore)
 {
-    KeWaitForSingleObject(&semaphore->semaphore, Executive, KernelMode, FALSE, NULL);
+    KeWaitForSingleObject(semaphore, Executive, KernelMode, FALSE, NULL);
 }
 
 void
 ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore)
 {
-    KeReleaseSemaphore(&semaphore->semaphore, 0, 1, FALSE);
+    KeReleaseSemaphore(semaphore, 0, 1, FALSE);
 }
 
 void

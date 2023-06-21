@@ -9,7 +9,7 @@
 #include "ebpf_program_types.h"
 #include "net_ebpf_ext_program_info.h"
 #include "sample_ext_program_info.h"
-#include "usersim/mm.h"
+#include "usersim/ke.h"
 
 // We need the NET_BUFFER typedefs without the other NT kernel defines that
 // ndis.h might pull in and conflict with user-mode headers.

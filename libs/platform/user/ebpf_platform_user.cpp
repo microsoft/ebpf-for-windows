@@ -56,16 +56,6 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) v
     return usersim_reallocate(memory, old_size, new_size);
 }
 
-#if 0
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate_with_tag(
-    _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size, uint32_t tag)
-{
-    UNREFERENCED_PARAMETER(tag);
-
-    return ebpf_reallocate(memory, old_size, new_size);
-}
-#endif
-
 __drv_allocatesMem(Mem) _Must_inspect_result_
     _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
 {
@@ -609,7 +599,7 @@ void
 ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore)
 {
     if (semaphore) {
-        ::CloseHandle(semaphore->semaphore);
+        ::CloseHandle(semaphore->handle);
         ebpf_free(semaphore);
     }
 }

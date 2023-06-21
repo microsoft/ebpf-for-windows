@@ -11,7 +11,7 @@ find_package(WDK REQUIRED)
 # platform_{user,kernel}
 #
 
-set(platform_user_sources
+set(platform_sources
   ebpf_async.h
   ebpf_async.c
 
@@ -37,6 +37,7 @@ set(platform_user_sources
 
   ebpf_handle.h
   ebpf_platform.h
+  ebpf_platform.c
 
   ebpf_error.c
   ebpf_tracelog.h
@@ -58,7 +59,7 @@ set(platform_kernel_include_dirs
 #
 
 add_library("platform_user" STATIC
-  ${platform_user_sources}
+  ${platform_sources}
   user/framework.h
   user/ebpf_handle_user.c
   user/ebpf_platform_user.cpp
@@ -86,7 +87,7 @@ target_compile_definitions("platform_user" PRIVATE
 #
 
 wdk_add_library("platform_kernel" STATIC WINVER "${EBPFFORWINDOWS_WDK_WINVER}"
-  ${platform_user_sources}
+  ${platform_sources}
   kernel/ebpf_handle_kernel.c
   kernel/ebpf_platform_kernel.c
   kernel/ebpf_native_kernel.c
