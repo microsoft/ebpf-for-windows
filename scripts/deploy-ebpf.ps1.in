@@ -299,18 +299,18 @@ if ($null -eq $vm) {
    }
 
    if ($copy_redist) {
-    Write-Host "Copying the VC++ Redist (Debug) files from `"$vc_redist_dir`" to `"$destination_directory`""
-    $files = Get-ChildItem -Path $vc_redist_dir -File
-    foreach ($file in $files) {
+      Write-Host "Copying the VC++ Redist (Debug) files from `"$vc_redist_dir`" to `"$destination_directory`""
+      $files = Get-ChildItem -Path $vc_redist_dir -File
+      foreach ($file in $files) {
         $source_path = $file.FullName
         $destination_path = Join-Path -Path $destination_directory -ChildPath $file.Name
         $destination_full_directory = Split-Path $destination_path -Parent
         Write-Host " $source_path -> $destination_path"
         if (!(Test-Path $destination_full_directory)) {
-            New-Item -Type Directory $destination_full_directory -ErrorAction Stop | Write-Verbose
+          New-Item -Type Directory $destination_full_directory -ErrorAction Stop | Write-Verbose
         }
         Copy-Item -Path $source_path -Destination $destination_path -ErrorAction Stop
-    }
+      }
    }
 
    Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`""
