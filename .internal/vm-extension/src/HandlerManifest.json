@@ -1,0 +1,12 @@
+﻿[{
+    "version": 1.0, 
+    "handlerManifest" : {
+        "installCommand": "install.cmd", 
+        "uninstallCommand": "uninstall.cmd", 
+        "updateCommand": "update.cmd", 
+        "enableCommand": "enable.cmd", 
+        "disableCommand": "disable.cmd", 
+        "rebootAfterInstall": "false", 
+        "reportHeartbeat": "false"
+    }
+}]

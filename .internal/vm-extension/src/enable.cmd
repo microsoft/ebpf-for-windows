@@ -1,0 +1,1 @@
+start /B cmd /C eBpfExtension.exe "enable"

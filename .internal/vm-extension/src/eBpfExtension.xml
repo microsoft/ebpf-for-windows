@@ -1,0 +1,18 @@
+<ExtensionImage xmlns="http://schemas.microsoft.com/2009/05/WindowsAzure/ServiceManagement"  xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+  <ProviderNameSpace>Microsoft.Compute</ProviderNameSpace>
+  <Type>NullPlugin</Type>
+  <!--Update this version for each new release-->
+  <Version>1.0</Version>
+  <Label>eBPF for Windows Azure VM Extension for IaaS</Label>
+  <HostingResources>VmRole</HostingResources>
+  <!--Update this field with correct link where the extension is published.-->
+  <MediaLink>http://scriptstore.blob.core.test-cint.azure-test.net/plugins/eBpfExtension.1.0.zip</MediaLink>
+  <Certificate />
+  <Endpoints/>
+  <PublicConfigurationSchema/>
+  <PrivateConfigurationSchema/>
+  <Description>eBPF for Windows Azure VM Extension for IaaS</Description>
+  <LocalResources />
+  <IsInternalExtension>true</IsInternalExtension>
+  <IsJsonExtension>true</IsJsonExtension>
+ </ExtensionImage>
