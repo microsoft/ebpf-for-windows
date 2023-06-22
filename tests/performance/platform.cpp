@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #define TEST_AREA "platform"
+#include "ebpf_hash_table.h"
 #include "performance.h"
 
 static void

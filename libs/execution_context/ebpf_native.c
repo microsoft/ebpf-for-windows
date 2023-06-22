@@ -5,6 +5,7 @@
 
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_native.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
