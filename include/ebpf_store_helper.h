@@ -4,17 +4,17 @@
 #pragma once
 
 #include "ebpf_program_types.h"
+#ifdef USER_MODE
+#include "user\ebpf_registry_helper_um.h"
+#else
+#include "kernel\ebpf_registry_helper_km.h"
+#endif
 #include "ebpf_windows.h"
-#include "framework.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-#define __return_type NTSTATUS
-    typedef _Return_type_success_(NT_SUCCESS(return )) uint32_t ebpf_registry_result_t;
-    typedef HANDLE ebpf_registry_key_t;
 
 #ifdef USER_MODE
     extern ebpf_registry_key_t ebpf_root_registry_key;

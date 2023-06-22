@@ -20,9 +20,9 @@
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
-    <RootNamespace>store_helper</RootNamespace>
+    <RootNamespace>store_helper_km</RootNamespace>
     <DriverType>KMDF</DriverType>
-    <ProjectName>ebpf_store_helper</ProjectName>
+    <ProjectName>ebpf_store_helper_km</ProjectName>
     <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -52,11 +52,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(IncludePath);$(KMDF_INC_PATH)$(KMDF_VER_PATH);$(SolutionDir)\include;$(SolutionDir)\libs\platform\kernel;$(SolutionDir)\external\ebpf-verifier\src</IncludePath>
+    <IncludePath>$(IncludePath);$(KMDF_INC_PATH)$(KMDF_VER_PATH);$(SolutionDir)\include;$(SolutionDir)\libs\platform\kernel;$(SolutionDir)\external\ebpf-verifier\src;..\</IncludePath>
     <OutDir>$(SolutionDir)$(Platform)\$(ConfigurationName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(IncludePath);$(KMDF_INC_PATH)$(KMDF_VER_PATH);$(SolutionDir)\include;$(SolutionDir)\libs\platform\kernel;$(SolutionDir)\external\ebpf-verifier\src</IncludePath>
+    <IncludePath>$(IncludePath);$(KMDF_INC_PATH)$(KMDF_VER_PATH);$(SolutionDir)\include;$(SolutionDir)\libs\platform\kernel;$(SolutionDir)\external\ebpf-verifier\src;..\</IncludePath>
     <OutDir>$(SolutionDir)$(Platform)\$(ConfigurationName)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -94,12 +94,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ebpf_registry_helper.c" />
-    <ClCompile Include="ebpf_store_helper.c" />
+    <ClInclude Include="..\..\..\include\ebpf_store_helper.h" />
+    <ClInclude Include="ebpf_registry_helper_km.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ebpf_registry_helper.h" />
-    <ClInclude Include="ebpf_store_helper.h" />
+    <ClCompile Include="..\ebpf_store_helper.c" />
+    <ClCompile Include="ebpf_registry_helper_km.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -114,8 +114,8 @@
     <ProjectReference Include="..\..\..\libs\platform\user\platform_user.vcxproj">
       <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\libs\store_helper\kernel\ebpf_store_helper.vcxproj">
-      <Project>{3569e946-c8b4-49ee-a89d-edd09dc9f36e}</Project>
+    <ProjectReference Include="..\..\..\libs\store_helper\user\ebpf_store_helper_um.vcxproj">
+      <Project>{aa933b9f-b5d8-4aa8-ac18-98fe1a161e8a}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\netebpfext\user\netebpfext_user.vcxproj">
       <Project>{630bb78f-6211-41d8-8e3a-096e22e169ef}</Project>

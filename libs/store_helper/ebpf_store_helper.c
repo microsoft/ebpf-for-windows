@@ -4,12 +4,16 @@
 #pragma once
 
 #include "ebpf_program_types.h"
-#include "ebpf_registry_helper.h"
+#ifdef USER_MODE
+#include "user\ebpf_registry_helper_um.h"
+#else
+#include "kernel\ebpf_registry_helper_km.h"
+#endif
 #include "ebpf_store_helper.h"
 #include "ebpf_windows.h"
 
 #ifdef USER_MODE
-extern ebpf_registry_key_t ebpf_root_registry_key;
+// extern ebpf_registry_key_t ebpf_root_registry_key;
 #endif
 
 uint32_t
@@ -20,10 +24,10 @@ ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provi
     *provider_key = NULL;
 
     // Open (or create) root eBPF registry path.
-#ifndef USER_MODE
-    status = create_registry_key(NULL, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_key);
-#else
+#ifdef USER_MODE
     status = create_registry_key(ebpf_root_registry_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
+#else
+    status = create_registry_key(NULL, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_key);
 #endif
     if (!IS_SUCCESS(status)) {
         goto Exit;

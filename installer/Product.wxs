@@ -366,7 +366,7 @@ SPDX-License-Identifier: MIT
 				<File Id="EBPF_RESULT.H" Name="ebpf_result.h" Source="$(var.SolutionDir)include\ebpf_result.h" />
 			</Component>
 			<Component Id="EBPF_STORE_HELPER.H" DiskId="1" Guid="{14BE7BA2-DCD1-4AE1-A115-396E52CDF073}">
-				<File Id="EBPF_STORE_HELPER.H" Name="ebpf_store_helper.h" Source="$(var.SolutionDir)libs\store_helper\kernel\ebpf_store_helper.h" />
+				<File Id="EBPF_STORE_HELPER.H" Name="ebpf_store_helper.h" Source="$(var.SolutionDir)includes\ebpf_store_helper.h" />
 			</Component>
 			<Component Id="EBPF_STRUCTS.H" DiskId="1" Guid="{2D7F0268-8926-41C5-B592-5A3CEE10540D}">
 				<File Id="EBPF_STRUCTS.H" Name="ebpf_structs.h" Source="$(var.SolutionDir)include\ebpf_structs.h" />
@@ -585,13 +585,16 @@ SPDX-License-Identifier: MIT
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_include_user" Directory="dir_include_user">
-			<Component Id="EBPF_REGISTRY_HELPER.H_1" DiskId="1" Guid="{D1BF1F4F-BD3D-484E-89D9-77A94522FC97}">
-				<File Id="EBPF_REGISTRY_HELPER.H_1" Name="ebpf_registry_helper.h" Source="$(var.SolutionDir)include\user\ebpf_registry_helper.h" />
+			<Component Id="EBPF_STORE_HELPER.H_1" DiskId="1" Guid="{D1BF1F4F-BD3D-484E-89D9-77A94522FC97}">
+				<File Id="EBPF_STORE_HELPER.H_1" Name="ebpf_store_helper.h" Source="$(var.SolutionDir)includes\ebpf_store_helper.h" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Development_libs" Directory="dir_lib">
 			<Component Id="eBPFApi_lib" Guid="{A164197B-3C57-4ECA-B138-CBF558DA4401}">
 				<File Id="EbpfApi.lib" Name="EbpfApi.lib" DiskId="1" Source="$(var.api.TargetDir)EbpfApi.lib" />
+			</Component>
+			<Component Id="eBPFStoreHelper_lib" Guid="{F8A8A1D9-3F61-4F30-B75B-E51B63D6DB40}">
+				<File Id="EBPF_STORE_HELPER_KM.LIB" Name="ebpf_store_helper_km.lib" Source="$(var.ebpf_store_helper_km.TargetDir)ebpf_store_helper_km.lib" />
 			</Component>
 		</ComponentGroup>
 	</Fragment>

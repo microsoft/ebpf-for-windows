@@ -1,18 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_registry_helper.h"
-#include "ebpf_store_helper.h"
-
-void
-close_registry_key(ebpf_registry_key_t key)
-{
-    ZwClose(key);
-}
+#include "ebpf_registry_helper_km.h"
 
 NTSTATUS
 convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_length) wchar_t* string, size_t string_length)
 {
+    if (guid == NULL || string == NULL || string_length == 0)
+        return STATUS_INVALID_PARAMETER;
+
     UNICODE_STRING unicode_string = {0};
 
     NTSTATUS status = RtlStringFromGUID(guid, &unicode_string);
@@ -37,6 +33,12 @@ Exit:
         RtlFreeUnicodeString(&unicode_string);
     }
     return status;
+}
+
+void
+close_registry_key(ebpf_registry_key_t key)
+{
+    ZwClose(key);
 }
 
 _Must_inspect_result_ ebpf_registry_result_t
