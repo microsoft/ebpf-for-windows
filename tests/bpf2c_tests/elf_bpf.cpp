@@ -9,6 +9,7 @@
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -91,6 +92,7 @@ enum class _test_mode
     UseHashSHA512,
     UseHashX,
     FileNotFound,
+    FileOutput,
 };
 
 void
@@ -127,15 +129,27 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
         if (option) {
             argv.push_back(option);
         }
+        auto temp_file_path = std::filesystem::temp_directory_path() / std::filesystem::path(name + suffix);
+        std::string temp_file_path_string = temp_file_path.string();
+        if (test_mode == _test_mode::FileOutput) {
+            argv.push_back(temp_file_path_string.c_str());
+        }
         auto [out, err, result_value] = run_test_main(argv);
         switch (test_mode) {
+        case _test_mode::FileOutput:
         case _test_mode::Verify:
         case _test_mode::NoVerify: {
-            auto expected_output = read_contents<std::ifstream>(
+            std::vector<std::string> expected_output = read_contents<std::ifstream>(
                 std::string("expected\\") + name + suffix,
                 {transform_line_directives<'\\'>, transform_line_directives<'/'>, transform_fix_opcode_comment});
-            auto actual_output = read_contents<std::istringstream>(
-                out, {transform_line_directives<'\\'>, transform_line_directives<'/'>});
+            std::vector<std::string> actual_output;
+            if (test_mode == _test_mode::FileOutput) {
+                actual_output = read_contents<std::ifstream>(
+                    temp_file_path_string, {transform_line_directives<'\\'>, transform_line_directives<'/'>});
+            } else {
+                actual_output = read_contents<std::istringstream>(
+                    out, {transform_line_directives<'\\'>, transform_line_directives<'/'>});
+            }
 
             // Find the first line that differs.
             if (actual_output.size() != expected_output.size()) {
@@ -171,9 +185,12 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
         if (option) {
             argv.pop_back();
         }
+        if (test_mode == _test_mode::FileOutput) {
+            argv.pop_back();
+        }
     };
 
-    test(nullptr, "_raw.c");
+    test("--raw", "_raw.c");
     test("--dll", "_dll.c");
     test("--sys", "_sys.c");
 }
@@ -192,6 +209,7 @@ DECLARE_TEST("bindmonitor_ringbuf", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_tailcall", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_mt_tailcall", _test_mode::Verify)
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::Verify, std::string("xdp"))
+DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::FileOutput, std::string("xdp"))
 DECLARE_TEST("bpf_call", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr2", _test_mode::Verify)
