@@ -3,22 +3,12 @@
 
 #pragma once
 
-#include "framework.h"
+#include "ebpf_store_helper.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-#define __return_type NTSTATUS
-#define _SUCCESS STATUS_SUCCESS
-#define IS_SUCCESS(x) (NT_SUCCESS(x))
-
-#define REG_CREATE_FLAGS 0
-#define GUID_STRING_LENGTH 38 // not including the null terminator.
-
-    typedef HANDLE ebpf_registry_key_t;
-    typedef _Return_type_success_(NT_SUCCESS(return )) uint32_t ebpf_registry_result_t;
 
     NTSTATUS
     convert_guid_to_string(
