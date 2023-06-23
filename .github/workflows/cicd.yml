@@ -338,7 +338,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
-      pre_test: $Env:ASAN_SAVE_DUMPS=sanitize-vcasan.dmp
+      pre_test: $Env:ASAN_SAVE_DUMPS="sanitize_vcasan.dmp"
       test_command: .\unit_tests.exe -d yes
       build_artifact: Build-x64-Sanitize
       environment: windows-2022
