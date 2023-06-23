@@ -284,7 +284,7 @@ OPTIONS:
 }
 
 $build_directory="$PSScriptRoot"
-if ($vm -eq -$null) {
+if ($vm -eq $null) {
    Write-Host "Copying files from `"$build_directory`" to `"$destination_directory`""
 
    foreach ( $file in $built_files ) {

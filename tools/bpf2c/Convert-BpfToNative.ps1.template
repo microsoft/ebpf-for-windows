@@ -94,7 +94,7 @@ if ($Configuration -eq "Release" -and $SkipVerification) {
     throw "Invalid parameter. SkipVerification is only supported for Debug builds"
 }
 
-if ((Get-Command 'msbuild.exe' -ErrorAction SilentlyContinue) -eq -$null) {
+if ((Get-Command 'msbuild.exe' -ErrorAction SilentlyContinue) -eq $null) {
     throw "Unable to locate msbuild.exe. This command needs to run within a 'Developer Command Prompt'"
 }
 
