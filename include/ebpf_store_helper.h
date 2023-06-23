@@ -3,25 +3,17 @@
 
 #pragma once
 
-#include "ebpf_program_types.h"
-
-#ifdef USER_MODE
-#include <stdint.h>
-#include <winerror.h>
-#include <winnt.h>
-#define __return_type uint32_t
-#define IS_SUCCESS(x) (x == ERROR_SUCCESS)
-#define _SUCCESS NO_ERROR
-#define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
-#define REG_OPEN_FLAGS (DELETE | KEY_READ)
-#else
-#include "framework.h"
+#ifndef USER_MODE
 #define __return_type NTSTATUS
 #define _SUCCESS STATUS_SUCCESS
 #define IS_SUCCESS(x) (NT_SUCCESS(x))
-#define REG_CREATE_FLAGS 0
+#else
+#define __return_type uint32_t
+#define IS_SUCCESS(x) (x == ERROR_SUCCESS)
+#define _SUCCESS NO_ERROR
 #endif
 
+#include "ebpf_program_types.h"
 #include "ebpf_windows.h"
 
 #define GUID_STRING_LENGTH 38 // not including the null terminator.

@@ -5,6 +5,14 @@
 
 #include "ebpf_store_helper.h"
 
+#include <winerror.h>
+#include <winnt.h>
+
+#define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
+#define REG_OPEN_FLAGS (DELETE | KEY_READ)
+
+extern ebpf_registry_key_t ebpf_root_registry_key;
+
 #ifdef __cplusplus
 extern "C"
 {
