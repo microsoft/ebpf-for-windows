@@ -648,12 +648,22 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
-    ebpf_program_t* local_program;
+    ebpf_program_t* local_program = NULL;
     ebpf_utf8_string_t local_program_name = {NULL, 0};
     ebpf_utf8_string_t local_section_name = {NULL, 0};
     ebpf_utf8_string_t local_file_name = {NULL, 0};
     ebpf_utf8_string_t local_hash_type_name = {NULL, 0};
     uint8_t* local_program_info_hash = NULL;
+
+    if (IsEqualGUID(&program_parameters->program_type, &EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "Program type must be specified.",
+            &program_parameters->program_type);
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     local_program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_PROGRAM);
     if (!local_program) {
