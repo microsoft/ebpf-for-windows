@@ -6,19 +6,30 @@
  * @brief Contains user mode registry related helper APIs.
  */
 
-#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-#include "api_common.hpp"
-#include "ebpf_registry_helper.h"
+#include "ebpf_platform.h"
+#include "ebpf_registry_helper_um.h"
 
-#include <codecvt>
+#include <string>
+//#include <codecvt>
+//#include <rpc.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <winreg.h>
+//#include <winerror.h>
+//#include <wchar.h>
 
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
 
 static std::wstring
 _get_wstring_from_string(std::string text)
 {
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    std::wstring wide = converter.from_bytes(text);
+    // std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    // std::wstring wide = converter.from_bytes(text);
+    // return wide;
+
+    int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
+    std::wstring wide(length, 0);
+    MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, &wide[0], length);
 
     return wide;
 }
@@ -228,6 +239,7 @@ convert_string_to_guid(_In_z_ const wchar_t* string, _Out_ GUID* guid)
     // Remove those before converting to UUID.
     wchar_t truncated_string[GUID_STRING_LENGTH + 1] = {0};
     memcpy(truncated_string, string + 1, (wcslen(string) - 2) * sizeof(wchar_t));
+
     // Convert program type string to GUID
     auto rpc_status = UuidFromString((RPC_WSTR)truncated_string, guid);
     if (rpc_status != RPC_S_OK) {

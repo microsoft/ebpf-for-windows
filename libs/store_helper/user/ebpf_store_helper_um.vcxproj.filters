@@ -13,10 +13,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ebpf_registry_helper_um.c">
+    <ClCompile Include="ebpf_registry_helper_um.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_store_helper.c">
+    <ClCompile Include="ebpf_store_helper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
