@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_epoch.h"
-#include "ebpf_platform.h"
+#include "ebpf_hash_table.h"
 
 // Buckets contain an array of pointers to value and keys.
 // Buckets are immutable once inserted in to the hash-table and replaced when
@@ -848,4 +848,60 @@ size_t
 ebpf_hash_table_key_count(_In_ const ebpf_hash_table_t* hash_table)
 {
     return hash_table->entry_count;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_hash_table_iterate(
+    _In_ const ebpf_hash_table_t* hash_table,
+    _Inout_ size_t* bucket,
+    _Inout_ size_t* count,
+    _Out_writes_(*count) const uint8_t** keys,
+    _Out_writes_(*count) const uint8_t** values)
+{
+    size_t bucket_index = *bucket;
+    size_t index = 0;
+    size_t remaining_space = *count;
+    size_t next_bucket_count = 0;
+    if (bucket_index >= hash_table->bucket_count) {
+        return EBPF_NO_MORE_KEYS;
+    }
+
+    while (remaining_space > 0) {
+        if (bucket_index >= hash_table->bucket_count) {
+            break;
+        }
+        ebpf_hash_bucket_header_t* bucket_header = hash_table->buckets[bucket_index].header;
+        // Check if the bucket is empty.
+        if (!bucket_header) {
+            bucket_index++;
+            continue;
+        }
+        // Check if the next bucket will fit in the remaining space.
+        next_bucket_count = bucket_header->count;
+        if (remaining_space < next_bucket_count) {
+            break;
+        }
+        // Copy the keys and values.
+        for (size_t i = 0; i < next_bucket_count; i++) {
+            ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket_header, i);
+            if (!entry) {
+                return EBPF_INVALID_ARGUMENT;
+            }
+            keys[index] = entry->key;
+            values[index] = entry->data;
+            index++;
+            remaining_space--;
+        }
+        bucket_index++;
+    }
+
+    // If the bucket_index did not change, then there wasn't enough space to copy the next bucket.
+    if (*bucket == bucket_index) {
+        *count = next_bucket_count;
+        return EBPF_INSUFFICIENT_BUFFER;
+    }
+
+    *bucket = bucket_index;
+    *count = index;
+    return EBPF_SUCCESS;
 }
