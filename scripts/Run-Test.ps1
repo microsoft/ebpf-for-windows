@@ -7,7 +7,7 @@
 # the <output folder> with the name of the test executable and the current date
 # and time.
 
-# Modifying $args directly is can cause issues, so copy it to a new variable.
+# Modifying $args directly can cause issues, so copy it to a new variable.
 $arguments = $args
 
 # Check that the correct number of arguments have been provided.
