@@ -791,6 +791,12 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     }
 
     if (local_program->general_helper_provider_data == NULL || local_program->info_extension_provider_data == NULL) {
+        EBPF_LOG_MESSAGE_GUID_GUID(
+            EBPF_TRACELOG_LEVEL_INFO,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "Program type and Attach type:",
+            &program_parameters->program_type,
+            &program_parameters->expected_attach_type);
         retval = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
