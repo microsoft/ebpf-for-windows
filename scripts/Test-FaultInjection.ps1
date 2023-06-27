@@ -9,7 +9,7 @@
 # Fifth it will check if all tests passed and exit.
 #
 
-param ($TestProgram, $StackDepth)
+param ($OutputFolder, $Timeout, $TestProgram, $StackDepth)
 
 # Gather list of all possible tests
 $tests = & $TestProgram "--list-tests" "--verbosity=quiet"
@@ -22,15 +22,6 @@ Set-Content -Path ($TestProgram + ".fault.log") ""
 
 $iteration = 0
 
-$timer = New-Object System.Timers.Timer
-# Set timer for 5 minutes
-$timer.Interval = 300000
-
-# When the watchdog timer fires, kill the test binary.
-Register-ObjectEvent -InputObject $timer -EventName Elapsed -Action {
-    Write-Error "Test binary exceeded time"
-    Get-Process -Name $TestProgram | Stop-Process -Force -ErrorAction SilentlyContinue
-}
 
 # Rerun failing tests until they pass
 while ($true) {
@@ -45,6 +36,7 @@ while ($true) {
 
     # If all the tests have passed, exit.
     if ($remaining_tests.Count -eq 0) {
+        Write-Host "Zero remaining tests"
         break
     }
 
@@ -55,18 +47,17 @@ while ($true) {
     write-host "Running iteration #" $iteration
     $remaining_tests | ForEach-Object { write-host "Running: $_" }
 
-    # Start the watchdog timer
-    $timer.Start()
-
     # Run the test binary with any remaining tests.
-    & $TestProgram "-d yes" "--verbosity=quiet" "-f remaining_tests.txt"
-
-    # Stop the watchdog timer
-    $timer.Stop()
-
-    if ($LASTEXITCODE -eq 0) {
-        write-host "All tests passed"
-        break
+    $process = Start-Process -NoNewWindow -FilePath $TestProgram -ArgumentList "-d yes", "--verbosity=quiet", "-f remaining_tests.txt" -PassThru
+    if (!$process.WaitForExit($Timeout * 1000)) {
+        $dumpFileName = "$($process.ProcessName)_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').dmp"
+        $dumpFilePath = Join-Path $OutputFolder $dumpFileName
+        Write-Output "Capturing dump of $($process.ProcessName) to $dumpFilePath"
+        Start-Process -NoNewWindow -Wait -FilePath procdump -ArgumentList "-accepteula -ma $($process.Id) $dumpFilePath"
+        if (!$process.HasExited) {
+            Write-Output "Killing $($process.ProcessName)"
+            $process.Kill()
+        }
     }
 }
 

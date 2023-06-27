@@ -8,6 +8,7 @@
 #include "ebpf_async.h"
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_platform.h"
@@ -150,6 +151,43 @@ TEST_CASE("hash_table_test", "[platform]")
     // Existing bucket, with backup.
     REQUIRE(ebpf_hash_table_update(table, key_3.data(), data_3.data(), EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table) == 3);
+
+    // Iterate through all keys.
+    uint64_t cookie = 0;
+    uint8_t keys_found = 0;
+    std::vector<const uint8_t*> keys;
+    std::vector<const uint8_t*> values;
+    size_t count = 2;
+    keys.resize(count);
+    values.resize(count);
+    // Bucket contains 3 keys, but we only have space for 2.
+    // Should fail with insufficient buffer.
+    REQUIRE(ebpf_hash_table_iterate(table, &cookie, &count, keys.data(), values.data()) == EBPF_INSUFFICIENT_BUFFER);
+    REQUIRE(count == 3);
+    keys.resize(count);
+    values.resize(count);
+    // Bucket contains 3 keys, and we have space for 3.
+    // Should succeed.
+    REQUIRE(ebpf_hash_table_iterate(table, &cookie, &count, keys.data(), values.data()) == EBPF_SUCCESS);
+
+    // Verify that all keys are found.
+    for (size_t index = 0; index < 3; index++) {
+        if (memcmp(keys[index], key_1.data(), key_1.size()) == 0) {
+            REQUIRE(memcmp(values[index], data_1.data(), data_1.size()) == 0);
+            keys_found |= 1 << 0;
+        } else if (memcmp(keys[index], key_2.data(), key_2.size()) == 0) {
+            REQUIRE(memcmp(values[index], data_2.data(), data_2.size()) == 0);
+            keys_found |= 1 << 1;
+        } else if (memcmp(keys[index], key_3.data(), key_3.size()) == 0) {
+            REQUIRE(memcmp(values[index], data_3.data(), data_3.size()) == 0);
+            keys_found |= 1 << 2;
+        } else {
+            REQUIRE(false);
+        }
+    }
+    // Verify that there are no more keys.
+    REQUIRE(ebpf_hash_table_iterate(table, &cookie, &count, keys.data(), values.data()) == EBPF_NO_MORE_KEYS);
+    REQUIRE(keys_found == 0x7);
 
     // Find the first
     REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
