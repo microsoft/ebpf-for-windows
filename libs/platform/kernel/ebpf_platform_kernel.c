@@ -5,24 +5,15 @@
 #include "ebpf_store_helper.h"
 #include "ebpf_tracelog.h"
 
-#include <ntstrsafe.h>
-
 IO_WORKITEM_ROUTINE _ebpf_preemptible_routine;
-
-static uint32_t _ebpf_platform_maximum_processor_count = 0;
 
 extern DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
-typedef struct _ebpf_memory_descriptor
-{
-    MDL memory_descriptor_list;
-} ebpf_memory_descriptor_t;
-
 struct _ebpf_ring_descriptor
 {
     MDL* memory_descriptor_list;
-    ebpf_memory_descriptor_t* memory;
+    MDL* memory;
     void* base_address;
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
@@ -33,7 +24,7 @@ static KDEFERRED_ROUTINE _ebpf_timer_routine;
 _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
-    _ebpf_platform_maximum_processor_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
+    ebpf_initialize_cpu_count();
     return EBPF_SUCCESS;
 }
 
@@ -41,20 +32,6 @@ void
 ebpf_platform_terminate()
 {
     KeFlushQueuedDpcs();
-}
-
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
-    _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
-{
-    void* p = ebpf_allocate(new_size);
-    if (p) {
-        memcpy(p, memory, min(old_size, new_size));
-        if (new_size > old_size) {
-            memset(((char*)p) + old_size, 0, new_size - old_size);
-        }
-        ebpf_free(memory);
-    }
-    return p;
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_
@@ -79,89 +56,6 @@ ebpf_free_cache_aligned(_Frees_ptr_opt_ void* memory)
     if (memory) {
         ExFreePool(memory);
     }
-}
-
-ebpf_memory_descriptor_t*
-ebpf_map_memory(size_t length)
-{
-    EBPF_LOG_ENTRY();
-    MDL* memory_descriptor_list = NULL;
-    PHYSICAL_ADDRESS start_address;
-    PHYSICAL_ADDRESS end_address;
-    PHYSICAL_ADDRESS page_size;
-    start_address.QuadPart = 0;
-    end_address.QuadPart = -1;
-    page_size.QuadPart = PAGE_SIZE;
-    memory_descriptor_list =
-        MmAllocatePagesForMdlEx(start_address, end_address, page_size, length, MmCached, MM_ALLOCATE_FULLY_REQUIRED);
-
-    if (memory_descriptor_list) {
-        void* address =
-            MmMapLockedPagesSpecifyCache(memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
-        if (!address) {
-            EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
-            MmFreePagesFromMdl(memory_descriptor_list);
-            ExFreePool(memory_descriptor_list);
-            memory_descriptor_list = NULL;
-        }
-    } else {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmAllocatePagesForMdlEx, STATUS_NO_MEMORY);
-    }
-    EBPF_RETURN_POINTER(ebpf_memory_descriptor_t*, memory_descriptor_list);
-}
-
-void
-ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
-{
-    EBPF_LOG_ENTRY();
-    if (!memory_descriptor) {
-        EBPF_RETURN_VOID();
-    }
-
-    MmUnmapLockedPages(
-        ebpf_memory_descriptor_get_base_address(memory_descriptor), &memory_descriptor->memory_descriptor_list);
-    MmFreePagesFromMdl(&memory_descriptor->memory_descriptor_list);
-    ExFreePool(memory_descriptor);
-    EBPF_RETURN_VOID();
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
-{
-    EBPF_LOG_ENTRY();
-    NTSTATUS status;
-    unsigned long mm_protection_state = 0;
-    switch (protection) {
-    case EBPF_PAGE_PROTECT_READ_ONLY:
-        mm_protection_state = PAGE_READONLY;
-        break;
-    case EBPF_PAGE_PROTECT_READ_WRITE:
-        mm_protection_state = PAGE_READWRITE;
-        break;
-    case EBPF_PAGE_PROTECT_READ_EXECUTE:
-        mm_protection_state = PAGE_EXECUTE_READ;
-        break;
-    default:
-        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-    }
-
-    status = MmProtectMdlSystemAddress((MDL*)&memory_descriptor->memory_descriptor_list, mm_protection_state);
-    if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmProtectMdlSystemAddress, status);
-        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-    }
-
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
-}
-
-void*
-ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descriptor)
-{
-    void* address = MmGetSystemAddressForMdlSafe(&memory_descriptor->memory_descriptor_list, NormalPagePriority);
-    if (!address) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmGetSystemAddressForMdlSafe, STATUS_NO_MEMORY);
-    }
-    return address;
 }
 
 _Ret_maybenull_ ebpf_ring_descriptor_t*
@@ -196,7 +90,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         status = STATUS_NO_MEMORY;
         goto Done;
     }
-    source_mdl = &ring_descriptor->memory->memory_descriptor_list;
+    source_mdl = ring_descriptor->memory;
 
     // Create a MDL big enough to double map the pages.
     ring_descriptor->memory_descriptor_list =
@@ -325,26 +219,6 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_safe_size_t_multiply(
-    size_t multiplicand, size_t multiplier, _Out_ _Deref_out_range_(==, multiplicand* multiplier) size_t* result)
-{
-    return RtlSizeTMult(multiplicand, multiplier, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ _Deref_out_range_(==, augend + addend) size_t* result)
-{
-    return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_safe_size_t_subtract(
-    size_t minuend, size_t subtrahend, _Out_ _Deref_out_range_(==, minuend - subtrahend) size_t* result)
-{
-    return RtlSizeTSub(minuend, subtrahend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
-}
-
-_Must_inspect_result_ ebpf_result_t
 ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
 {
     if (KeGetCurrentIrql() >= DISPATCH_LEVEL) {
@@ -355,8 +229,6 @@ ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintp
     *old_thread_affinity_mask = old_affinity;
     return EBPF_SUCCESS;
 }
-
-_Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return _ebpf_platform_maximum_processor_count; }
 
 typedef struct _ebpf_non_preemptible_work_item
 {
@@ -615,14 +487,6 @@ Done:
     return result;
 }
 
-uint32_t
-ebpf_random_uint32()
-{
-    LARGE_INTEGER p = KeQueryPerformanceCounter(NULL);
-    unsigned long seed = p.LowPart ^ (unsigned long)p.HighPart;
-    return RtlRandomEx(&seed);
-}
-
 // Pick an arbitrary limit on string size roughly based on the size of the eBPF stack.
 // This is enough space for a format string that takes up all the eBPF stack space,
 // plus room to expand three 64-bit integer arguments from 2-character format specifiers.
@@ -688,40 +552,4 @@ void
 ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore)
 {
     ebpf_free(semaphore);
-}
-
-ebpf_result_t
-ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output)
-{
-    wchar_t* unicode_string = NULL;
-    unsigned long unicode_byte_count = 0;
-    ebpf_result_t retval;
-
-    (void)RtlUTF8ToUnicodeN(NULL, 0, &unicode_byte_count, (const char*)input->value, (unsigned long)input->length);
-
-    unicode_string = (wchar_t*)ebpf_allocate(unicode_byte_count + sizeof(wchar_t));
-    if (unicode_string == NULL) {
-        retval = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    NTSTATUS status = RtlUTF8ToUnicodeN(
-        unicode_string,
-        unicode_byte_count,
-        &unicode_byte_count,
-        (const char*)input->value,
-        (unsigned long)input->length);
-
-    if (!NT_SUCCESS(status)) {
-        retval = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
-    *output = unicode_string;
-    unicode_string = NULL;
-    retval = EBPF_SUCCESS;
-
-Done:
-    ebpf_free(unicode_string);
-    return retval;
 }

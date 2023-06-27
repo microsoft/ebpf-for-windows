@@ -36,7 +36,7 @@ typedef struct _ebpf_program
         // EBPF_CODE_JIT
         struct
         {
-            ebpf_memory_descriptor_t* code_memory_descriptor;
+            MDL* code_memory_descriptor;
             const uint8_t* code_pointer;
         } code;
 
@@ -923,7 +923,7 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_mach
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     const uint8_t* local_machine_code = NULL;
-    ebpf_memory_descriptor_t* local_code_memory_descriptor = NULL;
+    MDL* local_code_memory_descriptor = NULL;
 
     ebpf_assert(program->parameters.code_type == EBPF_CODE_JIT || program->parameters.code_type == EBPF_CODE_NATIVE);
 

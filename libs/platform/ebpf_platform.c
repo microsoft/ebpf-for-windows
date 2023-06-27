@@ -6,6 +6,16 @@
 
 bool ebpf_fuzzing_enabled = false;
 
+static uint32_t _ebpf_platform_maximum_processor_count = 0;
+
+_Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return _ebpf_platform_maximum_processor_count; }
+
+void
+ebpf_initialize_cpu_count()
+{
+    _ebpf_platform_maximum_processor_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
+}
+
 typedef struct _ebpf_process_state
 {
     KAPC_STATE state;
@@ -28,11 +38,25 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void*
 }
 
 void
-ebpf_free(_Frees_ptr_opt_ void* memory)
+ebpf_free(_In_opt_ __drv_freesMem(Mem) void* memory)
 {
     if (memory) {
         ExFreePool(memory);
     }
+}
+
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
+    _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
+{
+    void* p = ebpf_allocate(new_size);
+    if (p) {
+        memcpy(p, memory, min(old_size, new_size));
+        if (new_size > old_size) {
+            memset(((char*)p) + old_size, 0, new_size - old_size);
+        }
+        ebpf_free(memory);
+    }
+    return p;
 }
 
 void
@@ -232,4 +256,155 @@ ebpf_query_time_since_boot(bool include_suspended_time)
         // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-kequeryinterrupttimeprecise
         return KeQueryInterruptTimePrecise(&qpc_time);
     }
+}
+
+MDL*
+ebpf_map_memory(size_t length)
+{
+    EBPF_LOG_ENTRY();
+    MDL* memory_descriptor_list = NULL;
+    PHYSICAL_ADDRESS start_address;
+    PHYSICAL_ADDRESS end_address;
+    PHYSICAL_ADDRESS page_size;
+    start_address.QuadPart = 0;
+    end_address.QuadPart = -1;
+    page_size.QuadPart = PAGE_SIZE;
+    memory_descriptor_list =
+        MmAllocatePagesForMdlEx(start_address, end_address, page_size, length, MmCached, MM_ALLOCATE_FULLY_REQUIRED);
+
+    if (memory_descriptor_list) {
+        void* address =
+            MmMapLockedPagesSpecifyCache(memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
+        if (!address) {
+            EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
+            MmFreePagesFromMdl(memory_descriptor_list);
+            ExFreePool(memory_descriptor_list);
+            memory_descriptor_list = NULL;
+        }
+    } else {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmAllocatePagesForMdlEx, STATUS_NO_MEMORY);
+    }
+    EBPF_RETURN_POINTER(MDL*, memory_descriptor_list);
+}
+
+void
+ebpf_unmap_memory(_Frees_ptr_opt_ MDL* memory_descriptor)
+{
+    EBPF_LOG_ENTRY();
+    if (!memory_descriptor) {
+        EBPF_RETURN_VOID();
+    }
+
+    MmUnmapLockedPages(ebpf_memory_descriptor_get_base_address(memory_descriptor), memory_descriptor);
+    MmFreePagesFromMdl(memory_descriptor);
+    ExFreePool(memory_descriptor);
+    EBPF_RETURN_VOID();
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_protect_memory(_In_ MDL* memory_descriptor, ebpf_page_protection_t protection)
+{
+    EBPF_LOG_ENTRY();
+    NTSTATUS status;
+    unsigned long mm_protection_state = 0;
+    switch (protection) {
+    case EBPF_PAGE_PROTECT_READ_ONLY:
+        mm_protection_state = PAGE_READONLY;
+        break;
+    case EBPF_PAGE_PROTECT_READ_WRITE:
+        mm_protection_state = PAGE_READWRITE;
+        break;
+    case EBPF_PAGE_PROTECT_READ_EXECUTE:
+        mm_protection_state = PAGE_EXECUTE_READ;
+        break;
+    default:
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    status = MmProtectMdlSystemAddress(memory_descriptor, mm_protection_state);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmProtectMdlSystemAddress, status);
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+}
+
+void*
+ebpf_memory_descriptor_get_base_address(MDL* memory_descriptor)
+{
+    void* address = MmGetSystemAddressForMdlSafe(memory_descriptor, NormalPagePriority);
+    if (!address) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmGetSystemAddressForMdlSafe, STATUS_NO_MEMORY);
+    }
+    return address;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_safe_size_t_multiply(
+    size_t multiplicand, size_t multiplier, _Out_ _Deref_out_range_(==, multiplicand* multiplier) size_t* result)
+{
+    return RtlSizeTMult(multiplicand, multiplier, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ _Deref_out_range_(==, augend + addend) size_t* result)
+{
+    return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_safe_size_t_subtract(
+    size_t minuend, size_t subtrahend, _Out_ _Deref_out_range_(==, minuend - subtrahend) size_t* result)
+{
+    return RtlSizeTSub(minuend, subtrahend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
+}
+
+uint32_t
+ebpf_random_uint32()
+{
+    LARGE_INTEGER p = KeQueryPerformanceCounter(NULL);
+    unsigned long seed = p.LowPart ^ (unsigned long)p.HighPart;
+    return RtlRandomEx(&seed);
+}
+
+ebpf_result_t
+ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output)
+{
+    wchar_t* unicode_string = NULL;
+    unsigned long unicode_byte_count = 0;
+    ebpf_result_t retval;
+
+    // Compute the size needed to hold the unicode string.
+    NTSTATUS status =
+        RtlUTF8ToUnicodeN(NULL, 0, &unicode_byte_count, (const char*)input->value, (unsigned long)input->length);
+    if (!NT_SUCCESS(status)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    unicode_string = (wchar_t*)ebpf_allocate(unicode_byte_count + sizeof(wchar_t));
+    if (unicode_string == NULL) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    status = RtlUTF8ToUnicodeN(
+        unicode_string,
+        unicode_byte_count,
+        &unicode_byte_count,
+        (const char*)input->value,
+        (unsigned long)input->length);
+
+    if (!NT_SUCCESS(status)) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    *output = unicode_string;
+    unicode_string = NULL;
+    retval = EBPF_SUCCESS;
+
+Done:
+    ebpf_free(unicode_string);
+    return retval;
 }
