@@ -25,6 +25,7 @@ target_include_directories("service" PRIVATE
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
+  "${CMAKE_SOURCE_DIR}/external/usersim/inc"
 )
 
 target_link_libraries("service" PRIVATE

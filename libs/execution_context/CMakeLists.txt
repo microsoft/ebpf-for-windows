@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
+list(APPEND CMAKE_MODULE_PATH
+  "${CMAKE_SOURCE_DIR}/external/usersim/external/FindWDK/cmake"
+)
+
+find_package(WDK REQUIRED)
+
 set(execution_context_sources
   ebpf_core.h
   ebpf_core.c
@@ -35,6 +41,7 @@ target_include_directories("execution_context_user" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_SOURCE_DIR}/external/usersim/inc"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"
 )
 
@@ -61,6 +68,7 @@ target_include_directories("execution_context_kernel" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_SOURCE_DIR}/external/ebpf-verifier/src"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"
 )
 

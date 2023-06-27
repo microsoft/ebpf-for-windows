@@ -38,6 +38,7 @@ target_include_directories("ebpf_stress_tests_um" PRIVATE
     "${CMAKE_SOURCE_DIR}/libs/thunk"
     "${CMAKE_SOURCE_DIR}/libs/thunk/mock"
     "${CMAKE_SOURCE_DIR}/netebpfext"
+    "${CMAKE_SOURCE_DIR}/external/usersim/inc"
     "${WDK_ROOT}/include/${WDK_VERSION}/km"
     "${WDK_ROOT}/include/${WDK_VERSION}/shared"
 )
@@ -57,6 +58,7 @@ target_link_libraries("ebpf_stress_tests_um" PRIVATE
   "service"
   "test_util"
   "ubpf_user"
+  "usersim"
   "Mincore.lib"
   "external::boost"
 )

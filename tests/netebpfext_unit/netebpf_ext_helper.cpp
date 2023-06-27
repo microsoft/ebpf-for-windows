@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "net_ebpf_ext_sock_addr.h"
 #include "netebpf_ext_helper.h"
 
 // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
@@ -76,6 +77,9 @@ _netebpf_ext_helper::_netebpf_ext_helper(
         nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
         nmr_hook_client_handle_initialized = true;
     }
+
+    _fwp_engine::get()->set_sublayer_guids(
+        EBPF_DEFAULT_SUBLAYER, EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER, EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER);
 }
 
 _netebpf_ext_helper::~_netebpf_ext_helper()

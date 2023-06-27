@@ -7,19 +7,12 @@
 
 #include <ntstrsafe.h>
 
-bool ebpf_fuzzing_enabled = false;
-
 IO_WORKITEM_ROUTINE _ebpf_preemptible_routine;
 
 static uint32_t _ebpf_platform_maximum_processor_count = 0;
 
 extern DEVICE_OBJECT*
 ebpf_driver_get_device_object();
-
-typedef struct _ebpf_process_state
-{
-    KAPC_STATE state;
-} ebpf_process_state_t;
 
 typedef struct _ebpf_memory_descriptor
 {
@@ -50,22 +43,6 @@ ebpf_platform_terminate()
     KeFlushQueuedDpcs();
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag)
-{
-    ebpf_assert(size);
-    void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size, tag);
-    if (p) {
-        memset(p, 0, size);
-    }
-    return p;
-}
-
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
-{
-    return ebpf_allocate_with_tag(size, EBPF_POOL_TAG_DEFAULT);
-}
-
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
     _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
 {
@@ -78,14 +55,6 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) v
         ebpf_free(memory);
     }
     return p;
-}
-
-void
-ebpf_free(_Frees_ptr_opt_ void* memory)
-{
-    if (memory) {
-        ExFreePool(memory);
-    }
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_
@@ -375,30 +344,6 @@ ebpf_safe_size_t_subtract(
     return RtlSizeTSub(minuend, subtrahend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
-void
-ebpf_lock_create(_Out_ ebpf_lock_t* lock)
-{
-    KeInitializeSpinLock((PKSPIN_LOCK)lock);
-}
-
-void
-ebpf_lock_destroy(_In_ _Post_invalid_ ebpf_lock_t* lock)
-{
-    UNREFERENCED_PARAMETER(lock);
-}
-
-_Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
-{
-    return KeAcquireSpinLockRaiseToDpc(lock);
-}
-
-_Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
-    _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
-{
-    KeReleaseSpinLock(lock, state);
-}
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
 {
@@ -411,38 +356,7 @@ ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintp
     return EBPF_SUCCESS;
 }
 
-void
-ebpf_restore_current_thread_affinity(uintptr_t old_thread_affinity_mask)
-{
-    KeRevertToUserAffinityThreadEx(old_thread_affinity_mask);
-}
-
 _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return _ebpf_platform_maximum_processor_count; }
-
-bool
-ebpf_is_preemptible()
-{
-    KIRQL irql = KeGetCurrentIrql();
-    return irql < DISPATCH_LEVEL;
-}
-
-bool
-ebpf_is_non_preemptible_work_item_supported()
-{
-    return true;
-}
-
-uint32_t
-ebpf_get_current_cpu()
-{
-    return KeGetCurrentProcessorNumberEx(NULL);
-}
-
-uint64_t
-ebpf_get_current_thread_id()
-{
-    return (uint64_t)KeGetCurrentThread();
-}
 
 typedef struct _ebpf_non_preemptible_work_item
 {
@@ -709,33 +623,6 @@ ebpf_random_uint32()
     return RtlRandomEx(&seed);
 }
 
-uint64_t
-ebpf_query_time_since_boot(bool include_suspended_time)
-{
-    uint64_t qpc_time;
-    if (include_suspended_time) {
-        // KeQueryUnbiasedInterruptTimePrecise returns the current interrupt-time count in 100-nanosecond units.
-        // Unbiased Interrupt time is the total time since boot including time spent suspended.
-        // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-kequeryunbiasedinterrupttimeprecise
-        return KeQueryUnbiasedInterruptTimePrecise(&qpc_time);
-    } else {
-        // KeQueryInterruptTimePrecise returns the current interrupt-time count in 100-nanosecond units.
-        // (Biased) Interrupt time is the total time since boot excluding time spent suspended.        //
-        // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-kequeryinterrupttimeprecise
-        return KeQueryInterruptTimePrecise(&qpc_time);
-    }
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_guid_create(_Out_ GUID* new_guid)
-{
-    if (NT_SUCCESS(ExUuidCreate(new_guid))) {
-        return EBPF_SUCCESS;
-    } else {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-}
-
 // Pick an arbitrary limit on string size roughly based on the size of the eBPF stack.
 // This is enough space for a format string that takes up all the eBPF stack space,
 // plus room to expand three 64-bit integer arguments from 2-character format specifiers.
@@ -769,18 +656,6 @@ ebpf_update_global_helpers(
     return result;
 }
 
-uint32_t
-ebpf_platform_process_id()
-{
-    return (uint32_t)(uintptr_t)PsGetCurrentProcessId();
-}
-
-uint32_t
-ebpf_platform_thread_id()
-{
-    return (uint32_t)(uintptr_t)PsGetCurrentThreadId();
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
 {
@@ -809,86 +684,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     return EBPF_SUCCESS;
 }
 
-_IRQL_requires_max_(HIGH_LEVEL) _IRQL_raises_(new_irql) _IRQL_saves_ uint8_t ebpf_raise_irql(uint8_t new_irql)
-{
-    KIRQL old_irql;
-    KeRaiseIrql(new_irql, &old_irql);
-    return old_irql;
-}
-
-_IRQL_requires_max_(HIGH_LEVEL) void ebpf_lower_irql(_In_ _Notliteral_ _IRQL_restores_ uint8_t old_irql)
-{
-    KeLowerIrql(old_irql);
-}
-
-bool
-ebpf_should_yield_processor()
-{
-    // Don't yield if we are at passive level as the scheduler can preempt us.
-    if (KeGetCurrentIrql() == PASSIVE_LEVEL) {
-        return false;
-    }
-
-    // KeShouldYieldProcessor returns TRUE if the current thread should yield the processor.
-    return KeShouldYieldProcessor() != FALSE;
-}
-
-void
-ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state)
-{
-    state->current_irql = KeGetCurrentIrql();
-    if (state->current_irql == DISPATCH_LEVEL) {
-        state->id.cpu = ebpf_get_current_cpu();
-    } else {
-        state->id.thread = ebpf_get_current_thread_id();
-    }
-}
-
-typedef struct _ebpf_semaphore
-{
-    KSEMAPHORE semaphore;
-} ebpf_semaphore_t;
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, int maximum_count)
-{
-    *semaphore = ebpf_allocate(sizeof(KSEMAPHORE));
-    if (*semaphore == NULL) {
-        return EBPF_NO_MEMORY;
-    }
-
-    KeInitializeSemaphore(&(*semaphore)->semaphore, initial_count, maximum_count);
-    return EBPF_SUCCESS;
-}
-
 void
 ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore)
 {
     ebpf_free(semaphore);
-}
-
-void
-ebpf_semaphore_wait(_In_ ebpf_semaphore_t* semaphore)
-{
-    KeWaitForSingleObject(&semaphore->semaphore, Executive, KernelMode, FALSE, NULL);
-}
-
-void
-ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore)
-{
-    KeReleaseSemaphore(&semaphore->semaphore, 0, 1, FALSE);
-}
-
-void
-ebpf_enter_critical_region()
-{
-    KeEnterCriticalRegion();
-}
-
-void
-ebpf_leave_critical_region()
-{
-    KeLeaveCriticalRegion();
 }
 
 ebpf_result_t
@@ -925,38 +724,4 @@ ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar
 Done:
     ebpf_free(unicode_string);
     return retval;
-}
-
-intptr_t
-ebpf_platform_reference_process()
-{
-    PEPROCESS process = PsGetCurrentProcess();
-    ObReferenceObject(process);
-    return (intptr_t)process;
-}
-
-_Ret_maybenull_ ebpf_process_state_t*
-ebpf_allocate_process_state()
-{
-    // Skipping fault injection as call to ebpf_allocate() covers it.
-    ebpf_process_state_t* state = ebpf_allocate(sizeof(ebpf_process_state_t));
-    return state;
-}
-
-void
-ebpf_platform_dereference_process(intptr_t process_handle)
-{
-    ObDereferenceObject((PEPROCESS)process_handle);
-}
-
-void
-ebpf_platform_attach_process(intptr_t process_handle, _Inout_ ebpf_process_state_t* state)
-{
-    KeStackAttachProcess((PEPROCESS)process_handle, &state->state);
-}
-
-void
-ebpf_platform_detach_process(_In_ ebpf_process_state_t* state)
-{
-    KeUnstackDetachProcess(&state->state);
 }

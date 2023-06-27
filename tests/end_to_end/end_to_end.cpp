@@ -25,6 +25,7 @@ namespace ebpf {
 #include "program_helper.h"
 #include "sample_test_common.h"
 #include "test_helper.hpp"
+#include "usersim/ke.h"
 #include "watchdog.h"
 #include "xdp_tests_common.h"
 
@@ -78,8 +79,6 @@ CATCH_REGISTER_LISTENER(_watchdog)
 #define DECLARE_JIT_TEST_CASES(_name, _group, _function) \
     DECLARE_JIT_TEST(_name, _group, _function)           \
     DECLARE_NATIVE_TEST(_name, _group, _function)
-
-extern thread_local bool ebpf_non_preemptible;
 
 std::vector<uint8_t>
 prepare_ip_packet(uint16_t ethernet_type)
@@ -2646,19 +2645,20 @@ typedef struct _ebpf_scoped_non_preemptible
     {
         ebpf_assert_success(
             ebpf_set_current_thread_affinity((uintptr_t)1 << ebpf_get_current_cpu(), &old_thread_affinity));
-        ebpf_non_preemptible = true;
+        KeRaiseIrql(DISPATCH_LEVEL, &old_irql);
     }
     ~_ebpf_scoped_non_preemptible()
     {
-        ebpf_non_preemptible = false;
+        KeLowerIrql(old_irql);
         ebpf_restore_current_thread_affinity(old_thread_affinity);
     }
     uintptr_t old_thread_affinity = 0;
+    KIRQL old_irql = PASSIVE_LEVEL;
 } ebpf_scoped_non_preemptible_t;
 
 TEST_CASE("load_native_program_invalid5-non-preemptible", "[end-to-end]")
 {
-    // Setting ebpf_non_preemptible to true will ensure ebpf_native_load queues
+    // Raising virtual IRQL to dispatch will ensure ebpf_native_load queues
     // a workitem and that code path is executed.
     ebpf_scoped_non_preemptible_t non_preemptible;
     _load_invalid_program("invalid_maps3_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);

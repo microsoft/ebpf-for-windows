@@ -228,6 +228,7 @@
     <ClInclude Include="..\net_ebpf_ext_sock_ops.h" />
     <ClInclude Include="..\net_ebpf_ext_tracelog.h" />
     <ClInclude Include="..\net_ebpf_ext_xdp.h" />
+    <ClInclude Include="netebpfext_platform.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
