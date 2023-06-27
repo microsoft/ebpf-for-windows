@@ -1,6 +1,11 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
+list(APPEND CMAKE_MODULE_PATH
+  "${CMAKE_SOURCE_DIR}/external/usersim/external/FindWDK/cmake"
+)
+find_package(WDK REQUIRED)
+
 wdk_add_driver("NetEbpfExt" WINVER "${EBPFFORWINDOWS_WDK_WINVER}" KMDF "${EBPFFORWINDOWS_WDK_KMDF_VERSION}"
   ../guid.c
 

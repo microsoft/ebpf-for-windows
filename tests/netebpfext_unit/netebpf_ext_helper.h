@@ -13,9 +13,11 @@
     }
 #endif
 
+#include "..\..\external\usersim\src\fwp_um.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_registry_helper.h"
-#include "fwp_um.h"
+#include "net_ebpf_ext.h"
+#include "net_ebpf_ext_tracelog.h"
 
 #include <iostream>
 #include <vector>

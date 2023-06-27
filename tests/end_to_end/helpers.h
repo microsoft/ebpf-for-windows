@@ -9,6 +9,7 @@
 #include "ebpf_program_types.h"
 #include "net_ebpf_ext_program_info.h"
 #include "sample_ext_program_info.h"
+#include "usersim/ke.h"
 
 // We need the NET_BUFFER typedefs without the other NT kernel defines that
 // ndis.h might pull in and conflict with user-mode headers.
@@ -49,8 +50,6 @@ typedef struct _close_bpf_link
 
 typedef std::unique_ptr<bpf_link, close_bpf_link_t> bpf_link_ptr;
 
-extern bool _ebpf_platform_is_preemptible;
-
 typedef class _emulate_dpc
 {
   public:
@@ -58,17 +57,18 @@ typedef class _emulate_dpc
     {
         uintptr_t new_thread_affinity_mask = 1ull << cpu_id;
         ebpf_assert_success(ebpf_set_current_thread_affinity(new_thread_affinity_mask, &old_thread_affinity_mask));
-        _ebpf_platform_is_preemptible = false;
+        KeRaiseIrql(DISPATCH_LEVEL, &old_irql);
     }
     ~_emulate_dpc()
     {
-        _ebpf_platform_is_preemptible = true;
+        KeLowerIrql(old_irql);
 
         ebpf_restore_current_thread_affinity(old_thread_affinity_mask);
     }
 
   private:
     uintptr_t old_thread_affinity_mask;
+    KIRQL old_irql;
 
 } emulate_dpc_t;
 

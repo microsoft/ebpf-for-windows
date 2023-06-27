@@ -1,17 +1,15 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
+list(APPEND CMAKE_MODULE_PATH
+  "${CMAKE_SOURCE_DIR}/external/usersim/external/FindWDK/cmake"
+)
+
+find_package(WDK REQUIRED)
+
 set(ubpf_sources
   ../../external/ubpf/vm/ebpf.h
   ../../external/ubpf/vm/ubpf_int.h
-)
-
-set(ubpf_include_dirs
-  "${CMAKE_SOURCE_DIR}/include"
-  "${CMAKE_SOURCE_DIR}/libs/platform"
-  "${CMAKE_SOURCE_DIR}/libs/ubpf"
-  "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
-  "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
 )
 
 #
@@ -26,8 +24,13 @@ add_library("ubpf_user" STATIC
 )
 
 target_include_directories("ubpf_user" PRIVATE
-  ${ubpf_include_dirs}
+  "${CMAKE_SOURCE_DIR}/include"
+  "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
+  "${CMAKE_SOURCE_DIR}/libs/ubpf"
+  "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
+  "${CMAKE_SOURCE_DIR}/external/usersim/inc"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"
 )
 
@@ -60,8 +63,12 @@ target_compile_options("ubpf_kernel" PRIVATE
 )
 
 target_include_directories("ubpf_kernel" PRIVATE
-  ${ubpf_include_dirs}
+  "${CMAKE_SOURCE_DIR}/include"
+  "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
+  "${CMAKE_SOURCE_DIR}/libs/ubpf"
+  "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"
 )
 

@@ -1680,7 +1680,7 @@ TEST_CASE("EBPF_OPERATION_GET_PROGRAM_INFO", "[execution_context][negative]")
     // Invalid program handle and type.
     request.program_handle = ebpf_handle_invalid;
     request.program_type = {0};
-    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_EXTENSION_FAILED_TO_LOAD);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_ARGUMENT);
 
     // Reply too small.
     request.program_handle = program_handles[0];

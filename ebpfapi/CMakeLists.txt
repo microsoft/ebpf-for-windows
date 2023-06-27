@@ -20,6 +20,7 @@ target_include_directories("EbpfApi" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
   "${CMAKE_SOURCE_DIR}/libs/execution_context"
   "${CMAKE_SOURCE_DIR}/libs/api_common"
+  "${CMAKE_SOURCE_DIR}/external/usersim/inc"
   "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
@@ -35,6 +36,7 @@ target_link_libraries("EbpfApi" PRIVATE
   "rpc_interface"
   "git_commit_id"
   "bpf2c_driver"
+  "usersim"
   "Mincore.lib"
 )
 
