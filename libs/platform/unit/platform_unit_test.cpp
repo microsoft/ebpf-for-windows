@@ -25,6 +25,19 @@
 #include <mutex>
 #include <sddl.h>
 #include <thread>
+#include <filesystem>
+
+extern "C" const wchar_t* __vcasan_save_dumps()
+{
+    thread_local wchar_t path[MAX_PATH] = {0};
+    std::error_code err{};
+
+    const std::filesystem::path exe_path = std::filesystem::current_path(err);
+    const DWORD process_id = GetCurrentProcessId();
+    swprintf_s(path, L"%s\\asan.log.%d.dmp", exe_path.wstring().c_str(), process_id);
+
+    return path;
+}
 
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;
