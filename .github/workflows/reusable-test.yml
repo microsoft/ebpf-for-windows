@@ -82,6 +82,7 @@ jobs:
       EBPF_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
       DUMP_PATH: c:/dumps/x64/${{matrix.configurations}}
       TEST_TIMEOUT: 3600 # 1 hour timeout for tests.
+      ASAN_SAVE_DUMPS: "sanitize_vcasan.dmp"
 
     steps:
     - id: skip_check

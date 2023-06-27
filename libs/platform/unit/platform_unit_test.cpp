@@ -32,9 +32,10 @@ extern "C" const wchar_t* __vcasan_save_dumps()
     thread_local wchar_t path[MAX_PATH] = {0};
     std::error_code err{};
 
-    const std::filesystem::path exe_path = std::filesystem::current_path(err);
+    // const std::filesystem::path exe_path = std::filesystem::current_path(err);
+    const std::filesystem::path log_path = "C:/dumps/x64/Debug";
     const DWORD process_id = GetCurrentProcessId();
-    swprintf_s(path, L"%s\\asan.log.%d.dmp", exe_path.wstring().c_str(), process_id);
+    swprintf_s(path, L"%s\\asan.log.%d.dmp", log_path.wstring().c_str(), process_id);
 
     return path;
 }
