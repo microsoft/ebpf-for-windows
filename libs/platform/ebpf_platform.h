@@ -151,7 +151,7 @@ extern "C"
      * @param[in] memory Allocation to be freed.
      */
     void
-    ebpf_free(_In_opt_ __drv_freesMem(Mem) void* memory);
+    ebpf_free(_Frees_ptr_opt_ void* memory);
 
     /**
      * @brief Allocate memory that has a starting address that is cache aligned.

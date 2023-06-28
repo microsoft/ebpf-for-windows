@@ -38,7 +38,7 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void*
 }
 
 void
-ebpf_free(_In_opt_ __drv_freesMem(Mem) void* memory)
+ebpf_free(_Frees_ptr_opt_ void* memory)
 {
     if (memory) {
         ExFreePool(memory);
