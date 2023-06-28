@@ -324,7 +324,7 @@ jobs:
     with:
       name: stress
       # Until there is a dedicated stress test, re-use the perf test.
-      test_command: .\ebpf_performance.exe
+      test_command: .\ebpf_performance.exe -d yes
       build_artifact: Build-x64
       environment: windows-2022
       # No code coverage on stress.
