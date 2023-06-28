@@ -93,6 +93,7 @@ ebpf_object_get_info(
 _Must_inspect_result_ ebpf_result_t
 query_map_definition(
     ebpf_handle_t handle,
+    _Out_ uint32_t* id,
     _Out_ uint32_t* type,
     _Out_ uint32_t* key_size,
     _Out_ uint32_t* value_size,
@@ -103,6 +104,7 @@ query_map_definition(
     uint32_t info_size = sizeof(info);
     ebpf_result_t result = ebpf_object_get_info(handle, &info, &info_size);
     if (result == EBPF_SUCCESS) {
+        *id = info.id;
         *type = info.type;
         *key_size = info.key_size;
         *value_size = info.value_size;

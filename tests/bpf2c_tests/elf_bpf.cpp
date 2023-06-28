@@ -224,8 +224,9 @@ DECLARE_TEST("invalid_maps1", _test_mode::NoVerify);
 DECLARE_TEST("invalid_maps2", _test_mode::NoVerify);
 DECLARE_TEST("invalid_maps3", _test_mode::NoVerify);
 DECLARE_TEST("map", _test_mode::NoVerify)
-DECLARE_TEST("map_in_map", _test_mode::Verify)
-DECLARE_TEST("map_in_map_v2", _test_mode::Verify)
+DECLARE_TEST("map_in_map_btf", _test_mode::Verify)
+DECLARE_TEST("map_in_map_legacy_id", _test_mode::Verify)
+DECLARE_TEST("map_in_map_legacy_idx", _test_mode::Verify)
 DECLARE_TEST("map_reuse", _test_mode::Verify)
 DECLARE_TEST("map_reuse_2", _test_mode::Verify)
 DECLARE_TEST("pidtgid", _test_mode::Verify)

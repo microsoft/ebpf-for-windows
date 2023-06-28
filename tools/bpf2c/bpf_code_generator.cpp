@@ -12,11 +12,13 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_code_generator.h"
-#define ebpf_inst ebpf_inst_btf
-#include "btf.h"
-#include "btf_parser.h"
-#undef ebpf_inst
 #include "ebpf_version.h"
+#define ebpf_inst ebpf_inst_btf
+#include "libbtf/btf_map.h"
+#include "libbtf/btf_parse.h"
+#include "libbtf/btf_type_data.h"
+#include "spec_type_descriptors.hpp"
+#undef ebpf_inst
 
 #include <windows.h>
 #include <cassert>
@@ -357,6 +359,22 @@ bpf_code_generator::extract_program(const bpf_code_generator::unsafe_string& sec
     }
 }
 
+// BTF maps sections are identified as any section called ".maps".
+// PREVAIL does not support multiple BTF map sections.
+static bool
+_is_btf_map_section(const std::string& name)
+{
+    return name == ".maps";
+}
+
+// Legacy (non-BTF) maps sections are identified as any section called "maps", or matching "maps/<map-name>".
+static bool
+_is_legacy_map_section(const std::string& name)
+{
+    std::string maps_prefix = "maps/";
+    return name == "maps" || (name.length() > 5 && name.compare(0, maps_prefix.length(), maps_prefix) == 0);
+}
+
 void
 bpf_code_generator::visit_symbols(symbol_visitor_t visitor, const unsafe_string& section_name)
 {
@@ -398,17 +416,42 @@ bpf_code_generator::visit_symbols(symbol_visitor_t visitor, const unsafe_string&
     }
 }
 
-void
-bpf_code_generator::parse()
+template <typename T>
+static std::vector<T>
+vector_of(const ELFIO::section& sec)
 {
-    // Parse the new .maps section if it exists.
-    auto map_section = get_optional_section(".maps");
+    auto data = sec.get_data();
+    auto size = sec.get_size();
+    if ((size % sizeof(T) != 0) || size > UINT32_MAX || !data) {
+        throw std::runtime_error("Invalid argument to vector_of");
+    }
+    return {(T*)data, (T*)(data + size)};
+}
+
+// Parse a BTF maps section.
+void
+bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
+{
+    auto map_section = get_optional_section(name);
     if (map_section) {
         auto btf_section = get_required_section(".BTF");
-        btf_type_data data =
-            std::vector<uint8_t>(btf_section->get_data(), btf_section->get_data() + btf_section->get_size());
+        std::optional<libbtf::btf_type_data> btf_data = vector_of<std::byte>(*btf_section);
         std::vector<EbpfMapDescriptor> map_descriptors;
-        auto map_name_to_index = parse_btf_map_sections(data, map_descriptors);
+
+        auto map_data = libbtf::parse_btf_map_section(btf_data.value());
+        std::map<std::string, size_t> map_offsets;
+        for (auto& map : map_data) {
+            map_offsets.insert({map.name, map_descriptors.size()});
+            map_descriptors.push_back({
+                .original_fd = static_cast<int>(map.type_id),
+                .type = map.map_type,
+                .key_size = map.key_size,
+                .value_size = map.value_size,
+                .max_entries = map.max_entries,
+                .inner_map_fd = map.inner_map_type_id != 0 ? map.inner_map_type_id : -1,
+            });
+        }
+        auto map_name_to_index = map_offsets;
         size_t index = 0;
 
         std::map<size_t, unsafe_string> map_names_by_offset;
@@ -426,7 +469,7 @@ bpf_code_generator::parse()
                     map_names_by_offset[symbol_value] = unsafe_symbol_name;
                 }
             },
-            ".maps");
+            name);
 
         for (const auto& [offset, unsafe_symbol_name] : map_names_by_offset) {
             if (map_name_to_index.find(unsafe_symbol_name.raw()) == map_name_to_index.end()) {
@@ -443,61 +486,131 @@ bpf_code_generator::parse()
             map_definition.inner_id = map_descriptor.inner_map_fd != -1 ? map_descriptor.inner_map_fd : 0;
 
             // Get pinning data from the BTF data.
-            auto map_struct = data.get_kind(map_descriptor.original_fd);
-            for (const auto& member : std::get<BTF_KIND_STRUCT>(map_struct).members) {
+            auto map_struct = btf_data->get_kind_type<libbtf::btf_kind_struct>(map_descriptor.original_fd);
+            for (const auto& member : map_struct.members) {
                 if (member.name == "pinning") {
                     // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
-                    auto pining_type_id = member.type;
+                    auto pinning_type_id = member.type;
                     // Dereference the pointer type.
-                    pining_type_id = data.dereference_pointer(pining_type_id);
+                    pinning_type_id = btf_data->dereference_pointer(pinning_type_id);
                     // Get the array type.
-                    auto pining_type = data.get_kind(pining_type_id);
-                    if (pining_type.index() != BTF_KIND_ARRAY) {
-                        throw bpf_code_generator_exception("pinning field is not an array");
-                    }
+                    auto pinning_type = btf_data->get_kind_type<libbtf::btf_kind_array>(pinning_type_id);
                     // Value is encoded as the number of elements in the array.
-                    map_definition.pinning =
-                        static_cast<ebpf_pin_type_t>(std::get<BTF_KIND_ARRAY>(pining_type).count_of_elements);
+                    map_definition.pinning = static_cast<ebpf_pin_type_t>(pinning_type.count_of_elements);
                 }
             }
             map_definitions[unsafe_symbol_name] = {map_definition, index++};
         }
     }
+}
 
-    // Parse the older maps section if it exists.
-    map_section = get_optional_section("maps");
-    if (map_section) {
-        size_t data_size = map_section->get_size();
-        size_t map_count = data_size / sizeof(ebpf_map_definition_in_file_t);
-
-        if (data_size % sizeof(ebpf_map_definition_in_file_t) != 0) {
-            throw bpf_code_generator_exception(
-                "bad maps section size, must be a multiple of " +
-                std::to_string(sizeof(ebpf_map_definition_in_file_t)));
+// Parse global data (currently map information) in the eBPF file.
+void
+bpf_code_generator::parse()
+{
+    for (auto& section : reader.sections) {
+        std::string name = section->get_name();
+        if (_is_btf_map_section(name)) {
+            parse_btf_maps_section(name);
+        } else if (_is_legacy_map_section(name)) {
+            parse_legacy_maps_section(name);
         }
+    }
+}
 
-        visit_symbols(
-            [&](const unsafe_string& unsafe_symbol_name,
-                uint64_t symbol_value,
-                unsigned char bind,
-                unsigned char symbol_type,
-                uint64_t symbol_size) {
-                UNREFERENCED_PARAMETER(bind);
-                UNREFERENCED_PARAMETER(symbol_type);
-                if (symbol_size != sizeof(ebpf_map_definition_in_file_t)) {
-                    throw bpf_code_generator_exception("invalid map size");
-                }
+static std::tuple<std::string, ELFIO::Elf_Half>
+_get_symbol_name_and_section_index(ELFIO::const_symbol_section_accessor& symbols, ELFIO::Elf_Xword index)
+{
+    std::string symbol_name;
+    ELFIO::Elf64_Addr value{};
+    ELFIO::Elf_Xword size{};
+    unsigned char bind{};
+    unsigned char type{};
+    ELFIO::Elf_Half section_index{};
+    unsigned char other{};
+    symbols.get_symbol(index, symbol_name, value, size, bind, type, section_index, other);
+    return {symbol_name, section_index};
+}
 
-                map_definitions[unsafe_symbol_name].definition =
-                    *reinterpret_cast<const ebpf_map_definition_in_file_t*>(map_section->get_data() + symbol_value);
+// We should consider refactoring the code that parses ELF files into a form that can be used by both ebpf-verifier and
+// bpf2c.
+void
+bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
+{
+    auto map_section = get_optional_section(name);
+    if (!map_section) {
+        return;
+    }
 
-                map_definitions[unsafe_symbol_name].index = symbol_value / sizeof(ebpf_map_definition_in_file_t);
-            },
-            "maps");
-
-        if (map_definitions.size() != map_count) {
-            throw bpf_code_generator_exception("bad maps section, map must have associated symbol");
+    // Count the number of symbols that point into this maps section.
+    ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
+    int map_count = 0;
+    for (ELFIO::Elf_Xword index = 0; index < symbols.get_symbols_num(); index++) {
+        auto [symbol_name, section_index] = _get_symbol_name_and_section_index(symbols, index);
+        if ((section_index == map_section->get_index()) && !symbol_name.empty()) {
+            map_count++;
         }
+    }
+    if (map_count == 0) {
+        return;
+    }
+
+    size_t data_size = map_section->get_size();
+    size_t map_record_size = data_size / map_count;
+    if (map_record_size == 0) {
+        return;
+    }
+
+    if (data_size % map_record_size != 0) {
+        throw bpf_code_generator_exception(
+            "bad maps section size, must be a multiple of " + std::to_string(map_record_size));
+    }
+
+    size_t old_map_count = map_definitions.size();
+    for (ELFIO::Elf_Xword i = 0; i < symbols.get_symbols_num(); i++) {
+        std::string unsafe_symbol_name;
+        ELFIO::Elf64_Addr symbol_value{};
+        unsigned char symbol_bind{};
+        unsigned char symbol_type{};
+        ELFIO::Elf_Half symbol_section_index{};
+        unsigned char symbol_other{};
+        ELFIO::Elf_Xword symbol_size{};
+
+        symbols.get_symbol(
+            i,
+            unsafe_symbol_name,
+            symbol_value,
+            symbol_size,
+            symbol_bind,
+            symbol_type,
+            symbol_section_index,
+            symbol_other);
+
+        if (symbol_section_index == map_section->get_index()) {
+            if (symbol_size != map_record_size) {
+                throw bpf_code_generator_exception("invalid map size");
+            }
+            if (symbol_value > map_section->get_size()) {
+                throw bpf_code_generator_exception("invalid symbol value");
+            }
+            if ((symbol_value + symbol_size) > map_section->get_size()) {
+                throw bpf_code_generator_exception("invalid symbol value");
+            }
+
+            // Copy the data from the record into an ebpf_map_definition_in_file_t structure,
+            // zero-padding any extra, and being careful not to overflow the buffer.
+            map_definitions[unsafe_symbol_name].definition = {};
+            memcpy(
+                &map_definitions[unsafe_symbol_name].definition,
+                map_section->get_data() + symbol_value,
+                min(sizeof(map_definitions[unsafe_symbol_name].definition), map_record_size));
+
+            map_definitions[unsafe_symbol_name].index = old_map_count + (symbol_value / map_record_size);
+        }
+    }
+
+    if (map_definitions.size() != old_map_count + map_count) {
+        throw bpf_code_generator_exception("bad maps section, map must have associated symbol");
     }
 }
 
@@ -554,14 +667,14 @@ bpf_code_generator::extract_btf_information()
         return;
     }
 
-    std::vector<uint8_t> btf_data(
-        reinterpret_cast<const uint8_t*>(btf->get_data()),
-        reinterpret_cast<const uint8_t*>(btf->get_data()) + btf->get_size());
-    std::vector<uint8_t> btf_ext_data(
-        reinterpret_cast<const uint8_t*>(btf_ext->get_data()),
-        reinterpret_cast<const uint8_t*>(btf_ext->get_data()) + btf_ext->get_size());
+    std::vector<std::byte> btf_data(
+        reinterpret_cast<const std::byte*>(btf->get_data()),
+        reinterpret_cast<const std::byte*>(btf->get_data()) + btf->get_size());
+    std::vector<std::byte> btf_ext_data(
+        reinterpret_cast<const std::byte*>(btf_ext->get_data()),
+        reinterpret_cast<const std::byte*>(btf_ext->get_data()) + btf_ext->get_size());
 
-    btf_parse_line_information(
+    libbtf::btf_parse_line_information(
         btf_data,
         btf_ext_data,
         [&section_line_info = this->section_line_info](

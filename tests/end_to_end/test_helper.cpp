@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "..\..\usersim\src\fault_injection.h"
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "bpf/bpf.h"
@@ -14,6 +13,7 @@
 #include "helpers.h"
 #include "mock.h"
 #include "test_helper.hpp"
+#include "usersim/../../src/fault_injection.h"
 
 #include <chrono>
 #include <filesystem>
