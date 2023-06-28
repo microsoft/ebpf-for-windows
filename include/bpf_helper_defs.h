@@ -49,18 +49,6 @@ EBPF_HELPER(int64_t, bpf_map_delete_elem, (void* map, void* key));
 #endif
 
 /**
- * @brief Get a pointer to an entry in the map and erase that element.
- *
- * @param[in] map Map to search.
- * @param[in] key Key to use when searching map.
- * @return Pointer to the value if found or NULL.
- */
-EBPF_HELPER(void*, bpf_map_lookup_and_delete_elem, (void* map, void* key));
-#ifndef __doxygen
-#define bpf_map_lookup_and_delete_elem ((bpf_map_lookup_and_delete_elem_t)BPF_FUNC_map_lookup_and_delete_elem)
-#endif
-
-/**
  * @brief Perform a tail call into another eBPF program.
  *
  * @param[in] ctx Context to pass to the called program.

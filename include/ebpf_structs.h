@@ -142,27 +142,26 @@ typedef struct _ebpf_map_definition_in_file
 
 typedef enum
 {
-    BPF_FUNC_map_lookup_elem = 1,            ///< \ref bpf_map_lookup_elem
-    BPF_FUNC_map_update_elem = 2,            ///< \ref bpf_map_update_elem
-    BPF_FUNC_map_delete_elem = 3,            ///< \ref bpf_map_delete_elem
-    BPF_FUNC_map_lookup_and_delete_elem = 4, ///< \ref bpf_map_lookup_and_delete_elem
-    BPF_FUNC_tail_call = 5,                  ///< \ref bpf_tail_call
-    BPF_FUNC_get_prandom_u32 = 6,            ///< \ref bpf_get_prandom_u32
-    BPF_FUNC_ktime_get_boot_ns = 7,          ///< \ref bpf_ktime_get_boot_ns
-    BPF_FUNC_get_smp_processor_id = 8,       ///< \ref bpf_get_smp_processor_id
-    BPF_FUNC_ktime_get_ns = 9,               ///< \ref bpf_ktime_get_ns
-    BPF_FUNC_csum_diff = 10,                 ///< \ref bpf_csum_diff
-    BPF_FUNC_ringbuf_output = 11,            ///< \ref bpf_ringbuf_output
-    BPF_FUNC_trace_printk2 = 12,             ///< \ref bpf_trace_printk2 (but use \ref bpf_printk instead)
-    BPF_FUNC_trace_printk3 = 13,             ///< \ref bpf_trace_printk3 (but use \ref bpf_printk instead)
-    BPF_FUNC_trace_printk4 = 14,             ///< \ref bpf_trace_printk4 (but use \ref bpf_printk instead)
-    BPF_FUNC_trace_printk5 = 15,             ///< \ref bpf_trace_printk5 (but use \ref bpf_printk instead)
-    BPF_FUNC_map_push_elem = 16,             ///< \ref bpf_map_push_elem
-    BPF_FUNC_map_pop_elem = 17,              ///< \ref bpf_map_pop_elem
-    BPF_FUNC_map_peek_elem = 18,             ///< \ref bpf_map_peek_elem
-    BPF_FUNC_get_current_pid_tgid = 19,      ///< \ref bpf_get_current_pid_tgid
-    BPF_FUNC_get_current_logon_id = 20,      ///< \ref bpf_get_current_logon_id
-    BPF_FUNC_is_current_admin = 21,          ///< \ref bpf_is_current_admin
+    BPF_FUNC_map_lookup_elem = 1,       ///< \ref bpf_map_lookup_elem
+    BPF_FUNC_map_update_elem = 2,       ///< \ref bpf_map_update_elem
+    BPF_FUNC_map_delete_elem = 3,       ///< \ref bpf_map_delete_elem
+    BPF_FUNC_tail_call = 4,             ///< \ref bpf_tail_call
+    BPF_FUNC_get_prandom_u32 = 5,       ///< \ref bpf_get_prandom_u32
+    BPF_FUNC_ktime_get_boot_ns = 6,     ///< \ref bpf_ktime_get_boot_ns
+    BPF_FUNC_get_smp_processor_id = 7,  ///< \ref bpf_get_smp_processor_id
+    BPF_FUNC_ktime_get_ns = 8,          ///< \ref bpf_ktime_get_ns
+    BPF_FUNC_csum_diff = 9,             ///< \ref bpf_csum_diff
+    BPF_FUNC_ringbuf_output = 10,       ///< \ref bpf_ringbuf_output
+    BPF_FUNC_trace_printk2 = 11,        ///< \ref bpf_trace_printk2 (but use \ref bpf_printk instead)
+    BPF_FUNC_trace_printk3 = 12,        ///< \ref bpf_trace_printk3 (but use \ref bpf_printk instead)
+    BPF_FUNC_trace_printk4 = 13,        ///< \ref bpf_trace_printk4 (but use \ref bpf_printk instead)
+    BPF_FUNC_trace_printk5 = 14,        ///< \ref bpf_trace_printk5 (but use \ref bpf_printk instead)
+    BPF_FUNC_map_push_elem = 15,        ///< \ref bpf_map_push_elem
+    BPF_FUNC_map_pop_elem = 16,         ///< \ref bpf_map_pop_elem
+    BPF_FUNC_map_peek_elem = 17,        ///< \ref bpf_map_peek_elem
+    BPF_FUNC_get_current_pid_tgid = 18, ///< \ref bpf_get_current_pid_tgid
+    BPF_FUNC_get_current_logon_id = 19, ///< \ref bpf_get_current_logon_id
+    BPF_FUNC_is_current_admin = 20,     ///< \ref bpf_is_current_admin
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.

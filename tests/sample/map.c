@@ -98,12 +98,6 @@ test_GENERAL_map(struct _ebpf_map_definition_in_file* map)
         return 0;
     }
 
-    // Find and remove element.
-    return_value = bpf_map_lookup_and_delete_elem(map, &key);
-    if (return_value == NULL) {
-        bpf_printk("bpf_map_lookup_and_delete_elem returned NULL");
-        return -1;
-    }
     return 0;
 }
 

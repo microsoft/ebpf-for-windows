@@ -85,7 +85,6 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_map_find_element,
     (void*)&_ebpf_core_map_update_element,
     (void*)&_ebpf_core_map_delete_element,
-    (void*)&_ebpf_core_map_find_and_delete_element,
     // Tail call.
     (void*)&_ebpf_core_tail_call,
     // Utility functions.
@@ -1855,20 +1854,6 @@ static int64_t
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key)
 {
     return -ebpf_map_delete_entry(map, 0, key, EBPF_MAP_FLAG_HELPER);
-}
-
-static void*
-_ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8_t* key)
-{
-    ebpf_result_t retval;
-    uint8_t* value;
-    retval = ebpf_map_find_entry(
-        map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EPBF_MAP_FIND_FLAG_DELETE);
-    if (retval != EBPF_SUCCESS) {
-        return NULL;
-    } else {
-        return value;
-    }
 }
 
 static int64_t
