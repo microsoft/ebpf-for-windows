@@ -6,11 +6,11 @@
 #pragma warning(disable : 4200)
 #include "bpf/libbpf.h"
 #pragma warning(pop)
-#include "..\..\usersim\src\fault_injection.h"
 #include "ebpf_epoch.h"
 #include "netsh_test_helper.h"
 #include "platform.h"
 #include "test_helper.hpp"
+#include "usersim/../../src/fault_injection.h"
 
 #include <winsock2.h>
 #include <windows.h>

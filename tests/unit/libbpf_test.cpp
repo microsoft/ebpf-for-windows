@@ -1631,13 +1631,13 @@ TEST_CASE("simple hash of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYP
 
 // Verify an app can communicate with an eBPF program via an array of maps.
 static void
-_array_of_btf_maps_test(ebpf_execution_type_t execution_type)
+_array_of_maps_test(ebpf_execution_type_t execution_type, _In_ PCSTR dll_name, _In_ PCSTR obj_name)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_btf_um.dll" : "map_in_map_btf.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
     struct bpf_object* xdp_object = bpf_object__open(file_name);
     REQUIRE(xdp_object != nullptr);
 
@@ -1684,6 +1684,13 @@ _array_of_btf_maps_test(ebpf_execution_type_t execution_type)
     result = bpf_link__destroy(link.release());
     REQUIRE(result == 0);
     bpf_object__close(xdp_object);
+}
+
+// Create a map-in-map using BTF ids.
+static void
+_array_of_btf_maps_test(ebpf_execution_type_t execution_type)
+{
+    _array_of_maps_test(execution_type, "map_in_map_btf_um.dll", "map_in_map_btf.o");
 }
 
 DECLARE_JIT_TEST_CASES("array of btf maps", "[libbpf]", _array_of_btf_maps_test);
@@ -1692,61 +1699,19 @@ DECLARE_JIT_TEST_CASES("array of btf maps", "[libbpf]", _array_of_btf_maps_test)
 static void
 _array_of_id_maps_test(ebpf_execution_type_t execution_type)
 {
-    _test_helper_end_to_end test_helper;
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
-
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_legacy_id_um.dll" : "map_in_map_legacy_id.o");
-    struct bpf_object* xdp_object = bpf_object__open(file_name);
-    REQUIRE(xdp_object != nullptr);
-
-    // Load the program(s).
-    REQUIRE(bpf_object__load(xdp_object) == 0);
-
-    struct bpf_program* caller = bpf_object__find_program_by_name(xdp_object, "lookup");
-    REQUIRE(caller != nullptr);
-
-    struct bpf_map* outer_map = bpf_object__find_map_by_name(xdp_object, "outer_map");
-    REQUIRE(outer_map != nullptr);
-
-    int outer_map_fd = bpf_map__fd(outer_map);
-    REQUIRE(outer_map_fd > 0);
-
-    // Create an inner map.
-    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
-    REQUIRE(inner_map_fd > 0);
-
-    // Add a value to the inner map.
-    uint32_t inner_value = 42;
-    uint32_t inner_key = 0;
-    int error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
-    REQUIRE(error == 0);
-
-    // Add inner map to outer map.
-    __u32 outer_key = 0;
-    error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
-    REQUIRE(error == 0);
-
-    bpf_link_ptr link(bpf_program__attach_xdp(caller, 1));
-    REQUIRE(link != nullptr);
-
-    // Now run the ebpf program.
-    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    uint32_t result;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
-
-    // Verify the return value is what we saved in the inner map.
-    REQUIRE(result == inner_value);
-
-    Platform::_close(inner_map_fd);
-    result = bpf_link__destroy(link.release());
-    REQUIRE(result == 0);
-    bpf_object__close(xdp_object);
+    _array_of_maps_test(execution_type, "map_in_map_legacy_id_um.dll", "map_in_map_legacy_id.o");
 }
 
 DECLARE_JIT_TEST_CASES("array of id maps", "[libbpf]", _array_of_id_maps_test);
+
+// Create a map-in-map using map indices.
+static void
+_array_of_idx_maps_test(ebpf_execution_type_t execution_type)
+{
+    _array_of_maps_test(execution_type, "map_in_map_legacy_idx_um.dll", "map_in_map_legacy_idx.o");
+}
+
+DECLARE_JIT_TEST_CASES("array of idx maps", "[libbpf]", _array_of_idx_maps_test);
 
 static void
 _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
