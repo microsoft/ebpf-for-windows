@@ -37,6 +37,7 @@ target_include_directories("api" PRIVATE
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_SOURCE_DIR}/external/usersim/inc"
+  "${CMAKE_SOURCE_DIR}/external/ebpf-verifier/external/libbtf"
   "${CMAKE_BINARY_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
   "${CMAKE_SOURCE_DIR}/external/pe-parse/pe-parser-library/include"

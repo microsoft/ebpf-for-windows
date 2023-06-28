@@ -6,11 +6,11 @@
 #pragma warning(disable : 4200)
 #include "bpf/libbpf.h"
 #pragma warning(pop)
-#include "..\..\usersim\src\fault_injection.h"
 #include "ebpf_epoch.h"
 #include "netsh_test_helper.h"
 #include "platform.h"
 #include "test_helper.hpp"
+#include "usersim/../../src/fault_injection.h"
 
 #include <winsock2.h>
 #include <windows.h>
@@ -577,7 +577,7 @@ TEST_CASE("show maps", "[netsh][maps]")
     _test_helper_netsh test_helper;
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_add_program, L"map_in_map.o", nullptr, nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_add_program, L"map_in_map_btf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
 

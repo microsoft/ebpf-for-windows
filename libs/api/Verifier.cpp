@@ -4,15 +4,15 @@
 #include "Verifier.h"
 #include "api_common.hpp"
 #include "api_internal.h"
-#define ebpf_inst ebpf_inst_btf
-#include "btf.h"
-#include "btf_parser.h"
-#undef ebpf_inst
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "elfio_wrapper.hpp"
+#define ebpf_inst ebpf_inst_btf
+#include "libbtf/btf_map.h"
+#include "libbtf/btf_type_data.h"
+#undef ebpf_inst
 #include "platform.hpp"
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"
@@ -59,22 +59,19 @@ struct _thread_local_storage_cache
 };
 
 static ebpf_pin_type_t
-_get_pin_type_for_btf_map(const btf_type_data& btf_data, btf_type_id id)
+_get_pin_type_for_btf_map(const libbtf::btf_type_data& btf_data, libbtf::btf_type_id id)
 {
-    auto map_struct = btf_data.get_kind(id);
-    for (const auto& member : std::get<BTF_KIND_STRUCT>(map_struct).members) {
+    auto map_struct = btf_data.get_kind_type<libbtf::btf_kind_struct>(id);
+    for (const auto& member : map_struct.members) {
         if (member.name == "pinning") {
             // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
-            auto pining_type_id = member.type;
+            auto pinning_type_id = member.type;
             // Dereference the pointer type.
-            pining_type_id = btf_data.dereference_pointer(pining_type_id);
+            pinning_type_id = btf_data.dereference_pointer(pinning_type_id);
             // Get the array type.
-            auto pining_type = btf_data.get_kind(pining_type_id);
-            if (pining_type.index() != BTF_KIND_ARRAY) {
-                throw std::runtime_error("pinning field is not an array");
-            }
+            auto pinning_type = btf_data.get_kind_type<libbtf::btf_kind_array>(pinning_type_id);
             // Value is encoded as the number of elements in the array.
-            return static_cast<ebpf_pin_type_t>(std::get<BTF_KIND_ARRAY>(pining_type).count_of_elements);
+            return static_cast<ebpf_pin_type_t>(pinning_type.count_of_elements);
         }
     }
     return PIN_NONE;
@@ -115,6 +112,18 @@ _for_each_symbol(
     }
 }
 
+template <typename T>
+static vector<T>
+vector_of(const ELFIO::section& sec)
+{
+    auto data = sec.get_data();
+    auto size = sec.get_size();
+    if ((size % sizeof(T) != 0) || size > UINT32_MAX || !data) {
+        throw std::runtime_error("Invalid argument to vector_of");
+    }
+    return {(T*)data, (T*)(data + size)};
+}
+
 /**
  * @brief Parse the BTF data, gather the list of verifier map descriptors, and populate the cache.
  *
@@ -124,45 +133,86 @@ _for_each_symbol(
 static void
 _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<section_offset_to_map_t>& map_names)
 {
-    auto btf_section = reader.sections[".BTF"];
+    ELFIO::section* btf_section = reader.sections[".BTF"];
     if (!btf_section) {
         // It is an error if the BTF section is missing.
         throw std::runtime_error("BTF section is missing");
     }
-
-    btf_type_data btf_data =
-        std::vector<uint8_t>(btf_section->get_data(), btf_section->get_data() + btf_section->get_size());
+    std::optional<libbtf::btf_type_data> btf_data = vector_of<byte>(*btf_section);
 
     std::vector<EbpfMapDescriptor> btf_map_descriptors;
     std::map<std::string, size_t> btf_map_name_to_index;
 
-    btf_map_name_to_index = parse_btf_map_sections(btf_data, btf_map_descriptors);
-
-    // Prevail requires that the fds assigned to maps are sequential.
-    // Build a map from the original type id to the pseudo-fd.
-    std::map<int, int> type_id_to_fd_map;
-    int pseudo_fd = 1;
-    // Gather the typeids for each map and assign a pseudo-fd to each map.
-    for (auto& map_descriptor : btf_map_descriptors) {
-        if (type_id_to_fd_map.find(map_descriptor.original_fd) == type_id_to_fd_map.end()) {
-            type_id_to_fd_map[map_descriptor.original_fd] = pseudo_fd++;
-        }
+    auto map_data = parse_btf_map_section(btf_data.value());
+    std::map<std::string, size_t> map_offsets;
+    for (auto& map : map_data) {
+        map_offsets.insert({map.name, btf_map_descriptors.size()});
+        btf_map_descriptors.push_back({
+            .original_fd = static_cast<int>(map.type_id),
+            .type = map.map_type,
+            .key_size = map.key_size,
+            .value_size = map.value_size,
+            .max_entries = map.max_entries,
+            .inner_map_fd = map.inner_map_type_id != 0 ? map.inner_map_type_id : -1,
+        });
     }
+    btf_map_name_to_index = map_offsets;
 
     // For each map in map_names, find the corresponding map descriptor and cache the map handle.
     for (auto& entry : map_names) {
-        auto& btf_map_descriptor = btf_map_descriptors[btf_map_name_to_index[entry.map_name]];
-        auto pin_type = _get_pin_type_for_btf_map(btf_data, btf_map_descriptor.original_fd);
+        uint32_t idx = (uint32_t)btf_map_name_to_index[entry.map_name];
+        auto& btf_map_descriptor = btf_map_descriptors[idx];
+        // We temporarily stored BTF type ids in the descriptor's fd fields.
+        int btf_type_id = btf_map_descriptor.original_fd;
+        int btf_inner_type_id = btf_map_descriptor.inner_map_fd;
+
+        auto pin_type = _get_pin_type_for_btf_map(btf_data.value(), btf_type_id);
         cache_map_handle(
             ebpf_handle_invalid,
-            type_id_to_fd_map[btf_map_descriptor.original_fd],
+            map_idx_to_original_fd(idx),
+            btf_type_id,
             btf_map_descriptor.type,
             btf_map_descriptor.key_size,
             btf_map_descriptor.value_size,
             btf_map_descriptor.max_entries,
-            type_id_to_fd_map[btf_map_descriptor.inner_map_fd],
+            (uint32_t)ebpf_fd_invalid,
+            btf_inner_type_id,
             entry.section_offset,
             pin_type);
+    }
+
+    // Resolve inner_map_fd for each map.
+    btf_map_descriptors.clear();
+    g_ebpf_platform_windows.resolve_inner_map_references(btf_map_descriptors);
+}
+
+// Parse symbols to get map names for all maps sections.
+static void
+_get_map_names(
+    _In_ const ELFIO::elfio& reader,
+    _In_ const ELFIO::const_symbol_section_accessor& symbols,
+    _Inout_ vector<section_offset_to_map_t>& map_names) noexcept(false)
+{
+    std::string maps_prefix = "maps/";
+    for (const auto& section : reader.sections) {
+        std::string name = section->get_name();
+        if (name == ".maps" || name == "maps" ||
+            (name.length() > 5 && name.compare(0, maps_prefix.length(), maps_prefix) == 0)) {
+            _for_each_symbol(
+                symbols, section->get_index(), [&](const std::string& symbol_name, ELFIO::Elf64_Addr symbol_value) {
+                    map_names.emplace_back(symbol_value, symbol_name);
+                    return true;
+                });
+        }
+    }
+
+    ELFIO::section* btf_maps_section = reader.sections[".maps"];
+    if (btf_maps_section) {
+        _parse_btf_map_info_and_populate_cache(reader, map_names);
+    }
+
+    if (get_map_descriptor_size() != map_names.size()) {
+        throw std::runtime_error(string("Map name not found for some maps."));
     }
 }
 
@@ -221,30 +271,11 @@ _get_program_and_map_names(
         }
     }
 
-    ELFIO::section* maps_section = reader.sections["maps"];
-    ELFIO::section* btf_maps_section = reader.sections[".maps"];
-    if (maps_section || btf_maps_section) {
-
-        _for_each_symbol(
-            symbols,
-            btf_maps_section ? btf_maps_section->get_index() : maps_section->get_index(),
-            [&](const std::string& symbol_name, ELFIO::Elf64_Addr symbol_value) {
-                map_names.emplace_back(symbol_value, symbol_name);
-                return true;
-            });
-    }
-
     if (symbols_count != section_to_program_map.size()) {
         throw std::runtime_error(string("Program name not found for some sections."));
     }
 
-    if (btf_maps_section) {
-        _parse_btf_map_info_and_populate_cache(reader, map_names);
-    }
-
-    if (get_map_descriptor_size() != map_names.size()) {
-        throw std::runtime_error(string("Map name not found for some maps."));
-    }
+    _get_map_names(reader, symbols, map_names);
 }
 
 _Must_inspect_result_ ebpf_result_t
