@@ -6,7 +6,9 @@
 #pragma warning(disable : 4200)
 #include "bpf/libbpf.h"
 #pragma warning(pop)
+#include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
+#include "ebpf_tracelog.h"
 #include "ebpf_vm_isa.hpp"
 #include "helpers.h"
 #include "platform.h"
@@ -23,9 +25,6 @@
 #if !defined(MAX_TAIL_CALL_CNT)
 #define MAX_TAIL_CALL_CNT 32
 #endif
-
-std::vector<std::string>
-ebpf_platform_printk_output();
 
 // libbpf.h uses enum types and generates the
 // following warning whenever an enum type is used below:
@@ -2806,14 +2805,18 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     bpf_test_run_opts opts = {};
     opts.repeat = 1;
 
-    // Clear previous printk output.
-    auto unused_output = ebpf_platform_printk_output();
+    capture_helper_t capture;
+    std::vector<std::string> output;
+    errno_t error = capture.begin_capture();
+    if (error == NO_ERROR) {
+        // Run the program.
+        usersim_trace_logging_set_enabled(true, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK);
+        int result = bpf_prog_test_run_opts(program_fd, &opts);
+        usersim_trace_logging_set_enabled(false, 0, 0);
 
-    // Run the program.
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
-
-    // Capture printk output from the program.
-    auto output = ebpf_platform_printk_output();
+        output = capture.buffer_to_printk_vector(capture.get_stdout_contents());
+        REQUIRE(result == 0);
+    }
 
     // Verify that the printk output is correct.
     REQUIRE(output.size() == MAX_TAIL_CALL_CNT);
@@ -2884,14 +2887,18 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     bpf_test_run_opts opts = {};
     opts.repeat = 1;
 
-    // Clear previous printk output.
-    auto unused_output = ebpf_platform_printk_output();
+    capture_helper_t capture;
+    std::vector<std::string> output;
+    errno_t error = capture.begin_capture();
+    if (error == NO_ERROR) {
+        // Run the program.
+        usersim_trace_logging_set_enabled(true, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK);
+        int result = bpf_prog_test_run_opts(first_program_fd, &opts);
+        usersim_trace_logging_set_enabled(false, 0, 0);
 
-    // Run the program.
-    REQUIRE(bpf_prog_test_run_opts(first_program_fd, &opts) == 0);
-
-    // Capture printk output from the program.
-    auto output = ebpf_platform_printk_output();
+        output = capture.buffer_to_printk_vector(capture.get_stdout_contents());
+        REQUIRE(result == 0);
+    }
 
     // Verify that the printk output is correct.
     REQUIRE(output.size() == MAX_TAIL_CALL_CNT);

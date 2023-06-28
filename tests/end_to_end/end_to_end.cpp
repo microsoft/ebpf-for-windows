@@ -12,6 +12,7 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_core.h"
+#include "ebpf_tracelog.h"
 #include "helpers.h"
 #include "ioctl_helper.h"
 #include "mock.h"
@@ -1736,37 +1737,36 @@ TEST_CASE("printk", "[end_to_end]")
     memcpy(&ctx.socket_address, &addr, ctx.socket_address_length);
 
     capture_helper_t capture;
-    std::string output;
+    std::vector<std::string> output;
     uint32_t hook_result = 0;
     errno_t error = capture.begin_capture();
     if (error == NO_ERROR) {
+        usersim_trace_logging_set_enabled(true, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK);
         ebpf_result_t hook_fire_result = hook.fire(&ctx, &hook_result);
-        output = capture.get_stdout_contents();
+        usersim_trace_logging_set_enabled(false, 0, 0);
+
+        output = capture.buffer_to_printk_vector(capture.get_stdout_contents());
         REQUIRE(hook_fire_result == EBPF_SUCCESS);
     }
-    std::string expected_output = "Hello, world\n"
-                                  "Hello, world\n"
-                                  "PID: " +
-                                  std::to_string(ctx.process_id) +
-                                  " using %u\n"
-                                  "PID: " +
-                                  std::to_string(ctx.process_id) +
-                                  " using %lu\n"
-                                  "PID: " +
-                                  std::to_string(ctx.process_id) +
-                                  " using %llu\n"
-                                  "PID: " +
-                                  std::to_string(ctx.process_id) +
-                                  " PROTO: 2\n"
-                                  "PID: " +
-                                  std::to_string(ctx.process_id) +
-                                  " PROTO: 2 ADDRLEN: 16\n"
-                                  "100% done\n";
-    REQUIRE(output == expected_output);
+    std::vector<std::string> expected_output = {
+        "Hello, world",
+        "Hello, world",
+        "PID: " + std::to_string(ctx.process_id) + " using %u",
+        "PID: " + std::to_string(ctx.process_id) + " using %lu",
+        "PID: " + std::to_string(ctx.process_id) + " using %llu",
+        "PID: " + std::to_string(ctx.process_id) + " PROTO: 2",
+        "PID: " + std::to_string(ctx.process_id) + " PROTO: 2 ADDRLEN: 16",
+        "100% done"};
+    REQUIRE(output.size() == expected_output.size());
+    size_t output_length = 0;
+    for (int i = 0; i < output.size(); i++) {
+        REQUIRE(output[i] == expected_output[i]);
+        output_length += output[i].length();
+    }
 
     // Six of the printf calls in the program should fail and return -1
     // so subtract 6 from the length to get the expected return value.
-    REQUIRE(hook_result == output.length() - 6);
+    REQUIRE(hook_result == output_length - 6);
 }
 #endif
 

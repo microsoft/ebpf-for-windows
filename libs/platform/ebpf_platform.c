@@ -408,3 +408,26 @@ Done:
     ebpf_free(unicode_string);
     return retval;
 }
+
+// Pick an arbitrary limit on string size roughly based on the size of the eBPF stack.
+// This is enough space for a format string that takes up all the eBPF stack space,
+// plus room to expand three 64-bit integer arguments from 2-character format specifiers.
+#define MAX_PRINTK_STRING_SIZE 554
+
+long
+ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
+{
+    char* output = (char*)ebpf_allocate(MAX_PRINTK_STRING_SIZE);
+    if (output == NULL) {
+        return -1;
+    }
+
+    long bytes_written = -1;
+    if (RtlStringCchVPrintfA(output, MAX_PRINTK_STRING_SIZE, format, arg_list) == 0) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK, output);
+        bytes_written = (long)strlen(output);
+    }
+
+    ebpf_free(output);
+    return bytes_written;
+}

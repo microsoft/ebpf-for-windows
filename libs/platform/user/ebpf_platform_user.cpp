@@ -452,45 +452,6 @@ ebpf_validate_security_descriptor(
     return ntstatus_to_ebpf_result(status);
 }
 
-static std::vector<std::string> _ebpf_platform_printk_output;
-static std::mutex _ebpf_platform_printk_output_lock;
-
-/**
- * @brief Get the strings written via bpf_printk.
- * We use a custom user-mode implementation of ebpf_platform_printk until we
- * implement reading TraceLogging output.
- *
- * @return Vector of strings written via bpf_printk.
- */
-std::vector<std::string>
-ebpf_platform_printk_output()
-{
-    std::unique_lock<std::mutex> lock(_ebpf_platform_printk_output_lock);
-    return std::move(_ebpf_platform_printk_output);
-}
-
-long
-ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
-{
-    int bytes_written = vprintf(format, arg_list);
-    if (bytes_written >= 0) {
-        putchar('\n');
-        bytes_written++;
-    }
-
-    std::string output;
-    output.resize(bytes_written);
-
-    vsprintf_s(output.data(), output.size(), format, arg_list);
-    // Remove the trailing null.
-    output.pop_back();
-
-    std::unique_lock<std::mutex> lock(_ebpf_platform_printk_output_lock);
-    _ebpf_platform_printk_output.emplace_back(std::move(output));
-
-    return bytes_written;
-}
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_update_global_helpers(
     _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)

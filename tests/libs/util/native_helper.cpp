@@ -34,6 +34,7 @@ _native_module_helper::initialize(_In_z_ const char* file_name_prefix, ebpf_exec
         _file_name =
             file_name_prefix_string + std::string(guid_string) + std::string(EBPF_PROGRAM_FILE_EXTENSION_NATIVE);
         REQUIRE(CopyFileA(original_file_name.c_str(), _file_name.c_str(), TRUE) == TRUE);
+        RpcStringFreeA((RPC_CSTR*)guid_string);
     } else {
         _file_name = std::string(file_name_prefix) + std::string(EBPF_PROGRAM_FILE_EXTENSION_JIT);
     }
