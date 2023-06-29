@@ -13,6 +13,7 @@
 #include "ebpf_native.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program.h"
+#include "ebpf_proxy.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
 #include "ebpf_tracelog.h"
@@ -32,6 +33,97 @@ const NPI_MODULEID ebpf_general_helper_function_module_id = {
 };
 
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
+
+/**
+ * @brief Initialize the eBPF core execution context.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+ *  operation.
+ */
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_core_initiate();
+
+/**
+ * @brief Uninitialize the eBPF core execution context.
+ *
+ */
+static void
+_ebpf_core_terminate();
+
+/**
+ * @brief Invoke an operations on the eBPF execution context that was issued
+ *  by the user mode library.
+ *
+ * @param[in] operation_id Identifier of the operation to execute.
+ * @param[in] input_buffer Encoded buffer containing parameters for this
+ *  operation.
+ * @param[out] output_buffer Pointer to memory that will contain the
+ *  encoded result parameters for this operation.
+ * @param[in] output_buffer_length Length of the output buffer.
+ * @param[in, out] async_context Async context to be passed to on_complete.
+ * @param[in] on_complete Callback to be invoked when the operation is complete.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+ *  operation.
+ */
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_core_invoke_protocol_handler(
+    ebpf_operation_id_t operation_id,
+    _In_reads_bytes_(input_buffer_length) const void* input_buffer,
+    uint16_t input_buffer_length,
+    _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
+    uint16_t output_buffer_length,
+    _Inout_opt_ void* async_context,
+    _In_opt_ void (*on_complete)(_Inout_ void*, size_t, ebpf_result_t));
+
+/**
+ * @brief Query properties about an operation.
+ *
+ * @param[in] operation_id Identifier of the operation to query.
+ * @param[out] minimum_request_size Minimum size of a request buffer for
+ *  this operation.
+ * @param[out] minimum_reply_size Minimum size of the reply buffer for this
+ *  operation.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NOT_SUPPORTED The operation id is not valid.
+ */
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_core_get_protocol_handler_properties(
+    ebpf_operation_id_t operation_id,
+    _Out_ size_t* minimum_request_size,
+    _Out_ size_t* minimum_reply_size,
+    _Out_ bool* async);
+
+/**
+ * @brief Cancel an async protocol operation that returned EBPF_PENDING from
+ * ebpf_core_dispatch_table.invoke_protocol_handler.
+ *
+ * @param[in, out] async_context Async context passed to ebpf_core_dispatch_table.invoke_protocol_handler.
+ * @retval true Operation was canceled.
+ * @retval false Operation was already completed.
+ */
+static bool
+_ebpf_core_cancel_protocol_handler(_Inout_ void* async_context);
+
+/**
+ * @brief Close the FsContext2 from a file object.
+ *
+ * @param[in] context The FsContext2 from a fileobject to close.
+ */
+static void
+_ebpf_core_close_context(_In_opt_ void* context);
+
+ebpf_core_dispatch_table_t ebpf_core_dispatch_table = {
+    .size = sizeof(ebpf_core_dispatch_table),
+    .version = 0,
+    .initiate = _ebpf_core_initiate,
+    .terminate = _ebpf_core_terminate,
+    .invoke_protocol_handler = _ebpf_core_invoke_protocol_handler,
+    .get_protocol_handler_properties = _ebpf_core_get_protocol_handler_properties,
+    .cancel_protocol_handler = _ebpf_core_cancel_protocol_handler,
+    .close_context = _ebpf_core_close_context,
+};
 
 // Assume enabled until we can query it.
 static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE;
@@ -170,8 +262,8 @@ _ebpf_general_helper_function_provider_detach_client(_In_ void* provider_binding
     return STATUS_SUCCESS;
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_core_initiate()
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_core_initiate()
 {
     ebpf_result_t return_value;
     NTSTATUS status;
@@ -243,13 +335,13 @@ ebpf_core_initiate()
 
 Done:
     if (return_value != EBPF_SUCCESS) {
-        ebpf_core_terminate();
+        _ebpf_core_terminate();
     }
     return return_value;
 }
 
-void
-ebpf_core_terminate()
+static void
+_ebpf_core_terminate()
 {
     if (_ebpf_global_helper_function_nmr_binding_handle) {
         NTSTATUS status = NmrDeregisterProvider(_ebpf_global_helper_function_nmr_binding_handle);
@@ -2305,8 +2397,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(program_test_run, data, data, PROTOCOL_ALL_MODES),
 };
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_core_get_protocol_handler_properties(
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_core_get_protocol_handler_properties(
     ebpf_operation_id_t operation_id,
     _Out_ size_t* minimum_request_size,
     _Out_ size_t* minimum_reply_size,
@@ -2372,8 +2464,8 @@ ebpf_core_get_protocol_handler_properties(
     return EBPF_SUCCESS;
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_core_invoke_protocol_handler(
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_core_invoke_protocol_handler(
     ebpf_operation_id_t operation_id,
     _In_reads_bytes_(input_buffer_length) const void* input_buffer,
     uint16_t input_buffer_length,
@@ -2529,8 +2621,8 @@ Done:
     return retval;
 }
 
-bool
-ebpf_core_cancel_protocol_handler(_Inout_ void* async_context)
+static bool
+_ebpf_core_cancel_protocol_handler(_Inout_ void* async_context)
 {
     ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
     bool return_value = ebpf_async_cancel(async_context);
@@ -2538,8 +2630,8 @@ ebpf_core_cancel_protocol_handler(_Inout_ void* async_context)
     return return_value;
 }
 
-void
-ebpf_core_close_context(_In_opt_ void* context)
+static void
+_ebpf_core_close_context(_In_opt_ void* context)
 {
     if (!context) {
         return;

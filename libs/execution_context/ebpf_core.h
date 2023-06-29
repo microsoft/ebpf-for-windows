@@ -22,77 +22,6 @@ extern "C"
     typedef uint32_t(__stdcall* ebpf_hook_function)(uint8_t*);
 
     /**
-     * @brief Initialize the eBPF core execution context.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  operation.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_core_initiate();
-
-    /**
-     * @brief Uninitialize the eBPF core execution context.
-     *
-     */
-    void
-    ebpf_core_terminate();
-
-    /**
-     * @brief Invoke an operations on the eBPF execution context that was issued
-     *  by the user mode library.
-     *
-     * @param[in] operation_id Identifier of the operation to execute.
-     * @param[in] input_buffer Encoded buffer containing parameters for this
-     *  operation.
-     * @param[out] output_buffer Pointer to memory that will contain the
-     *  encoded result parameters for this operation.
-     * @param[in] output_buffer_length Length of the output buffer.
-     * @param[in, out] async_context Async context to be passed to on_complete.
-     * @param[in] on_complete Callback to be invoked when the operation is complete.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  operation.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_core_invoke_protocol_handler(
-        ebpf_operation_id_t operation_id,
-        _In_reads_bytes_(input_buffer_length) const void* input_buffer,
-        uint16_t input_buffer_length,
-        _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
-        uint16_t output_buffer_length,
-        _Inout_opt_ void* async_context,
-        _In_opt_ void (*on_complete)(_Inout_ void*, size_t, ebpf_result_t));
-
-    /**
-     * @brief Query properties about an operation.
-     *
-     * @param[in] operation_id Identifier of the operation to query.
-     * @param[out] minimum_request_size Minimum size of a request buffer for
-     *  this operation.
-     * @param[out] minimum_reply_size Minimum size of the reply buffer for this
-     *  operation.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NOT_SUPPORTED The operation id is not valid.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_core_get_protocol_handler_properties(
-        ebpf_operation_id_t operation_id,
-        _Out_ size_t* minimum_request_size,
-        _Out_ size_t* minimum_reply_size,
-        _Out_ bool* async);
-
-    /**
-     * @brief Cancel an async protocol operation that returned EBPF_PENDING from ebpf_core_invoke_protocol_handler.
-     *
-     * @param[in, out] async_context Async context passed to ebpf_core_invoke_protocol_handler.
-     * @retval true Operation was canceled.
-     * @retval false Operation was already completed.
-     */
-    bool
-    ebpf_core_cancel_protocol_handler(_Inout_ void* async_context);
-
-    /**
      * @brief Computes difference of checksum values for two input raw buffers using 1's complement arithmetic.
      *
      * @param[in] from Pointer to first raw buffer.
@@ -235,14 +164,6 @@ extern "C"
         const size_t count_of_helpers,
         _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
         _Out_writes_(count_of_helpers) uint64_t* helper_function_addresses);
-
-    /**
-     * @brief Close the FsContext2 from a file object.
-     *
-     * @param[in] context The FsContext2 from a fileobject to close.
-     */
-    void
-    ebpf_core_close_context(_In_opt_ void* context);
 
 #ifdef __cplusplus
 }

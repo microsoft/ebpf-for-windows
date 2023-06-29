@@ -7,6 +7,7 @@
 #include "ebpf_handle.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
+#include "ebpf_proxy.h"
 #include "helpers.h"
 #include "libfuzzer.h"
 #include "netebpf_ext_helper.h"
@@ -160,9 +161,9 @@ class fuzz_wrapper
   public:
     fuzz_wrapper()
     {
-        ebpf_result_t result = ebpf_core_initiate();
+        ebpf_result_t result = ebpf_core_dispatch_table.initiate();
         if (result != EBPF_SUCCESS) {
-            throw std::runtime_error("ebpf_core_initiate failed");
+            throw std::runtime_error("ebpf_core_dispatch_table.initiate failed");
         }
     }
     void
@@ -212,7 +213,7 @@ class fuzz_wrapper
             (void)ebpf_handle_close(handle);
         };
         program_information_providers.clear();
-        ebpf_core_terminate();
+        ebpf_core_dispatch_table.terminate();
     }
 
     ebpf_handle_t

@@ -9,6 +9,7 @@
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
+#include "ebpf_proxy.h"
 #include "ebpf_ring_buffer.h"
 #include "helpers.h"
 
@@ -93,8 +94,8 @@ typedef class _ebpf_async_wrapper
 class _ebpf_core_initializer
 {
   public:
-    _ebpf_core_initializer() { REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS); }
-    ~_ebpf_core_initializer() { ebpf_core_terminate(); }
+    _ebpf_core_initializer() { REQUIRE(ebpf_core_dispatch_table.initiate() == EBPF_SUCCESS); }
+    ~_ebpf_core_initializer() { ebpf_core_dispatch_table.terminate(); }
 };
 
 template <typename T> class ebpf_object_deleter
@@ -1151,7 +1152,7 @@ invoke_protocol(
 
     auto completion = [](void*, size_t, ebpf_result_t) {};
 
-    return ebpf_core_invoke_protocol_handler(
+    return ebpf_core_dispatch_table.invoke_protocol_handler(
         operation_id,
         request_ptr,
         static_cast<uint16_t>(request_size),
@@ -1628,7 +1629,7 @@ TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT short header", "[execution_context][
     auto completion = [](void*, size_t, ebpf_result_t) {};
 
     REQUIRE(
-        ebpf_core_invoke_protocol_handler(
+        ebpf_core_dispatch_table.invoke_protocol_handler(
             EBPF_OPERATION_GET_PINNED_OBJECT,
             request_ptr,
             static_cast<uint16_t>(request_size),
@@ -1761,7 +1762,7 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
     auto completion = [](void*, size_t, ebpf_result_t) {};
 
     REQUIRE(
-        ebpf_core_invoke_protocol_handler(
+        ebpf_core_dispatch_table.invoke_protocol_handler(
             EBPF_OPERATION_LOAD_NATIVE_MODULE,
             request_ptr,
             static_cast<uint16_t>(request_size),

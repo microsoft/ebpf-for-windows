@@ -22,10 +22,10 @@ typedef class _ebpf_program_test_state
         : byte_code(byte_code), program_info_provider(nullptr)
     {
         ebpf_program_parameters_t parameters = {EBPF_PROGRAM_TYPE_XDP};
-        REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
+        REQUIRE(ebpf_core_dispatch_table.initiate() == EBPF_SUCCESS);
 
         // Create the program info provider.  We can only do this after calling
-        // ebpf_core_initiate() since that initializes the interface GUID.
+        // ebpf_core_dispatch_table.initiate() since that initializes the interface GUID.
         program_info_provider = new _program_info_provider(EBPF_PROGRAM_TYPE_XDP);
 
         REQUIRE(ebpf_program_create(&parameters, &program) == EBPF_SUCCESS);
@@ -34,7 +34,7 @@ typedef class _ebpf_program_test_state
     {
         EBPF_OBJECT_RELEASE_REFERENCE(reinterpret_cast<ebpf_core_object_t*>(program));
         delete program_info_provider;
-        ebpf_core_terminate();
+        ebpf_core_dispatch_table.terminate();
     }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
@@ -96,7 +96,7 @@ typedef class _ebpf_map_test_state
     _ebpf_map_test_state(ebpf_map_type_t type, std::optional<uint32_t> map_size = {})
     {
         ebpf_utf8_string_t name{(uint8_t*)"test", 4};
-        REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
+        REQUIRE(ebpf_core_dispatch_table.initiate() == EBPF_SUCCESS);
         ebpf_map_definition_in_memory_t definition{
             type, sizeof(uint32_t), sizeof(uint64_t), map_size.has_value() ? map_size.value() : ebpf_get_cpu_count()};
 
@@ -114,7 +114,7 @@ typedef class _ebpf_map_test_state
     ~_ebpf_map_test_state()
     {
         EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
-        ebpf_core_terminate();
+        ebpf_core_dispatch_table.terminate();
     }
 
     void
@@ -195,7 +195,7 @@ typedef class _ebpf_map_test_state
 typedef class _ebpf_map_lpm_trie_test_state
 {
   public:
-    _ebpf_map_lpm_trie_test_state() : map(nullptr) { REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS); }
+    _ebpf_map_lpm_trie_test_state() : map(nullptr) { REQUIRE(ebpf_core_dispatch_table.initiate() == EBPF_SUCCESS); }
 
     void
     populate_ipv4_routes(size_t route_count)
@@ -260,7 +260,7 @@ typedef class _ebpf_map_lpm_trie_test_state
     ~_ebpf_map_lpm_trie_test_state()
     {
         EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
-        ebpf_core_terminate();
+        ebpf_core_dispatch_table.terminate();
     }
 
   private:

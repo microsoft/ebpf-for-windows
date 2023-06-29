@@ -8,7 +8,8 @@
  * 2. Opens an IOCTL surface that forwards commands to ebpf_core.
  */
 
-#include "ebpf_core.h"
+#include "ebpf_platform.h"
+#include "ebpf_proxy.h"
 #include "ebpf_tracelog.h"
 #include "ebpf_version.h"
 #include "git_commit_id.h"
@@ -62,7 +63,7 @@ static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
 
     _ebpf_driver_unloading_flag = TRUE;
 
-    ebpf_core_terminate();
+    ebpf_core_dispatch_table.terminate();
 }
 
 static _Check_return_ NTSTATUS
@@ -187,9 +188,9 @@ _ebpf_driver_initialize_objects(
         goto Exit;
     }
 
-    status = ebpf_result_to_ntstatus(ebpf_core_initiate());
+    status = ebpf_result_to_ntstatus(ebpf_core_dispatch_table.initiate());
     if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_core_initiate, status);
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_core_dispatch_table.initiate, status);
         goto Exit;
     }
 
@@ -210,7 +211,7 @@ static void
 _ebpf_driver_file_close(WDFFILEOBJECT wdf_file_object)
 {
     FILE_OBJECT* file_object = WdfFileObjectWdmGetFileObject(wdf_file_object);
-    ebpf_core_close_context(file_object->FsContext2);
+    ebpf_core_dispatch_table.close_context(file_object->FsContext2);
 }
 
 static void
@@ -228,7 +229,7 @@ static void
 _ebpf_driver_io_device_control_cancel(WDFREQUEST request)
 {
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdfrequest/nc-wdfrequest-evt_wdf_request_cancel
-    ebpf_core_cancel_protocol_handler(request);
+    ebpf_core_dispatch_table.cancel_protocol_handler(request);
 }
 
 static VOID
@@ -290,11 +291,11 @@ _ebpf_driver_io_device_control(
                     goto Done;
                 }
 
-                status = ebpf_result_to_ntstatus(ebpf_core_get_protocol_handler_properties(
+                status = ebpf_result_to_ntstatus(ebpf_core_dispatch_table.get_protocol_handler_properties(
                     user_request->id, &minimum_request_size, &minimum_reply_size, &async));
                 if (status != STATUS_SUCCESS) {
                     EBPF_LOG_NTSTATUS_API_FAILURE(
-                        EBPF_TRACELOG_KEYWORD_ERROR, ebpf_core_get_protocol_handler_properties, status);
+                        EBPF_TRACELOG_KEYWORD_ERROR, ebpf_core_dispatch_table.get_protocol_handler_properties, status);
                     goto Done;
                 }
 
@@ -334,7 +335,7 @@ _ebpf_driver_io_device_control(
                     wdf_request_ref_acquired = true;
                 }
 
-                status = ebpf_result_to_ntstatus(ebpf_core_invoke_protocol_handler(
+                status = ebpf_result_to_ntstatus(ebpf_core_dispatch_table.invoke_protocol_handler(
                     user_request->id,
                     user_request,
                     (uint16_t)actual_input_length,
@@ -344,7 +345,7 @@ _ebpf_driver_io_device_control(
                     _ebpf_driver_io_device_control_complete));
                 if (status != STATUS_SUCCESS) {
                     EBPF_LOG_NTSTATUS_API_FAILURE(
-                        EBPF_TRACELOG_KEYWORD_ERROR, "ebpf_core_invoke_protocol_handler", status);
+                        EBPF_TRACELOG_KEYWORD_ERROR, "ebpf_core_dispatch_table.invoke_protocol_handler", status);
                 }
                 goto Done;
             }

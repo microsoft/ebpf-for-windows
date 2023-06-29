@@ -4,6 +4,7 @@
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
 #include "ebpf_program.h"
+#include "ebpf_proxy.h"
 #include "helpers.h"
 #include "libfuzzer.h"
 #include "platform.h"
@@ -156,9 +157,9 @@ class fuzz_wrapper
   public:
     fuzz_wrapper()
     {
-        ebpf_result_t result = ebpf_core_initiate();
+        ebpf_result_t result = ebpf_core_dispatch_table.initiate();
         if (result != EBPF_SUCCESS) {
-            throw std::runtime_error("ebpf_core_initiate failed");
+            throw std::runtime_error("ebpf_core_dispatch_table.initiate failed");
         }
         for (const auto& type : _program_types) {
             program_information_providers.push_back(std::make_unique<_program_info_provider>(type));
@@ -195,7 +196,7 @@ class fuzz_wrapper
             (void)ebpf_handle_close(handle);
         };
         program_information_providers.clear();
-        ebpf_core_terminate();
+        ebpf_core_dispatch_table.terminate();
     }
 
   private:
@@ -219,8 +220,8 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
     size_t minimum_request_size;
     size_t minimum_reply_size;
 
-    ebpf_result_t result =
-        ebpf_core_get_protocol_handler_properties(operation_id, &minimum_request_size, &minimum_reply_size, &async);
+    ebpf_result_t result = ebpf_core_dispatch_table.get_protocol_handler_properties(
+        operation_id, &minimum_request_size, &minimum_reply_size, &async);
     if (result != EBPF_SUCCESS) {
         return;
     }
@@ -230,7 +231,7 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
     }
 
     reply.resize(minimum_reply_size);
-    result = ebpf_core_invoke_protocol_handler(
+    result = ebpf_core_dispatch_table.invoke_protocol_handler(
         operation_id,
         random_buffer.data(),
         static_cast<uint16_t>(random_buffer.size()),
@@ -240,7 +241,7 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
         async ? &fuzz_async_completion : nullptr);
 
     if (result == EBPF_PENDING) {
-        ebpf_core_cancel_protocol_handler(&async);
+        ebpf_core_dispatch_table.cancel_protocol_handler(&async);
     }
 }
 

@@ -9,6 +9,7 @@
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_platform.h"
+#include "ebpf_proxy.h"
 #include "hash.h"
 #include "helpers.h"
 #include "mock.h"
@@ -292,7 +293,7 @@ GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
     UNREFERENCED_PARAMETER(file_handle);
     bool return_value = FALSE;
     if (overlapped != nullptr) {
-        return_value = ebpf_core_cancel_protocol_handler(overlapped);
+        return_value = ebpf_core_dispatch_table.cancel_protocol_handler(overlapped);
     }
     return return_value;
 }
@@ -443,7 +444,8 @@ GlueDeviceIoControl(
     const void* local_input_buffer = nullptr;
     void* local_output_buffer = nullptr;
 
-    result = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size, &async);
+    result = ebpf_core_dispatch_table.get_protocol_handler_properties(
+        request_id, &minimum_request_size, &minimum_reply_size, &async);
     if (result != EBPF_SUCCESS) {
         goto Fail;
     }
@@ -481,7 +483,7 @@ GlueDeviceIoControl(
         local_output_buffer = user_reply;
     }
 
-    result = ebpf_core_invoke_protocol_handler(
+    result = ebpf_core_dispatch_table.invoke_protocol_handler(
         request_id,
         local_input_buffer,
         static_cast<uint16_t>(input_buffer_size),
@@ -668,7 +670,7 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     close_handler = Glue_close;
     create_service_handler = Glue_create_service;
     delete_service_handler = Glue_delete_service;
-    REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
+    REQUIRE(ebpf_core_dispatch_table.initiate() == EBPF_SUCCESS);
     ec_initialized = true;
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
     api_initialized = true;
@@ -717,7 +719,7 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
             ebpf_api_terminate();
         }
         if (ec_initialized) {
-            ebpf_core_terminate();
+            ebpf_core_dispatch_table.terminate();
         }
 
         device_io_control_handler = nullptr;
