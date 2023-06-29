@@ -13,7 +13,7 @@ name: CI/CD
 on:
   # Run on a daily schedule to perform the full set of tests.
   schedule:
-    - cron: '00 21 * * *'
+    - cron: '00 8 * * *'
   # Run on pull request to validate code changes.
   pull_request:
   merge_group:
