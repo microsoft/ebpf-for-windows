@@ -212,14 +212,14 @@ jobs:
           OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
     - name: Run test on self-hosted runner
-      if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.environment == 'ebpf_cicd_tests')
+      if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.environment == 'ebpf_cicd_tests') && (inputs.fault_injection != true)
       id: run_test_self_hosted
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
         ${{env.TEST_COMMAND}}
 
     - name: Run test without Code Coverage
-      if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.environment != 'ebpf_cicd_tests')
+      if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.environment != 'ebpf_cicd_tests') && (inputs.fault_injection != true)
       id: run_test_without_code_coverage
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       shell: cmd
