@@ -13,7 +13,7 @@ name: CI/CD
 on:
   # Run on a daily schedule to perform the full set of tests.
   schedule:
-    - cron: '00 21 * * *'
+    - cron: '00 8 * * *'
   # Run on pull request to validate code changes.
   pull_request:
   merge_group:
@@ -324,7 +324,7 @@ jobs:
     with:
       name: stress
       # Until there is a dedicated stress test, re-use the perf test.
-      test_command: .\ebpf_performance.exe
+      test_command: .\ebpf_performance.exe -d yes
       build_artifact: Build-x64
       environment: windows-2022
       # No code coverage on stress.
