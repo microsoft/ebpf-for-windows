@@ -110,7 +110,9 @@ _net_ebpf_extension_program_info_provider_detach_client(_In_ const void* provide
 static void
 _net_ebpf_extension_program_info_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
 {
-    ExFreePool(provider_binding_context);
+    if (provider_binding_context != NULL) {
+        ExFreePool(provider_binding_context);
+    }
 }
 
 void

@@ -1742,6 +1742,7 @@ TEST_CASE("printk", "[end_to_end]")
     errno_t error = capture.begin_capture();
     if (error == NO_ERROR) {
         usersim_trace_logging_set_enabled(true, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK);
+#pragma warning(suppress : 28193) // hook_fire_result is examined
         ebpf_result_t hook_fire_result = hook.fire(&ctx, &hook_result);
         usersim_trace_logging_set_enabled(false, 0, 0);
 
