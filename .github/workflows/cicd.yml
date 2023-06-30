@@ -338,7 +338,8 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
-      test_command: .\unit_tests.exe -d yes
+      # Exclude [processes] test that ASAN can't work with.
+      test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64-Sanitize
       environment: windows-2022
       code_coverage: false
