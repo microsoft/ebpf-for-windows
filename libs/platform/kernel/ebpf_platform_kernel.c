@@ -218,18 +218,6 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     }
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
-{
-    if (KeGetCurrentIrql() >= DISPATCH_LEVEL) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-
-    KAFFINITY old_affinity = KeSetSystemAffinityThreadEx(new_thread_affinity_mask);
-    *old_thread_affinity_mask = old_affinity;
-    return EBPF_SUCCESS;
-}
-
 typedef struct _ebpf_non_preemptible_work_item
 {
     KDPC deferred_procedure_call;
@@ -411,25 +399,6 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
     ebpf_free(work_item);
 }
 
-int32_t
-ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
-{
-    UNREFERENCED_PARAMETER(context);
-
-    NTSTATUS status;
-    char buffer[80];
-    va_list arg_start;
-    va_start(arg_start, format_string);
-
-    status = RtlStringCchVPrintfA(buffer, sizeof(buffer), format_string, arg_start);
-    if (NT_SUCCESS(status)) {
-        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, buffer);
-    }
-
-    va_end(arg_start);
-    return 0;
-}
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_access_check(
     _In_ const ebpf_security_descriptor_t* security_descriptor,
@@ -523,10 +492,4 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     *authentication_id = *(uint64_t*)&local_authentication_id;
 
     return EBPF_SUCCESS;
-}
-
-void
-ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore)
-{
-    ebpf_free(semaphore);
 }

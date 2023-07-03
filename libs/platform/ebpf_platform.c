@@ -171,6 +171,8 @@ ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state)
     }
 }
 
+#pragma region semaphores
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, int maximum_count)
 {
@@ -194,6 +196,14 @@ ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore)
 {
     KeReleaseSemaphore(semaphore, 0, 1, FALSE);
 }
+
+void
+ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore)
+{
+    ebpf_free(semaphore);
+}
+
+#pragma endregion semaphores
 
 void
 ebpf_enter_critical_region()
@@ -430,4 +440,35 @@ ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
 
     ebpf_free(output);
     return bytes_written;
+}
+
+int32_t
+ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
+{
+    UNREFERENCED_PARAMETER(context);
+
+    NTSTATUS status;
+    char buffer[80];
+    va_list arg_start;
+    va_start(arg_start, format_string);
+
+    status = RtlStringCchVPrintfA(buffer, sizeof(buffer), format_string, arg_start);
+    if (NT_SUCCESS(status)) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, buffer);
+    }
+
+    va_end(arg_start);
+    return 0;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
+{
+    if (KeGetCurrentIrql() >= DISPATCH_LEVEL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    KAFFINITY old_affinity = KeSetSystemAffinityThreadEx(new_thread_affinity_mask);
+    *old_thread_affinity_mask = old_affinity;
+    return EBPF_SUCCESS;
 }
