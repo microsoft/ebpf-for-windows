@@ -277,24 +277,6 @@ ntstatus_to_ebpf_result(NTSTATUS status)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
-{
-    if (KeGetCurrentIrql() >= DISPATCH_LEVEL) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-
-    uintptr_t old_mask = SetThreadAffinityMask(GetCurrentThread(), new_thread_affinity_mask);
-    if (old_mask == 0) {
-        unsigned long error = GetLastError();
-        ebpf_assert(error != ERROR_SUCCESS);
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    } else {
-        *old_thread_affinity_mask = old_mask;
-        return EBPF_SUCCESS;
-    }
-}
-
-_Must_inspect_result_ ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
     _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
@@ -419,20 +401,6 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
     return usersim_free_timer_work_item((usersim_timer_work_item_t*)work_item);
 }
 
-int32_t
-ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
-{
-    UNREFERENCED_PARAMETER(context);
-
-    va_list arg_start;
-    va_start(arg_start, format_string);
-
-    vprintf(format_string, arg_start);
-
-    va_end(arg_start);
-    return 0;
-}
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_access_check(
     _In_ const ebpf_security_descriptor_t* security_descriptor,
@@ -466,13 +434,4 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
 {
     NTSTATUS status = usersim_platform_get_authentication_id(authentication_id);
     return ntstatus_to_ebpf_result(status);
-}
-
-void
-ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore)
-{
-    if (semaphore) {
-        ::CloseHandle(semaphore->handle);
-        ebpf_free(semaphore);
-    }
 }
