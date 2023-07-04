@@ -276,30 +276,6 @@ ntstatus_to_ebpf_result(NTSTATUS status)
     return win32_error_code_to_ebpf_result(error);
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_allocate_non_preemptible_work_item(
-    _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
-    uint32_t cpu_id,
-    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1),
-    _Inout_opt_ void* work_item_context)
-{
-    NTSTATUS status = usersim_allocate_non_preemptible_work_item(
-        (usersim_non_preemptible_work_item_t**)work_item, cpu_id, work_item_routine, work_item_context);
-    return ntstatus_to_ebpf_result(status);
-}
-
-void
-ebpf_free_non_preemptible_work_item(_Frees_ptr_opt_ ebpf_non_preemptible_work_item_t* work_item)
-{
-    ebpf_free(work_item);
-}
-
-bool
-ebpf_queue_non_preemptible_work_item(_Inout_ ebpf_non_preemptible_work_item_t* work_item, _Inout_opt_ void* parameter_1)
-{
-    return usersim_queue_non_preemptible_work_item((usersim_non_preemptible_work_item_t*)work_item, parameter_1);
-}
-
 typedef struct _ebpf_preemptible_work_item
 {
     int dummy;

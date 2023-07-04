@@ -83,9 +83,9 @@ typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
     _Guarded_by_(lock) ebpf_epoch_state_t
         epoch_table[EBPF_EPOCH_THREAD_TABLE_SIZE]; // Epochs on this CPU. If zero, then it is not active.
     ebpf_lock_t lock;
-    ebpf_semaphore_t* epoch_table_semaphore; // Semaphore to number of threads active in the epoch per CPU.
-    _Guarded_by_(lock) ebpf_non_preemptible_work_item_t* stale_worker; // Per-CPU stale worker DPC.
-    _Guarded_by_(lock) ebpf_list_entry_t free_list;                    // Per-CPU free list.
+    ebpf_semaphore_t* epoch_table_semaphore;        // Semaphore to number of threads active in the epoch per CPU.
+    _Guarded_by_(lock) KDPC* stale_worker;          // Per-CPU stale worker DPC.
+    _Guarded_by_(lock) ebpf_list_entry_t free_list; // Per-CPU free list.
     _Guarded_by_(lock) int timer_armed : 1;
     _Guarded_by_(lock) int stale : 1;
     _Guarded_by_(lock) int rundown_in_progress : 1;
@@ -199,11 +199,12 @@ _ebpf_flush_worker(_In_ const void* context);
 /**
  * @brief Flush any stale entries from the per-CPU free list.
  *
- * @param[in] work_item_context Unused.
+ * @param[in] dpc Unused.
+ * @param[in] deferred_context Unused.
  * @param[in] parameter_1 Unused.
+ * @param[in] parameter_2 Unused.
  */
-static void
-_ebpf_epoch_stale_worker(_In_ const void* work_item_context, _In_ const void* parameter_1);
+static KDEFERRED_ROUTINE _ebpf_epoch_stale_worker;
 
 /**
  * @brief Arm the flush timer if:
@@ -625,7 +626,7 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
                         &_ebpf_epoch_cpu_table[cpu_id].stale_worker, cpu_id, _ebpf_epoch_stale_worker, NULL);
                 }
                 if (_ebpf_epoch_cpu_table[cpu_id].stale_worker) {
-                    ebpf_queue_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].stale_worker, NULL);
+                    KeInsertQueueDpc(_ebpf_epoch_cpu_table[cpu_id].stale_worker, NULL, NULL);
                 }
             } else {
                 _ebpf_epoch_cpu_table[cpu_id].stale = true;
@@ -672,10 +673,13 @@ static _Requires_lock_held_(cpu_entry->lock) void _ebpf_epoch_arm_timer_if_neede
 }
 
 static void
-_ebpf_epoch_stale_worker(_In_ const void* work_item_context, _In_ const void* parameter_1)
+_ebpf_epoch_stale_worker(
+    _In_ KDPC* dpc, _In_opt_ void* deferred_context, _In_opt_ void* parameter_1, _In_opt_ void* parameter_2)
 {
-    UNREFERENCED_PARAMETER(work_item_context);
+    UNREFERENCED_PARAMETER(dpc);
+    UNREFERENCED_PARAMETER(deferred_context);
     UNREFERENCED_PARAMETER(parameter_1);
+    UNREFERENCED_PARAMETER(parameter_2);
     ebpf_epoch_exit(ebpf_epoch_enter());
 }
 

@@ -218,58 +218,6 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     }
 }
 
-typedef struct _ebpf_non_preemptible_work_item
-{
-    KDPC deferred_procedure_call;
-    void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1);
-} ebpf_non_preemptible_work_item_t;
-
-static void
-_ebpf_deferred_routine(
-    KDPC* deferred_procedure_call, void* deferred_context, void* system_argument_1, void* system_argument_2)
-{
-    ebpf_non_preemptible_work_item_t* deferred_routine_context =
-        (ebpf_non_preemptible_work_item_t*)deferred_procedure_call;
-    UNREFERENCED_PARAMETER(system_argument_2);
-    deferred_routine_context->work_item_routine(deferred_context, system_argument_1);
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_allocate_non_preemptible_work_item(
-    _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
-    uint32_t cpu_id,
-    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1),
-    _Inout_opt_ void* work_item_context)
-{
-    *work_item = ebpf_allocate(sizeof(ebpf_non_preemptible_work_item_t));
-    if (*work_item == NULL) {
-        return EBPF_NO_MEMORY;
-    }
-
-    (*work_item)->work_item_routine = work_item_routine;
-
-    KeInitializeDpc(&(*work_item)->deferred_procedure_call, _ebpf_deferred_routine, work_item_context);
-    KeSetTargetProcessorDpc(&(*work_item)->deferred_procedure_call, (uint8_t)cpu_id);
-    return EBPF_SUCCESS;
-}
-
-void
-ebpf_free_non_preemptible_work_item(_Frees_ptr_opt_ ebpf_non_preemptible_work_item_t* work_item)
-{
-    if (!work_item) {
-        return;
-    }
-
-    KeRemoveQueueDpc(&work_item->deferred_procedure_call);
-    ebpf_free(work_item);
-}
-
-bool
-ebpf_queue_non_preemptible_work_item(_Inout_ ebpf_non_preemptible_work_item_t* work_item, _Inout_opt_ void* parameter_1)
-{
-    return KeInsertQueueDpc(&work_item->deferred_procedure_call, parameter_1, NULL);
-}
-
 typedef struct _ebpf_preemptible_work_item
 {
     PIO_WORKITEM io_work_item;

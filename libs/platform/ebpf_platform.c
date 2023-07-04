@@ -96,12 +96,6 @@ ebpf_is_preemptible()
     return irql < DISPATCH_LEVEL;
 }
 
-bool
-ebpf_is_non_preemptible_work_item_supported()
-{
-    return true;
-}
-
 uint32_t
 ebpf_get_current_cpu()
 {
@@ -471,4 +465,32 @@ ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintp
     KAFFINITY old_affinity = KeSetSystemAffinityThreadEx(new_thread_affinity_mask);
     *old_thread_affinity_mask = old_affinity;
     return EBPF_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_allocate_non_preemptible_work_item(
+    _Outptr_ KDPC** dpc,
+    uint32_t cpu_id,
+    _In_ PKDEFERRED_ROUTINE work_item_routine,
+    _Inout_opt_ void* work_item_context)
+{
+    *dpc = ebpf_allocate(sizeof(KDPC));
+    if (*dpc == NULL) {
+        return EBPF_NO_MEMORY;
+    }
+
+    KeInitializeDpc(*dpc, work_item_routine, work_item_context);
+    KeSetTargetProcessorDpc(*dpc, (uint8_t)cpu_id);
+    return EBPF_SUCCESS;
+}
+
+void
+ebpf_free_non_preemptible_work_item(_In_opt_ _Frees_ptr_opt_ KDPC* dpc)
+{
+    if (!dpc) {
+        return;
+    }
+
+    KeRemoveQueueDpc(dpc);
+    ebpf_free(dpc);
 }
