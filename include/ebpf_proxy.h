@@ -64,6 +64,7 @@ extern "C"
      *  this operation.
      * @param[out] minimum_reply_size Minimum size of the reply buffer for this
      *  operation.
+     * @param[out] async True if this operation is asynchronous.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_SUPPORTED The operation id is not valid.
      */
