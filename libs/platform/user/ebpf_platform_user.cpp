@@ -34,8 +34,8 @@ ebpf_platform_initiate()
 void
 ebpf_platform_terminate()
 {
-    usersim_platform_terminate();
     KeFlushQueuedDpcs();
+    usersim_platform_terminate();
 }
 
 _Must_inspect_result_ ebpf_result_t
