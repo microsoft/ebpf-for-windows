@@ -22,7 +22,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    _Must_inspect_result_ ebpf_result_t typedef (*ebpf_core_initiate_t)();
+    typedef _Must_inspect_result_ ebpf_result_t (*ebpf_core_initiate_t)();
 
     /**
      * @brief Uninitialize the eBPF core execution context.
