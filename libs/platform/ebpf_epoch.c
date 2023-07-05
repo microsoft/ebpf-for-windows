@@ -233,6 +233,8 @@ ebpf_epoch_initiate()
     uint32_t cpu_id;
     uint32_t cpu_count;
 
+    ExInitializeRundownProtection(&_ebpf_epoch_work_item_rundown_ref);
+
     cpu_count = ebpf_get_cpu_count();
 
     _ebpf_current_epoch = 1;
@@ -269,8 +271,6 @@ ebpf_epoch_initiate()
     if (return_value != EBPF_SUCCESS) {
         goto Error;
     }
-
-    ExInitializeRundownProtection(&_ebpf_epoch_work_item_rundown_ref);
 
     return return_value;
 
