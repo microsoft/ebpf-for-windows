@@ -37,6 +37,11 @@ Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 # Download the release artifacts for regression tests.
 Get-RegressionTestArtifacts
 
+# Download NotMyFault tool to trigger bugchecks
+Invoke-WebRequest https://download.sysinternals.com/files/NotMyFault.zip -OutFile NotMyFault.zip
+Expand-Archive -Path NotMyFault.zip -DestinationPath . -Force
+Remove-Item NotMyFault.zip
+
 # Export build artifacts to the test VMs.
 Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
 

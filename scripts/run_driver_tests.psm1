@@ -49,7 +49,8 @@ function Invoke-Test
 {
     param([Parameter(Mandatory=$True)][string] $TestName,
           [Parameter(Mandatory=$True)][bool] $VerboseLogs,
-          [Parameter(Mandatory=$False)][bool] $Coverage)
+          [Parameter(Mandatory=$False)][bool] $Coverage,
+          [Parameter(Mandatory=$False)][int] $Timeout = 900)
 
     Write-Log "Executing $Testname"
 
@@ -68,7 +69,27 @@ function Invoke-Test
     }
 
     Write-Log "$TestName $ArgumentsList"
-    $Output = &$TestName $ArgumentsList
+
+    # Start the test process using the provided command and arguments.
+    # This can't use Start-Process as that doesn't save exit code and always returns 0.
+    $processInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $processInfo.UseShellExecute = $false
+    $processInfo.FileName = $TestName
+    $processInfo.Arguments = $ArgumentsList -join ' '
+    $processInfo.RedirectStandardOutput = $true
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $processInfo
+    $process.Start() | Out-Null
+
+    if (!$process.WaitForExit($Timeout * 1000)) {
+        # Trigger bugcheck
+        Write-Log "Test $TestName timed out after $Timeout seconds."
+        ./NotMyFault.exe /accepteula /crash
+    }
+
+    $Output = $process.StandardOutput.ReadToEnd()
+
     $TestName = $OriginalTestName
     if ($LASTEXITCODE -ne 0) {
         throw ("$TestName Failed with $LASTEXITCODE.")
