@@ -582,12 +582,12 @@ TEST_CASE("access_check", "[platform]")
 struct ebpf_memory_descriptor_t_free
 {
     void
-    operator()(_Frees_ptr_opt_ ebpf_memory_descriptor_t* p)
+    operator()(_Frees_ptr_opt_ MDL* p)
     {
         ebpf_unmap_memory(p);
     }
 };
-typedef std::unique_ptr<ebpf_memory_descriptor_t, ebpf_memory_descriptor_t_free> ebpf_memory_descriptor_ptr;
+typedef std::unique_ptr<MDL, ebpf_memory_descriptor_t_free> ebpf_memory_descriptor_ptr;
 
 TEST_CASE("memory_map_test", "[platform]")
 {

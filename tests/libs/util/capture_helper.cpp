@@ -33,6 +33,25 @@ capture_helper_t::get_stderr_contents(void)
     return _stderr_contents;
 }
 
+std::vector<std::string>
+capture_helper_t::buffer_to_printk_vector(std::string buffer)
+{
+    // Given a string, return a vector of strings, splitting by line breaks.
+    std::istringstream ss(buffer);
+    std::vector<std::string> result;
+    const std::string printk_prefix = "{EbpfGenericMessage,\"";
+    const std::string printk_suffix = "\",\"Message\"}";
+    for (std::string line; std::getline(ss, line, '\n');) {
+        if (line.starts_with(printk_prefix) && line.ends_with(printk_suffix)) {
+            // See if the string fits the pattern:
+            // {EbpfGenericMessage,"<some string>","Message"}
+            result.push_back(
+                line.substr(printk_prefix.length(), line.length() - printk_prefix.length() - printk_suffix.length()));
+        }
+    }
+    return result;
+}
+
 _Success_(return == 0) errno_t capture_helper_t::begin_fd_capture(
     _In_ FILE* fp, _Out_ int* original_fd, _In_z_ const char* temporary_filename)
 {
