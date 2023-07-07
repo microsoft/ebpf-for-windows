@@ -117,7 +117,7 @@ _net_ebpf_extension_program_info_provider_cleanup_binding_context(_Frees_ptr_ vo
 
 void
 net_ebpf_extension_program_info_provider_unregister(
-    _Frees_ptr_opt_ net_ebpf_extension_program_info_provider_t* provider_context)
+    _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_program_info_provider_t* provider_context)
 {
     if (provider_context != NULL) {
         if (provider_context->nmr_provider_handle != NULL) {

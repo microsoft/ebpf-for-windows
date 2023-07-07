@@ -83,7 +83,7 @@ typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
     _Guarded_by_(lock) ebpf_epoch_state_t
         epoch_table[EBPF_EPOCH_THREAD_TABLE_SIZE]; // Epochs on this CPU. If zero, then it is not active.
     ebpf_lock_t lock;
-    ebpf_semaphore_t* epoch_table_semaphore;        // Semaphore to number of threads active in the epoch per CPU.
+    KSEMAPHORE* epoch_table_semaphore;              // Semaphore to number of threads active in the epoch per CPU.
     _Guarded_by_(lock) KDPC* stale_worker;          // Per-CPU stale worker DPC.
     _Guarded_by_(lock) ebpf_list_entry_t free_list; // Per-CPU free list.
     _Guarded_by_(lock) int timer_armed : 1;

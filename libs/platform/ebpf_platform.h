@@ -82,8 +82,6 @@ extern "C"
         EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE = 1
     } ebpf_code_integrity_state_t;
 
-    typedef KSEMAPHORE ebpf_semaphore_t;
-
     typedef struct _ebpf_preemptible_work_item ebpf_preemptible_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
     typedef struct _ebpf_helper_function_prototype ebpf_helper_function_prototype_t;
@@ -1027,7 +1025,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for the semaphore.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, int maximum_count);
+    ebpf_semaphore_create(_Outptr_ KSEMAPHORE** semaphore, int initial_count, int maximum_count);
 
     /**
      * @brief Destroy a semaphore.
@@ -1035,7 +1033,7 @@ extern "C"
      * @param[in] semaphore Semaphore to destroy.
      */
     void
-    ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore);
+    ebpf_semaphore_destroy(_Frees_ptr_opt_ KSEMAPHORE* semaphore);
 
     /**
      * @brief Wait on a semaphore.
@@ -1043,7 +1041,7 @@ extern "C"
      * @param[in] semaphore Semaphore to wait on.
      */
     void
-    ebpf_semaphore_wait(_In_ ebpf_semaphore_t* semaphore);
+    ebpf_semaphore_wait(_In_ KSEMAPHORE* semaphore);
 
     /**
      * @brief Release a semaphore.
@@ -1051,7 +1049,7 @@ extern "C"
      * @param[in] semaphore Semaphore to release.
      */
     void
-    ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore);
+    ebpf_semaphore_release(_In_ KSEMAPHORE* semaphore);
 
     /**
      * @brief Enter a critical region. This will defer execution of kernel APCs

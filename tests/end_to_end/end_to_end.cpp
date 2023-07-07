@@ -2607,8 +2607,6 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
 static void
 _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, int expected_result)
 {
-    _test_helper_end_to_end test_helper;
-
     int result;
     bpf_object_ptr unique_object;
     fd_t program_fd;
@@ -2619,17 +2617,24 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
     REQUIRE(result == expected_result);
 }
 
+static void
+_test_load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, int expected_result)
+{
+    _test_helper_end_to_end test_helper;
+    _load_invalid_program(file_name, execution_type, expected_result);
+}
+
 TEST_CASE("load_native_program_invalid1", "[end-to-end]")
 {
-    _load_invalid_program("invalid_maps1_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
+    _test_load_invalid_program("invalid_maps1_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 TEST_CASE("load_native_program_invalid2", "[end-to-end]")
 {
-    _load_invalid_program("invalid_maps2_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
+    _test_load_invalid_program("invalid_maps2_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 TEST_CASE("load_native_program_invalid3", "[end-to-end]")
 {
-    _load_invalid_program("invalid_helpers_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
+    _test_load_invalid_program("invalid_helpers_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 TEST_CASE("load_native_program_invalid4", "[end-to-end]")
 {
@@ -2637,7 +2642,7 @@ TEST_CASE("load_native_program_invalid4", "[end-to-end]")
 }
 TEST_CASE("load_native_program_invalid5", "[end-to-end]")
 {
-    _load_invalid_program("invalid_maps3_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
+    _test_load_invalid_program("invalid_maps3_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 
 typedef struct _ebpf_scoped_non_preemptible
@@ -2659,8 +2664,11 @@ typedef struct _ebpf_scoped_non_preemptible
 
 TEST_CASE("load_native_program_invalid5-non-preemptible", "[end-to-end]")
 {
+    _test_helper_end_to_end test_helper;
+
     // Raising virtual IRQL to dispatch will ensure ebpf_native_load queues
-    // a workitem and that code path is executed.
+    // a workitem and that code path is executed.  This must be done after
+    // invoking test_helper, which initializes the platform.
     ebpf_scoped_non_preemptible_t non_preemptible;
     _load_invalid_program("invalid_maps3_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
