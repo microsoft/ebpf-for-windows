@@ -4,6 +4,7 @@
 #include "..\..\external\usersim\src\platform.h"
 #include "ebpf_tracelog.h"
 #include "ebpf_utilities.h"
+#include "usersim/ke.h"
 
 #include <TraceLoggingProvider.h>
 #include <functional>
@@ -11,7 +12,6 @@
 #include <map>
 #include <mutex>
 #include <queue>
-#include <random>
 #include <set>
 #include <stdbool.h>
 #include <stdint.h>
@@ -27,6 +27,7 @@ extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
+    ebpf_initialize_cpu_count();
     return NT_SUCCESS(usersim_platform_initiate()) ? EBPF_SUCCESS : EBPF_NO_MEMORY;
 }
 
@@ -34,6 +35,7 @@ void
 ebpf_platform_terminate()
 {
     usersim_platform_terminate();
+    KeFlushQueuedDpcs();
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -48,12 +50,6 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
         *state = EBPF_CODE_INTEGRITY_DEFAULT;
     }
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
-}
-
-__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
-    _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size)
-{
-    return usersim_reallocate(memory, old_size, new_size);
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_
@@ -76,13 +72,6 @@ ebpf_free_cache_aligned(_Frees_ptr_opt_ void* memory)
     _aligned_free(memory);
 }
 
-struct _ebpf_memory_descriptor
-{
-    void* base;
-    size_t length;
-};
-typedef struct _ebpf_memory_descriptor ebpf_memory_descriptor_t;
-
 struct _ebpf_ring_descriptor
 {
     void* primary_view;
@@ -90,41 +79,6 @@ struct _ebpf_ring_descriptor
     size_t length;
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
-
-ebpf_memory_descriptor_t*
-ebpf_map_memory(size_t length)
-{
-    // Skip fault injection for this VirtualAlloc OS API, as ebpf_allocate already does that.
-    ebpf_memory_descriptor_t* descriptor = (ebpf_memory_descriptor_t*)ebpf_allocate(sizeof(ebpf_memory_descriptor_t));
-    if (!descriptor) {
-        return nullptr;
-    }
-
-    descriptor->base = VirtualAlloc(0, length, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-    descriptor->length = length;
-
-    if (!descriptor->base) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualAlloc);
-        ebpf_free(descriptor);
-        descriptor = nullptr;
-    }
-    return descriptor;
-}
-
-void
-ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
-{
-    EBPF_LOG_ENTRY();
-    if (!memory_descriptor) {
-        EBPF_RETURN_VOID();
-    }
-
-    if (!VirtualFree(memory_descriptor->base, 0, MEM_RELEASE)) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
-    }
-    ExFreePool(memory_descriptor);
-    EBPF_RETURN_VOID();
-}
 
 // This code is derived from the sample at:
 // https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2
@@ -294,8 +248,8 @@ ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
     EBPF_RETURN_POINTER(void*, ebpf_ring_descriptor_get_base_address(ring));
 }
 
-uint32_t
-ntstatus_to_win32_error_code(NTSTATUS status)
+static uint32_t
+_ntstatus_to_win32_error_code(NTSTATUS status)
 {
     static uint32_t (*RtlNtStatusToDosError)(NTSTATUS Status) = nullptr;
     if (!RtlNtStatusToDosError) {
@@ -312,77 +266,15 @@ ntstatus_to_win32_error_code(NTSTATUS status)
 uint32_t
 ebpf_result_to_win32_error_code(ebpf_result_t result)
 {
-    return ntstatus_to_win32_error_code(ebpf_result_to_ntstatus(result));
+    return _ntstatus_to_win32_error_code(ebpf_result_to_ntstatus(result));
 }
 
 ebpf_result_t
 ntstatus_to_ebpf_result(NTSTATUS status)
 {
-    uint32_t error = ntstatus_to_win32_error_code(status);
+    uint32_t error = _ntstatus_to_win32_error_code(status);
     return win32_error_code_to_ebpf_result(error);
 }
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
-{
-    NTSTATUS status = usersim_protect_memory(
-        (const usersim_memory_descriptor_t*)memory_descriptor, (usersim_page_protection_t)protection);
-    return ntstatus_to_ebpf_result(status);
-}
-
-void*
-ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descriptor)
-{
-    return memory_descriptor->base;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_safe_size_t_multiply(
-    size_t multiplicand, size_t multiplier, _Out_ _Deref_out_range_(==, multiplicand* multiplier) size_t* result)
-{
-    return SUCCEEDED(SizeTMult(multiplicand, multiplier, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ _Deref_out_range_(==, augend + addend) size_t* result)
-{
-    return SUCCEEDED(SizeTAdd(augend, addend, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_safe_size_t_subtract(
-    size_t minuend, size_t subtrahend, _Out_ _Deref_out_range_(==, minuend - subtrahend) size_t* result)
-{
-    return SUCCEEDED(SizeTSub(minuend, subtrahend, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
-}
-
-uint32_t
-ebpf_random_uint32()
-{
-    std::random_device rd;
-    std::mt19937 mt(rd());
-    return mt();
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
-{
-    if (KeGetCurrentIrql() >= DISPATCH_LEVEL) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-
-    uintptr_t old_mask = SetThreadAffinityMask(GetCurrentThread(), new_thread_affinity_mask);
-    if (old_mask == 0) {
-        unsigned long error = GetLastError();
-        ebpf_assert(error != ERROR_SUCCESS);
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    } else {
-        *old_thread_affinity_mask = old_mask;
-        return EBPF_SUCCESS;
-    }
-}
-
-_Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return usersim_get_cpu_count(); }
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
@@ -509,20 +401,6 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
     return usersim_free_timer_work_item((usersim_timer_work_item_t*)work_item);
 }
 
-int32_t
-ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
-{
-    UNREFERENCED_PARAMETER(context);
-
-    va_list arg_start;
-    va_start(arg_start, format_string);
-
-    vprintf(format_string, arg_start);
-
-    va_end(arg_start);
-    return 0;
-}
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_access_check(
     _In_ const ebpf_security_descriptor_t* security_descriptor,
@@ -542,43 +420,6 @@ ebpf_validate_security_descriptor(
     return ntstatus_to_ebpf_result(status);
 }
 
-static std::vector<std::string> _ebpf_platform_printk_output;
-static std::mutex _ebpf_platform_printk_output_lock;
-
-/**
- * @brief Get the strings written via bpf_printk.
- *
- * @return Vector of strings written via bpf_printk.
- */
-std::vector<std::string>
-ebpf_platform_printk_output()
-{
-    std::unique_lock<std::mutex> lock(_ebpf_platform_printk_output_lock);
-    return std::move(_ebpf_platform_printk_output);
-}
-
-long
-ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
-{
-    int bytes_written = vprintf(format, arg_list);
-    if (bytes_written >= 0) {
-        putchar('\n');
-        bytes_written++;
-    }
-
-    std::string output;
-    output.resize(bytes_written);
-
-    vsprintf_s(output.data(), output.size(), format, arg_list);
-    // Remove the trailing null.
-    output.pop_back();
-
-    std::unique_lock<std::mutex> lock(_ebpf_platform_printk_output_lock);
-    _ebpf_platform_printk_output.emplace_back(std::move(output));
-
-    return bytes_written;
-}
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_update_global_helpers(
     _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
@@ -593,51 +434,4 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
 {
     NTSTATUS status = usersim_platform_get_authentication_id(authentication_id);
     return ntstatus_to_ebpf_result(status);
-}
-
-void
-ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore)
-{
-    if (semaphore) {
-        ::CloseHandle(semaphore->handle);
-        ebpf_free(semaphore);
-    }
-}
-
-ebpf_result_t
-ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output)
-{
-    wchar_t* unicode_string = NULL;
-    ebpf_result_t retval;
-
-    // Compute the size needed to hold the unicode string.
-    int result = MultiByteToWideChar(CP_UTF8, 0, (const char*)input->value, (int)input->length, NULL, 0);
-
-    if (result <= 0) {
-        retval = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
-    result++;
-
-    unicode_string = (wchar_t*)ebpf_allocate(result * sizeof(wchar_t));
-    if (unicode_string == NULL) {
-        retval = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    result = MultiByteToWideChar(CP_UTF8, 0, (const char*)input->value, (int)input->length, unicode_string, result);
-
-    if (result == 0) {
-        retval = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
-    *output = unicode_string;
-    unicode_string = NULL;
-    retval = EBPF_SUCCESS;
-
-Done:
-    ebpf_free(unicode_string);
-    return retval;
 }
