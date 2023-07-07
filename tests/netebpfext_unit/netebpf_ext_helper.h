@@ -32,10 +32,14 @@ typedef struct _netebpfext_helper_base_client_context
 typedef class _netebpf_ext_helper
 {
   public:
+    // If the caller invokes platform functions itself, the caller must pass initialize_platform = false
+    // and initialize/terminate the platform itself as needed.
+    _netebpf_ext_helper(bool initialize_platform = true);
     _netebpf_ext_helper(
-        _In_opt_ const void* npi_specific_characteristics = nullptr,
-        _In_opt_ _ebpf_extension_dispatch_function dispatch_function = nullptr,
-        _In_opt_ netebpfext_helper_base_client_context_t* client_context = nullptr);
+        _In_opt_ const void* npi_specific_characteristics,
+        _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
+        _In_opt_ netebpfext_helper_base_client_context_t* client_context,
+        bool initialize_platform = true);
     ~_netebpf_ext_helper();
 
     std::vector<GUID>

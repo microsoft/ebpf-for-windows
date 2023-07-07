@@ -184,7 +184,6 @@ extern "C"
         EBPF_PAGE_PROTECT_READ_EXECUTE,
     } ebpf_page_protection_t;
 
-    typedef struct _ebpf_memory_descriptor ebpf_memory_descriptor_t;
     typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
     /**
@@ -195,7 +194,7 @@ extern "C"
      * up to a page boundary).
      * @return Pointer to an ebpf_memory_descriptor_t on success, NULL on failure.
      */
-    ebpf_memory_descriptor_t*
+    MDL*
     ebpf_map_memory(size_t length);
 
     /**
@@ -205,7 +204,7 @@ extern "C"
      * allocated pages.
      */
     void
-    ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor);
+    ebpf_unmap_memory(_Frees_ptr_opt_ MDL* memory_descriptor);
 
     /**
      * @brief Change the page protection on memory allocated via
@@ -218,7 +217,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection);
+    ebpf_protect_memory(_In_ MDL* memory_descriptor, ebpf_page_protection_t protection);
 
     /**
      * @brief Given an ebpf_memory_descriptor_t allocated via ebpf_map_memory
@@ -229,7 +228,7 @@ extern "C"
      * @return Base virtual address of pages that have been allocated.
      */
     void*
-    ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descriptor);
+    ebpf_memory_descriptor_get_base_address(MDL* memory_descriptor);
 
     /**
      * @brief Allocate pages from physical memory and create a mapping into the
@@ -398,6 +397,12 @@ extern "C"
      * @return The count of logical cores in the system.
      */
     _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count();
+
+    /**
+     * @brief Initialize the CPU count.
+     */
+    void
+    ebpf_initialize_cpu_count();
 
     /**
      * @brief Query the platform to determine if the current execution can

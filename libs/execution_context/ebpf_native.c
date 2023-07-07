@@ -1548,6 +1548,11 @@ ebpf_native_load_programs(
     bool maps_created = false;
     bool cleanup_context_created = false;
 
+    if ((count_of_map_handles > 0 && map_handles == NULL) ||
+        (count_of_program_handles > 0 && program_handles == NULL)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
     lock_acquired = true;

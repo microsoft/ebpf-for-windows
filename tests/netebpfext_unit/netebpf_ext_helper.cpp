@@ -39,18 +39,25 @@ netebpfext_initialize_fwp_classify_parameters(_Out_ fwp_classify_parameters_t* p
     parameters->user_id = _test_user_id;
 }
 
+_netebpf_ext_helper::_netebpf_ext_helper(bool initialize_platform)
+    : _netebpf_ext_helper(nullptr, nullptr, nullptr, initialize_platform)
+{}
+
 _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ const void* npi_specific_characteristics,
     _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
-    _In_opt_ netebpfext_helper_base_client_context_t* client_context)
+    _In_opt_ netebpfext_helper_base_client_context_t* client_context,
+    bool initialize_platform)
 {
     NTSTATUS status;
     status = net_ebpf_ext_trace_initiate();
     REQUIRE(NT_SUCCESS(status));
     trace_initiated = true;
 
-    REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
-    platform_initialized = true;
+    if (initialize_platform) {
+        REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
+        platform_initialized = true;
+    }
 
     status = net_ebpf_ext_initialize_ndis_handles(driver_object);
     REQUIRE(NT_SUCCESS(status));

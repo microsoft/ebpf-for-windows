@@ -777,6 +777,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_lock) static void _net_eb
         if (!delete_all && entry->timestamp > expiry_time) {
             break;
         }
+#pragma warning(suppress : 6001) /* list entry is non-null */
         list_entry = list_entry->Blink;
         RemoveEntryList(&entry->list_entry);
 
