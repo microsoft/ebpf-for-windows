@@ -34,11 +34,11 @@ const char bpf2c_dll[] =
     ;
 
 void
-emit_skeleton(const std::string& c_name, const std::string& code)
+emit_skeleton(std::ostream& out_stream, const std::string& c_name, const std::string& code)
 {
     auto output = std::regex_replace(code, std::regex(std::string("___METADATA_TABLE___")), c_name);
     output = output.substr(strlen(copyright_notice) + 1);
-    std::cout << output << std::endl;
+    out_stream << output << std::endl;
 }
 
 std::string
@@ -119,8 +119,8 @@ main(int argc, char** argv)
             KernelPE,
             UserPE,
         } type = output_type::Bare;
-        std::string verifier_output_file;
         std::string file;
+        std::string output_file_name;
         std::string type_string = "";
         std::string hash_algorithm = EBPF_HASH_ALGORITHM;
         bool verify_programs = true;
@@ -129,15 +129,33 @@ main(int argc, char** argv)
         auto iter_end = parameters.end();
         std::map<std::string, std::tuple<std::string, std::function<bool()>>> options = {
             {"--sys",
-             {"Generate code for a Windows driver",
+             {"Generate code for a Windows driver with optional output file name",
               [&]() {
                   type = output_type::KernelPE;
+                  if ((iter + 1 != iter_end) && !(*(iter + 1)).empty() && (*(iter + 1))[0] != '-') {
+                      ++iter;
+                      output_file_name = *iter;
+                  }
                   return true;
               }}},
             {"--dll",
-             {"Generate code for a Windows DLL",
+             {"Generate code for a Windows DLL with optional output file name",
               [&]() {
                   type = output_type::UserPE;
+                  if ((iter + 1 != iter_end) && !(*(iter + 1)).empty() && (*(iter + 1))[0] != '-') {
+                      ++iter;
+                      output_file_name = *iter;
+                  }
+                  return true;
+              }}},
+            {"--raw",
+             {"Generate code without any platform wrapper with optional output file name",
+              [&]() {
+                  type = output_type::Bare;
+                  if ((iter + 1 != iter_end) && !(*(iter + 1)).empty() && (*(iter + 1))[0] != '-') {
+                      ++iter;
+                      output_file_name = *iter;
+                  }
                   return true;
               }}},
 #if defined(ENABLE_SKIP_VERIFY)
@@ -209,6 +227,11 @@ main(int argc, char** argv)
             if (!function()) {
                 return 1;
             }
+        }
+
+        if (file.empty()) {
+            std::get<1>(options["--help"])();
+            return 1;
         }
 
         std::string c_name = file.substr(file.find_last_of("\\") + 1);
@@ -288,20 +311,30 @@ main(int argc, char** argv)
             generator.generate(section);
         }
 
-        std::cout << copyright_notice << std::endl;
-        std::cout << "// Do not alter this generated file." << std::endl;
-        std::cout << "// This file was generated from " << file << std::endl << std::endl;
+        std::ofstream output_file;
+        if (!output_file_name.empty()) {
+            output_file.open(output_file_name, std::ios::out | std::ios::trunc);
+            if (!output_file.is_open()) {
+                std::cerr << "Failed to open output file " << output_file_name << std::endl;
+                return 1;
+            }
+        }
+        std::ostream& out_stream = output_file_name.empty() ? std::cout : output_file;
+
+        out_stream << copyright_notice << std::endl;
+        out_stream << "// Do not alter this generated file." << std::endl;
+        out_stream << "// This file was generated from " << file << std::endl << std::endl;
         switch (type) {
         case output_type::Bare:
             break;
         case output_type::KernelPE:
-            emit_skeleton(c_name, bpf2c_driver);
+            emit_skeleton(out_stream, c_name, bpf2c_driver);
             break;
         case output_type::UserPE:
-            emit_skeleton(c_name, bpf2c_dll);
+            emit_skeleton(out_stream, c_name, bpf2c_dll);
             break;
         }
-        generator.emit_c_code(std::cout);
+        generator.emit_c_code(out_stream);
     } catch (std::runtime_error err) {
         std::cerr << err.what() << std::endl;
         return 1;

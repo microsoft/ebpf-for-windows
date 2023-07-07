@@ -8,12 +8,12 @@
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
-#include "ebpf_fault_injection.h"
 #include "ebpf_platform.h"
 #include "hash.h"
 #include "helpers.h"
 #include "mock.h"
 #include "test_helper.hpp"
+#include "usersim/../../src/fault_injection.h"
 
 #include <chrono>
 #include <filesystem>
@@ -25,9 +25,6 @@
 using namespace std::chrono_literals;
 
 extern "C" bool ebpf_fuzzing_enabled;
-extern bool _ebpf_platform_is_preemptible;
-
-static bool _is_platform_preemptible = false;
 
 bool _ebpf_capture_corpus = false;
 
@@ -370,12 +367,6 @@ _test_helper_client_detach_provider(_In_ void* client_binding_context)
 static void
 _preprocess_load_native_module(_Inout_ service_context_t* context)
 {
-    // Every time a native module is loaded, flip the bit for _ebpf_platform_is_preemptible.
-    // This ensures both the code paths are executed in the native module code, when the
-    // test cases are executed.
-    _ebpf_platform_is_preemptible = _is_platform_preemptible;
-    _is_platform_preemptible = !_is_platform_preemptible;
-
     context->dll = LoadLibraryW(context->file_path.c_str());
     REQUIRE(((context->dll != nullptr) || get_native_module_failures()));
 
@@ -758,9 +749,6 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 
         _expect_native_module_load_failures = false;
 
-        // Change back to original value.
-        _ebpf_platform_is_preemptible = true;
-
         set_verification_in_progress(false);
     } catch (Catch::TestFailureException&) {
     }
@@ -815,7 +803,7 @@ set_native_module_failures(bool expected)
 bool
 get_native_module_failures()
 {
-    return _expect_native_module_load_failures || ebpf_fault_injection_is_enabled();
+    return _expect_native_module_load_failures || usersim_fault_injection_is_enabled();
 }
 
 _Must_inspect_result_ ebpf_result_t

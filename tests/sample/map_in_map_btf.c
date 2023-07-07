@@ -33,10 +33,10 @@ struct
 SEC("xdp_prog") int lookup(struct xdp_md* ctx)
 {
     uint32_t outer_key = 0;
-    void* nolocal_lru_map = bpf_map_lookup_elem(&outer_map, &outer_key);
-    if (nolocal_lru_map) {
+    void* inner_map = bpf_map_lookup_elem(&outer_map, &outer_key);
+    if (inner_map) {
         uint32_t inner_key = 0;
-        uint32_t* value = (uint32_t*)bpf_map_lookup_elem(nolocal_lru_map, &inner_key);
+        uint32_t* value = (uint32_t*)bpf_map_lookup_elem(inner_map, &inner_key);
         if (value) {
             return *(uint32_t*)value;
         }

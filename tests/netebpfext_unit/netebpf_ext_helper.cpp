@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "net_ebpf_ext_sock_addr.h"
 #include "netebpf_ext_helper.h"
 
 // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
@@ -38,18 +39,25 @@ netebpfext_initialize_fwp_classify_parameters(_Out_ fwp_classify_parameters_t* p
     parameters->user_id = _test_user_id;
 }
 
+_netebpf_ext_helper::_netebpf_ext_helper(bool initialize_platform)
+    : _netebpf_ext_helper(nullptr, nullptr, nullptr, initialize_platform)
+{}
+
 _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ const void* npi_specific_characteristics,
     _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
-    _In_opt_ netebpfext_helper_base_client_context_t* client_context)
+    _In_opt_ netebpfext_helper_base_client_context_t* client_context,
+    bool initialize_platform)
 {
     NTSTATUS status;
     status = net_ebpf_ext_trace_initiate();
     REQUIRE(NT_SUCCESS(status));
     trace_initiated = true;
 
-    REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
-    platform_initialized = true;
+    if (initialize_platform) {
+        REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
+        platform_initialized = true;
+    }
 
     status = net_ebpf_ext_initialize_ndis_handles(driver_object);
     REQUIRE(NT_SUCCESS(status));
@@ -76,6 +84,9 @@ _netebpf_ext_helper::_netebpf_ext_helper(
         nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
         nmr_hook_client_handle_initialized = true;
     }
+
+    _fwp_engine::get()->set_sublayer_guids(
+        EBPF_DEFAULT_SUBLAYER, EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER, EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER);
 }
 
 _netebpf_ext_helper::~_netebpf_ext_helper()

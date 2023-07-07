@@ -36,9 +36,6 @@ extern "C"
 #define EBPF_PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
 #define EBPF_PAD_8(X) ((X + 7) & ~7)
 
-#define EBPF_HASH_TABLE_NO_LIMIT 0
-#define EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT 64
-
 #define EBPF_NS_PER_FILETIME 100
 
 // Macro locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
@@ -85,6 +82,8 @@ extern "C"
         EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE = 1
     } ebpf_code_integrity_state_t;
 
+    typedef KSEMAPHORE ebpf_semaphore_t;
+
     typedef struct _ebpf_non_preemptible_work_item ebpf_non_preemptible_work_item_t;
     typedef struct _ebpf_preemptible_work_item ebpf_preemptible_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
@@ -105,13 +104,6 @@ extern "C"
     typedef struct _ebpf_helper_function_addresses ebpf_helper_function_addresses_t;
 
     extern bool ebpf_fuzzing_enabled;
-
-    typedef enum _ebpf_hash_table_operations
-    {
-        EBPF_HASH_TABLE_OPERATION_ANY = 0,
-        EBPF_HASH_TABLE_OPERATION_INSERT = 1,
-        EBPF_HASH_TABLE_OPERATION_REPLACE = 2,
-    } ebpf_hash_table_operations_t;
 
     /**
      * @brief Initialize the eBPF platform abstraction layer.
@@ -155,17 +147,6 @@ extern "C"
         _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size);
 
     /**
-     * @brief Reallocate memory with tag.
-     * @param[in] memory Allocation to be reallocated.
-     * @param[in] old_size Old size of memory to reallocate.
-     * @param[in] new_size New size of memory to reallocate.
-     * @param[in] tag Pool tag to use.
-     * @returns Pointer to memory block allocated, or null on failure.
-     */
-    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate_with_tag(
-        _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size, uint32_t tag);
-
-    /**
      * @brief Free memory.
      * @param[in] memory Allocation to be freed.
      */
@@ -203,7 +184,6 @@ extern "C"
         EBPF_PAGE_PROTECT_READ_EXECUTE,
     } ebpf_page_protection_t;
 
-    typedef struct _ebpf_memory_descriptor ebpf_memory_descriptor_t;
     typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
     /**
@@ -214,7 +194,7 @@ extern "C"
      * up to a page boundary).
      * @return Pointer to an ebpf_memory_descriptor_t on success, NULL on failure.
      */
-    ebpf_memory_descriptor_t*
+    MDL*
     ebpf_map_memory(size_t length);
 
     /**
@@ -224,7 +204,7 @@ extern "C"
      * allocated pages.
      */
     void
-    ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor);
+    ebpf_unmap_memory(_Frees_ptr_opt_ MDL* memory_descriptor);
 
     /**
      * @brief Change the page protection on memory allocated via
@@ -237,7 +217,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection);
+    ebpf_protect_memory(_In_ MDL* memory_descriptor, ebpf_page_protection_t protection);
 
     /**
      * @brief Given an ebpf_memory_descriptor_t allocated via ebpf_map_memory
@@ -248,7 +228,7 @@ extern "C"
      * @return Base virtual address of pages that have been allocated.
      */
     void*
-    ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descriptor);
+    ebpf_memory_descriptor_get_base_address(MDL* memory_descriptor);
 
     /**
      * @brief Allocate pages from physical memory and create a mapping into the
@@ -419,6 +399,12 @@ extern "C"
     _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count();
 
     /**
+     * @brief Initialize the CPU count.
+     */
+    void
+    ebpf_initialize_cpu_count();
+
+    /**
      * @brief Query the platform to determine if the current execution can
      *    be preempted by other execution.
      * @retval True if this execution can be preempted.
@@ -557,170 +543,6 @@ extern "C"
      */
     void
     ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* timer);
-
-    typedef struct _ebpf_hash_table ebpf_hash_table_t;
-
-    typedef enum _ebpf_hash_table_notification_type
-    {
-        EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE, //< A key + value have been allocated.
-        EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,     //< A key + value have been freed.
-        EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE,      //< A key + value have been used.
-    } ebpf_hash_table_notification_type_t;
-
-    typedef void (*ebpf_hash_table_notification_function)(
-        _Inout_ void* context,
-        _In_ ebpf_hash_table_notification_type_t type,
-        _In_ const uint8_t* key,
-        _Inout_ uint8_t* value);
-
-    /**
-     * @brief Options to pass to ebpf_hash_table_create.
-     *
-     * Some fields are required, others are optional.  If an optional field is
-     * not specified, a default value will be used.
-     */
-    typedef struct _ebpf_hash_table_creation_options
-    {
-        // Required fields.
-        size_t key_size;   //< Size of key in bytes.
-        size_t value_size; //< Size of value in bytes.
-        // Optional fields.
-        void (*extract_function)(
-            _In_ const uint8_t* value,
-            _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
-            _Out_ size_t* length_in_bits); //< Function to extract key from stored value.
-        void* (*allocate)(size_t size);    //< Function to allocate memory - defaults to ebpf_epoch_allocate.
-        void (*free)(void* memory);        //< Function to free memory - defaults to ebpf_epoch_free.
-        size_t bucket_count; //< Number of buckets to use - defaults to EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT.
-        size_t max_entries;  //< Maximum number of entries in the hash table - defaults to EBPF_HASH_TABLE_NO_LIMIT.
-        size_t supplemental_value_size; //< Size of supplemental value to store in each entry - defaults to 0.
-        void* notification_context;     //< Context to pass to notification functions.
-        ebpf_hash_table_notification_function
-            notification_callback; //< Function to call when value storage is allocated or freed.
-    } ebpf_hash_table_creation_options_t;
-
-    /**
-     * @brief Allocate and initialize a hash table.
-     *
-     * @param[out] hash_table Pointer to memory that will contain hash table on
-     *   success.
-     * @param[in] options Options to control hash table creation.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  hash table.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_hash_table_create(
-        _Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_hash_table_creation_options_t* options);
-
-    /**
-     * @brief Remove all items from the hash table and release memory.
-     *
-     * @param[in] hash_table Hash-table to release.
-     */
-    void
-    ebpf_hash_table_destroy(_In_opt_ _Post_ptr_invalid_ ebpf_hash_table_t* hash_table);
-
-    /**
-     * @brief Find an element in the hash table.
-     *
-     * @param[in] hash_table Hash-table to search.
-     * @param[in] key Key to find in hash table.
-     * @param[out] value Pointer to value if found.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NOT_FOUND Key not found in hash table.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
-
-    /**
-     * @brief Insert or update an entry in the hash table.
-     *
-     * @param[in, out] hash_table Hash-table to update.
-     * @param[in] key Key to find and insert or update.
-     * @param[in] value Value to insert into hash table or NULL to insert zero entry.
-     * @param[in] operation One of ebpf_hash_table_operations_t operations.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate memory for this
-     *  entry in the hash table.
-     * @retval EBPF_OUT_OF_SPACE Unable to insert this entry in the hash table.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_hash_table_update(
-        _Inout_ ebpf_hash_table_t* hash_table,
-        _In_ const uint8_t* key,
-        _In_opt_ const uint8_t* value,
-        ebpf_hash_table_operations_t operation);
-
-    /**
-     * @brief Remove an entry from the hash table.
-     *
-     * @param[in, out] hash_table Hash-table to update.
-     * @param[in] key Key to find and remove.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NOT_FOUND Key not found in hash table.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key);
-
-    /**
-     * @brief Find the next key in the hash table.
-     *
-     * @param[in] hash_table Hash-table to query.
-     * @param[in] previous_key Previous key or NULL to restart.
-     * @param[out] next_key Next key if it exists.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table that
-     * are lexicographically after the specified key.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_hash_table_next_key(
-        _In_ const ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
-
-    /**
-     * @brief Returns the next (key, value) pair in the hash table.
-     *
-     * @param[in] hash_table Hash-table to query.
-     * @param[in] previous_key Previous key or NULL to restart.
-     * @param[out] next_key Next key if it exists.
-     * @param[out] next_value If non-NULL, returns the next value if it exists.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table that
-     * are lexicographically after the specified key.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_hash_table_next_key_and_value(
-        _In_ const ebpf_hash_table_t* hash_table,
-        _In_opt_ const uint8_t* previous_key,
-        _Out_ uint8_t* next_key,
-        _Inout_opt_ uint8_t** next_value);
-
-    /**
-     * @brief Returns the next (key, value) pair in the hash table.
-     *
-     * @param[in] hash_table Hash-table to query.
-     * @param[in] previous_key Previous key or NULL to restart.
-     * @param[out] next_key_pointer Pointer to next key if one exists.
-     * @param[out] next_value If non-NULL, returns the next value if it exists.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table that
-     * are lexicographically after the specified key.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_hash_table_next_key_pointer_and_value(
-        _In_ const ebpf_hash_table_t* hash_table,
-        _In_opt_ const uint8_t* previous_key,
-        _Outptr_ uint8_t** next_key_pointer,
-        _Outptr_opt_ uint8_t** next_value);
-
-    /**
-     * @brief Get the number of keys in the hash table
-     *
-     * @param[in] hash_table Hash-table to query.
-     * @return Count of entries in the hash table.
-     */
-    size_t
-    ebpf_hash_table_key_count(_In_ const ebpf_hash_table_t* hash_table);
 
     /**
      * @brief Atomically increase the value of addend by 1 and return the new
@@ -1217,8 +1039,6 @@ extern "C"
      */
     void
     ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state);
-
-    typedef struct _ebpf_semaphore ebpf_semaphore_t;
 
     /**
      * @brief Create a semaphore.

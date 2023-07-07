@@ -46,12 +46,6 @@
     <ClCompile Include="..\guid.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="fwp_um.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ndis_um.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\net_ebpf_ext.h">
@@ -82,12 +76,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="netebpfext_platform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ndis.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="fwp_um.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

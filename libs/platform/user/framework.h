@@ -3,35 +3,18 @@
 
 #pragma once
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
-
-#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
-// Windows Header Files
-#include <windows.h>
-#include <rpc.h>
-#include <winioctl.h>
-typedef _Return_type_success_(return >= 0) long NTSTATUS;
-#include <../km/netioddk.h>
-#include <kernel_um.h>
-#include <netiodef.h>
-#define STATUS_NOINTERFACE ((NTSTATUS)0xC00002B9L)
-
-#pragma comment(lib, "rpcrt4")
+#include "..\..\..\external\usersim\src\framework.h"
+#include "usersim/ex.h"
+#include "usersim/ke.h"
+#include "usersim/ps.h"
+#include "usersim/rtl.h"
+#include "usersim/se.h"
 
 #ifdef _DEBUG
 #define ebpf_assert(x) assert(x)
 #else
 #define ebpf_assert(x) (void)(x)
 #endif //!_DEBUG
-
-#if !defined(UNREFERENCED_PARAMETER)
-#define UNREFERENCED_PARAMETER(X) (X)
-#endif
-
-// Types and functions from the ntddk duplicated here to allow user and kernel more closely align.
 
 #ifdef __cplusplus
 extern "C"

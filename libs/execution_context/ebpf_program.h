@@ -68,6 +68,8 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
+     * @retval EBPF_INVALID_ARGUMENT Program type was not set or Program name length was greater than BPF_OBJ_NAME_LEN.
+     * @retval EBPF_EXTENSION_FAILED_TO_LOAD The program extension failed to load.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _Outptr_ ebpf_program_t** program);

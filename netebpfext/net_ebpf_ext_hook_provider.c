@@ -423,7 +423,9 @@ Exit:
 static void
 _net_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
 {
-    ExFreePool(provider_binding_context);
+    if (provider_binding_context != NULL) {
+        ExFreePool(provider_binding_context);
+    }
 }
 
 void

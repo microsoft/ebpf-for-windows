@@ -84,7 +84,7 @@ get_all_map_handles()
     return handles;
 }
 
-std::vector<map_cache_t>
+std::vector<map_cache_t>&
 get_all_map_descriptors()
 {
     return _map_file_descriptors;
@@ -93,32 +93,56 @@ get_all_map_descriptors()
 void
 cache_map_original_file_descriptor_with_handle(
     int original_fd,
+    uint32_t id,
     uint32_t type,
     uint32_t key_size,
     uint32_t value_size,
     uint32_t max_entries,
     uint32_t inner_map_original_fd,
+    uint32_t inner_id,
     ebpf_handle_t handle,
     size_t section_offset)
 {
-    _map_file_descriptors.emplace_back(
-        handle, original_fd, type, key_size, value_size, max_entries, inner_map_original_fd, section_offset, PIN_NONE);
+    _map_file_descriptors.emplace_back(map_cache_t(
+        handle,
+        id,
+        original_fd,
+        type,
+        key_size,
+        value_size,
+        max_entries,
+        inner_map_original_fd,
+        inner_id,
+        section_offset,
+        PIN_NONE));
 }
 
 void
 cache_map_handle(
     ebpf_handle_t handle,
     uint32_t original_fd,
+    uint32_t id,
     uint32_t type,
     uint32_t key_size,
     uint32_t value_size,
     uint32_t max_entries,
     uint32_t inner_map_original_fd,
+    uint32_t inner_id,
     size_t section_offset,
     ebpf_pin_type_t pinning)
 {
     _map_file_descriptors.emplace_back(
-        handle, original_fd, type, key_size, value_size, max_entries, inner_map_original_fd, section_offset, pinning);
+        handle,
+        (id ? id : EBPF_ID_NONE),
+        (int)original_fd,
+        type,
+        key_size,
+        value_size,
+        max_entries,
+        inner_map_original_fd,
+        (inner_id ? inner_id : EBPF_ID_NONE),
+        section_offset,
+        pinning);
 }
 
 size_t
