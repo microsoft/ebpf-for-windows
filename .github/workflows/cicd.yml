@@ -13,7 +13,7 @@ name: CI/CD
 on:
   # Run on a daily schedule to perform the full set of tests.
   schedule:
-    - cron: '00 21 * * *'
+    - cron: '00 8 * * *'
   # Run on pull request to validate code changes.
   pull_request:
   merge_group:
@@ -324,7 +324,7 @@ jobs:
     with:
       name: stress
       # Until there is a dedicated stress test, re-use the perf test.
-      test_command: .\ebpf_performance.exe
+      test_command: .\ebpf_performance.exe -d yes
       build_artifact: Build-x64
       environment: windows-2022
       # No code coverage on stress.
@@ -338,7 +338,8 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
-      test_command: .\unit_tests.exe -d yes
+      # Exclude [processes] test that ASAN can't work with.
+      test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64-Sanitize
       environment: windows-2022
       code_coverage: false

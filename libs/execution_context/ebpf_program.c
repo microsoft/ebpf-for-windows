@@ -36,7 +36,7 @@ typedef struct _ebpf_program
         // EBPF_CODE_JIT
         struct
         {
-            ebpf_memory_descriptor_t* code_memory_descriptor;
+            MDL* code_memory_descriptor;
             const uint8_t* code_pointer;
         } code;
 
@@ -648,12 +648,22 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
-    ebpf_program_t* local_program;
+    ebpf_program_t* local_program = NULL;
     ebpf_utf8_string_t local_program_name = {NULL, 0};
     ebpf_utf8_string_t local_section_name = {NULL, 0};
     ebpf_utf8_string_t local_file_name = {NULL, 0};
     ebpf_utf8_string_t local_hash_type_name = {NULL, 0};
     uint8_t* local_program_info_hash = NULL;
+
+    if (IsEqualGUID(&program_parameters->program_type, &EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "Program type must be specified.",
+            &program_parameters->program_type);
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     local_program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_PROGRAM);
     if (!local_program) {
@@ -781,6 +791,12 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     }
 
     if (local_program->general_helper_provider_data == NULL || local_program->info_extension_provider_data == NULL) {
+        EBPF_LOG_MESSAGE_GUID_GUID(
+            EBPF_TRACELOG_LEVEL_INFO,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "Program type and Attach type:",
+            &program_parameters->program_type,
+            &program_parameters->expected_attach_type);
         retval = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
@@ -907,7 +923,7 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_mach
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     const uint8_t* local_machine_code = NULL;
-    ebpf_memory_descriptor_t* local_code_memory_descriptor = NULL;
+    MDL* local_code_memory_descriptor = NULL;
 
     ebpf_assert(program->parameters.code_type == EBPF_CODE_JIT || program->parameters.code_type == EBPF_CODE_NATIVE);
 

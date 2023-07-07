@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_epoch.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_state.h"
 #include "ebpf_tracelog.h"
 

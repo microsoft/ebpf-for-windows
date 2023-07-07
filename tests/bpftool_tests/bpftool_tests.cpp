@@ -80,7 +80,10 @@ TEST_CASE("prog load map_in_map", "[prog][load]")
 
     char command[80];
     sprintf_s(
-        command, sizeof(command), "bpftool --legacy prog load map_in_map%s map_in_map", EBPF_PROGRAM_FILE_EXTENSION);
+        command,
+        sizeof(command),
+        "bpftool --legacy prog load map_in_map_btf%s map_in_map",
+        EBPF_PROGRAM_FILE_EXTENSION);
     output = run_command(command, &result);
     REQUIRE(output == "");
     REQUIRE(result == 0);

@@ -68,6 +68,7 @@
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\Test-FaultInjection.ps1" />
+    <CopyFileToFolders Include="..\Run-Test.ps1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\pre-commit">

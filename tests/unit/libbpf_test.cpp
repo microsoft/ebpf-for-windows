@@ -6,7 +6,9 @@
 #pragma warning(disable : 4200)
 #include "bpf/libbpf.h"
 #pragma warning(pop)
+#include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
+#include "ebpf_tracelog.h"
 #include "ebpf_vm_isa.hpp"
 #include "helpers.h"
 #include "platform.h"
@@ -23,9 +25,6 @@
 #if !defined(MAX_TAIL_CALL_CNT)
 #define MAX_TAIL_CALL_CNT 32
 #endif
-
-std::vector<std::string>
-ebpf_platform_printk_output();
 
 // libbpf.h uses enum types and generates the
 // following warning whenever an enum type is used below:
@@ -1631,13 +1630,13 @@ TEST_CASE("simple hash of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYP
 
 // Verify an app can communicate with an eBPF program via an array of maps.
 static void
-_array_of_maps_test(ebpf_execution_type_t execution_type)
+_array_of_maps_test(ebpf_execution_type_t execution_type, _In_ PCSTR dll_name, _In_ PCSTR obj_name)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
     struct bpf_object* xdp_object = bpf_object__open(file_name);
     REQUIRE(xdp_object != nullptr);
 
@@ -1686,66 +1685,32 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     bpf_object__close(xdp_object);
 }
 
-DECLARE_JIT_TEST_CASES("array of maps", "[libbpf]", _array_of_maps_test);
+// Create a map-in-map using BTF ids.
+static void
+_array_of_btf_maps_test(ebpf_execution_type_t execution_type)
+{
+    _array_of_maps_test(execution_type, "map_in_map_btf_um.dll", "map_in_map_btf.o");
+}
+
+DECLARE_JIT_TEST_CASES("array of btf maps", "[libbpf]", _array_of_btf_maps_test);
 
 // Create a map-in-map using id and inner_id.
 static void
-_array_of_maps2_test(ebpf_execution_type_t execution_type)
+_array_of_id_maps_test(ebpf_execution_type_t execution_type)
 {
-    _test_helper_end_to_end test_helper;
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
-
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_v2_um.dll" : "map_in_map_v2.o");
-    struct bpf_object* xdp_object = bpf_object__open(file_name);
-    REQUIRE(xdp_object != nullptr);
-
-    // Load the program(s).
-    REQUIRE(bpf_object__load(xdp_object) == 0);
-
-    struct bpf_program* caller = bpf_object__find_program_by_name(xdp_object, "lookup");
-    REQUIRE(caller != nullptr);
-
-    struct bpf_map* outer_map = bpf_object__find_map_by_name(xdp_object, "outer_map");
-    REQUIRE(outer_map != nullptr);
-
-    int outer_map_fd = bpf_map__fd(outer_map);
-    REQUIRE(outer_map_fd > 0);
-
-    // Create an inner map.
-    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
-    REQUIRE(inner_map_fd > 0);
-
-    // Add a value to the inner map.
-    uint32_t inner_value = 42;
-    uint32_t inner_key = 0;
-    int error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
-    REQUIRE(error == 0);
-
-    // Add inner map to outer map.
-    __u32 outer_key = 0;
-    error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
-    REQUIRE(error == 0);
-
-    bpf_link_ptr link(bpf_program__attach_xdp(caller, 1));
-    REQUIRE(link != nullptr);
-
-    // Now run the ebpf program.
-    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    uint32_t result;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
-
-    // Verify the return value is what we saved in the inner map.
-    REQUIRE(result == inner_value);
-
-    Platform::_close(inner_map_fd);
-    result = bpf_link__destroy(link.release());
-    REQUIRE(result == 0);
-    bpf_object__close(xdp_object);
+    _array_of_maps_test(execution_type, "map_in_map_legacy_id_um.dll", "map_in_map_legacy_id.o");
 }
 
-DECLARE_JIT_TEST_CASES("array of maps2", "[libbpf]", _array_of_maps2_test);
+DECLARE_JIT_TEST_CASES("array of id maps", "[libbpf]", _array_of_id_maps_test);
+
+// Create a map-in-map using map indices.
+static void
+_array_of_idx_maps_test(ebpf_execution_type_t execution_type)
+{
+    _array_of_maps_test(execution_type, "map_in_map_legacy_idx_um.dll", "map_in_map_legacy_idx.o");
+}
+
+DECLARE_JIT_TEST_CASES("array of idx maps", "[libbpf]", _array_of_idx_maps_test);
 
 static void
 _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
@@ -1753,7 +1718,7 @@ _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
     _test_helper_end_to_end test_helper;
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_btf_um.dll" : "map_in_map_btf.o");
     struct bpf_object* xdp_object = bpf_object__open(file_name);
     REQUIRE(xdp_object != nullptr);
 
@@ -2840,14 +2805,18 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     bpf_test_run_opts opts = {};
     opts.repeat = 1;
 
-    // Clear previous printk output.
-    auto unused_output = ebpf_platform_printk_output();
+    capture_helper_t capture;
+    std::vector<std::string> output;
+    errno_t error = capture.begin_capture();
+    if (error == NO_ERROR) {
+        // Run the program.
+        usersim_trace_logging_set_enabled(true, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK);
+        int result = bpf_prog_test_run_opts(program_fd, &opts);
+        usersim_trace_logging_set_enabled(false, 0, 0);
 
-    // Run the program.
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
-
-    // Capture printk output from the program.
-    auto output = ebpf_platform_printk_output();
+        output = capture.buffer_to_printk_vector(capture.get_stdout_contents());
+        REQUIRE(result == 0);
+    }
 
     // Verify that the printk output is correct.
     REQUIRE(output.size() == MAX_TAIL_CALL_CNT);
@@ -2918,14 +2887,18 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     bpf_test_run_opts opts = {};
     opts.repeat = 1;
 
-    // Clear previous printk output.
-    auto unused_output = ebpf_platform_printk_output();
+    capture_helper_t capture;
+    std::vector<std::string> output;
+    errno_t error = capture.begin_capture();
+    if (error == NO_ERROR) {
+        // Run the program.
+        usersim_trace_logging_set_enabled(true, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK);
+        int result = bpf_prog_test_run_opts(first_program_fd, &opts);
+        usersim_trace_logging_set_enabled(false, 0, 0);
 
-    // Run the program.
-    REQUIRE(bpf_prog_test_run_opts(first_program_fd, &opts) == 0);
-
-    // Capture printk output from the program.
-    auto output = ebpf_platform_printk_output();
+        output = capture.buffer_to_printk_vector(capture.get_stdout_contents());
+        REQUIRE(result == 0);
+    }
 
     // Verify that the printk output is correct.
     REQUIRE(output.size() == MAX_TAIL_CALL_CNT);

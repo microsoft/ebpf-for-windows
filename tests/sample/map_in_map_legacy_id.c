@@ -15,22 +15,22 @@
 
 #define INNER_MAP_ID 10
 
-struct
-{
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __type(key, uint32_t);
-    __type(value, uint32_t);
-    __uint(max_entries, 1);
-} inner_map SEC(".maps");
+SEC("maps/outer_map")
+struct bpf_map_def outer_map = {
+    .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(uint32_t),
+    .max_entries = 1,
+    // inner_id refers to the id of the inner map in the same ELF object.
+    .inner_id = INNER_MAP_ID}; // (uint32_t)&inner_map
 
-struct
-{
-    __uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
-    __type(key, uint32_t);
-    __type(value, uint32_t);
-    __uint(max_entries, 1);
-    __array(values, inner_map);
-} outer_map SEC(".maps");
+SEC("maps/inner_map")
+struct bpf_map_def inner_map = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(uint32_t),
+    .max_entries = 1,
+    .id = INNER_MAP_ID};
 
 SEC("xdp_prog") int lookup(struct xdp_md* ctx)
 {

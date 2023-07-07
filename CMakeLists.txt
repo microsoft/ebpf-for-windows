@@ -30,12 +30,7 @@ include("cmake/codesign.cmake")
 include("cmake/midl_compiler_finder.cmake")
 include("cmake/process_bpf_source_file.cmake")
 
-list(APPEND CMAKE_MODULE_PATH
-  "${CMAKE_SOURCE_DIR}/external/FindWDK/cmake"
-)
-
 locateMidlCompiler()
-find_package(WDK REQUIRED)
 
 add_subdirectory("ebpfapi")
 add_subdirectory("ebpfcore")

@@ -19,6 +19,7 @@ target_include_directories("export_program_info" PRIVATE
   "${CMAKE_SOURCE_DIR}/netebpfext"
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
+  "${CMAKE_SOURCE_DIR}/external/usersim/inc"
 )
 
 target_link_libraries("export_program_info" PRIVATE
@@ -28,6 +29,7 @@ target_link_libraries("export_program_info" PRIVATE
   "api_common_headers"
   "external::ebpfverifier"
   "external::boost"
+  "usersim"
   "Kernel32.lib"
   "Mincore.lib"
 )

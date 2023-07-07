@@ -14,9 +14,9 @@
 [submodule "external/Catch2"]
 	path = external/Catch2
 	url = https://github.com/catchorg/Catch2.git
-[submodule "external/FindWDK"]
-	path = external/FindWDK
-	url = https://github.com/SergiusTheBest/FindWDK
 [submodule "external/pe-parse"]
 	path = external/pe-parse
 	url = https://github.com/trailofbits/pe-parse.git
+[submodule "external/usersim"]
+	path = external/usersim
+	url = https://github.com/microsoft/usersim.git

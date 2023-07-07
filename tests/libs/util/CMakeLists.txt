@@ -35,6 +35,7 @@ target_include_directories("test_util" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
   "${CMAKE_SOURCE_DIR}/tests/end_to_end"
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
+  "${CMAKE_SOURCE_DIR}/external/usersim/inc"
   "${CMAKE_SOURCE_DIR}/netebpfext"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
   "${WDK_ROOT}/include/${WDK_VERSION}/km"
