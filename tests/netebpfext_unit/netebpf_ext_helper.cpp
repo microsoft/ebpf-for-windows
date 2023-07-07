@@ -131,13 +131,13 @@ _netebpf_ext_helper::program_info_provider_guids()
 }
 
 ebpf_extension_data_t
-_netebpf_ext_helper::get_program_info_provider_data(const GUID& program_info_provider)
+_netebpf_ext_helper::get_program_info_provider_data(_In_ const GUID& program_info_provider)
 {
     auto iter = program_info_providers.find(program_info_provider);
 
-    if (iter == program_info_providers.end()) {
-        throw std::runtime_error("Invalid program_info_provider guid");
-    }
+    // We might not find the provider if some allocation failed during initialization.
+    REQUIRE(iter != program_info_providers.end());
+
     return *iter->second->provider_data;
 }
 

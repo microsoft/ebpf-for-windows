@@ -46,7 +46,7 @@ typedef class _netebpf_ext_helper
     program_info_provider_guids();
 
     ebpf_extension_data_t
-    get_program_info_provider_data(const GUID& program_info_provider);
+    get_program_info_provider_data(_In_ const GUID& program_info_provider);
 
     FWP_ACTION_TYPE
     classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
