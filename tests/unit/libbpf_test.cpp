@@ -1850,9 +1850,11 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
 
     // Load and attach some programs.
     uint32_t ifindex = 0;
-    program_load_attach_helper_t xdp_helper(
+    program_load_attach_helper_t xdp_helper;
+    xdp_helper.initialize(
         "droppacket.o", BPF_PROG_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
-    program_load_attach_helper_t bind_helper(
+    program_load_attach_helper_t bind_helper;
+    bind_helper.initialize(
         "bindmonitor.o", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, bind_hook);
 
     // Now enumerate the IDs.
@@ -1893,9 +1895,11 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
 
     // Load and attach some programs.
     uint32_t ifindex = 1;
-    program_load_attach_helper_t xdp_helper(
+    program_load_attach_helper_t xdp_helper;
+    xdp_helper.initialize(
         "droppacket.o", BPF_PROG_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
-    program_load_attach_helper_t bind_helper(
+    program_load_attach_helper_t bind_helper;
+    bind_helper.initialize(
         "bindmonitor.o", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, bind_hook);
 
     // Now enumerate the IDs.
@@ -2066,7 +2070,8 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     uint32_t ifindex = 0;
-    program_load_attach_helper_t xdp_helper(
+    program_load_attach_helper_t xdp_helper;
+    xdp_helper.initialize(
         "droppacket.o", BPF_PROG_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
 
     struct bpf_object* object = xdp_helper.get_object();
@@ -2171,7 +2176,8 @@ TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
     program_info_provider_t sock_addr_program_info(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
     single_instance_hook_t v4_connect_hook(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
 
-    program_load_attach_helper_t sock_addr_helper(
+    program_load_attach_helper_t sock_addr_helper;
+    sock_addr_helper.initialize(
         "cgroup_sock_addr.o",
         BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
         "authorize_connect4",

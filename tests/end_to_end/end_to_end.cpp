@@ -925,7 +925,8 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     uint32_t ifindex = 0;
     const char* file_name =
         (execution_type == EBPF_EXECUTION_NATIVE ? "test_utility_helpers_um.dll" : "test_utility_helpers.o");
-    program_load_attach_helper_t program_helper(
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(
         file_name, BPF_PROG_TYPE_XDP, "test_utility_helpers", execution_type, &ifindex, sizeof(ifindex), hook);
     bpf_object* object = program_helper.get_object();
 
@@ -1632,7 +1633,8 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     uint32_t ifindex = 0;
-    program_load_attach_helper_t program_helper(
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(
         SAMPLE_PATH "reflect_packet.o",
         BPF_PROG_TYPE_XDP,
         "reflect_packet",
@@ -1673,7 +1675,8 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     uint32_t ifindex = 0;
-    program_load_attach_helper_t program_helper(
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(
         SAMPLE_PATH "encap_reflect_packet.o",
         BPF_PROG_TYPE_XDP,
         "encap_reflect_packet",
@@ -1724,7 +1727,8 @@ TEST_CASE("printk", "[end_to_end]")
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
     uint32_t ifindex = 0;
-    program_load_attach_helper_t program_helper(
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(
         SAMPLE_PATH "printk.o", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_INTERPRET, &ifindex, sizeof(ifindex), hook);
 
     // The current bind hook only works with IPv4, so compose a sample IPv4 context.
@@ -1794,7 +1798,8 @@ _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRES
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     uint32_t ifindex = 0;
-    program_load_attach_helper_t program_helper(
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(
         SAMPLE_PATH "decap_permit_packet.o",
         BPF_PROG_TYPE_XDP,
         "decapsulate_permit_packet",
@@ -1854,7 +1859,8 @@ TEST_CASE("link_tests", "[end_to_end]")
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     uint32_t ifindex = 0;
-    program_load_attach_helper_t program_helper(
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(
         SAMPLE_PATH "bpf.o", BPF_PROG_TYPE_XDP, "func", EBPF_EXECUTION_INTERPRET, &ifindex, sizeof(ifindex), hook);
 
     // Dummy UDP datagram with fake IP and MAC addresses.
@@ -1922,7 +1928,8 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
     REQUIRE(error == 0);
 
     uint32_t ifindex = 0;
-    program_load_attach_helper_t program_helper(
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(
         file_name, BPF_PROG_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     // The outer map we created earlier should still not have a name even though there is a name in the file,
@@ -2014,7 +2021,8 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
 
     uint32_t ifindex = 0;
-    program_load_attach_helper_t program_helper(
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(
         file_name, BPF_PROG_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     fd_t outer_map_fd = bpf_obj_get("/ebpf/global/outer_map");
@@ -2211,7 +2219,8 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
     REQUIRE(error == 0);
 
     uint32_t ifindex = 0;
-    program_load_attach_helper_t program_helper(
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(
         file_name, BPF_PROG_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
@@ -2286,7 +2295,8 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_2_um.dll" : "map_reuse_2.o");
 
     uint32_t ifindex = 0;
-    program_load_attach_helper_t program_helper(
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(
         file_name, BPF_PROG_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
@@ -2607,6 +2617,8 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
 static void
 _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, int expected_result)
 {
+    // _test_helper_end_to_end must be done by the caller.
+
     int result;
     bpf_object_ptr unique_object;
     fd_t program_fd;
@@ -2638,7 +2650,7 @@ TEST_CASE("load_native_program_invalid3", "[end-to-end]")
 }
 TEST_CASE("load_native_program_invalid4", "[end-to-end]")
 {
-    _load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
+    _test_load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 TEST_CASE("load_native_program_invalid5", "[end-to-end]")
 {

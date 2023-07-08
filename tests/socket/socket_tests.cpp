@@ -36,7 +36,8 @@ connection_test(
     _Inout_ receiver_socket_t& receiver_socket,
     uint32_t protocol)
 {
-    native_module_helper_t helper("cgroup_sock_addr");
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr");
 
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
@@ -165,7 +166,8 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
     bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
-    native_module_helper_t helper("cgroup_sock_addr");
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr");
 
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
@@ -258,7 +260,8 @@ connection_monitor_test(
     uint32_t protocol,
     bool disconnect)
 {
-    native_module_helper_t helper("sockops");
+    native_module_helper_t helper;
+    helper.initialize("sockops");
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
     // Load the programs.
@@ -435,7 +438,8 @@ TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
 
 TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 {
-    native_module_helper_t helper("sockops");
+    native_module_helper_t helper;
+    helper.initialize("sockops");
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
     // Load the programs.

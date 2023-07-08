@@ -49,28 +49,36 @@ _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ netebpfext_helper_base_client_context_t* client_context,
     bool initialize_platform)
 {
-    NTSTATUS status;
-    status = net_ebpf_ext_trace_initiate();
-    REQUIRE(NT_SUCCESS(status));
+    // Do use use REQUIRE() in this constructor or the destructor will never be called
+    // to clean up any state allocated before the REQUIRE.
+
+    if (!NT_SUCCESS(net_ebpf_ext_trace_initiate())) {
+        return;
+    }
     trace_initiated = true;
 
     if (initialize_platform) {
-        REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
+        if (ebpf_platform_initiate() != EBPF_SUCCESS) {
+            return;
+        }
         platform_initialized = true;
     }
 
-    status = net_ebpf_ext_initialize_ndis_handles(driver_object);
-    REQUIRE(NT_SUCCESS(status));
+    if (!NT_SUCCESS(net_ebpf_ext_initialize_ndis_handles(driver_object))) {
+        return;
+    }
 
     ndis_handle_initialized = true;
 
-    status = net_ebpf_ext_register_providers();
-    REQUIRE(NT_SUCCESS(status));
+    if (!NT_SUCCESS(net_ebpf_ext_register_providers())) {
+        return;
+    }
 
     provider_registered = true;
 
-    status = net_ebpf_extension_initialize_wfp_components(device_object);
-    REQUIRE(NT_SUCCESS(status));
+    if (!NT_SUCCESS(net_ebpf_extension_initialize_wfp_components(device_object))) {
+        return;
+    }
 
     wfp_initialized = true;
 
