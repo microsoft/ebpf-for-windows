@@ -28,6 +28,12 @@ using namespace std::chrono_literals;
 #include <mstcpip.h>
 
 CATCH_REGISTER_LISTENER(_watchdog)
+typedef struct _test_globals
+{
+    bpf_object_ptr bpf_object;
+} test_globals_t;
+
+static test_globals_t _globals;
 
 void
 connection_test(
@@ -166,13 +172,12 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
     native_module_helper_t helper("cgroup_sock_addr");
-
-    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
-    REQUIRE(object != nullptr);
+    _globals.bpf_object.reset(bpf_object__open(helper.get_file_name().c_str()));
+    REQUIRE(_globals.bpf_object.get() != nullptr);
     // Load the programs.
-    REQUIRE(bpf_object__load(object) == 0);
+    REQUIRE(bpf_object__load(_globals.bpf_object.get()) == 0);
 
-    bpf_program* connect4_program = bpf_object__find_program_by_name(object, "authorize_connect4");
+    bpf_program* connect4_program = bpf_object__find_program_by_name(_globals.bpf_object.get(), "authorize_connect4");
     REQUIRE(connect4_program != nullptr);
 
     int result = bpf_prog_attach(
@@ -198,7 +203,8 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
             bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), &program_info, &program_info_size) == 0);
     REQUIRE(program_info.link_count == 0);
 
-    bpf_program* recv_accept4_program = bpf_object__find_program_by_name(object, "authorize_recv_accept4");
+    bpf_program* recv_accept4_program =
+        bpf_object__find_program_by_name(_globals.bpf_object.get(), "authorize_recv_accept4");
     REQUIRE(recv_accept4_program != nullptr);
 
     result = bpf_prog_attach(
@@ -227,7 +233,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         0);
     REQUIRE(program_info.link_count == 0);
 
-    bpf_program* connect6_program = bpf_object__find_program_by_name(object, "authorize_connect6");
+    bpf_program* connect6_program = bpf_object__find_program_by_name(_globals.bpf_object.get(), "authorize_connect6");
     REQUIRE(connect6_program != nullptr);
 
     result = bpf_prog_attach(
@@ -237,7 +243,8 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         0);
     REQUIRE(result == 0);
 
-    bpf_program* recv_accept6_program = bpf_object__find_program_by_name(object, "authorize_recv_accept6");
+    bpf_program* recv_accept6_program =
+        bpf_object__find_program_by_name(_globals.bpf_object.get(), "authorize_recv_accept6");
     REQUIRE(recv_accept6_program != nullptr);
 
     result = bpf_prog_attach(
@@ -246,8 +253,6 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         BPF_CGROUP_INET6_RECV_ACCEPT,
         0);
     REQUIRE(result == 0);
-
-    bpf_object__close(object);
 }
 
 void
@@ -436,18 +441,16 @@ TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
 TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 {
     native_module_helper_t helper("sockops");
-    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
-    REQUIRE(object != nullptr);
+    _globals.bpf_object.reset(bpf_object__open(helper.get_file_name().c_str()));
+    REQUIRE(_globals.bpf_object.get() != nullptr);
     // Load the programs.
-    REQUIRE(bpf_object__load(object) == 0);
+    REQUIRE(bpf_object__load(_globals.bpf_object.get()) == 0);
 
-    bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
+    bpf_program* _program = bpf_object__find_program_by_name(_globals.bpf_object.get(), "connection_monitor");
     REQUIRE(_program != nullptr);
 
     int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
     REQUIRE(result == 0);
-
-    bpf_object__close(object);
 }
 
 int
