@@ -309,9 +309,10 @@ jobs:
 
     - name: Stop ETW tracing
       id: stop_etw_tracing
-      if: (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
+      if: always() && (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
       shell: cmd
-      run: wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
+      run: |
+          wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
 
     - name: Copy any bpf2c test logs to TestLogs
       if: (inputs.name == 'bpf2c') && (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
@@ -340,7 +341,7 @@ jobs:
     - name: Check for TestLogs
       # Check for test logs even if the workflow failed.
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
-      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
+      if: always() && (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
       id: check_logs
       with:
         files: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs/*
