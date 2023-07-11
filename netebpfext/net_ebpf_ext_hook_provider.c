@@ -322,6 +322,10 @@ _net_ebpf_extension_hook_provider_attach_client(
     NET_EBPF_EXT_LOG_ENTRY();
 
     if ((provider_binding_context == NULL) || (provider_dispatch == NULL) || (local_provider_context == NULL)) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "Unexpected NULL argument(s). Attach attempt rejected.");
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -331,10 +335,9 @@ _net_ebpf_extension_hook_provider_attach_client(
 
     hook_client = (net_ebpf_extension_hook_client_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_hook_client_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (hook_client == NULL) {
-        status = STATUS_NO_MEMORY;
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, hook_client, "hook_client", status);
+
     memset(hook_client, 0, sizeof(net_ebpf_extension_hook_client_t));
 
     hook_client->detach_work_item = NULL;
@@ -345,6 +348,10 @@ _net_ebpf_extension_hook_provider_attach_client(
     client_dispatch_table = (ebpf_extension_program_dispatch_table_t*)client_dispatch;
     if (client_dispatch_table == NULL) {
         status = STATUS_INVALID_PARAMETER;
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "client_dispatch_table is NULL. Attach attempt rejected.");
         goto Exit;
     }
     hook_client->invoke_program = client_dispatch_table->ebpf_program_invoke_function;
@@ -352,6 +359,11 @@ _net_ebpf_extension_hook_provider_attach_client(
 
     status = _ebpf_ext_attach_init_rundown(hook_client);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "_ebpf_ext_attach_init_rundown failed. Attach attempt rejected.",
+            status);
         goto Exit;
     }
 
@@ -364,6 +376,11 @@ _net_ebpf_extension_hook_provider_attach_client(
         InsertTailList(&local_provider_context->attached_clients_list, &hook_client->link);
         RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
     } else {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "attach_callback returned failure. Attach attempt rejected.",
+            result);
         status = STATUS_ACCESS_DENIED;
     }
 
@@ -399,6 +416,10 @@ _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_bindin
     net_ebpf_extension_hook_provider_t* local_provider_context = local_client_context->provider_context;
 
     if (local_client_context == NULL) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "local_client_context is NULL. Detach attempt rejected.");
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -437,8 +458,12 @@ net_ebpf_extension_hook_provider_unregister(
         if (provider_context->nmr_provider_handle != NULL) {
             NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
             if (status == STATUS_PENDING) {
+
                 // Wait for clients to detach.
                 NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+            } else {
+                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NmrDeregisterProvider", status);
             }
         }
         ExFreePool(provider_context);
@@ -461,10 +486,9 @@ net_ebpf_extension_hook_provider_register(
     NET_EBPF_EXT_LOG_ENTRY();
     local_provider_context = (net_ebpf_extension_hook_provider_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_hook_provider_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (local_provider_context == NULL) {
-        status = STATUS_NO_MEMORY;
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_provider_context, "local_provider_context", status);
+
     memset(local_provider_context, 0, sizeof(net_ebpf_extension_hook_provider_t));
     ExInitializePushLock(&local_provider_context->lock);
     InitializeListHead(&local_provider_context->attached_clients_list);
@@ -487,6 +511,10 @@ net_ebpf_extension_hook_provider_register(
 
     status = NmrRegisterProvider(characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status)) {
+
+        // The docs don't mention the (out) handle status on failure, so explicitly mark it as invalid.
+        local_provider_context->nmr_provider_handle = NULL;
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NmrRegisterProvider", status);
         goto Exit;
     }
 
