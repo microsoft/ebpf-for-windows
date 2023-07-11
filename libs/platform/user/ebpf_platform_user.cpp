@@ -24,18 +24,27 @@ bool _ebpf_platform_code_integrity_enabled = false;
 
 extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
+static bool _usersim_platform_initiated = false;
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
     ebpf_initialize_cpu_count();
-    return NT_SUCCESS(usersim_platform_initiate()) ? EBPF_SUCCESS : EBPF_NO_MEMORY;
+    if (!NT_SUCCESS(usersim_platform_initiate())) {
+        return EBPF_NO_MEMORY;
+    }
+    _usersim_platform_initiated = true;
+    return EBPF_SUCCESS;
 }
 
 void
 ebpf_platform_terminate()
 {
-    KeFlushQueuedDpcs();
-    usersim_platform_terminate();
+    if (_usersim_platform_initiated) {
+        KeFlushQueuedDpcs();
+        usersim_platform_terminate();
+        _usersim_platform_initiated = false;
+    }
 }
 
 _Must_inspect_result_ ebpf_result_t
