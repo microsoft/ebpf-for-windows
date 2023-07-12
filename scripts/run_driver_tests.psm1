@@ -238,4 +238,33 @@ function Invoke-ConnectRedirectTest
     popd
 }
 
+function Invoke-CICDStressTests
+{
+    param([parameter(Mandatory = $true)][bool] $VerboseLogs,
+          [parameter(Mandatory = $false)][bool] $Coverage = $false,
+          [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
+
+    pushd $WorkingDirectory
+    $env:EBPF_ENABLE_WER_REPORT = "yes"
+
+    Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
+
+    $LASTEXITCODE = 0
+    # The '-td' parameter specifies the run time per test, so the total run-time will be a multiple of the total
+    # number of tests, as each test is run sequentially.
+    if ($RestartExtension -eq $false) {
+        write-host "Test command-line: .\ebpf_stress_tests_km -tt=8 -td=5"
+        .\ebpf_stress_tests_km -tt=8 -td=5
+    } else {
+        write-host "Test command-line: .\ebpf_stress_tests_km -tt=8 -td=5 -erd=1000 -er=1"
+        .\ebpf_stress_tests_km -tt=8 -td=5 -erd=1000 -er=1
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "*** ERROR *** eBPF kernel mode multi-threaded stress tests FAILED (restart extension:$RestartExtension)"
+    }
+
+    popd
+}
+
 Pop-Location
