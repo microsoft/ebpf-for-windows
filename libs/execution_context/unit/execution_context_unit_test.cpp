@@ -652,7 +652,8 @@ TEST_CASE("program", "[execution_context]")
 {
     _ebpf_core_initializer core;
 
-    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t program_info_provider;
+    REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
     const ebpf_utf8_string_t program_name{(uint8_t*)("foo"), 3};
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
     const ebpf_program_parameters_t program_parameters{
@@ -821,7 +822,8 @@ TEST_CASE("program", "[execution_context]")
 TEST_CASE("name size", "[execution_context]")
 {
     _ebpf_core_initializer core;
-    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_BIND);
+    program_info_provider_t program_info_provider;
+    REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
     const ebpf_utf8_string_t oversize_name{
         (uint8_t*)("a234567890123456789012345678901234567890123456789012345678901234"), 64};
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
@@ -1161,14 +1163,15 @@ invoke_protocol(
 
 extern bool _ebpf_platform_code_integrity_enabled;
 
-#define NEGATIVE_TEST_PROLOG()                                                            \
-    _ebpf_core_initializer core;                                                          \
-    std::vector<std::unique_ptr<_program_info_provider>> program_info_providers;          \
-    for (const auto& type : _program_types) {                                             \
-        program_info_providers.push_back(std::make_unique<_program_info_provider>(type)); \
-    }                                                                                     \
-    std::vector<ebpf_handle_t> program_handles;                                           \
-    std::map<std::string, ebpf_handle_t> map_handles;                                     \
+#define NEGATIVE_TEST_PROLOG()                                                        \
+    _ebpf_core_initializer core;                                                      \
+    std::vector<std::unique_ptr<_program_info_provider>> program_info_providers;      \
+    for (const auto& type : _program_types) {                                         \
+        program_info_providers.push_back(std::make_unique<_program_info_provider>()); \
+        REQUIRE(program_info_providers.back()->initialize(type) == EBPF_SUCCESS);     \
+    }                                                                                 \
+    std::vector<ebpf_handle_t> program_handles;                                       \
+    std::map<std::string, ebpf_handle_t> map_handles;                                 \
     create_various_objects(program_handles, map_handles);
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)

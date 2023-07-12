@@ -738,13 +738,16 @@ _test_helper_libbpf::_test_helper_libbpf()
     ebpf_clear_thread_local_storage();
 
     try {
-        xdp_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_XDP);
+        xdp_program_info = new program_info_provider_t();
+        REQUIRE(xdp_program_info->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
         xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
 
-        bind_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_BIND);
+        bind_program_info = new program_info_provider_t();
+        REQUIRE(bind_program_info->initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
         bind_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
-        cgroup_sock_addr_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
+        cgroup_sock_addr_program_info = new program_info_provider_t();
+        REQUIRE(cgroup_sock_addr_program_info->initialize(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) == EBPF_SUCCESS);
         cgroup_inet4_connect_hook =
             new single_instance_hook_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
     } catch (...) {

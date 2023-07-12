@@ -26,7 +26,8 @@ typedef class _ebpf_program_test_state
 
         // Create the program info provider.  We can only do this after calling
         // ebpf_core_initiate() since that initializes the interface GUID.
-        program_info_provider = new _program_info_provider(EBPF_PROGRAM_TYPE_XDP);
+        program_info_provider = new _program_info_provider();
+        REQUIRE(program_info_provider->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
         REQUIRE(ebpf_program_create(&parameters, &program) == EBPF_SUCCESS);
     }

@@ -1215,7 +1215,8 @@ _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
     struct bpf_object* object = bpf_object__open(filename);
     REQUIRE(object != nullptr);
@@ -1327,7 +1328,8 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
     const char* file_name =
         (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_multiple_um.dll" : "tail_call_multiple.o");
@@ -1419,8 +1421,10 @@ static void
 _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
-    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_um.dll" : "tail_call.o");
     struct bpf_object* xdp_object = bpf_object__open(file_name);
@@ -1475,8 +1479,10 @@ DECLARE_ALL_TEST_CASES("disallow setting bind fd in xdp prog array", "[libbpf]",
 TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
-    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
     struct bpf_object* xdp_object = bpf_object__open("droppacket.o");
     REQUIRE(xdp_object != nullptr);
@@ -1517,7 +1523,8 @@ static void
 _enumerate_program_ids_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
     // Verify the enumeration is empty.
     uint32_t id1;
@@ -1634,7 +1641,8 @@ _array_of_maps_test(ebpf_execution_type_t execution_type, _In_ PCSTR dll_name, _
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
     struct bpf_object* xdp_object = bpf_object__open(file_name);
@@ -1716,7 +1724,8 @@ static void
 _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_btf_um.dll" : "map_in_map_btf.o");
     struct bpf_object* xdp_object = bpf_object__open(file_name);
@@ -1835,8 +1844,10 @@ TEST_CASE("enumerate map IDs", "[libbpf]")
 TEST_CASE("enumerate link IDs", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
-    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
     single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
@@ -1877,8 +1888,10 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
 TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
-    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
     single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
@@ -2067,7 +2080,8 @@ TEST_CASE("bpf_link__pin", "[libbpf]")
 TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
     single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     uint32_t ifindex = 0;
     program_load_attach_helper_t xdp_helper;
@@ -2173,7 +2187,8 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
 TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
-    program_info_provider_t sock_addr_program_info(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
+    program_info_provider_t sock_addr_program_info;
+    REQUIRE(sock_addr_program_info.initialize(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) == EBPF_SUCCESS);
     single_instance_hook_t v4_connect_hook(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
 
     program_load_attach_helper_t sock_addr_helper;
