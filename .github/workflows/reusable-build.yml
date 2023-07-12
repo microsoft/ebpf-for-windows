@@ -123,6 +123,7 @@ jobs:
       run: |
         choco install -y llvm --version 11.0.1 --allow-downgrade
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        where clang.exe
 
     - name: Cache nuget packages
       if: steps.skip_check.outputs.should_skip != 'true'
