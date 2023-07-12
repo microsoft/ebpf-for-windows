@@ -568,11 +568,13 @@ typedef class _program_info_provider
     }
     ~_program_info_provider()
     {
-        NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
-        if (status == STATUS_PENDING) {
-            NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
-        } else {
-            ebpf_assert(status == STATUS_SUCCESS);
+        if (nmr_provider_handle != INVALID_HANDLE_VALUE) {
+            NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
+            if (status == STATUS_PENDING) {
+                NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
+            } else {
+                ebpf_assert(status == STATUS_SUCCESS);
+            }
         }
     }
 

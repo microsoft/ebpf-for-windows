@@ -65,6 +65,7 @@ const int nonexistent_fd = 12345678;
 TEST_CASE("libbpf load program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
     struct bpf_object* object;
     int program_fd;
 #pragma warning(suppress : 4996) // deprecated
@@ -84,6 +85,7 @@ prepare_udp_packet(uint16_t udp_length, uint16_t ethernet_type);
 TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
     struct bpf_object* object;
     int program_fd;
 #pragma warning(suppress : 4996) // deprecated
@@ -187,6 +189,7 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
 TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     // An empty set of instructions is invalid.
 #pragma warning(suppress : 4996) // deprecated
@@ -198,6 +201,7 @@ TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
 TEST_CASE("empty bpf_prog_load", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     // An empty set of instructions is invalid.
     int program_fd = bpf_prog_load(BPF_PROG_TYPE_XDP, "name", "license", nullptr, 0, nullptr);
@@ -208,6 +212,7 @@ TEST_CASE("empty bpf_prog_load", "[libbpf]")
 TEST_CASE("too big bpf_prog_load", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     // An empty set of instructions is invalid.
     int program_fd = bpf_prog_load(BPF_PROG_TYPE_XDP, "name", "license", nullptr, UINT32_MAX, nullptr);
@@ -218,6 +223,7 @@ TEST_CASE("too big bpf_prog_load", "[libbpf]")
 TEST_CASE("invalid bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     // Try with an invalid set of instructions.
     struct ebpf_inst instructions[] = {
@@ -247,6 +253,7 @@ TEST_CASE("invalid bpf_load_program", "[libbpf][deprecated]")
 TEST_CASE("invalid bpf_prog_load", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     // Try with an invalid set of instructions.
     struct ebpf_inst instructions[] = {
@@ -270,6 +277,7 @@ TEST_CASE("invalid bpf_prog_load", "[libbpf]")
 TEST_CASE("invalid bpf_load_program - wrong type", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     // Try with a valid set of instructions.
     struct ebpf_inst instructions[] = {
@@ -288,6 +296,7 @@ TEST_CASE("invalid bpf_load_program - wrong type", "[libbpf][deprecated]")
 TEST_CASE("invalid bpf_prog_load - wrong type", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     // Try with a valid set of instructions.
     struct ebpf_inst instructions[] = {
@@ -306,6 +315,7 @@ TEST_CASE("invalid bpf_prog_load - wrong type", "[libbpf]")
 TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     // Try with a valid set of instructions.
     struct ebpf_inst instructions[] = {
@@ -335,6 +345,7 @@ TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]")
 TEST_CASE("valid bpf_prog_load", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     // Try with a valid set of instructions.
     struct ebpf_inst instructions[] = {
@@ -364,6 +375,7 @@ TEST_CASE("valid bpf_prog_load", "[libbpf]")
 TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     // Try with a valid set of instructions.
     struct ebpf_inst instructions[] = {
@@ -435,6 +447,7 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     int map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 2, nullptr);
     REQUIRE(map_fd >= 0);
@@ -478,6 +491,7 @@ TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]")
 TEST_CASE("libbpf program", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     struct bpf_object* object = bpf_object__open("droppacket.o");
     REQUIRE(object != nullptr);
@@ -520,6 +534,7 @@ TEST_CASE("libbpf program", "[libbpf]")
 TEST_CASE("libbpf program pinning", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
     const char* pin_path = "\\temp\\test";
 
     struct bpf_object* object = bpf_object__open("droppacket.o");
@@ -580,6 +595,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
 TEST_CASE("libbpf program attach", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     struct bpf_object* object = bpf_object__open("droppacket.o");
     REQUIRE(object != nullptr);
@@ -655,6 +671,7 @@ test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info
 TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     struct bpf_object* object[2];
     struct bpf_program* program[2];
@@ -685,6 +702,7 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
 TEST_CASE("libbpf map", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
     std::vector<std::string> expected_map_names = {
         "HASH_map",
         "PERCPU_HASH_map",
@@ -914,6 +932,7 @@ TEST_CASE("libbpf map", "[libbpf]")
 TEST_CASE("libbpf create queue", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     bpf_map_create_opts opts = {0};
     const uint32_t max_entries = 2;
@@ -966,6 +985,7 @@ TEST_CASE("libbpf create queue", "[libbpf]")
 TEST_CASE("libbpf create ringbuf", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     bpf_map_create_opts opts = {0};
     const uint32_t max_entries = 128 * 1024;
@@ -1019,6 +1039,7 @@ TEST_CASE("libbpf create ringbuf", "[libbpf]")
 TEST_CASE("libbpf map binding", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     struct bpf_object* object = bpf_object__open("droppacket.o");
     REQUIRE(object != nullptr);
@@ -1075,6 +1096,7 @@ TEST_CASE("libbpf map binding", "[libbpf]")
 TEST_CASE("libbpf map pinning", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
     const char* pin_path = "\\temp\\test";
 
     struct bpf_object* object = bpf_object__open("droppacket.o");
@@ -1174,6 +1196,7 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 TEST_CASE("libbpf obj pinning", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
     const char* pin_path = "\\temp\\test";
 
     struct bpf_object* object = bpf_object__open("droppacket.o");
@@ -1214,6 +1237,7 @@ static void
 _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -1327,6 +1351,7 @@ static void
 _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -1421,6 +1446,7 @@ static void
 _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
     program_info_provider_t xdp_program_info;
@@ -1479,6 +1505,7 @@ DECLARE_ALL_TEST_CASES("disallow setting bind fd in xdp prog array", "[libbpf]",
 TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
     program_info_provider_t xdp_program_info;
@@ -1523,6 +1550,7 @@ static void
 _enumerate_program_ids_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
@@ -1567,6 +1595,7 @@ static void
 _ebpf_test_map_in_map(ebpf_map_type_t type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     // Create an inner map that we'll use both as a template and as an actual entry.
     int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map", sizeof(__u32), sizeof(__u32), 1, nullptr);
@@ -1640,6 +1669,7 @@ static void
 _array_of_maps_test(ebpf_execution_type_t execution_type, _In_ PCSTR dll_name, _In_ PCSTR obj_name)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -1724,6 +1754,7 @@ static void
 _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
@@ -1784,6 +1815,7 @@ DECLARE_JIT_TEST_CASES("disallow wrong inner map types", "[libbpf]", _wrong_inne
 TEST_CASE("create map with name", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     // Create a map with a given name.
     PCSTR name = "mymapname";
@@ -1802,6 +1834,7 @@ TEST_CASE("create map with name", "[libbpf]")
 TEST_CASE("enumerate map IDs", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     // Verify the enumeration is empty.
     uint32_t id1;
@@ -1844,6 +1877,7 @@ TEST_CASE("enumerate map IDs", "[libbpf]")
 TEST_CASE("enumerate link IDs", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
     program_info_provider_t bind_program_info;
@@ -1888,6 +1922,7 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
 TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
     program_info_provider_t bind_program_info;
@@ -1999,6 +2034,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
 TEST_CASE("bpf_prog_attach", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     struct bpf_object* object = bpf_object__open("cgroup_sock_addr.o");
     REQUIRE(object != nullptr);
@@ -2034,6 +2070,7 @@ TEST_CASE("bpf_prog_attach", "[libbpf]")
 TEST_CASE("bpf_link__pin", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     struct bpf_object* object = bpf_object__open("droppacket.o");
     REQUIRE(object != nullptr);
@@ -2080,6 +2117,7 @@ TEST_CASE("bpf_link__pin", "[libbpf]")
 TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
     single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -2187,6 +2225,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
 TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     program_info_provider_t sock_addr_program_info;
     REQUIRE(sock_addr_program_info.initialize(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) == EBPF_SUCCESS);
     single_instance_hook_t v4_connect_hook(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
@@ -2245,6 +2284,7 @@ TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
 TEST_CASE("libbpf_prog_type_by_name_test", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     bpf_prog_type prog_type;
     bpf_attach_type expected_attach_type;
 
@@ -2269,6 +2309,7 @@ TEST_CASE("libbpf_prog_type_by_name_test", "[libbpf]")
 TEST_CASE("libbpf_bpf_prog_type_str", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     const char* prog_type_str_xdp = libbpf_bpf_prog_type_str(BPF_PROG_TYPE_XDP);
     REQUIRE(prog_type_str_xdp);
@@ -2292,6 +2333,7 @@ TEST_CASE("libbpf_get_error", "[libbpf]")
 TEST_CASE("libbpf attach type names", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     enum bpf_attach_type attach_type;
     for (int i = 1; i < __MAX_BPF_ATTACH_TYPE; i++) {
@@ -2323,6 +2365,7 @@ TEST_CASE("libbpf map type names", "[libbpf]")
 TEST_CASE("bpf_object__open with .dll", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     struct bpf_object* object = bpf_object__open("droppacket_um.dll");
     REQUIRE(object != nullptr);
@@ -2354,6 +2397,7 @@ TEST_CASE("bpf_object__open with .dll", "[libbpf]")
 TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     const char* my_object_name = "my_object_name";
     struct bpf_object_open_opts opts = {0};
@@ -2412,6 +2456,7 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
 TEST_CASE("bpf_object__load with .o", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     const char* my_object_name = "my_object_name";
     struct bpf_object_open_opts opts = {0};
@@ -2477,6 +2522,7 @@ TEST_CASE("bpf_object__load with .o", "[libbpf]")
 TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     struct ebpf_inst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
@@ -2564,6 +2610,7 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 TEST_CASE("BPF_PROG_ATTACH", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
     // Load and verify the eBPF program.
     union bpf_attr attr = {};
 
@@ -2615,6 +2662,7 @@ TEST_CASE("BPF_PROG_ATTACH", "[libbpf]")
 TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     // Create a hash map.
     union bpf_attr attr = {};
@@ -2705,6 +2753,7 @@ void
 _test_nested_maps(bpf_map_type map_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     // First, create an inner map.
     fd_t inner_map_fd1 =
@@ -2750,6 +2799,7 @@ TEST_CASE("hash_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_HASH_
 TEST_CASE("libbpf_load_stress", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
 
     std::vector<std::jthread> threads;
     // Schedule 4 threads per CPU to force contention.
@@ -2788,6 +2838,7 @@ TEST_CASE("libbpf_load_stress", "[libbpf]")
 TEST_CASE("recursive_tail_call", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
     struct bpf_object* object = bpf_object__open("tail_call_recursive_um.dll");
     REQUIRE(object != nullptr);
 
@@ -2861,6 +2912,7 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
 TEST_CASE("sequential_tail_call", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
+    test_helper.initialize();
     struct bpf_object* object = bpf_object__open("tail_call_sequential_um.dll");
     REQUIRE(object != nullptr);
 

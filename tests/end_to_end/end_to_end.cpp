@@ -392,6 +392,7 @@ void
 droppacket_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     int result;
     const char* error_message = nullptr;
@@ -507,6 +508,7 @@ void
 divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     int result;
     const char* error_message = nullptr;
@@ -549,6 +551,7 @@ void
 bad_map_name_um(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     int result;
     const char* error_message = nullptr;
@@ -653,6 +656,7 @@ void
 bindmonitor_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     const char* error_message = nullptr;
     uint64_t fake_pid = 12345;
@@ -747,6 +751,7 @@ void
 bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     const char* error_message = nullptr;
     uint64_t fake_pid = 12345;
@@ -868,6 +873,7 @@ void
 bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     const char* error_message = nullptr;
     int result;
@@ -926,6 +932,7 @@ static void
 _utility_helper_functions_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -951,6 +958,7 @@ void
 map_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     int result;
     const char* error_message = nullptr;
@@ -1001,6 +1009,7 @@ DECLARE_ALL_TEST_CASES("bad_map_name", "[end_to_end]", bad_map_name_um);
 TEST_CASE("enum section", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     const char* error_message = nullptr;
     ebpf_section_info_t* section_data = nullptr;
@@ -1023,6 +1032,7 @@ TEST_CASE("enum section", "[end_to_end]")
 TEST_CASE("verify section", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     const char* error_message = nullptr;
     const char* report = nullptr;
@@ -1044,6 +1054,7 @@ TEST_CASE("verify section", "[end_to_end]")
 TEST_CASE("verify section with invalid program type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     const char* error_message = nullptr;
     const char* report = nullptr;
@@ -1064,6 +1075,7 @@ void
 verify_bad_section(const char* path, const std::string& expected_error_message)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     const char* error_message = nullptr;
     const char* report = nullptr;
     uint32_t result;
@@ -1105,6 +1117,7 @@ _cgroup_load_test(
     fd_t program_fd;
 
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(program_type, attach_type);
     program_info_provider_t program_info;
     REQUIRE(program_info.initialize(program_type) == EBPF_SUCCESS);
@@ -1186,6 +1199,7 @@ TEST_CASE("cgroup_sockops_load_test", "[cgroup_sockops]")
 TEST_CASE("verify_test0", "[sample_extension]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     program_info_provider_t sample_extension_program_info;
     REQUIRE(sample_extension_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
@@ -1207,6 +1221,7 @@ TEST_CASE("verify_test0", "[sample_extension]")
 TEST_CASE("verify_test1", "[sample_extension]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     program_info_provider_t sample_extension_program_info;
     REQUIRE(sample_extension_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
@@ -1232,6 +1247,7 @@ TEST_CASE("verify_test1", "[sample_extension]")
 TEST_CASE("map_pinning_test", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     const char* error_message = nullptr;
     int result;
@@ -1296,6 +1312,7 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
 TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     uint32_t program_id;
     uint32_t next_program_id;
@@ -1378,6 +1395,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 TEST_CASE("pinned_map_enum", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     ebpf_test_pinned_map_enum();
 }
@@ -1392,6 +1410,7 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     // 2. Close link handle. The link object should be deleted.
 
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     int result = 0;
     bpf_object_ptr unique_object;
@@ -1443,6 +1462,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     // 2. Close link handle. The link object should be deleted.
 
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     int result = 0;
     bpf_object_ptr unique_object;
@@ -1495,6 +1515,7 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     // 2. Close program handle. The program object should be deleted.
 
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     bpf_object_ptr unique_object;
     fd_t program_fd;
@@ -1542,6 +1563,7 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     //    detach in this step should be a no-op.
 
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     bpf_object_ptr unique_object;
     fd_t program_fd;
@@ -1586,6 +1608,7 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
 TEST_CASE("create_map", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     fd_t map_fd;
     uint32_t key = 0;
@@ -1617,6 +1640,7 @@ TEST_CASE("create_map", "[end_to_end]")
 TEST_CASE("create_map_name", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     fd_t map_fd;
     uint32_t key = 0;
@@ -1650,6 +1674,7 @@ static void
 _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -1693,6 +1718,7 @@ static void
 _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -1746,6 +1772,7 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
 TEST_CASE("printk", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
@@ -1818,6 +1845,7 @@ static void
 _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -1880,6 +1908,7 @@ TEST_CASE("xdp-decapsulate-permit-v6-interpret", "[xdp_tests]")
 TEST_CASE("link_tests", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -1911,6 +1940,7 @@ static void
 _map_reuse_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -1992,6 +2022,7 @@ static void
 _wrong_map_reuse_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -2042,6 +2073,7 @@ static void
 _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -2098,6 +2130,7 @@ DECLARE_JIT_TEST_CASES("auto_pinned_maps", "[end_to_end]", _auto_pinned_maps_tes
 TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -2171,6 +2204,7 @@ static void
 _map_reuse_invalid_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -2213,6 +2247,7 @@ static void
 _map_reuse_2_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -2286,6 +2321,7 @@ static void
 _map_reuse_3_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -2380,6 +2416,7 @@ _create_service_helper(
 TEST_CASE("load_native_program_negative", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     GUID provider_module_id;
     SC_HANDLE service_handle = nullptr;
@@ -2406,6 +2443,7 @@ TEST_CASE("load_native_program_negative", "[end-to-end]")
 TEST_CASE("load_native_program_negative2", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     GUID provider_module_id;
     SC_HANDLE service_handle = nullptr;
@@ -2435,6 +2473,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
 #define MAP_COUNT 2
 #define PROGRAM_COUNT 1
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     GUID provider_module_id = GUID_NULL;
     std::wstring service_path(SERVICE_PATH_PREFIX);
@@ -2495,6 +2534,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 #define INCORRECT_MAP_COUNT 1
 #define PROGRAM_COUNT 1
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     GUID provider_module_id = GUID_NULL;
     SC_HANDLE service_handle = nullptr;
@@ -2541,6 +2581,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 TEST_CASE("load_native_program_negative5", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     int result;
     const char* error_message = nullptr;
@@ -2561,6 +2602,7 @@ TEST_CASE("load_native_program_negative5", "[end_to_end]")
 TEST_CASE("load_native_program_negative6", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     GUID provider_module_id;
     SC_HANDLE service_handle = nullptr;
@@ -2613,6 +2655,7 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
 TEST_CASE("load_native_program_negative8", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     GUID provider_module_id = GUID_NULL;
     SC_HANDLE service_handle = nullptr;
@@ -2668,6 +2711,7 @@ static void
 _test_load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, int expected_result)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     _load_invalid_program(file_name, execution_type, expected_result);
 }
 
@@ -2712,6 +2756,7 @@ typedef struct _ebpf_scoped_non_preemptible
 TEST_CASE("load_native_program_invalid5-non-preemptible", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     // Raising virtual IRQL to dispatch will ensure ebpf_native_load queues
     // a workitem and that code path is executed.  This must be done after
@@ -2725,6 +2770,7 @@ TEST_CASE("load_native_program_invalid5-non-preemptible", "[end-to-end]")
 TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     GUID provider_module_id;
     SC_HANDLE service_handle = nullptr;
@@ -2760,6 +2806,7 @@ TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
 TEST_CASE("ebpf_get_program_type_by_name invalid name", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     ebpf_program_type_t program_type;
     ebpf_attach_type_t attach_type;
 
@@ -2773,6 +2820,7 @@ TEST_CASE("ebpf_get_program_type_by_name invalid name", "[end-to-end]")
 TEST_CASE("ebpf_get_program_type_name invalid types", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
 
     // First try with EBPF_PROGRAM_TYPE_UNSPECIFIED.
@@ -2788,6 +2836,7 @@ TEST_CASE("ebpf_get_program_type_name invalid types", "[end-to-end]")
 TEST_CASE("get_ebpf_attach_type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     // First test a valid input.
     const ebpf_attach_type_t* attach_type = get_ebpf_attach_type(BPF_ATTACH_TYPE_BIND);
@@ -2805,6 +2854,7 @@ TEST_CASE("get_ebpf_attach_type", "[end_to_end]")
 TEST_CASE("get_bpf_program_type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     // First test a valid input.
     REQUIRE(get_bpf_program_type(&EBPF_PROGRAM_TYPE_SAMPLE) == BPF_PROG_TYPE_SAMPLE);
@@ -2821,6 +2871,7 @@ TEST_CASE("get_bpf_program_type", "[end_to_end]")
 TEST_CASE("ebpf_get_ebpf_program_type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     // Try with BPF_PROG_TYPE_UNSPEC.
     const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(BPF_PROG_TYPE_UNSPEC);
@@ -2840,6 +2891,7 @@ TEST_CASE("ebpf_get_ebpf_program_type", "[end_to_end]")
 TEST_CASE("get_bpf_attach_type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     // Try with EBPF_ATTACH_TYPE_XDP.
     REQUIRE(get_bpf_attach_type(&EBPF_ATTACH_TYPE_XDP) == BPF_XDP);
@@ -2856,6 +2908,7 @@ TEST_CASE("get_bpf_attach_type", "[end_to_end]")
 TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     // First open a .dll file
     bpf_object* native_object = bpf_object__open("droppacket_um.dll");
@@ -2895,6 +2948,7 @@ static void
 extension_reload_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
     // Create a 0-byte UDP packet.
     auto packet0 = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
 
@@ -3017,6 +3071,7 @@ DECLARE_ALL_TEST_CASES("extension_reload_test", "[end_to_end]", extension_reload
 TEST_CASE("close_unload_test", "[close_cleanup]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     const char* error_message = nullptr;
     int result;
@@ -3096,6 +3151,7 @@ TEST_CASE("close_unload_test", "[close_cleanup]")
 TEST_CASE("multiple_map_insert", "[close_cleanup]")
 {
     _test_helper_end_to_end test_helper;
+    test_helper.initialize();
 
     const char* error_message = nullptr;
     int result;

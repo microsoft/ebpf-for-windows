@@ -91,7 +91,11 @@ typedef class _ebpf_async_wrapper
 class _ebpf_core_initializer
 {
   public:
-    _ebpf_core_initializer() { REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS); }
+    void
+    initialize()
+    {
+        REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
+    }
     ~_ebpf_core_initializer() { ebpf_core_terminate(); }
 };
 
@@ -113,6 +117,7 @@ static void
 _test_crud_operations(ebpf_map_type_t map_type)
 {
     _ebpf_core_initializer core;
+    core.initialize();
     bool is_array;
     bool supports_find_and_delete;
     bool replace_on_full;
@@ -322,6 +327,7 @@ MAP_TEST(BPF_MAP_TYPE_LRU_PERCPU_HASH);
 TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    core.initialize();
     const size_t max_string = 16;
     typedef struct _lpm_trie_key
     {
@@ -404,6 +410,7 @@ generate_prefix(size_t length, uint8_t value, uint8_t prefix[16])
 TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    core.initialize();
 
     const size_t max_string = 20;
     typedef struct _lpm_trie_key
@@ -507,6 +514,7 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
 TEST_CASE("map_crud_operations_queue", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    core.initialize();
     ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_QUEUE, 0, sizeof(uint32_t), 10};
     map_ptr map;
     {
@@ -591,6 +599,7 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
 TEST_CASE("map_crud_operations_stack", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    core.initialize();
     ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_STACK, 0, sizeof(uint32_t), 10};
     map_ptr map;
     {
@@ -651,6 +660,7 @@ test_function()
 TEST_CASE("program", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    core.initialize();
 
     program_info_provider_t program_info_provider;
     REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
@@ -822,6 +832,7 @@ TEST_CASE("program", "[execution_context]")
 TEST_CASE("name size", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    core.initialize();
     program_info_provider_t program_info_provider;
     REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
     const ebpf_utf8_string_t oversize_name{
@@ -864,6 +875,7 @@ TEST_CASE("test-csum-diff", "[execution_context]")
 TEST_CASE("ring_buffer_async_query", "[execution_context]")
 {
     _ebpf_core_initializer core;
+    core.initialize();
     ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
     map_ptr map;
     {
@@ -1165,6 +1177,7 @@ extern bool _ebpf_platform_code_integrity_enabled;
 
 #define NEGATIVE_TEST_PROLOG()                                                        \
     _ebpf_core_initializer core;                                                      \
+    core.initialize();                                                                \
     std::vector<std::unique_ptr<_program_info_provider>> program_info_providers;      \
     for (const auto& type : _program_types) {                                         \
         program_info_providers.push_back(std::make_unique<_program_info_provider>()); \
@@ -1606,6 +1619,7 @@ TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT", "[execution_context][negative]")
 TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT short header", "[execution_context][negative]")
 {
     _ebpf_core_initializer core;
+    core.initialize();
 
     std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_get_pinned_object_request_t, path));
     std::vector<uint8_t> reply(sizeof(ebpf_operation_get_pinned_object_reply_t));
@@ -1739,6 +1753,7 @@ TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY", "[execution_context][neg
 TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context][negative]")
 {
     _ebpf_core_initializer core;
+    core.initialize();
 
     std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_load_native_module_request_t, data));
     std::vector<uint8_t> reply(sizeof(ebpf_operation_load_native_module_reply_t));
