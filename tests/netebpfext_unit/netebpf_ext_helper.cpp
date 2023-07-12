@@ -83,14 +83,12 @@ _netebpf_ext_helper::_netebpf_ext_helper(
     wfp_initialized = true;
 
     nmr_program_info_client_handle = std::make_unique<nmr_client_registration_t>(&program_info_client, this);
-    nmr_program_info_client_handle_initialized = true;
 
     this->hook_invoke_function = dispatch_function;
     if (dispatch_function != nullptr && client_context != nullptr) {
         hook_client.ClientRegistrationInstance.NpiSpecificCharacteristics = npi_specific_characteristics;
         client_context->helper = this;
         nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
-        nmr_hook_client_handle_initialized = true;
     }
 
     _fwp_engine::get()->set_sublayer_guids(
@@ -99,11 +97,11 @@ _netebpf_ext_helper::_netebpf_ext_helper(
 
 _netebpf_ext_helper::~_netebpf_ext_helper()
 {
-    if (nmr_program_info_client_handle_initialized) {
-        nmr_hook_client_handle.reset(nullptr);
+    if (nmr_program_info_client_handle) {
+        nmr_program_info_client_handle.reset(nullptr);
     }
 
-    if (nmr_hook_client_handle_initialized) {
+    if (nmr_hook_client_handle) {
         nmr_hook_client_handle.reset(nullptr);
     }
 

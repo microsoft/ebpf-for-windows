@@ -102,8 +102,6 @@ typedef class _netebpf_ext_helper
     bool provider_registered = false;
     bool wfp_initialized = false;
     bool platform_initialized = false;
-    bool nmr_program_info_client_handle_initialized = false;
-    bool nmr_hook_client_handle_initialized = false;
     DRIVER_OBJECT* driver_object = reinterpret_cast<DRIVER_OBJECT*>(this);
     DEVICE_OBJECT* device_object = reinterpret_cast<DEVICE_OBJECT*>(this);
 

@@ -738,7 +738,12 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
     }
 }
 
-_test_helper_libbpf::_test_helper_libbpf() { ebpf_clear_thread_local_storage(); }
+_test_helper_libbpf::_test_helper_libbpf()
+    : xdp_program_info(nullptr), xdp_hook(nullptr), bind_program_info(nullptr), bind_hook(nullptr),
+      cgroup_sock_addr_program_info(nullptr), cgroup_inet4_connect_hook(nullptr)
+{
+    ebpf_clear_thread_local_storage();
+}
 
 void
 _test_helper_libbpf::initialize()
