@@ -49,7 +49,7 @@ _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ netebpfext_helper_base_client_context_t* client_context,
     bool initialize_platform)
 {
-    // Do use use REQUIRE() in this constructor or the destructor will never be called
+    // Do not use REQUIRE() in this constructor or the destructor will never be called
     // to clean up any state allocated before the REQUIRE.
 
     if (!NT_SUCCESS(net_ebpf_ext_trace_initiate())) {
@@ -97,12 +97,12 @@ _netebpf_ext_helper::_netebpf_ext_helper(
 
 _netebpf_ext_helper::~_netebpf_ext_helper()
 {
-    if (nmr_program_info_client_handle) {
-        nmr_program_info_client_handle.reset(nullptr);
-    }
-
     if (nmr_hook_client_handle) {
         nmr_hook_client_handle.reset(nullptr);
+    }
+
+    if (nmr_program_info_client_handle) {
+        nmr_program_info_client_handle.reset(nullptr);
     }
 
     if (wfp_initialized) {
