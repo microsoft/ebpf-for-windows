@@ -8,9 +8,6 @@
 #include <rpc.h>
 
 RPC_STATUS
-initialize_rpc_binding(void);
-
-RPC_STATUS
 clean_up_rpc_binding(void);
 
 _Must_inspect_result_ ebpf_result_t

@@ -185,9 +185,6 @@ _stop_service(SC_HANDLE service_handle)
 // RPC related mock functions.
 
 RPC_STATUS
-initialize_rpc_binding() { return RPC_S_OK; }
-
-RPC_STATUS
 clean_up_rpc_binding() { return RPC_S_OK; }
 
 _Must_inspect_result_ ebpf_result_t

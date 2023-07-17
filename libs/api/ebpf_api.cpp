@@ -199,14 +199,6 @@ ebpf_api_initiate() noexcept
     // it will be re-attempted before an IOCTL call is made.
     (void)initialize_device_handle();
 
-    RPC_STATUS status = initialize_rpc_binding();
-
-    if (status != RPC_S_OK) {
-        clean_up_device_handle();
-        clean_up_rpc_binding();
-        EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(status));
-    }
-
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 

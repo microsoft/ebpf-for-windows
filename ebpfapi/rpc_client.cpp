@@ -13,6 +13,7 @@
 #include <windows.h>
 #include <ctype.h>
 #include <iostream>
+#include <mutex>
 #include <sddl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +23,11 @@
 static const wchar_t* _protocol_sequence = L"ncalrpc";
 static bool _binding_initialized = false;
 
+static std::mutex _rpc_binding_handle_mutex;
+
+static RPC_STATUS
+_initialize_rpc_binding();
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_rpc_load_program(
     _In_ const ebpf_program_load_info* info,
@@ -29,6 +35,10 @@ ebpf_rpc_load_program(
     _Inout_ uint32_t* logs_size) noexcept
 {
     ebpf_result_t result;
+
+    if (_initialize_rpc_binding() != RPC_S_OK) {
+        return EBPF_NO_MEMORY;
+    }
 
     RpcTryExcept
     {
@@ -49,9 +59,22 @@ ebpf_rpc_load_program(
         return result;
 }
 
-RPC_STATUS
-initialize_rpc_binding()
+/**
+ * @brief Initialize the RPC binding handle. This is expensive and should be
+ * done once when required. This function is idempotent and thread safe.
+ *
+ * @retval RPC_S_OK The binding handle was initialized successfully.
+ * @retval RPC_S_* The binding handle could not be initialized.
+ */
+static RPC_STATUS
+_initialize_rpc_binding()
 {
+    std::unique_lock lock(_rpc_binding_handle_mutex);
+
+    if (_binding_initialized) {
+        return RPC_S_OK;
+    }
+
     RPC_WSTR string_binding = nullptr;
     RPC_SECURITY_QOS_V5 rpc_security_qos{
         RPC_C_SECURITY_QOS_VERSION_5,
@@ -120,10 +143,13 @@ Exit:
 RPC_STATUS
 clean_up_rpc_binding()
 {
+    std::unique_lock lock(_rpc_binding_handle_mutex);
     if (!_binding_initialized) {
         return RPC_S_OK;
     }
-    return RpcBindingFree(&ebpf_service_interface_handle);
+    RPC_STATUS status = RpcBindingFree(&ebpf_service_interface_handle);
+    _binding_initialized = false;
+    return status;
 }
 
 // The _In_ on size is necessary to avoid inconsistent annotation warnings.
