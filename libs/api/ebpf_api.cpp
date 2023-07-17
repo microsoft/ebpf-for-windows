@@ -214,10 +214,6 @@ ebpf_api_initiate() noexcept
     }
 #endif
 
-    // Load provider data from ebpf store. This is best effort
-    // as there may be no data present in the store.
-    (void)load_ebpf_provider_data();
-
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 

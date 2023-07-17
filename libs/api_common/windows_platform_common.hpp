@@ -40,9 +40,6 @@ get_attach_type_windows(const std::string& section);
 _Ret_maybenull_z_ const char*
 get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type);
 
-_Must_inspect_result_ ebpf_result_t
-load_ebpf_provider_data();
-
 void
 clear_ebpf_provider_data();
 
