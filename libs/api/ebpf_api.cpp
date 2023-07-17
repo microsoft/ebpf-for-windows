@@ -204,16 +204,6 @@ ebpf_api_initiate() noexcept
     // it will be re-attempted before an IOCTL call is made.
     (void)initialize_device_handle();
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-    RPC_STATUS status = initialize_rpc_binding();
-
-    if (status != RPC_S_OK) {
-        clean_up_device_handle();
-        clean_up_rpc_binding();
-        EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(status));
-    }
-#endif
-
     // Load provider data from ebpf store. This is best effort
     // as there may be no data present in the store.
     (void)load_ebpf_provider_data();
