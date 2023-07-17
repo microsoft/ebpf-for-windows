@@ -23,6 +23,7 @@
 static std::wstring
 _get_wstring_from_string(std::string text)
 {
+    // This is deprecated
     // std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
     // std::wstring wide = converter.from_bytes(text);
     // return wide;
