@@ -708,6 +708,11 @@ Exit:
     return result;
 }
 
+/**
+ * @brief This function loads all the program information from the store.
+ * It is relatively expensive and should be called only when needed instead
+ * of when DllMain is invoked. It is idempotent and multi-thread safe.
+ */
 static void
 _load_ebpf_provider_data()
 {
