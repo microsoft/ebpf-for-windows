@@ -9,6 +9,7 @@
 #include "ebpf_program.h"
 #include "ebpf_ring_buffer.h"
 #include "helpers.h"
+#include "test_helper.hpp"
 
 #include <optional>
 #include <set>
@@ -650,7 +651,8 @@ test_function()
 
 TEST_CASE("program", "[execution_context]")
 {
-    _ebpf_core_initializer core;
+    // single_instance_hook_t call ebpapi functions, which requires calling ebpf_api_initiate/ebpf_api_terminate.
+    _test_helper_end_to_end end_to_end;
 
     program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_XDP);
     const ebpf_utf8_string_t program_name{(uint8_t*)("foo"), 3};
