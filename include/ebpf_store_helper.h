@@ -4,15 +4,16 @@
 #pragma once
 
 #ifndef USER_MODE
+#include "framework.h"
 #define __return_type NTSTATUS
 #define _SUCCESS STATUS_SUCCESS
 #define IS_SUCCESS(x) (NT_SUCCESS(x))
 typedef HANDLE ebpf_registry_key_t;
 #else
+#include <winreg.h>
 #define __return_type uint32_t
 #define IS_SUCCESS(x) (x == ERROR_SUCCESS)
 #define _SUCCESS NO_ERROR
-#include <winreg.h>
 typedef HKEY ebpf_registry_key_t;
 #endif
 

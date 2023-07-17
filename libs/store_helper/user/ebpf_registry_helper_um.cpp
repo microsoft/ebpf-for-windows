@@ -10,13 +10,6 @@
 #include "ebpf_registry_helper_um.h"
 
 #include <string>
-//#include <codecvt>
-//#include <rpc.h>
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <winreg.h>
-//#include <winerror.h>
-//#include <wchar.h>
 
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
 
