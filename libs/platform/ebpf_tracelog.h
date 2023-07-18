@@ -126,6 +126,34 @@ extern "C"
         return local_result;                       \
     } while (false);
 
+#define EBPF_RETURN_VOID() \
+    do {                   \
+        EBPF_LOG_EXIT();   \
+        return;            \
+    } while (false);
+
+#define EBPF_RETURN_RESULT(status)                 \
+    do {                                           \
+        ebpf_result_t local_result = (status);     \
+        if (local_result == EBPF_SUCCESS) {        \
+            EBPF_LOG_FUNCTION_SUCCESS();           \
+        } else {                                   \
+            EBPF_LOG_FUNCTION_ERROR(local_result); \
+        }                                          \
+        return local_result;                       \
+    } while (false);
+
+#define EBPF_RETURN_NTSTATUS(status)               \
+    do {                                           \
+        NTSTATUS local_status = (status);          \
+        if (NT_SUCCESS(local_status)) {            \
+            EBPF_LOG_FUNCTION_SUCCESS();           \
+        } else {                                   \
+            EBPF_LOG_FUNCTION_ERROR(local_status); \
+        }                                          \
+        return local_status;                       \
+    } while (false);
+
 #define EBPF_RETURN_POINTER(type, pointer)                                                                         \
     do {                                                                                                           \
         type local_result = (type)(pointer);                                                                       \
@@ -377,38 +405,6 @@ extern "C"
             TraceLoggingString(#api, "Api"),                                                                         \
             TraceLoggingWinError(last_error));                                                                       \
     }
-
-    /////////////////////////////////////////////////////////
-    // Macros built on top of the above primary trace macros.
-    /////////////////////////////////////////////////////////
-
-#define EBPF_RETURN_VOID() \
-    do {                   \
-        EBPF_LOG_EXIT();   \
-        return;            \
-    } while (false);
-
-#define EBPF_RETURN_RESULT(status)                 \
-    do {                                           \
-        ebpf_result_t local_result = (status);     \
-        if (local_result == EBPF_SUCCESS) {        \
-            EBPF_LOG_FUNCTION_SUCCESS();           \
-        } else {                                   \
-            EBPF_LOG_FUNCTION_ERROR(local_result); \
-        }                                          \
-        return local_result;                       \
-    } while (false);
-
-#define EBPF_RETURN_NTSTATUS(status)               \
-    do {                                           \
-        NTSTATUS local_status = (status);          \
-        if (NT_SUCCESS(local_status)) {            \
-            EBPF_LOG_FUNCTION_SUCCESS();           \
-        } else {                                   \
-            EBPF_LOG_FUNCTION_ERROR(local_status); \
-        }                                          \
-        return local_status;                       \
-    } while (false);
 
 #ifdef __cplusplus
 }
