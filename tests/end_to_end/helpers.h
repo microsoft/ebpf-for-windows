@@ -532,9 +532,16 @@ static ebpf_extension_data_t _test_ebpf_sample_extension_program_info_provider_d
 typedef class _program_info_provider
 {
   public:
-    _program_info_provider(ebpf_program_type_t program_type, ebpf_extension_data_t* custom_provider_data = nullptr)
-        : program_type(program_type), provider_data(nullptr)
+    _program_info_provider() : provider_data(nullptr), nmr_provider_handle(INVALID_HANDLE_VALUE)
     {
+        memset(&_program_type, 0, sizeof(_program_type));
+    }
+
+    ebpf_result_t
+    initialize(ebpf_program_type_t program_type, ebpf_extension_data_t* custom_provider_data = nullptr)
+    {
+        this->_program_type = program_type;
+
         if (custom_provider_data != nullptr) {
             provider_data = custom_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_XDP) {
@@ -548,7 +555,8 @@ typedef class _program_info_provider
         } else if (program_type == EBPF_PROGRAM_TYPE_SAMPLE) {
             provider_data = &_test_ebpf_sample_extension_program_info_provider_data;
         } else {
-            throw std::invalid_argument("Unsupported program type");
+            // Unsupported program type.
+            return EBPF_INVALID_ARGUMENT;
         }
         ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
 
@@ -556,17 +564,17 @@ typedef class _program_info_provider
         provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics = provider_data;
 
         NTSTATUS status = NmrRegisterProvider(&provider_characteristics, this, &nmr_provider_handle);
-        if (status != STATUS_SUCCESS) {
-            throw std::runtime_error("NmrRegisterProvider failed");
-        }
+        return (NT_SUCCESS(status)) ? EBPF_SUCCESS : EBPF_FAILED;
     }
     ~_program_info_provider()
     {
-        NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
-        if (status == STATUS_PENDING) {
-            NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
-        } else {
-            ebpf_assert(status == STATUS_SUCCESS);
+        if (nmr_provider_handle != INVALID_HANDLE_VALUE) {
+            NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
+            if (status == STATUS_PENDING) {
+                NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
+            } else {
+                ebpf_assert(status == STATUS_SUCCESS);
+            }
         }
     }
 
@@ -603,7 +611,7 @@ typedef class _program_info_provider
         return EBPF_SUCCESS;
     };
 
-    ebpf_program_type_t program_type;
+    ebpf_program_type_t _program_type;
 
     const ebpf_extension_data_t* provider_data;
     NPI_MODULEID module_id = {
