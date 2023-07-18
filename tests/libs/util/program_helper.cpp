@@ -4,7 +4,15 @@
 #include "catch_wrapper.hpp"
 #include "program_helper.h"
 
-_program_load_attach_helper::_program_load_attach_helper(
+_program_load_attach_helper::_program_load_attach_helper()
+    : _program_type(BPF_PROG_TYPE_UNSPEC), _execution_type(EBPF_EXECUTION_ANY), _link(nullptr), _object(nullptr)
+{
+    // We cannot use REQUIRE in a constructor. Anything that can fail
+    // should be in initialize().
+}
+
+void
+_program_load_attach_helper::initialize(
     _In_z_ const char* file_name,
     bpf_prog_type program_type,
     _In_z_ const char* program_name,
@@ -12,9 +20,12 @@ _program_load_attach_helper::_program_load_attach_helper(
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
     size_t attach_parameters_size,
     hook_helper_t& hook)
-    : _file_name(file_name), _program_type(program_type), _program_name(program_name), _execution_type(execution_type),
-      _link(nullptr), _object(nullptr)
 {
+    _file_name = file_name;
+    _program_type = program_type;
+    _program_name = program_name;
+    _execution_type = execution_type;
+
     fd_t program_fd;
     size_t log_buffer_size;
     const char* log_buffer = nullptr;
