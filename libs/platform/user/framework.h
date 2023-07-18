@@ -4,11 +4,11 @@
 #pragma once
 
 #include "..\..\..\external\usersim\src\framework.h"
-#include "usersim/ex.h"
-#include "usersim/ke.h"
-#include "usersim/ps.h"
-#include "usersim/rtl.h"
-#include "usersim/se.h"
+#include "usersim\ex.h"
+#include "usersim\ke.h"
+#include "usersim\ps.h"
+#include "usersim\rtl.h"
+#include "usersim\se.h"
 
 #ifdef _DEBUG
 #define ebpf_assert(x) assert(x)

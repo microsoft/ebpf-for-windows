@@ -234,11 +234,11 @@
     <ProjectReference Include="..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
       <Project>{7d5b4e68-c0fa-3f86-9405-f6400219b440}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\external\ebpf-verifier\build\external\libbtf\libbtf\libbtf.vcxproj">
+      <Project>{bc45d39c-f956-3951-bd46-44eae20ec7c9}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\external\usersim\src\usersim.vcxproj">
       <Project>{030a7ac6-14dc-45cf-af34-891057ab1402}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\external\ebpf-verifier\external\libbtf\build\libbtf\libbtf.vcxproj">
-      <Project>{c034859f-e0d6-3ae6-b4fe-71b012fdc618}</Project>
     </ProjectReference>
     <ProjectReference Include="..\libs\api\api.vcxproj">
       <Project>{c8bf60c3-40a9-43ad-891a-8aa34f1c3a68}</Project>

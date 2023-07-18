@@ -4,7 +4,6 @@
 add_executable("export_program_info"
   export_program_info.cpp
   main.cpp
-  ${CMAKE_SOURCE_DIR}/libs/api_common/registry_helper.cpp
   ${CMAKE_SOURCE_DIR}/libs/api_common/store_helper_internal.cpp
   ${CMAKE_SOURCE_DIR}/libs/api_common/utilities.cpp
 )
@@ -24,6 +23,7 @@ target_include_directories("export_program_info" PRIVATE
 
 target_link_libraries("export_program_info" PRIVATE
   "ebpf_for_windows_cpp_settings"
+  "ebpf_store_helper_um"
   "execution_context_user"
   "platform_user"
   "api_common_headers"
@@ -36,6 +36,7 @@ target_link_libraries("export_program_info" PRIVATE
 
 target_compile_definitions("export_program_info" PRIVATE
   _CONSOLE
+  USER_MODE
 )
 
 # Use export_program_info to populate the ebpf store.

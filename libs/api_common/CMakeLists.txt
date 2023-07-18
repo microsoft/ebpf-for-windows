@@ -17,8 +17,6 @@ add_library("api_common" STATIC
   device_helper.hpp
   device_helper.cpp
 
-  registry_helper.cpp
-
   store_helper_internal.h
   store_helper_internal.cpp
 
@@ -43,6 +41,7 @@ target_include_directories("api_common" PRIVATE
 
 target_link_libraries("api_common" PRIVATE
   "ebpf_for_windows_cpp_settings"
+  "ebpf_store_helper_um"
   "NetEbpfExt_headers"
   "external::boost"
   "external::ebpfverifier"
@@ -51,6 +50,7 @@ target_link_libraries("api_common" PRIVATE
 target_compile_definitions("api_common" PRIVATE
   _WINDOWS
   _USRDLL
+  USER_MODE
 )
 
 # In order to get around cyclic dependency issues, create an interface
