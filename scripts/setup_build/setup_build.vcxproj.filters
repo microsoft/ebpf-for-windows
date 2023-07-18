@@ -67,7 +67,7 @@
     <CopyFileToFolders Include="..\test_execution.json">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="..\Test-FaultInjection.ps1" />
+    <CopyFileToFolders Include="..\..\external\usersim\scripts\Test-FaultInjection.ps1" />
     <CopyFileToFolders Include="..\Run-Test.ps1" />
   </ItemGroup>
   <ItemGroup>

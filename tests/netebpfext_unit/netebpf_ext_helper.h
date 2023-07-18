@@ -46,7 +46,7 @@ typedef class _netebpf_ext_helper
     program_info_provider_guids();
 
     ebpf_extension_data_t
-    get_program_info_provider_data(const GUID& program_info_provider);
+    get_program_info_provider_data(_In_ const GUID& program_info_provider);
 
     FWP_ACTION_TYPE
     classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
@@ -102,8 +102,6 @@ typedef class _netebpf_ext_helper
     bool provider_registered = false;
     bool wfp_initialized = false;
     bool platform_initialized = false;
-    bool nmr_program_info_client_handle_initialized = false;
-    bool nmr_hook_client_handle_initialized = false;
     DRIVER_OBJECT* driver_object = reinterpret_cast<DRIVER_OBJECT*>(this);
     DEVICE_OBJECT* device_object = reinterpret_cast<DEVICE_OBJECT*>(this);
 
@@ -134,7 +132,8 @@ typedef class _netebpf_ext_helper
             _In_ const NPI_CLIENT_CHARACTERISTICS* characteristics, _In_opt_ __drv_aliasesMem void* client_context)
         {
             nmr_client_handle = INVALID_HANDLE_VALUE;
-            REQUIRE(NmrRegisterClient(characteristics, client_context, &nmr_client_handle) == STATUS_SUCCESS);
+            // Don't use REQUIRE in a constructor.
+            (void)NmrRegisterClient(characteristics, client_context, &nmr_client_handle);
         }
 
         ~_nmr_client_registration()
@@ -144,7 +143,10 @@ typedef class _netebpf_ext_helper
                 if (status == STATUS_PENDING) {
                     status = NmrWaitForClientDeregisterComplete(nmr_client_handle);
                 }
-                REQUIRE(status == STATUS_SUCCESS);
+                if (status != STATUS_SUCCESS) {
+                    // Catch2 does not support using REQUIRE in a destructor.
+                    printf("ERROR: NmrWaitForClientDeregisterComplete failed with status %x\n", status);
+                }
             }
         }
 
@@ -213,7 +215,7 @@ typedef class _netebpf_ext_helper
         },
     };
 
-    _ebpf_extension_dispatch_function hook_invoke_function;
+    _ebpf_extension_dispatch_function hook_invoke_function = nullptr;
 
     std::unique_ptr<nmr_client_registration_t> nmr_program_info_client_handle;
     std::unique_ptr<nmr_client_registration_t> nmr_hook_client_handle;
