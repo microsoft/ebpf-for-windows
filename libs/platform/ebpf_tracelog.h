@@ -327,57 +327,55 @@ extern "C"
             TraceLoggingUInt32((enum), (#enum)));                                    \
     }
 
-#define EBPF_LOG_WIN32_STRING_API_FAILURE(keyword, message, api)                                                       \
-    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR)) { \
-        unsigned long last_error = GetLastError();                                                                     \
-        TraceLoggingWrite(                                                                                             \
-            ebpf_tracelog_provider,                                                                                    \
-            EBPF_TRACELOG_EVENT_API_ERROR,                                                                             \
-            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                                              \
-            TraceLoggingKeyword((keyword)),                                                                            \
-            TraceLoggingString(message, "Message"),                                                                    \
-            TraceLoggingString(#api, "Api"),                                                                           \
-            TraceLoggingWinError(last_error));                                                                         \
+#define EBPF_LOG_WIN32_STRING_API_FAILURE(keyword, message, api)                                                     \
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API)) { \
+        unsigned long last_error = GetLastError();                                                                   \
+        TraceLoggingWrite(                                                                                           \
+            ebpf_tracelog_provider,                                                                                  \
+            EBPF_TRACELOG_EVENT_API_ERROR,                                                                           \
+            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                                            \
+            TraceLoggingKeyword((keyword)),                                                                          \
+            TraceLoggingString(message, "Message"),                                                                  \
+            TraceLoggingString(#api, "Api"),                                                                         \
+            TraceLoggingWinError(last_error));                                                                       \
     }
 
-#define EBPF_LOG_WIN32_WSTRING_API_FAILURE(keyword, wstring, api)                                                      \
-    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR)) { \
-        unsigned long last_error = GetLastError();                                                                     \
-        TraceLoggingWrite(                                                                                             \
-            ebpf_tracelog_provider,                                                                                    \
-            EBPF_TRACELOG_EVENT_API_ERROR,                                                                             \
-            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                                              \
-            TraceLoggingKeyword((keyword)),                                                                            \
-            TraceLoggingWideString(wstring, "Message"),                                                                \
-            TraceLoggingString(#api, "Api"),                                                                           \
-            TraceLoggingWinError(last_error));                                                                         \
+#define EBPF_LOG_WIN32_WSTRING_API_FAILURE(keyword, wstring, api)                                                    \
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API)) { \
+        unsigned long last_error = GetLastError();                                                                   \
+        TraceLoggingWrite(                                                                                           \
+            ebpf_tracelog_provider,                                                                                  \
+            EBPF_TRACELOG_EVENT_API_ERROR,                                                                           \
+            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                                            \
+            TraceLoggingKeyword((keyword)),                                                                          \
+            TraceLoggingWideString(wstring, "Message"),                                                              \
+            TraceLoggingString(#api, "Api"),                                                                         \
+            TraceLoggingWinError(last_error));                                                                       \
     }
 
-#define EBPF_LOG_WIN32_GUID_API_FAILURE(keyword, guid, api)                                                            \
-    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR)) { \
-        unsigned long last_error = GetLastError();                                                                     \
-        TraceLoggingWrite(                                                                                             \
-            ebpf_tracelog_provider,                                                                                    \
-            EBPF_TRACELOG_EVENT_API_ERROR,                                                                             \
-            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                                              \
-            TraceLoggingKeyword((keyword)),                                                                            \
-            TraceLoggingGuid((*guid), (#guid)),                                                                        \
-            TraceLoggingString(#api, "Api"),                                                                           \
-            TraceLoggingWinError(last_error));                                                                         \
-    }                                                                                                                  \
-    while (false)                                                                                                      \
-        ;
+#define EBPF_LOG_WIN32_GUID_API_FAILURE(keyword, guid, api)                                                          \
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API)) { \
+        unsigned long last_error = GetLastError();                                                                   \
+        TraceLoggingWrite(                                                                                           \
+            ebpf_tracelog_provider,                                                                                  \
+            EBPF_TRACELOG_EVENT_API_ERROR,                                                                           \
+            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                                            \
+            TraceLoggingKeyword((keyword)),                                                                          \
+            TraceLoggingGuid((*guid), (#guid)),                                                                      \
+            TraceLoggingString(#api, "Api"),                                                                         \
+            TraceLoggingWinError(last_error));                                                                       \
+    }
 
-#define EBPF_LOG_WIN32_API_FAILURE(keyword, api)                                                                       \
-    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR)) { \
-        unsigned long last_error = GetLastError();                                                                     \
-        TraceLoggingWrite(                                                                                             \
-            ebpf_tracelog_provider,                                                                                    \
-            EBPF_TRACELOG_EVENT_API_ERROR,                                                                             \
-            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                                              \
-            TraceLoggingKeyword((keyword)),                                                                            \
-            TraceLoggingString(#api, "Api"),                                                                           \
-            TraceLoggingWinError(last_error));                                                                         \
+#define EBPF_LOG_WIN32_API_FAILURE(keyword, api)                                                                     \
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API)) { \
+        unsigned long last_error = GetLastError();                                                                   \
+        TraceLoggingWrite(                                                                                           \
+            ebpf_tracelog_provider,                                                                                  \
+            EBPF_TRACELOG_EVENT_API_ERROR,                                                                           \
+            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                                            \
+            TraceLoggingKeyword((keyword)),                                                                          \
+            TraceLoggingString(#api, "Api"),                                                                         \
+            TraceLoggingWinError(last_error));                                                                       \
     }
 
     /////////////////////////////////////////////////////////
