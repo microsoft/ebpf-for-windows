@@ -13,7 +13,11 @@
 typedef class _program_load_attach_helper
 {
   public:
-    _program_load_attach_helper(
+    _program_load_attach_helper();
+    ~_program_load_attach_helper();
+
+    void
+    initialize(
         _In_z_ const char* file_name,
         bpf_prog_type program_type,
         _In_z_ const char* program_name,
@@ -21,8 +25,6 @@ typedef class _program_load_attach_helper
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
         size_t attach_parameters_size,
         hook_helper_t& hook);
-
-    ~_program_load_attach_helper();
 
     struct bpf_object*
     get_object();

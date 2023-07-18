@@ -230,11 +230,14 @@ um_test_init()
     std::call_once(_um_test_init_done, [&]() {
         _test_helper = new _test_helper_end_to_end;
         REQUIRE(_test_helper != nullptr);
+        _test_helper->initialize();
 
-        _bind_program_info_provider = new program_info_provider_t(EBPF_PROGRAM_TYPE_BIND);
+        _bind_program_info_provider = new program_info_provider_t();
+        REQUIRE(_bind_program_info_provider->initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
         REQUIRE(_bind_program_info_provider != nullptr);
 
-        _xdp_program_info_provider = new program_info_provider_t(EBPF_PROGRAM_TYPE_XDP);
+        _xdp_program_info_provider = new program_info_provider_t();
+        REQUIRE(_xdp_program_info_provider->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
         REQUIRE(_xdp_program_info_provider != nullptr);
 
         _test_control_info = get_test_control_info();

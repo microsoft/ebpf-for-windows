@@ -21,14 +21,13 @@
 typedef class _native_module_helper
 {
   public:
-    _native_module_helper(_In_z_ const char* file_name_prefix)
+    void
+    initialize(_In_z_ const char* file_name_prefix)
     {
         initialize(file_name_prefix, ebpf_execution_type_t::EBPF_EXECUTION_ANY);
     }
-    _native_module_helper(_In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type)
-    {
-        initialize(file_name_prefix, execution_type);
-    }
+    void
+    initialize(_In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type);
     std::string
     get_file_name() const
     {
@@ -38,8 +37,6 @@ typedef class _native_module_helper
     ~_native_module_helper();
 
   private:
-    void
-    initialize(_In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type);
     std::string _file_name;
     bool _delete_file_on_destruction = false;
 } native_module_helper_t;

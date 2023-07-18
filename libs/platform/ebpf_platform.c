@@ -96,12 +96,6 @@ ebpf_is_preemptible()
     return irql < DISPATCH_LEVEL;
 }
 
-bool
-ebpf_is_non_preemptible_work_item_supported()
-{
-    return true;
-}
-
 uint32_t
 ebpf_get_current_cpu()
 {
@@ -174,9 +168,9 @@ ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state)
 #pragma region semaphores
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, int maximum_count)
+ebpf_semaphore_create(_Outptr_ KSEMAPHORE** semaphore, int initial_count, int maximum_count)
 {
-    *semaphore = (ebpf_semaphore_t*)ebpf_allocate(sizeof(ebpf_semaphore_t));
+    *semaphore = (KSEMAPHORE*)ebpf_allocate(sizeof(KSEMAPHORE));
     if (*semaphore == NULL) {
         return EBPF_NO_MEMORY;
     }
@@ -186,19 +180,19 @@ ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, 
 }
 
 void
-ebpf_semaphore_wait(_In_ ebpf_semaphore_t* semaphore)
+ebpf_semaphore_wait(_In_ KSEMAPHORE* semaphore)
 {
     KeWaitForSingleObject(semaphore, Executive, KernelMode, FALSE, NULL);
 }
 
 void
-ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore)
+ebpf_semaphore_release(_In_ KSEMAPHORE* semaphore)
 {
     KeReleaseSemaphore(semaphore, 0, 1, FALSE);
 }
 
 void
-ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore)
+ebpf_semaphore_destroy(_Frees_ptr_opt_ KSEMAPHORE* semaphore)
 {
     ebpf_free(semaphore);
 }
@@ -471,4 +465,97 @@ ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintp
     KAFFINITY old_affinity = KeSetSystemAffinityThreadEx(new_thread_affinity_mask);
     *old_thread_affinity_mask = old_affinity;
     return EBPF_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_allocate_non_preemptible_work_item(
+    _Outptr_ KDPC** dpc,
+    uint32_t cpu_id,
+    _In_ PKDEFERRED_ROUTINE work_item_routine,
+    _Inout_opt_ void* work_item_context)
+{
+    *dpc = ebpf_allocate(sizeof(KDPC));
+    if (*dpc == NULL) {
+        return EBPF_NO_MEMORY;
+    }
+
+    KeInitializeDpc(*dpc, work_item_routine, work_item_context);
+    KeSetTargetProcessorDpc(*dpc, (uint8_t)cpu_id);
+    return EBPF_SUCCESS;
+}
+
+void
+ebpf_free_non_preemptible_work_item(_In_opt_ _Frees_ptr_opt_ KDPC* dpc)
+{
+    if (!dpc) {
+        return;
+    }
+
+    KeRemoveQueueDpc(dpc);
+    ebpf_free(dpc);
+}
+
+typedef struct _ebpf_timer_work_item
+{
+    KDPC deferred_procedure_call;
+    KTIMER timer;
+    void (*work_item_routine)(_Inout_opt_ void* work_item_context);
+    void* work_item_context;
+} ebpf_timer_work_item_t;
+
+_Function_class_(KDEFERRED_ROUTINE) static void _ebpf_timer_routine(
+    _In_ KDPC* deferred_procedure_call,
+    _In_opt_ void* deferred_context,
+    _In_opt_ void* system_argument_1,
+    _In_opt_ void* system_argument_2)
+{
+    ebpf_timer_work_item_t* timer_work_item = (ebpf_timer_work_item_t*)deferred_procedure_call;
+    UNREFERENCED_PARAMETER(system_argument_1);
+    UNREFERENCED_PARAMETER(system_argument_2);
+    timer_work_item->work_item_routine(deferred_context);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_allocate_timer_work_item(
+    _Outptr_ ebpf_timer_work_item_t** timer_work_item,
+    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
+    _Inout_opt_ void* work_item_context)
+{
+    *timer_work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t));
+    if (*timer_work_item == NULL) {
+        return EBPF_NO_MEMORY;
+    }
+
+    (*timer_work_item)->work_item_routine = work_item_routine;
+    (*timer_work_item)->work_item_context = work_item_context;
+
+    KeInitializeTimer(&(*timer_work_item)->timer);
+    KeInitializeDpc(&(*timer_work_item)->deferred_procedure_call, _ebpf_timer_routine, work_item_context);
+
+    return EBPF_SUCCESS;
+}
+
+#define MICROSECONDS_PER_TICK 10
+#define MICROSECONDS_PER_MILLISECOND 1000
+
+void
+ebpf_schedule_timer_work_item(_Inout_ ebpf_timer_work_item_t* work_item, uint32_t elapsed_microseconds)
+{
+    LARGE_INTEGER due_time;
+    due_time.QuadPart = -((int64_t)elapsed_microseconds * MICROSECONDS_PER_TICK);
+
+    KeSetTimer(&work_item->timer, due_time, &work_item->deferred_procedure_call);
+}
+
+void
+ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
+{
+    if (!work_item) {
+        return;
+    }
+
+    KeCancelTimer(&work_item->timer);
+    KeRemoveQueueDpc(&work_item->deferred_procedure_call);
+    KeFlushQueuedDpcs();
+    ebpf_free(work_item);
 }
