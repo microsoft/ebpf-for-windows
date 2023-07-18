@@ -38,6 +38,10 @@ target_link_libraries("EbpfApi" PRIVATE
   "Mincore.lib"
 )
 
+target_link_options("EbpfApi" PRIVATE
+  /DELAYLOAD:"dbghelp.dll"
+  /DELAYLOAD:"ADVAPI32.dll")
+
 target_compile_definitions("EbpfApi" PRIVATE
   EBPFAPI_EXPORTS
   _WINDOWS
