@@ -27,20 +27,22 @@ extern ebpf_registry_key_t ebpf_root_registry_key;
 typedef _Return_type_success_(NT_SUCCESS(return )) uint32_t ebpf_registry_result_t;
 
 /**
- * @brief Open the root of the eBPF registry.
+ * @brief Open or create the root of the eBPF registry store.
  *
  * @param[in] provider_key Pointer to the registry key to be initialized.
+ *
  * @returns  Status of the operation.
  */
 uint32_t
 ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provider_key);
 
 /**
- * @brief Update the provider information in the eBPF registry.
+ * @brief Update the provider prototype information in the eBPF registry store.
  *
- * @param helper_info_key
- * @param helper_info
- * @return __return_type
+ * @param[in] helper_info_key Pointer to the registry key to be initialized.
+ * @param[in] helper_info Pointer to the helper function prototype.
+ *
+ * @return Status of the operation.
  */
 __return_type
 ebpf_store_update_helper_prototype(

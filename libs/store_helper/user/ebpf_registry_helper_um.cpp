@@ -132,6 +132,10 @@ read_registry_value_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_
     unsigned long value_size = 0;
     wchar_t* string_value = nullptr;
 
+    if (value == nullptr) {
+        return ERROR_INVALID_PARAMETER;
+    }
+
     *value = nullptr;
     status = RegQueryValueEx(key, value_name, 0, &type, nullptr, &value_size);
     if (status != ERROR_SUCCESS || type != REG_SZ) {
@@ -151,6 +155,7 @@ read_registry_value_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_
     if (status != ERROR_SUCCESS) {
         goto Exit;
     }
+
     *value = string_value;
     string_value = nullptr;
 
