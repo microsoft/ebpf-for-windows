@@ -10,7 +10,8 @@
 #define IS_SUCCESS(x) (NT_SUCCESS(x))
 typedef HANDLE ebpf_registry_key_t;
 #else
-#include <winreg.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #define __return_type uint32_t
 #define IS_SUCCESS(x) (x == ERROR_SUCCESS)
 #define _SUCCESS NO_ERROR
@@ -23,10 +24,10 @@ typedef HKEY ebpf_registry_key_t;
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
 typedef _Return_type_success_(NT_SUCCESS(return )) uint32_t ebpf_registry_result_t;
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+//#ifdef __cplusplus
+//extern "C"
+//{
+//#endif
 
 #ifdef USER_MODE
     extern ebpf_registry_key_t ebpf_root_registry_key;
@@ -75,6 +76,6 @@ extern "C"
     ebpf_store_update_global_helper_information(
         _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
+//#ifdef __cplusplus
+//} /* extern "C" */
+//#endif
