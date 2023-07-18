@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_registry_helper.h"
+#include "..\libs\store_helper\user\ebpf_registry_helper_um.h"
+#include "ebpf_program_attach_type_guids.h"
 #include "ebpf_serialize.h"
+#include "ebpf_store_helper.h"
 #include "ebpf_utilities.h"
 #include "store_helper_internal.h"
 #include "utilities.hpp"
@@ -81,7 +83,7 @@ _load_helper_prototype(
 
 Exit:
     if (helper_info_key) {
-        close_registry_key(helper_info_key);
+        close_registry_key(static_cast<ebpf_registry_key_t>(helper_info_key));
     }
     return result;
 }
@@ -108,7 +110,8 @@ _load_program_data_information(
     *program_info = nullptr;
 
     try {
-        status = open_registry_key(program_data_key, program_type_string, KEY_READ, &program_info_key);
+        status =
+            open_registry_key(program_data_key, program_type_string, KEY_READ, (ebpf_registry_key_t*)&program_info_key);
         if (status != ERROR_SUCCESS) {
             // Registry path is not present.
             result = EBPF_FILE_NOT_FOUND;
@@ -317,7 +320,8 @@ ebpf_store_load_program_information(
     }
 
     // Open program data registry path.
-    status = open_registry_key(store_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, KEY_READ, &program_data_key);
+    status = open_registry_key(
+        store_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, KEY_READ, (ebpf_registry_key_t*)&program_data_key);
     if (status != ERROR_SUCCESS) {
         if (status != ERROR_FILE_NOT_FOUND) {
             result = win32_error_code_to_ebpf_result(status);
@@ -406,7 +410,7 @@ _load_section_data_information(
     ebpf_section_definition_t* section_information = nullptr;
 
     try {
-        status = open_registry_key(section_data_key, section_name, KEY_READ, &section_info_key);
+        status = open_registry_key(section_data_key, section_name, KEY_READ, (ebpf_registry_key_t*)&section_info_key);
         if (status != ERROR_SUCCESS) {
             // Registry path is not present.
             result = EBPF_FILE_NOT_FOUND;
@@ -521,7 +525,7 @@ ebpf_store_load_section_information(
         goto Exit;
     }
 
-    status = RegOpenKeyEx(store_key, EBPF_SECTIONS_REGISTRY_PATH, 0, KEY_READ, &section_data_key);
+    status = RegOpenKeyEx(static_cast<HKEY>(store_key), EBPF_SECTIONS_REGISTRY_PATH, 0, KEY_READ, &section_data_key);
     if (status != ERROR_SUCCESS) {
         if (status != ERROR_FILE_NOT_FOUND) {
             result = win32_error_code_to_ebpf_result(status);
@@ -621,7 +625,8 @@ ebpf_store_load_global_helper_information(
     }
 
     // Open program data registry path.
-    status = open_registry_key(store_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, KEY_READ, &global_helpers_key);
+    status = open_registry_key(
+        store_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, KEY_READ, (ebpf_registry_key_t*)&global_helpers_key);
     if (status != ERROR_SUCCESS) {
         if (status != ERROR_FILE_NOT_FOUND) {
             result = win32_error_code_to_ebpf_result(status);

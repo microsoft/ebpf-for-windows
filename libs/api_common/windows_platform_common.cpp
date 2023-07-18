@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "..\libs\store_helper\user\ebpf_registry_helper_um.h"
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "crab_verifier_wrapper.hpp"
@@ -8,8 +9,8 @@
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_protocol.h"
-#include "ebpf_registry_helper.h"
 #include "ebpf_serialize.h"
+#include "ebpf_store_helper.h"
 #include "ebpf_tracelog.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
