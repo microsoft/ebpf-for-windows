@@ -668,6 +668,11 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     close_handler = Glue_close;
     create_service_handler = Glue_create_service;
     delete_service_handler = Glue_delete_service;
+}
+
+void
+_test_helper_end_to_end::initialize()
+{
     REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
     ec_initialized = true;
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
@@ -734,31 +739,29 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 }
 
 _test_helper_libbpf::_test_helper_libbpf()
+    : xdp_program_info(nullptr), xdp_hook(nullptr), bind_program_info(nullptr), bind_hook(nullptr),
+      cgroup_sock_addr_program_info(nullptr), cgroup_inet4_connect_hook(nullptr)
 {
     ebpf_clear_thread_local_storage();
+}
 
-    try {
-        xdp_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_XDP);
-        xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+void
+_test_helper_libbpf::initialize()
+{
+    xdp_program_info = new program_info_provider_t();
+    REQUIRE(xdp_program_info->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+    xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
 
-        bind_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_BIND);
-        bind_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    bind_program_info = new program_info_provider_t();
+    REQUIRE(bind_program_info->initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    bind_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
-        cgroup_sock_addr_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
-        cgroup_inet4_connect_hook =
-            new single_instance_hook_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
-    } catch (...) {
-        delete xdp_hook;
-        delete xdp_program_info;
+    cgroup_sock_addr_program_info = new program_info_provider_t();
+    REQUIRE(cgroup_sock_addr_program_info->initialize(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) == EBPF_SUCCESS);
+    cgroup_inet4_connect_hook =
+        new single_instance_hook_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
 
-        delete bind_hook;
-        delete bind_program_info;
-
-        delete cgroup_inet4_connect_hook;
-        delete cgroup_sock_addr_program_info;
-
-        throw;
-    }
+    test_helper_end_to_end.initialize();
 }
 
 _test_helper_libbpf::~_test_helper_libbpf()

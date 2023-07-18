@@ -5,4 +5,4 @@ add_subdirectory("ext")
 add_subdirectory("unsafe")
 
 # build eBPF Samples.
-build_bpf_samples(0)
+build_bpf_samples(FALSE)
