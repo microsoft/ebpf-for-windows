@@ -161,7 +161,10 @@ class fuzz_wrapper
             throw std::runtime_error("ebpf_core_initiate failed");
         }
         for (const auto& type : _program_types) {
-            program_information_providers.push_back(std::make_unique<_program_info_provider>(type));
+            program_information_providers.push_back(std::make_unique<_program_info_provider>());
+            if (program_information_providers.back()->initialize(type) != EBPF_SUCCESS) {
+                throw std::runtime_error("program_info initialization failed");
+            }
         }
         for (const auto& type : _program_types) {
             std::string name = "program name";

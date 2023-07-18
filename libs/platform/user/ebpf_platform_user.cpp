@@ -24,18 +24,27 @@ bool _ebpf_platform_code_integrity_enabled = false;
 
 extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
+static bool _usersim_platform_initiated = false;
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
     ebpf_initialize_cpu_count();
-    return NT_SUCCESS(usersim_platform_initiate()) ? EBPF_SUCCESS : EBPF_NO_MEMORY;
+    if (!NT_SUCCESS(usersim_platform_initiate())) {
+        return EBPF_NO_MEMORY;
+    }
+    _usersim_platform_initiated = true;
+    return EBPF_SUCCESS;
 }
 
 void
 ebpf_platform_terminate()
 {
-    usersim_platform_terminate();
-    KeFlushQueuedDpcs();
+    if (_usersim_platform_initiated) {
+        KeFlushQueuedDpcs();
+        usersim_platform_terminate();
+        _usersim_platform_initiated = false;
+    }
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -276,30 +285,6 @@ ntstatus_to_ebpf_result(NTSTATUS status)
     return win32_error_code_to_ebpf_result(error);
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_allocate_non_preemptible_work_item(
-    _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
-    uint32_t cpu_id,
-    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1),
-    _Inout_opt_ void* work_item_context)
-{
-    NTSTATUS status = usersim_allocate_non_preemptible_work_item(
-        (usersim_non_preemptible_work_item_t**)work_item, cpu_id, work_item_routine, work_item_context);
-    return ntstatus_to_ebpf_result(status);
-}
-
-void
-ebpf_free_non_preemptible_work_item(_Frees_ptr_opt_ ebpf_non_preemptible_work_item_t* work_item)
-{
-    ebpf_free(work_item);
-}
-
-bool
-ebpf_queue_non_preemptible_work_item(_Inout_ ebpf_non_preemptible_work_item_t* work_item, _Inout_opt_ void* parameter_1)
-{
-    return usersim_queue_non_preemptible_work_item((usersim_non_preemptible_work_item_t*)work_item, parameter_1);
-}
-
 typedef struct _ebpf_preemptible_work_item
 {
     int dummy;
@@ -326,79 +311,6 @@ ebpf_allocate_preemptible_work_item(
     NTSTATUS status = usersim_allocate_preemptible_work_item(
         (usersim_preemptible_work_item_t**)work_item, work_item_routine, work_item_context);
     return ntstatus_to_ebpf_result(status);
-}
-
-typedef struct _ebpf_timer_work_item
-{
-    TP_TIMER* threadpool_timer;
-    void (*work_item_routine)(_Inout_opt_ void* work_item_context);
-    void* work_item_context;
-} ebpf_timer_work_item_t;
-
-void
-_ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* context, _Inout_ TP_TIMER* timer)
-{
-    ebpf_timer_work_item_t* timer_work_item = reinterpret_cast<ebpf_timer_work_item_t*>(context);
-    UNREFERENCED_PARAMETER(instance);
-    UNREFERENCED_PARAMETER(timer);
-    if (timer_work_item) {
-        timer_work_item->work_item_routine(timer_work_item->work_item_context);
-    }
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_allocate_timer_work_item(
-    _Outptr_ ebpf_timer_work_item_t** work_item,
-    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
-    _Inout_opt_ void* work_item_context)
-{
-    *work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t));
-
-    if (*work_item == nullptr) {
-        goto Error;
-    }
-
-    (*work_item)->threadpool_timer = CreateThreadpoolTimer(_ebpf_timer_callback, *work_item, nullptr);
-    if ((*work_item)->threadpool_timer == nullptr) {
-        goto Error;
-    }
-
-    (*work_item)->work_item_routine = work_item_routine;
-    (*work_item)->work_item_context = work_item_context;
-
-    return EBPF_SUCCESS;
-
-Error:
-    if (*work_item != nullptr) {
-        if ((*work_item)->threadpool_timer != nullptr) {
-            CloseThreadpoolTimer((*work_item)->threadpool_timer);
-        }
-
-        ebpf_free(*work_item);
-    }
-    return EBPF_NO_MEMORY;
-}
-
-#define MICROSECONDS_PER_TICK 10
-#define MICROSECONDS_PER_MILLISECOND 1000
-
-void
-ebpf_schedule_timer_work_item(_Inout_ ebpf_timer_work_item_t* timer, uint32_t elapsed_microseconds)
-{
-    int64_t due_time;
-    due_time = -static_cast<int64_t>(elapsed_microseconds) * MICROSECONDS_PER_TICK;
-
-    SetThreadpoolTimer(
-        timer->threadpool_timer,
-        reinterpret_cast<FILETIME*>(&due_time),
-        0,
-        elapsed_microseconds / MICROSECONDS_PER_MILLISECOND);
-}
-
-void
-ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
-{
-    return usersim_free_timer_work_item((usersim_timer_work_item_t*)work_item);
 }
 
 _Must_inspect_result_ ebpf_result_t

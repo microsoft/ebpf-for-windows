@@ -7,6 +7,7 @@
 
 #include <rpc.h>
 
+// We cannot use REQUIRE from a constructor.  Anything that can fail should be here in initialize().
 void
 _native_module_helper::initialize(_In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type)
 {
