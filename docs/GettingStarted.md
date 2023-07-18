@@ -37,13 +37,16 @@ install it directly from [here](https://www.microsoft.com/en-us/download/details
  "*Windows Driver Kit Visual Studio extension*" (make sure the "*Install Windows Driver Kit Visual Studio Extension*"
   check box is checked before completing the installer).
     >Note: as multiple versions of WDKs cannot coexist side-by-side, you may be asked to uninstall previous versions.
-1. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe) (version **11.0.1**).
- Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
 1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.3.1 or higher**), which can be installed to a location
  such as "C:\Program Files (x86)\NuGet\".
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages
  above have been installed.
+
+The following are optional components that you can install for additional functionality:
+1. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe) (version **11.0.1**).
+Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
+Install this component if you plan on writing eBPF programs in a high-level language. Many of the programs herein demonstrating the capabilities of eBPF require clang.
 
 Alternative install steps (for *basic* Visual Studio Community edition):
 
