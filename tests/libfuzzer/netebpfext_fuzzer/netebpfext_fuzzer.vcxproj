@@ -72,7 +72,6 @@
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform);$(SolutionDir)$(Platform)\$(ConfigurationName)\</AdditionalLibraryDirectories>
-      <AdditionalOptions>ebpf_store_helper.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
@@ -84,7 +83,6 @@
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform);$(SolutionDir)$(Platform)\$(ConfigurationName)\</AdditionalLibraryDirectories>
-      <AdditionalOptions>ebpf_store_helper.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -97,7 +95,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform);$(SolutionDir)$(Platform)\$(ConfigurationName)\</AdditionalLibraryDirectories>
-      <AdditionalOptions>ebpf_store_helper.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -113,9 +110,6 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\libs\platform\user\platform_user.vcxproj">
       <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\libs\store_helper\user\ebpf_store_helper_um.vcxproj">
-      <Project>{aa933b9f-b5d8-4aa8-ac18-98fe1a161e8a}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\netebpfext\user\netebpfext_user.vcxproj">
       <Project>{630bb78f-6211-41d8-8e3a-096e22e169ef}</Project>

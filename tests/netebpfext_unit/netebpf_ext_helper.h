@@ -13,8 +13,9 @@
     }
 #endif
 
+#include "..\libs\store_helper\kernel\ebpf_registry_helper_km.h"
 #include "ebpf_extension_uuids.h"
-#include "ebpf_registry_helper.h"
+#include "ebpf_store_helper.h"
 #include "fwp_um.h"
 
 #include <iostream>
