@@ -24,6 +24,7 @@
     <ClCompile Include="..\ebpf_crypto_hash.c" />
     <ClCompile Include="..\ebpf_epoch.c" />
     <ClCompile Include="..\ebpf_error.c" />
+    <ClCompile Include="..\ebpf_platform.c" />
     <ClCompile Include="..\ebpf_tracelog.c" />
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_interlocked.c" />
@@ -33,14 +34,9 @@
     <ClCompile Include="..\ebpf_serialize.c" />
     <ClCompile Include="..\ebpf_state.c" />
     <ClCompile Include="..\ebpf_trampoline.c" />
-    <ClCompile Include="ebpf_fault_injection.cpp" />
     <ClCompile Include="ebpf_handle_user.c" />
-    <ClCompile Include="ebpf_leak_detector.cpp" />
     <ClCompile Include="ebpf_native_user.c" />
     <ClCompile Include="ebpf_platform_user.cpp" />
-    <ClCompile Include="kernel_um.cpp" />
-    <ClCompile Include="nmr_impl.cpp" />
-    <ClCompile Include="nmr_um.cpp" />
     <ClInclude Include="..\ebpf_bitmap.h" />
     <ClInclude Include="..\ebpf_async.h" />
     <ClInclude Include="..\ebpf_epoch.h" />
@@ -51,13 +47,7 @@
     <ClInclude Include="..\ebpf_ring_buffer.h" />
     <ClInclude Include="..\ebpf_state.h" />
     <ClInclude Include="..\ebpf_tracelog.h" />
-    <ClInclude Include="ebpf_fault_injection.h" />
-    <ClInclude Include="ebpf_leak_detector.h" />
-    <ClInclude Include="ebpf_rundown.h" />
-    <ClInclude Include="ebpf_symbol_decoder.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="kernel_um.h" />
-    <ClInclude Include="nmr_impl.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -115,7 +105,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -129,7 +119,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -146,7 +136,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>

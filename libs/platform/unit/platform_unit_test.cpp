@@ -8,6 +8,7 @@
 #include "ebpf_async.h"
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_platform.h"
@@ -57,9 +58,10 @@ typedef std::unique_ptr<ebpf_trampoline_table_t, free_trampoline_table_t> ebpf_t
 class _test_helper
 {
   public:
-    _test_helper()
+    _test_helper() { ebpf_object_tracking_initiate(); }
+    void
+    initialize()
     {
-        ebpf_object_tracking_initiate();
         REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
         platform_initiated = true;
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
@@ -151,6 +153,43 @@ TEST_CASE("hash_table_test", "[platform]")
     REQUIRE(ebpf_hash_table_update(table, key_3.data(), data_3.data(), EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table) == 3);
 
+    // Iterate through all keys.
+    uint64_t cookie = 0;
+    uint8_t keys_found = 0;
+    std::vector<const uint8_t*> keys;
+    std::vector<const uint8_t*> values;
+    size_t count = 2;
+    keys.resize(count);
+    values.resize(count);
+    // Bucket contains 3 keys, but we only have space for 2.
+    // Should fail with insufficient buffer.
+    REQUIRE(ebpf_hash_table_iterate(table, &cookie, &count, keys.data(), values.data()) == EBPF_INSUFFICIENT_BUFFER);
+    REQUIRE(count == 3);
+    keys.resize(count);
+    values.resize(count);
+    // Bucket contains 3 keys, and we have space for 3.
+    // Should succeed.
+    REQUIRE(ebpf_hash_table_iterate(table, &cookie, &count, keys.data(), values.data()) == EBPF_SUCCESS);
+
+    // Verify that all keys are found.
+    for (size_t index = 0; index < 3; index++) {
+        if (memcmp(keys[index], key_1.data(), key_1.size()) == 0) {
+            REQUIRE(memcmp(values[index], data_1.data(), data_1.size()) == 0);
+            keys_found |= 1 << 0;
+        } else if (memcmp(keys[index], key_2.data(), key_2.size()) == 0) {
+            REQUIRE(memcmp(values[index], data_2.data(), data_2.size()) == 0);
+            keys_found |= 1 << 1;
+        } else if (memcmp(keys[index], key_3.data(), key_3.size()) == 0) {
+            REQUIRE(memcmp(values[index], data_3.data(), data_3.size()) == 0);
+            keys_found |= 1 << 2;
+        } else {
+            REQUIRE(false);
+        }
+    }
+    // Verify that there are no more keys.
+    REQUIRE(ebpf_hash_table_iterate(table, &cookie, &count, keys.data(), values.data()) == EBPF_NO_MORE_KEYS);
+    REQUIRE(keys_found == 0x7);
+
     // Find the first
     REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
     REQUIRE(memcmp(returned_value, data_1.data(), data_1.size()) == 0);
@@ -219,6 +258,7 @@ run_in_epoch(std::function<void()> function)
 TEST_CASE("hash_table_stress_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_hash_table_t* table = nullptr;
     const size_t iterations = 1000;
@@ -290,6 +330,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
 TEST_CASE("pinning_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     typedef struct _some_object
     {
@@ -339,6 +380,7 @@ TEST_CASE("pinning_test", "[platform]")
 TEST_CASE("epoch_test_single_epoch", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
     void* memory = ebpf_epoch_allocate(10);
@@ -350,6 +392,7 @@ TEST_CASE("epoch_test_single_epoch", "[platform]")
 TEST_CASE("epoch_test_two_threads", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     auto epoch = []() {
         ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
@@ -366,8 +409,6 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     thread_1.join();
     thread_2.join();
 }
-
-extern bool _ebpf_platform_is_preemptible;
 
 class _signal
 {
@@ -400,15 +441,18 @@ class _signal
  */
 TEST_CASE("epoch_test_stale_items", "[platform]")
 {
-    _ebpf_platform_is_preemptible = false;
-
     _test_helper test_helper;
+    test_helper.initialize();
     _signal signal_1;
     _signal signal_2;
 
     if (ebpf_get_cpu_count() < 2) {
         return;
     }
+
+    KIRQL old_irql;
+    KeRaiseIrql(DISPATCH_LEVEL, &old_irql);
+
     size_t const test_iterations = 100;
     for (size_t test_iteration = 0; test_iteration < test_iterations; test_iteration++) {
 
@@ -447,6 +491,8 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         REQUIRE(ebpf_epoch_is_free_list_empty(0));
         REQUIRE(ebpf_epoch_is_free_list_empty(1));
     }
+
+    KeLowerIrql(old_irql);
 }
 
 static auto provider_function = []() { return EBPF_SUCCESS; };
@@ -454,6 +500,7 @@ static auto provider_function = []() { return EBPF_SUCCESS; };
 TEST_CASE("trampoline_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_trampoline_table_ptr table;
     ebpf_result_t (*test_function)();
@@ -513,6 +560,7 @@ typedef std::unique_ptr<ebpf_security_descriptor_t, ebpf_security_descriptor_t_f
 TEST_CASE("access_check", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     ebpf_security_generic_mapping_ptr sd_ptr;
     ebpf_security_descriptor_t* sd = NULL;
     unsigned long sd_size = 0;
@@ -542,12 +590,12 @@ TEST_CASE("access_check", "[platform]")
 struct ebpf_memory_descriptor_t_free
 {
     void
-    operator()(_Frees_ptr_opt_ ebpf_memory_descriptor_t* p)
+    operator()(_Frees_ptr_opt_ MDL* p)
     {
         ebpf_unmap_memory(p);
     }
 };
-typedef std::unique_ptr<ebpf_memory_descriptor_t, ebpf_memory_descriptor_t_free> ebpf_memory_descriptor_ptr;
+typedef std::unique_ptr<MDL, ebpf_memory_descriptor_t_free> ebpf_memory_descriptor_ptr;
 
 TEST_CASE("memory_map_test", "[platform]")
 {
@@ -562,6 +610,7 @@ TEST_CASE("memory_map_test", "[platform]")
 TEST_CASE("serialize_map_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     const int map_count = 10;
     ebpf_map_info_internal_t internal_map_info_array[map_count] = {};
@@ -635,6 +684,7 @@ TEST_CASE("serialize_map_test", "[platform]")
 TEST_CASE("serialize_program_info_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_helper_function_prototype_t helper_prototype[] = {
         {1000,
@@ -722,6 +772,7 @@ TEST_CASE("serialize_program_info_test", "[platform]")
 TEST_CASE("state_test", "[state]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     size_t allocated_index_1 = 0;
     size_t allocated_index_2 = 0;
     struct
@@ -790,6 +841,7 @@ BIT_MASK_TEST(1025, false);
 TEST_CASE("async", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     auto test = [](bool complete) {
         ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
@@ -842,6 +894,7 @@ TEST_CASE("async", "[platform]")
 TEST_CASE("ring_buffer_output", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     size_t consumer;
     size_t producer;
     ebpf_ring_buffer_t* ring_buffer;
@@ -898,6 +951,7 @@ TEST_CASE("ring_buffer_output", "[platform]")
 TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     size_t consumer;
     size_t producer;
     ebpf_ring_buffer_t* ring_buffer;
@@ -992,6 +1046,7 @@ TEST_CASE("interlocked operations", "[platform]")
 TEST_CASE("get_authentication_id", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     uint64_t authentication_id = 0;
 
     REQUIRE(ebpf_platform_get_authentication_id(&authentication_id) == EBPF_SUCCESS);

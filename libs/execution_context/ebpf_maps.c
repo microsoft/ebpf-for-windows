@@ -7,6 +7,7 @@
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
 #include "ebpf_handle.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"

@@ -11,8 +11,6 @@
 #define PERFORMANCE_MEASURE_ITERATION_COUNT 1000000
 #define PERFORMANCE_MEASURE_TIMEOUT 60000
 
-extern bool _ebpf_platform_is_preemptible;
-
 /**
  * @brief Test helper function that executes a provided method on each CPU
  * iterations times, measures elapsed time and returns average elapsed time
@@ -40,11 +38,11 @@ template <typename T> class _performance_measure
           preemptible(preemptible), test_name(test_name)
     {
         start_event = CreateEvent(nullptr, true, false, nullptr);
-        _ebpf_platform_is_preemptible = preemptible;
+        KeRaiseIrql(preemptible ? PASSIVE_LEVEL : DISPATCH_LEVEL, &old_irql);
     }
     ~_performance_measure()
     {
-        _ebpf_platform_is_preemptible = true;
+        KeLowerIrql(old_irql);
         CloseHandle(start_event);
     }
 
@@ -112,4 +110,5 @@ template <typename T> class _performance_measure
     HANDLE start_event;
     bool preemptible;
     const char* test_name;
+    KIRQL old_irql;
 };

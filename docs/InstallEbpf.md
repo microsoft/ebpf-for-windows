@@ -82,7 +82,7 @@ C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi <other options> /l
 This method uses a machine that
 has already built the binaries for `x64/Debug` or `x64/Release`.
 
-1. Deploy the binaries to `C:\Temp` in your VM, as follows:
+1. Deploy the binaries to `C:\Temp` in your VM, as follows (from within a "*Developer PowerShell for VS 2022*"):
 
     - If you **built the binaries from inside the VM**, then from your `ebpf-for-windows` directory in the VM, run:
 

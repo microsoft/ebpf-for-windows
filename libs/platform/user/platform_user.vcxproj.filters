@@ -70,25 +70,10 @@
     <ClCompile Include="..\ebpf_interlocked.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="nmr_impl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="nmr_um.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="kernel_um.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ebpf_leak_detector.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ebpf_crypto_hash.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ebpf_leak_detector.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ebpf_fault_injection.cpp">
+    <ClCompile Include="..\ebpf_platform.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -121,24 +106,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_ring_buffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="nmr_impl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="kernel_um.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ebpf_leak_detector.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ebpf_symbol_decoder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ebpf_rundown.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ebpf_fault_injection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_tracelog.h">

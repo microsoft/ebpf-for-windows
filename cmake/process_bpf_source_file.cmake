@@ -32,6 +32,13 @@ function(add_bpftonative_command file_name kernel_mode unsafe_program)
 endfunction()
 
 function(build_bpf_samples unsafe_program)
+
+    find_program(clang_path "clang" NO_CACHE)
+    if (${clang_path} STREQUAL "clang_path-NOTFOUND")
+      message(WARNING "Could not find clang on the system -- not building bpf samples from high-level source code.")
+      return()
+    endif()
+
     file(GLOB files *.c)
 
     get_filename_component(target_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
@@ -57,7 +64,6 @@ function(build_bpf_samples unsafe_program)
 
     foreach(file ${files})
       get_filename_component(file_name ${file} NAME_WE)
-      find_program(clang_path "clang" REQUIRED)
       add_custom_command(
         OUTPUT
           ${output_dir}/${file_name}.o
@@ -69,5 +75,4 @@ function(build_bpf_samples unsafe_program)
       add_bpftonative_command(${file_name} "$true" ${unsafe_program})
       add_bpftonative_command(${file_name} "$false" ${unsafe_program})
     endforeach()
-
   endfunction()

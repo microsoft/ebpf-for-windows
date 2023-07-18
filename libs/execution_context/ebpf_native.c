@@ -5,6 +5,7 @@
 
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_native.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
@@ -1546,6 +1547,11 @@ ebpf_native_load_programs(
     bool module_referenced = false;
     bool maps_created = false;
     bool cleanup_context_created = false;
+
+    if ((count_of_map_handles > 0 && map_handles == NULL) ||
+        (count_of_program_handles > 0 && program_handles == NULL)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
 
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);

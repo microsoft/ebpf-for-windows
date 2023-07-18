@@ -23,8 +23,12 @@ import "wtypes.idl";
             // Original fd as it appears in the eBPF byte code.
             uint32_t original_fd;
 
+            uint32_t id;
+
             // Inner map's original fd.
             uint32_t inner_map_original_fd;
+
+            uint32_t inner_id;
 
             // Handle from which the rest of the data can be looked up.
             file_handle_t handle;

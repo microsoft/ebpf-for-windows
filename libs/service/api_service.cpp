@@ -207,9 +207,11 @@ _query_and_cache_map_descriptors(
     if (handle_map_count > 0) {
         for (uint32_t i = 0; i < handle_map_count; i++) {
             descriptor = {0};
+            ebpf_id_t id;
             ebpf_id_t inner_map_id;
             result = query_map_definition(
                 reinterpret_cast<ebpf_handle_t>(handle_map[i].handle),
+                &id,
                 &descriptor.type,
                 &descriptor.key_size,
                 &descriptor.value_size,
@@ -221,11 +223,13 @@ _query_and_cache_map_descriptors(
 
             cache_map_original_file_descriptor_with_handle(
                 handle_map[i].original_fd,
+                handle_map[i].id,
                 descriptor.type,
                 descriptor.key_size,
                 descriptor.value_size,
                 descriptor.max_entries,
                 handle_map[i].inner_map_original_fd,
+                handle_map[i].inner_id,
                 reinterpret_cast<ebpf_handle_t>(handle_map[i].handle),
                 0);
         }

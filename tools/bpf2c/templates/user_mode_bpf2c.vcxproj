@@ -72,7 +72,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(AdditionalOptions) &gt;$(FileName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(FileName)_dll.c $(AdditionalOptions)</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
@@ -90,7 +90,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(AdditionalOptions) &gt;$(FileName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(FileName)_dll.c $(AdditionalOptions)</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
@@ -108,7 +108,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(AdditionalOptions) &gt;$(FileName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(FileName)_dll.c $(AdditionalOptions)</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -128,7 +128,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(AdditionalOptions) &gt;$(FileName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(FileName)_dll.c $(AdditionalOptions)</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
@@ -148,7 +148,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(AdditionalOptions) &gt;$(FileName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(FileName)_dll.c $(AdditionalOptions)</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup Condition="$(ResourceFile)!=''">

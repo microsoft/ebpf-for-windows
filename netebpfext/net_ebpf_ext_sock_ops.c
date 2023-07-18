@@ -443,7 +443,7 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, local_flow_context, "flow_context", result);
     memset(local_flow_context, 0, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t));
 
-    // Associate the filter context with the filter context.
+    // Associate the filter context with the local flow context.
     REFERENCE_FILTER_CONTEXT(&filter_context->base);
     local_flow_context->filter_context = filter_context;
 
@@ -504,6 +504,9 @@ net_ebpf_extension_sock_ops_flow_established_classify(
 
 Exit:
     if (local_flow_context != NULL) {
+        if (local_flow_context->filter_context != NULL) {
+            DEREFERENCE_FILTER_CONTEXT(&local_flow_context->filter_context->base);
+        }
         ExFreePool(local_flow_context);
     }
     if (attached_client != NULL) {
