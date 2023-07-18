@@ -83,7 +83,8 @@ net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_h
  * @param[in] provider_context Pointer to the provider context being un-registered.
  */
 void
-net_ebpf_extension_hook_provider_unregister(_Frees_ptr_opt_ net_ebpf_extension_hook_provider_t* provider_context);
+net_ebpf_extension_hook_provider_unregister(
+    _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_hook_provider_t* provider_context);
 
 /**
  * @brief This callback function should be implemented by hook modules. This callback is invoked when a hook NPI client

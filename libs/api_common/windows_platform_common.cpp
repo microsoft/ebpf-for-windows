@@ -396,7 +396,7 @@ get_program_type_windows(const std::string& section, const std::string&)
         return get_program_type_windows(*global_program_type);
     } catch (...) {
         if (!get_verification_in_progress()) {
-            return windows_unspecified_program_type;
+            return PTYPE("unspec", {0}, (uint64_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED, {});
         } else {
             if (global_program_type_found) {
                 auto guid_string = guid_to_string(global_program_type);

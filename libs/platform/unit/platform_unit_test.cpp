@@ -58,9 +58,10 @@ typedef std::unique_ptr<ebpf_trampoline_table_t, free_trampoline_table_t> ebpf_t
 class _test_helper
 {
   public:
-    _test_helper()
+    _test_helper() { ebpf_object_tracking_initiate(); }
+    void
+    initialize()
     {
-        ebpf_object_tracking_initiate();
         REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
         platform_initiated = true;
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
@@ -257,6 +258,7 @@ run_in_epoch(std::function<void()> function)
 TEST_CASE("hash_table_stress_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_hash_table_t* table = nullptr;
     const size_t iterations = 1000;
@@ -328,6 +330,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
 TEST_CASE("pinning_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     typedef struct _some_object
     {
@@ -377,6 +380,7 @@ TEST_CASE("pinning_test", "[platform]")
 TEST_CASE("epoch_test_single_epoch", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
     void* memory = ebpf_epoch_allocate(10);
@@ -388,6 +392,7 @@ TEST_CASE("epoch_test_single_epoch", "[platform]")
 TEST_CASE("epoch_test_two_threads", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     auto epoch = []() {
         ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
@@ -437,6 +442,7 @@ class _signal
 TEST_CASE("epoch_test_stale_items", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     _signal signal_1;
     _signal signal_2;
 
@@ -494,6 +500,7 @@ static auto provider_function = []() { return EBPF_SUCCESS; };
 TEST_CASE("trampoline_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_trampoline_table_ptr table;
     ebpf_result_t (*test_function)();
@@ -553,6 +560,7 @@ typedef std::unique_ptr<ebpf_security_descriptor_t, ebpf_security_descriptor_t_f
 TEST_CASE("access_check", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     ebpf_security_generic_mapping_ptr sd_ptr;
     ebpf_security_descriptor_t* sd = NULL;
     unsigned long sd_size = 0;
@@ -602,6 +610,7 @@ TEST_CASE("memory_map_test", "[platform]")
 TEST_CASE("serialize_map_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     const int map_count = 10;
     ebpf_map_info_internal_t internal_map_info_array[map_count] = {};
@@ -675,6 +684,7 @@ TEST_CASE("serialize_map_test", "[platform]")
 TEST_CASE("serialize_program_info_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_helper_function_prototype_t helper_prototype[] = {
         {1000,
@@ -762,6 +772,7 @@ TEST_CASE("serialize_program_info_test", "[platform]")
 TEST_CASE("state_test", "[state]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     size_t allocated_index_1 = 0;
     size_t allocated_index_2 = 0;
     struct
@@ -830,6 +841,7 @@ BIT_MASK_TEST(1025, false);
 TEST_CASE("async", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     auto test = [](bool complete) {
         ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
@@ -882,6 +894,7 @@ TEST_CASE("async", "[platform]")
 TEST_CASE("ring_buffer_output", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     size_t consumer;
     size_t producer;
     ebpf_ring_buffer_t* ring_buffer;
@@ -938,6 +951,7 @@ TEST_CASE("ring_buffer_output", "[platform]")
 TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     size_t consumer;
     size_t producer;
     ebpf_ring_buffer_t* ring_buffer;
@@ -1032,6 +1046,7 @@ TEST_CASE("interlocked operations", "[platform]")
 TEST_CASE("get_authentication_id", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     uint64_t authentication_id = 0;
 
     REQUIRE(ebpf_platform_get_authentication_id(&authentication_id) == EBPF_SUCCESS);
