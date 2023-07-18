@@ -3,43 +3,92 @@
 
     "BasicTest":
     {
-        "Name": "vm1"
+        "igklemen-runner-1":
+        {
+            "Name": "vm1"
+        },
+        "igklemen-runner-2":
+        {
+            "Name": "vm2"
+        }
     },
 
     "MultiVMTest":
-    [
-        {
-            "Name": "vm1",
-            "Interfaces":
-            [
-                {
-                    "Alias": "duo1",
-                    "V4Address": "192.168.1.11",
-                    "V6Address": "fc00::1:11"
-                },
-                {
-                    "Alias": "duo2",
-                    "V4Address": "192.168.1.12",
-                    "V6Address": "fc00::1:12"
-                },
-                {
-                    "Alias": "duo3",
-                    "V4Address": "192.168.2.11",
-                    "V6Address": "fc00::2:11"
-                },
-                {
-                    "Alias": "duo4",
-                    "V4Address": "192.168.2.12",
-                    "V6Address": "fc00::2:12"
-                }
-            ]
-        }
-    ],
+    {
+        "igklemen-runner-1":
+        [
+            {
+                "Name": "vm1",
+                "Interfaces":
+                [
+                    {
+                        "Alias": "duo1",
+                        "V4Address": "192.168.1.11",
+                        "V6Address": "fc00::1:11"
+                    },
+                    {
+                        "Alias": "duo2",
+                        "V4Address": "192.168.1.12",
+                        "V6Address": "fc00::1:12"
+                    },
+                    {
+                        "Alias": "duo3",
+                        "V4Address": "192.168.2.11",
+                        "V6Address": "fc00::2:11"
+                    },
+                    {
+                        "Alias": "duo4",
+                        "V4Address": "192.168.2.12",
+                        "V6Address": "fc00::2:12"
+                    }
+                ]
+            }
+        ],
+        "igklemen-runner-2":
+        [
+            {
+                "Name": "vm2",
+                "Interfaces":
+                [
+                    {
+                        "Alias": "duo1",
+                        "V4Address": "192.168.1.11",
+                        "V6Address": "fc00::1:11"
+	                },
+                    {
+                        "Alias": "duo2",
+                        "V4Address": "192.168.1.12",
+                        "V6Address": "fc00::1:12"
+                    },
+                    {
+                        "Alias": "duo3",
+                        "V4Address": "192.168.2.11",
+                        "V6Address": "fc00::2:11"
+                    },
+                    {
+                        "Alias": "duo4",
+                        "V4Address": "192.168.2.12",
+                        "V6Address": "fc00::2:12"
+                    }
+                ]
+            }
+        ]
+    },
     "ConnectRedirectTest":
     {
-        "V4VipAddress": "192.168.1.100",
-        "V6VipAddress": "fc00::1:100",
-        "DestinationPort": 4444,
-        "ProxyPort": 4443
+        "igklemen-runner-1":
+        {
+            "V4VipAddress": "192.168.1.100",
+            "V6VipAddress": "fc00::1:100",
+            "DestinationPort": 4444,
+            "ProxyPort": 4443
+        },
+        "igklemen-runner-2":
+        {
+            "V4VipAddress": "192.168.1.100",
+            "V6VipAddress": "fc00::1:100",
+            "DestinationPort": 4444,
+            "ProxyPort": 4443
+        }
     }
 }
