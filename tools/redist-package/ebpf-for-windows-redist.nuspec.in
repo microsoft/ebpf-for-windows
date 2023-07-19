@@ -19,8 +19,6 @@
 	</metadata>
 	<files>
 		<file src="..\..\tools\redist-package\README.md" target="."/>
-		<file src="bpf2c.exe" target="package\bin"/>
-		<file src="bpf2c.pdb" target="package\bin"/>
 		<file src="bpftool.exe" target="package\bin"/>
 		<file src="bpftool.pdb" target="package\bin"/>
 		<file src="ebpfapi.dll" target="package\bin"/>
