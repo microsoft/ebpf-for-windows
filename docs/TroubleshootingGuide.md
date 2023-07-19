@@ -436,7 +436,7 @@ Another possibility is NMR attach failing. When this occurs, you may see error t
 [1]48D498.48D750::2023/07/18-18:49:07.123136900 [EbpfForWindowsProvider]{"Api":"DeviceIoControl","last_error":"2001(WIN=The specified driver is invalid.)","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfApiError","time":"2023-07-19T01:49:07.1231369Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":2,"keywords":"0x100"}}
 ```
 
-Check the Program type's guid and Attach type's guid in the trace. Program type and Attach type must have valid guid.
+Check the Program type's GUID and Attach type's GUID in the trace. Program type and Attach type must have valid GUIDs.
 
 The first trace shows the `Program type` GUID is valid but the `Attach type` GUID is zero. Hence `ebpf_program_create` failed. The subsequent traces show 'Unable to Load Device Driver' and 'The specified driver is invalid' indicating that this is an NMR failure due to an invalid attach type.
 
