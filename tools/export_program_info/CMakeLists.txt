@@ -9,16 +9,17 @@ add_executable("export_program_info"
 )
 
 target_include_directories("export_program_info" PRIVATE
+  "${CMAKE_SOURCE_DIR}/external/usersim/inc"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/include/user"
-  "${CMAKE_SOURCE_DIR}/libs/platform"
-  "${CMAKE_SOURCE_DIR}/libs/platform/user"
   "${CMAKE_SOURCE_DIR}/libs/api"
   "${CMAKE_SOURCE_DIR}/libs/execution_context"
+  "${CMAKE_SOURCE_DIR}/libs/platform"
+  "${CMAKE_SOURCE_DIR}/libs/platform/user"
+  "${CMAKE_SOURCE_DIR}/libs/store_helper/user"
+  "${CMAKE_SOURCE_DIR}/libs/thunk"
   "${CMAKE_SOURCE_DIR}/netebpfext"
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
-  "${CMAKE_SOURCE_DIR}/libs/thunk"
-  "${CMAKE_SOURCE_DIR}/external/usersim/inc"
 )
 
 target_link_libraries("export_program_info" PRIVATE

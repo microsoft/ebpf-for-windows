@@ -5,9 +5,6 @@
 
 #include "ebpf_store_helper.h"
 
-#ifndef USER_MODE
-#define USER_MODE
-#endif
 #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
