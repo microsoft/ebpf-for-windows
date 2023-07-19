@@ -47,12 +47,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)\include;$(SolutionDir)\libs\platform;$(SolutionDir)\libs\platform\user;$(SolutionDir)\external\ebpf-verifier\src;$(SolutionDir)external\usersim\inc;..\</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)\include;$(SolutionDir)\libs\platform;$(SolutionDir)\libs\platform\user;$(SolutionDir)\external\ebpf-verifier\src;$(SolutionDir)external\usersim\inc</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)\include;$(SolutionDir)\libs\platform;$(SolutionDir)\libs\platform\user;$(SolutionDir)\external\ebpf-verifier\src;$(SolutionDir)external\usersim\inc;..\</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)\include;$(SolutionDir)\libs\platform;$(SolutionDir)\libs\platform\user;$(SolutionDir)\external\ebpf-verifier\src;$(SolutionDir)external\usersim\inc</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
