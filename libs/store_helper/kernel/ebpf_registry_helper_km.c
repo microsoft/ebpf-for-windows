@@ -6,9 +6,6 @@
 NTSTATUS
 convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_length) wchar_t* string, size_t string_length)
 {
-    if (guid == NULL || string == NULL || string_length == 0)
-        return STATUS_INVALID_PARAMETER;
-
     UNICODE_STRING unicode_string = {0};
 
     NTSTATUS status = RtlStringFromGUID(guid, &unicode_string);
