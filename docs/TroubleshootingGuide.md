@@ -411,6 +411,17 @@ There are certain errors that likely point to the eBPF client. These errors will
 - `ERROR_FILE_NOT_FOUND`. This indicates that the application tried to open an eBPF program with an invalid path. This
   points to an issue within the application. The resolution is to change the path used by the application.
 
+- `Program type is not valid`. The trace shows `Program type` guid is zero. Hence `ebpf_program_create` failed. The subsequent traces show 'An invalid parameter was passed to a service or function' and 'The parameter is incorrect' indicating that the user-mode application failed to set a valid program type in the eBPF program.
+   ```
+   [2]1C10.1B78::2023/06/23-19:45:16.265726200 [EbpfForWindowsProvider]{"Message":"Program type must be specified.","*guid":"{00000000-0000-0000-0000-000000000000}","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericMessage","time":"2023-06-24T02:45:16.2657262Z","cpu":2,"pid":7184,"tid":7032,"channel":11,"level":2,"keywords":"0x80"}}
+
+   [2]1C10.1B78::2023/06/23-19:45:16.265726800 [EbpfForWindowsProvider]{"ErrorMessage":"ebpf_program_create returned error","Error":6,"meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericError","time":"2023-06-24T02:45:16.2657268Z","cpu":2,"pid":7184,"tid":7032,"channel":11,"level":2,"keywords":"0x2"}}
+
+   [2]1C10.1B78::2023/06/23-19:45:16.265740500 [EbpfForWindowsProvider]{"Api":"\"ebpf_core_invoke_protocol_handler\"","status":"0xC000000D(NT=An invalid parameter was passed to a service or function.)","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfApiError","time":"2023-06-24T02:45:16.2657405Z","cpu":2,"pid":7184,"tid":7032,"channel":11,"level":2,"keywords":"0x4"}}
+
+   [2]1C10.1B78::2023/06/23-19:45:16.265779400 [EbpfForWindowsProvider]{"Api":"DeviceIoControl","last_error":"87(WIN=The parameter is incorrect.)","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfApiError","time":"2023-06-24T02:45:16.2657794Z","cpu":2,"pid":7184,"tid":7032,"channel":11,"level":2,"keywords":"0x100"}}
+   ```
+
 **NMR Attach Failures**
 
 Another possibility is NMR attach failing. When this occurs, you may see error traces in
@@ -424,9 +435,10 @@ Another possibility is NMR attach failing. When this occurs, you may see error t
 
 [1]48D498.48D750::2023/07/18-18:49:07.123136900 [EbpfForWindowsProvider]{"Api":"DeviceIoControl","last_error":"2001(WIN=The specified driver is invalid.)","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfApiError","time":"2023-07-19T01:49:07.1231369Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":2,"keywords":"0x100"}}
 ```
+
 Check the Program type's guid and Attach type's guid in the trace. Program type and Attach type must have valid guid.
 
-The first trace shows `Attach type` guid is zero. Hence `ebpf_program_create` failed. The subsequent traces show 'Unable to Load Device Driver' and 'The specified driver is invalid' indicating that this is a NMR failure due to an invalid attach type.
+The first trace shows `Program type` guid is valid but `Attach type` guid is zero. Hence `ebpf_program_create` failed. The subsequent traces show 'Unable to Load Device Driver' and 'The specified driver is invalid' indicating that this is a NMR failure due to an invalid attach type.
 
 
 **Mitigation**: If you observe NMR failures, you can attempt to restart `netebpfext` and `ebpfcore`:
