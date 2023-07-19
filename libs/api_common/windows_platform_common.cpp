@@ -739,7 +739,9 @@ _load_ebpf_provider_data()
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        clear_ebpf_provider_data();
+        _windows_program_types.clear();
+        _windows_section_definitions.clear();
+        _windows_program_information.clear();
     }
 }
 
