@@ -16,11 +16,6 @@
 static std::wstring
 _get_wstring_from_string(std::string text)
 {
-    // This is deprecated
-    // std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    // std::wstring wide = converter.from_bytes(text);
-    // return wide;
-
     int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
     std::wstring wide(length, 0);
     MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, &wide[0], length);
