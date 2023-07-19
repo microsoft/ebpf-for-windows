@@ -15,9 +15,10 @@ wdk_add_driver("EbpfCore" WINVER "${EBPFFORWINDOWS_WDK_WINVER}" KMDF "${EBPFFORW
 
 target_include_directories("EbpfCore" PRIVATE
   "${CMAKE_SOURCE_DIR}/include"
+  "${CMAKE_SOURCE_DIR}/libs/execution_context"
   "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
-  "${CMAKE_SOURCE_DIR}/libs/execution_context"
+  "${CMAKE_SOURCE_DIR}/libs/store_helper/kernel"
   "${CMAKE_SOURCE_DIR}/resource"
   "${CMAKE_CURRENT_SOURCE_DIR}"
 )
@@ -28,6 +29,7 @@ target_link_directories("EbpfCore" PRIVATE
 
 target_link_libraries("EbpfCore"
   "ebpf_for_windows_common_settings"
+  "ebpf_store_helper_km"
   "execution_context_kernel"
   "platform_kernel"
   "external::ebpfverifier_headers"
