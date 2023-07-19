@@ -416,23 +416,18 @@ There are certain errors that likely point to the eBPF client. These errors will
 Another possibility is NMR attach failing. When this occurs, you may see error traces in
 [eBPF diagnostic traces](./Diagnostics.md#ebpf-diagnostic-traces) such as:
 ```
-[0]0C38.0490::2023/05/10-13:48:19.502521000 [EbpfForWindowsProvider]{"ErrorMessage":"ebpf_program_create returned
-error","Error":23,"meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericError",
-"time":"2023-05-10T20:48:19.5025210Z","cpu":0,"pid":3128,"tid":1168,"channel":11,"level":2,"keywords":"0x4"}}
+[1]48D498.48D750::2023/07/18-18:49:07.123107000 [EbpfForWindowsProvider]{"Message":"Program type and Attach type:","*guid1":"{f1832a85-85d5-45b0-98a0-7069d63013b0}","*guid2":"{00000000-0000-0000-0000-000000000000}","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericMessage","time":"2023-07-19T01:49:07.1231070Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":4,"keywords":"0x80"}}
 
-[1]0AE4.1B34::2023/05/10-13:54:44.309563500 [EbpfForWindowsProvider]{"ErrorMessage":
-"_ebpf_extension_client_attach_provider returned error","Error":-1073741127,"meta":{"provider":
-"EbpfForWindowsProvider","event":"EbpfGenericError","time":"2023-05-10T20:54:44.3095635Z","cpu":1,"pid":2788,"tid":
-6964,"channel":11,"level":2,"keywords":"0x4"}}
+[1]48D498.48D750::2023/07/18-18:49:07.123122800 [EbpfForWindowsProvider]{"ErrorMessage":"ebpf_program_create returned error","Error":23,"meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericError","time":"2023-07-19T01:49:07.1231228Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":2,"keywords":"0x2"}}
 
-[1]0AE4.1B34::2023/05/10-13:54:44.309569900 [EbpfForWindowsProvider]{"ErrorMessage":"_ebpf_program_load_providers
-returned error","Error":23,"meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericError","time":
-"2023-05-10T20:54:44.3095699Z","cpu":1,"pid":2788,"tid":6964,"channel":11,"level":2,"keywords":"0x4"}}
+[1]48D498.48D750::2023/07/18-18:49:07.123127100 [EbpfForWindowsProvider]{"Api":"\"ebpf_core_invoke_protocol_handler\"","status":"0xC000026C(NT=Unable to Load Device Driver)","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfApiError","time":"2023-07-19T01:49:07.1231271Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":2,"keywords":"0x4"}}
+
+[1]48D498.48D750::2023/07/18-18:49:07.123136900 [EbpfForWindowsProvider]{"Api":"DeviceIoControl","last_error":"2001(WIN=The specified driver is invalid.)","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfApiError","time":"2023-07-19T01:49:07.1231369Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":2,"keywords":"0x100"}}
 ```
+Check the Program type's guid and Attach type's guid in the trace. Program type and Attach type must have valid guid.
 
-The first trace shows `ebpf_program_create` failed. Then, we see that `_ebpf_extension_client_attach_provider` fails,
-indicating that this is a NMR failure. Furthermore, we see `_ebpf_program_load_providers` which shows that the NMR
-provider load failed.
+The first trace shows `Attach type` guid is zero. Hence `ebpf_program_create` failed. The subsequent traces show 'Unable to Load Device Driver' and 'The specified driver is invalid' indicating that this is a NMR failure due to an invalid attach type.
+
 
 **Mitigation**: If you observe NMR failures, you can attempt to restart `netebpfext` and `ebpfcore`:
 ```
@@ -441,7 +436,9 @@ sc.exe stop netebpext
 sc.exe start ebpfcore
 sc.exe start netebpfext
 ```
-Then, attempt to load the program again. If this continues to fail, you will need to look further in
+Note: If `ebpfcore` fails to stop, you can attempt to restart `ebpfsvc` and then `ebpfcore`.
+
+Then, attempt to load the program again. If this continues to fail, check your ebpf program source code to see if it has incorporated valid program type and attach type. If the problem still persists, you will need to look further in
 [eBPF diagnostic traces](./Diagnostics.md#ebpf-diagnostic-traces).
 
 --------------------
