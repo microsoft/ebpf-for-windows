@@ -24,7 +24,12 @@ extern ebpf_registry_key_t ebpf_root_registry_key;
 #include "ebpf_windows.h"
 
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
-typedef _Return_type_success_(NT_SUCCESS(return == EBPF_SUCCESS)) uint32_t ebpf_registry_result_t;
+
+#ifndef USER_MODE
+typedef _Return_type_success_(NT_SUCCESS(return )) uint32_t ebpf_registry_result_t;
+#else
+typedef _Return_type_success_(return == EBPF_SUCCESS) uint32_t ebpf_registry_result_t;
+#endif
 
 /**
  * @brief Open or create the root of the eBPF registry store.

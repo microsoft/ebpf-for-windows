@@ -174,7 +174,9 @@ _load_program_data_information(
             goto Exit;
         }
 
-        auto program_type_name_string = ebpf_down_cast_from_wstring(std::wstring(program_type_name));
+        auto program_type_name_string = (program_type_name != nullptr)
+                                            ? ebpf_down_cast_from_wstring(std::wstring(program_type_name))
+                                            : ebpf_down_cast_from_wstring(std::wstring(L""));
 
         program_information = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
         if (program_information == nullptr) {
