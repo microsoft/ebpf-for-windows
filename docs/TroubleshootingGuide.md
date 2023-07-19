@@ -411,7 +411,7 @@ There are certain errors that likely point to the eBPF client. These errors will
 - `ERROR_FILE_NOT_FOUND`. This indicates that the application tried to open an eBPF program with an invalid path. This
   points to an issue within the application. The resolution is to change the path used by the application.
 
-- `Program type is not valid`. The trace shows `Program type` guid is zero. Hence `ebpf_program_create` failed. The subsequent traces show 'An invalid parameter was passed to a service or function' and 'The parameter is incorrect' indicating that the user-mode application failed to set a valid program type in the eBPF program.
+- `ERROR_INVALID_PARAMETER`. The trace shows `Program type` GUID is zero. Hence `ebpf_program_create` failed. The subsequent traces show `'An invalid parameter was passed to a service or function'` and `'The parameter is incorrect'` indicating that the user-mode application failed to set a valid program type in the eBPF program.
    ```
    [2]1C10.1B78::2023/06/23-19:45:16.265726200 [EbpfForWindowsProvider]{"Message":"Program type must be specified.","*guid":"{00000000-0000-0000-0000-000000000000}","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericMessage","time":"2023-06-24T02:45:16.2657262Z","cpu":2,"pid":7184,"tid":7032,"channel":11,"level":2,"keywords":"0x80"}}
 
@@ -425,33 +425,34 @@ There are certain errors that likely point to the eBPF client. These errors will
 **NMR Attach Failures**
 
 Another possibility is NMR attach failing. When this occurs, you may see error traces in
-[eBPF diagnostic traces](./Diagnostics.md#ebpf-diagnostic-traces) such as:
-```
-[1]48D498.48D750::2023/07/18-18:49:07.123107000 [EbpfForWindowsProvider]{"Message":"Program type and Attach type:","*guid1":"{f1832a85-85d5-45b0-98a0-7069d63013b0}","*guid2":"{00000000-0000-0000-0000-000000000000}","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericMessage","time":"2023-07-19T01:49:07.1231070Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":4,"keywords":"0x80"}}
-
-[1]48D498.48D750::2023/07/18-18:49:07.123122800 [EbpfForWindowsProvider]{"ErrorMessage":"ebpf_program_create returned error","Error":23,"meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericError","time":"2023-07-19T01:49:07.1231228Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":2,"keywords":"0x2"}}
-
-[1]48D498.48D750::2023/07/18-18:49:07.123127100 [EbpfForWindowsProvider]{"Api":"\"ebpf_core_invoke_protocol_handler\"","status":"0xC000026C(NT=Unable to Load Device Driver)","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfApiError","time":"2023-07-19T01:49:07.1231271Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":2,"keywords":"0x4"}}
-
-[1]48D498.48D750::2023/07/18-18:49:07.123136900 [EbpfForWindowsProvider]{"Api":"DeviceIoControl","last_error":"2001(WIN=The specified driver is invalid.)","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfApiError","time":"2023-07-19T01:49:07.1231369Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":2,"keywords":"0x100"}}
-```
-
-Check the Program type's GUID and Attach type's GUID in the trace. Program type and Attach type must have valid GUIDs.
-
-The first trace shows the `Program type` GUID is valid but the `Attach type` GUID is zero. Hence `ebpf_program_create` failed. The subsequent traces show 'Unable to Load Device Driver' and 'The specified driver is invalid' indicating that this is an NMR failure due to an invalid attach type.
-
-
-**Mitigation**: If you observe NMR failures, you can attempt to restart `netebpfext` and `ebpfcore`:
-```
-sc.exe stop ebpfcore
-sc.exe stop netebpext
-sc.exe start ebpfcore
-sc.exe start netebpfext
-```
-Note: If `ebpfcore` fails to stop, you can attempt to restart `ebpfsvc` and then `ebpfcore`.
-
-Then, attempt to load the program again. If this continues to fail, check your eBPF program source code to see if it has incorporated a valid program type and attach type. If the problem still persists, you will need to look further in
 [eBPF diagnostic traces](./Diagnostics.md#ebpf-diagnostic-traces).
+- `Invalid Program or Attach type`
+    ```
+    [1]48D498.48D750::2023/07/18-18:49:07.123107000 [EbpfForWindowsProvider]{"Message":"Program type and Attach type:","*guid1":"{f1832a85-85d5-45b0-98a0-7069d63013b0}","*guid2":"{00000000-0000-0000-0000-000000000000}","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericMessage","time":"2023-07-19T01:49:07.1231070Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":4,"keywords":"0x80"}}
+
+    [1]48D498.48D750::2023/07/18-18:49:07.123122800 [EbpfForWindowsProvider]{"ErrorMessage":"ebpf_program_create returned error","Error":23,"meta":{"provider":"EbpfForWindowsProvider","event":"EbpfGenericError","time":"2023-07-19T01:49:07.1231228Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":2,"keywords":"0x2"}}
+
+    [1]48D498.48D750::2023/07/18-18:49:07.123127100 [EbpfForWindowsProvider]{"Api":"\"ebpf_core_invoke_protocol_handler\"","status":"0xC000026C(NT=Unable to Load Device Driver)","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfApiError","time":"2023-07-19T01:49:07.1231271Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":2,"keywords":"0x4"}}
+
+    [1]48D498.48D750::2023/07/18-18:49:07.123136900 [EbpfForWindowsProvider]{"Api":"DeviceIoControl","last_error":"2001(WIN=The specified driver is invalid.)","meta":{"provider":"EbpfForWindowsProvider","event":"EbpfApiError","time":"2023-07-19T01:49:07.1231369Z","cpu":1,"pid":4773016,"tid":4773712,"channel":11,"level":2,"keywords":"0x100"}}
+    ```
+
+    Check the Program type's GUID and Attach type's GUID in the trace. Program type and Attach type must have valid GUIDs. Listed [here](https://github.com/microsoft/ebpf-for-windows/blob/main/include/ebpf_program_attach_type_guids.h)
+
+    The first trace shows the `Program type` GUID is valid but the `Attach type` GUID is zero. Hence `ebpf_program_create` failed. The subsequent traces show `'Unable to Load Device Driver'` and `'The specified driver is invalid'` indicating that this is an NMR failure due to an invalid attach type.
+
+
+    **Mitigation**: If you observe NMR failures, you can attempt to restart `netebpfext` and `ebpfcore`:
+    ```
+    sc.exe stop ebpfcore
+    sc.exe stop netebpext
+    sc.exe start ebpfcore
+    sc.exe start netebpfext
+    ```
+    Note: If `ebpfcore` fails to stop, you can attempt to restart `ebpfsvc` and then `ebpfcore`.
+
+    Then, attempt to load the program again. If this continues to fail, check your eBPF program source code to see if it has incorporated a valid program type and attach type. If the problem still persists, you will need to look further in
+    [eBPF diagnostic traces](./Diagnostics.md#ebpf-diagnostic-traces).
 
 --------------------
 
