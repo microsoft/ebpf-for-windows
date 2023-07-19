@@ -450,7 +450,7 @@ sc.exe start netebpfext
 ```
 Note: If `ebpfcore` fails to stop, you can attempt to restart `ebpfsvc` and then `ebpfcore`.
 
-Then, attempt to load the program again. If this continues to fail, check your ebpf program source code to see if it has incorporated valid program type and attach type. If the problem still persists, you will need to look further in
+Then, attempt to load the program again. If this continues to fail, check your eBPF program source code to see if it has incorporated a valid program type and attach type. If the problem still persists, you will need to look further in
 [eBPF diagnostic traces](./Diagnostics.md#ebpf-diagnostic-traces).
 
 --------------------
