@@ -584,11 +584,7 @@ SPDX-License-Identifier: MIT
 				<File Id="TCP.H" Name="tcp.h" Source="$(var.SolutionDir)include\uapi\linux\tcp.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_include_user" Directory="dir_include_user">
-			<Component Id="EBPF_STORE_HELPER_UM.H" DiskId="1" Guid="{D1BF1F4F-BD3D-484E-89D9-77A94522FC97}">
-				<File Id="EBPF_STORE_HELPER_UM.H" Name="ebpf_store_helper_um.h" Source="$(var.SolutionDir)include\ebpf_store_helper_um.h" />
-			</Component>
-		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_include_user" Directory="dir_include_user"/>
 		<ComponentGroup Id="eBPF_Development_libs" Directory="dir_lib">
 			<Component Id="eBPFApi_lib" Guid="{A164197B-3C57-4ECA-B138-CBF558DA4401}">
 				<File Id="EbpfApi.lib" Name="EbpfApi.lib" DiskId="1" Source="$(var.api.TargetDir)EbpfApi.lib" />
