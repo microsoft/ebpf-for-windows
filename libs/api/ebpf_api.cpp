@@ -1909,7 +1909,6 @@ _ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info) noexcept
     }
     ebpf_free((void*)info->program_name);
     ebpf_free((void*)info->section_name);
-    ebpf_free((void*)info->program_type_name);
     ebpf_free(info->raw_data);
     ebpf_free(info);
     EBPF_LOG_EXIT();
@@ -2149,7 +2148,6 @@ _ebpf_pe_add_section(
         return 0;
     }
     ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
-    const char* program_type_name = nullptr;
 
     // Get ELF section name.
     if (!pe_context->section_names.contains(pe_section_name)) {
@@ -2186,23 +2184,9 @@ _ebpf_pe_add_section(
     info->program_type = pe_context->section_program_types[pe_section_name];
     info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
 
-    program_type_name = ebpf_get_program_type_name(&pe_context->section_program_types[pe_section_name]);
-    if (program_type_name == nullptr) {
-        pe_context->result = EBPF_NO_MEMORY;
-        return_value = 1;
-        goto Exit;
-    }
-
-    info->program_type_name = ebpf_duplicate_string(program_type_name);
-    if (info->program_type_name == nullptr) {
-        pe_context->result = EBPF_NO_MEMORY;
-        return_value = 1;
-        goto Exit;
-    }
-
     info->raw_data_size = section_header.Misc.VirtualSize;
     info->raw_data = (char*)ebpf_allocate(section_header.Misc.VirtualSize);
-    if (info->raw_data == nullptr || info->program_type_name == nullptr || info->section_name == nullptr) {
+    if (info->raw_data == nullptr || info->section_name == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
         goto Exit;
