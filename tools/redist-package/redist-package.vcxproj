@@ -170,9 +170,6 @@ NuGet.exe pack $(OutDir)ebpf-for-windows-redist.nuspec -OutputDirectory $(OutDir
     <ProjectReference Include="..\..\tests\sample\sample.vcxproj">
       <Project>{b4ad72e3-754e-40ca-9cea-d3f2c9170e51}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\bpf2c\bpf2c.vcxproj">
-      <Project>{69b97e52-18dc-434e-a6e4-4c0f3e88c44a}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\bpftool\bpftool.vcxproj">
       <Project>{ca179b38-ebf5-4371-b830-73486e35250b}</Project>
     </ProjectReference>
