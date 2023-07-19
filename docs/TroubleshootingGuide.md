@@ -438,7 +438,7 @@ Another possibility is NMR attach failing. When this occurs, you may see error t
 
 Check the Program type's guid and Attach type's guid in the trace. Program type and Attach type must have valid guid.
 
-The first trace shows `Program type` guid is valid but `Attach type` guid is zero. Hence `ebpf_program_create` failed. The subsequent traces show 'Unable to Load Device Driver' and 'The specified driver is invalid' indicating that this is a NMR failure due to an invalid attach type.
+The first trace shows the `Program type` GUID is valid but the `Attach type` GUID is zero. Hence `ebpf_program_create` failed. The subsequent traces show 'Unable to Load Device Driver' and 'The specified driver is invalid' indicating that this is an NMR failure due to an invalid attach type.
 
 
 **Mitigation**: If you observe NMR failures, you can attempt to restart `netebpfext` and `ebpfcore`:
