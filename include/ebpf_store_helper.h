@@ -5,16 +5,10 @@
 
 #ifndef USER_MODE
 #include "framework.h"
-#define __return_type NTSTATUS
-#define _SUCCESS STATUS_SUCCESS
-#define IS_SUCCESS(x) (NT_SUCCESS(x))
 #else
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winreg.h>
-#define __return_type uint32_t
-#define IS_SUCCESS(x) (x == ERROR_SUCCESS)
-#define _SUCCESS NO_ERROR
 #endif
 
 #include "ebpf_program_types.h"
@@ -23,9 +17,15 @@
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
 
 #ifndef USER_MODE
+#define __return_type NTSTATUS
+#define _SUCCESS STATUS_SUCCESS
+#define IS_SUCCESS(x) (NT_SUCCESS(x))
 typedef HANDLE ebpf_registry_key_t;
 typedef _Return_type_success_(NT_SUCCESS(return )) uint32_t ebpf_registry_result_t;
 #else
+#define __return_type uint32_t
+#define IS_SUCCESS(x) (x == ERROR_SUCCESS)
+#define _SUCCESS NO_ERROR
 typedef HKEY ebpf_registry_key_t;
 extern ebpf_registry_key_t ebpf_root_registry_key;
 typedef _Return_type_success_(return == EBPF_SUCCESS) uint32_t ebpf_registry_result_t;
