@@ -125,16 +125,19 @@ create_registry_key_ansi(
 }
 
 _Must_inspect_result_ ebpf_registry_result_t
-read_registry_value_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Outptr_result_z_ wchar_t** value)
+read_registry_value_string(
+    ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Outptr_result_maybenull_ wchar_t** value)
 {
     uint32_t status = ERROR_SUCCESS;
     unsigned long type = REG_SZ;
     unsigned long value_size = 0;
     wchar_t* string_value = nullptr;
 
-    __analysis_assume(value != nullptr);
+    if (value == nullptr) {
+        return ERROR_INVALID_PARAMETER;
+    }
 
-    *value = 0;
+    *value = nullptr;
     status = RegQueryValueEx(key, value_name, 0, &type, nullptr, &value_size);
     if (status != ERROR_SUCCESS || type != REG_SZ) {
         if (type != REG_SZ) {

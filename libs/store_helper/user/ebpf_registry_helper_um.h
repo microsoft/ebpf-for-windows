@@ -64,4 +64,4 @@ create_registry_key_ansi(
 
 _Must_inspect_result_ ebpf_registry_result_t
 read_registry_value_string(
-    ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Outptr_result_z_ wchar_t** value);
+    ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Outptr_result_maybenull_ wchar_t** value);
