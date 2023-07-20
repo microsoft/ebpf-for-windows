@@ -70,7 +70,6 @@ reflect_packet(xdp_md_t* ctx)
                 swap_ipv6_addresses(ipv6_header);
                 swap_ports(udp_header);
                 rc = XDP_TX;
-
                 goto Done;
             }
         }

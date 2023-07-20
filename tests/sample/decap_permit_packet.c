@@ -24,20 +24,6 @@ decapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
     // Find the length of the outer IPv4 header.
     IPV4_HEADER* ipv4_header = (IPV4_HEADER*)(old_ethernet_header + 1);
     uint64_t outer_ipv4_length = sizeof(uint32_t) * ipv4_header->HeaderLength;
-
-    // char* next_header = (char*)ctx->data;
-    // if (next_header + sizeof(IPV4_HEADER) > next_header) {
-    //     goto Done;
-    // }
-    // next_header = (char*)ipv4_header + sizeof(uint32_t) * ipv4_header->HeaderLength;
-    // IPV4_HEADER* inner_ipv4_header = (IPV4_HEADER*)next_header;
-    // if (next_header + sizeof(IPV4_HEADER) > next_header) {
-    //     goto Done;
-    // }
-    // next_header = (char*)inner_ipv4_header + sizeof(uint32_t) * inner_ipv4_header->HeaderLength;
-    // UDP_HEADER* udp_header = (UDP_HEADER*)next_header;
-    // swap_ports(udp_header);
-
     // The new position of the ethernet header after de-capsulation of the outer IP header would be at an offset
     // outer_ipv4_length from the beginning of the buffer.
     if ((char*)ctx->data + outer_ipv4_length > (char*)ctx->data_end) {
