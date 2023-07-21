@@ -110,7 +110,7 @@ static thread_local std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t,
 
 // Global cache for the program and section information queried from eBPF store.
 typedef std::unique_ptr<ebpf_section_definition_t, _ebpf_section_info_deleter> ebpf_section_info_ptr_t;
-std::mutex _windows_program_information_lock;
+std::unique_ptr<std::once_flag> _windows_program_information_init_flag = std::make_unique<std::once_flag>();
 static std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t, guid_compare> _windows_program_types;
 static std::vector<ebpf_section_info_ptr_t> _windows_section_definitions;
 static std::map<ebpf_program_type_t, ebpf_program_info_ptr_t, guid_compare> _windows_program_information;
@@ -716,29 +716,24 @@ Exit:
 static void
 _load_ebpf_provider_data()
 {
-    std::unique_lock lock(_windows_program_information_lock);
+    try {
+        std::call_once(*_windows_program_information_init_flag, [] {
+            ebpf_result_t result = _load_all_program_data_information();
+            if (result != EBPF_SUCCESS) {
+                throw std::runtime_error("Failed to load program information from eBPF store.");
+            }
 
-    if (!_windows_program_information.empty()) {
-        return;
-    }
+            result = _load_all_section_data_information();
+            if (result != EBPF_SUCCESS) {
+                throw std::runtime_error("Failed to load section information from eBPF store.");
+            }
 
-    ebpf_result_t result = _load_all_program_data_information();
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    result = _load_all_section_data_information();
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    result = _load_all_global_helper_information();
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-Exit:
-    if (result != EBPF_SUCCESS) {
+            result = _load_all_global_helper_information();
+            if (result != EBPF_SUCCESS) {
+                throw std::runtime_error("Failed to load global helper information from eBPF store.");
+            }
+        });
+    } catch (...) {
         _windows_program_types.clear();
         _windows_section_definitions.clear();
         _windows_program_information.clear();
@@ -748,11 +743,12 @@ Exit:
 void
 clear_ebpf_provider_data()
 {
-    std::unique_lock lock(_windows_program_information_lock);
-
     _windows_program_types.clear();
     _windows_section_definitions.clear();
     _windows_program_information.clear();
+
+    // Reset the flag so that the data is reloaded when needed.
+    _windows_program_information_init_flag = std::make_unique<std::once_flag>();
 }
 
 _Ret_maybenull_ static const ebpf_program_info_t*
