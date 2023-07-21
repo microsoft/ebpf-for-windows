@@ -171,14 +171,17 @@ handle_ebpf_show_sections(
         if (!section.empty() && strcmp(current_section->section_name, section.c_str()) != 0) {
             continue;
         }
+        auto program_type_name = ebpf_get_program_type_name(&current_section->program_type);
+        if (program_type_name == nullptr) {
+            program_type_name = "unspec";
+        }
         if (level == VL_NORMAL) {
             std::cout << std::setw(20) << std::right << current_section->section_name << "  " << std::setw(9)
-                      << current_section->program_type_name << "  " << std::setw(7) << current_section->raw_data_size
-                      << "\n";
+                      << program_type_name << "  " << std::setw(7) << current_section->raw_data_size << "\n";
         } else {
             std::cout << "\n";
             std::cout << "Section      : " << current_section->section_name << "\n";
-            std::cout << "Program Type : " << current_section->program_type_name << "\n";
+            std::cout << "Program Type : " << program_type_name << "\n";
             std::cout << "Size         : " << current_section->raw_data_size << " bytes\n";
             for (auto stat = current_section->stats; stat != nullptr; stat = stat->next) {
                 std::cout << std::setw(13) << std::left << stat->key << ": " << stat->value << "\n";

@@ -56,7 +56,6 @@ extern "C"
     {
         struct _ebpf_section_info* next;
         _Field_z_ const char* section_name;
-        _Field_z_ const char* program_type_name;
         _Field_z_ const char* program_name;
         ebpf_program_type_t program_type;
         ebpf_attach_type_t expected_attach_type;
