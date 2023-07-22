@@ -20,6 +20,9 @@ parameters:
   - name: build_codeql
     type: boolean
     default: false
+  - name: build_msi
+    type: boolean
+    default: false
   - name: build_nuget
     type: boolean
     default: false
@@ -29,6 +32,9 @@ parameters:
   - name: ld_flags
     type: string
     default: ''
+  - name: configurations
+    type: object
+    default: ["Debug", "Release"]
 
 
 jobs:
@@ -37,11 +43,9 @@ jobs:
 
     strategy:
       matrix:
-        Debug:
-          buildConfiguration: 'Debug'
-        Release:
-          buildConfiguration: 'Release'
-      maxParallel: 2
+        ${{ each configuration in parameters.configurations }}:
+          ${{ configuration }}:
+            buildConfiguration: ${{ configuration }}
 
     pool:
       vmImage: 'windows-2022'
@@ -60,6 +64,13 @@ jobs:
       GDN_CODESIGN_TARGETDIRECTORY: '$(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)'
 
     steps:
+      - script: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          echo "##vso[task.setvariable variable=msvc_tools_path;isOutput=true]%VCToolsInstallDir%"
+          echo "##vso[task.setvariable variable=msvc_tools_version;isOutput=true]%VCToolsVersion%"
+        name: msvc_variables
+        displayName: 'Set MSVC Environment Variables'
+
       - checkout: self
         displayName: 'Checkout Repo'
         submodules: 'recursive'
@@ -114,18 +125,26 @@ jobs:
         displayName: 'Build'
 
       - script: |
-          copy "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\clang*" .
+          copy "$(msvc_variables.msvc_tools_path)\bin\Hostx64\x64\clang*"" .
         workingDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
         displayName: 'Copy LLVM libs for Fuzzing & Address Sanitizing'
 
       - powershell: |
-          Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/$(BUILD_PLATFORM)-$(BUILD_CONFIGURATION)-cilium-xdp.zip -OutFile x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
+          Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/$(BUILD_PLATFORM)-Debug-cilium-xdp.zip -OutFile x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
         workingDirectory: $(Build.SourcesDirectory)
-        displayName: 'Download demo repository'
+        condition: or(eq(variables.buildConfiguration, 'Debug'), eq(variables.buildConfiguration, 'NativeOnlyDebug'))
+        displayName: 'Download demo Debug repository'
+
+      - powershell: |
+          Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/$(BUILD_PLATFORM)-Release-cilium-xdp.zip -OutFile x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
+        workingDirectory: $(Build.SourcesDirectory)
+        condition: or(eq(variables.buildConfiguration, 'Release'), eq(variables.buildConfiguration, 'NativeOnlyRelease'))
+        displayName: 'Download demo Release repository'
 
       - script: |
           tar -xf ..\..\x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
         workingDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
+        condition: ne(variables.buildConfiguration, 'FuzzerDebug')
         displayName: 'Extract artifacts to build path'
 
       - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
@@ -133,20 +152,15 @@ jobs:
         displayName: 'Upload Build Output'
 
       - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)/ebpf-for-windows.msi
-        artifact: "ebpf-for-windows MSI installer $(buildConfiguration)"
-        condition: and(eq('${{parameters.build_artifact}}', 'Build-x64'), eq(variables.buildConfiguration, 'Debug'))
-        displayName: 'Upload the MSI package (Debug)'
-
-      - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)/ebpf-for-windows.msi
-        artifact: "ebpf-for-windows MSI installer $(buildConfiguration)"
-        condition: and(eq('${{parameters.build_artifact}}', 'Build-x64'), eq(variables.buildConfiguration, 'Release'))
-        displayName: 'Upload the MSI package (Release)'
+        artifact: "ebpf-for-windows - MSI installer (${{parameters.build_artifact}}_$(buildConfiguration))"
+        condition: and(eq('${{parameters.build_msi}}', 'true'), ne(variables.buildConfiguration, 'FuzzerDebug'))
+        displayName: 'Upload the MSI package'
 
       - script: |
           "$(MSBUILD_PATH)\msbuild.exe" /m /p:Configuration="$(BUILD_CONFIGURATION)" /p:Platform="$(BUILD_PLATFORM)" "$(SOLUTION_FILE_PATH)" "$(BUILD_OPTIONS)" /t:tools\nuget
         condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'))
         workingDirectory: $(Build.SourcesDirectory)
-        displayName: 'Build nuget package'
+        displayName: 'Build the NuGet package'
 
       - bash: |
           echo "##vso[task.setvariable variable=REL_NUGET_PACKAGE_PATH;isOutput=true]$(ls $(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)/*.nupkg)"

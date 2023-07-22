@@ -52,7 +52,7 @@ jobs:
           echo '##vso[task.prependpath]C:\Program Files\LLVM\bin'
         displayName:  'Install tools'
         workingDirectory: $(Build.SourcesDirectory)
-        
+
       - bash: |
           echo "New path is $PATH"
           echo "StagingDirectory is $(Build.StagingDirectory)"

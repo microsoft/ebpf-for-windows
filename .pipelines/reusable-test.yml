@@ -45,19 +45,20 @@ parameters:
   - name: leak_detection
     type: boolean
     default: false
+  - name: configurations
+    type: object
+    default: ["Debug", "Release"]
 
 jobs:
   - job: ${{parameters.name}}
     dependsOn: ${{parameters.dependency}}
-    timeoutInMinutes: 60
+    timeoutInMinutes: 90
 
     strategy:
       matrix:
-        Debug:
-          buildConfiguration: 'Debug'
-        Release:
-          buildConfiguration: 'Release'
-      maxParallel: 2
+        ${{ each configuration in parameters.configurations }}:
+          ${{ configuration }}:
+            buildConfiguration: ${{ configuration }}
 
     pool:
       vmImage: ${{parameters.environment}}
@@ -75,6 +76,8 @@ jobs:
       EBPF_MEMORY_LEAK_DETECTION: ${{parameters.leak_detection}}
       # Skip Codesign Validation task, as ths is a test job.
       runCodesignValidationInjection: false
+      DUMP_PATH: c:\dumps\$(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)
+      TEST_TIMEOUT: 3600 # 1 hour timeout for tests.
 
     steps:
       # Checking out the branch is needed to gather correct code coverage data.
@@ -92,6 +95,13 @@ jobs:
         displayName: 'Shallow Checkout Repo'
 
       - bash: |
+          choco install -y procdump
+          where procdump.exe
+        condition: eq('${{parameters.gather_dumps}}', 'true')
+        name: install_procdump
+        displayName: 'Install ProcDump'
+
+      - bash: |
           choco install -y --requirechecksum=true --checksum=2295A733DA39412C61E4F478677519DD0BB1893D88313CE56B468C9E50517888 --checksum-type=sha256 OpenCppCoverage
           echo '##vso[task.prependpath]C:\Program Files\OpenCppCoverage'
         condition: and(eq('${{parameters.code_coverage}}', 'true'), ne('${{parameters.environment}}', 'ebpf_cicd_tests'))
@@ -99,10 +109,11 @@ jobs:
         displayName:  'Set up OpenCppCoverage and add to PATH'
 
       - powershell: |
-          mkdir c:\dumps\$(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)
+          mkdir $(DUMP_PATH)
           New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
           New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
-          New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps\$(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)" -PropertyType ExpandString -ErrorAction SilentlyContinue
+          $dump_path = "$(DUMP_PATH)".Replace("/", "\")
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "$dump_path" -PropertyType ExpandString -ErrorAction SilentlyContinue
         condition: eq('${{parameters.gather_dumps}}', 'true')
         name: configure_windows_error_reporting
         displayName: 'Configure Windows Error Reporting to make a local copy of any crashes that occur'
@@ -161,14 +172,14 @@ jobs:
         displayName: Run test with Code Coverage in VS Dev environment
 
       - script: |
-          OpenCppCoverage.exe -q --cover_children --sources $(Build.SourcesDirectory)\$(PROJECT_NAME) --excluded_sources $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION) -- powershell.exe .\Test-FaultInjection.ps1 $(TEST_COMMAND) 4
+          OpenCppCoverage.exe -q --cover_children --sources $(Build.SourcesDirectory)\$(PROJECT_NAME) --excluded_sources $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION) -- powershell.exe .\Test-FaultInjection.ps1 $(DUMP_PATH) $(TEST_TIMEOUT) $(TEST_COMMAND) 4
         workingDirectory: $(Build.SourcesDirectory)/$(PROJECT_NAME)
         condition: and(eq('${{parameters.code_coverage}}', 'true'), eq('${{parameters.fault_injection}}', 'true'))
         name: run_test_with_code_coverage_with_fault_injection
         displayName: Run test with Code Coverage and low resource simulation
 
       - script: |
-          powershell.exe .\Test-FaultInjection.ps1 $(TEST_COMMAND) 16
+          powershell.exe .\Test-FaultInjection.ps1 $(DUMP_PATH) $(TEST_TIMEOUT) $(TEST_COMMAND) 16
         workingDirectory: $(Build.SourcesDirectory)/$(PROJECT_NAME)/$(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)
         condition: and(ne('${{parameters.code_coverage}}', 'true'), eq('${{parameters.fault_injection}}', 'true'))
         name: run_test_with_fault_injection
@@ -176,7 +187,7 @@ jobs:
 
       - script: |
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe -q --sources $(Build.SourcesDirectory)\$(PROJECT_NAME) --excluded_sources $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION) -- $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)\$(TEST_COMMAND)
+          OpenCppCoverage.exe -q --sources $(Build.SourcesDirectory)\$(PROJECT_NAME) --excluded_sources $(Build.SourcesDirectory)\$(PROJECT_NAME)\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir $(BUILD_PLATFORM)\$(BUILD_CONFIGURATION) -- powershell .\Run-Test.ps1 $(DUMP_PATH) $(TEST_TIMEOUT) $(TEST_COMMAND)
         workingDirectory: $(Build.SourcesDirectory)/$(PROJECT_NAME)
         condition: and(eq('${{parameters.code_coverage}}', 'true'), ne('${{parameters.vs_dev}}', 'true'), ne('${{parameters.fault_injection}}', 'true'))
         name: run_test_with_code_coverage
@@ -221,12 +232,13 @@ jobs:
         displayName: Copy any bpf2c test logs to TestLogs
 
       - powershell: |
-          $fileExists = Test-Path -Path "c:\dumps\$(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)\*.dmp"
+          $fileExists = Test-Path -Path "$(DUMP_PATH)\*.dmp"
           Write-Output "##vso[task.setvariable variable=FileExists;isOutput=true]$fileExists"
+        condition:  succeededOrFailed()
         name: check_dumps
         displayName: Check for crash dumps
 
-      - publish: 'c:/dumps/$(BUILD_PLATFORM)/$(buildConfiguration)'
+      - publish: '$(DUMP_PATH)'
         artifact: 'Crash-Dumps-$(NAME)-$(BUILD_PLATFORM)-$(BUILD_CONFIGURATION)'
         condition: and(succeededOrFailed(), eq('${{parameters.gather_dumps}}', 'true'), eq(variables['check_dumps.FileExists'], 'True'))
         displayName: "Upload any crash dumps"

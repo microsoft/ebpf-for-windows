@@ -4,7 +4,7 @@
 # This pipeline syncs the local repo with the upstream GitHub repo.
 
 schedules:
-- cron: '00 20 * * *'
+- cron: '00 6 * * *'
   displayName: Schedule mirror sync
   branches:
     include:
@@ -27,7 +27,7 @@ steps:
   displayName: 'Checkout Repository'
 
 - powershell: |
-    .\scripts\onebranch\sync-mirror.ps1 -BranchName $(Build.SourceBranchName)
+    .\scripts\onebranch\sync-mirror.ps1 -FullBranchName $(Build.SourceBranch)
   env:
     AZDO_PAT: $(AZDO_PAT)
     User: $(Build.QueuedBy)
