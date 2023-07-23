@@ -24,9 +24,15 @@ typedef struct _IPV4_HEADER
             uint8_t HeaderLength : 4;
             uint8_t Version : 4;
         };
+        struct // Linux field names.
+        {
+            uint8_t ihl : 4;
+            uint8_t version : 4;
+        };
     };
     union
     {
+        uint8_t tos;                      // Linux field name.
         uint8_t TypeOfServiceAndEcnField; // Type of service & ECN (RFC 3168).
         struct
         {
@@ -34,13 +40,24 @@ typedef struct _IPV4_HEADER
             uint8_t TypeOfService : 6;
         };
     };
-    uint16_t TotalLength; // Total length of datagram.
-    uint16_t Identification;
     union
     {
+        uint16_t tot_len;     // Linux field name.
+        uint16_t TotalLength; // Total length of datagram.
+    };
+    union
+    {
+        uint16_t id; // Linux field name.
+        uint16_t Identification;
+    };
+    union
+    {
+        uint16_t frag_off;       // Linux field name.
         uint16_t FlagsAndOffset; // Flags and fragment offset.
         struct
         {
+            // Order of fields here depends on MSVC compiler-specific behavior
+            // See https://learn.microsoft.com/en-us/cpp/c-language/c-bit-fields?view=msvc-170
             uint16_t DontUse1 : 5; // High bits of fragment offset.
             uint16_t MoreFragments : 1;
             uint16_t DontFragment : 1;
@@ -48,15 +65,31 @@ typedef struct _IPV4_HEADER
             uint16_t DontUse2 : 8; // Low bits of fragment offset.
         };
     };
-    uint8_t TimeToLive;
+    union
+    {
+        uint8_t ttl; // Linux field name.
+        uint8_t TimeToLive;
+    };
     union
     {
         uint8_t protocol; // Linux field name.
         uint8_t Protocol;
     };
-    uint16_t HeaderChecksum;
-    uint32_t SourceAddress;
-    uint32_t DestinationAddress;
+    union
+    {
+        uint16_t check; // Linux field name.
+        uint16_t HeaderChecksum;
+    };
+    union
+    {
+        uint32_t saddr; // Linux field name.
+        uint32_t SourceAddress;
+    };
+    union
+    {
+        uint32_t daddr; // Linux field name.
+        uint32_t DestinationAddress;
+    };
 } IPV4_HEADER, *PIPV4_HEADER;
 #if defined(_MSC_VER)
 #pragma warning(pop)
