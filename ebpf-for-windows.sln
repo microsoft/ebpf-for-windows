@@ -224,6 +224,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libbtf", "external\ebpf-verifier\build\external\libbtf\libbtf\libbtf.vcxproj", "{249E3FBC-0098-3E3E-80AE-C8F8EF6AB0E5}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "usersim_dll_skeleton", "external\usersim\usersim_dll_skeleton\usersim_dll_skeleton.vcxproj", "{1937DB41-F3EB-4955-A636-6386DCB394F6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EbpfCore_Usersim", "ebpfcore\usersim\EbpfCore_Usersim.vcxproj", "{1FDAD2FD-EBD8-462A-B285-ED5174E55079}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EbpfCore_Usersim", "ebpfcore\usersim\EbpfCore_Usersim.vcxproj", "{1FDAD2FD-EBD8-462A-B285-ED5174E55079}"
 EndProject
