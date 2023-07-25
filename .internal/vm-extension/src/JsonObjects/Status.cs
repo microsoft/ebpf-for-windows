@@ -10,90 +10,90 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins
     [DataContract]
     public class TopLevelStatus
     {
-        [DataMember(Name="version")]
+        [DataMember(Name = "version")]
         public string Version { get; set; }
 
-        [DataMember(Name="timestampUTC")]
+        [DataMember(Name = "timestampUTC")]
         public DateTime TimestampUTC { get; set; }
 
-        [DataMember(Name="status")]
+        [DataMember(Name = "status")]
         public StatusObj Status { get; set; }
     }
 
     [DataContract]
     public class StatusObj
     {
-        [DataMember(Name="name", EmitDefaultValue=false, IsRequired=false)]
+        [DataMember(Name = "name", EmitDefaultValue = false, IsRequired = false)]
         public string Name { get; set; }
 
-        [DataMember(Name="operation", EmitDefaultValue=false, IsRequired=false)]
+        [DataMember(Name = "operation", EmitDefaultValue = false, IsRequired = false)]
         public string Operation { get; set; }
 
-        [DataMember(Name="configurationAppliedTime", EmitDefaultValue=false, IsRequired=false)]
+        [DataMember(Name = "configurationAppliedTime", EmitDefaultValue = false, IsRequired = false)]
         public DateTime ConfigurationAppliedTime { get; set; }
 
         [IgnoreDataMember]
         public StatusEnum Status { get; set; }
 
         // workaround for serializing/deserializing an enum by its name
-        [DataMember(Name="status")]
+        [DataMember(Name = "status")]
         public string StatusString
         {
             get { return Enum.GetName(typeof(StatusEnum), this.Status); }
             set { this.Status = (StatusEnum)Enum.Parse(typeof(StatusEnum), value, false); }
         }
 
-        [DataMember(Name="code")]
+        [DataMember(Name = "code")]
         public int Code { get; set; }
 
-        [DataMember(Name="message", EmitDefaultValue=false, IsRequired=false)]
+        [DataMember(Name = "message", EmitDefaultValue = false, IsRequired = false)]
         public StatusMessage Message { get; set; }
 
-        [DataMember(Name="formattedMessage")]
+        [DataMember(Name = "formattedMessage")]
         public FormattedMessage FormattedMessage { get; set; }
 
-        [DataMember(Name="substatus")]
+        [DataMember(Name = "substatus")]
         public IList<SubstatusObj> Substatus { get; set; }
     }
 
     [DataContract]
-    public enum StatusEnum 
+    public enum StatusEnum
     {
         // Current version of the DataContractJsonSerializer ignores the EnumMember annotation
         [EnumMember(Value = "success")]
-        success, 
-        [EnumMember(Value="transitioning")]
-        transitioning, 
-        [EnumMember(Value="warning")]
+        success,
+        [EnumMember(Value = "transitioning")]
+        transitioning,
+        [EnumMember(Value = "warning")]
         warning,
-        [EnumMember(Value="error")]
+        [EnumMember(Value = "error")]
         error
     }
 
     [DataContract]
     public class StatusMessage
     {
-        [DataMember(Name="id")]
+        [DataMember(Name = "id")]
         public string Id { get; set; }
 
-        [DataMember(Name="params")]
+        [DataMember(Name = "params")]
         public IList<object> Params { get; set; }
     }
 
     [DataContract]
     public class FormattedMessage
     {
-        [DataMember(Name="lang")]
+        [DataMember(Name = "lang")]
         public string Lang { get; set; }
 
-        [DataMember(Name="message")]
+        [DataMember(Name = "message")]
         public string Message { get; set; }
     }
 
     [DataContract]
     public class SubstatusObj
     {
-        [DataMember(Name="name", EmitDefaultValue=false, IsRequired=false)]
+        [DataMember(Name = "name", EmitDefaultValue = false, IsRequired = false)]
         public string Name { get; set; }
 
         [IgnoreDataMember]
@@ -107,13 +107,13 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins
             set { this.Status = (StatusEnum)Enum.Parse(typeof(StatusEnum), value, true); }
         }
 
-        [DataMember(Name="code")]
+        [DataMember(Name = "code")]
         public int Code { get; set; }
 
-        [DataMember(Name="message", EmitDefaultValue=false, IsRequired=false)]
+        [DataMember(Name = "message", EmitDefaultValue = false, IsRequired = false)]
         public StatusMessage Message { get; set; }
 
-        [DataMember(Name="formattedMessage")]
+        [DataMember(Name = "formattedMessage")]
         public FormattedMessage FormattedMessage { get; set; }
     }
 }

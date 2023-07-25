@@ -1,0 +1,1 @@
+msiexec.exe /x installer\ebpf-for-windows.msi /qn

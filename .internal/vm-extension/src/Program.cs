@@ -17,10 +17,11 @@ using System.Runtime.Serialization.Json;
 namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
 {
     public class Program
-    {
+    { 
+        const int SCRIPT_TIMEOUT = 20000;
         private static Logger LOGGER;
         private static StatusObj handlerStatus;
-        
+
         public static void Main(string[] args)
         {
             // deserialize HandlerEnvironment.json
@@ -134,7 +135,7 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
         {
             var dir = new DirectoryInfo(configDir);
             var file = (from f in dir.GetFiles()
-                        orderby Convert.ToInt64( Path.GetFileNameWithoutExtension(f.Name) ) descending
+                        orderby Convert.ToInt64(Path.GetFileNameWithoutExtension(f.Name)) descending
                         select f).FirstOrDefault();
 
             long seqNum = 0;
@@ -146,7 +147,74 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
 
             return seqNum;
         }
-        
+
+        /// <summary>
+        /// Serializes an object into a JSON-formatted string
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <returns>A string with the serialized object "obj"</returns>
+        public static string SerializeObjectToJsonString<T>(T obj)
+        {
+            try
+            {
+                using (var stream = new MemoryStream())
+                {
+                    var serializer = new DataContractJsonSerializer(typeof(T));
+                    serializer.WriteObject(stream, obj);
+                    stream.Position = 0;
+                    var streamReader = new StreamReader(stream);
+                    return streamReader.ReadToEnd();
+                }
+            }
+            catch (Exception e)
+            {
+                LOGGER.Log(LogLevel.Error, "Failed to serialize object {0} to JSON string. Exception: {1}", obj, e);
+                throw e;
+            }
+        }
+
+        /// <summary>
+        /// Deserializes JSON-formatted data from a file into its respective object
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="fileName"></param>
+        /// <returns>Deserialized object of type T, read from file "fileName"</returns>
+        public static T DeserializeJsonStringFromFile<T>(string fileName)
+        {
+            try
+            {
+                var fileBytes = File.ReadAllBytes(fileName);
+                return DeserializeJsonBytes<T>(fileBytes);
+            }
+            catch (Exception e)
+            {
+                LOGGER.Log(LogLevel.Error, "Failed to deserialize JSON string from file {0}. Exception: {1}", fileName, e);
+                throw e;
+            }
+        }
+
+        /// <summary>
+        /// Deserializes JSON-formatted data from an array of bytes into its respective object
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="bytes"></param>
+        /// <returns>Deserialized object of type T, read from an array of bytes</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        private static T DeserializeJsonBytes<T>(byte[] bytes)
+        {
+            if (bytes == null)
+            {
+                throw new ArgumentNullException("bytes", "Cannot deserialize a null array of bytes");
+            }
+
+            using (var stream = new MemoryStream(bytes))
+            {
+                var serializer = new DataContractJsonSerializer(typeof(T));
+                return (T)serializer.ReadObject(stream);
+            }
+        }
+
         /// <summary>
         /// Reports the current status of the handler to its respective .status file, 
         /// overwriting the file's current contents.
@@ -170,7 +238,7 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
                 catch (Exception e)
                 {
                     writeAttempt++;
-                    LOGGER.Log(LogLevel.Warn, "Failed to write status to file \"{0}\". Will retry after {1} seconds. Exception: {2}", statusFile, writeAttempt, e.ToString());   
+                    LOGGER.Log(LogLevel.Warn, "Failed to write status to file \"{0}\". Will retry after {1} seconds. Exception: {2}", statusFile, writeAttempt, e.ToString());
                     Thread.Sleep(1000 * writeAttempt);
                 }
             }
@@ -179,65 +247,36 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
         }
 
         /// <summary>
-        /// Deserializes JSON-formatted data from a file into its respective object
+        /// Runs a CMD command
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="fileName"></param>
-        /// <returns></returns>
-        public static T DeserializeJsonStringFromFile<T>(string fileName)
+        /// <param name="command">Command line to be run through CMD.exe</param>
+        /// <param name="timeout">Maximum time alloud for the command execution</param>
+        /// <returns>The return code for the the command run</returns>
+        private static int RunCmdCommand(string command, int timeout)
         {
-            try
+            var process = new Process
             {
-                var fileBytes = File.ReadAllBytes(fileName);
-                return DeserializeJsonBytes<T>(fileBytes);
-            }
-            catch (Exception e)
-            {
-                LOGGER.Log(LogLevel.Error, "Failed to deserialize JSON string from file {0}. Exception: {1}", fileName, e);
-                throw e;
-            }
-        }
-
-        private static T DeserializeJsonBytes<T>(byte[] bytes)
-        {
-            if (bytes == null)
-            {
-                throw new ArgumentNullException("bytes", "Cannot deserialize a null array of bytes");
-            }
-
-            using (var stream = new MemoryStream(bytes))
-            {
-                var serializer = new DataContractJsonSerializer(typeof(T));
-                return (T)serializer.ReadObject(stream);
-            }
-        }
-
-        /// <summary>
-        /// Serializes an object into a JSON-formatted string
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public static string SerializeObjectToJsonString<T>(T obj)
-        {
-            try
-            {
-                using (var stream = new MemoryStream())
+                StartInfo = new ProcessStartInfo
                 {
-                    var serializer = new DataContractJsonSerializer(typeof(T));
-                    serializer.WriteObject(stream, obj);
-                    stream.Position = 0;
-                    var streamReader = new StreamReader(stream);
-                    return streamReader.ReadToEnd();
+                    FileName = "cmd.exe",
+                    Arguments = "/c " + command,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
                 }
-            }
-            catch (Exception e)
+            };
+            process.Start();
+            if (process.WaitForExit(timeout))
             {
-                LOGGER.Log(LogLevel.Error, "Failed to serialize object {0} to JSON string. Exception: {1}", obj, e);
-                throw e;
+                return process.ExitCode;
+            }
+            else
+            {
+                // Timeout occurred
+                process.Kill();
+                return -1;
             }
         }
-
 
         /// <summary>
         /// Installs the handler
@@ -245,7 +284,13 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
         private static void InstallHandler()
         {
             LOGGER.LogMessage("Installing Handler");
-            LOGGER.LogMessage("Handler successfully installed");
+            int ret = RunCmdCommand(@"scripts\install.cmd", SCRIPT_TIMEOUT);
+            if (ret == 0)
+            {
+                LOGGER.LogMessage("Handler successfully installed");
+            } else {
+                LOGGER.Log(LogLevel.Error, "FAILED installing handler -> Error{0}", ret);
+            }
         }
 
         /// <summary>
@@ -254,7 +299,15 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
         private static void EnableHandler()
         {
             LOGGER.LogMessage("Enabling Handler");
-            LOGGER.LogMessage("Handler successfully enabled");
+            int ret = RunCmdCommand(@"scripts\enable.cmd", SCRIPT_TIMEOUT);
+            if (ret == 0)
+            {
+                LOGGER.LogMessage("Handler successfully enabled");
+            }
+            else
+            {
+                LOGGER.Log(LogLevel.Error, "FAILED enabling handler -> Error{0}", ret);
+            }
         }
 
         /// <summary>
@@ -263,7 +316,15 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
         private static void DisableHandler()
         {
             LOGGER.LogMessage("Disabling Handler");
-            LOGGER.LogMessage("Handler successfully disabled");
+            int ret = RunCmdCommand(@"scripts\disable.cmd", SCRIPT_TIMEOUT);
+            if (ret == 0)
+            {
+                LOGGER.LogMessage("Handler successfully disabled");
+            }
+            else
+            {
+                LOGGER.Log(LogLevel.Error, "FAILED disabling handler -> Error{0}", ret);
+            }
         }
 
         /// <summary>
@@ -272,7 +333,15 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
         private static void UpdateHandler()
         {
             LOGGER.LogMessage("Updating Handler");
-            LOGGER.LogMessage("Handler successfully updated");
+            int ret = RunCmdCommand(@"scripts\update.cmd", SCRIPT_TIMEOUT);
+            if (ret == 0)
+            {
+                LOGGER.LogMessage("Handler successfully updated");
+            }
+            else
+            {
+                LOGGER.Log(LogLevel.Error, "FAILED updating handler -> Error{0}", ret);
+            }
         }
 
         /// <summary>
@@ -281,7 +350,15 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
         private static void UninstallHandler()
         {
             LOGGER.LogMessage("Uninstalling Handler");
-            LOGGER.LogMessage("Handler successfully uninstalled");
+            int ret = RunCmdCommand(@"scripts\uninstall.cmd", SCRIPT_TIMEOUT);
+            if (ret == 0)
+            {
+                LOGGER.LogMessage("Handler successfully uninstalled");
+            }
+            else
+            {
+                LOGGER.Log(LogLevel.Error, "FAILED uninstalling handler -> Error{0}", ret);
+            }
         }
     }
 }

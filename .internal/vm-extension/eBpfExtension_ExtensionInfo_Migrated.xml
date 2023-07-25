@@ -1,8 +1,8 @@
 ﻿<ExtensionInfo>
     <ExtensionImage xmlns="http://schemas.microsoft.com/windowsazure">
-      <ProviderNameSpace>Microsoft.CPlat.Core</ProviderNameSpace>
+      <ProviderNameSpace>Microsoft.eBPF</ProviderNameSpace>
       <Type>eBpfExtension</Type>
-      <Version>1.0.3</Version>
+      <Version>0.9.0</Version>
       <Label>eBPF for Windows Extension for Windows Virtual Machines</Label>
       <ComputeRole>IaaS</ComputeRole>
       <Description>eBPF for Windows platform.</Description>
@@ -10,7 +10,7 @@
       <SupportedOS>Windows</SupportedOS>
       <CompanyName>Microsoft</CompanyName>
       <IsJsonExtension>True</IsJsonExtension>
-      <SupportedArchitectures>x64, arm64</SupportedArchitectures>
+      <SupportedArchitectures>x64</SupportedArchitectures>
     </ExtensionImage>
     <CloudTypes>
         <Public>

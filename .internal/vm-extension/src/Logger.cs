@@ -4,10 +4,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
-using System.Globalization; 
+using System.Globalization;
 
 namespace Microsoft.WindowsAzure.GuestAgent.Plugins
 {
+    public enum LogLevel
+    {
+        Info,
+        Warning,
+        Error,
+        Fatal
+    }
+
     public sealed class Logger
     {
         private static string logFile;
@@ -37,13 +45,13 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins
 
         private string ResolveString(LogLevel severityLevel, string formatStr, bool format, params object[] args)
         {
-            formatStr = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture.DateTimeFormat) + "\t" + "[" + severityLevel + "]:\t" + formatStr;
+            formatStr = DateTime.UtcNow.ToString("[MM/dd/yyyy HH:mm:ss.ff]", CultureInfo.InvariantCulture.DateTimeFormat) + "\t" + "[" + severityLevel + "]:\t" + formatStr;
             return ((format) ? string.Format(formatStr, args ?? new object[0]) : formatStr) + Environment.NewLine;
         }
 
         public void Log(LogLevel severityLevel, string formatString, params object[] args)
         {
-            string resolvedString = ResolveString(severityLevel, formatString, true, args);          
+            string resolvedString = ResolveString(severityLevel, formatString, true, args);
             File.AppendAllText(logFile, resolvedString);
         }
 
@@ -53,13 +61,5 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins
             File.AppendAllText(logFile, resolvedMessage);
 
         }
-    }
-
-    public enum LogLevel
-    {
-        Info,
-        Warn,
-        Error,
-        Fatal
     }
 }

@@ -1,1 +1,0 @@
-eBpfExtension.exe "install"

@@ -1,12 +1,18 @@
-﻿[{
-    "version": 1.0, 
-    "handlerManifest" : {
-        "installCommand": "install.cmd", 
-        "uninstallCommand": "uninstall.cmd", 
-        "updateCommand": "update.cmd", 
-        "enableCommand": "enable.cmd", 
-        "disableCommand": "disable.cmd", 
-        "rebootAfterInstall": "false", 
-        "reportHeartbeat": "false"
+﻿[
+  {
+    "version": 0.9,
+    "handlerManifest": {
+      "installCommand": "scripts\\install.cmd",
+      "uninstallCommand": "scripts\\uninstall.cmd",
+      "updateCommand": "scripts\\update.cmd",
+      "enableCommand": "scripts\\enable.cmd",
+      "disableCommand": "scripts\\disable.cmd",
+      "rebootAfterInstall": false,
+      "reportHeartbeat": false,
+      "updateMode": "UpdateWithoutInstall",
+      "resetCommand": "scripts\\reset.cmd",
+      "supportsMultipleExtensions": false,
+      "continueOnUpdateFailure": false
     }
-}]
+  }
+]

@@ -10,7 +10,7 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
     [DataContract]
     public class TopLevelHandlerConfiguration
     {
-        [DataMember(Name="runtimeSettings")]
+        [DataMember(Name = "runtimeSettings")]
         public IList<RuntimeSetting> RuntimeSettings { get; set; }
 
         public override string ToString()
@@ -22,19 +22,19 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
     [DataContract]
     public class RuntimeSetting
     {
-        [DataMember(Name="handlerSettings")]
+        [DataMember(Name = "handlerSettings")]
         public HandlerSettings HandlerSettings { get; set; }
 
         public override string ToString()
         {
             return "{" + HandlerSettings.ToString() + "}";
-        }    
+        }
     }
 
     [DataContract]
     public class HandlerSettings
     {
-        [DataMember(Name="protectedSettingsCertThumbprint")]
+        [DataMember(Name = "protectedSettingsCertThumbprint")]
         public string ProtectedSettingsCertThumbprint { get; set; }
 
         [DataMember(Name = "protectedSettings")]

@@ -22,10 +22,10 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins
         }
     }
 
-    [DataContract(Name="handlerEnvironment")]
+    [DataContract(Name = "handlerEnvironment")]
     public class HandlerEnvironment
     {
-        [DataMember(Name="logFolder")]
+        [DataMember(Name = "logFolder")]
         public string LogFolder { get; set; }
 
         [DataMember(Name = "configFolder")]
