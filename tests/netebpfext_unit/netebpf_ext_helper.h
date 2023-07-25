@@ -14,7 +14,6 @@
 #endif
 
 #include "..\..\external\usersim\src\fwp_um.h"
-#include "..\libs\store_helper\kernel\ebpf_registry_helper_km.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext.h"

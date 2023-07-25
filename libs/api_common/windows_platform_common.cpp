@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "..\libs\store_helper\user\ebpf_registry_helper_um.h"
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "crab_verifier_wrapper.hpp"
