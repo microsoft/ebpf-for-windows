@@ -751,15 +751,18 @@ _test_helper_libbpf::initialize()
     xdp_program_info = new program_info_provider_t();
     REQUIRE(xdp_program_info->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
     xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(xdp_hook->initialize() == EBPF_SUCCESS);
 
     bind_program_info = new program_info_provider_t();
     REQUIRE(bind_program_info->initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
     bind_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(bind_hook->initialize() == EBPF_SUCCESS);
 
     cgroup_sock_addr_program_info = new program_info_provider_t();
     REQUIRE(cgroup_sock_addr_program_info->initialize(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) == EBPF_SUCCESS);
     cgroup_inet4_connect_hook =
         new single_instance_hook_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
+    REQUIRE(cgroup_inet4_connect_hook->initialize() == EBPF_SUCCESS);
 
     test_helper_end_to_end.initialize();
 }

@@ -121,11 +121,12 @@ typedef class _single_instance_hook : public _hook_helper
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
         module_id.Guid = attach_type;
-
+    }
+    ebpf_result_t
+    initialize()
+    {
         NTSTATUS status = NmrRegisterProvider(&provider_characteristics, this, &nmr_provider_handle);
-        if (status != STATUS_SUCCESS) {
-            throw std::runtime_error("NmrRegisterProvider failed");
-        }
+        return (status == STATUS_SUCCESS) ? EBPF_SUCCESS : EBPF_FAILED;
     }
     ~_single_instance_hook()
     {
@@ -134,11 +135,13 @@ typedef class _single_instance_hook : public _hook_helper
             (void)ebpf_link_detach(link_object);
             (void)ebpf_link_close(link_object);
         }
-        NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
-        if (status == STATUS_PENDING) {
-            NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
-        } else {
-            ebpf_assert(status == STATUS_SUCCESS);
+        if (nmr_provider_handle != NULL) {
+            NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
+            if (status == STATUS_PENDING) {
+                NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
+            } else {
+                ebpf_assert(status == STATUS_SUCCESS);
+            }
         }
     }
 
