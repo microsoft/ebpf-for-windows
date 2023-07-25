@@ -35,9 +35,7 @@ ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provi
     }
 
 Exit:
-    if (root_key) {
-        close_registry_key(root_key);
-    }
+    close_registry_key(root_key);
     return status;
 }
 
@@ -74,9 +72,7 @@ ebpf_store_update_helper_prototype(
     }
 
 Exit:
-    if (helper_function_key) {
-        close_registry_key(helper_function_key);
-    }
+    close_registry_key(helper_function_key);
 
     return status;
 }
@@ -162,12 +158,8 @@ ebpf_store_update_section_information(
     }
 
 Exit:
-    if (section_info_key) {
-        close_registry_key(section_info_key);
-    }
-    if (provider_key) {
-        close_registry_key(provider_key);
-    }
+    close_registry_key(section_info_key);
+    close_registry_key(provider_key);
 
     return status;
 }
@@ -290,12 +282,8 @@ ebpf_store_update_program_information(
     }
 
 Exit:
-    if (program_info_key) {
-        close_registry_key(program_info_key);
-    }
-    if (provider_key) {
-        close_registry_key(provider_key);
-    }
+    close_registry_key(program_info_key);
+    close_registry_key(provider_key);
 
     return status;
 }
@@ -341,12 +329,8 @@ ebpf_store_update_global_helper_information(
     }
 
 Exit:
-    if (helper_info_key) {
-        close_registry_key(helper_info_key);
-    }
-    if (provider_key) {
-        close_registry_key(provider_key);
-    }
+    close_registry_key(helper_info_key);
+    close_registry_key(provider_key);
 
     return status;
 }

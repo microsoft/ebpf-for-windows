@@ -35,7 +35,9 @@ Exit:
 void
 close_registry_key(ebpf_registry_key_t key)
 {
-    ZwClose(key);
+    if (key) {
+        ZwClose(key);
+    }
 }
 
 _Must_inspect_result_ ebpf_registry_result_t
