@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "..\libs\store_helper\user\ebpf_registry_helper_um.h"
+#include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_addr.h"
 #include "netebpf_ext_helper.h"
 
