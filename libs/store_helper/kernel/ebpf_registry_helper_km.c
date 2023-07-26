@@ -3,18 +3,20 @@
 
 #include "ebpf_registry_helper_km.h"
 
-NTSTATUS
+#define _EBPF_RESULT(x) (NT_SUCCESS(x) ? EBPF_SUCCESS : EBPF_FAILED)
+
+ebpf_result_t
 convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_length) wchar_t* string, size_t string_length)
 {
     UNICODE_STRING unicode_string = {0};
 
-    NTSTATUS status = RtlStringFromGUID(guid, &unicode_string);
-    if (status != STATUS_SUCCESS) {
+    ebpf_result_t result = _EBPF_RESULT(RtlStringFromGUID(guid, &unicode_string));
+    if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
     if (string_length < GUID_STRING_LENGTH + 1) {
-        status = STATUS_BUFFER_TOO_SMALL;
+        result = EBPF_INSUFFICIENT_BUFFER;
         goto Exit;
     }
 
@@ -29,7 +31,7 @@ Exit:
     if (unicode_string.Buffer != NULL) {
         RtlFreeUnicodeString(&unicode_string);
     }
-    return status;
+    return result;
 }
 
 void
@@ -40,17 +42,17 @@ close_registry_key(ebpf_registry_key_t key)
     }
 }
 
-_Must_inspect_result_ ebpf_registry_result_t
+_Must_inspect_result_ ebpf_result_t
 write_registry_value_binary(
     ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_reads_(value_size) uint8_t* value, size_t value_size)
 {
     UNICODE_STRING unicode_value_name;
 
     RtlInitUnicodeString(&unicode_value_name, value_name);
-    return ZwSetValueKey(key, &unicode_value_name, 0, REG_BINARY, value, (ULONG)value_size);
+    return _EBPF_RESULT(ZwSetValueKey(key, &unicode_value_name, 0, REG_BINARY, value, (ULONG)value_size));
 }
 
-_Must_inspect_result_ ebpf_registry_result_t
+_Must_inspect_result_ ebpf_result_t
 write_registry_value_ansi_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
 {
     NTSTATUS status;
@@ -70,22 +72,21 @@ write_registry_value_ansi_string(ebpf_registry_key_t key, _In_z_ const wchar_t* 
     RtlFreeUnicodeString(&unicode_value);
 
 Exit:
-    return status;
+    return _EBPF_RESULT(status);
 }
 
-_Must_inspect_result_ ebpf_registry_result_t
+_Must_inspect_result_ ebpf_result_t
 write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, uint32_t value)
 {
     UNICODE_STRING unicode_name;
     RtlInitUnicodeString(&unicode_name, value_name);
-    return ZwSetValueKey(key, &unicode_name, 0, REG_DWORD, &value, sizeof(uint32_t));
+    return _EBPF_RESULT(ZwSetValueKey(key, &unicode_name, 0, REG_DWORD, &value, sizeof(uint32_t)));
 }
 
-_Must_inspect_result_ ebpf_registry_result_t
+_Must_inspect_result_ ebpf_result_t
 create_registry_key(
     ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
-    NTSTATUS status = STATUS_SUCCESS;
     UNICODE_STRING registry_path;
     OBJECT_ATTRIBUTES object_attributes = {0};
 
@@ -95,12 +96,10 @@ create_registry_key(
     InitializeObjectAttributes(
         &object_attributes, &registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_key, NULL);
 
-    status = ZwCreateKey(key, KEY_WRITE, &object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);
-
-    return status;
+    return _EBPF_RESULT(ZwCreateKey(key, KEY_WRITE, &object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL));
 }
 
-_Must_inspect_result_ ebpf_registry_result_t
+_Must_inspect_result_ ebpf_result_t
 create_registry_key_ansi(
     ebpf_registry_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
@@ -125,5 +124,5 @@ create_registry_key_ansi(
     RtlFreeUnicodeString(&registry_path);
 
 Exit:
-    return status;
+    return _EBPF_RESULT(status);
 }
