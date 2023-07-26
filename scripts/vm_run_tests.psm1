@@ -254,7 +254,7 @@ function Invoke-XDPTest1
     # Load reflect_packet without specifying interface on VM1.
     $ProgId = Add-eBPFProgramOnVM -VM $VM1 -Program "reflect_packet.sys" -LogFileName $LogFileName
 
-    # Run XDP reflect test from VM1 targeting both interfaces of VM1.
+    # Run XDP reflect test from VM2 targeting both interfaces of VM1.
     Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
     Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
 
@@ -283,7 +283,7 @@ function Invoke-XDPTest2
     # Attach the program on interface2 on VM1.
     Set-eBPFProgramOnVM -VM $VM1 -ProgId $ProgId -Interface $VM1Interface2Alias -LogFileName $LogFileName
 
-    # Run XDP reflect test from VM1 targeting both interfaces of VM1.
+    # Run XDP reflect test from VM2 targeting both interfaces of VM1.
     Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
     Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
 
@@ -312,10 +312,10 @@ function Invoke-XDPTest3
     # Load encap_reflact_packet on interface2 on VM1.
     $ProgId2 = Add-eBPFProgramOnVM -VM $VM1 -Program "encap_reflect_packet.sys" -Interface $VM1Interface2Alias -LogFileName $LogFileName
 
-    # Run XDP reflect test from VM1 targeting first interface of VM1.
+    # Run XDP reflect test from VM2 targeting first interface of VM1.
     Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
 
-    # Run XDP encap reflect test from VM1 targeting second interface of VM1.
+    # Run XDP encap reflect test from VM2 targeting second interface of VM1.
     Invoke-XDPTestOnVM $VM1 "xdp_encap_reflect_test" $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
 
     # Unload programs from VM1.
@@ -339,10 +339,10 @@ function Invoke-XDPTest4
     # Load encap_reflect_packet on VM1.
     $ProgId1 = Add-eBPFProgramOnVM -VM $VM1 -Program "encap_reflect_packet.sys" -Interface $VM1Interface1Alias -LogFileName $LogFileName
 
-    # Load decap_permit_packet on VM1.
+    # Load decap_permit_packet on VM2.
     $ProgId2 = Add-eBPFProgramOnVM -VM $VM1 -Program "decap_permit_packet.sys" -Interface $VM2Interface1Alias -LogFileName $LogFileName
 
-    # Run XDP reflect test from VM1 targeting first interface of VM1.
+    # Run XDP reflect test from VM2 targeting first interface of VM1.
     Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
 
     # Unload program from VM1.
@@ -356,6 +356,10 @@ function Invoke-XDPTest4
 function Invoke-XDPTestsOnVM
 {
     param([parameter(Mandatory=$true)] $MultiVMTestConfig)
+
+    # NIC pairs are duo1-duo2 and duo3-duo4.
+    # VM1 is interfaces duo1 and duo3.
+    # VM2 is interfaces duo2 and duo4.
 
     $VM1 = $MultiVMTestConfig[0]
     $VM1Interface1 = $VM1.Interfaces[0]
