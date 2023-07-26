@@ -204,16 +204,6 @@ ebpf_api_initiate() noexcept
     // it will be re-attempted before an IOCTL call is made.
     (void)initialize_device_handle();
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-    RPC_STATUS status = initialize_rpc_binding();
-
-    if (status != RPC_S_OK) {
-        clean_up_device_handle();
-        clean_up_rpc_binding();
-        EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(status));
-    }
-#endif
-
     // Load provider data from ebpf store. This is best effort
     // as there may be no data present in the store.
     (void)load_ebpf_provider_data();
@@ -1923,7 +1913,6 @@ _ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info) noexcept
     }
     ebpf_free((void*)info->program_name);
     ebpf_free((void*)info->section_name);
-    ebpf_free((void*)info->program_type_name);
     ebpf_free(info->raw_data);
     ebpf_free(info);
     EBPF_LOG_EXIT();
@@ -2163,7 +2152,6 @@ _ebpf_pe_add_section(
         return 0;
     }
     ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
-    const char* program_type_name = nullptr;
 
     // Get ELF section name.
     if (!pe_context->section_names.contains(pe_section_name)) {
@@ -2200,23 +2188,9 @@ _ebpf_pe_add_section(
     info->program_type = pe_context->section_program_types[pe_section_name];
     info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
 
-    program_type_name = ebpf_get_program_type_name(&pe_context->section_program_types[pe_section_name]);
-    if (program_type_name == nullptr) {
-        pe_context->result = EBPF_NO_MEMORY;
-        return_value = 1;
-        goto Exit;
-    }
-
-    info->program_type_name = ebpf_duplicate_string(program_type_name);
-    if (info->program_type_name == nullptr) {
-        pe_context->result = EBPF_NO_MEMORY;
-        return_value = 1;
-        goto Exit;
-    }
-
     info->raw_data_size = section_header.Misc.VirtualSize;
     info->raw_data = (char*)ebpf_allocate(section_header.Misc.VirtualSize);
-    if (info->raw_data == nullptr || info->program_type_name == nullptr || info->section_name == nullptr) {
+    if (info->raw_data == nullptr || info->section_name == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
         goto Exit;

@@ -7,6 +7,8 @@ class _test_helper_end_to_end
   public:
     _test_helper_end_to_end();
     ~_test_helper_end_to_end();
+    void
+    initialize();
 
   private:
     bool ec_initialized = false;
@@ -21,6 +23,8 @@ class _test_helper_libbpf
   public:
     _test_helper_libbpf();
     ~_test_helper_libbpf();
+    void
+    initialize();
 
   private:
     _test_helper_end_to_end test_helper_end_to_end;

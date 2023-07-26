@@ -429,14 +429,17 @@ _net_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* prov
 }
 
 void
-net_ebpf_extension_hook_provider_unregister(_Frees_ptr_opt_ net_ebpf_extension_hook_provider_t* provider_context)
+net_ebpf_extension_hook_provider_unregister(
+    _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_hook_provider_t* provider_context)
 {
     NET_EBPF_EXT_LOG_ENTRY();
     if (provider_context != NULL) {
-        NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
-        if (status == STATUS_PENDING) {
-            // Wait for clients to detach.
-            NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+        if (provider_context->nmr_provider_handle != NULL) {
+            NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
+            if (status == STATUS_PENDING) {
+                // Wait for clients to detach.
+                NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+            }
         }
         ExFreePool(provider_context);
     }

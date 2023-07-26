@@ -367,19 +367,23 @@ TEST_CASE("test_ebpf_map_next_previous_jit", "[test_ebpf_map_next_previous]")
 
 TEST_CASE("test_ebpf_program_next_previous_native", "[test_ebpf_program_next_previous]")
 {
-    native_module_helper_t droppacket_helper("droppacket", EBPF_EXECUTION_NATIVE);
+    native_module_helper_t droppacket_helper;
+    droppacket_helper.initialize("droppacket", EBPF_EXECUTION_NATIVE);
     _test_program_next_previous(droppacket_helper.get_file_name().c_str(), DROP_PACKET_PROGRAM_COUNT);
 
-    native_module_helper_t bindmonitor_helper("bindmonitor", EBPF_EXECUTION_NATIVE);
+    native_module_helper_t bindmonitor_helper;
+    bindmonitor_helper.initialize("bindmonitor", EBPF_EXECUTION_NATIVE);
     _test_program_next_previous(bindmonitor_helper.get_file_name().c_str(), BIND_MONITOR_PROGRAM_COUNT);
 }
 
 TEST_CASE("test_ebpf_map_next_previous_native", "[test_ebpf_map_next_previous]")
 {
-    native_module_helper_t droppacket_helper("droppacket", EBPF_EXECUTION_NATIVE);
+    native_module_helper_t droppacket_helper;
+    droppacket_helper.initialize("droppacket", EBPF_EXECUTION_NATIVE);
     _test_map_next_previous(droppacket_helper.get_file_name().c_str(), DROP_PACKET_MAP_COUNT);
 
-    native_module_helper_t bindmonitor_helper("bindmonitor", EBPF_EXECUTION_NATIVE);
+    native_module_helper_t bindmonitor_helper;
+    bindmonitor_helper.initialize("bindmonitor", EBPF_EXECUTION_NATIVE);
     _test_map_next_previous(bindmonitor_helper.get_file_name().c_str(), BIND_MONITOR_MAP_COUNT);
 }
 
@@ -421,8 +425,8 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
 {
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper(
-        "bindmonitor_ringbuf.o", BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
+    program_load_attach_helper_t _helper;
+    _helper.initialize("bindmonitor_ringbuf.o", BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
     object = _helper.get_object();
 
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
@@ -447,8 +451,8 @@ divide_by_zero_test_km(ebpf_execution_type_t execution_type)
 {
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper(
-        "divide_by_zero.o", BPF_PROG_TYPE_BIND, "divide_by_zero", execution_type, nullptr, 0, hook);
+    program_load_attach_helper_t _helper;
+    _helper.initialize("divide_by_zero.o", BPF_PROG_TYPE_BIND, "divide_by_zero", execution_type, nullptr, 0, hook);
     object = _helper.get_object();
 
     perform_socket_bind(0, true);
@@ -630,8 +634,8 @@ TEST_CASE("bindmonitor_native_test", "[native_tests]")
 {
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper(
-        "bindmonitor.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+    program_load_attach_helper_t _helper;
+    _helper.initialize("bindmonitor.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
     object = _helper.get_object();
 
     bindmonitor_test(object);
@@ -641,7 +645,8 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
 {
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper(
+    program_load_attach_helper_t _helper;
+    _helper.initialize(
         "bindmonitor_tailcall.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
     object = _helper.get_object();
 
@@ -711,7 +716,8 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     uint32_t ifindex = 0;
     const char* program_name = "func";
-    program_load_attach_helper_t _helper(
+    program_load_attach_helper_t _helper;
+    _helper.initialize(
         "pidtgid.sys", BPF_PROG_TYPE_BIND, program_name, EBPF_EXECUTION_NATIVE, &ifindex, sizeof(ifindex), hook);
     struct bpf_object* object = _helper.get_object();
 
@@ -803,8 +809,8 @@ TEST_CASE("nomap_load_test", "[native_tests]")
     // This test case tests loading of native ebpf programs that do not contain/refer-to any map.
     // This test should succeed as this is a valid use case.
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper(
-        "printk.sys", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+    program_load_attach_helper_t _helper;
+    _helper.initialize("printk.sys", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
     auto object = _helper.get_object();
     REQUIRE(object != nullptr);
 }
@@ -819,8 +825,10 @@ bpf_user_helpers_test(ebpf_execution_type_t execution_type)
     struct bpf_object* object = nullptr;
     uint64_t process_thread_id = get_current_pid_tgid();
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    native_module_helper_t module_helper("bindmonitor", execution_type);
-    program_load_attach_helper_t _helper(
+    native_module_helper_t module_helper;
+    module_helper.initialize("bindmonitor", execution_type);
+    program_load_attach_helper_t _helper;
+    _helper.initialize(
         module_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "BindMonitor", execution_type, nullptr, 0, hook);
     object = _helper.get_object();
 
@@ -854,7 +862,8 @@ TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
 {
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper(
+    program_load_attach_helper_t _helper;
+    _helper.initialize(
         "bindmonitor_tailcall.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
     object = _helper.get_object();
 

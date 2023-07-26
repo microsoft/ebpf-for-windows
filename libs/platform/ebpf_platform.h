@@ -82,9 +82,6 @@ extern "C"
         EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE = 1
     } ebpf_code_integrity_state_t;
 
-    typedef KSEMAPHORE ebpf_semaphore_t;
-
-    typedef struct _ebpf_non_preemptible_work_item ebpf_non_preemptible_work_item_t;
     typedef struct _ebpf_preemptible_work_item ebpf_preemptible_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
     typedef struct _ebpf_helper_function_prototype ebpf_helper_function_prototype_t;
@@ -429,16 +426,6 @@ extern "C"
     ebpf_get_current_thread_id();
 
     /**
-     * @brief Query the platform to determine if non-preemptible work items are
-     *   supported.
-     *
-     * @retval true Non-preemptible work items are supported.
-     * @retval false Non-preemptible work items are not supported.
-     */
-    bool
-    ebpf_is_non_preemptible_work_item_supported();
-
-    /**
      * @brief Create a non-preemptible work item.
      *
      * @param[out] work_item Pointer to memory that will contain the pointer to
@@ -452,9 +439,9 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_non_preemptible_work_item(
-        _Outptr_ ebpf_non_preemptible_work_item_t** work_item,
+        _Outptr_ KDPC** work_item,
         uint32_t cpu_id,
-        _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context, _Inout_opt_ void* parameter_1),
+        _In_ PKDEFERRED_ROUTINE work_item_routine,
         _Inout_opt_ void* work_item_context);
 
     /**
@@ -463,19 +450,7 @@ extern "C"
      * @param[in] work_item Pointer to the work item to free.
      */
     void
-    ebpf_free_non_preemptible_work_item(_Frees_ptr_opt_ ebpf_non_preemptible_work_item_t* work_item);
-
-    /**
-     * @brief Schedule a non-preemptible work item to run.
-     *
-     * @param[in, out] work_item Work item to schedule.
-     * @param[in, out] parameter_1 Parameter to pass to work item.
-     * @retval true Work item was queued.
-     * @retval false Work item is already queued.
-     */
-    bool
-    ebpf_queue_non_preemptible_work_item(
-        _Inout_ ebpf_non_preemptible_work_item_t* work_item, _Inout_opt_ void* parameter_1);
+    ebpf_free_non_preemptible_work_item(_In_opt_ _Frees_ptr_opt_ KDPC* work_item);
 
     /**
      * @brief Create a preemptible work item.
@@ -1050,7 +1025,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for the semaphore.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_semaphore_create(_Outptr_ ebpf_semaphore_t** semaphore, int initial_count, int maximum_count);
+    ebpf_semaphore_create(_Outptr_ KSEMAPHORE** semaphore, int initial_count, int maximum_count);
 
     /**
      * @brief Destroy a semaphore.
@@ -1058,7 +1033,7 @@ extern "C"
      * @param[in] semaphore Semaphore to destroy.
      */
     void
-    ebpf_semaphore_destroy(_Frees_ptr_opt_ ebpf_semaphore_t* semaphore);
+    ebpf_semaphore_destroy(_Frees_ptr_opt_ KSEMAPHORE* semaphore);
 
     /**
      * @brief Wait on a semaphore.
@@ -1066,7 +1041,7 @@ extern "C"
      * @param[in] semaphore Semaphore to wait on.
      */
     void
-    ebpf_semaphore_wait(_In_ ebpf_semaphore_t* semaphore);
+    ebpf_semaphore_wait(_In_ KSEMAPHORE* semaphore);
 
     /**
      * @brief Release a semaphore.
@@ -1074,7 +1049,7 @@ extern "C"
      * @param[in] semaphore Semaphore to release.
      */
     void
-    ebpf_semaphore_release(_In_ ebpf_semaphore_t* semaphore);
+    ebpf_semaphore_release(_In_ KSEMAPHORE* semaphore);
 
     /**
      * @brief Enter a critical region. This will defer execution of kernel APCs
