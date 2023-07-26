@@ -9,6 +9,7 @@
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
 extern ebpf_registry_key_t ebpf_root_registry_key;
+typedef _Return_type_success_(return == EBPF_SUCCESS) uint32_t ebpf_registry_result_t;
 
 void
 close_registry_key(ebpf_registry_key_t key);

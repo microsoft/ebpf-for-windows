@@ -6,9 +6,7 @@
 #ifndef USER_MODE
 #include "framework.h"
 #else
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winreg.h>
+#include "ebpf_utilities.h"
 #endif
 
 #include "ebpf_program_types.h"
@@ -17,18 +15,10 @@
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
 
 #ifndef USER_MODE
-#define __return_type NTSTATUS
-#define _SUCCESS STATUS_SUCCESS
-#define IS_SUCCESS(x) (NT_SUCCESS(x))
 typedef HANDLE ebpf_registry_key_t;
-typedef _Return_type_success_(NT_SUCCESS(return )) uint32_t ebpf_registry_result_t;
 #else
-#define __return_type uint32_t
-#define IS_SUCCESS(x) (x == ERROR_SUCCESS)
-#define _SUCCESS NO_ERROR
 typedef HKEY ebpf_registry_key_t;
 extern ebpf_registry_key_t ebpf_root_registry_key;
-typedef _Return_type_success_(return == EBPF_SUCCESS) uint32_t ebpf_registry_result_t;
 #endif
 
 /**
@@ -38,7 +28,7 @@ typedef _Return_type_success_(return == EBPF_SUCCESS) uint32_t ebpf_registry_res
  *
  * @returns  Status of the operation.
  */
-uint32_t
+ebpf_result_t
 ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provider_key);
 
 /**
@@ -49,7 +39,7 @@ ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provi
  *
  * @return Status of the operation.
  */
-__return_type
+ebpf_result_t
 ebpf_store_update_helper_prototype(
     ebpf_registry_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info);
 
@@ -61,7 +51,7 @@ ebpf_store_update_helper_prototype(
  *
  * @returns Status of the operation.
  */
-__return_type
+ebpf_result_t
 ebpf_store_update_section_information(
     _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count);
 
@@ -73,7 +63,7 @@ ebpf_store_update_section_information(
  *
  * @returns Status of the operation.
  */
-__return_type
+ebpf_result_t
 ebpf_store_update_program_information(
     _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
 
@@ -85,6 +75,6 @@ ebpf_store_update_program_information(
  *
  * @returns Status of the operation.
  */
-__return_type
+ebpf_result_t
 ebpf_store_update_global_helper_information(
     _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
