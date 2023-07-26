@@ -18,7 +18,6 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_structs.h"
 #include "native_helper.hpp"
-#include "socket_helper.h"
 #include "socket_tests_common.h"
 #include "watchdog.h"
 
@@ -28,10 +27,6 @@ using namespace std::chrono_literals;
 #include <mstcpip.h>
 
 CATCH_REGISTER_LISTENER(_watchdog)
-typedef struct _test_globals
-{
-    bpf_object_ptr bpf_object;
-} test_globals_t;
 
 static test_globals_t _globals;
 

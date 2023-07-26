@@ -17,7 +17,6 @@
 #include "ebpf_structs.h"
 #include "misc_helper.h"
 #include "native_helper.hpp"
-#include "socket_helper.h"
 #include "socket_tests_common.h"
 #include "watchdog.h"
 
@@ -25,7 +24,6 @@
 #include <ntsecapi.h>
 
 CATCH_REGISTER_LISTENER(_watchdog)
-
 static std::string _family;
 static std::string _protocol;
 static std::string _vip_v4;
@@ -37,35 +35,6 @@ static std::string _remote_ip_v6;
 static std::string _user_name;
 static std::string _password;
 static std::string _user_type_string;
-
-typedef enum _user_type
-{
-    ADMINISTRATOR,
-    STANDARD_USER
-} user_type_t;
-
-typedef struct _test_addresses
-{
-    struct sockaddr_storage loopback_address;
-    struct sockaddr_storage remote_address;
-    struct sockaddr_storage local_address;
-    struct sockaddr_storage vip_address;
-} test_addresses_t;
-
-typedef struct _test_globals
-{
-    user_type_t user_type = STANDARD_USER;
-    HANDLE user_token = nullptr;
-    ADDRESS_FAMILY family = 0;
-    IPPROTO protocol = IPPROTO_IPV4;
-    uint16_t destination_port = 4444;
-    uint16_t proxy_port = 4443;
-    test_addresses_t addresses[socket_family_t::Max] = {0};
-    bool attach_v4_program = false;
-    bool attach_v6_program = false;
-    bpf_object_ptr bpf_object;
-} test_globals_t;
-
 static test_globals_t _globals;
 static volatile bool _globals_initialized = false;
 
