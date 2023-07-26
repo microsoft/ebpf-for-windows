@@ -38,13 +38,8 @@ template <typename T> class _performance_measure
           preemptible(preemptible), test_name(test_name)
     {
         start_event = CreateEvent(nullptr, true, false, nullptr);
-        KeRaiseIrql(preemptible ? PASSIVE_LEVEL : DISPATCH_LEVEL, &old_irql);
     }
-    ~_performance_measure()
-    {
-        KeLowerIrql(old_irql);
-        CloseHandle(start_event);
-    }
+    ~_performance_measure() { CloseHandle(start_event); }
 
     /**
      * @brief Perform the measurement.
@@ -64,6 +59,10 @@ template <typename T> class _performance_measure
                 SetThreadAffinityMask(GetCurrentThread(), thread_mask);
                 ebpf_interlocked_increment_int32(&ready_count);
                 WaitForSingleObject(start_event, INFINITE);
+                KIRQL old_irql = PASSIVE_LEVEL;
+                if (!preemptible) {
+                    old_irql = KeRaiseIrqlToDpcLevel();
+                }
                 QueryPerformanceCounter(&this->counters[local_cpu_id].first);
                 for (size_t k = 0; k < iterations; k++) {
                     if constexpr (std::is_same<T, void(__cdecl*)(uint32_t)>::value) {
@@ -73,6 +72,9 @@ template <typename T> class _performance_measure
                     }
                 }
                 QueryPerformanceCounter(&this->counters[local_cpu_id].second);
+                if (!preemptible) {
+                    KeLowerIrql(old_irql);
+                }
             }));
         }
         // Wait for threads to spin up.
@@ -110,5 +112,4 @@ template <typename T> class _performance_measure
     HANDLE start_event;
     bool preemptible;
     const char* test_name;
-    KIRQL old_irql;
 };
