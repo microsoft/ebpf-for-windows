@@ -3,7 +3,7 @@
 
 #pragma once
 
-#ifndef USER_MODE
+#ifdef KERNEL_MODE
 #include "framework.h"
 #else
 #include "ebpf_utilities.h"
@@ -19,7 +19,7 @@ extern "C"
 {
 #endif
 
-#ifndef USER_MODE
+#ifdef KERNEL_MODE
     typedef HANDLE ebpf_registry_key_t;
 #else
 typedef HKEY ebpf_registry_key_t;

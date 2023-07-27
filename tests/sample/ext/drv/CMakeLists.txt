@@ -37,6 +37,7 @@ target_link_libraries("sample_ebpf_ext"
 )
 
 target_compile_definitions("sample_ebpf_ext" PRIVATE
+  KERNEL_MODE
   BINARY_COMPATIBLE=0
   NT
   POOL_NX_OPTIN_AUTO

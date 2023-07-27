@@ -16,11 +16,12 @@ ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provi
     *provider_key = NULL;
 
     // Open (or create) root eBPF registry path.
-#ifdef USER_MODE
-    status = create_registry_key(ebpf_root_registry_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
-#else
+#ifdef KERNEL_MODE
     status = create_registry_key(NULL, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_key);
+#else
+    status = create_registry_key(ebpf_root_registry_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
 #endif
+
     if (!IS_SUCCESS(status)) {
         goto Exit;
     }
