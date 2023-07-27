@@ -1,8 +1,7 @@
 # Setup instructions for self-hosted runners
 
-The CI/CD tests for `eBPF for Windows` requires installing kernel drivers, that are not supported in Github-hosted runners.
-That is why self-host runners are needed to run those tests. The `driver` job in the `CI/CD` Github workflow (`cicd.yml`) runs on self-host runners that use Hyper-V VMs to deploy the eBPF components and run the CI/CD tests on. Using Hyper-V VMs enable the Github workflow to start from a clean state every time the test runs by restoring the VMs to a "baseline" snapshot.
-This document discusses the steps to set up such a self-hosted actions-runner that can run the workflow for CI/CD tests on a fork of the eBPF for Windows repo.
+Some CI/CD tests for `eBPF for Windows` require installing kernel drivers, but the Github-hosted runners cannot be used to collect kernel-mode dumps should a crash occur. Self-hosted runners allow us to use nested VMs and collect KM dumps. We use them to run the `driver` job in the `CI/CD` Github workflow (`cicd.yml`). On each test run, we restore the VM to a saved checkpoint for a clean run.
+Since these runners only run jobs for PRs in the official `eBPF for Windows` repo, you can follow the steps below to set one up for your fork.
 
 1) Install Windows Server 2019 - build 17763.
    1) [Windows Server 2019 Azure VM](https://portal.azure.com/#create/Microsoft.WindowsServer2019Datacenter-ARM)
@@ -17,21 +16,18 @@ This document discusses the steps to set up such a self-hosted actions-runner th
    `NetworkService` by default. However, the `Kernel_Test_VM` workflow performs operations on a test VM that requires
    administrator privilege. So, the credentials of an account with administrator privilege must be supplied in
    `windowslogonaccount` and `windowslogonpassword` parameters.
-6) Follow the [VM Installation Instructions](vm-setup.md) to set up **two test VMs** and perform one-time setup steps. Then create a snapshot named **baseline** for each of the VMs.
-7) Connect the two test VMs.
-   1) Create a new VMSwitch instance: `New-VMSwitch -Name <VMSwitch Name> -SwitchType Private`
-   2) Add two VM NICs on the first VM and one VM NIC on the other VM. Connect the NICs to the private VMSwitch: `Add-VMNetworkAdapter -VMName <VMName> -SwitchName <VMSwitch Name>`
-8) Edit test configuration JSON files.
-   1) Edit `test_execution.json` file. Add the name of the one of the VMs in `BasicTest` section. Add the names of both the VMs in `MultiVMTest` section along with the "Interfaces" section that must contain information about the network interfaces created in step 7.2 Above. This section must contain the interface alias, and IPv4 and IPv6 addresses. The CICD test automation would apply these IP addresses on the NICs of the test VM.
-   2) Edit `vm_list.json` with the names of the two test VMs.
-9) Store the VM administrator and standard user credentials:
+6) Follow the [VM Installation Instructions](vm-setup.md) to set up **one test VM** and perform one-time setup steps. Then create a snapshot named **baseline** for the VMs.
+7) Edit test configuration JSON files.
+   1) Edit `test_execution.json` file. Update the name of the VM in `BasicTest` section. Update the name of the VM in `MultiVMTest` section.
+   2) Edit `vm_list.json` with the name of the test VM.
+8) Store the VM administrator and standard user credentials on the runner machine:
    1) `Install-Module CredentialManager -force`
    2) `New-StoredCredential -Target `**`TEST_VM`**` -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine`
    3) `New-StoredCredential -Target `**`TEST_VM_STANDARD`**` -Username <VM Standard User Name> -Password <VM Standard User account password> -Persist LocalMachine`
 
-10) Modify the environment of the VM as needed. Create new checkpoints using **Hyper-V**. Rename the new checkpoint as `baseline`, and remove the old baseline.
-11) Set up Windows Error Reporting [Local Dump Collection](https://docs.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps) on the VMs with the following commands.
+9) Modify the environment of the VM as needed. Create a new checkpoint using **Hyper-V**. Rename the new checkpoint to `baseline`, and remove the old baseline.
+10) Set up Windows Error Reporting [Local Dump Collection](https://docs.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps) on the VM with the following commands.
     ```New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue```
     ```New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue```
     ```New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps" -PropertyType ExpandString -ErrorAction SilentlyContinue -Force```
-12) Reboot the runner.
+11) Reboot the runner.
