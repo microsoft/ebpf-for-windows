@@ -9,3 +9,7 @@ _Do any existing tests cover this change? Are new tests needed?_
 ## Documentation
 
 _Is there any documentation impact for this change?_
+
+## Installation
+
+_Is there any installer impact for this change?_
