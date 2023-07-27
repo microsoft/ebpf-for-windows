@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "..\libs\store_helper\user\ebpf_registry_helper_um.h"
+#include "..\libs\store_helper\user\ebpf_registry_helper.h"
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_serialize.h"
 #include "ebpf_store_helper.h"

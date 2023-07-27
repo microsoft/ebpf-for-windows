@@ -16,12 +16,12 @@
     <ClInclude Include="..\..\..\include\ebpf_store_helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ebpf_registry_helper_km.h">
+    <ClInclude Include="ebpf_registry_helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ebpf_registry_helper_km.c">
+    <ClCompile Include="ebpf_registry_helper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_store_helper.c">

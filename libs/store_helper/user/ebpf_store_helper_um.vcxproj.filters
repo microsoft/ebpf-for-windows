@@ -13,7 +13,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ebpf_registry_helper_um.cpp">
+    <ClCompile Include="ebpf_registry_helper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_store_helper.c">
@@ -24,7 +24,7 @@
     <ClInclude Include="..\..\..\include\ebpf_store_helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ebpf_registry_helper_um.h">
+    <ClInclude Include="ebpf_registry_helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

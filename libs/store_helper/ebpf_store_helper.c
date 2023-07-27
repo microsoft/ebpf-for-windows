@@ -1,13 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
-#ifndef USER_MODE
-#include "kernel\ebpf_registry_helper_km.h"
-#else
-#include "user\ebpf_registry_helper_um.h"
-#endif
-
 #include "ebpf_program_types.h"
+#include "ebpf_registry_helper.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_windows.h"
 

@@ -7,8 +7,8 @@ list(APPEND CMAKE_MODULE_PATH
 find_package(WDK REQUIRED)
 
 wdk_add_library("ebpf_store_helper_km" STATIC WINVER "${EBPFFORWINDOWS_WDK_WINVER}"
-  ebpf_registry_helper_km.c
-  ../ebpf_store_helper.c
+  ebpf_registry_helper.c
+  ebpf_store_helper.c
 )
 
 target_link_directories("ebpf_store_helper_km" PRIVATE
@@ -19,6 +19,7 @@ target_include_directories("ebpf_store_helper_km" PRIVATE
 "${CMAKE_SOURCE_DIR}/include"
 "${CMAKE_SOURCE_DIR}/libs/platform"
 "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
+"${CMAKE_SOURCE_DIR}/libs/store_helper"
 "${CMAKE_SOURCE_DIR}/libs/store_helper/kernel"
 "${CMAKE_SOURCE_DIR}/external/ebpf-verifier/src"
 )
