@@ -13,11 +13,11 @@
     }
 #endif
 
-#include "..\..\external\usersim\src\fwp_um.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_registry_helper.h"
 #include "net_ebpf_ext.h"
 #include "net_ebpf_ext_tracelog.h"
+#include "usersim\fwp_test.h"
 
 #include <iostream>
 #include <vector>
@@ -51,50 +51,41 @@ typedef class _netebpf_ext_helper
     FWP_ACTION_TYPE
     classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
     {
-        return _fwp_engine::get()->classify_test_packet(layer_guid, if_index);
+        return usersim_fwp_classify_packet(layer_guid, if_index);
     }
 
     FWP_ACTION_TYPE
-    test_bind_ipv4(_In_ fwp_classify_parameters_t* parameters)
-    {
-        return _fwp_engine::get()->test_bind_ipv4(parameters);
-    }
+    test_bind_ipv4(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_bind_ipv4(parameters); }
 
     FWP_ACTION_TYPE
     test_cgroup_inet4_recv_accept(_In_ fwp_classify_parameters_t* parameters)
     {
-        return _fwp_engine::get()->test_cgroup_inet4_recv_accept(parameters);
+        return usersim_fwp_cgroup_inet4_recv_accept(parameters);
     }
 
     FWP_ACTION_TYPE
     test_cgroup_inet6_recv_accept(_In_ fwp_classify_parameters_t* parameters)
     {
-        return _fwp_engine::get()->test_cgroup_inet6_recv_accept(parameters);
+        return usersim_fwp_cgroup_inet6_recv_accept(parameters);
     }
 
     FWP_ACTION_TYPE
     test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameters)
     {
-        return _fwp_engine::get()->test_cgroup_inet4_connect(parameters);
+        return usersim_fwp_cgroup_inet4_connect(parameters);
     }
 
     FWP_ACTION_TYPE
     test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameters)
     {
-        return _fwp_engine::get()->test_cgroup_inet6_connect(parameters);
+        return usersim_fwp_cgroup_inet6_connect(parameters);
     }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v4(_In_ fwp_classify_parameters_t* parameters)
-    {
-        return _fwp_engine::get()->test_sock_ops_v4(parameters);
-    }
+    test_sock_ops_v4(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_sock_ops_v4(parameters); }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v6(_In_ fwp_classify_parameters_t* parameters)
-    {
-        return _fwp_engine::get()->test_sock_ops_v6(parameters);
-    }
+    test_sock_ops_v6(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_sock_ops_v6(parameters); }
 
   private:
     bool trace_initiated = false;

@@ -790,6 +790,7 @@ TEST_CASE("program", "[execution_context]")
     // Correct attach type, but wrong program type.
     {
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_XDP);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
         REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
@@ -799,6 +800,7 @@ TEST_CASE("program", "[execution_context]")
     // Wrong attach type, but correct program type.
     {
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_BIND);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
         REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
@@ -808,6 +810,7 @@ TEST_CASE("program", "[execution_context]")
     // Correct attach type and correct program type.
     {
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
         REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);

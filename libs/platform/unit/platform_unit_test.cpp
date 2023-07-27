@@ -450,9 +450,6 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         return;
     }
 
-    KIRQL old_irql;
-    KeRaiseIrql(DISPATCH_LEVEL, &old_irql);
-
     size_t const test_iterations = 100;
     for (size_t test_iteration = 0; test_iteration < test_iterations; test_iteration++) {
 
@@ -491,8 +488,6 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         REQUIRE(ebpf_epoch_is_free_list_empty(0));
         REQUIRE(ebpf_epoch_is_free_list_empty(1));
     }
-
-    KeLowerIrql(old_irql);
 }
 
 static auto provider_function = []() { return EBPF_SUCCESS; };
