@@ -5,9 +5,6 @@
 
 #include "ebpf_store_helper.h"
 
-#ifdef USER_MODE
-#undefine USER_MODE
-#endif
 #define REG_CREATE_FLAGS 0
 
 ebpf_result_t

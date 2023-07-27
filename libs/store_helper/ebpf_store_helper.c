@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+
 #include "ebpf_program_types.h"
 #include "ebpf_registry_helper.h"
 #include "ebpf_store_helper.h"

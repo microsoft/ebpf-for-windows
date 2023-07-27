@@ -1,6 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+/**
+ * @file
+ * @brief Contains kernel mode registry related helper APIs.
+ */
+
 #include "ebpf_registry_helper.h"
 
 #define _EBPF_RESULT(x) (NT_SUCCESS(x) ? EBPF_SUCCESS : EBPF_FAILED)
