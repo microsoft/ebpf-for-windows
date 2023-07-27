@@ -31,6 +31,7 @@ target_include_directories("api_common" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/execution_context"
   "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
+  "${CMAKE_SOURCE_DIR}/libs/store_helper"
   "${CMAKE_SOURCE_DIR}/libs/store_helper/user"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
