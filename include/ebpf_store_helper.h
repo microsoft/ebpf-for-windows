@@ -3,7 +3,7 @@
 
 #pragma once
 
-#ifdef KERNEL_MODE
+#ifndef USER_MODE
 #include "framework.h"
 #else
 #include "ebpf_utilities.h"
@@ -19,22 +19,12 @@ extern "C"
 {
 #endif
 
-#ifdef KERNEL_MODE
+#ifndef USER_MODE
     typedef HANDLE ebpf_registry_key_t;
 #else
 typedef HKEY ebpf_registry_key_t;
 extern ebpf_registry_key_t ebpf_root_registry_key;
 #endif
-
-    /**
-     * @brief Open or create the root of the eBPF registry store.
-     *
-     * @param[in] provider_key Pointer to the registry key to be initialized.
-     *
-     * @returns  Status of the operation.
-     */
-    ebpf_result_t
-    ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provider_key);
 
     /**
      * @brief Update the provider prototype information in the eBPF registry store.

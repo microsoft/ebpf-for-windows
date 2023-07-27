@@ -589,8 +589,8 @@ SPDX-License-Identifier: MIT
 			<Component Id="eBPFApi_lib" Guid="{A164197B-3C57-4ECA-B138-CBF558DA4401}">
 				<File Id="EbpfApi.lib" Name="EbpfApi.lib" DiskId="1" Source="$(var.api.TargetDir)EbpfApi.lib" />
 			</Component>
-			<Component Id="EBPF_STORE_HELPER_UM_lib" Guid="{F8A8A1D9-3F61-4F30-B75B-E51B63D6DB40}">
-				<File Id="EBPF_STORE_HELPER_UM.LIB" Name="ebpf_store_helper_um.lib" Source="$(var.ebpf_store_helper_um.TargetDir)ebpf_store_helper_um.lib" />
+			<Component Id="EBPF_STORE_HELPER_KM_lib" Guid="{F8A8A1D9-3F61-4F30-B75B-E51B63D6DB40}">
+				<File Id="EBPF_STORE_HELPER_KM.LIB" Name="ebpf_store_helper_km.lib" Source="$(var.ebpf_store_helper_km.TargetDir)ebpf_store_helper_km.lib" />
 			</Component>
 		</ComponentGroup>
 	</Fragment>

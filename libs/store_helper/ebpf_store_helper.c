@@ -8,18 +8,18 @@
 
 #define IS_SUCCESS(x) (x == EBPF_SUCCESS)
 
-ebpf_result_t
-ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provider_key)
+static ebpf_result_t
+_ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provider_key)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_registry_key_t root_key = NULL;
     *provider_key = NULL;
 
     // Open (or create) root eBPF registry path.
-#ifdef KERNEL_MODE
-    result = create_registry_key(NULL, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_key);
-#else
+#ifdef USER_MODE
     result = create_registry_key(ebpf_root_registry_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
+#else
+    result = create_registry_key(NULL, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_key);
 #endif
 
     if (!IS_SUCCESS(result)) {
@@ -96,7 +96,7 @@ ebpf_store_update_section_information(
     }
 
     // Open (or create) provider registry path.
-    result = ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -183,7 +183,7 @@ ebpf_store_update_program_information(
     }
 
     // Open (or create) provider registry path.
-    result = ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -307,7 +307,7 @@ ebpf_store_update_global_helper_information(
     }
 
     // Open (or create) provider registry path.
-    result = ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
