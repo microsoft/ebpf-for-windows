@@ -309,8 +309,8 @@ ebpf_store_load_program_information(
 
     result = _open_ebpf_store_key(&store_key);
     if (result != EBPF_SUCCESS) {
-        if (result != EBPF_FILE_NOT_FOUND) {
-            __analysis_assume(result != EBPF_SUCCESS);
+        if (result == EBPF_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
         }
         goto Exit;
     }
@@ -319,8 +319,8 @@ ebpf_store_load_program_information(
     result = open_registry_key(
         store_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, KEY_READ, (ebpf_registry_key_t*)&program_data_key);
     if (result != EBPF_SUCCESS) {
-        if (result != EBPF_FILE_NOT_FOUND) {
-            __analysis_assume(result != EBPF_SUCCESS);
+        if (result == EBPF_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
         }
         goto Exit;
     }
@@ -510,8 +510,8 @@ ebpf_store_load_section_information(
 
     result = _open_ebpf_store_key(&store_key);
     if (result != EBPF_SUCCESS) {
-        if (result != EBPF_FILE_NOT_FOUND) {
-            __analysis_assume(result != EBPF_SUCCESS);
+        if (result == EBPF_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
         }
         goto Exit;
     }
@@ -608,8 +608,8 @@ ebpf_store_load_global_helper_information(
 
     result = _open_ebpf_store_key(&store_key);
     if (result != EBPF_SUCCESS) {
-        if (result != EBPF_FILE_NOT_FOUND) {
-            __analysis_assume(result != EBPF_SUCCESS);
+        if (result == EBPF_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
         }
         goto Exit;
     }
@@ -618,8 +618,8 @@ ebpf_store_load_global_helper_information(
     result = open_registry_key(
         store_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, KEY_READ, (ebpf_registry_key_t*)&global_helpers_key);
     if (result != EBPF_SUCCESS) {
-        if (result != EBPF_FILE_NOT_FOUND) {
-            __analysis_assume(result != EBPF_SUCCESS);
+        if (result == EBPF_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
         }
         goto Exit;
     }
