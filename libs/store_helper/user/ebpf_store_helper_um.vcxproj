@@ -91,8 +91,8 @@
     <ClInclude Include="ebpf_registry_helper_um.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\ebpf_store_helper.c" />
     <ClCompile Include="ebpf_registry_helper_um.cpp" />
-    <ClCompile Include="ebpf_store_helper.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -16,7 +16,7 @@
     <ClCompile Include="ebpf_registry_helper_um.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ebpf_store_helper.cpp">
+    <ClCompile Include="..\ebpf_store_helper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
