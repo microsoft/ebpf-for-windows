@@ -8,7 +8,7 @@ find_package(WDK REQUIRED)
 
 wdk_add_library("ebpf_store_helper_km" STATIC WINVER "${EBPFFORWINDOWS_WDK_WINVER}"
   ebpf_registry_helper.c
-  ebpf_store_helper.c
+  ../ebpf_store_helper.c
 )
 
 target_link_directories("ebpf_store_helper_km" PRIVATE

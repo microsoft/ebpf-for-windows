@@ -3,7 +3,7 @@
 
 add_library("ebpf_store_helper_um" STATIC
   ebpf_registry_helper.cpp
-  ebpf_store_helper.c
+  ../ebpf_store_helper.c
 )
 
 target_include_directories("ebpf_store_helper_um" PRIVATE
