@@ -125,7 +125,7 @@ _Must_inspect_result_ ebpf_result_t
 read_registry_value_string(
     ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Outptr_result_maybenull_ wchar_t** value)
 {
-    ebpf_result_t status = EBPF_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
     unsigned long type = REG_SZ;
     unsigned long value_size = 0;
     wchar_t* string_value = nullptr;
@@ -135,12 +135,12 @@ read_registry_value_string(
     }
 
     *value = nullptr;
-    status = _EBPF_RESULT(RegQueryValueEx(key, value_name, 0, &type, nullptr, &value_size));
-    if (status != EBPF_SUCCESS || type != REG_SZ) {
+    result = _EBPF_RESULT(RegQueryValueEx(key, value_name, 0, &type, nullptr, &value_size));
+    if (result != EBPF_SUCCESS || type != REG_SZ) {
         if (type != REG_SZ) {
-            status = EBPF_INVALID_ARGUMENT;
+            result = EBPF_INVALID_ARGUMENT;
         }
-        return status;
+        return result;
     }
 
     string_value = (wchar_t*)ebpf_allocate((value_size + sizeof(wchar_t)));
@@ -149,8 +149,8 @@ read_registry_value_string(
     }
 
     memset(string_value, 0, value_size + sizeof(wchar_t));
-    status = _EBPF_RESULT(RegQueryValueEx(key, value_name, 0, &type, (PBYTE)string_value, &value_size));
-    if (status != EBPF_SUCCESS) {
+    result = _EBPF_RESULT(RegQueryValueEx(key, value_name, 0, &type, (PBYTE)string_value, &value_size));
+    if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
@@ -161,7 +161,7 @@ Exit:
     if (string_value) {
         ebpf_free(string_value);
     }
-    return status;
+    return result;
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -179,26 +179,26 @@ read_registry_value_binary(
     _Out_writes_(value_size) uint8_t* value,
     size_t value_size)
 {
-    ebpf_result_t status = EBPF_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
     unsigned long type = REG_BINARY;
     unsigned long local_value_size = (unsigned long)value_size;
 
-    status = _EBPF_RESULT(RegQueryValueEx(key, value_name, 0, &type, value, &local_value_size));
-    if (status != EBPF_SUCCESS || type != REG_BINARY || local_value_size != value_size) {
-        if (status != EBPF_SUCCESS) {
-            status = EBPF_INVALID_ARGUMENT;
+    result = _EBPF_RESULT(RegQueryValueEx(key, value_name, 0, &type, value, &local_value_size));
+    if (result != EBPF_SUCCESS || type != REG_BINARY || local_value_size != value_size) {
+        if (result != EBPF_SUCCESS) {
+            result = EBPF_INVALID_ARGUMENT;
         }
         goto Exit;
     }
 
 Exit:
-    return status;
+    return result;
 }
 
 _Must_inspect_result_ ebpf_result_t
 convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size)
 {
-    ebpf_result_t status = EBPF_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
     wchar_t* value_name = nullptr;
 
     try {
@@ -223,16 +223,16 @@ convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wcha
         memcpy(string, value_name_string.c_str(), GUID_STRING_LENGTH * 2);
         string[GUID_STRING_LENGTH] = L'\0';
     } catch (...) {
-        status = EBPF_NO_MEMORY;
+        result = EBPF_NO_MEMORY;
     }
 
-    return status;
+    return result;
 }
 
 _Must_inspect_result_ ebpf_result_t
 convert_string_to_guid(_In_z_ const wchar_t* string, _Out_ GUID* guid)
 {
-    ebpf_result_t status = EBPF_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
 
     // The UUID string read from registry also contains the opening and closing braces.
     // Remove those before converting to UUID.
@@ -242,8 +242,8 @@ convert_string_to_guid(_In_z_ const wchar_t* string, _Out_ GUID* guid)
     // Convert program type string to GUID
     auto rpc_status = UuidFromString((RPC_WSTR)truncated_string, guid);
     if (rpc_status != RPC_S_OK) {
-        status = EBPF_INVALID_ARGUMENT;
+        result = EBPF_INVALID_ARGUMENT;
     }
 
-    return status;
+    return result;
 }
