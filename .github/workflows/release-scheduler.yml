@@ -21,7 +21,7 @@ jobs:
           TITLE: "Scheduled eBPF release is due"
           LABELS: 'release'
           BODY: |
-            A new release for eBPF must be issued:
+            This is an automated reminder that a new release for eBPF must be created:
 
             1. Follow instructions in [ReleaseProcess.md](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/ReleaseProcess.md).
             1. Sync the internal `mscodehub` and follow the internal release instructions in `\.internal\docs\ReleaseEbpfRedistProcess.md`.
