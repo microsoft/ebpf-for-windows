@@ -1239,6 +1239,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
@@ -1353,6 +1354,7 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
@@ -1671,6 +1673,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type, _In_ PCSTR dll_name, _
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
@@ -1883,7 +1886,9 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
     single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(xdp_hook.initialize() == EBPF_SUCCESS);
     single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(bind_hook.initialize() == EBPF_SUCCESS);
 
     // Verify the enumeration is empty.
     uint32_t id1;
@@ -1928,7 +1933,9 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
     single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(xdp_hook.initialize() == EBPF_SUCCESS);
     single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(bind_hook.initialize() == EBPF_SUCCESS);
 
     // Verify the enumeration is empty.
     union bpf_attr attr;
@@ -2121,6 +2128,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
     single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(xdp_hook.initialize() == EBPF_SUCCESS);
     uint32_t ifindex = 0;
     program_load_attach_helper_t xdp_helper;
     xdp_helper.initialize(
@@ -2229,6 +2237,7 @@ TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
     program_info_provider_t sock_addr_program_info;
     REQUIRE(sock_addr_program_info.initialize(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) == EBPF_SUCCESS);
     single_instance_hook_t v4_connect_hook(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
+    REQUIRE(v4_connect_hook.initialize() == EBPF_SUCCESS);
 
     program_load_attach_helper_t sock_addr_helper;
     sock_addr_helper.initialize(

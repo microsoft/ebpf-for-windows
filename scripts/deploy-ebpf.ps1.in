@@ -7,6 +7,8 @@
 $source_directory="."
 
 # The following files should be installed on all platforms.
+# TODO(#2677): export_program_info.exe temporarily requires usersim.dll,
+# usersim.dll should get moved down to the test files list.
 [System.Collections.ArrayList]$built_runtime_files=@(
     "bpftool.exe",
     "bpftool.pdb",
@@ -24,7 +26,9 @@ $source_directory="."
     "NetEbpfExt.sys",
     "NetEbpfExt.pdb",
     "net-ebpf-ext.guid",
-    "ucrtbased.dll")
+    "ucrtbased.dll",
+    "usersim.dll",
+    "usersim.pdb")
 
 [System.Collections.ArrayList]$built_runtime_jit_files=@(
     "ebpfsvc.exe",

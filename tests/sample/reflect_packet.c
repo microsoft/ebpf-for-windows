@@ -47,6 +47,7 @@ reflect_packet(xdp_md_t* ctx)
             if (udp_header->destPort == ntohs(REFLECTION_TEST_PORT)) {
                 swap_mac_addresses(ethernet_header);
                 swap_ipv4_addresses(ipv4_header);
+                swap_ports(udp_header);
                 rc = XDP_TX;
                 goto Done;
             }
@@ -67,6 +68,7 @@ reflect_packet(xdp_md_t* ctx)
             if (udp_header->destPort == ntohs(REFLECTION_TEST_PORT)) {
                 swap_mac_addresses(ethernet_header);
                 swap_ipv6_addresses(ipv6_header);
+                swap_ports(udp_header);
                 rc = XDP_TX;
                 goto Done;
             }

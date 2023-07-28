@@ -559,3 +559,16 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
     KeFlushQueuedDpcs();
     ebpf_free(work_item);
 }
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_platform_initiate()
+{
+    ebpf_initialize_cpu_count();
+    return EBPF_SUCCESS;
+}
+
+void
+ebpf_platform_terminate()
+{
+    KeFlushQueuedDpcs();
+}

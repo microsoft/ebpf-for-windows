@@ -107,6 +107,7 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
 
         // Attach and detach link.
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
         uint32_t ifindex = test_params.thread_index;
         bpf_link* link = nullptr;
         REQUIRE(hook.attach_link(local_program_object_info.fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
@@ -128,6 +129,7 @@ static void
 _droppacket_stress_thread_function(const stress_test_thread_context& test_params)
 {
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
     UNREFERENCED_PARAMETER(test_params);
     uint32_t count{0};
     using sc = std::chrono::steady_clock;
