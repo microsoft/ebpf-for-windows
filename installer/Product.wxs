@@ -218,6 +218,15 @@ SPDX-License-Identifier: MIT
 			<Component Id="EXPORT_PROGRAM_INFO.PDB" DiskId="1" Guid="{88356FE4-6247-4876-BA14-42EDA88CC5C7}">
 				<File Id="EXPORT_PROGRAM_INFO.PDB" Name="export_program_info.pdb" Source="$(var.export_program_info.TargetDir)export_program_info.pdb" />
 			</Component>
+			<!-- TODO(#2677): move usersim.dll down to the testing component.  Until that issue is addressed,
+			     export_program_info.exe requires it.
+			-->
+			<Component Id="USERSIM.DLL" DiskId="1" Guid="{739017F0-9E33-48FF-A33F-C1434AC757BE}">
+				<File Id="USERSIM.DLL" Name="usersim.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\usersim.dll" />
+			</Component>
+			<Component Id="USERSIM.PDB" DiskId="1" Guid="{BCE1BF99-6A3D-48A6-A382-4E87A2B20FB2}">
+				<File Id="USERSIM.PDB" Name="usersim.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\usersim.pdb" />
+			</Component>
 		</ComponentGroup>
 
 		<!--Clear/Setup the eBPF store-->

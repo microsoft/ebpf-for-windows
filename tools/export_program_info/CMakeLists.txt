@@ -46,6 +46,10 @@ set(export_program_info_log "${CMAKE_CURRENT_BINARY_DIR}/log.txt")
 
 add_custom_command(TARGET "export_program_info"
 POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${CMAKE_BINARY_DIR}/x64/bin/$<CONFIG>/usersim.dll
+          ${CMAKE_BINARY_DIR}/x64/$<CONFIG>
+  COMMAND "$<TARGET_FILE:export_program_info>" --clear >> "${export_program_info_log}"
   COMMAND "$<TARGET_FILE:export_program_info>" >> "${export_program_info_log}"
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   COMMENT "ebpf-for-windows - Running: export_program_info"

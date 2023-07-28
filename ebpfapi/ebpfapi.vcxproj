@@ -125,6 +125,7 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>Source.def</ModuleDefinitionFile>
       <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>dbghelp.dll;ADVAPI32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
@@ -145,6 +146,7 @@
       <ModuleDefinitionFile>Source.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>dbghelp.dll;ADVAPI32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
@@ -164,6 +166,7 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>Source.def</ModuleDefinitionFile>
       <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>dbghelp.dll;ADVAPI32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
@@ -184,6 +187,7 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>Source.def</ModuleDefinitionFile>
       <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>dbghelp.dll;ADVAPI32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
@@ -205,6 +209,7 @@
       <ModuleDefinitionFile>Source.def</ModuleDefinitionFile>
       <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>dbghelp.dll;ADVAPI32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>

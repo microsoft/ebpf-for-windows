@@ -21,19 +21,6 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 static KDEFERRED_ROUTINE _ebpf_deferred_routine;
 static KDEFERRED_ROUTINE _ebpf_timer_routine;
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_platform_initiate()
-{
-    ebpf_initialize_cpu_count();
-    return EBPF_SUCCESS;
-}
-
-void
-ebpf_platform_terminate()
-{
-    KeFlushQueuedDpcs();
-}
-
 __drv_allocatesMem(Mem) _Must_inspect_result_
     _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned_with_tag(size_t size, uint32_t tag)
 {

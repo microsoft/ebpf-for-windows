@@ -92,7 +92,7 @@ _netebpf_ext_helper::_netebpf_ext_helper(
         nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
     }
 
-    _fwp_engine::get()->set_sublayer_guids(
+    usersim_fwp_set_sublayer_guids(
         EBPF_DEFAULT_SUBLAYER, EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER, EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER);
 }
 
