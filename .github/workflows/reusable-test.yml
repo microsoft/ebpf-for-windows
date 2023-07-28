@@ -434,6 +434,23 @@ jobs:
                   repo,
                   body,
                 });
+                // If the issue is already labeled as triaged, remove the triaged label.
+                const labels = await github.rest.issues.listLabelsOnIssue({
+                  owner,
+                  repo,
+                  issue_number: issue.number,
+                });
+                for (const label of labels.data) {
+                  if (label.name === 'triaged') {
+                    console.log(`Removing label triaged from issue ${issue.number}`);
+                    await github.rest.issues.removeLabel({
+                      owner,
+                      repo,
+                      issue_number: issue.number,
+                      name: 'triaged',
+                    })
+                  }
+                }
                 return;
               }
             }
