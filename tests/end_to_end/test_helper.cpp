@@ -286,6 +286,18 @@ GlueDuplicateHandle(
 }
 
 static void
+_complete_async_io(OVERLAPPED* overlapped, size_t output_buffer_length)
+{
+    std::unique_lock lock(_overlapped_buffers_mutex);
+    auto it = _overlapped_buffers.find(overlapped);
+    REQUIRE(it != _overlapped_buffers.end());
+    if (it->second.output_buffer != nullptr) {
+        memcpy(it->second.output_buffer, it->second.buffer.data(), output_buffer_length);
+    }
+    _overlapped_buffers.erase(it);
+}
+
+static void
 _complete_overlapped(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result)
 {
     UNREFERENCED_PARAMETER(output_buffer_length);
@@ -293,13 +305,7 @@ _complete_overlapped(_Inout_ void* context, size_t output_buffer_length, ebpf_re
 
     // Copy the output buffer to the user buffer.
     if (overlapped) {
-        std::unique_lock lock(_overlapped_buffers_mutex);
-        auto it = _overlapped_buffers.find(overlapped);
-        REQUIRE(it != _overlapped_buffers.end());
-        if (it->second.output_buffer != nullptr) {
-            memcpy(it->second.output_buffer, it->second.buffer.data(), output_buffer_length);
-        }
-        _overlapped_buffers.erase(it);
+        _complete_async_io(overlapped, output_buffer_length);
     }
 
     overlapped->InternalHigh = static_cast<ULONG_PTR>(output_buffer_length);
@@ -523,9 +529,9 @@ GlueDeviceIoControl(
         memcpy(user_reply, sharedBuffer.data(), output_buffer_size);
     }
 
-    if (overlapped && result != EBPF_PENDING) {
-        // If the request is not pending, complete the overlapped request.
-        _complete_overlapped(overlapped, output_buffer_size, result);
+    // If the request failed synchronously, complete the overlapped.
+    if (overlapped && !(result == EBPF_PENDING || result == EBPF_SUCCESS)) {
+        _complete_async_io(overlapped, 0);
     }
 
     if (result != EBPF_SUCCESS) {
