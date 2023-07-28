@@ -18,8 +18,8 @@ jobs:
       - name: Create release task
         uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
         env:
-          TITLE: "Scheduled eBPF release is due"
-          LABELS: 'release'
+          TITLE: Scheduled eBPF release is due
+          LABELS: release
           BODY: |
             This is an automated reminder that a new release for eBPF is scheduled to be created:
 
