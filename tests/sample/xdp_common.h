@@ -34,6 +34,14 @@ swap_ipv6_addresses(IPV6_HEADER* ipv6_header)
     __builtin_memcpy(ipv6_header->SourceAddress, address, sizeof(ipv6_address_t));
 }
 
+inline void
+swap_ports(UDP_HEADER* udp_header)
+{
+    uint16_t src_port = udp_header->srcPort;
+    udp_header->srcPort = udp_header->destPort;
+    udp_header->destPort = src_port;
+}
+
 inline int
 fold_csum(int csum)
 {
