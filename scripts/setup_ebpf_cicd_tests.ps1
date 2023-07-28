@@ -37,6 +37,8 @@ Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 # Download the release artifacts for regression tests.
 Get-RegressionTestArtifacts
 
+Get-Duonic
+
 # Export build artifacts to the test VMs.
 Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
 
