@@ -9,7 +9,7 @@ To perform the analysis, you'll need the following tools:
 2. [PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.3)
 
 ## Steps to Analyze Workflow Duration
-1. Obtain the run ID for the workflow from the [actions](https://github.com/Alan-Jowett/ebpf-for-windows/actions) section on GitHub.
+1. Obtain the run ID for the workflow from the [actions](https://github.com/microsoft/ebpf-for-windows/actions) section on GitHub.
    - Select the action you want to analyze.
    - Copy the run ID from the URL (the number that appears after the `/runs/` part of the URL).
 
