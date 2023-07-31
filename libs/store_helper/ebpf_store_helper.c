@@ -19,7 +19,7 @@ _ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_store_key_t* provide
 #ifdef USER_MODE
     result = ebpf_create_registry_key(ebpf_store_root_key_t, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
 #else
-    result = create_registry_key(NULL, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_key);
+    result = ebpf_create_registry_key(NULL, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_key);
 #endif
 
     if (!IS_SUCCESS(result)) {
