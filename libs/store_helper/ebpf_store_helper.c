@@ -75,14 +75,45 @@ Exit:
     return result;
 }
 
-/**
- * @brief Update section information in eBPF store.
- *
- * @param[in] section_info Pointer to an array of section information.
- * @param[in] section_info_count Count of section information entries.
- *
- * @returns Status of the operation.
- */
+ebpf_result_t
+ebpf_store_update_global_helper_information(
+    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_registry_key_t provider_key = NULL;
+    ebpf_registry_key_t helper_info_key = NULL;
+
+    if (helper_info_count == 0) {
+        return result;
+    }
+
+    // Open (or create) provider registry path.
+    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    // Open (or create) global helpers registry path.
+    result = create_registry_key(provider_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, REG_CREATE_FLAGS, &helper_info_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    for (uint32_t i = 0; i < helper_info_count; i++) {
+
+        result = ebpf_store_update_helper_prototype(helper_info_key, &helper_info[i]);
+        if (!IS_SUCCESS(result)) {
+            goto Exit;
+        }
+    }
+
+Exit:
+    close_registry_key(helper_info_key);
+    close_registry_key(provider_key);
+
+    return result;
+}
+
 ebpf_result_t
 ebpf_store_update_section_information(
     _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count)
@@ -162,14 +193,6 @@ Exit:
     return result;
 }
 
-/**
- * @brief Update program information in eBPF store.
- *
- * @param[in] program_info Pointer to an array of program information.
- * @param[in] program_info_count Count of program information entries.
- *
- * @returns Status of the operation.
- */
 ebpf_result_t
 ebpf_store_update_program_information(
     _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count)
@@ -281,53 +304,6 @@ ebpf_store_update_program_information(
 
 Exit:
     close_registry_key(program_info_key);
-    close_registry_key(provider_key);
-
-    return result;
-}
-
-/**
- * @brief Update global helper information in eBPF store.
- *
- * @param[in] helper_info Pointer to an array of helper function prototypes.
- * @param[in] helper_info_count Count of helper function prototypes.
- *
- * @returns Status of the operation.
- */
-ebpf_result_t
-ebpf_store_update_global_helper_information(
-    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_registry_key_t provider_key = NULL;
-    ebpf_registry_key_t helper_info_key = NULL;
-
-    if (helper_info_count == 0) {
-        return result;
-    }
-
-    // Open (or create) provider registry path.
-    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
-    if (!IS_SUCCESS(result)) {
-        goto Exit;
-    }
-
-    // Open (or create) global helpers registry path.
-    result = create_registry_key(provider_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, REG_CREATE_FLAGS, &helper_info_key);
-    if (!IS_SUCCESS(result)) {
-        goto Exit;
-    }
-
-    for (uint32_t i = 0; i < helper_info_count; i++) {
-
-        result = ebpf_store_update_helper_prototype(helper_info_key, &helper_info[i]);
-        if (!IS_SUCCESS(result)) {
-            goto Exit;
-        }
-    }
-
-Exit:
-    close_registry_key(helper_info_key);
     close_registry_key(provider_key);
 
     return result;

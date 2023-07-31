@@ -39,6 +39,18 @@ extern ebpf_registry_key_t ebpf_root_registry_key;
         ebpf_registry_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info);
 
     /**
+     * @brief Update global helper information in the eBPF store.
+     *
+     * @param[in] helper_info Pointer to an array of helper function prototypes.
+     * @param[in] helper_info_count Count of helper function prototypes.
+     *
+     * @returns Status of the operation.
+     */
+    ebpf_result_t
+    ebpf_store_update_global_helper_information(
+        _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
+
+    /**
      * @brief Update section information in eBPF store.
      *
      * @param[in] section_info Pointer to an array of section information.
@@ -61,18 +73,6 @@ extern ebpf_registry_key_t ebpf_root_registry_key;
     ebpf_result_t
     ebpf_store_update_program_information(
         _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
-
-    /**
-     * @brief Update global helper information in eBPF store.
-     *
-     * @param[in] helper_info Pointer to an array of helper function prototypes.
-     * @param[in] helper_info_count Count of helper function prototypes.
-     *
-     * @returns Status of the operation.
-     */
-    ebpf_result_t
-    ebpf_store_update_global_helper_information(
-        _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
 
 #ifdef __cplusplus
 }
