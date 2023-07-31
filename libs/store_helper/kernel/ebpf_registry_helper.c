@@ -11,7 +11,8 @@
 #define _EBPF_RESULT(x) (NT_SUCCESS(x) ? EBPF_SUCCESS : EBPF_FAILED)
 
 ebpf_result_t
-convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_length) wchar_t* string, size_t string_length)
+ebpf_convert_guid_to_string(
+    _In_ const GUID* guid, _Out_writes_all_(string_length) wchar_t* string, size_t string_length)
 {
     UNICODE_STRING unicode_string = {0};
 
@@ -40,7 +41,7 @@ Exit:
 }
 
 void
-close_registry_key(ebpf_store_key_t key)
+ebpf_close_registry_key(ebpf_store_key_t key)
 {
     if (key) {
         ZwClose(key);
@@ -48,7 +49,7 @@ close_registry_key(ebpf_store_key_t key)
 }
 
 _Must_inspect_result_ ebpf_result_t
-write_registry_value_binary(
+ebpf_write_registry_value_binary(
     ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _In_reads_(value_size) uint8_t* value, size_t value_size)
 {
     UNICODE_STRING unicode_value_name;
@@ -58,7 +59,7 @@ write_registry_value_binary(
 }
 
 _Must_inspect_result_ ebpf_result_t
-write_registry_value_ansi_string(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
+ebpf_write_registry_value_ansi_string(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
 {
     NTSTATUS status;
     UNICODE_STRING unicode_value;
@@ -81,7 +82,7 @@ Exit:
 }
 
 _Must_inspect_result_ ebpf_result_t
-write_registry_value_dword(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, uint32_t value)
+ebpf_write_registry_value_dword(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, uint32_t value)
 {
     UNICODE_STRING unicode_name;
     RtlInitUnicodeString(&unicode_name, value_name);
@@ -89,7 +90,7 @@ write_registry_value_dword(ebpf_store_key_t key, _In_z_ const wchar_t* value_nam
 }
 
 _Must_inspect_result_ ebpf_result_t
-create_registry_key(
+ebpf_create_registry_key(
     ebpf_store_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key)
 {
     UNICODE_STRING registry_path;
@@ -105,7 +106,7 @@ create_registry_key(
 }
 
 _Must_inspect_result_ ebpf_result_t
-create_registry_key_ansi(
+ebpf_create_registry_key_ansi(
     ebpf_store_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key)
 {
     NTSTATUS status = STATUS_SUCCESS;

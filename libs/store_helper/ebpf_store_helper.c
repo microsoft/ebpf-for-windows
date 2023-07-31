@@ -17,7 +17,7 @@ _ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_store_key_t* provide
 
     // Open (or create) root eBPF registry path.
 #ifdef USER_MODE
-    result = create_registry_key(ebpf_store_root_key_t, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
+    result = ebpf_create_registry_key(ebpf_store_root_key_t, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
 #else
     result = create_registry_key(NULL, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_key);
 #endif
@@ -27,13 +27,13 @@ _ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_store_key_t* provide
     }
 
     // Open (or create) program data registry path.
-    result = create_registry_key(root_key, EBPF_PROVIDERS_REGISTRY_PATH, REG_CREATE_FLAGS, provider_key);
+    result = ebpf_create_registry_key(root_key, EBPF_PROVIDERS_REGISTRY_PATH, REG_CREATE_FLAGS, provider_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
 
 Exit:
-    close_registry_key(root_key);
+    ebpf_close_registry_key(root_key);
     return result;
 }
 
@@ -46,7 +46,7 @@ ebpf_store_update_helper_prototype(
     ebpf_store_key_t helper_function_key = NULL;
     char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
 
-    result = create_registry_key_ansi(helper_info_key, helper_info->name, REG_CREATE_FLAGS, &helper_function_key);
+    result = ebpf_create_registry_key_ansi(helper_info_key, helper_info->name, REG_CREATE_FLAGS, &helper_function_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -63,14 +63,14 @@ ebpf_store_update_helper_prototype(
     offset += sizeof(helper_info->arguments);
 
     // Save the helper prototype data.
-    result = write_registry_value_binary(
+    result = ebpf_write_registry_value_binary(
         helper_function_key, EBPF_HELPER_DATA_PROTOTYPE, (uint8_t*)&serialized_data[0], offset);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
 
 Exit:
-    close_registry_key(helper_function_key);
+    ebpf_close_registry_key(helper_function_key);
 
     return result;
 }
@@ -94,7 +94,8 @@ ebpf_store_update_global_helper_information(
     }
 
     // Open (or create) global helpers registry path.
-    result = create_registry_key(provider_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, REG_CREATE_FLAGS, &helper_info_key);
+    result =
+        ebpf_create_registry_key(provider_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, REG_CREATE_FLAGS, &helper_info_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -108,8 +109,8 @@ ebpf_store_update_global_helper_information(
     }
 
 Exit:
-    close_registry_key(helper_info_key);
-    close_registry_key(provider_key);
+    ebpf_close_registry_key(helper_info_key);
+    ebpf_close_registry_key(provider_key);
 
     return result;
 }
@@ -133,7 +134,7 @@ ebpf_store_update_section_information(
     }
 
     // Open (or create) section data key.
-    result = create_registry_key(provider_key, EBPF_SECTIONS_REGISTRY_PATH, REG_CREATE_FLAGS, &section_info_key);
+    result = ebpf_create_registry_key(provider_key, EBPF_SECTIONS_REGISTRY_PATH, REG_CREATE_FLAGS, &section_info_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -142,53 +143,56 @@ ebpf_store_update_section_information(
         ebpf_store_key_t section_key = NULL;
 
         // Open or create the registry path.
-        result = create_registry_key(section_info_key, section_info[i].section_name, REG_CREATE_FLAGS, &section_key);
+        result =
+            ebpf_create_registry_key(section_info_key, section_info[i].section_name, REG_CREATE_FLAGS, &section_key);
         if (!IS_SUCCESS(result)) {
             goto Exit;
         }
 
         // Save program type.
-        result = write_registry_value_binary(
+        result = ebpf_write_registry_value_binary(
             section_key,
             EBPF_SECTION_DATA_PROGRAM_TYPE,
             (uint8_t*)section_info[i].program_type,
             sizeof(ebpf_program_type_t));
         if (!IS_SUCCESS(result)) {
-            close_registry_key(section_key);
+            ebpf_close_registry_key(section_key);
             goto Exit;
         }
 
         // Save attach type.
-        result = write_registry_value_binary(
+        result = ebpf_write_registry_value_binary(
             section_key,
             EBPF_SECTION_DATA_ATTACH_TYPE,
             (uint8_t*)section_info[i].attach_type,
             sizeof(ebpf_attach_type_t));
         if (!IS_SUCCESS(result)) {
-            close_registry_key(section_key);
+            ebpf_close_registry_key(section_key);
             goto Exit;
         }
 
         // Save bpf_prog_type.
-        result = write_registry_value_dword(section_key, EBPF_DATA_BPF_PROG_TYPE, section_info[i].bpf_program_type);
+        result =
+            ebpf_write_registry_value_dword(section_key, EBPF_DATA_BPF_PROG_TYPE, section_info[i].bpf_program_type);
         if (!IS_SUCCESS(result)) {
-            close_registry_key(section_key);
+            ebpf_close_registry_key(section_key);
             goto Exit;
         }
 
         // Save bpf_attach_type.
-        result = write_registry_value_dword(section_key, EBPF_DATA_BPF_ATTACH_TYPE, section_info[i].bpf_attach_type);
+        result =
+            ebpf_write_registry_value_dword(section_key, EBPF_DATA_BPF_ATTACH_TYPE, section_info[i].bpf_attach_type);
         if (!IS_SUCCESS(result)) {
-            close_registry_key(section_key);
+            ebpf_close_registry_key(section_key);
             goto Exit;
         }
 
-        close_registry_key(section_key);
+        ebpf_close_registry_key(section_key);
     }
 
 Exit:
-    close_registry_key(section_info_key);
-    close_registry_key(provider_key);
+    ebpf_close_registry_key(section_info_key);
+    ebpf_close_registry_key(provider_key);
 
     return result;
 }
@@ -212,7 +216,8 @@ ebpf_store_update_program_information(
     }
 
     // Open (or create) program data registry path.
-    result = create_registry_key(provider_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, REG_CREATE_FLAGS, &program_info_key);
+    result =
+        ebpf_create_registry_key(provider_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, REG_CREATE_FLAGS, &program_info_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -223,66 +228,66 @@ ebpf_store_update_program_information(
 
         // Convert program type GUID to string.
         wchar_t guid_string[GUID_STRING_LENGTH + 1];
-        result = convert_guid_to_string(
+        result = ebpf_convert_guid_to_string(
             &program_info[i].program_type_descriptor.program_type, guid_string, GUID_STRING_LENGTH + 1);
         if (!IS_SUCCESS(result)) {
             return result;
         }
 
-        result = create_registry_key(program_info_key, guid_string, REG_CREATE_FLAGS, &program_key);
+        result = ebpf_create_registry_key(program_info_key, guid_string, REG_CREATE_FLAGS, &program_key);
         if (!IS_SUCCESS(result)) {
             goto Exit;
         }
 
         // Save the friendly program type name.
-        result = write_registry_value_ansi_string(
+        result = ebpf_write_registry_value_ansi_string(
             program_key, EBPF_PROGRAM_DATA_NAME, program_info[i].program_type_descriptor.name);
         if (!IS_SUCCESS(result)) {
-            close_registry_key(program_key);
+            ebpf_close_registry_key(program_key);
             goto Exit;
         }
 
         // Save context descriptor.
-        result = write_registry_value_binary(
+        result = ebpf_write_registry_value_binary(
             program_key,
             EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR,
             (uint8_t*)program_info[i].program_type_descriptor.context_descriptor,
             sizeof(ebpf_context_descriptor_t));
         if (!IS_SUCCESS(result)) {
-            close_registry_key(program_key);
+            ebpf_close_registry_key(program_key);
             goto Exit;
         }
 
         // Save bpf_prog_type.
-        result = write_registry_value_dword(
+        result = ebpf_write_registry_value_dword(
             program_key, EBPF_DATA_BPF_PROG_TYPE, program_info[i].program_type_descriptor.bpf_prog_type);
         if (!IS_SUCCESS(result)) {
-            close_registry_key(program_key);
+            ebpf_close_registry_key(program_key);
             goto Exit;
         }
 
         // Save "is_privileged".
-        result = write_registry_value_dword(
+        result = ebpf_write_registry_value_dword(
             program_key, EBPF_PROGRAM_DATA_PRIVILEGED, program_info[i].program_type_descriptor.is_privileged);
         if (!IS_SUCCESS(result)) {
-            close_registry_key(program_key);
+            ebpf_close_registry_key(program_key);
             goto Exit;
         }
 
         // Save helper count.
-        result = write_registry_value_dword(
+        result = ebpf_write_registry_value_dword(
             program_key, EBPF_PROGRAM_DATA_HELPER_COUNT, program_info[i].count_of_program_type_specific_helpers);
         if (!IS_SUCCESS(result)) {
-            close_registry_key(program_key);
+            ebpf_close_registry_key(program_key);
             goto Exit;
         }
 
         if (program_info[i].count_of_program_type_specific_helpers != 0) {
             // Create (or open) helper registry path.
-            result = create_registry_key(
+            result = ebpf_create_registry_key(
                 program_key, EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH, REG_CREATE_FLAGS, &helper_info_key);
             if (!IS_SUCCESS(result)) {
-                close_registry_key(program_key);
+                ebpf_close_registry_key(program_key);
                 goto Exit;
             }
 
@@ -291,20 +296,20 @@ ebpf_store_update_program_information(
                 result = ebpf_store_update_helper_prototype(
                     helper_info_key, &(program_info[i].program_type_specific_helper_prototype[count]));
                 if (!IS_SUCCESS(result)) {
-                    close_registry_key(program_key);
-                    close_registry_key(helper_info_key);
+                    ebpf_close_registry_key(program_key);
+                    ebpf_close_registry_key(helper_info_key);
                     goto Exit;
                 }
             }
 
-            close_registry_key(helper_info_key);
+            ebpf_close_registry_key(helper_info_key);
         }
-        close_registry_key(program_key);
+        ebpf_close_registry_key(program_key);
     }
 
 Exit:
-    close_registry_key(program_info_key);
-    close_registry_key(provider_key);
+    ebpf_close_registry_key(program_info_key);
+    ebpf_close_registry_key(provider_key);
 
     return result;
 }
