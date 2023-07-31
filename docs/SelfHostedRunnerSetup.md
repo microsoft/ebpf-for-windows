@@ -18,8 +18,7 @@ Since these runners only run jobs for PRs in the official `eBPF for Windows` rep
    `windowslogonaccount` and `windowslogonpassword` parameters.
 6) Follow the [VM Installation Instructions](vm-setup.md) to set up **one test VM** and perform one-time setup steps. Then create a snapshot named **baseline** for the VMs.
 7) Edit test configuration JSON files.
-   1) Edit `test_execution.json` file. Update the name of the VM in `BasicTest` section. Update the name of the VM in `MultiVMTest` section.
-   2) Edit `vm_list.json` with the name of the test VM.
+   1) Edit the `test_execution.json` file. Update the name of your VM and runner in the `VMMap` section. You only need one entry in this map.
 8) Store the VM administrator and standard user credentials on the runner machine:
    1) `Install-Module CredentialManager -force`
    2) `New-StoredCredential -Target `**`TEST_VM`**` -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine`
