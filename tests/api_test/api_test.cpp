@@ -437,7 +437,11 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
     std::vector<std::vector<char>> app_ids;
     char* p = reinterpret_cast<char*>(&app_id[0]);
     std::vector<char> temp(p, p + (app_id.size() + 1) * sizeof(wchar_t));
-    app_ids.push_back(temp);
+
+    // ring_buffer_api_test_helper expects a list of app IDs of size RING_BUFFER_TEST_EVENT_COUNT.
+    for (auto i = 0; i < RING_BUFFER_TEST_EVENT_COUNT; i++) {
+        app_ids.push_back(temp);
+    }
 
     ring_buffer_api_test_helper(process_map_fd, app_ids, [](int i) {
         const uint16_t _test_port = 12345 + static_cast<uint16_t>(i);
