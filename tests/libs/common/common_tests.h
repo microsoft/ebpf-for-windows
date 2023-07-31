@@ -14,6 +14,7 @@
 
 #include <windows.h>
 #include <future>
+#include <set>
 
 #define RING_BUFFER_TEST_EVENT_COUNT 10
 
@@ -42,7 +43,8 @@ typedef struct _ring_buffer_test_event_context
     unsubscribe();
     std::promise<void> ring_buffer_event_promise;
     struct ring_buffer* ring_buffer;
-    std::vector<std::vector<char>>* records;
+    const std::vector<std::vector<char>>* records;
+    std::set<size_t> event_received;
     bool canceled;
     int matched_entry_count;
     int test_event_count;

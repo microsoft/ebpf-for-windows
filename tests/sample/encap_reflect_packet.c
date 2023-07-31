@@ -60,6 +60,15 @@ encapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
     // Swap the IP addresses for the inner IPv4 header.
     swap_ipv4_addresses(inner_ipv4_header);
 
+    next_header = (char*)(inner_ipv4_header) + sizeof(uint32_t) * inner_ipv4_header->HeaderLength;
+    if (next_header + sizeof(UDP_HEADER) > (char*)ctx->data_end) {
+        goto Done;
+    }
+    UDP_HEADER* udp_header = (UDP_HEADER*)next_header;
+    if (udp_header->destPort == ntohs(REFLECTION_TEST_PORT)) {
+        swap_ports(udp_header);
+    }
+
     // Copy over the inner IP header to the outer IP header.
     __builtin_memcpy(outer_ipv4_header, inner_ipv4_header, sizeof(IPV4_HEADER));
 
@@ -124,6 +133,15 @@ encapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
 
     // Swap the IP addresses for the inner IP header.
     swap_ipv6_addresses(inner_ipv6_header);
+
+    next_header = (char*)(inner_ipv6_header) + sizeof(IPV6_HEADER);
+    if (next_header + sizeof(UDP_HEADER) > (char*)ctx->data_end) {
+        goto Done;
+    }
+    UDP_HEADER* udp_header = (UDP_HEADER*)next_header;
+    if (udp_header->destPort == ntohs(REFLECTION_TEST_PORT)) {
+        swap_ports(udp_header);
+    }
 
     // Copy over the inner IP header to the outer IP header.
     __builtin_memcpy(outer_ipv6_header, inner_ipv6_header, sizeof(IPV6_HEADER));

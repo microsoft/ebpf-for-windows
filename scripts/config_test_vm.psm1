@@ -313,27 +313,17 @@ function Initialize-NetworkInterfacesOnVMs
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
         Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-            param([Parameter(Mandatory=$True)] $InterfaceList,
-                  [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-                  [Parameter(Mandatory=$True)] [string] $LogFileName)
-            $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory)
 
-            foreach ($Interface in $InterfaceList) {
-                $InterfaceAlias = $Interface.Alias
-                $V4Address = $Interface.V4Address
-                Write-Log "Adding $V4Address on $InterfaceAlias"
-                Remove-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PolicyStore "All" -Confirm:$false -ErrorAction Ignore | Out-Null
-                New-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PrefixLength 24 -ErrorAction Stop | Out-Null
-                Write-Log "Address configured."
+            Push-Location "$env:SystemDrive\$WorkingDirectory"
 
-                $V6Address = $Interface.V6Address
-                Write-Log "Adding $V6Address on $InterfaceAlias"
-                Remove-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V6Address* -PolicyStore "All" -Confirm:$false -ErrorAction Ignore | Out-Null
-                New-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V6Address -PrefixLength 64 -ErrorAction Stop | Out-Null
-                Write-Log "Address configured."
-            }
-        } -ArgumentList ($Interfaces, "eBPF", $LogFileName) -ErrorAction Stop
+            Write-Host "Installing DuoNic driver"
+            .\duonic.ps1 -Install -NumNicPairs 2
+            # Disable Duonic's fake checksum offload and force TCP/IP to calculate it.
+            Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
+
+            Pop-Location
+        } -ArgumentList ("eBPF") -ErrorAction Stop
     }
 }
 
@@ -361,4 +351,16 @@ function Get-RegressionTestArtifacts
         Move-Item -Path "$DownloadPath\Release\cgroup_sock_addr2.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
         Remove-Item -Path $DownloadPath -Force -Recurse
     }
+}
+
+# Copied from https://github.com/microsoft/msquic/blob/main/scripts/prepare-machine.ps1
+function Get-Duonic {
+    # Download and extract https://github.com/microsoft/corenet-ci.
+    $DownloadPath = "$pwd\corenet-ci"
+    mkdir $DownloadPath
+    Write-Host "Downloading CoreNet-CI"
+    Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile "$DownloadPath\corenet-ci.zip"
+    Expand-Archive -Path "$DownloadPath\corenet-ci.zip" -DestinationPath $DownloadPath -Force
+    Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\*" -Destination $pwd -Force
+    Remove-Item -Path $DownloadPath -Force -Recurse
 }

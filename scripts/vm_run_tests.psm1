@@ -243,7 +243,6 @@ function Add-FirewallRuleOnVM {
 function Invoke-XDPTest1
 {
     param([Parameter(Mandatory=$True)] [string] $VM1,
-          [Parameter(Mandatory=$True)] [string] $VM2,
           [Parameter(Mandatory=$True)] [string] $VM1Interface1V4Address,
           [Parameter(Mandatory=$True)] [string] $VM1Interface1V6Address,
           [Parameter(Mandatory=$True)] [string] $VM1Interface2V4Address,
@@ -256,8 +255,8 @@ function Invoke-XDPTest1
     $ProgId = Add-eBPFProgramOnVM -VM $VM1 -Program "reflect_packet.sys" -LogFileName $LogFileName
 
     # Run XDP reflect test from VM2 targeting both interfaces of VM1.
-    Invoke-XDPTestOnVM $VM2 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
-    Invoke-XDPTestOnVM $VM2 "xdp_reflect_test" $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
+    Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
+    Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
 
     # Unload program from VM1.
     Remove-eBPFProgramFromVM $VM1 $ProgId $LogFileName
@@ -268,7 +267,6 @@ function Invoke-XDPTest1
 function Invoke-XDPTest2
 {
     param([Parameter(Mandatory=$True)] [string] $VM1,
-          [Parameter(Mandatory=$True)] [string] $VM2,
           [Parameter(Mandatory=$True)] [string] $VM1Interface1Alias,
           [Parameter(Mandatory=$True)] [string] $VM1Interface2Alias,
           [Parameter(Mandatory=$True)] [string] $VM1Interface1V4Address,
@@ -286,8 +284,8 @@ function Invoke-XDPTest2
     Set-eBPFProgramOnVM -VM $VM1 -ProgId $ProgId -Interface $VM1Interface2Alias -LogFileName $LogFileName
 
     # Run XDP reflect test from VM2 targeting both interfaces of VM1.
-    Invoke-XDPTestOnVM $VM2 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
-    Invoke-XDPTestOnVM $VM2 "xdp_reflect_test" $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
+    Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
+    Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
 
     # Unload program from VM1.
     Remove-eBPFProgramFromVM $VM1 $ProgId $LogFileName
@@ -298,7 +296,6 @@ function Invoke-XDPTest2
 function Invoke-XDPTest3
 {
     param([Parameter(Mandatory=$True)] [string] $VM1,
-          [Parameter(Mandatory=$True)] [string] $VM2,
           [Parameter(Mandatory=$True)] [string] $VM1Interface1Alias,
           [Parameter(Mandatory=$True)] [string] $VM1Interface2Alias,
           [Parameter(Mandatory=$True)] [string] $VM1Interface1V4Address,
@@ -316,10 +313,10 @@ function Invoke-XDPTest3
     $ProgId2 = Add-eBPFProgramOnVM -VM $VM1 -Program "encap_reflect_packet.sys" -Interface $VM1Interface2Alias -LogFileName $LogFileName
 
     # Run XDP reflect test from VM2 targeting first interface of VM1.
-    Invoke-XDPTestOnVM $VM2 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
+    Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
 
     # Run XDP encap reflect test from VM2 targeting second interface of VM1.
-    Invoke-XDPTestOnVM $VM2 "xdp_encap_reflect_test" $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
+    Invoke-XDPTestOnVM $VM1 "xdp_encap_reflect_test" $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
 
     # Unload programs from VM1.
     Remove-eBPFProgramFromVM $VM1 $ProgId1 $LogFileName
@@ -331,26 +328,27 @@ function Invoke-XDPTest3
 function Invoke-XDPTest4
 {
     param([Parameter(Mandatory=$True)] [string] $VM1,
-          [Parameter(Mandatory=$True)] [string] $VM2,
           [Parameter(Mandatory=$True)] [string] $VM1Interface1V4Address,
           [Parameter(Mandatory=$True)] [string] $VM1Interface1V6Address,
+          [Parameter(Mandatory=$True)] [string] $VM1Interface1Alias,
+          [Parameter(Mandatory=$True)] [string] $VM2Interface1Alias,
           [Parameter(Mandatory=$True)] [string] $LogFileName)
 
     Write-Log "Running XDP Test4 ..."
 
     # Load encap_reflect_packet on VM1.
-    $ProgId1 = Add-eBPFProgramOnVM -VM $VM1 -Program "encap_reflect_packet.sys" -LogFileName $LogFileName
+    $ProgId1 = Add-eBPFProgramOnVM -VM $VM1 -Program "encap_reflect_packet.sys" -Interface $VM1Interface1Alias -LogFileName $LogFileName
 
     # Load decap_permit_packet on VM2.
-    $ProgId2 = Add-eBPFProgramOnVM -VM $VM2 -Program "decap_permit_packet.sys" -LogFileName $LogFileName
+    $ProgId2 = Add-eBPFProgramOnVM -VM $VM1 -Program "decap_permit_packet.sys" -Interface $VM2Interface1Alias -LogFileName $LogFileName
 
     # Run XDP reflect test from VM2 targeting first interface of VM1.
-    Invoke-XDPTestOnVM $VM2 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
+    Invoke-XDPTestOnVM $VM1 "xdp_reflect_test" $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
 
     # Unload program from VM1.
     Remove-eBPFProgramFromVM $VM1 $ProgId1 $LogFileName
-    # Unload program from VM2.
-    Remove-eBPFProgramFromVM $VM2 $ProgId2 $LogFileName
+    # Unload program from VM1.
+    Remove-eBPFProgramFromVM $VM1 $ProgId2 $LogFileName
 
     Write-Log "XDP Test4 succeeded." -ForegroundColor Green
 }
@@ -359,23 +357,29 @@ function Invoke-XDPTestsOnVM
 {
     param([parameter(Mandatory=$true)] $MultiVMTestConfig)
 
+    # NIC pairs are duo1-duo2 and duo3-duo4.
+    # VM1 is interfaces duo1 and duo3.
+    # VM2 is interfaces duo2 and duo4.
+
     $VM1 = $MultiVMTestConfig[0]
     $VM1Interface1 = $VM1.Interfaces[0]
     $VM1Interface1Alias = $VM1Interface1.Alias
     $VM1Interface1V4Address = $VM1Interface1.V4Address
     $VM1Interface1V6Address = $VM1Interface1.V6Address
-    $VM1Interface2 = $VM1.Interfaces[1]
+
+    $VM2Interface1 = $VM1.Interfaces[1]
+    $VM2Interface1Alias = $VM2Interface1.Alias
+
+    $VM1Interface2 = $VM1.Interfaces[2]
     $VM1Interface2Alias = $VM1Interface2.Alias
     $VM1Interface2V4Address = $VM1Interface2.V4Address
-    $VM1Interface2V6Address = $VM1Interface2.V6Address
+    $VM1Interface3V6Address = $VM1Interface2.V6Address
 
-    $VM2 = $MultiVMTestConfig[1]
-
-    Add-FirewallRuleOnVM -VM $VM2.Name -RuleName "XDP_Test" -ProgramName "xdp_tests.exe" -LogFileName $LogFileName
-    Invoke-XDPTest1 $VM1.Name $VM2.Name $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
-    Invoke-XDPTest2 $VM1.Name $VM2.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
-    Invoke-XDPTest3 $VM1.Name $VM2.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface2V6Address $LogFileName
-    Invoke-XDPTest4 $VM1.Name $VM2.Name $VM1Interface1V4Address $VM1Interface1V6Address $LogFileName
+    Add-FirewallRuleOnVM -VM $VM1.Name -RuleName "XDP_Test" -ProgramName "xdp_tests.exe" -LogFileName $LogFileName
+    Invoke-XDPTest1 $VM1.Name $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface3V6Address $LogFileName
+    Invoke-XDPTest2 $VM1.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface3V6Address $LogFileName
+    Invoke-XDPTest3 $VM1.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface3V6Address $LogFileName
+    Invoke-XDPTest4 $VM1.Name $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface1Alias $VM2Interface1Alias $LogFileName
 }
 
 function Invoke-ConnectRedirectTestsOnVM
@@ -389,8 +393,7 @@ function Invoke-ConnectRedirectTestsOnVM
     $VM1V4Address = $VM1Interface.V4Address
     $VM1V6Address = $VM1Interface.V6Address
 
-    $VM2 = $MultiVMTestConfig[1]
-    $VM2Interface = $VM2.Interfaces[0]
+    $VM2Interface = $VM1.Interfaces[1]
     $VM2V4Address = $VM2Interface.V4Address
     $VM2V6Address = $VM2Interface.V6Address
 
@@ -406,10 +409,9 @@ function Invoke-ConnectRedirectTestsOnVM
     $UdpProxyParameters = "--protocol udp --local-port $ProxyPort"
 
     $ParamaterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
-    $VMArray = @($VM1.Name, $VM2.Name)
+    $VMArray = @($VM1.Name)
 
     Add-FirewallRuleOnVM -VM $VM1.Name -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
-    Add-FirewallRuleOnVM -VM $VM2.Name -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
     # Start TCP and UDP listeners on both the VMs.
     foreach ($vm in $VMArray)
@@ -477,7 +479,6 @@ function Invoke-ConnectRedirectTestsOnVM
 
     } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $StandardUser, $UnsecurePassword, $UserType, "eBPF", $LogFileName) -ErrorAction Stop
     Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
-    Stop-ProcessOnVM -VM $VM2.Name -ProgramName $ProgramName
 
     # Remove standard user on VM1.
     Remove-StandardUserOnVM -VM $VM1.Name -UserName $StandardUser
