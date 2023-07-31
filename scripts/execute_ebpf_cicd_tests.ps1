@@ -20,22 +20,22 @@ Import-Module .\vm_run_tests.psm1  -Force -ArgumentList ($AdminTestVMCredential.
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
-$BasicTest = $Config.BasicTest.$SelfHostedRunnerName
+$VMList = $Config.VMMap.$SelfHostedRunnerName
 
 # Run tests on test VMs.
-#foreach ($VM in $BasicTest) {
-#    Invoke-CICDTestsOnVM -VMName $VM.Name -Coverage $Coverage
-#}
+foreach ($VM in $VMList) {
+    Invoke-CICDTestsOnVM -VMName $VM.Name -Coverage $Coverage
+}
 
 # Run XDP Tests.
-Invoke-XDPTestsOnVM $Config.MultiVMTest.$SelfHostedRunnerName
+Invoke-XDPTestsOnVM $Config.Interfaces $VMList[0].Name
 
 # Run Connect Redirect Tests.
-Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest.$SelfHostedRunnerName $Config.ConnectRedirectTest.$SelfHostedRunnerName -UserType "Administrator"
-#Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest.$SelfHostedRunnerName $Config.ConnectRedirectTest.$SelfHostedRunnerName -UserType "StandardUser"
+Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest -UserType "Administrator" $VMList[0].Name
+Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest -UserType "StandardUser" $VMList[0].Name
 
 # Stop eBPF components on test VMs.
-foreach ($VM in $Config.MultiVMTest.$SelfHostedRunnerName) {
+foreach ($VM in $VMList) {
     Stop-eBPFComponentsOnVM -VMName $VM.Name
 }
 
