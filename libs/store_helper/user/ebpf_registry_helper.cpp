@@ -25,7 +25,7 @@ _get_wstring_from_string(std::string text)
 }
 
 void
-close_registry_key(ebpf_registry_key_t key)
+close_registry_key(ebpf_store_key_t key)
 {
     ebpf_assert(key);
     RegCloseKey(key);
@@ -33,7 +33,7 @@ close_registry_key(ebpf_registry_key_t key)
 
 _Must_inspect_result_ ebpf_result_t
 write_registry_value_binary(
-    ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_reads_(value_size) uint8_t* value, size_t value_size)
+    ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _In_reads_(value_size) uint8_t* value, size_t value_size)
 {
     ebpf_assert(value_name);
     ebpf_assert(value);
@@ -42,7 +42,7 @@ write_registry_value_binary(
 }
 
 _Must_inspect_result_ ebpf_result_t
-write_registry_value_wide_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const wchar_t* value)
+write_registry_value_wide_string(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const wchar_t* value)
 {
     ebpf_assert(value_name);
     ebpf_assert(value);
@@ -52,7 +52,7 @@ write_registry_value_wide_string(ebpf_registry_key_t key, _In_z_ const wchar_t* 
 }
 
 _Must_inspect_result_ ebpf_result_t
-write_registry_value_ansi_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
+write_registry_value_ansi_string(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
 {
     ebpf_result_t result;
     try {
@@ -66,7 +66,7 @@ write_registry_value_ansi_string(ebpf_registry_key_t key, _In_z_ const wchar_t* 
 }
 
 _Must_inspect_result_ ebpf_result_t
-write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, uint32_t value)
+write_registry_value_dword(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, uint32_t value)
 {
     ebpf_assert(key);
     return _EBPF_RESULT(RegSetValueEx(key, value_name, 0, REG_DWORD, (PBYTE)&value, sizeof(value)));
@@ -74,7 +74,7 @@ write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_
 
 _Must_inspect_result_ ebpf_result_t
 create_registry_key(
-    ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
+    ebpf_store_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key)
 {
     *key = nullptr;
     if (root_key == nullptr) {
@@ -86,7 +86,7 @@ create_registry_key(
 
 _Must_inspect_result_ ebpf_result_t
 open_registry_key(
-    ebpf_registry_key_t root_key, _In_opt_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
+    ebpf_store_key_t root_key, _In_opt_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key)
 {
     ebpf_assert(root_key != nullptr);
     _Analysis_assume_(root_key != nullptr);
@@ -95,20 +95,20 @@ open_registry_key(
 }
 
 _Must_inspect_result_ ebpf_result_t
-delete_registry_key(ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key)
+delete_registry_key(ebpf_store_key_t root_key, _In_z_ const wchar_t* sub_key)
 {
     return _EBPF_RESULT(RegDeleteKeyEx(root_key, sub_key, 0, 0));
 }
 
 _Must_inspect_result_ ebpf_result_t
-delete_registry_tree(ebpf_registry_key_t root_key, _In_opt_z_ const wchar_t* sub_key)
+delete_registry_tree(ebpf_store_key_t root_key, _In_opt_z_ const wchar_t* sub_key)
 {
     return _EBPF_RESULT(RegDeleteTree(root_key, sub_key));
 }
 
 _Must_inspect_result_ ebpf_result_t
 create_registry_key_ansi(
-    ebpf_registry_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
+    ebpf_store_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key)
 {
     ebpf_result_t result;
     try {
@@ -123,7 +123,7 @@ create_registry_key_ansi(
 
 _Must_inspect_result_ ebpf_result_t
 read_registry_value_string(
-    ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Outptr_result_maybenull_ wchar_t** value)
+    ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _Outptr_result_maybenull_ wchar_t** value)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     unsigned long type = REG_SZ;
@@ -165,7 +165,7 @@ Exit:
 }
 
 _Must_inspect_result_ ebpf_result_t
-read_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Out_ uint32_t* value)
+read_registry_value_dword(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _Out_ uint32_t* value)
 {
     unsigned long type = REG_QWORD;
     unsigned long value_size = sizeof(uint32_t);
@@ -174,10 +174,7 @@ read_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_n
 
 _Must_inspect_result_ ebpf_result_t
 read_registry_value_binary(
-    ebpf_registry_key_t key,
-    _In_z_ const wchar_t* value_name,
-    _Out_writes_(value_size) uint8_t* value,
-    size_t value_size)
+    ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _Out_writes_(value_size) uint8_t* value, size_t value_size)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     unsigned long type = REG_BINARY;

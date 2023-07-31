@@ -9,13 +9,13 @@
 #include "store_helper_internal.h"
 #include "utilities.hpp"
 
-ebpf_registry_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
-ebpf_registry_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
+ebpf_store_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
+ebpf_store_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
 // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
-ebpf_registry_key_t ebpf_root_registry_key = HKEY_CURRENT_USER;
+ebpf_store_key_t ebpf_store_root_key_t = HKEY_CURRENT_USER;
 
 static ebpf_result_t
-_open_ebpf_store_key(_Out_ ebpf_registry_key_t* store_key)
+_open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
 {
     // Open root registry path.
     *store_key = nullptr;
@@ -84,7 +84,7 @@ _load_helper_prototype(
 
 Exit:
     if (helper_info_key) {
-        close_registry_key(static_cast<ebpf_registry_key_t>(helper_info_key));
+        close_registry_key(static_cast<ebpf_store_key_t>(helper_info_key));
     }
     return result;
 }
@@ -112,7 +112,7 @@ _load_program_data_information(
 
     try {
         result =
-            open_registry_key(program_data_key, program_type_string, KEY_READ, (ebpf_registry_key_t*)&program_info_key);
+            open_registry_key(program_data_key, program_type_string, KEY_READ, (ebpf_store_key_t*)&program_info_key);
         if (result != EBPF_SUCCESS) {
             // Registry path is not present.
             result = EBPF_FILE_NOT_FOUND;
@@ -301,7 +301,7 @@ ebpf_store_load_program_information(
     wchar_t program_type_key[GUID_STRING_LENGTH + 1];
     unsigned long key_size = 0;
     uint32_t index = 0;
-    ebpf_registry_key_t store_key = nullptr;
+    ebpf_store_key_t store_key = nullptr;
     std::vector<ebpf_program_info_t*> program_info_array;
 
     *program_info = nullptr;
@@ -316,8 +316,8 @@ ebpf_store_load_program_information(
     }
 
     // Open program data registry path.
-    result = open_registry_key(
-        store_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, KEY_READ, (ebpf_registry_key_t*)&program_data_key);
+    result =
+        open_registry_key(store_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, KEY_READ, (ebpf_store_key_t*)&program_data_key);
     if (result != EBPF_SUCCESS) {
         if (result == EBPF_FILE_NOT_FOUND) {
             result = EBPF_SUCCESS;
@@ -404,7 +404,7 @@ _load_section_data_information(
     ebpf_section_definition_t* section_information = nullptr;
 
     try {
-        result = open_registry_key(section_data_key, section_name, KEY_READ, (ebpf_registry_key_t*)&section_info_key);
+        result = open_registry_key(section_data_key, section_name, KEY_READ, (ebpf_store_key_t*)&section_info_key);
         if (result != EBPF_SUCCESS) {
             // Registry path is not present.
             result = EBPF_FILE_NOT_FOUND;
@@ -502,7 +502,7 @@ ebpf_store_load_section_information(
     wchar_t section_name_key[MAX_PATH];
     unsigned long key_size = 0;
     uint32_t index = 0;
-    ebpf_registry_key_t store_key = nullptr;
+    ebpf_store_key_t store_key = nullptr;
     std::vector<ebpf_section_definition_t*> section_info_array;
 
     *section_info = nullptr;
@@ -601,7 +601,7 @@ ebpf_store_load_global_helper_information(
     uint32_t max_helpers_count = 0;
     ebpf_helper_function_prototype_t* helper_prototype = nullptr;
     uint32_t index = 0;
-    ebpf_registry_key_t store_key = nullptr;
+    ebpf_store_key_t store_key = nullptr;
 
     *global_helper_info = nullptr;
     *global_helper_info_count = 0;
@@ -616,7 +616,7 @@ ebpf_store_load_global_helper_information(
 
     // Open program data registry path.
     result = open_registry_key(
-        store_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, KEY_READ, (ebpf_registry_key_t*)&global_helpers_key);
+        store_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, KEY_READ, (ebpf_store_key_t*)&global_helpers_key);
     if (result != EBPF_SUCCESS) {
         if (result == EBPF_FILE_NOT_FOUND) {
             result = EBPF_SUCCESS;
@@ -705,10 +705,10 @@ Exit:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_store_clear(_In_ const ebpf_registry_key_t root_key_path)
+ebpf_store_clear(_In_ const ebpf_store_key_t root_key_path)
 {
-    ebpf_registry_key_t root_handle = {0};
-    ebpf_registry_key_t provider_handle = {0};
+    ebpf_store_key_t root_handle = {0};
+    ebpf_store_key_t provider_handle = {0};
     ebpf_result_t result = EBPF_FAILED;
 
     // Open root registry key.

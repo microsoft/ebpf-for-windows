@@ -20,23 +20,23 @@ extern "C"
 #endif
 
 #ifndef USER_MODE
-    typedef HANDLE ebpf_registry_key_t;
+    typedef HANDLE ebpf_store_key_t;
 #else
-typedef HKEY ebpf_registry_key_t;
-extern ebpf_registry_key_t ebpf_root_registry_key;
+typedef HKEY ebpf_store_key_t;
+extern ebpf_store_key_t ebpf_store_root_key_t;
 #endif
 
     /**
      * @brief Update the provider prototype information in the eBPF store.
      *
-     * @param[in] helper_info_key Pointer to the registry key to be initialized.
+     * @param[in] helper_info_key Pointer to the store key to be initialized.
      * @param[in] helper_info Pointer to the helper function prototype.
      *
      * @return Status of the operation.
      */
     ebpf_result_t
     ebpf_store_update_helper_prototype(
-        ebpf_registry_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info);
+        ebpf_store_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info);
 
     /**
      * @brief Update global helper information in the eBPF store.

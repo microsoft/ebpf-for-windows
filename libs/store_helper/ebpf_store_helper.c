@@ -9,15 +9,15 @@
 #define IS_SUCCESS(x) (x == EBPF_SUCCESS)
 
 static ebpf_result_t
-_ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provider_key)
+_ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_store_key_t* provider_key)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_registry_key_t root_key = NULL;
+    ebpf_store_key_t root_key = NULL;
     *provider_key = NULL;
 
     // Open (or create) root eBPF registry path.
 #ifdef USER_MODE
-    result = create_registry_key(ebpf_root_registry_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
+    result = create_registry_key(ebpf_store_root_key_t, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
 #else
     result = create_registry_key(NULL, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_key);
 #endif
@@ -39,11 +39,11 @@ Exit:
 
 ebpf_result_t
 ebpf_store_update_helper_prototype(
-    ebpf_registry_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info)
+    ebpf_store_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t offset;
-    ebpf_registry_key_t helper_function_key = NULL;
+    ebpf_store_key_t helper_function_key = NULL;
     char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
 
     result = create_registry_key_ansi(helper_info_key, helper_info->name, REG_CREATE_FLAGS, &helper_function_key);
@@ -80,8 +80,8 @@ ebpf_store_update_global_helper_information(
     _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_registry_key_t provider_key = NULL;
-    ebpf_registry_key_t helper_info_key = NULL;
+    ebpf_store_key_t provider_key = NULL;
+    ebpf_store_key_t helper_info_key = NULL;
 
     if (helper_info_count == 0) {
         return result;
@@ -119,8 +119,8 @@ ebpf_store_update_section_information(
     _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_registry_key_t provider_key = NULL;
-    ebpf_registry_key_t section_info_key = NULL;
+    ebpf_store_key_t provider_key = NULL;
+    ebpf_store_key_t section_info_key = NULL;
 
     if (section_info_count == 0) {
         return result;
@@ -139,7 +139,7 @@ ebpf_store_update_section_information(
     }
 
     for (uint32_t i = 0; i < section_info_count; i++) {
-        ebpf_registry_key_t section_key = NULL;
+        ebpf_store_key_t section_key = NULL;
 
         // Open or create the registry path.
         result = create_registry_key(section_info_key, section_info[i].section_name, REG_CREATE_FLAGS, &section_key);
@@ -198,8 +198,8 @@ ebpf_store_update_program_information(
     _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_registry_key_t provider_key = NULL;
-    ebpf_registry_key_t program_info_key = NULL;
+    ebpf_store_key_t provider_key = NULL;
+    ebpf_store_key_t program_info_key = NULL;
 
     if (program_info_count == 0) {
         return result;
@@ -218,8 +218,8 @@ ebpf_store_update_program_information(
     }
 
     for (uint32_t i = 0; i < program_info_count; i++) {
-        ebpf_registry_key_t program_key = {0};
-        ebpf_registry_key_t helper_info_key = {0};
+        ebpf_store_key_t program_key = {0};
+        ebpf_store_key_t helper_info_key = {0};
 
         // Convert program type GUID to string.
         wchar_t guid_string[GUID_STRING_LENGTH + 1];
