@@ -301,29 +301,22 @@ The eBPF Execution Context loads an eBPF program from an ELF file that has progr
 prefix to these names determines the program type. For example, the section name `"xdp"` implies that the corresponding
 program type is `EBPF_PROGRAM_TYPE_XDP`.
 
-The *Execution Context* discovers the program type associated with a section prefix by reading the data from Windows registry,
-in what is referred to aa the ***"eBPF Store"***.
+The *Execution Context* discovers the program type associated with a section prefix by reading the data from the ***"eBPF store"***, which is currently kept in the Windows registry.
 When an eBPF extension is installed, it must update the eBPF store with the program types it implements along with the associated section prefixes.
 
-To operate on the eBPF store, the extension must link the `\build\native\lib\ebpf_store_helper_km.lib` kernel-mode library and include the related `\build\native\include\ebpf_store_helper.h` header file, both distributed within the [eBPF for Windows NuGet package](https://www.nuget.org/packages/eBPF-for-Windows/). With these, the extension can use the following APIs to register program types, attach types and helper functions:
+To operate on the eBPF store, the extension must link the `\lib\ebpf_store_helper_km.lib` kernel-mode library and include the related `\include\ebpf_store_helper.h` header file, both distributed within the [eBPF for Windows NuGet package](https://www.nuget.org/packages/eBPF-for-Windows/). With these, the extension can use the following APIs to register program types, attach types and helper functions:
 
-- `ebpf_store_update_helper_prototype`: updates the provider prototype information in the eBPF registry store, given a pointer to the registry key to be initialized and a pointer to the helper function prototype (i.e., `_ebpf_helper_function_prototype`):
+- `ebpf_store_update_helper_prototype`: updates the provider prototype information in the eBPF store, given a pointer to the registry key to be initialized and a pointer to the helper function prototype (i.e., `_ebpf_helper_function_prototype`):
 
     ```c
     ebpf_result_t
     ebpf_store_update_helper_prototype(
         ebpf_registry_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info);
-
-    typedef struct _ebpf_helper_function_prototype
-    {
-        uint32_t helper_id;
-        const char* name;
-        ebpf_return_type_t return_type;
-        ebpf_argument_type_t arguments[5];
-    } ebpf_helper_function_prototype_t;```c
+    ```c
     ```
 
 - `ebpf_store_update_global_helper_information`: updates the global helper information in the eBPF store, given a pointer to an array of helper function prototypes:
+
     ```c
     ebpf_result_t
     ebpf_store_update_global_helper_information(
@@ -336,15 +329,6 @@ To operate on the eBPF store, the extension must link the `\build\native\lib\ebp
     ebpf_result_t
     ebpf_store_update_section_information(
         _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count);
-
-    typedef struct _ebpf_program_section_info
-    {
-        const wchar_t* section_name;
-        const GUID* program_type;
-        const GUID* attach_type;
-        uint32_t bpf_program_type;
-        uint32_t bpf_attach_type;
-    } ebpf_program_section_info_t;
     ```
 
 - `ebpf_store_update_program_information`: updates the global helper information in eBPF store, given a pointer to an array of program information (i.e., `_ebpf_program_info`):
@@ -353,15 +337,6 @@ To operate on the eBPF store, the extension must link the `\build\native\lib\ebp
     ebpf_result_t
     ebpf_store_update_program_information(
         _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
-
-    typedef struct _ebpf_program_info
-    {
-        ebpf_program_type_descriptor_t program_type_descriptor;
-        uint32_t count_of_program_type_specific_helpers;
-        const ebpf_helper_function_prototype_t* program_type_specific_helper_prototype;
-        uint32_t count_of_global_helpers;
-        const ebpf_helper_function_prototype_t* global_helper_prototype;
-    } ebpf_program_info_t;
     ```
 
 ### 2.8 eBPF Sample Driver

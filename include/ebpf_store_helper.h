@@ -27,7 +27,7 @@ extern ebpf_registry_key_t ebpf_root_registry_key;
 #endif
 
     /**
-     * @brief Update the provider prototype information in the eBPF registry store.
+     * @brief Update the provider prototype information in the eBPF store.
      *
      * @param[in] helper_info_key Pointer to the registry key to be initialized.
      * @param[in] helper_info Pointer to the helper function prototype.
