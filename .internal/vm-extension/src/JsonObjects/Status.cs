@@ -5,7 +5,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.WindowsAzure.GuestAgent.Plugins
+namespace Microsoft.WindowsAzure.GuestAgent.Plugins.eBPF
 {
     [DataContract]
     public class TopLevelStatus

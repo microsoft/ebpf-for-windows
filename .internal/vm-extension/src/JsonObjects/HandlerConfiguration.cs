@@ -5,7 +5,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
+namespace Microsoft.WindowsAzure.GuestAgent.Plugins.eBPF.CustomScriptHandler
 {
     [DataContract]
     public class TopLevelHandlerConfiguration

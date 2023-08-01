@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
+namespace Microsoft.WindowsAzure.GuestAgent.Plugins.eBPF.CustomScriptHandler
 {
     public class Constants
     {

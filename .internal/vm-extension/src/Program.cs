@@ -2,19 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Security.Cryptography.Pkcs;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.IO;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
-using Microsoft.WindowsAzure.Storage.Auth;
-using Microsoft.Win32;
 using System.Runtime.Serialization.Json;
 
-namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
+namespace Microsoft.WindowsAzure.GuestAgent.Plugins.eBPF.CustomScriptHandler
 {
     public class Program
     { 
@@ -71,7 +63,7 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
         {
             if (string.IsNullOrWhiteSpace(commandName))
             {
-                LOGGER.Log(LogLevel.Warn, "No command has been specified to execute");
+                LOGGER.Log(LogLevel.Warning, "No command has been specified to execute");
                 return;
             }
 
@@ -102,7 +94,7 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
             }
             else
             {
-                LOGGER.Log(LogLevel.Warn, "Invalid command: '{0}'", commandName);
+                LOGGER.Log(LogLevel.Warning, "Invalid command: '{0}'", commandName);
             }
         }
 
@@ -127,7 +119,7 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
             }
 
             string statusFile = handlerEnvironment.StatusFolder + (handlerEnvironment.StatusFolder.EndsWith(@"\") ? "" : @"\") + sequenceNumber + Constants.StatusFileSuffix;
-            LOGGER.Log(LogLevel.Warn, "Using status file: '{0}'", statusFile);
+            LOGGER.Log(LogLevel.Warning, "Using status file: '{0}'", statusFile);
             return statusFile;
         }
 
@@ -238,7 +230,7 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.CustomScriptHandler
                 catch (Exception e)
                 {
                     writeAttempt++;
-                    LOGGER.Log(LogLevel.Warn, "Failed to write status to file \"{0}\". Will retry after {1} seconds. Exception: {2}", statusFile, writeAttempt, e.ToString());
+                    LOGGER.Log(LogLevel.Warning, "Failed to write status to file \"{0}\". Will retry after {1} seconds. Exception: {2}", statusFile, writeAttempt, e.ToString());
                     Thread.Sleep(1000 * writeAttempt);
                 }
             }

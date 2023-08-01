@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Globalization;
 
-namespace Microsoft.WindowsAzure.GuestAgent.Plugins
+namespace Microsoft.WindowsAzure.GuestAgent.Plugins.eBPF
 {
     public enum LogLevel
     {

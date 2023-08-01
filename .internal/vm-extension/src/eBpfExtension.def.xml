@@ -2,11 +2,11 @@
 	<ProviderNameSpace>Microsoft.eBPF</ProviderNameSpace>
 	<Type>eBPFforWindows</Type>
 	<!--Update this version for each new release-->
-	<Version>0.9.0</Version>
+	<Version>0.1.0</Version>
 	<Label>eBPF for Windows Azure VM Extension for IaaS</Label>
 	<HostingResources>VmRole</HostingResources>
 	<!--Update this field with correct link where the extension is published.-->
-	<MediaLink>http://scriptstore.blob.core.test-cint.azure-test.net/plugins/eBpfExtension.1.0.zip</MediaLink>
+	<MediaLink>http://scriptstore.blob.core.test-cint.azure-test.net/plugins/eBpfExtension.0.1.zip</MediaLink>
 	<Certificate />
 	<Endpoints/>
 	<PublicConfigurationSchema/>
