@@ -204,10 +204,6 @@ ebpf_api_initiate() noexcept
     // it will be re-attempted before an IOCTL call is made.
     (void)initialize_device_handle();
 
-    // Load provider data from ebpf store. This is best effort
-    // as there may be no data present in the store.
-    (void)load_ebpf_provider_data();
-
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
