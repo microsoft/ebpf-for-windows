@@ -269,7 +269,10 @@ connection_monitor_test(
 
     // Ring buffer event callback context.
     std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
-    context->test_event_count = disconnect ? 4 : 2;
+    // Issue: https://github.com/microsoft/ebpf-for-windows/issues/2706
+    // Should there be a disconnect event for both inbound and outbound connections?
+    // Should the local and remote addresses be swapped for inbound vs outbound connections?
+    context->test_event_count = disconnect ? 3 : 2;
 
     bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
     REQUIRE(_program != nullptr);

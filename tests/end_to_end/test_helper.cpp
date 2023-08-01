@@ -90,6 +90,15 @@ static uint32_t _ebpf_service_handle_counter = 0;
 _Guarded_by_(
     _service_path_to_context_mutex) static std::map<std::wstring, service_context_t*> _service_path_to_context_map;
 
+std::mutex _overlapped_buffers_mutex;
+typedef struct _overlapped_completion
+{
+    std::vector<uint8_t> buffer;
+    uint8_t* output_buffer = nullptr;
+    size_t output_buffer_length = 0;
+} overlapped_completion_t;
+std::map<OVERLAPPED*, overlapped_completion_t> _overlapped_buffers;
+
 class duplicate_handles_table_t
 {
   public:
@@ -277,10 +286,28 @@ GlueDuplicateHandle(
 }
 
 static void
+_complete_async_io(OVERLAPPED* overlapped, size_t output_buffer_length)
+{
+    std::unique_lock lock(_overlapped_buffers_mutex);
+    auto it = _overlapped_buffers.find(overlapped);
+    REQUIRE(it != _overlapped_buffers.end());
+    if (it->second.output_buffer != nullptr) {
+        memcpy(it->second.output_buffer, it->second.buffer.data(), output_buffer_length);
+    }
+    _overlapped_buffers.erase(it);
+}
+
+static void
 _complete_overlapped(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result)
 {
     UNREFERENCED_PARAMETER(output_buffer_length);
     auto overlapped = reinterpret_cast<OVERLAPPED*>(context);
+
+    // Copy the output buffer to the user buffer.
+    if (overlapped) {
+        _complete_async_io(overlapped, output_buffer_length);
+    }
+
     overlapped->InternalHigh = static_cast<ULONG_PTR>(output_buffer_length);
     overlapped->Internal = ebpf_result_to_ntstatus(result);
     SetEvent(overlapped->hEvent);
@@ -439,9 +466,22 @@ GlueDeviceIoControl(
     size_t minimum_reply_size = 0;
     bool async = false;
     unsigned long sharedBufferSize = (input_buffer_size > output_buffer_size) ? input_buffer_size : output_buffer_size;
-    std::vector<uint8_t> sharedBuffer;
     const void* local_input_buffer = nullptr;
     void* local_output_buffer = nullptr;
+
+    // To correctly emulate the kernel execution context, we need to use the same buffer
+    // for both input and output.  So we allocate a buffer that is large enough to hold
+    // either the input or output, and then use that buffer for both.
+    if (overlapped) {
+        std::unique_lock lock(_overlapped_buffers_mutex);
+        REQUIRE(_overlapped_buffers.find(overlapped) == _overlapped_buffers.end());
+        _overlapped_buffers[overlapped] = {{}, (uint8_t*)output_buffer, output_buffer_size};
+    }
+    std::vector<uint8_t> synchronousBuffer;
+
+    std::vector<uint8_t>& sharedBuffer = overlapped ? _overlapped_buffers[overlapped].buffer : synchronousBuffer;
+
+    sharedBuffer.resize(sharedBufferSize);
 
     result = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size, &async);
     if (result != EBPF_SUCCESS) {
@@ -468,18 +508,13 @@ GlueDeviceIoControl(
     // Intercept the call to perform any IOCTL specific _pre_ tasks.
     _preprocess_ioctl(user_request);
 
-    if (!async) {
-        // In the kernel execution context, the request and reply share
-        // the same memory.  So to catch bugs that only show up in that
-        // case, we force the same here.
-        sharedBuffer.resize(sharedBufferSize);
-        memcpy(sharedBuffer.data(), user_request, input_buffer_size);
-        local_input_buffer = sharedBuffer.data();
-        local_output_buffer = (minimum_reply_size > 0) ? sharedBuffer.data() : nullptr;
-    } else {
-        local_input_buffer = user_request;
-        local_output_buffer = user_reply;
-    }
+    // In the kernel execution context, the request and reply share
+    // the same memory.  So to catch bugs that only show up in that
+    // case, we force the same here.
+    sharedBuffer.resize(sharedBufferSize);
+    memcpy(sharedBuffer.data(), user_request, input_buffer_size);
+    local_input_buffer = sharedBuffer.data();
+    local_output_buffer = (minimum_reply_size > 0) ? sharedBuffer.data() : nullptr;
 
     result = ebpf_core_invoke_protocol_handler(
         request_id,
@@ -492,6 +527,11 @@ GlueDeviceIoControl(
 
     if (!async && minimum_reply_size > 0) {
         memcpy(user_reply, sharedBuffer.data(), output_buffer_size);
+    }
+
+    // If the request failed synchronously, complete the overlapped.
+    if (overlapped && !(result == EBPF_PENDING || result == EBPF_SUCCESS)) {
+        _complete_async_io(overlapped, 0);
     }
 
     if (result != EBPF_SUCCESS) {
@@ -718,6 +758,12 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         _unload_all_native_modules();
 
         clear_program_info_cache();
+
+        {
+            std::unique_lock lock(_overlapped_buffers_mutex);
+            _overlapped_buffers.clear();
+        }
+
         if (api_initialized) {
             ebpf_api_terminate();
         }

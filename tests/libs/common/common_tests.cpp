@@ -151,12 +151,33 @@ ring_buffer_test_event_handler(_Inout_ void* ctx, _In_opt_ const void* data, siz
     }
 
     std::vector<char> event_record(reinterpret_cast<const char*>(data), reinterpret_cast<const char*>(data) + size);
-    // Check if indicated event record matches an entry in the context records.
+
+    // Check if indicated event record matches an entry in the context records
+    // that has not been matched yet.
     auto records = event_context->records;
-    auto it = std::find(records->begin(), records->end(), event_record);
-    if (it != records->end()) {
+    auto it = records->begin();
+    for (;;) {
+        // Find the next entry in the records vector.
+        it = std::find(it, records->end(), event_record);
+        if (it == records->end()) {
+            // No more entries in the records vector.
+            break;
+        }
+
+        // Check if the entry has already been matched.
+        auto index = std::distance(records->begin(), it);
+        if (event_context->event_received.find(index) != event_context->event_received.end()) {
+            it++;
+            // Entry already matched.
+            continue;
+        }
+
+        // Mark the entry as matched.
+        event_context->event_received.insert(index);
         event_context->matched_entry_count++;
+        break;
     }
+
     if (event_context->matched_entry_count == event_context->test_event_count) {
         // If all the entries in the app ID list was found, fulfill the promise.
         event_context->ring_buffer_event_promise.set_value();
@@ -196,6 +217,8 @@ ring_buffer_api_test_helper(
 
     // Wait for event handler getting notifications for all RING_BUFFER_TEST_EVENT_COUNT events.
     REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
+
+    REQUIRE(context->matched_entry_count == RING_BUFFER_TEST_EVENT_COUNT);
 
     // Mark the event context as canceled, such that the event callback stops processing events.
     context->canceled = true;
