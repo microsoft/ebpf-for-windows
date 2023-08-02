@@ -91,6 +91,7 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.eBPF.CustomScriptHandler
             else if (commandName.Equals("enable", StringComparison.InvariantCultureIgnoreCase))
             {
                 EnableHandler();
+                // Mandatory status report
             }
             else
             {
