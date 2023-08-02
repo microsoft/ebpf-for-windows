@@ -32,6 +32,8 @@ run_command(_In_z_ const char* command_line, _Out_ int* result)
     std::string stderr_contents = capture.get_stderr_contents();
     std::string stdout_contents = capture.get_stdout_contents();
 
+    printf("Command output:\n%s\n%s\n", stdout_contents.c_str(), stderr_contents.c_str());
+
     return stdout_contents + stderr_contents;
 }
 
@@ -92,7 +94,7 @@ TEST_CASE("prog load map_in_map", "[prog][load]")
     REQUIRE(result == 0);
     std::string id = std::to_string(atoi(output.c_str()));
     size_t offset = output.find(" map_ids ");
-    REQUIRE(offset > 0);
+    REQUIRE(offset != std::string::npos);
     std::string map_id = std::to_string(atoi(output.substr(offset + 9).c_str()));
     REQUIRE(output == id + ": xdp  name lookup  \n  map_ids " + map_id + "\n");
 
@@ -140,9 +142,10 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     REQUIRE(result == 0);
     std::string id = std::to_string(atoi(output.c_str()));
     size_t offset = output.find(" map_ids ");
-    REQUIRE(offset > 0);
+    REQUIRE(offset != std::string::npos);
     std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
     offset = output.find(",");
+    REQUIRE(offset != std::string::npos);
     std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
     REQUIRE(output == id + ": xdp  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
@@ -226,9 +229,10 @@ TEST_CASE("prog prog run", "[prog][load]")
     REQUIRE(result == 0);
     std::string id = std::to_string(atoi(output.c_str()));
     size_t offset = output.find(" map_ids ");
-    REQUIRE(offset > 0);
+    REQUIRE(offset != std::string::npos);
     std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
     offset = output.find(",");
+    REQUIRE(offset != std::string::npos);
     std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
     REQUIRE(output == id + ": xdp  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
