@@ -302,12 +302,11 @@ function Install-eBPFComponentsOnVM
 
 function Initialize-NetworkInterfacesOnVMs
 {
-    param([parameter(Mandatory=$true)] $MultiVMTestConfig)
+    param([parameter(Mandatory=$true)] $VMMap)
 
-    foreach ($VM in $MultiVMTestConfig)
+    foreach ($VM in $VMMap)
     {
         $VMName = $VM.Name
-        $Interfaces = $VM.Interfaces
 
         Write-Log "Initializing network interfaces on $VMName"
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword

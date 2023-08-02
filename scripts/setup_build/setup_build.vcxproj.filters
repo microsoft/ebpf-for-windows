@@ -49,9 +49,6 @@
     <CopyFileToFolders Include="..\vm_run_tests.psm1">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="..\vm_list.json">
-      <Filter>Source Files</Filter>
-    </CopyFileToFolders>
     <CopyFileToFolders Include="..\ebpf-all.guid">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>

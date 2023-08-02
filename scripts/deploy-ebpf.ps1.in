@@ -198,6 +198,8 @@ $source_directory="."
     "tail_call_um.dll",
     "tail_call_um.pdb",
     "tail_call.sys",
+    "tcp_udp_listener.exe",
+    "tcp_udp_listener.pdb",
     "test_sample_ebpf.o",
     "test_sample_ebpf_um.dll",
     "test_sample_ebpf_um.pdb",
