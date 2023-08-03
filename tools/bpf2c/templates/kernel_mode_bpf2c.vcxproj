@@ -40,7 +40,7 @@
     <RootNamespace>$(FileName)</RootNamespace>
     <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
     <ProjectName>$(FileName)_km</ProjectName>
-    <!-- Required for Microsoft internal OneBranch builds -->
+    <!-- Required for Microsoft OneBranch builds -->
     <UseInternalMSUniCrtPackage>true</UseInternalMSUniCrtPackage>    
     <UndockedKernelModeBuild>true</UndockedKernelModeBuild>
   </PropertyGroup>
