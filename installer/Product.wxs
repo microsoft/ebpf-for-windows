@@ -801,12 +801,18 @@ SPDX-License-Identifier: MIT
 			<Component Id="DROPPACKET_UNSAFE.O" DiskId="1" Guid="{40156401-DDEA-4435-B559-E7071D251395}">
 				<File Id="DROPPACKET_UNSAFE.O" Name="droppacket_unsafe.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_unsafe.o" />
 			</Component>
-			<?if $(var.Configuration) = Debug ?>
-			<Component Id="EMPY_UM.DLL" DiskId="1" Guid="{321F2303-53CC-4CF2-8D92-5FCA988BDCB5}">
-				<File Id="EMPY_UM.DLL" Name="empty_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\empty_um.dll" />
+			<Component Id="EBPFCORE_USERSIM.DLL" DiskId="1" Guid="{860B3D19-02BE-482F-930A-B5B5CFAD2B82}">
+				<File Id="EBPFCORE_USERSIM.DLL" Name="ebpfcore_usersim.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\ebpfcore_usersim.dll" />
 			</Component>
-			<Component Id="EMPY_UM.PDB" DiskId="1" Guid="{5A07EE87-FF00-47AB-BC15-0C8E1A5EF04F}">
-				<File Id="EMPY_UM.PDB" Name="empty_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\empty_um.pdb" />
+			<Component Id="EBPFCORE_USERSIM.PDB" DiskId="1" Guid="{DD7FB772-A974-4D2C-880A-B17C2F69D063}">
+				<File Id="EBPFCORE_USERSIM.PDB" Name="ebpfcore_usersim.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\ebpfcore_usersim.pdb" />
+			</Component>
+			<?if $(var.Configuration) = Debug ?>
+			<Component Id="EMPTY_UM.DLL" DiskId="1" Guid="{321F2303-53CC-4CF2-8D92-5FCA988BDCB5}">
+				<File Id="EMPTY_UM.DLL" Name="empty_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\empty_um.dll" />
+			</Component>
+			<Component Id="EMPTY_UM.PDB" DiskId="1" Guid="{5A07EE87-FF00-47AB-BC15-0C8E1A5EF04F}">
+				<File Id="EMPTY_UM.PDB" Name="empty_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\empty_um.pdb" />
 			</Component>
 			<?endif?>
 			<Component Id="ENCAP_REFLECT_PACKET.O" DiskId="1" Guid="{767274A3-97F5-4F35-BB27-1A7166708AD8}">

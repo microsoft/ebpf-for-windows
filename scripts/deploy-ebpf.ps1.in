@@ -18,6 +18,8 @@ $source_directory="."
     "EbpfApi.pdb",
     "EbpfCore.sys",
     "EbpfCore.pdb",
+    "EbpfCore_usersim.dll",
+    "EbpfCore_usersim.pdb",
     "ebpfforwindows.wprp",
     "ebpfnetsh.dll",
     "ebpfnetsh.pdb",
