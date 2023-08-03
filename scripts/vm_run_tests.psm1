@@ -355,45 +355,45 @@ function Invoke-XDPTest4
 
 function Invoke-XDPTestsOnVM
 {
-    param([parameter(Mandatory=$true)] $MultiVMTestConfig)
+    param([parameter(Mandatory=$true)] $Interfaces,
+          [parameter(Mandatory=$true)] [string] $VMName)
 
     # NIC pairs are duo1-duo2 and duo3-duo4.
     # VM1 is interfaces duo1 and duo3.
     # VM2 is interfaces duo2 and duo4.
 
-    $VM1 = $MultiVMTestConfig[0]
-    $VM1Interface1 = $VM1.Interfaces[0]
+    $VM1Interface1 = $Interfaces[0]
     $VM1Interface1Alias = $VM1Interface1.Alias
     $VM1Interface1V4Address = $VM1Interface1.V4Address
     $VM1Interface1V6Address = $VM1Interface1.V6Address
 
-    $VM2Interface1 = $VM1.Interfaces[1]
+    $VM2Interface1 = $Interfaces[1]
     $VM2Interface1Alias = $VM2Interface1.Alias
 
-    $VM1Interface2 = $VM1.Interfaces[2]
+    $VM1Interface2 = $Interfaces[2]
     $VM1Interface2Alias = $VM1Interface2.Alias
     $VM1Interface2V4Address = $VM1Interface2.V4Address
     $VM1Interface3V6Address = $VM1Interface2.V6Address
 
-    Add-FirewallRuleOnVM -VM $VM1.Name -RuleName "XDP_Test" -ProgramName "xdp_tests.exe" -LogFileName $LogFileName
-    Invoke-XDPTest1 $VM1.Name $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface3V6Address $LogFileName
-    Invoke-XDPTest2 $VM1.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface3V6Address $LogFileName
-    Invoke-XDPTest3 $VM1.Name $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface3V6Address $LogFileName
-    Invoke-XDPTest4 $VM1.Name $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface1Alias $VM2Interface1Alias $LogFileName
+    Add-FirewallRuleOnVM -VM $VMName -RuleName "XDP_Test" -ProgramName "xdp_tests.exe" -LogFileName $LogFileName
+    Invoke-XDPTest1 $VMName $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface3V6Address $LogFileName
+    Invoke-XDPTest2 $VMName $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface3V6Address $LogFileName
+    Invoke-XDPTest3 $VMName $VM1Interface1Alias $VM1Interface2Alias $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface2V4Address $VM1Interface3V6Address $LogFileName
+    Invoke-XDPTest4 $VMName $VM1Interface1V4Address $VM1Interface1V6Address $VM1Interface1Alias $VM2Interface1Alias $LogFileName
 }
 
 function Invoke-ConnectRedirectTestsOnVM
 {
-    param([parameter(Mandatory=$true)] $MultiVMTestConfig,
+    param([parameter(Mandatory=$true)] $Interfaces,
           [parameter(Mandatory=$true)] $ConnectRedirectTestConfig,
-          [parameter(Mandatory=$false)][ValidateSet("Administrator", "StandardUser")] $UserType = "Administrator")
+          [parameter(Mandatory=$false)][ValidateSet("Administrator", "StandardUser")] $UserType = "Administrator",
+          [parameter(Mandatory=$true)] [string] $VMName)
 
-    $VM1 = $MultiVMTestConfig[0]
-    $VM1Interface = $VM1.Interfaces[0]
+    $VM1Interface = $Interfaces[0]
     $VM1V4Address = $VM1Interface.V4Address
     $VM1V6Address = $VM1Interface.V6Address
 
-    $VM2Interface = $VM1.Interfaces[1]
+    $VM2Interface = $Interfaces[1]
     $VM2V4Address = $VM2Interface.V4Address
     $VM2V6Address = $VM2Interface.V6Address
 
@@ -409,9 +409,9 @@ function Invoke-ConnectRedirectTestsOnVM
     $UdpProxyParameters = "--protocol udp --local-port $ProxyPort"
 
     $ParamaterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
-    $VMArray = @($VM1.Name)
+    $VMArray = @($VMName)
 
-    Add-FirewallRuleOnVM -VM $VM1.Name -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
+    Add-FirewallRuleOnVM -VM $VMName -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
     # Start TCP and UDP listeners on both the VMs.
     foreach ($vm in $VMArray)
@@ -430,18 +430,18 @@ function Invoke-ConnectRedirectTestsOnVM
 
     # First remove the existing StandardUser account (if found). This can happen if the previous test run terminated
     # abnormally before performing the requisite post-test-run clean-up.
-    $UserId = Invoke-Command -VMName $VM1.Name -Credential $TestCredential `
+    $UserId = Invoke-Command -VMName $VMName -Credential $TestCredential `
            -ScriptBlock {param ($StandardUser) Get-LocalUser -Name "$StandardUser"} `
            -Argumentlist $StandardUser -ErrorAction SilentlyContinue
     if($UserId) {
-		Write-Host "Deleting existing standard user:" $StandardUser "on" $VM1.Name
-		Remove-StandardUserOnVM -VM $VM1.Name -UserName $StandardUser
+		Write-Host "Deleting existing standard user:" $StandardUser "on" $VMName
+		Remove-StandardUserOnVM -VM $VMName -UserName $StandardUser
 	}
 
     # Add a standard user on VM1.
-    Add-StandardUserOnVM -VM $VM1.Name -UserName $StandardUser -Password $UnsecurePassword
+    Add-StandardUserOnVM -VM $VMName -UserName $StandardUser -Password $UnsecurePassword
 
-    Invoke-Command -VMName $VM1.Name -Credential $TestCredential -ScriptBlock {
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)][string] $VM,
               [parameter(Mandatory=$true)][string] $LocalIPv4Address,
               [parameter(Mandatory=$true)][string] $LocalIPv6Address,
@@ -477,11 +477,11 @@ function Invoke-ConnectRedirectTestsOnVM
             -WorkingDirectory $WorkingDirectory
         Write-Log "Invoke-ConnectRedirectTest finished on $VM"
 
-    } -ArgumentList ($VM1.Name, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $StandardUser, $UnsecurePassword, $UserType, "eBPF", $LogFileName) -ErrorAction Stop
-    Stop-ProcessOnVM -VM $VM1.Name -ProgramName $ProgramName
+    } -ArgumentList ($VMName, $VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $StandardUser, $UnsecurePassword, $UserType, "eBPF", $LogFileName) -ErrorAction Stop
+    Stop-ProcessOnVM -VM $VMName -ProgramName $ProgramName
 
     # Remove standard user on VM1.
-    Remove-StandardUserOnVM -VM $VM1.Name -UserName $StandardUser
+    Remove-StandardUserOnVM -VM $VMName -UserName $StandardUser
 }
 
 function Stop-eBPFComponentsOnVM

@@ -6,7 +6,8 @@ param ([parameter(Mandatory=$false)][string] $AdminTarget = "TEST_VM",
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
-       [parameter(Mandatory=$false)][bool] $Coverage = $true)
+       [parameter(Mandatory=$false)][bool] $Coverage = $false,
+       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName)
 
 Push-Location $WorkingDirectory
 
@@ -19,22 +20,22 @@ Import-Module .\vm_run_tests.psm1  -Force -ArgumentList ($AdminTestVMCredential.
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
-$BasicTest = $Config.BasicTest
+$VMList = $Config.VMMap.$SelfHostedRunnerName
 
 # Run tests on test VMs.
-foreach ($VM in $BasicTest) {
+foreach ($VM in $VMList) {
     Invoke-CICDTestsOnVM -VMName $VM.Name -Coverage $Coverage
 }
 
 # Run XDP Tests.
-Invoke-XDPTestsOnVM $Config.MultiVMTest
+Invoke-XDPTestsOnVM $Config.Interfaces $VMList[0].Name
 
 # Run Connect Redirect Tests.
-Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest $Config.ConnectRedirectTest -UserType "Administrator"
-Invoke-ConnectRedirectTestsOnVM $Config.MultiVMTest $Config.ConnectRedirectTest -UserType "StandardUser"
+Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest -UserType "Administrator" $VMList[0].Name
+Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest -UserType "StandardUser" $VMList[0].Name
 
 # Stop eBPF components on test VMs.
-foreach ($VM in $Config.MultiVMTest) {
+foreach ($VM in $VMList) {
     Stop-eBPFComponentsOnVM -VMName $VM.Name
 }
 
