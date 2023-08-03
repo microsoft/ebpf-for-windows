@@ -6,7 +6,7 @@
 #include "netebpf_ext_helper.h"
 
 // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
-ebpf_store_key_t ebpf_store_root_key_t = HKEY_CURRENT_USER;
+ebpf_store_key_t ebpf_store_root_key = HKEY_CURRENT_USER;
 DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
 
 constexpr uint32_t _test_destination_ipv4_address = 0x01020304;

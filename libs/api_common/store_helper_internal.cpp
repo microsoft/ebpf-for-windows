@@ -12,7 +12,7 @@
 ebpf_store_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
 ebpf_store_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
 // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
-ebpf_store_key_t ebpf_store_root_key_t = HKEY_CURRENT_USER;
+ebpf_store_key_t ebpf_store_root_key = HKEY_CURRENT_USER;
 
 static ebpf_result_t
 _open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
