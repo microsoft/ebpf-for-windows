@@ -13,7 +13,6 @@
 #include "helpers.h"
 #include "mock.h"
 #include "test_helper.hpp"
-#include "usersim/../../src/fault_injection.h"
 
 #include <chrono>
 #include <filesystem>
@@ -23,8 +22,6 @@
 #include <mutex>
 #include <sstream>
 using namespace std::chrono_literals;
-
-extern "C" bool ebpf_fuzzing_enabled;
 
 bool _ebpf_capture_corpus = false;
 
@@ -257,7 +254,7 @@ GlueCloseHandle(HANDLE object_handle)
     bool found = _duplicate_handles.dereference_if_found(handle);
     if (!found) {
         // No duplicates. Close the handle.
-        if (!(ebpf_api_close_handle(handle) == EBPF_SUCCESS || ebpf_fuzzing_enabled)) {
+        if (!(ebpf_api_close_handle(handle) == EBPF_SUCCESS || usersim_fault_injection_is_enabled())) {
             throw std::runtime_error("ebpf_api_close_handle failed");
         }
     }
@@ -417,7 +414,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _preprocess
             const ebpf_operation_load_native_module_request_t* request =
                 (ebpf_operation_load_native_module_request_t*)user_request;
             size_t service_name_length = ((uint8_t*)request) + request->header.length - (uint8_t*)request->data;
-            REQUIRE(((service_name_length % 2 == 0) || ebpf_fuzzing_enabled));
+            REQUIRE(((service_name_length % 2 == 0) || usersim_fault_injection_is_enabled()));
 
             std::wstring service_path;
             service_path.assign((wchar_t*)request->data, service_name_length / 2);
