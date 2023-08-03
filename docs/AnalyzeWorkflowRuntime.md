@@ -1,7 +1,7 @@
 # Analyzing Workflow Duration
 
 ## Overview
-This Markdown file provides instructions for analyzing the duration of a CI/CD pipeline workflow. The goal is to understand the time taken to execute each stage of the workflow, as it directly affects the code velocity.
+This file provides instructions for analyzing the duration of a CI/CD pipeline workflow. The goal is to understand the time taken to execute each stage of the workflow, as it directly affects the code velocity.
 
 ## Tools Needed
 To perform the analysis, you'll need the following tools:
