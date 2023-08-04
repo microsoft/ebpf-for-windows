@@ -13,10 +13,33 @@
 
 #include "bpf_helpers.h"
 
-SEC("maps")
-struct bpf_map map = {BPF_MAP_TYPE_PROG_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1};
+int
+recurse(struct xdp_md* ctx);
 
-SEC("maps") struct bpf_map canary = {BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+    __uint(max_entries, 3);
+    __uint(key_size, sizeof(uint32_t));
+    __array(values, int(struct xdp_md* ctx));
+} map SEC(".maps") = {
+    // First and last entries are NULL to test that we can handle cases where
+    // the initial values are not at the beginning of the array.
+    .values =
+        {
+            NULL,
+            recurse,
+            NULL,
+        },
+};
+
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 1);
+    __uint(key_size, sizeof(uint32_t));
+    __uint(value_size, sizeof(uint32_t));
+} canary SEC(".maps");
 
 SEC("xdp_prog") int recurse(struct xdp_md* ctx)
 {
@@ -35,5 +58,5 @@ SEC("xdp_prog") int recurse(struct xdp_md* ctx)
     (*value)++;
 
     // Recursively call this program.
-    return bpf_tail_call(ctx, &map, 0);
+    return bpf_tail_call(ctx, &map, 1);
 }
