@@ -14,6 +14,9 @@
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
 #define _EBPF_RESULT(x) win32_error_code_to_ebpf_result(x)
 
+ebpf_store_key_t ebpf_store_root_key = HKEY_CURRENT_USER; // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
+const wchar_t* ebpf_store_root_sub_key = EBPF_ROOT_RELATIVE_PATH;
+
 static std::wstring
 _get_wstring_from_string(std::string text)
 {

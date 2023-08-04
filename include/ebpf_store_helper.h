@@ -23,8 +23,10 @@ extern "C"
     typedef HANDLE ebpf_store_key_t;
 #else
 typedef HKEY ebpf_store_key_t;
-extern ebpf_store_key_t ebpf_store_root_key;
 #endif
+
+    extern ebpf_store_key_t ebpf_store_root_key;
+    extern const wchar_t* ebpf_store_root_sub_key;
 
     /**
      * @brief Update the provider prototype information in the eBPF store.

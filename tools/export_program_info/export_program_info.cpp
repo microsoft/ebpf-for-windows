@@ -17,8 +17,6 @@
 #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
-extern ebpf_store_key_t ebpf_store_root_key;
-
 typedef struct _ebpf_program_section_info_with_count
 {
     _Field_size_(section_info_count) const ebpf_program_section_info_t* section_info;
@@ -82,8 +80,7 @@ export_global_helper_information()
 uint32_t
 clear_all_ebpf_stores()
 {
-    // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
-    std::cout << "Clearing eBPF store HKEY_CURRENT_USER" << std::endl;
+    std::cout << "Clearing eBPF store" << std::endl;
     return ebpf_store_clear(ebpf_store_root_key);
 }
 

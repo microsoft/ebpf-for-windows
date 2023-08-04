@@ -10,6 +10,9 @@
 
 #define _EBPF_RESULT(x) (NT_SUCCESS(x) ? EBPF_SUCCESS : EBPF_FAILED)
 
+ebpf_store_key_t ebpf_store_root_key = NULL;
+const wchar_t* ebpf_store_root_sub_key = EBPF_ROOT_REGISTRY_PATH;
+
 ebpf_result_t
 ebpf_convert_guid_to_string(
     _In_ const GUID* guid, _Out_writes_all_(string_length) wchar_t* string, size_t string_length)
