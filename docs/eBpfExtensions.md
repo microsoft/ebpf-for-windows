@@ -306,7 +306,7 @@ When an eBPF extension is installed, it must update the eBPF store with the prog
 
 To operate on the eBPF store, the extension must link the `\lib\ebpf_store_helper_km.lib` kernel-mode library and include the related `\include\ebpf_store_helper.h` header file, both distributed within the [eBPF for Windows NuGet package](https://www.nuget.org/packages/eBPF-for-Windows/). With these, the extension can use the following APIs to register program types, attach types and helper functions:
 
-- `ebpf_store_update_helper_prototype`: updates the provider prototype information in the eBPF store, given a pointer to the store key to be initialized and a pointer to the helper function prototype (i.e., `_ebpf_helper_function_prototype`):
+- `ebpf_store_update_helper_prototype`: updates the program type specific helper information in the eBPF store, given a pointer to the store key to be initialized and a pointer to the helper function prototype (i.e., `_ebpf_helper_function_prototype`):
 
     ```c
     ebpf_result_t

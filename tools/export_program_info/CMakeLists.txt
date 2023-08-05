@@ -16,8 +16,6 @@ target_include_directories("export_program_info" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/execution_context"
   "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
-  "${CMAKE_SOURCE_DIR}/libs/store_helper"
-  "${CMAKE_SOURCE_DIR}/libs/store_helper/user"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
   "${CMAKE_SOURCE_DIR}/netebpfext"
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"

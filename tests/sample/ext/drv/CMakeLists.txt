@@ -18,7 +18,6 @@ target_include_directories("sample_ebpf_ext" PRIVATE
   "${CMAKE_SOURCE_DIR}/include/kernel"
   "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
-  "${CMAKE_SOURCE_DIR}/libs/store_helper/kernel"
   "${CMAKE_SOURCE_DIR}/tests/sample"
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
 )
