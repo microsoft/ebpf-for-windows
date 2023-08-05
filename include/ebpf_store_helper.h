@@ -53,7 +53,7 @@ typedef HKEY ebpf_store_key_t;
         _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
 
     /**
-     * @brief Update section information in eBPF store.
+     * @brief Update section information in the eBPF store.
      *
      * @param[in] section_info Pointer to an array of section information.
      * @param[in] section_info_count Count of section information entries.
@@ -65,7 +65,7 @@ typedef HKEY ebpf_store_key_t;
         _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count);
 
     /**
-     * @brief Update program information in eBPF store.
+     * @brief Update program information in the eBPF store.
      *
      * @param[in] program_info Pointer to an array of program information.
      * @param[in] program_info_count Count of program information entries.
