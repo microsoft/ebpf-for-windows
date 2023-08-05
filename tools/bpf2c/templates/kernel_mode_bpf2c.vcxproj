@@ -40,6 +40,9 @@
     <RootNamespace>$(FileName)</RootNamespace>
     <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
     <ProjectName>$(FileName)_km</ProjectName>
+    <!-- Required for Microsoft OneBranch builds -->
+    <UseInternalMSUniCrtPackage>true</UseInternalMSUniCrtPackage>    
+    <UndockedKernelModeBuild>true</UndockedKernelModeBuild>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup>
