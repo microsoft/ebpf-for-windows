@@ -544,6 +544,7 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                             symbol, unsafe_name, value, size, bind, symbol_type, section_index, other)) {
                         throw bpf_code_generator_exception("Can't perform relocation at offset ", offset);
                     }
+
                     auto iter = map_names_by_offset.lower_bound(std::make_pair(offset, offset));
                     if (iter != map_names_by_offset.begin()) {
                         iter--;
@@ -559,6 +560,9 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                     // The index is the offset from the start of the values array divided by the size of a pointer.
                     size_t value_array_start = iter->first.first + map_names_to_values_offset[map_name];
                     size_t value_array_index = (offset - value_array_start) / sizeof(uintptr_t);
+                    if (value_array_index > map_initial_values[map_name].size()) {
+                        throw bpf_code_generator_exception("Can't perform relocation at offset ", offset);
+                    }
                     map_initial_values[map_name][value_array_index] = unsafe_name;
                 }
             }
