@@ -25,7 +25,6 @@ target_include_directories("ebpf_store_helper_km" PRIVATE
 )
 
 target_compile_definitions("ebpf_store_helper_km" PRIVATE
-  KERNEL_MODE
   WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP
   WINAPI_PARTITION_DESKTOP=1
   WINAPI_PARTITION_SYSTEM=1

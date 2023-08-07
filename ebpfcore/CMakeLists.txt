@@ -40,7 +40,6 @@ target_link_libraries("EbpfCore"
 )
 
 target_compile_definitions("EbpfCore" PRIVATE
-  KERNEL_MODE
   BINARY_COMPATIBLE=0
   NT
   NDIS60

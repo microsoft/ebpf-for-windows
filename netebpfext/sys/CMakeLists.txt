@@ -66,7 +66,6 @@ target_link_libraries("NetEbpfExt"
 )
 
 target_compile_definitions("NetEbpfExt" PRIVATE
-  KERNEL_MODE
   BINARY_COMPATIBLE=0
   NT
   NDIS60
