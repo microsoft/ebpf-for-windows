@@ -11,7 +11,6 @@
 #include "bpf/libbpf.h"
 #include "ebpf_api.h"
 #include "ebpf_result.h"
-#include "socket_helper.h"
 
 #include <windows.h>
 #include <future>
@@ -19,19 +18,6 @@
 
 #define RING_BUFFER_TEST_EVENT_COUNT 10
 
-typedef enum _user_type
-{
-    ADMINISTRATOR,
-    STANDARD_USER
-} user_type_t;
-
-typedef struct _test_addresses
-{
-    struct sockaddr_storage loopback_address;
-    struct sockaddr_storage remote_address;
-    struct sockaddr_storage local_address;
-    struct sockaddr_storage vip_address;
-} test_addresses_t;
 typedef struct _close_bpf_object
 {
     void
@@ -44,19 +30,6 @@ typedef struct _close_bpf_object
 } close_bpf_object_t;
 typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
 
-typedef struct _test_globals
-{
-    user_type_t user_type = STANDARD_USER;
-    HANDLE user_token = nullptr;
-    ADDRESS_FAMILY family = 0;
-    IPPROTO protocol = IPPROTO_IPV4;
-    uint16_t destination_port = 4444;
-    uint16_t proxy_port = 4443;
-    test_addresses_t addresses[socket_family_t::Max] = {0};
-    bool attach_v4_program = false;
-    bool attach_v6_program = false;
-    bpf_object_ptr bpf_object;
-} test_globals_t;
 void
 ebpf_test_pinned_map_enum();
 void
