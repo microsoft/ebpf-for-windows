@@ -78,7 +78,7 @@ typedef struct _ebpf_native_module
 {
     ebpf_base_object_t base;
     GUID client_module_id;
-    metadata_table_t* table;
+    metadata_table_t table;
     ebpf_native_module_state_t state;
     bool detaching;
     _Field_z_ wchar_t* service_name; // This will be used to pass to the unload module workitem.
@@ -437,6 +437,14 @@ _ebpf_native_release_reference_internal(void* base_object, ebpf_file_id_t file_i
     ebpf_native_release_reference(base_object);
 }
 
+static void
+_ebpf_native_map_initial_values_fallback(
+    _Outptr_result_buffer_maybenull_(*count) map_initial_values_t** map_initial_values, _Out_ size_t* count)
+{
+    map_initial_values = NULL;
+    *count = 0;
+}
+
 static NTSTATUS
 _ebpf_native_provider_attach_client_callback(
     _In_ HANDLE nmr_binding_handle,
@@ -477,8 +485,8 @@ _ebpf_native_provider_attach_client_callback(
         goto Done;
     }
 
-    // If the metadata table changes in size, then require the regeneration of the native module.
-    if (table->size != sizeof(metadata_table_t)) {
+    // Check if the client module is compatible with the runtime.
+    if (table->size < EBPF_OFFSET_OF(metadata_table_t, version)) {
         result = EBPF_INVALID_ARGUMENT;
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -496,6 +504,14 @@ _ebpf_native_provider_attach_client_callback(
         goto Done;
     }
 
+    // Copy the metadata table.
+    memcpy(&client_context->table, table, min(table->size, sizeof(metadata_table_t)));
+
+    // Initialize the map initial values function pointer if it is not present.
+    if (!client_context->table.map_initial_values) {
+        client_context->table.map_initial_values = _ebpf_native_map_initial_values_fallback;
+    }
+
     ebpf_lock_create(&client_context->lock);
     client_context->base.marker = _ebpf_native_marker;
     client_context->base.acquire_reference = _ebpf_native_acquire_reference_internal;
@@ -504,7 +520,6 @@ _ebpf_native_provider_attach_client_callback(
     client_context->base.reference_count = 1;
     client_context->client_module_id = *client_module_id;
     client_context->state = MODULE_STATE_UNINITIALIZED;
-    client_context->table = table;
     client_context->nmr_binding_handle = nmr_binding_handle;
 
     // Insert the new client context in the hash table.
@@ -845,7 +860,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
     ebpf_map_definition_in_memory_t map_definition = {0};
 
     // Get the maps
-    module->table->maps(&maps, &map_count);
+    module->table.maps(&maps, &map_count);
     if (map_count == 0) {
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
@@ -1106,7 +1121,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
     uint8_t* hash_type_name = NULL;
 
     // Get the programs.
-    module->table->programs(&programs, &program_count);
+    module->table.programs(&programs, &program_count);
     if (program_count == 0 || programs == NULL) {
         return EBPF_INVALID_OBJECT;
     }
@@ -1260,7 +1275,7 @@ _ebpf_native_get_count_of_maps(_In_ const ebpf_native_module_t* module)
 {
     map_entry_t* maps = NULL;
     size_t count_of_maps;
-    module->table->maps(&maps, &count_of_maps);
+    module->table.maps(&maps, &count_of_maps);
 
     return count_of_maps;
 }
@@ -1270,7 +1285,7 @@ _ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
 {
     program_entry_t* programs = NULL;
     size_t count_of_programs;
-    module->table->programs(&programs, &count_of_programs);
+    module->table.programs(&programs, &count_of_programs);
 
     return count_of_programs;
 }

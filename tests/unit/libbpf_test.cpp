@@ -2901,7 +2901,7 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     }
 
     // Verify that the printk output is correct.
-    //REQUIRE(output.size() == MAX_TAIL_CALL_CNT);
+    REQUIRE(output.size() == MAX_TAIL_CALL_CNT);
     for (size_t i = 0; i < MAX_TAIL_CALL_CNT; i++) {
         REQUIRE(output[i] == std::format("recurse: *value={}", i));
     }
