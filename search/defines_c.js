@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['reg_5fcreate_5fflags_1704',['REG_CREATE_FLAGS',['../kernel_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56',1,'REG_CREATE_FLAGS():&#160;ebpf_registry_helper.h'],['../user_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56',1,'REG_CREATE_FLAGS():&#160;ebpf_registry_helper.h']]],
-  ['reg_5fopen_5fflags_1705',['REG_OPEN_FLAGS',['../user_2ebpf__registry__helper_8h.html#a15c5f927a588ad347042fa4a59081b4b',1,'ebpf_registry_helper.h']]]
+  ['sock_5faddr_5fext_5fhelper_5ffn_5fbase_1678',['SOCK_ADDR_EXT_HELPER_FN_BASE',['../ebpf__nethooks_8h.html#a09d58648eadda063c89974b05c5b5d6e',1,'ebpf_nethooks.h']]]
 ];

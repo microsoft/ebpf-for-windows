@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['win32_5flean_5fand_5fmean_1708',['WIN32_LEAN_AND_MEAN',['../ebpf__utilities_8h.html#ac7bef5d85e3dcd73eef56ad39ffc84a9',1,'ebpf_utilities.h']]]
+  ['xdp_5fext_5fhelper_5ffn_5fbase_1681',['XDP_EXT_HELPER_FN_BASE',['../ebpf__nethooks_8h.html#acce2f548e179db8cc18c8173a4a7a6e6',1,'ebpf_nethooks.h']]],
+  ['xdp_5fflags_5freplace_1682',['XDP_FLAGS_REPLACE',['../ebpf__structs_8h.html#a6895b7ffe1198b667b8d71b08b82b4a2',1,'ebpf_structs.h']]]
 ];

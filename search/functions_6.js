@@ -1,4 +1,6 @@
 var searchData=
 [
-  ['open_5fregistry_5fkey_1087',['open_registry_key',['../user_2ebpf__registry__helper_8h.html#a393f49231fcef8c15058d30098a38946',1,'ebpf_registry_helper.h']]]
+  ['swap16_1072',['swap16',['../bpf2c_8h.html#a7cf3526e1af5c8642d2ec02caecf99bc',1,'bpf2c.h']]],
+  ['swap32_1073',['swap32',['../bpf2c_8h.html#a5bdbc60a02db00841f567d1ade52f877',1,'bpf2c.h']]],
+  ['swap64_1074',['swap64',['../bpf2c_8h.html#a27634689306157c465da8414fabf1df2',1,'bpf2c.h']]]
 ];

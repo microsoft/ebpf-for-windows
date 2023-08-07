@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['sock_5faddr_5fext_5fhelper_5ffn_5fbase_1706',['SOCK_ADDR_EXT_HELPER_FN_BASE',['../ebpf__nethooks_8h.html#a09d58648eadda063c89974b05c5b5d6e',1,'ebpf_nethooks.h']]]
+  ['ubpf_5fstack_5fsize_1679',['UBPF_STACK_SIZE',['../bpf2c_8h.html#ab41a6986b0045cc2e5c84a75d08c7a12',1,'bpf2c.h']]]
 ];
