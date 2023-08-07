@@ -28,6 +28,7 @@ target_link_directories("sample_ebpf_ext" PRIVATE
 
 target_link_libraries("sample_ebpf_ext"
   "ebpf_for_windows_common_settings"
+  "ebpf_store_helper_km"
   "external::ebpfverifier_headers"
   "platform_kernel"
   "netio.lib"
