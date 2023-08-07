@@ -100,8 +100,6 @@ extern "C"
 
     typedef struct _ebpf_helper_function_addresses ebpf_helper_function_addresses_t;
 
-    extern bool ebpf_fuzzing_enabled;
-
     /**
      * @brief Initialize the eBPF platform abstraction layer.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -1075,6 +1073,18 @@ extern "C"
      */
     ebpf_result_t
     ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output);
+
+    /**
+     * @brief Check if fault injection is enabled. (Fault injection
+     *        is not supported in kernel mode.)
+     *
+     * TODO(#2677): move this prototype to another project.
+     *
+     * @retval TRUE Fault injection is enabled. (User mode *ONLY*)
+     * @retval FALSE Fault injection is not enabled.
+     */
+    BOOLEAN
+    usersim_fault_injection_is_enabled();
 
 #ifdef __cplusplus
 }

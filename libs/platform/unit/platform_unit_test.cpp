@@ -96,9 +96,19 @@ class _test_helper
     bool state_initiated = false;
 };
 
+struct ebpf_hash_table_destroyer_t
+{
+    void
+    operator()(_In_opt_ _Post_invalid_ ebpf_hash_table_t* table)
+    {
+        ebpf_hash_table_destroy(table);
+    }
+};
+
+using ebpf_hash_table_ptr = std::unique_ptr<ebpf_hash_table_t, ebpf_hash_table_destroyer_t>;
+
 TEST_CASE("hash_table_test", "[platform]")
 {
-    ebpf_hash_table_t* table = nullptr;
     std::vector<uint8_t> key_1(13);
     std::vector<uint8_t> key_2(13);
     std::vector<uint8_t> key_3(13);
@@ -135,23 +145,30 @@ TEST_CASE("hash_table_test", "[platform]")
         .bucket_count = 1,
     };
 
-    REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
+    ebpf_hash_table_t* raw_ptr = nullptr;
+    REQUIRE(ebpf_hash_table_create(&raw_ptr, &options) == EBPF_SUCCESS);
+    ebpf_hash_table_ptr table(raw_ptr);
 
     // Insert first
     // Empty bucket case
     REQUIRE(
-        ebpf_hash_table_update(table, key_1.data(), data_1.data(), EBPF_HASH_TABLE_OPERATION_INSERT) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 1);
+        ebpf_hash_table_update(table.get(), key_1.data(), data_1.data(), EBPF_HASH_TABLE_OPERATION_INSERT) ==
+        EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 1);
 
     // Insert second
     // Existing bucket, no backup.
-    REQUIRE(ebpf_hash_table_update(table, key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 2);
+    REQUIRE(
+        ebpf_hash_table_update(table.get(), key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_ANY) ==
+        EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 2);
 
     // Insert third
     // Existing bucket, with backup.
-    REQUIRE(ebpf_hash_table_update(table, key_3.data(), data_3.data(), EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 3);
+    REQUIRE(
+        ebpf_hash_table_update(table.get(), key_3.data(), data_3.data(), EBPF_HASH_TABLE_OPERATION_ANY) ==
+        EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 3);
 
     // Iterate through all keys.
     uint64_t cookie = 0;
@@ -163,13 +180,14 @@ TEST_CASE("hash_table_test", "[platform]")
     values.resize(count);
     // Bucket contains 3 keys, but we only have space for 2.
     // Should fail with insufficient buffer.
-    REQUIRE(ebpf_hash_table_iterate(table, &cookie, &count, keys.data(), values.data()) == EBPF_INSUFFICIENT_BUFFER);
+    REQUIRE(
+        ebpf_hash_table_iterate(table.get(), &cookie, &count, keys.data(), values.data()) == EBPF_INSUFFICIENT_BUFFER);
     REQUIRE(count == 3);
     keys.resize(count);
     values.resize(count);
     // Bucket contains 3 keys, and we have space for 3.
     // Should succeed.
-    REQUIRE(ebpf_hash_table_iterate(table, &cookie, &count, keys.data(), values.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_iterate(table.get(), &cookie, &count, keys.data(), values.data()) == EBPF_SUCCESS);
 
     // Verify that all keys are found.
     for (size_t index = 0; index < 3; index++) {
@@ -187,64 +205,63 @@ TEST_CASE("hash_table_test", "[platform]")
         }
     }
     // Verify that there are no more keys.
-    REQUIRE(ebpf_hash_table_iterate(table, &cookie, &count, keys.data(), values.data()) == EBPF_NO_MORE_KEYS);
+    REQUIRE(ebpf_hash_table_iterate(table.get(), &cookie, &count, keys.data(), values.data()) == EBPF_NO_MORE_KEYS);
     REQUIRE(keys_found == 0x7);
 
     // Find the first
-    REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_find(table.get(), key_1.data(), &returned_value) == EBPF_SUCCESS);
     REQUIRE(memcmp(returned_value, data_1.data(), data_1.size()) == 0);
 
     // Find the second
-    REQUIRE(ebpf_hash_table_find(table, key_2.data(), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_find(table.get(), key_2.data(), &returned_value) == EBPF_SUCCESS);
     REQUIRE(memcmp(returned_value, data_2.data(), data_2.size()) == 0);
 
     // Find the third
-    REQUIRE(ebpf_hash_table_find(table, key_2.data(), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_find(table.get(), key_2.data(), &returned_value) == EBPF_SUCCESS);
     REQUIRE(memcmp(returned_value, data_2.data(), data_2.size()) == 0);
 
     // Replace the second
     memset(data_2.data(), '0x55', data_2.size());
     REQUIRE(
-        ebpf_hash_table_update(table, key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_REPLACE) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 3);
+        ebpf_hash_table_update(table.get(), key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_REPLACE) ==
+        EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 3);
 
     // Find the first
-    REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_find(table.get(), key_1.data(), &returned_value) == EBPF_SUCCESS);
     REQUIRE(memcmp(returned_value, data_1.data(), data_1.size()) == 0);
 
     // Next key
-    REQUIRE(ebpf_hash_table_next_key(table, nullptr, returned_key.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_next_key(table.get(), nullptr, returned_key.data()) == EBPF_SUCCESS);
     REQUIRE(returned_key == key_1);
 
-    REQUIRE(ebpf_hash_table_next_key(table, returned_key.data(), returned_key.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_next_key(table.get(), returned_key.data(), returned_key.data()) == EBPF_SUCCESS);
     REQUIRE(returned_key == key_2);
 
-    REQUIRE(ebpf_hash_table_next_key(table, returned_key.data(), returned_key.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_next_key(table.get(), returned_key.data(), returned_key.data()) == EBPF_SUCCESS);
     REQUIRE(returned_key == key_3);
 
-    REQUIRE(ebpf_hash_table_next_key(table, returned_key.data(), returned_key.data()) == EBPF_NO_MORE_KEYS);
+    REQUIRE(ebpf_hash_table_next_key(table.get(), returned_key.data(), returned_key.data()) == EBPF_NO_MORE_KEYS);
     REQUIRE(returned_key == key_3);
 
     // Delete middle key
-    REQUIRE(ebpf_hash_table_delete(table, key_2.data()) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 2);
+    REQUIRE(ebpf_hash_table_delete(table.get(), key_2.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 2);
 
     // Delete not found
-    REQUIRE(ebpf_hash_table_delete(table, key_2.data()) == EBPF_KEY_NOT_FOUND);
-    REQUIRE(ebpf_hash_table_key_count(table) == 2);
+    REQUIRE(ebpf_hash_table_delete(table.get(), key_2.data()) == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 2);
 
     // Find not found
-    REQUIRE(ebpf_hash_table_find(table, key_2.data(), &returned_value) == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_hash_table_find(table.get(), key_2.data(), &returned_value) == EBPF_KEY_NOT_FOUND);
 
     // Delete first key
-    REQUIRE(ebpf_hash_table_delete(table, key_1.data()) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 1);
+    REQUIRE(ebpf_hash_table_delete(table.get(), key_1.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 1);
 
     // Delete last key
-    REQUIRE(ebpf_hash_table_delete(table, key_3.data()) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 0);
-
-    ebpf_hash_table_destroy(table);
+    REQUIRE(ebpf_hash_table_delete(table.get(), key_3.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 0);
 }
 
 void

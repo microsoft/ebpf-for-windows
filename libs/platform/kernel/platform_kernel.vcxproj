@@ -38,6 +38,7 @@
     <ClCompile Include="..\ebpf_serialize.c" />
     <ClCompile Include="..\ebpf_state.c" />
     <ClCompile Include="..\ebpf_trampoline.c" />
+    <ClCompile Include="ebpf_fault_injection_kernel.c" />
     <ClCompile Include="ebpf_handle_kernel.c" />
     <ClCompile Include="ebpf_native_kernel.c" />
     <ClCompile Include="ebpf_platform_kernel.c" />
