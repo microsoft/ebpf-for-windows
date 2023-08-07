@@ -323,7 +323,7 @@ To operate on the eBPF store, the extension must link the `\lib\ebpf_store_helpe
         _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
     ```
 
-- `ebpf_store_update_section_information`: updates the section information in eBPF store, given a pointer to an array of section information (i.e., `_ebpf_program_section_info`):
+- `ebpf_store_update_section_information`: updates the section information in the eBPF store, given a pointer to an array of section information (i.e., `_ebpf_program_section_info`):
 
     ```c
     ebpf_result_t

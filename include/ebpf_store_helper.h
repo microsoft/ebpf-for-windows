@@ -22,7 +22,7 @@ extern "C"
 #ifndef USER_MODE
     typedef HANDLE ebpf_store_key_t;
 #else
-typedef HKEY ebpf_store_key_t;
+    typedef HKEY ebpf_store_key_t;
 #endif
 
     extern ebpf_store_key_t ebpf_store_root_key;
