@@ -73,7 +73,7 @@ jobs:
       TEST_COMMAND: ${{parameters.test_command}}
       PRE_COMMAND: ${{parameters.pre_test}}
       POST_COMMAND: ${{parameters.post_test}}
-      EBPF_MEMORY_LEAK_DETECTION: ${{parameters.leak_detection}}
+      USERSIM_MEMORY_LEAK_DETECTION: ${{parameters.leak_detection}}
       # Skip Codesign Validation task, as ths is a test job.
       runCodesignValidationInjection: false
       DUMP_PATH: c:\dumps\$(BUILD_PLATFORM)\$(BUILD_CONFIGURATION)
