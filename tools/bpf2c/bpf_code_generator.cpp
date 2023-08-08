@@ -506,6 +506,10 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                 // to hold the initial values.
                 if (member.name == "values") {
                     map_names_to_values_offset[unsafe_symbol_name] = member.offset_from_start_in_bits / 8;
+                    if (map_names_to_values_offset[unsafe_symbol_name] > (range.second - range.first)) {
+                        throw bpf_code_generator_exception("map values offset is outside of map range");
+                    }
+
                     // Compute the number of initial values and resize the vector.
                     // Size is the number of bytes in the range minus the offset of the values array divided by the
                     // size of a pointer.
