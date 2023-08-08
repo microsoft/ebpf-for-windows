@@ -92,6 +92,9 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.eBPF.CustomScriptHandler
             {
                 EnableHandler();
                 // Mandatory status report
+                // The status file name must be in the format of <seqNo>.status, where <seqNo> is the sequence number of the status file,
+                // which is the same as the sequence number of the LAST GENERATED '.settings' file in the configuration file. This is to
+                // ensure that the status file is always newer than the last '.settings' file.
             }
             else
             {
@@ -212,10 +215,10 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.eBPF.CustomScriptHandler
         /// Reports the current status of the handler to its respective .status file, 
         /// overwriting the file's current contents.
         /// </summary>
-        /// <param name="statusFile">Path + name of the .status file to write to</param>
+        /// <param name="statusFileName">Path + name of the .status file to write to</param>
         /// <param name="statusObj">Status object to write out</param>
         /// <param name="version">Version number of the handler</param>
-        private static void ReportStatus(string statusFile, StatusObj statusObj, string version)
+        private static void ReportStatus(string statusFileName, StatusObj statusObj, string version)
         {
             TopLevelStatus rootStatusObj = new TopLevelStatus() { Version = version, TimestampUTC = DateTime.UtcNow, Status = statusObj };
             string rootStatusJson = SerializeObjectToJsonString<List<TopLevelStatus>>(new List<TopLevelStatus>() { rootStatusObj });
@@ -225,18 +228,18 @@ namespace Microsoft.WindowsAzure.GuestAgent.Plugins.eBPF.CustomScriptHandler
             {
                 try
                 {
-                    File.WriteAllText(statusFile, rootStatusJson);
+                    File.WriteAllText(statusFileName, rootStatusJson);
                     return;
                 }
                 catch (Exception e)
                 {
                     writeAttempt++;
-                    LOGGER.Log(LogLevel.Warning, "Failed to write status to file \"{0}\". Will retry after {1} seconds. Exception: {2}", statusFile, writeAttempt, e.ToString());
+                    LOGGER.Log(LogLevel.Warning, "Failed to write status to file \"{0}\". Will retry after {1} seconds. Exception: {2}", statusFileName, writeAttempt, e.ToString());
                     Thread.Sleep(1000 * writeAttempt);
                 }
             }
 
-            LOGGER.Log(LogLevel.Error, "Failed to write status to file \"{0}\" after {1} attempts", statusFile, writeAttempt);
+            LOGGER.Log(LogLevel.Error, "Failed to write status to file \"{0}\" after {1} attempts", statusFileName, writeAttempt);
         }
 
         /// <summary>
