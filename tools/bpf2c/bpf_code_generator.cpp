@@ -552,7 +552,7 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                     // Determine which map this offset is in.
                     // The map_names_by_offset map is sorted by start and end offset of the map.
                     // The lower_bound function returns the first entry where the (start, end) offset is >=
-                    // (offset, 0). Because this is range has an invalid end offset, it will never be an exact match
+                    // (offset, 0). Because this range has an invalid end offset, it will never be an exact match
                     // and will always return the first map that starts after the offset.
                     auto iter = map_names_by_offset.lower_bound(std::make_pair(offset, 0));
 
