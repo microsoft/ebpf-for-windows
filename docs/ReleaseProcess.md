@@ -7,7 +7,7 @@ eBPF for Windows, and how to service it later.
 
 ## Creating a new release
 
-1. Create a working branch from "`main`" on your private repo fork, and check it out.
+1. Create a working branch from "`main`" on your private repo fork, and check it out (e.g.: `<user>/release-X-Y-Z`).
 1. Run the following script from the root directory of the repository, within a "*Developer Poweshell for VS 2022"* instance. Make sure to follow [Semantic Versioning 2.0](https://semver.org) ("`X.Y.Z`"):
 
     ```ps
@@ -133,4 +133,4 @@ As a result of creating new release or servicing an existing one, the following 
 
 ### Publishing the Release to NuGet.org
 
-Upload the (non-redist) `.nupkg` file to [NuGet.org](https://www.nuget.org/) (the metadata inside the `.nuget` package itself will automatically populate all the other form fields).
+Upload the (**non-redist**) `.nupkg` file to [NuGet.org](https://www.nuget.org/) (the metadata inside the `.nuget` package itself will automatically populate all the other form fields).
