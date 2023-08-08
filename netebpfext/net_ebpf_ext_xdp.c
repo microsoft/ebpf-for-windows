@@ -230,13 +230,13 @@ _net_ebpf_xdp_update_store_entries()
 
     // Update section information.
     uint32_t section_info_count = sizeof(_ebpf_xdp_section_info) / sizeof(ebpf_program_section_info_t);
-    status = _ebpf_store_update_section_information(&_ebpf_xdp_section_info[0], section_info_count);
+    status = ebpf_store_update_section_information(&_ebpf_xdp_section_info[0], section_info_count);
     if (!NT_SUCCESS(status)) {
         return status;
     }
 
     // Update program information.
-    status = _ebpf_store_update_program_information(&_ebpf_xdp_program_info, 1);
+    status = ebpf_store_update_program_information(&_ebpf_xdp_program_info, 1);
 
     return status;
 }

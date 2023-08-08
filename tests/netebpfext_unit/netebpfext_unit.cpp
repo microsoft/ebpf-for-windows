@@ -6,7 +6,6 @@
 #include "catch_wrapper.hpp"
 #include "netebpf_ext_helper.h"
 #include "passed_test_log.h"
-#include "usersim/../../src/fault_injection.h"
 #include "watchdog.h"
 
 #include <map>
