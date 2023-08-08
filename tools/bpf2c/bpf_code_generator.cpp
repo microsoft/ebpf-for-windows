@@ -549,13 +549,32 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                         throw bpf_code_generator_exception("Can't perform relocation at offset ", offset);
                     }
 
-                    auto iter = map_names_by_offset.lower_bound(std::make_pair(offset, offset));
+                    // Determine which map this offset is in.
+                    // The map_names_by_offset map is sorted by start and end offset of the map.
+                    // The lower_bound function returns the first entry where the (start, end) offset is >=
+                    // (offset, 0). Because this is range has an invalid end offset, it will never be an exact match
+                    // and will always return the first map that starts after the offset.
+                    auto iter = map_names_by_offset.lower_bound(std::make_pair(offset, 0));
+
+                    // Boundary conditions are:
+                    // 1. The offset is before the first map -> iter == map_names_by_offset.begin()
+                    // 2. The offset is after the last map -> iter == map_names_by_offset.end()
+
+                    // map_names_by_offset cannot be empty because there is at least one map.
+
+                    // Select the previous map if it exists.
                     if (iter != map_names_by_offset.begin()) {
                         iter--;
-                    }
-                    if (iter == map_names_by_offset.end()) {
+                    } else {
+                        // If there is no previous map, then the offset is before the first map.
                         throw bpf_code_generator_exception("Can't perform relocation at offset ", offset);
                     }
+
+                    // Sanity check that the offset is within the map range.
+                    if (offset < iter->first.first || offset > iter->first.second) {
+                        throw bpf_code_generator_exception("Can't perform relocation at offset ", offset);
+                    }
+
                     auto map_name = iter->second;
                     // Convert the relocation offset into an index in the initial value array.
                     // iter->first.first is the start of map data in the .maps section.

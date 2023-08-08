@@ -2877,10 +2877,7 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     fd_t canary_map_fd = bpf_map__fd(canary_map);
     REQUIRE(canary_map_fd > 0);
 
-    uint32_t key = 1;
-    REQUIRE(bpf_map_update_elem(map_fd, &key, &program_fd, 0) == 0);
-
-    key = 0;
+    uint32_t key = 0;
     uint32_t value = 0;
     REQUIRE(bpf_map_update_elem(canary_map_fd, &key, &value, 0) == 0);
 
@@ -2945,26 +2942,11 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     fd_t canary_map_fd = bpf_map__fd(canary_map);
     REQUIRE(canary_map_fd > 0);
 
-    fd_t first_program_fd = ebpf_fd_invalid;
-
-    // Add each program to the map.
-    for (uint32_t i = 0; i < MAX_TAIL_CALL_CNT + 1; i++) {
-        std::string program_name = "sequential";
-        program_name += std::to_string(i);
-        struct bpf_program* program = bpf_object__find_program_by_name(object, program_name.c_str());
-        REQUIRE(program != nullptr);
-
-        // Get the fd for the program.
-        fd_t program_fd = bpf_program__fd(program);
-        REQUIRE(program_fd > 0);
-
-        if (i == 0) {
-            first_program_fd = program_fd;
-        }
-
-        uint32_t key = i;
-        REQUIRE(bpf_map_update_elem(map_fd, &key, &program_fd, 0) == 0);
-    }
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "sequential0");
+    REQUIRE(program);
+    // Get the fd for the program.
+    fd_t program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
 
     // Invoke the first program in the chain.
     bpf_test_run_opts opts = {};
@@ -2976,7 +2958,7 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     if (error == NO_ERROR) {
         // Run the program.
         usersim_trace_logging_set_enabled(true, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK);
-        int result = bpf_prog_test_run_opts(first_program_fd, &opts);
+        int result = bpf_prog_test_run_opts(program_fd, &opts);
         usersim_trace_logging_set_enabled(false, 0, 0);
 
         output = capture.buffer_to_printk_vector(capture.get_stdout_contents());

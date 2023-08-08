@@ -2552,3 +2552,29 @@ ebpf_core_close_context(_In_opt_ void* context)
 
     ebpf_epoch_exit(epoch_state);
 }
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_core_update_map_with_handle(
+    ebpf_handle_t map_handle, _In_ const uint8_t* key, size_t key_length, ebpf_handle_t value)
+{
+    size_t request_length = EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key) + key_length;
+    ebpf_operation_map_update_element_with_handle_request_t* request =
+        (ebpf_operation_map_update_element_with_handle_request_t*)ebpf_allocate_with_tag(
+            request_length, EBPF_POOL_TAG_CORE);
+
+    if (!request) {
+        return EBPF_NO_MEMORY;
+    }
+
+    request->header.id = EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE;
+    request->header.length = (uint16_t)request_length;
+    request->map_handle = map_handle;
+    request->value_handle = value;
+    memcpy(request->key, key, key_length);
+
+    ebpf_result_t retval = _ebpf_core_protocol_map_update_element_with_handle(request);
+
+    ebpf_free(request);
+
+    return retval;
+}
