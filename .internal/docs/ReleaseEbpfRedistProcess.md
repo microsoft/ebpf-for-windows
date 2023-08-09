@@ -2,7 +2,9 @@
 
 ## Retrieving the eBPF binaries to be signed
 
-1. Download the latest build artifacts for the "`Build-x64-native-only Release`" build from the [Azure DevOps CICD pipeline](https://mscodehub.visualstudio.com/eBPFForWindows/_build?definitionId=2094&_a=summary) related to the release branch you want to publish, and extract them to a local folder.
+1. Download the latest build artifacts for the "`regular_native_only NativeOnlyRelease`" build from the [Azure DevOps CICD pipeline](https://mscodehub.visualstudio.com/eBPFForWindows/_build?definitionId=2094&_a=summary), related to the release branch you want to publish, and extract them to a local folder.
+
+1. Make sure to **retain the CICD run**, by clicking on upper-right three vertical dots ("..."), and selecting "*Retain*", so that the build artifacts are not deleted after a configured number days.
 
 1. From the extracted folder, copy the `eBPF-for-Windows-Redist.X.Y.Z.nupkg` file to a working directory of your choice, and unzip its contents to a sub folder named `eBPF-for-Windows-Redist.X.Y.Z` (you can use [7-Zip](https://www.7-zip.org/) file manager to directly open the NuGet package as a ZIP archive).
 
