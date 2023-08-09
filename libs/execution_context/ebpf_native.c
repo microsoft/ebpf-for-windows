@@ -899,6 +899,12 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_t* module)
             result = EBPF_INVALID_ARGUMENT;
             break;
         }
+
+        if (native_map_to_update->reused) {
+            // Map is reused. Skip updating initial values.
+            continue;
+        }
+
         // For each value in the map, find the map or program to insert.
         for (size_t j = 0; j < map_initial_values[i].count; j++) {
             // Skip empty initial values.
