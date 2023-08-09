@@ -525,6 +525,13 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
         }
 
         // Extract any initial values for maps.
+        // Maps are stored in the .maps section. The symbols for the .maps section gives the starting and ending offset
+        // of each map. The relocations for the .maps section give the offset of the initial values for each map.
+        // Each relocation record is a pair of (offset, symbol) where the symbol is the map value to insert.
+        // To convert offset to index in the "values" field, the first step is to determine which map the offset is
+        // for. This is done by finding the map whose range contains the offset. Then the offset is converted to an
+        // index by subtracting the offset of the values array and dividing by the size of a pointer.
+        // Finally the value is inserted into the map's initial values vector at the computed index.
         auto map_relocation_section = get_optional_section(".rel.maps");
         if (map_relocation_section) {
             ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};

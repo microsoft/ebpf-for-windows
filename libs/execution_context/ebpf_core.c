@@ -2557,24 +2557,18 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_core_update_map_with_handle(
     ebpf_handle_t map_handle, _In_ const uint8_t* key, size_t key_length, ebpf_handle_t value)
 {
-    size_t request_length = EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key) + key_length;
-    ebpf_operation_map_update_element_with_handle_request_t* request =
-        (ebpf_operation_map_update_element_with_handle_request_t*)ebpf_allocate_with_tag(
-            request_length, EBPF_POOL_TAG_CORE);
+    EBPF_LOG_ENTRY();
+    ebpf_result_t retval;
+    ebpf_map_t* map = NULL;
 
-    if (!request) {
-        return EBPF_NO_MEMORY;
+    retval = EBPF_OBJECT_REFERENCE_BY_HANDLE(map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
     }
 
-    request->header.id = EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE;
-    request->header.length = (uint16_t)request_length;
-    request->map_handle = map_handle;
-    request->value_handle = value;
-    memcpy(request->key, key, key_length);
+    retval = ebpf_map_update_entry_with_handle(map, key_length, key, value, EBPF_ANY);
 
-    ebpf_result_t retval = _ebpf_core_protocol_map_update_element_with_handle(request);
-
-    ebpf_free(request);
-
-    return retval;
+Done:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    EBPF_RETURN_RESULT(retval);
 }
