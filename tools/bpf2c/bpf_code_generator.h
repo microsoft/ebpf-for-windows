@@ -438,4 +438,5 @@ class bpf_code_generator
     unsafe_string path;
     btf_section_to_instruction_to_line_info_t section_line_info;
     std::optional<std::vector<uint8_t>> elf_file_hash;
+    std::map<unsafe_string, std::vector<unsafe_string>> map_initial_values;
 };

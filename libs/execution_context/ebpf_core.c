@@ -2552,3 +2552,23 @@ ebpf_core_close_context(_In_opt_ void* context)
 
     ebpf_epoch_exit(epoch_state);
 }
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_core_update_map_with_handle(
+    ebpf_handle_t map_handle, _In_ const uint8_t* key, size_t key_length, ebpf_handle_t value)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t retval;
+    ebpf_map_t* map = NULL;
+
+    retval = EBPF_OBJECT_REFERENCE_BY_HANDLE(map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    retval = ebpf_map_update_entry_with_handle(map, key_length, key, value, EBPF_ANY);
+
+Done:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    EBPF_RETURN_RESULT(retval);
+}

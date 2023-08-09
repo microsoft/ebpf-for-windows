@@ -28,7 +28,9 @@ struct
     __type(value, uint32_t);
     __uint(max_entries, 1);
     __array(values, inner_map);
-} outer_map SEC(".maps");
+} outer_map SEC(".maps") = {
+    .values = {&inner_map},
+};
 
 SEC("xdp_prog") int lookup(struct xdp_md* ctx)
 {
