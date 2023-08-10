@@ -454,7 +454,9 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
         auto map_name_to_index = map_offsets;
         size_t index = 0;
 
-        std::map<size_t, unsafe_string> map_names_by_offset;
+        std::map<std::pair<size_t, size_t>, unsafe_string> map_names_by_offset;
+        std::map<unsafe_string, size_t> map_names_to_values_offset;
+
         // Emit map definitions in the same order as the maps in the .maps section.
         visit_symbols(
             [&](const unsafe_string& unsafe_symbol_name,
@@ -465,13 +467,14 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                 UNREFERENCED_PARAMETER(bind);
                 UNREFERENCED_PARAMETER(symbol_type);
                 UNREFERENCED_PARAMETER(symbol_size);
-                if (map_names_by_offset.find(symbol_value) == map_names_by_offset.end()) {
-                    map_names_by_offset[symbol_value] = unsafe_symbol_name;
+                auto range = std::make_pair(symbol_value, symbol_value + symbol_size);
+                if (map_names_by_offset.find(range) == map_names_by_offset.end()) {
+                    map_names_by_offset[range] = unsafe_symbol_name;
                 }
             },
             name);
 
-        for (const auto& [offset, unsafe_symbol_name] : map_names_by_offset) {
+        for (const auto& [range, unsafe_symbol_name] : map_names_by_offset) {
             if (map_name_to_index.find(unsafe_symbol_name.raw()) == map_name_to_index.end()) {
                 throw bpf_code_generator_exception("map symbol not found in map section");
             }
@@ -498,8 +501,101 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                     // Value is encoded as the number of elements in the array.
                     map_definition.pinning = static_cast<ebpf_pin_type_t>(pinning_type.count_of_elements);
                 }
+                // "values" is a variable length array of pointers to values.
+                // Compute the offset of the values array and resize the vector
+                // to hold the initial values.
+                if (member.name == "values") {
+                    map_names_to_values_offset[unsafe_symbol_name] = member.offset_from_start_in_bits / 8;
+                    if (map_names_to_values_offset[unsafe_symbol_name] > (range.second - range.first)) {
+                        throw bpf_code_generator_exception("map values offset is outside of map range");
+                    }
+
+                    // Compute the number of initial values and resize the vector.
+                    // Size is the number of bytes in the range minus the offset of the values array divided by the
+                    // size of a pointer.
+                    size_t value_count =
+                        ((range.second - range.first) - map_names_to_values_offset[unsafe_symbol_name]) /
+                        sizeof(uintptr_t);
+                    if (value_count > 0) {
+                        map_initial_values[unsafe_symbol_name].resize(value_count);
+                    }
+                }
             }
             map_definitions[unsafe_symbol_name] = {map_definition, index++};
+        }
+
+        // Extract any initial values for maps.
+        // Maps are stored in the .maps section. The symbols for the .maps section gives the starting and ending offset
+        // of each map. The relocations for the .maps section give the offset of the initial values for each map.
+        // Each relocation record is a pair of (offset, symbol) where the symbol is the map value to insert.
+        // To convert offset to index in the "values" field, the first step is to determine which map the offset is
+        // for. This is done by finding the map whose range contains the offset. Then the offset is converted to an
+        // index by subtracting the offset of the values array and dividing by the size of a pointer.
+        // Finally the value is inserted into the map's initial values vector at the computed index.
+        auto map_relocation_section = get_optional_section(".rel.maps");
+        if (map_relocation_section) {
+            ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
+            ELFIO::const_relocation_section_accessor relocation_reader{reader, map_relocation_section};
+            ELFIO::Elf_Xword relocation_count = relocation_reader.get_entries_num();
+            for (ELFIO::Elf_Xword relocation_index = 0; relocation_index < relocation_count; relocation_index++) {
+                ELFIO::Elf64_Addr offset{};
+                ELFIO::Elf_Word symbol{};
+                unsigned int type{};
+                ELFIO::Elf_Sxword addend{};
+                relocation_reader.get_entry(relocation_index, offset, symbol, type, addend);
+                {
+                    std::string unsafe_name{};
+                    ELFIO::Elf64_Addr value{};
+                    ELFIO::Elf_Xword size{};
+                    unsigned char bind{};
+                    unsigned char symbol_type{};
+                    ELFIO::Elf_Half section_index{};
+                    unsigned char other{};
+                    if (!symbols.get_symbol(
+                            symbol, unsafe_name, value, size, bind, symbol_type, section_index, other)) {
+                        throw bpf_code_generator_exception("Can't perform relocation at offset ", offset);
+                    }
+
+                    // Determine which map this offset is in.
+                    // The map_names_by_offset map is sorted by start and end offset of the map.
+                    // The lower_bound function returns the first entry where the (start, end) offset is >=
+                    // (offset, 0). Because this range has an invalid end offset, it will never be an exact match
+                    // and will always return the first map that starts after the offset.
+                    auto iter = map_names_by_offset.lower_bound(std::make_pair(offset, 0));
+
+                    // Boundary conditions are:
+                    // 1. The offset is before the first map -> iter == map_names_by_offset.begin()
+                    // 2. The offset is after the last map -> iter == map_names_by_offset.end()
+
+                    // map_names_by_offset cannot be empty because there is at least one map.
+
+                    // Select the previous map if it exists.
+                    if (iter != map_names_by_offset.begin()) {
+                        iter--;
+                    } else {
+                        // If there is no previous map, then the offset is before the first map.
+                        throw bpf_code_generator_exception("Can't perform relocation at offset ", offset);
+                    }
+
+                    // Sanity check that the offset is within the map range.
+                    if (offset < iter->first.first || offset > iter->first.second) {
+                        throw bpf_code_generator_exception("Can't perform relocation at offset ", offset);
+                    }
+
+                    auto map_name = iter->second;
+                    // Convert the relocation offset into an index in the initial value array.
+                    // iter->first.first is the start of map data in the .maps section.
+                    // map_names_to_values_offset[map_name] is the offset of the values array in the map data.
+                    // offset is from the start of the .maps section where the relocation is performed.
+                    // The index is the offset from the start of the values array divided by the size of a pointer.
+                    size_t value_array_start = iter->first.first + map_names_to_values_offset[map_name];
+                    size_t value_array_index = (offset - value_array_start) / sizeof(uintptr_t);
+                    if (value_array_index > map_initial_values[map_name].size()) {
+                        throw bpf_code_generator_exception("Can't perform relocation at offset ", offset);
+                    }
+                    map_initial_values[map_name][value_array_index] = unsafe_name;
+                }
+            }
         }
     }
 }
@@ -1497,8 +1593,57 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                   << "}" << std::endl
                   << std::endl;
 
+    if (!map_initial_values.empty()) {
+        output_stream << "#pragma data_seg(push, \"map_initial_values\")" << std::endl;
+        for (const auto& [name, map_values] : map_initial_values) {
+            std::string map_name = name.c_identifier();
+            std::string map_initial_values_name = "_" + map_name + "_initial_string_table[]";
+            output_stream << "static const char* " << map_initial_values_name << " = {" << std::endl;
+            for (const auto& value : map_values) {
+                if (value.empty()) {
+                    output_stream << INDENT << "NULL," << std::endl;
+                } else {
+                    output_stream << INDENT << value.quoted() << "," << std::endl;
+                }
+            }
+            output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        }
+
+        // Emit a static array of map_initial_values_t for each map.
+        output_stream << "static map_initial_values_t _map_initial_values_array[] = {" << std::endl;
+        for (const auto& [name, values] : map_initial_values) {
+            output_stream << INDENT "{" << std::endl;
+            output_stream << INDENT INDENT << ".name = " << name.quoted() << "," << std::endl;
+            output_stream << INDENT INDENT << ".count = " << values.size() << "," << std::endl;
+            output_stream << INDENT INDENT << ".values = "
+                          << "_" << name.c_identifier() << "_initial_string_table"
+                          << "," << std::endl;
+            output_stream << INDENT "}," << std::endl;
+        }
+        output_stream << "};" << std::endl;
+        output_stream << "#pragma data_seg(pop)" << std::endl;
+        output_stream << std::endl;
+    }
+
+    // Emit _get_map_initial_values function.
+    output_stream << "static void" << std::endl
+                  << "_get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** "
+                     "map_initial_values, _Out_ size_t* count)"
+                  << std::endl;
+    output_stream << "{" << std::endl;
+    if (map_initial_values.size() != 0) {
+        output_stream << INDENT "*map_initial_values = _map_initial_values_array;" << std::endl;
+    } else {
+        output_stream << INDENT "*map_initial_values = NULL;" << std::endl;
+    }
+    output_stream << INDENT "*count = " << std::to_string(map_initial_values.size()) << ";" << std::endl;
+    output_stream << "}" << std::endl;
+    output_stream << std::endl;
+
     std::string meta_data_table = "metadata_table_t " + c_name.c_identifier() + "_metadata_table = {";
-    meta_data_table += "sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version};\n";
+    meta_data_table +=
+        "sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};\n";
 
     if ((meta_data_table.size() - 1) > LINE_BREAK_WIDTH) {
         meta_data_table.insert(meta_data_table.find_first_of("{") + 1, "\n" INDENT);
