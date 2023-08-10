@@ -31,6 +31,9 @@
     <ClInclude Include="..\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ntddk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\resource\ebpf_resource.rc">

@@ -78,6 +78,14 @@ SPDX-License-Identifier: MIT
       <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
       <RefTargetDir>INSTALLFOLDER</RefTargetDir>
     </ProjectReference>
+    <ProjectReference Include="..\ebpfcore\usersim\EbpfCore_Usersim.vcxproj">
+      <Name>EbpfCore_Usersim</Name>
+      <Project>{1fdad2fd-ebd8-462a-b285-ed5174e55079}</Project>
+      <Private>True</Private>
+      <DoNotHarvest>True</DoNotHarvest>
+      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
+      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
+    </ProjectReference>
     <ProjectReference Condition="'$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Release'" Include="..\ebpfsvc\eBPFSvc.vcxproj">
       <Name>ebpfsvc</Name>
       <Project>{ba065b6a-38f8-4197-8f66-87c84afad513}</Project>

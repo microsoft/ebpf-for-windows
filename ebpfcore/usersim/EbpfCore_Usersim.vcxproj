@@ -116,7 +116,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);_AMD64_;BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -141,7 +141,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);_AMD64_;BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -166,7 +166,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);_AMD64_;BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -191,7 +191,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);_AMD64_;BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -240,6 +240,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\resource.h" />
+    <ClInclude Include="ntddk.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\resource\ebpf_resource.rc" />
