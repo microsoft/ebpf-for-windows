@@ -14,7 +14,7 @@
 #endif
 
 #include "ebpf_extension_uuids.h"
-#include "ebpf_registry_helper.h"
+#include "ebpf_store_helper.h"
 #include "net_ebpf_ext.h"
 #include "net_ebpf_ext_tracelog.h"
 #include "usersim\fwp_test.h"

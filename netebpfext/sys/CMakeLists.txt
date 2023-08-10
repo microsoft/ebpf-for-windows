@@ -44,6 +44,8 @@ target_include_directories("NetEbpfExt" PRIVATE
   "${CMAKE_SOURCE_DIR}/include/kernel"
   "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
+  "${CMAKE_SOURCE_DIR}/libs/store_helper"
+  "${CMAKE_SOURCE_DIR}/libs/store_helper/kernel"
   "${CMAKE_SOURCE_DIR}/netebpfext/sys"
   "${CMAKE_SOURCE_DIR}/netebpfext"
   "${CMAKE_SOURCE_DIR}/resource"
@@ -55,6 +57,7 @@ target_link_directories("NetEbpfExt" PRIVATE
 
 target_link_libraries("NetEbpfExt"
   "ebpf_for_windows_common_settings"
+  "ebpf_store_helper_km"
   "external::ebpfverifier_headers"
   "Ndis.lib"
   "Netio.lib"

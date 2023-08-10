@@ -21,4 +21,4 @@ ebpf_store_load_global_helper_information(
     _Out_ uint32_t* global_helper_info_count);
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_store_clear(_In_ const ebpf_registry_key_t root_key_path);
+ebpf_store_clear(_In_ const ebpf_store_key_t root_key_path);

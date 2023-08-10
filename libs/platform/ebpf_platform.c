@@ -4,8 +4,6 @@
 #include "ebpf_platform.h"
 #include "ebpf_tracelog.h"
 
-bool ebpf_fuzzing_enabled = false;
-
 static uint32_t _ebpf_platform_maximum_processor_count = 0;
 
 _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return _ebpf_platform_maximum_processor_count; }
