@@ -178,9 +178,16 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 9;
+    version->minor = 10;
     version->revision = 0;
 }
 
+static void
+_get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** map_initial_values, _Out_ size_t* count)
+{
+    *map_initial_values = NULL;
+    *count = 0;
+}
+
 metadata_table_t bad_map_name_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version};
+    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};

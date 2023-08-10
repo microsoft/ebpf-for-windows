@@ -72,23 +72,23 @@ TEST_CASE("xdp_encap_reflect_test", "[xdp_tests]")
 
 TEST_CASE("xdp_reflect_test", "[xdp_tests]")
 {
-    // Create a UDP receiver socket.
-    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, REFLECTION_TEST_PORT);
-    // Post an asynchronous receive on the receiver socket.
-    datagram_server_socket.post_async_receive();
     // Initialize the remote address.
     struct sockaddr_storage remote_address = {};
     get_address_from_string(_remote_ip, remote_address, true);
     // Send message to remote host on reflection port.
     const char* message = "Bo!ng";
-    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_client_socket.send_message_to_remote_host(message, remote_address, REFLECTION_TEST_PORT);
-    // Complete the asynchronous receive and obtain the reflected message.
-    datagram_server_socket.complete_async_receive();
-    // Verify if the received message is expected.
+    datagram_client_socket_t sender_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    sender_receiver_socket.send_message_to_remote_host(message, remote_address, REFLECTION_TEST_PORT);
+    sender_receiver_socket.complete_async_send(1000, expected_result_t::SUCCESS);
+
+    // Post, then complete the asynchronous receive, and obtain the reflected message.
+    sender_receiver_socket.post_async_receive();
+    sender_receiver_socket.complete_async_receive(2000, false);
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
-    datagram_server_socket.get_received_message(bytes_received, received_message);
+    sender_receiver_socket.get_received_message(bytes_received, received_message);
+
+    // Verify if the received message is expected.
     REQUIRE(bytes_received == strlen(message));
     REQUIRE(memcmp(received_message, message, strlen(message)) == 0);
 }

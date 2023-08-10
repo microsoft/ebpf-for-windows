@@ -136,6 +136,7 @@ _client_socket::close()
     if (socket != INVALID_SOCKET) {
         closesocket(socket);
     }
+    socket = INVALID_SOCKET;
 }
 
 void
@@ -518,6 +519,7 @@ _datagram_server_socket::close()
     if (socket != INVALID_SOCKET) {
         closesocket(socket);
     }
+    socket = INVALID_SOCKET;
 }
 
 _stream_server_socket::_stream_server_socket(int _sock_type, int _protocol, uint16_t _port)
@@ -661,4 +663,5 @@ _stream_server_socket::close()
     if (accept_socket != INVALID_SOCKET) {
         closesocket(accept_socket);
     }
+    accept_socket = INVALID_SOCKET;
 }

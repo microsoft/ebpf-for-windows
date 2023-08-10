@@ -166,6 +166,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
     bpf_prog_info program_info = {};
     uint32_t program_info_size = sizeof(program_info);
+
     native_module_helper_t helper;
     helper.initialize("cgroup_sock_addr");
 
@@ -248,7 +249,6 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         BPF_CGROUP_INET6_RECV_ACCEPT,
         0);
     REQUIRE(result == 0);
-
     bpf_object__close(object);
 }
 
@@ -269,7 +269,10 @@ connection_monitor_test(
 
     // Ring buffer event callback context.
     std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
-    context->test_event_count = disconnect ? 4 : 2;
+    // Issue: https://github.com/microsoft/ebpf-for-windows/issues/2706
+    // Should there be a disconnect event for both inbound and outbound connections?
+    // Should the local and remote addresses be swapped for inbound vs outbound connections?
+    context->test_event_count = disconnect ? 3 : 2;
 
     bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
     REQUIRE(_program != nullptr);
