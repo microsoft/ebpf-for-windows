@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **eBPF Performance Benchmark suite (Perf)** aims to evaluate the performance of the eBPF runtime, pinpoint areas for enhancement, and ensure timely detection and mitigation of performance regressions. The suite provides a comprehensive view of build-to-build performance, categorized by scenarios, aiding in the identification of areas requiring improvement.
+The **eBPF Performance Benchmark suite (Perf)** aims to evaluate the performance of the eBPF runtime, pinpoint areas for enhancement, and ensure timely detection and mitigation of performance regressions. The suite provides a comprehensive view of build-to-build performance, categorized by scenarios, aiding in the identification of areas requiring improvement. Measuring the performance of the user-mode libbpf library is a non-goal as libbpf operations are assumed to occur at a lower frequency.
 
 ## Architecture
 
@@ -14,7 +14,7 @@ The Perf suite comprises these primary components:
 
 ## Test Runner
 
-The Test Runner (Runner) is a C++ program utilizing the libbpf library. It loads an eBPF program (in the kernel) and employs bpf_prog_test_run_opts to execute the BPF program on specified CPUs for a specified number of iterations. Subsequently, it calculates and outputs the average duration of the BPF programs. As a stretch goal, the Runner is designed to be platform-agnostic, enabling it to target both Windows and Linux eBPF runtimes.
+The Test Runner (Runner) is a C++ program utilizing the libbpf library. It loads an eBPF program (in the kernel) and employs bpf_prog_test_run_opts to execute the BPF program on specified CPUs for a specified number of iterations. Subsequently, it calculates and outputs the average duration of the BPF programs. As a stretch goal, the Runner is designed to be platform-agnostic, enabling it to target both Windows and Linux eBPF runtimes. Given the importance of measuring both single threaded performance as well as concurrent performance, the test schema permit scheduling BPF programs on specific sets of CPUs.
 
 ## Test Suites
 
@@ -87,6 +87,10 @@ exit
 
 The purpose of this test is to evaluate the baseline cost of invoking a BPF program.
 
+## Tail Call Test
+
+The Tail Call test measures the cost of switching from an initial BPF program to a child BPF program via a tail call. Given that tail calls are inherently map operations as well, this test could be merged with the map tests.
+
 ## Generic Map Read/Write
 
 These tests assess the eBPF runtime's map implementation performance and include the following test types:
@@ -105,7 +109,9 @@ Certain maps possess unique properties that differentiate them. These maps inclu
 
 ## Helper Function
 
-These tests involve invoking the runtime's helper functions, including the setup of any required state. This will include both general-purpose as well as program-type-specific helper function tests.
+These tests involve invoking the runtime's helper functions, including the setup of any required state. This will include both general-purpose as well as program-type-specific helper function tests. Helper functions that might be of interest to measure include:
+1. **bpf_xdp_adjust_head** This program type specific helper function grows and shrinks a XDP buffer.
+2. **bpf_trace_printk** The performance impact of this function could be high and it is important to measure it.
 
 ## CI/CD Integration
 
@@ -116,7 +122,7 @@ These tests involve invoking the runtime's helper functions, including the setup
 
 ## Debugging Regressions
 
-When a significant regression in the build-to-build performance occurs, the CI/CD workflow will create an issue to track it and include instructions on how to further investigate the regression. A developer can then schedule an on-demand run of the workflow along with CPU profiling and then download the resulting traces as artifacts. The developer can then analyze the traces and investigate the regression further.
+When a [statistically significant](https://en.wikipedia.org/wiki/Statistical_significance) regression in the build-to-build performance occurs, the CI/CD workflow will create an issue to track it and include instructions on how to further investigate the regression. A developer can then schedule an on-demand run of the workflow along with CPU profiling and then download the resulting traces as artifacts. The developer can then analyze the traces and investigate the regression further.
 
 ## Test Scripts
 
