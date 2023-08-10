@@ -13,10 +13,97 @@
 
 #include "bpf_helpers.h"
 
-SEC("maps")
-struct bpf_map map = {BPF_MAP_TYPE_PROG_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 33};
+int
+sequential0(struct xdp_md* ctx);
+int
+sequential1(struct xdp_md* ctx);
+int
+sequential2(struct xdp_md* ctx);
+int
+sequential3(struct xdp_md* ctx);
+int
+sequential4(struct xdp_md* ctx);
+int
+sequential5(struct xdp_md* ctx);
+int
+sequential6(struct xdp_md* ctx);
+int
+sequential7(struct xdp_md* ctx);
+int
+sequential8(struct xdp_md* ctx);
+int
+sequential9(struct xdp_md* ctx);
+int
+sequential10(struct xdp_md* ctx);
+int
+sequential11(struct xdp_md* ctx);
+int
+sequential12(struct xdp_md* ctx);
+int
+sequential13(struct xdp_md* ctx);
+int
+sequential14(struct xdp_md* ctx);
+int
+sequential15(struct xdp_md* ctx);
+int
+sequential16(struct xdp_md* ctx);
+int
+sequential17(struct xdp_md* ctx);
+int
+sequential18(struct xdp_md* ctx);
+int
+sequential19(struct xdp_md* ctx);
+int
+sequential20(struct xdp_md* ctx);
+int
+sequential21(struct xdp_md* ctx);
+int
+sequential22(struct xdp_md* ctx);
+int
+sequential23(struct xdp_md* ctx);
+int
+sequential24(struct xdp_md* ctx);
+int
+sequential25(struct xdp_md* ctx);
+int
+sequential26(struct xdp_md* ctx);
+int
+sequential27(struct xdp_md* ctx);
+int
+sequential28(struct xdp_md* ctx);
+int
+sequential29(struct xdp_md* ctx);
+int
+sequential30(struct xdp_md* ctx);
+int
+sequential31(struct xdp_md* ctx);
+int
+sequential32(struct xdp_md* ctx);
 
-SEC("maps") struct bpf_map canary = {BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1};
+struct
+{
+    __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+    __uint(max_entries, 35);
+    __uint(key_size, sizeof(uint32_t));
+    __array(values, int(struct xdp_md* ctx));
+} map SEC(".maps") = {
+    .values =
+        {
+            sequential0,  sequential1,  sequential2,  sequential3,  sequential4,  sequential5,  sequential6,
+            sequential7,  sequential8,  sequential9,  sequential10, sequential11, sequential12, sequential13,
+            sequential14, sequential15, sequential16, sequential17, sequential18, sequential19, sequential20,
+            sequential21, sequential22, sequential23, sequential24, sequential25, sequential26, sequential27,
+            sequential28, sequential29, sequential30, sequential31, sequential32,
+        },
+};
+
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 1);
+    __uint(key_size, sizeof(uint32_t));
+    __uint(value_size, sizeof(uint32_t));
+} canary SEC(".maps");
 
 // Define a program that calls the next program in the array.
 // The first program in the array is at index 0.
