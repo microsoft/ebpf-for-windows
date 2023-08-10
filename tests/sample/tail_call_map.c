@@ -13,13 +13,17 @@
 
 #include "bpf_helpers.h"
 
+SEC("xdp_prog/0") int callee(struct xdp_md* ctx) { return 42; }
+
 struct
 {
     __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
     __type(key, uint32_t);
-    __type(value, uint32_t);
     __uint(max_entries, 1);
-} inner_map SEC(".maps");
+    __array(values, int(struct xdp_md* ctx));
+} inner_map SEC(".maps") = {
+    .values = {callee},
+};
 
 struct
 {
@@ -28,7 +32,9 @@ struct
     __type(value, uint32_t);
     __uint(max_entries, 1);
     __array(values, inner_map);
-} outer_map SEC(".maps");
+} outer_map SEC(".maps") = {
+    .values = {&inner_map},
+};
 
 SEC("xdp_prog") int caller(struct xdp_md* ctx)
 {
@@ -40,5 +46,3 @@ SEC("xdp_prog") int caller(struct xdp_md* ctx)
     // If we get to here it means bpf_tail_call failed.
     return 6;
 }
-
-SEC("xdp_prog/0") int callee(struct xdp_md* ctx) { return 42; }

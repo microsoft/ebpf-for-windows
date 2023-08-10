@@ -273,11 +273,12 @@ function Import-ResultsFromVM
         } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
 
         # Copy ETL from Test VM.
-        Write-Log ("Copy $EtlFile from eBPF on $VMName to $pwd\TestLogs")
+        Write-Log ("Copy $EtlFile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
         Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\$EtlFile" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
     }
     # Move runner test logs to TestLogs folder.
-    Move-Item $LogFileName -Destination ".\TestLogs" -Force -ErrorAction Ignore 2>&1 | Write-Log
+    Write-Host ("Copy $LogFileName from $env:TEMP on host runner to $pwd\TestLogs")
+    Move-Item "$env:TEMP\$LogFileName" -Destination ".\TestLogs" -Force -ErrorAction Ignore 2>&1 | Write-Log
 }
 
 function Install-eBPFComponentsOnVM

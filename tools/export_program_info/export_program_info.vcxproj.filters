@@ -28,9 +28,6 @@
     <ClCompile Include="..\..\libs\api_common\store_helper_internal.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\libs\api_common\registry_helper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\libs\api_common\utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

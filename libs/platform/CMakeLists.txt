@@ -88,6 +88,7 @@ target_compile_definitions("platform_user" PRIVATE
 
 wdk_add_library("platform_kernel" STATIC WINVER "${EBPFFORWINDOWS_WDK_WINVER}"
   ${platform_sources}
+  kernel/ebpf_fault_injection_kernel.c
   kernel/ebpf_handle_kernel.c
   kernel/ebpf_platform_kernel.c
   kernel/ebpf_native_kernel.c
