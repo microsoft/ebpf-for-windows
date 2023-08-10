@@ -2,11 +2,11 @@
 
 ## Overview
 
-The **eBPF Performance Benchmark suite (Perf)** aims to evaluate the performance of the eBPF runtime, pinpoint areas for enhancement, and ensure timely detection and mitigation of performance regressions. The suite provides a comprehensive view of build-to-build performance, categorized by scenarios, thereby aiding in the identification of areas requiring improvement.
+The **eBPF Performance Benchmark suite (Perf)** aims to evaluate the performance of the eBPF runtime, pinpoint areas for enhancement, and ensure timely detection and mitigation of performance regressions. The suite provides a comprehensive view of build-to-build performance, categorized by scenarios, aiding in the identification of areas requiring improvement.
 
 ## Architecture
 
-The Perf suite comprises the following primary components:
+The Perf suite comprises these primary components:
 
 1. **Test Runner**: An executable designed to load, execute, and record metrics for an eBPF program.
 2. **Test Suites**: A collection of eBPF programs that comprehensively test various aspects of the eBPF runtime.
@@ -20,14 +20,15 @@ The Test Runner (Runner) is a C++ program utilizing the libbpf library. It loads
 
 Each test is defined by a YAML file outlining test parameters and one or more associated eBPF programs. The parameters encompass:
 
-1. **Initial Map State (if applicable)**
-2. **Program -> CPU Assignment**
-3. **Iteration Count**
-4. **For Each Program**
-   - Attach Type
-   - Input Data
+1. **Program -> CPU Assignment**: Specifies which CPUs execute each program, allowing concurrent execution.
+2. **Iteration Count**: Determines the number of iterations for the test.
+3. **For Each Program**:
+   - **Attach Type**: The type of attachment for the eBPF program (e.g., XDP, TC).
+   - **Input Data**: Initial data provided to the program.
+   - **Map State Preparation Function (optional)**: Function to prepare initial map state for the test.
 
 ### Example YAML file
+
 ```yaml
 tests:
   - name: Baseline
@@ -75,12 +76,6 @@ tests:
   # Add more test cases as needed
 ```
 
-Explanation of fields:
-**entry_point** A function or functions in the ELF file to be called for this test.
-**map_state_preparation** A optional function that is called to prepare the map state.
-**program_cpu_assignment** Mapping from function to CPU. If not specified, each program is executed on every CPU.
-**programs** Provide attach type for each program and any initial data.
-
 ## Baseline Test
 
 The Baseline test consists of an empty function containing two instructions:
@@ -110,20 +105,18 @@ Certain maps possess unique properties that differentiate them. These maps inclu
 
 ## Helper Function
 
-These tests involve invoking the runtime's helper functions, including the setup of any required state. This will include both general purpose as well as program type specific helper function tests.
+These tests involve invoking the runtime's helper functions, including the setup of any required state. This will include both general-purpose as well as program-type-specific helper function tests.
 
 ## CI/CD Integration
-
-CI/CD integration comprises two facets:
 
 1. **Setup and Execution**: YAML files and scripts for configuring and running tests on a benchmarking machine.
 2. **Result Visualization**: Libraries for visualizing test results in a browser.
 
-The **Setup and Execution** workflow will also optionally gather a CPU profiling traces to aid in diagnosing areas of the code that have high CPU usage.
+**Setup and Execution** optionally gathers CPU profiling traces to aid in diagnosing areas of the code that have high CPU usage.
 
 ## Debugging Regressions
 
-When a significant regression in the build to build performance occurs, the CI/CD workflow will create a issue to track it and include instructions on how to further investigate the regression. A developer can then schedule an on-demand run of the workflow along with CPU profiling and then download the resulting traces as artifacts. The developer can then analyze the traces and investigate the regression further.
+When a significant regression in the build-to-build performance occurs, the CI/CD workflow will create an issue to track it and include instructions on how to further investigate the regression. A developer can then schedule an on-demand run of the workflow along with CPU profiling and then download the resulting traces as artifacts. The developer can then analyze the traces and investigate the regression further.
 
 ## Test Scripts
 
@@ -134,13 +127,9 @@ Test scripts perform the following actions:
 3. **Execute Each Test Case**
 4. **Upload Test Results**
 
-## Test result storage
+## Test Result Storage
 
-The git repo will have a branch where test results are stored. The branch will contain a hierarchy of folders to avoid merge conflicts. After each test run, the work-flow will checkout the branch, add the test results, commit, and finally push the branch back to GitHub.
-
-The test data will be stores in a CSV file with the following columns:
-1. Test name and entry point.
-2. Average duration of an invocation of the entry point function.
+Test results stored in dedicated Git repo branch with a hierarchical folder structure to prevent conflicts. Test data saved in CSV format with test name, entry point, and average duration columns.
 
 ## Visualization
 
