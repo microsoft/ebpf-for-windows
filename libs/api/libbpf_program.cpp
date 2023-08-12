@@ -345,7 +345,11 @@ __bpf_program__pin_name(struct bpf_program* prog)
 {
     char *name, *p;
 
-    name = p = strdup(prog->section_name);
+    name = p = ebpf_strdup(prog->section_name);
+    if (name == nullptr) {
+        return nullptr;
+    }
+
     while ((p = strchr(p, '/')) != NULL) {
         *p = '_';
     }
@@ -368,7 +372,12 @@ bpf_object__pin_programs(struct bpf_object* obj, const char* path)
         char buf[PATH_MAX];
         int len;
 
-        len = snprintf(buf, PATH_MAX, "%s/%s", path, __bpf_program__pin_name(prog));
+        char* pin_name = __bpf_program__pin_name(prog);
+        if (!pin_name) {
+            return libbpf_err(-ENOMEM);
+        }
+        len = snprintf(buf, PATH_MAX, "%s/%s", path, pin_name);
+        ebpf_free(pin_name);
         if (len < 0) {
             err = -EINVAL;
             goto err_unpin_programs;
@@ -390,7 +399,12 @@ err_unpin_programs:
         char buf[PATH_MAX];
         int len;
 
-        len = snprintf(buf, PATH_MAX, "%s/%s", path, __bpf_program__pin_name(prog));
+        char* pin_name = __bpf_program__pin_name(prog);
+        if (!pin_name) {
+            continue;
+        }
+        len = snprintf(buf, PATH_MAX, "%s/%s", path, pin_name);
+        ebpf_free(pin_name);
         if (len < 0) {
             continue;
         } else if (len >= PATH_MAX) {
@@ -417,7 +431,12 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
         char buf[PATH_MAX];
         int len;
 
-        len = snprintf(buf, PATH_MAX, "%s/%s", path, __bpf_program__pin_name(prog));
+        char* pin_name = __bpf_program__pin_name(prog);
+        if (!pin_name) {
+            return libbpf_err(-ENOMEM);
+        }
+        len = snprintf(buf, PATH_MAX, "%s/%s", path, pin_name);
+        ebpf_free(pin_name);
         if (len < 0) {
             return libbpf_err(-EINVAL);
         } else if (len >= PATH_MAX) {

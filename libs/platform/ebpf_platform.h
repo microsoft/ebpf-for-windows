@@ -117,6 +117,14 @@ extern "C"
 
     /**
      * @brief Allocate memory.
+     * @param[in] source String to duplicate.
+     * @returns Pointer to duplicated string, or null on failure.
+     */
+    _Must_inspect_result_ _Ret_maybenull_z_ char*
+    ebpf_strdup(_In_ PCSTR source);
+
+    /**
+     * @brief Duplicate a string.
      * @param[in] size Size of memory to allocate.
      * @returns Pointer to memory block allocated, or null on failure.
      */
