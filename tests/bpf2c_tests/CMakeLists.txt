@@ -40,6 +40,8 @@ target_link_libraries("bpf2c_tests" PRIVATE
   "bpf2c_driver"
   "bpf2c_dll"
   "ubpf_user"
+  "platform_user"
+  "usersim"
   "Mincore.lib"
 )
 

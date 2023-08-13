@@ -19,6 +19,12 @@
 #include <endian.h>
 #define UBPF_STACK_SIZE 512
 
+#include <stdlib.h>
+
+#define malloc(X) ebpf_allocate((X))
+#define calloc(X, Y) ebpf_allocate((X) * (Y))
+#define free(X) ebpf_free(X)
+
 #pragma warning(push)
 #pragma warning(disable : 4100) // unreferenced formal parameter
 #pragma warning(disable : 4211) // nonstandard extension used: redefined extern to static
