@@ -4,6 +4,7 @@
 [submodule "external/ubpf"]
 	path = external/ubpf
 	url = https://github.com/iovisor/ubpf.git
+	branch = memory
 [submodule "external/bpftool"]
 	path = external/bpftool
 	url = https://github.com/dthaler/bpftool-1.git
