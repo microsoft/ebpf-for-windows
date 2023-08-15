@@ -52,8 +52,6 @@ function Write-Log {
 #######################################################
 # Utility Functions
 #######################################################
-
-
 function Get-HandlerEnvironment {
     param (
         # The HandlerEnvironment.json file is always located in the root of where the ZIP package is extracted
@@ -628,6 +626,24 @@ if ($runTests -eq $true) {
 
     #Load test-environment (current working folder is the root folder in which the entire ZIP in unzipped).
     $handlerEnvironmentObject = Get-HandlerEnvironment -handlerEnvironmentFullPath ".\HandlerEnvironment-test.json" 
+
+    # TBD: test cases
+    # - Simulate a few sequence files for generating the corresponding status file
+    # - Install eBPF when not present
+    # - Uninstall eBPF when not present
+    # - Uninstall eBPF when present
+    # - Install eBPF when already installed:
+    #   - same version
+    #   - older version
+    #   - newer version
+    # - Update eBPF when already installed:
+    #   - same version
+    #   - older version
+    #   - newer version
+    # - Update eBPF when not present:
+    #   - same version
+    #   - older version
+    #   - newer version
 
     # Install
     InstallOrUpdate-eBPF $OperationNameInstall $EbpfPackagePath, $EbpfDefaultInstallPath
