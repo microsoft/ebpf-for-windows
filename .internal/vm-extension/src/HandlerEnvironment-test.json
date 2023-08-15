@@ -1,0 +1,16 @@
+[
+    {
+        "version": 1.0,
+        "handlerEnvironment": {
+            "logFolder": "c:\\ebpf\\vm_ext",
+            "configFolder": "c:\\ebpf\\vm_ext",
+            "statusFolder": "c:\\ebpf\\vm_ext",
+            "heartbeatFile": "c:\\ebpf\\vm_ext",
+            "deploymentid": "1234",
+            "rolename": "role_name",
+            "instance": "Instance_name",
+            "hostResolverAddress": "1.1.1.1",
+            "eventsFolder": "c:\\ebpf\\vm_ext"
+        }
+    }
+]

@@ -1,5 +1,5 @@
 # Dot source the utility script
-. .\utilities.ps1
+. .\common.ps1
 
 # Install or Update eBPF from the artifact package within the extension ZIP file
 #

@@ -1,4 +1,4 @@
 # Dot source the utility script
-. .\utilities.ps1
+. .\common.ps1
 
 Disable-eBPf
