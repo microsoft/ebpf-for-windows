@@ -578,6 +578,10 @@ function InstallOrUpdate-eBPF {
             $statusCode = 0
             $statusMessage = "eBPF version is up to date (v$productVersion)."
             Write-Log -level $LogLevelInfo -message $statusMessage
+            $statusString = $StatusSuccess
+            $statusCode = 0
+            $statusMessage = "eBPF version is up to date (v$productVersion)."
+            Write-Log -level $LogLevelInfo -message $statusMessage
         }
     } else {
         Write-Log -level $LogLevelInfo -message "No eBPF installation found in [$destinationPath]: installing (v$newProductVersion)."
@@ -585,33 +589,12 @@ function InstallOrUpdate-eBPF {
         # Proceed with a new installation from the artifact package within the extension ZIP file
         $res = Install-eBPF $EbpfPackagePath, $EbpfDefaultInstallPath
         if ($res -ne 0) {
-            $statusString = $StatusError
-            $statusCode = 1
-            $statusMessage = "eBPF $vmAgentOperationName FAILED (Clean install failed)."
-            Write-Log -level $LogLevelError -message $statusMessage
-        } else {            
-            $statusString = $StatusSuccess
-            $statusCode = 0
-            $statusMessage = "eBPF v$newProductVersion installed successfully."
-            Write-Log -level $LogLevelInfo -message $statusMessage
-        }
-    }
-
-    # TBD: confirm if Install does not need to generate a status file
-    if ($vmAgentOperationName -ne $OperationNameInstall) {
-
-        Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $statusString -statusCode $statusCode -statusMessage $statusMessage
-    }
-    
-    # Extra step for IMDS (this is not accounted as a result of the eBPF VM Extension, as it is not part of the eBPF VM Extension package)
-    $serviceName = "GuestProxyAgent"
-    $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
-    if ($null -eq $service) {
-        Write-Log -level $LogLevelInfo -message "$serviceName does not exist -> skipping start."
-    } else {
-        $res = Start-Service -Name $serviceName -ErrorAction SilentlyContinue
-        if ($null -ne $res) {
-            Write-Log -level $LogLevelError -message "Failed to start $serviceName. Error code: $res"
+            Write-Log -level $LogLevelError -message "Failed to install eBPF v$newProductVersion."
+            Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $StatusError -statusCode 1 -statusMessage "eBPF $vmAgentOperationName FAILED (Clean install failed)."
+        } else {
+            Write-Log -level $LogLevelInfo -message "eBPF v$newProductVersion installed successfully."
+            # TBD: confirm if Install does not need to generate a status file
+            Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $StatusSuccess -statusCode 0 -statusMessage "eBPF $vmAgentOperationName succeeded."
         }
     }
 }
@@ -647,8 +630,7 @@ if ($runTests -eq $true) {
     $handlerEnvironmentObject = Get-HandlerEnvironment -handlerEnvironmentFullPath ".\HandlerEnvironment-test.json" 
 
     # Install
-    InstallOrUpdate-eBPF $OperationNameInstall $EbpfPackagePath, $EbpfDefaultInstallPath
-
+w
     # Update
     Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -$statusMessage "Starting eBPF update"
     InstallOrUpdate-eBPF $OperationNameUpdate, $EbpfPackagePath, $EbpfDefaultInstallPath
