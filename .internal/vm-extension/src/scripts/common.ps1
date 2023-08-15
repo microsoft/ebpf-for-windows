@@ -630,7 +630,8 @@ if ($runTests -eq $true) {
     $handlerEnvironmentObject = Get-HandlerEnvironment -handlerEnvironmentFullPath ".\HandlerEnvironment-test.json" 
 
     # Install
-w
+    InstallOrUpdate-eBPF $OperationNameInstall $EbpfPackagePath, $EbpfDefaultInstallPath
+
     # Update
     Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -$statusMessage "Starting eBPF update"
     InstallOrUpdate-eBPF $OperationNameUpdate, $EbpfPackagePath, $EbpfDefaultInstallPath
