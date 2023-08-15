@@ -1,5 +1,5 @@
 # Dot source the utility script
-. .\utilities.ps1
+. .\common.ps1
 
 # Uninstall eBPF from the default installation directory
 $res = Uninstall-eBPF $EbpfDefaultInstallPath

@@ -329,24 +329,24 @@ function Copy-EbpFiles {
         [string]$destinationPath
     )
 
-    # Create the destination directory if it doesn't exist
+    # Create the destination directory, if it doesn't exist.
     if (-not (Test-Path $destinationPath)) {
         try {
             New-Item -Path $destinationPath -ItemType Directory -ErrorAction Stop
         } catch {
             Write-Log -Level $LogLevelError -Message "Failed to create destination directory '$destinationPath': $_"
-            return $false  # Return false to indicate failure
+            return $false
         }
     }
 
-    # Recursively copy all files from source to destination
+    # Recursively copy all files from source to destination.
     try {
         Copy-Item -Path $sourcePath -Destination $destinationPath -Recurse -Force -ErrorAction Stop
         Write-Log -Level $LogLevelInfo -Message "Files copied from '$sourcePath' to '$destinationPath'."
-        return $true  # Return true to indicate success
+        return $true
     } catch {
         Write-Log -Level $LogLevelError -Message "Error while copying files: $_"
-        return $false  # Return false to indicate failure
+        return $false
     }
 }
 
@@ -358,20 +358,28 @@ function Delete-EbpfFiles {
     if (Test-Path $destinationPath) {
         try {
             Remove-Item -Path $destinationPath -Recurse -Force -ErrorAction Stop
-            $logMessage = "Directory '$destinationPath' deleted successfully."
-            Write-Log -Level $LogLevelInfo -Message $logMessage
-            return $true  # Return true to indicate success
+            Write-Log -Level $LogLevelInfo -Message "Directory '$destinationPath' deleted successfully."
+            return $true
         } catch {
-            $errorMessage = "Failed to delete directory '$destinationPath'. Error: $_"
-            Write-Log -Level $LogLevelError -Message $errorMessage
-            return $false  # Return false to indicate failure
+            Write-Log -Level $LogLevelError -Message "Failed to delete directory '$destinationPath'. Error: $_"
+            return $false
         }
     } else {
-        $logMessage = "Directory '$destinationPath' does not exist."
-        Write-Log -Level $LogLevelWarning -Message $logMessage
-        return $false  # Return false to indicate failure
+        Write-Log -Level $LogLevelWarning -Message "Directory '$destinationPath' does not exist."
+        return $false
     }
 }
+
+function Enable-Tracing {
+
+    # TBD: Register trace providers
+}
+
+function Disable-Tracing {
+    
+    # TBD: Unregister trace providers 
+}
+
 
 #######################################################
 # VM Extension Handler Functions
@@ -401,7 +409,7 @@ function Install-eBPF {
     )
 
     Write-Log -level $LogLevelInfo -message "Installing eBPF for Windows"
-    $overallStatusCode = 0
+    $statusCode = 0
 
     # Copy the eBPF files to the destination folder
     $copyResult = Copy-EbpFiles -sourcePath $sourcePath -destinationPath $destinationPath
@@ -416,11 +424,12 @@ function Install-eBPF {
             # Add the eBPF installation directory to the system PATH
             Add-DirectoryToSystemPath -directoryPath $installDirectory
             
-            # TBD: Register trace providers
+            # Register the trace providers
+            Enable-Tracing
 
             Write-Log -level $LogLogLevelInfoLevelError -message "eBPF for Windows installed successfully."
         } else {
-            $overallStatusCode = 1
+            $statusCode = 1
             $failedServices = @()            
             if ($installResult1 -ne 0) {
                 $failedServices += $EbpfCoreDriverName
@@ -428,17 +437,15 @@ function Install-eBPF {
             if ($installResult2 -ne 0) {
                 $failedServices += $NetEbpfExtDriverName
             }
-
             $failedServicesString = $failedServices -join ", "
-            $statusMessage = "Failed to install service(s): $failedServicesString."
-            Write-Log -level $LogLevelError -message $statusMessage
+            Write-Log -level $LogLevelError -message "Failed to install service(s): $failedServicesString."
         }
     } else {
-        $overallStatusCode = 1
+        $statusCode = 1
         Write-Log -level $LogLevelError -message "Failed to copy eBPF files to the destination folder."
     }
 
-    return $overallStatusCode
+    return $statusCode
 }
 
 function Uninstall-eBPF {
@@ -447,9 +454,9 @@ function Uninstall-eBPF {
     )
 
     Write-Log -level $LogLevelInfo -message "Uninstalling eBPF for Windows"
-    $overallStatusCode = 0
+    $statusCode = 0
 
-    # Stop all eBPF drivers (which will stop the services which have a dependency on them).
+    # Stop all eBPF drivers (which will stop all the services which have a dependency on them).
     Stop-eBPFDrivers
 
     # Uninstall the eBPF services and use the results to generate the status file
@@ -461,7 +468,7 @@ function Uninstall-eBPF {
 
         Write-Log -level $LogLevelInfo -message "eBPF for Windows uninstalled successfully."
     } else {
-        $overallStatusCode = 1
+        $statusCode = 1
         $failedServices = @()        
         if ($uninstallResult1 -ne 0) {
             $failedServices += $EbpfCoreDriverName
@@ -469,10 +476,8 @@ function Uninstall-eBPF {
         if ($uninstallResult2 -ne 0) {
             $failedServices += $NetEbpfExtDriverName
         }
-
         $failedServicesString = $failedServices -join ", "
-        $statusMessage = "Failed to uninstall service(s): $failedServicesString."
-        Write-Log -level $LogLevelError -message $statusMessage
+        Write-Log -level $LogLevelError -message "Failed to uninstall service(s): $failedServicesString."
     }
 
     # Remove the eBPF installation directory from the system PATH
@@ -481,9 +486,10 @@ function Uninstall-eBPF {
     # Delete the eBPF files
     Delete-EbpfFiles -destinationPath $installDirectory
 
-    # TBD: Unregister trace providers    
+    # Unregister the trace providers
+    Disable-Tracing   
 
-    return $overallStatusCode
+    return $statusCode
 }
 
 function InstallOrUpdate-eBPF {
@@ -492,6 +498,10 @@ function InstallOrUpdate-eBPF {
         [string]$sourcePath,
         [string]$destinationPath
     )
+
+    $statusCode = 0
+    $statusString = $StatusSuccess
+    $statusMessage = ""
 
     # Set the default product version to 0.0.0 (i.e. not installed)
     $productVersion = "0.0.0"
@@ -503,6 +513,12 @@ function InstallOrUpdate-eBPF {
     # Firstly, check if eBPFCore is installed and registered.
     $fullDiskPath = Get-FullDiskPathFromService -serviceName $EbpfCoreDriverName
     if ($fullDiskPath) {
+
+        # TBD: check if the driver is registered in the default folder, if not, log an error --> what to do??
+        if ($fullDiskPath -ne $EbpfDefaultInstallPath) {
+            Write-Log -level $LogLevelWarning -message "'$EbpfCoreDriverName' driver registered from a non-default folder: $fullDiskPath"
+        }
+
         Write-Log -level $LogLevelInfo -message "eBPF driver installed and registered from: $fullDiskPath"
 
         # Check the product version of the installed driver
@@ -530,25 +546,35 @@ function InstallOrUpdate-eBPF {
             # For the moment, we just uninstall and Install
             $res = Uninstall-eBPF -serviceName $EbpfCoreDriverName
             if ($res -ne 0) {
-                Write-Log -level $LogLevelError -message "Failed to uninstall eBPF v$productVersion."
-                Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $StatusError -statusCode 1 -statusMessage "eBPF $vmAgentOperationName FAILED (Uninstall failed)."
+                $statusString = $StatusError
+                $statusCode = 1
+                $statusMessage = "eBPF $vmAgentOperationName FAILED (Uninstall failed)."
+                Write-Log -level $LogLevelError -message $statusMessage
             } else {
                 Write-Log -level $LogLevelInfo -message "eBPF v$productVersion uninstalled successfully."
                 $res = Install-eBPF $EbpfPackagePath, $EbpfDefaultInstallPath
                 if ($res -ne 0) {
-                    Write-Log -level $LogLevelError -message "Failed to install eBPF v$newProductVersion."
-                    Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $StatusError -statusCode 1 -statusMessage "eBPF $vmAgentOperationName FAILED (Install failed)."
+                    $statusString = $StatusError
+                    $statusCode = 1
+                    $statusMessage = "eBPF $vmAgentOperationName FAILED (Install failed)."
+                    Write-Log -level $LogLevelError -message $statusMessage
                 } else {
-                    Write-Log -level $LogLevelInfo -message "eBPF v$newProductVersion installed successfully."
-                    # TBD: confirm if Install does not need to generate a status file
-                    Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $StatusSuccess -statusCode 0 -statusMessage "eBPF $vmAgentOperationName succeeded."
+                    $statusString = $StatusSuccess
+                    $statusCode = 0
+                    $statusMessage = "eBPF $vmAgentOperationName succeeded."
+                    Write-Log -level $LogLevelError -message $statusMessage
                 }
-            }            
-
+            }
         } elseif ($comparison -gt 0) {
-            Write-Log -level $LogLevelWarning -message "The installed eBPF version (v$productVersion) is newer than the one in the extension package (v$newProductVersion)"
+            $statusString = $StatusSuccess
+            $statusCode = 0
+            $statusMessage = "The installed eBPF version (v$productVersion) is newer than the one in the extension package (v$newProductVersion)"
+            Write-Log -level $LogLevelInfo -message $statusMessage
         } else {
-            Write-Log -level $LogLevelInfo -message "eBPF version is up to date (v$productVersion)."
+            $statusString = $StatusSuccess
+            $statusCode = 0
+            $statusMessage = "eBPF version is up to date (v$productVersion)."
+            Write-Log -level $LogLevelInfo -message $statusMessage
         }
     } else {
         Write-Log -level $LogLevelInfo -message "No eBPF installation found in [$destinationPath]: installing (v$newProductVersion)."
@@ -556,12 +582,33 @@ function InstallOrUpdate-eBPF {
         # Proceed with a new installation from the artifact package within the extension ZIP file
         $res = Install-eBPF $EbpfPackagePath, $EbpfDefaultInstallPath
         if ($res -ne 0) {
-            Write-Log -level $LogLevelError -message "Failed to install eBPF v$newProductVersion."
-            Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $StatusError -statusCode 1 -statusMessage "eBPF $vmAgentOperationName FAILED (Clean install failed)."
-        } else {
-            Write-Log -level $LogLevelInfo -message "eBPF v$newProductVersion installed successfully."
-            # TBD: confirm if Install does not need to generate a status file
-            Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $StatusSuccess -statusCode 0 -statusMessage "eBPF $vmAgentOperationName succeeded."
+            $statusString = $StatusError
+            $statusCode = 1
+            $statusMessage = "eBPF $vmAgentOperationName FAILED (Clean install failed)."
+            Write-Log -level $LogLevelError -message $statusMessage
+        } else {            
+            $statusString = $StatusSuccess
+            $statusCode = 0
+            $statusMessage = "eBPF v$newProductVersion installed successfully."
+            Write-Log -level $LogLevelInfo -message $statusMessage
+        }
+    }
+
+    # TBD: confirm if Install does not need to generate a status file
+    if ($vmAgentOperationName -ne $OperationNameInstall) {
+
+        Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $statusString -statusCode $statusCode -statusMessage $statusMessage
+    }
+    
+    # Extra step for IMDS (this is not accounted as a result of the eBPF VM Extension, as it is not part of the eBPF VM Extension package)
+    $serviceName = "GuestProxyAgent"
+    $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+    if ($null -eq $service) {
+        Write-Log -level $LogLevelInfo -message "$serviceName does not exist -> skipping start."
+    } else {
+        $res = Start-Service -Name $serviceName -ErrorAction SilentlyContinue
+        if ($null -ne $res) {
+            Write-Log -level $LogLevelError -message "Failed to start $serviceName. Error code: $res"
         }
     }
 }
