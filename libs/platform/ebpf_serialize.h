@@ -7,12 +7,28 @@
 #pragma once
 
 #include "ebpf_core_structs.h"
-#include "ebpf_platform.h"
+
+// Everything in this file must be usable in both user mode and kernel mode,
+// and not rely on ebpf_platform.h.
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+    /**
+     * @brief A UTF-8 encoded string.
+     * Notes:
+     * 1) This string is not NULL terminated, instead relies on length.
+     * 2) A single UTF-8 code point (aka character) could be 1-4 bytes in
+     *  length.
+     *
+     */
+    typedef struct _ebpf_utf8_string
+    {
+        uint8_t* value;
+        size_t length;
+    } ebpf_utf8_string_t;
 
     /**
      * @brief eBPF Internal Map Information

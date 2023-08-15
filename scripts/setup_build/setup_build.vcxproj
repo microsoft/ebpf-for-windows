@@ -65,6 +65,11 @@ popd
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutDir)scripts</DestinationFolders>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\run_tests.bat">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
@@ -79,6 +84,11 @@ popd
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutDir)scripts</DestinationFolders>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\config_test_vm.psm1">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
@@ -121,6 +131,11 @@ popd
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)scripts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutDir)scripts</DestinationFolders>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\run_driver_tests.psm1">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>

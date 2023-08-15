@@ -4,9 +4,9 @@
 
 #include "ebpf_api.h"
 #include "ebpf_execution_context.h"
-#include "ebpf_platform.h"
+//#include "ebpf_platform.h"
 #include "ebpf_utilities.h"
-#undef VOID
+//#undef VOID
 #include "platform.hpp"
 #include "windows_platform_common.hpp"
 
