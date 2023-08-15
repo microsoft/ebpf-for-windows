@@ -2,7 +2,7 @@
 	<ProviderNameSpace>Microsoft.eBPF</ProviderNameSpace>
 	<Type>eBPFforWindows</Type>
 	<!--Update this version for each new release-->
-	<Version>0.1.0</Version>
+	<Version>0.10.0.1</Version>
 	<Label>eBPF for Windows Azure VM Extension for IaaS</Label>
 	<HostingResources>VmRole</HostingResources>
 	<!--Update this field with correct link where the extension is published.-->
