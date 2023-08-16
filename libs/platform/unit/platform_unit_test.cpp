@@ -13,6 +13,7 @@
 #include "ebpf_pinning_table.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_random.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
@@ -64,6 +65,7 @@ class _test_helper
     {
         REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
         platform_initiated = true;
+        REQUIRE(ebpf_random_initiate() == EBPF_SUCCESS);
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
         epoch_initiated = true;
         REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
@@ -83,6 +85,7 @@ class _test_helper
             ebpf_epoch_flush();
             ebpf_epoch_terminate();
         }
+        ebpf_random_terminate();
         if (platform_initiated) {
             ebpf_platform_terminate();
         }
@@ -117,6 +120,9 @@ TEST_CASE("hash_table_test", "[platform]")
     std::vector<uint8_t> data_3(37);
     uint8_t* returned_value = nullptr;
     std::vector<uint8_t> returned_key(13);
+
+    _test_helper test_helper;
+    test_helper.initialize();
 
     for (auto& v : key_1) {
         v = static_cast<uint8_t>(ebpf_random_uint32());

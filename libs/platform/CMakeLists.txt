@@ -46,6 +46,9 @@ set(platform_sources
   ebpf_interlocked.c
   ebpf_serialize.c
   ebpf_trampoline.c
+
+  ebpf_random.c
+  ebpf_random.h
 )
 
 set(platform_kernel_include_dirs

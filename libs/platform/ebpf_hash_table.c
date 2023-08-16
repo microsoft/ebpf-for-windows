@@ -3,6 +3,7 @@
 
 #include "ebpf_epoch.h"
 #include "ebpf_hash_table.h"
+#include "ebpf_random.h"
 
 // Buckets contain an array of pointers to value and keys.
 // Buckets are immutable once inserted in to the hash-table and replaced when
