@@ -25,7 +25,7 @@
     <ClCompile Include="..\..\..\libs\thunk\mock\mock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\libs\platform\ebpf_tracelog.c">
+    <ClCompile Include="..\..\..\libs\shared\ebpf_tracelog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

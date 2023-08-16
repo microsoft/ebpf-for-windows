@@ -150,7 +150,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\libs\platform\ebpf_tracelog.c" />
+    <ClCompile Include="..\..\..\libs\shared\ebpf_tracelog.c" />
     <ClCompile Include="..\..\..\libs\thunk\mock\mock.cpp" />
     <ClCompile Include="libfuzz_harness.cpp" />
   </ItemGroup>

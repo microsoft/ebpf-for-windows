@@ -3,6 +3,7 @@
 
 #include "api_internal.h"
 #include "bpf.h"
+#include "ebpf_shared_framework.h"
 #include "libbpf.h"
 #include "libbpf_internal.h"
 #include "platform.h"
