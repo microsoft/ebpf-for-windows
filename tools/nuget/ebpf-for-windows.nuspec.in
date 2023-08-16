@@ -33,6 +33,7 @@
 		<file src="usersim.dll" target="build\native\bin"/>
 		<file src="usersim.pdb" target="build\native\bin"/>
 		<file src="..\..\include\**\*.*" target="build\native\include" />
+		<file src="..\..\docs\TroubleShootingGuide.md" target="."/>
 
 		<!--Cherry-pick files from external projects-->
 		<file src="..\..\external\bpftool\libbpf\include\asm\barrier.h" target="build\native\include\libbpf\include\asm"/>
