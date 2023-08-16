@@ -1069,3 +1069,39 @@ TEST_CASE("get_authentication_id", "[platform]")
 
     REQUIRE(ebpf_platform_get_authentication_id(&authentication_id) == EBPF_SUCCESS);
 }
+
+// See https://en.wikipedia.org/wiki/Chi-squared_test for details.
+#define SEQUENCE_LENGTH 100000000
+#define NUM_BINS 65536
+#define SIGNIFICANCE_LEVEL 0.05
+
+bool
+is_statistically_random(size_t sequence_length, std::function<uint32_t()> random_number_generator)
+{
+    std::vector<int> observed_values(NUM_BINS, 0);
+    double expected_value = static_cast<double>(sequence_length) / static_cast<double>(NUM_BINS);
+
+    for (int i = 0; i < sequence_length; i++) {
+        int bin = static_cast<int>(random_number_generator() % NUM_BINS);
+        observed_values[bin]++;
+    }
+
+    double chi_squared_statistic = 0.0;
+    for (int i = 0; i < NUM_BINS; i++) {
+        double observed = static_cast<double>(observed_values[i]);
+        chi_squared_statistic += pow(observed - expected_value, 2) / expected_value;
+    }
+
+    double critical_value = 66131.63094; // Critical value for Chi-squared test with 65535 degrees of freedom
+    std::cout << chi_squared_statistic << std::endl;
+    return chi_squared_statistic < critical_value;
+}
+
+TEST_CASE("verify random", "[platform]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+
+    // Verify that the random number generator is statistically random.
+    REQUIRE(is_statistically_random(SEQUENCE_LENGTH, ebpf_random_uint32));
+}
