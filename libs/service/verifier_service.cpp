@@ -4,7 +4,7 @@
 #include "Verifier.h"
 #include "api_common.hpp"
 #include "ebpf_api.h"
-#include "ebpf_platform.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "platform.hpp"
 #include "windows_platform_service.hpp"

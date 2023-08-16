@@ -3,14 +3,15 @@
 
 #pragma once
 
-#ifndef USER_MODE
-#include "framework.h"
-#else
-#include "ebpf_utilities.h"
-#endif
-
 #include "ebpf_program_types.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_windows.h"
+#ifdef USER_MODE
+#include "ebpf_utilities.h"
+#else
+#include <wdm.h>
+typedef HANDLE HKEY;
+#endif
 
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
 
@@ -19,11 +20,7 @@ extern "C"
 {
 #endif
 
-#ifndef USER_MODE
-    typedef HANDLE ebpf_store_key_t;
-#else
     typedef HKEY ebpf_store_key_t;
-#endif
 
     extern ebpf_store_key_t ebpf_store_root_key;
     extern const wchar_t* ebpf_store_root_sub_key;

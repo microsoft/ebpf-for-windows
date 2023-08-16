@@ -3,7 +3,10 @@
 
 #pragma once
 
+#include "ebpf_extension.h"
 #include "net_ebpf_ext.h"
+
+#include <netiodef.h>
 
 /**
  *  @brief This is the per client binding context for the eBPF Hook

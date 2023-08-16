@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_platform.h"
 #include "ebpf_tracelog.h"
 
 #include <TraceLoggingProvider.h>

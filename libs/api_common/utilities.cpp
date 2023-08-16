@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-#include "framework.h"
+#include "ebpf_shared_framework.h"
 #include "utilities.hpp"
 
 #include <codecvt>

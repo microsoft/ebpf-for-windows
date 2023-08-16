@@ -6,7 +6,6 @@
  * @brief Defines the entry point for the DLL application.
  */
 #include "api_internal.h"
-#include "framework.h"
 
 bool use_ebpf_store = true;
 

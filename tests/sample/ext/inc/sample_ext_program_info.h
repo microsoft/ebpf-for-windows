@@ -7,8 +7,8 @@
  * @brief Sample eBPF Extension program types.
  */
 
-#include "ebpf_platform.h"
 #include "ebpf_program_attach_type_guids.h" // TODO(issue #2305): remove this include.
+#include "ebpf_shared_framework.h"
 #include "ebpf_structs.h"
 #include "sample_ext_helpers.h"
 

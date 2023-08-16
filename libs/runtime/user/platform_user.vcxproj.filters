@@ -61,9 +61,6 @@
     <ClCompile Include="..\ebpf_error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_tracelog.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ebpf_native_user.c">
       <Filter>Source Files</Filter>
     </ClCompile>

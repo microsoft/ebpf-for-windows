@@ -3,8 +3,11 @@
 
 #pragma once
 
-#include "TraceLoggingProvider.h"
+#include "ebpf_core_structs.h"
+#include "ebpf_result.h"
 
+#include <windows.h>
+#include <TraceLoggingProvider.h>
 #include <winmeta.h>
 typedef _Return_type_success_(return >= 0) long NTSTATUS;
 
