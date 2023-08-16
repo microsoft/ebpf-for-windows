@@ -4,7 +4,7 @@
 #pragma once
 
 #include "ebpf_api.h"
-//#include "ebpf_tracelog.h"
+#include "ebpf_tracelog.h"
 #include "platform.h"
 #define FALSE 0
 #define TRUE 1

@@ -3,7 +3,10 @@
 
 #pragma once
 
-#include "ebpf_platform.h"
+#include "TraceLoggingProvider.h"
+
+#include <winmeta.h>
+typedef _Return_type_success_(return >= 0) long NTSTATUS;
 
 TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
 

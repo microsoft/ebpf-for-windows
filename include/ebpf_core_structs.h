@@ -32,3 +32,17 @@ typedef struct _ebpf_ring_buffer_map_async_query_result
     size_t producer;
     size_t consumer;
 } ebpf_ring_buffer_map_async_query_result_t;
+
+/**
+ * @brief A UTF-8 encoded string.
+ * Notes:
+ * 1) This string is not NULL terminated, instead relies on length.
+ * 2) A single UTF-8 code point (aka character) could be 1-4 bytes in
+ *  length.
+ *
+ */
+typedef struct _ebpf_utf8_string
+{
+    uint8_t* value;
+    size_t length;
+} ebpf_utf8_string_t;
