@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "ebpf_platform.h"
+#include "ebpf_shared_framework.h"
 
 #ifdef __cplusplus
 extern "C"

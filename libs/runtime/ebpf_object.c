@@ -517,7 +517,7 @@ ebpf_object_reference_by_handle(
         handle, _ebpf_object_compare, &object_type, (ebpf_base_object_t**)object, file_id, line);
 }
 
-_Must_inspect_result_ char*
+_Must_inspect_result_ _Ret_maybenull_z_ char*
 ebpf_duplicate_string(_In_z_ const char* source)
 {
     size_t length = strlen(source) + 1;
