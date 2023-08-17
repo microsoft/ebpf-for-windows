@@ -1073,7 +1073,8 @@ TEST_CASE("get_authentication_id", "[platform]")
 // See https://en.wikipedia.org/wiki/Chi-squared_test for details.
 #define SEQUENCE_LENGTH 100000000
 #define NUM_BINS 65536
-#define SIGNIFICANCE_LEVEL 0.05
+#define CHI_SQUARED_STATISTIC_THRESHOLD \
+    66131.63094 // Critical value for Chi-squared test with 65535 degrees of freedom with significance level of 0.05.
 
 bool
 is_statistically_random(size_t sequence_length, std::function<uint32_t()> random_number_generator)
@@ -1092,7 +1093,7 @@ is_statistically_random(size_t sequence_length, std::function<uint32_t()> random
         chi_squared_statistic += pow(observed - expected_value, 2) / expected_value;
     }
 
-    double critical_value = 66131.63094; // Critical value for Chi-squared test with 65535 degrees of freedom
+    double critical_value = CHI_SQUARED_STATISTIC_THRESHOLD;
     std::cout << chi_squared_statistic << std::endl;
     return chi_squared_statistic < critical_value;
 }
