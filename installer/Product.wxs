@@ -222,10 +222,10 @@ SPDX-License-Identifier: MIT
 			     export_program_info.exe requires it.
 			-->
 			<Component Id="USERSIM.DLL" DiskId="1" Guid="{739017F0-9E33-48FF-A33F-C1434AC757BE}">
-				<File Id="USERSIM.DLL" Name="usersim.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\usersim.dll" />
+				<File Id="USERSIM.DLL" Name="usersim.dll" Source="$(var.usersim.TargetPath)" />
 			</Component>
 			<Component Id="USERSIM.PDB" DiskId="1" Guid="{BCE1BF99-6A3D-48A6-A382-4E87A2B20FB2}">
-				<File Id="USERSIM.PDB" Name="usersim.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\usersim.pdb" />
+				<File Id="USERSIM.PDB" Name="usersim.pdb" Source="$(var.usersim.TargetDir)usersim.pdb" />
 			</Component>
 		</ComponentGroup>
 
@@ -802,10 +802,10 @@ SPDX-License-Identifier: MIT
 				<File Id="DROPPACKET_UNSAFE.O" Name="droppacket_unsafe.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_unsafe.o" />
 			</Component>
 			<Component Id="EBPFCORE_USERSIM.DLL" DiskId="1" Guid="{860B3D19-02BE-482F-930A-B5B5CFAD2B82}">
-				<File Id="EBPFCORE_USERSIM.DLL" Name="ebpfcore_usersim.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\ebpfcore_usersim.dll" />
+				<File Id="EBPFCORE_USERSIM.DLL" Name="ebpfcore_usersim.dll" Source="$(var.EbpfCore_Usersim.TargetPath)" />
 			</Component>
 			<Component Id="EBPFCORE_USERSIM.PDB" DiskId="1" Guid="{DD7FB772-A974-4D2C-880A-B17C2F69D063}">
-				<File Id="EBPFCORE_USERSIM.PDB" Name="ebpfcore_usersim.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\ebpfcore_usersim.pdb" />
+				<File Id="EBPFCORE_USERSIM.PDB" Name="ebpfcore_usersim.pdb" Source="$(var.EbpfCore_Usersim.TargetDir)ebpfcore_usersim.pdb" />
 			</Component>
 			<?if $(var.Configuration) = Debug ?>
 			<Component Id="EMPTY_UM.DLL" DiskId="1" Guid="{321F2303-53CC-4CF2-8D92-5FCA988BDCB5}">

@@ -9,6 +9,14 @@
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="FuzzerDebug|ARM64">
+      <Configuration>FuzzerDebug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="FuzzerDebug|x64">
+      <Configuration>FuzzerDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
@@ -94,6 +102,16 @@
     <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
     <EnableASAN>false</EnableASAN>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <DriverTargetPlatform>Universal</DriverTargetPlatform>
+    <CharacterSet>Unicode</CharacterSet>
+    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
+    <EnableASAN>false</EnableASAN>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -104,6 +122,14 @@
     <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <DriverTargetPlatform>Universal</DriverTargetPlatform>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|ARM64'" Label="Configuration">
     <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
@@ -129,10 +155,25 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(IncludePath);$(KMDF_INC_PATH)$(KMDF_VER_PATH);$(SolutionDir)\libs\store_helper</IncludePath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
+    <IncludePath>$(IncludePath);$(KMDF_INC_PATH)$(KMDF_VER_PATH);$(SolutionDir)\libs\store_helper</IncludePath>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(IncludePath);$(KMDF_INC_PATH)$(KMDF_VER_PATH);$(SolutionDir)\libs\store_helper</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;_KRPCENV_;_NO_CRT_STDIO_INLINE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\epoch;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Midl>
+      <PreprocessorDefinitions>_KRPCENV_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </Midl>
+    <Lib>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(ConfigurationName)\</AdditionalLibraryDirectories>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;_KRPCENV_;_NO_CRT_STDIO_INLINE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)libs\epoch;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -157,6 +198,11 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|ARM64'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
