@@ -176,15 +176,16 @@ jobs:
       run: |
         cmake -G "Visual Studio 17 2022" -S external\ubpf -B external\ubpf\build
 
-    - name: Markdown to HTML conversion
+    - name: Convert TSG Markdown to HTML conversion
       # Convert markdown to HTML for the troubleshooting guide.
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: jd-solanki/gh-action-md-to-html@v1.3.0
+      uses: jaywcjlove/markdown-to-html-cli@main
       id: tsg_markdown_to_html
       with:
-        files: '${{github.workspace}}/docs/TroubleShootingGuide.md'
-        title: 'TroubleShooting Guide'
-        debug: true
+        source: ${{github.workspace}}/docs/TroubleShootingGuide.md
+        output: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TroubleShootingGuide.html
+        github-corners: https://github.com/jaywcjlove/markdown-to-html-cli
+        favicon: data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>
 
     - name: Build
       if: steps.skip_check.outputs.should_skip != 'true'
