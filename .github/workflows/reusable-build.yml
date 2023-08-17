@@ -23,7 +23,7 @@ on:
         required: false
         type: boolean
       build_msi:
-        required: true
+        required: false
         type: boolean
       build_nuget:
         required: false
