@@ -3,8 +3,6 @@
 
 #include "ebpf_shared_framework.h"
 
-#include <ntddk.h>
-
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
 {
     return ebpf_allocate_with_tag(size, EBPF_POOL_TAG_DEFAULT);
