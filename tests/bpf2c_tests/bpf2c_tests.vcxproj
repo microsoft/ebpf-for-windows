@@ -221,8 +221,14 @@
     <ProjectReference Include="..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
       <Project>{7d5b4e68-c0fa-3f86-9405-f6400219b440}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\external\usersim\src\usersim.vcxproj">
+      <Project>{030a7ac6-14dc-45cf-af34-891057ab1402}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\libs\elf_spec\elf_spec.vcxproj">
       <Project>{c3d2cd73-bf4c-47df-8808-2a9996124d5b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\libs\platform\user\platform_user.vcxproj">
+      <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
     </ProjectReference>
     <ProjectReference Include="..\libs\util\test_util.vcxproj">
       <Project>{d6725f19-b9bf-435f-80f2-c5f3ef0f4b8f}</Project>
