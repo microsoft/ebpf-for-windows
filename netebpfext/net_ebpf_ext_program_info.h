@@ -5,6 +5,7 @@
 #include "ebpf_extension.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_program_types.h"
+#include "ebpf_shared_framework.h"
 
 #define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
 
