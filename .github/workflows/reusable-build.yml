@@ -179,7 +179,7 @@ jobs:
     - name: Markdown to HTML conversion
       # Convert markdown to HTML for the troubleshooting guide.
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: ZacJW/markdown-html-action@1.1.0
+      uses: jd-solanki/gh-action-md-to-html@v1.3.0
       id: tsg_markdown_to_html
       with:
         input_files: '${{github.workspace}}/docs/TroubleShootingGuide.md'
