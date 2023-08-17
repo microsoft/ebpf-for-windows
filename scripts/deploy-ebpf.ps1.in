@@ -38,9 +38,9 @@ $source_directory="."
     "ebpf-for-windows-{version}.msi")
 
 [System.Collections.ArrayList]$source_script_files=@(
-    "scripts\common.psm1",
-    "scripts\install_ebpf.psm1",
-    "scripts\setup-ebpf.ps1")
+    "common.psm1",
+    "install_ebpf.psm1",
+    "setup-ebpf.ps1")
 
 # The following files are only needed for testing and debugging.
 [System.Collections.ArrayList]$built_test_files=@(
@@ -243,6 +243,7 @@ OPTIONS:
     -m, --msi      Copies MSI instead of individual files
     -l, --local    Copies files to the local temp directory instead of into a VM
     -t, --test     Includes files needed only for testing and debugging
+    -j, --jittest  Includes files needed for JIT testing and debugging
     --vm           Specifies the VM name, which defaults to "Windows 10 dev environment"
 
 '@
@@ -279,7 +280,7 @@ OPTIONS:
             $copy_redist=$true
             break
         }
-    { @("-t", "--jittest") -contains $_ }
+    { @("-j", "--jittest") -contains $_ }
         {
             $built_files= $built_runtime_files + $built_runtime_jit_files + $built_test_files
             $copy_redist=$true
