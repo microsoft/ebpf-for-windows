@@ -362,14 +362,6 @@ ebpf_safe_size_t_subtract(
     return RtlSizeTSub(minuend, subtrahend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
-uint32_t
-ebpf_random_uint32()
-{
-    LARGE_INTEGER p = KeQueryPerformanceCounter(NULL);
-    unsigned long seed = p.LowPart ^ (unsigned long)p.HighPart;
-    return RtlRandomEx(&seed);
-}
-
 ebpf_result_t
 ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output)
 {

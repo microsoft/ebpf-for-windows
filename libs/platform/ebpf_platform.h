@@ -781,14 +781,6 @@ extern "C"
         _In_ const ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
 
     /**
-     * @brief Return a pseudorandom number.
-     *
-     * @return A pseudorandom number.
-     */
-    uint32_t
-    ebpf_random_uint32();
-
-    /**
      * @brief Return time elapsed since boot in units of 100 nanoseconds.
      *
      * @param[in] include_suspended_time Include time the system spent in a suspended state.

@@ -73,7 +73,10 @@
     <ClCompile Include="..\ebpf_platform.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include=".\ebpf_fault_injection_kernel.c">
+    <ClCompile Include="ebpf_fault_injection_kernel.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ebpf_random.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -133,6 +136,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ebpf_random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

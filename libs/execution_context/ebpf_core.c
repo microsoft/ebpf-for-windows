@@ -13,6 +13,7 @@
 #include "ebpf_native.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program.h"
+#include "ebpf_random.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
 #include "ebpf_tracelog.h"
@@ -181,6 +182,11 @@ ebpf_core_initiate()
         goto Done;
     }
 
+    return_value = ebpf_random_initiate();
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     return_value = ebpf_trace_initiate();
     if (return_value != EBPF_SUCCESS) {
         goto Done;
@@ -285,6 +291,8 @@ ebpf_core_terminate()
     ebpf_object_tracking_terminate();
 
     ebpf_trace_terminate();
+
+    ebpf_random_terminate();
 
     ebpf_platform_terminate();
 }

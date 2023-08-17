@@ -10,6 +10,7 @@
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
+#include "ebpf_random.h"
 #include "helpers.h"
 #include "performance_measure.h"
 
