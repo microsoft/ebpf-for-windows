@@ -2,15 +2,15 @@
     {
         "version": 1.0,
         "handlerEnvironment": {
-            "logFolder": "c:\\ebpf\\vm_ext",
-            "configFolder": "c:\\ebpf\\vm_ext",
-            "statusFolder": "c:\\ebpf\\vm_ext",
-            "heartbeatFile": "c:\\ebpf\\vm_ext",
+            "logFolder": "c:\\_ebpf\\vm_ext\\logs",
+            "configFolder": "c:\\_ebpf\\vm_ext\\config",
+            "statusFolder": "c:\\_ebpf\\vm_ext\\status",
+            "heartbeatFile": "c:\\_ebpf\\vm_ext\\heartbeat",
             "deploymentid": "1234",
             "rolename": "role_name",
             "instance": "Instance_name",
             "hostResolverAddress": "1.1.1.1",
-            "eventsFolder": "c:\\ebpf\\vm_ext"
+            "eventsFolder": "c:\\_ebpf\\vm_ext\\events"
         }
     }
 ]

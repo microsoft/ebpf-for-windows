@@ -2,39 +2,40 @@
 # Global Variables
 #######################################################
 # Define eBPF Handler Environment variables
-Set-Variable -Name "runTests" -Value $true -Option Constant
-Set-Variable -Name "EbpfPackagePath" -Value ".\package" -Option Constant
-Set-Variable -Name "EbpfDefaultInstallPath" -Value [Environment]::GetFolderPath("ProgramFiles") + "\ebpf-for-windows" -Option Constant
-Set-Variable -Name "EbpfCoreDriverName" -Value "eBPFCore" -Option Constant
-Set-Variable -Name "NetEbpfExtDriverName" -Value "NetEbpfExt" -Option Constant
-Set-Variable -Name "NetshExtensionName" -Value "ebpfnetsh.dll" -Option Constant
+Set-Variable -Name "runTests" -Value $true
+Set-Variable -Name "EbpfPackagePath" -Value ".\package"
+Set-Variable -Name "EbpfDefaultInstallPath" -Value "$env:ProgramFiles\ebpf-for-windows"
+Set-Variable -Name "EbpfCoreDriverName" -Value "eBPFCore"
+Set-Variable -Name "NetEbpfExtDriverName" -Value "NetEbpfExt"
+Set-Variable -Name "NetshExtensionName" -Value "ebpfnetsh.dll"
 $EbpfDrivers =
 @{
     "EbpfCore" = "ebpfcore.sys";
     "NetEbpfExt" = "netebpfext.sys";
 }
 
-# Define the VM extension's Status file constants
-Set-Variable -Name "HandlerWorkloadName" -Value "eBPFforWindows" -Option Constant
-Set-Variable -Name "OperationNameEnable" -Value "enable" -Option Constant
-Set-Variable -Name "OperationNameDisable" -Value "disable" -Option Constant
-Set-Variable -Name "OperationNameInstall" -Value "install" -Option Constant
-Set-Variable -Name "OperationNameUninstall" -Value "uninstall" -Option Constant
-Set-Variable -Name "OperationNameUpdate" -Value "update" -Option Constant
-Set-Variable -Name "StatusTransitioning" -Value "transitioning" -Option Constant
-Set-Variable -Name "StatusError" -Value "error" -Option Constant
-Set-Variable -Name "StatusSuccess" -Value "success" -Option Constant
-Set-Variable -Name "StatusWarning" -Value "warning" -Option Constant
+# Define the VM extension's generic and Status file constants
+Set-Variable -Name "DefaultHandlerEnvironmentPath" -Value ".\HandlerEnvironment.json"
+Set-Variable -Name "HandlerWorkloadName" -Value "eBPFforWindows"
+Set-Variable -Name "OperationNameEnable" -Value "enable"
+Set-Variable -Name "OperationNameDisable" -Value "disable"
+Set-Variable -Name "OperationNameInstall" -Value "install"
+Set-Variable -Name "OperationNameUninstall" -Value "uninstall"
+Set-Variable -Name "OperationNameUpdate" -Value "update"
+Set-Variable -Name "StatusTransitioning" -Value "transitioning"
+Set-Variable -Name "StatusError" -Value "error"
+Set-Variable -Name "StatusSuccess" -Value "success"
+Set-Variable -Name "StatusWarning" -Value "warning"
 
 
 #######################################################
 # Logging Functions
 #######################################################
-
 # Define constants for log levels
 $LogLevelInfo = "INFO"
 $LogLevelWarning = "WARNING"
 $LogLevelError = "ERROR"
+
 function Write-Log {
     param (
         [string]$level,
@@ -43,10 +44,12 @@ function Write-Log {
 
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logEntry = "[$timestamp]-[$level] - $message"
+    
+    # Always write to host
+    Write-Host $logEntry
 
     # Append the log entry to the log file, and also write it to the console
-    $logEntry | Out-File -Append -FilePath $($handlerEnvironmentObject.handlerEnvironment.logFolder) + "ebpf.log"
-    Write-Host $logEntry
+    $logEntry | Out-File -Append -FilePath ($env:eBPFHandlerEnv.handlerEnvironment.logFolder + "ebpf_handler.log")  
 }
 
 #######################################################
@@ -55,15 +58,31 @@ function Write-Log {
 function Get-HandlerEnvironment {
     param (
         # The HandlerEnvironment.json file is always located in the root of where the ZIP package is extracted
-        [string]$handlerEnvironmentFullPath = ".\HandlerEnvironment.json"
+        [string]$handlerEnvironmentFullPath = "$DefaultHandlerEnvironmentPath"
     )
-   
-    if (Test-Path $filePhandlerEnvironmentFullPathath) {
-        $jsonContent = Get-Content -Path $handlerEnvironmentFullPath -Raw | ConvertFrom-Json
-        return $jsonContent
+
+    if (Test-Path $handlerEnvironmentFullPath -PathType Leaf) {
+        $jsonContent = Get-Content -Path $handlerEnvironmentFullPath -Raw
+        $jsonContent = $jsonContent | ConvertFrom-Json
+        $global:eBPFHandlerEnvObj = $jsonContent[0]
+        if ($null -ne $global:eBPFHandlerEnvObj) {
+            Write-Log -level $LogLevelInfo -message "Log Folder: $($global:eBPFHandlerEnvObj.handlerEnvironment.logFolder)"
+            Write-Log -level $LogLevelInfo -message "Config Folder: $($global:eBPFHandlerEnvObj.handlerEnvironment.configFolder)"
+            Write-Log -level $LogLevelInfo -message "Status Folder: $($global:eBPFHandlerEnvObj.handlerEnvironment.statusFolder)"
+            Write-Log -level $LogLevelInfo -message "Heartbeat File: $($global:eBPFHandlerEnvObj.handlerEnvironment.heartbeatFile)"
+            Write-Log -level $LogLevelInfo -message "Deployment ID: $($global:eBPFHandlerEnvObj.handlerEnvironment.deploymentid)"
+            Write-Log -level $LogLevelInfo -message "Role Name: $($global:eBPFHandlerEnvObj.handlerEnvironment.rolename)"
+            Write-Log -level $LogLevelInfo -message "Instance Name: $($global:eBPFHandlerEnvObj.handlerEnvironment.instance)"
+            Write-Log -level $LogLevelInfo -message "Host Resolver Address: $($global:eBPFHandlerEnvObj.handlerEnvironment.hostResolverAddress)"
+            Write-Log -level $LogLevelInfo -message "Events Folder: $($global:eBPFHandlerEnvObj.handlerEnvironment.eventsFolder)"
+        } else {
+            Write-Log -level $LogLevelInfo -message "$handlerEnvironmentFullPath does not contain a valid object."
+            return $false
+        }
+        return $true
     } else {
-        Write-Log -level $LogLevelError -message "HandlerEnvironment.json file not found."
-        return $null
+        Write-Log -level $LogLevelError -message "$handlerEnvironmentFullPath file not found."
+        return $false
     }
 }
 
@@ -77,7 +96,7 @@ function Create-StatusFile {
     )
 
     # Get the SequenceNumber from the name of the latest created .settings file
-    $lastSequenceNumber = Get-ChildItem -Path "$($env:eBPFHandlerEnv.handlerEnvironment.configFolder)" -Filter "*.settings" | Sort-Object CreationTime -Descending | Select-Object -First 1
+    $lastSequenceNumber = Get-ChildItem -Path "$($global:eBPFHandlerEnv.handlerEnvironment.logFolder)" -Filter "*.settings" | Sort-Object CreationTime -Descending | Select-Object -First 1
     if ($null -eq $lastSequenceNumber) {
         Write-Log -level $LogLevelError -message "No '.settings' file found."
         return
@@ -109,7 +128,7 @@ function Create-StatusFile {
 
     # Write the JSON to the .status file with the name of the latest .settings file
     $statusFileName = [System.IO.Path]::ChangeExtension($lastSequenceNumber.Name, ".status")
-    $statusFilePath = Join-Path "$($env:eBPFHandlerEnv.handlerEnvironment.statusFolder)" $statusFileName
+    $statusFilePath = Join-Path "$($global:eBPFHandlerEnv.handlerEnvironment.logFolder)" $statusFileName
     $statusJson | Set-Content -Path $statusFilePath
 
     Write-Log -level $LogLevelInfo -message "Status file generated: $statusFilePath"
@@ -218,9 +237,13 @@ function Remove-DirectoryFromSystemPath {
 }
 
 function Register-NetshExtension{
+    param (
+        [string]$installDirectory
+    )
+
+    Push-Location -Path $installDirectory
 
     # Add the eBPF netsh helper.
-    Push-Location -Path $EbpfDefaultInstallPath
     $installResult = & "netsh.exe" add helper $NetshExtensionName
 
     # Check the exit code to determine the result
@@ -273,10 +296,8 @@ function Install-Driver {
 
     Write-Log "Installing service $serviceName"
 
-    # Combine the destination path and filename for copying
-    $BinaryPath = Join-Path -Path $servicePath -ChildPath $serviceName
-    
     # Create the service using sc.exe (you'll need to replace this with the actual command)
+    $BinaryPath = Join-Path -Path $servicePath -ChildPath $serviceName
     $scCreateOutput = & "sc.exe" create $serviceName type=kernel start=demand binPath="$BinaryPath.sys"
 
     # Check the exit code to determine the result
@@ -416,11 +437,14 @@ function Install-eBPF {
     $copyResult = Copy-EbpFiles -sourcePath $sourcePath -destinationPath $destinationPath
     if ($copyResult) {
         # Install the eBPF services and use the results to generate the status file
-        $installResult1 = Install-Driver -serviceName $EbpfCoreDriverName
-        $installResult2 = Install-Driver -serviceName $NetEbpfExtDriverName
+        $installResult1 = Install-Driver -serviceName $EbpfCoreDriverName -servicePath "$destinationPath\drivers"
+        $installResult2 = Install-Driver -serviceName $NetEbpfExtDriverName -servicePath "$destinationPath\drivers"
 
         # Determine the overall status and status message
         if ($installResult1 -eq 0 -and $installResult2 -eq 0) {
+
+            # Register the netsh extension
+            Register-NetshExtension -installDirectory $destinationPath
             
             # Add the eBPF installation directory to the system PATH
             Add-DirectoryToSystemPath -directoryPath $installDirectory
@@ -428,7 +452,7 @@ function Install-eBPF {
             # Register the trace providers
             Enable-Tracing
 
-            Write-Log -level $LogLogLevelInfoLevelError -message "eBPF for Windows installed successfully."
+            Write-Log -level $LogLevelInfo -message "eBPF for Windows installed successfully."
         } else {
             $statusCode = 1
             $failedServices = @()            
@@ -459,6 +483,9 @@ function Uninstall-eBPF {
 
     # Stop all eBPF drivers (which will stop all the services which have a dependency on them).
     Stop-eBPFDrivers
+
+    # De-register the netsh extension
+    Unregister-NetshExtension
 
     # Uninstall the eBPF services and use the results to generate the status file
     $uninstallResult1 = Uninstall-Driver -serviceName $EbpfCoreDriverName
@@ -493,6 +520,39 @@ function Uninstall-eBPF {
     return $statusCode
 }
 
+function Upgrade-eBPF {
+    param (
+        [string]$vmAgentOperationName,
+        [string]$currProductVersion,
+        [string]$newProductVersion,
+        [string]$installDirectory
+    )
+    
+    Write-Log -level $LogLevelInfo -message "Upgrading eBPF from v$currProductVersion to v$newProductVersion..."
+
+    # For the moment, we just uninstall and install to the current installation folder
+    $res = Uninstall-eBPF "$installDirectory"
+    if ($res -ne 0) {
+        $statusCode = 1
+        $statusMessage = "eBPF $vmAgentOperationName FAILED (Uninstall failed)."
+        Write-Log -level $LogLevelError -message $statusMessage
+    } else {
+        Write-Log -level $LogLevelInfo -message "eBPF v$currProductVersion uninstalled successfully."
+        $res = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$installDirectory"
+        if ($res -ne 0) {
+            $statusCode = 1
+            $statusMessage = "eBPF $vmAgentOperationName FAILED (Install failed)."
+            Write-Log -level $LogLevelError -message $statusMessage
+        } else {
+            $statusCode = 0
+            $statusMessage = "eBPF $vmAgentOperationName succeeded."
+            Write-Log -level $LogLevelError -message $statusMessage
+        }
+    }
+
+    return $statusCode
+}
+
 function InstallOrUpdate-eBPF {
     param (
         [string]$vmAgentOperationName,
@@ -500,93 +560,60 @@ function InstallOrUpdate-eBPF {
         [string]$destinationPath
     )
 
-    $statusCode = 0
-    $statusString = $StatusSuccess
-    $statusMessage = ""
+    # Set the default product version to NULL (i.e. not installed)
+    $currProductVersion = $null
 
-    # Set the default product version to 0.0.0 (i.e. not installed)
-    $productVersion = "0.0.0"
+    # This function is flexible to uninstall/install/upgrade to a different path than the iven one, for those scenarios where the driver is registered from a different folder.
+    $currInstallPath = $destinationPath
 
     # Retrieve the product version of the driver in the extension package
-    $filePath = Join-Path -Path $EbpfPackagePath -ChildPath "$EbpfCoreDriverName.sys"
-    $newProductVersion = Get-ProductVersionFromFile -filePath "$filePath"
+    $newProductVersion = Get-ProductVersionFromFile -filePath (Join-Path -Path $EbpfPackagePath -ChildPath "drivers\$EbpfCoreDriverName.sys")
     
-    # Firstly, check if eBPFCore is installed and registered.
-    $fullDiskPath = Get-FullDiskPathFromService -serviceName $EbpfCoreDriverName
-    if ($fullDiskPath) {
+    # Firstly, check if eBPFCore is installed and registered (as a test for eBPF to be installed).
+    $currDriverPath = Get-FullDiskPathFromService -serviceName $EbpfCoreDriverName
+    if ($currDriverPath) {
+        Write-Log -level $LogLevelInfo -message "eBPF driver installed and registered from: '$currDriverPath"
 
         # TBD: check if the driver is registered in the default folder, if not, log an error --> what to do??
-        if ($fullDiskPath -ne $EbpfDefaultInstallPath) {
-            Write-Log -level $LogLevelWarning -message "'$EbpfCoreDriverName' driver registered from a non-default folder: $fullDiskPath"
+        # Currently, we just log a warning and proceed with the installation in the current folder.
+        $currInstallPath = Split-Path -Path $currDriverPath -Parent
+        if ($currDriverPath -ne $EbpfDefaultInstallPath) {
+            Write-Log -level $LogLevelWarning -message "'$EbpfCoreDriverName' driver registered from a non-default folder: $currDriverPath"
         }
 
-        Write-Log -level $LogLevelInfo -message "eBPF driver installed and registered from: $fullDiskPath"
-
-        # Check the product version of the installed driver
-        $filePath = Join-Path -Path $EbpfDefaultInstallPath -ChildPath "drivers\$EbpfCoreDriverName.sys"
-        $productVersion = Get-ProductVersionFromFile -filePath "$filePath"
+        # Retrieve the product version of the installed driver
+        $currProductVersion = Get-ProductVersionFromFile -filePath "$currDriverPath"
 
     } else {
         Write-Log -level $LogLevelWarning -message "'$EbpfCoreDriverName' driver not registered on this machine, checking installation in the default folder..."
 
-        # Check the product version of the installed driver
-        $filePath = Join-Path -Path $EbpfDefaultInstallPath -ChildPath "drivers\$EbpfCoreDriverName.sys"
-        $productVersion = Get-ProductVersionFromFile -filePath "$filePath"        
+        # Check if there's a driver in the default installation folder, and get its product version
+        $currProductVersion = Get-ProductVersionFromFile -filePath (Join-Path -Path $EbpfDefaultInstallPath -ChildPath "drivers\$EbpfCoreDriverName.sys")
     }
     
-    # If there's a product version, then a version of eBPF is installed, let's check if it needs to be updated.
-    if ($productVersion) {
-        Write-Log -level $LogLevelInfo -message "eBPF v$productVersion is already installed."
+    # If there's a $currProductVersion has a value, then a version of eBPF is already installed, let's check if it needs to be updated.
+    if ($null -ne $currProductVersion) {
+        Write-Log -level $LogLevelInfo -message "eBPF v$currProductVersion is already installed."
 
         # If the product version is less than the version distributed with the VM extension, then upgrade it. Otherwise, no update is needed.
-        $comparison = Compare-VersionNumbers -version1 $productVersion -version2 $newProductVersion       
+        $comparison = Compare-VersionNumbers -version1 $currProductVersion -version2 $newProductVersion       
         if ($comparison -lt 0) {
-
-            Write-Log -level $LogLevelInfo -message "Upgrading eBPF to v$newProductVersion..."
-            
-            # For the moment, we just uninstall and Install
-            $res = Uninstall-eBPF -serviceName $EbpfCoreDriverName
-            if ($res -ne 0) {
-                $statusString = $StatusError
-                $statusCode = 1
-                $statusMessage = "eBPF $vmAgentOperationName FAILED (Uninstall failed)."
-                Write-Log -level $LogLevelError -message $statusMessage
-            } else {
-                Write-Log -level $LogLevelInfo -message "eBPF v$productVersion uninstalled successfully."
-                $res = Install-eBPF $EbpfPackagePath, $EbpfDefaultInstallPath
-                if ($res -ne 0) {
-                    $statusString = $StatusError
-                    $statusCode = 1
-                    $statusMessage = "eBPF $vmAgentOperationName FAILED (Install failed)."
-                    Write-Log -level $LogLevelError -message $statusMessage
-                } else {
-                    $statusString = $StatusSuccess
-                    $statusCode = 0
-                    $statusMessage = "eBPF $vmAgentOperationName succeeded."
-                    Write-Log -level $LogLevelError -message $statusMessage
-                }
-            }
+            $statusCode = Upgrade-eBPF -vmAgentOperationName $vmAgentOperationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
         } elseif ($comparison -gt 0) {
-            $statusString = $StatusSuccess
             $statusCode = 0
-            $statusMessage = "The installed eBPF version (v$productVersion) is newer than the one in the extension package (v$newProductVersion)"
+            $statusMessage = "The installed eBPF version (v$currProductVersion) is newer than the one in the extension package (v$newProductVersion)"
             Write-Log -level $LogLevelWarning -message $statusMessage
         } else {
-            $statusString = $StatusSuccess
             $statusCode = 0
-            $statusMessage = "eBPF version is up to date (v$productVersion)."
-            Write-Log -level $LogLevelInfo -message $statusMessage
-            $statusString = $StatusSuccess
-            $statusCode = 0
-            $statusMessage = "eBPF version is up to date (v$productVersion)."
+            $statusMessage = "eBPF version is up to date (v$currProductVersion)."
             Write-Log -level $LogLevelInfo -message $statusMessage
         }
     } else {
         Write-Log -level $LogLevelInfo -message "No eBPF installation found in [$destinationPath]: installing (v$newProductVersion)."
         
         # Proceed with a new installation from the artifact package within the extension ZIP file
-        $res = Install-eBPF $EbpfPackagePath, $EbpfDefaultInstallPath
-        if ($res -ne 0) {
+        $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$currInstallPath"
+        if ($statusCode -ne 0) {
             Write-Log -level $LogLevelError -message "Failed to install eBPF v$newProductVersion."
             Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $StatusError -statusCode 1 -statusMessage "eBPF $vmAgentOperationName FAILED (Clean install failed)."
         } else {
@@ -595,75 +622,71 @@ function InstallOrUpdate-eBPF {
             Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $StatusSuccess -statusCode 0 -statusMessage "eBPF $vmAgentOperationName succeeded."
         }
     }
+
+    return $statusCode
 }
 
 
 #######################################################
 # Main entry point
 #######################################################
-# Call the Get-HandlerEnvironment function, capture the output and set the global environment variable.
-$handlerEnvironmentObject = Get-HandlerEnvironment
-$env:eBPFHandlerEnv = $handlerEnvironmentObject
-if ($handlerEnvironmentObject -ne $null) {
-    Write-Host "Log Folder: $($handlerEnvironmentObject.handlerEnvironment.logFolder)"
-    Write-Host "Config Folder: $($handlerEnvironmentObject.handlerEnvironment.configFolder)"
-    Write-Host "Status Folder: $($handlerEnvironmentObject.handlerEnvironment.statusFolder)"
-    Write-Host "Heartbeat File: $($handlerEnvironmentObject.handlerEnvironment.heartbeatFile)"
-    Write-Host "Deployment ID: $($handlerEnvironmentObject.handlerEnvironment.deploymentid)"
-    Write-Host "Role Name: $($handlerEnvironmentObject.handlerEnvironment.rolename)"
-    Write-Host "Instance Name: $($handlerEnvironmentObject.handlerEnvironment.instance)"
-    Write-Host "Host Resolver Address: $($handlerEnvironmentObject.handlerEnvironment.hostResolverAddress)"
-    Write-Host "Events Folder: $($handlerEnvironmentObject.handlerEnvironment.eventsFolder)"
-} else {
-    Write-Host ".\HandlerEnvironment.json file not found."
-    return
-}
-
-#######################################################
-# Tests
-#######################################################
+# Change the working directory to the root of the test environment, so to simulate the actual env that will be set up by the VM Agent.
+Push-Location -Path 'C:\_ebpf\vm_ext'
 if ($runTests -eq $true) {
 
     #Load test-environment (current working folder is the root folder in which the entire ZIP in unzipped).
-    $handlerEnvironmentObject = Get-HandlerEnvironment -handlerEnvironmentFullPath ".\HandlerEnvironment-test.json" 
+    if (Get-HandlerEnvironment -handlerEnvironmentFullPath ".\HandlerEnvironment-test.json" -eq $true) {
 
-    # TBD: test cases
-    # - Simulate a few sequence files for generating the corresponding status file
-    # - Install eBPF when not present
-    # - Uninstall eBPF when not present
-    # - Uninstall eBPF when present
-    # - Install eBPF when already installed:
-    #   - same version
-    #   - older version
-    #   - newer version
-    # - Update eBPF when already installed:
-    #   - same version
-    #   - older version
-    #   - newer version
-    # - Update eBPF when not present:
-    #   - same version
-    #   - older version
-    #   - newer version
+        # TBD: test cases
+        # - Simulate a few sequence files for generating the corresponding status file
+        # - Install eBPF when not present
+        # - Uninstall eBPF when not present
+        # - Uninstall eBPF when present
+        # - Install eBPF when already installed:
+        #   - same version
+        #   - older version
+        #   - newer version
+        # - Update eBPF when already installed:
+        #   - same version
+        #   - older version
+        #   - newer version
+        # - Update eBPF when not present:
+        #   - same version
+        #   - older version
+        #   - newer version
 
-    # Install
-    InstallOrUpdate-eBPF $OperationNameInstall $EbpfPackagePath, $EbpfDefaultInstallPath
+        # Install
+        InstallOrUpdate-eBPF -vmAgentOperationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
 
-    # Update
-    Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -$statusMessage "Starting eBPF update"
-    InstallOrUpdate-eBPF $OperationNameUpdate, $EbpfPackagePath, $EbpfDefaultInstallPath
+        # Update
+        Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -$statusMessage "Starting eBPF update"
+        InstallOrUpdate-eBPF -vmAgentOperationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
 
-    # Uninstall
-    $statusString = $StatusSuccess
-    $statusCode = 0
-    $statusMessage = ""
-    $res = Uninstall-eBPF $EbpfDefaultInstallPath
-    if ($res -eq $true) {    
-        $statusMessage = "eBPF for Windows was successfully uninstalled"
+        # Uninstall
+        $statusString = $StatusSuccess
+        $statusCode = 0
+        $statusMessage = ""
+        $res = Uninstall-eBPF $EbpfDefaultInstallPath
+        if ($res -eq $true) {    
+            $statusMessage = "eBPF for Windows was successfully uninstalled"
+        }
+        else {
+            $statusString = $StatusError
+            $statusCode = 1
+            $statusMessage = "eBPF for Windows was not uninstalled"
+        }
+        Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameUninstall -status $statusString -statusCode $statusCode -statusMessage $statusMessage
+    } else {
+        Write-Log -level $LogLevelError -message "Failed to load .\HandlerEnvironment-test.json."
+        exit
     }
-    else {
-        $statusString = $StatusError
-        $statusCode = 1
-        $statusMessage = "eBPF for Windows was not uninstalled"
+} else
+{
+    # Call the Get-HandlerEnvironment function, capture the output and set the global environment variable.
+    if (Get-HandlerEnvironment -ne $true) {
+        Write-Log -level $LogLevelError -message "Failed to load '$DefaultHandlerEnvironmentPath'."
+        exit       
     }
-    Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameUninstall -status $statusString -statusCode $statusCode -statusMessage $statusMessage
 }
+
+Pop-Location
