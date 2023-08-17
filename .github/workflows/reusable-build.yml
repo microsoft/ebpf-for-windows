@@ -28,6 +28,9 @@ on:
       build_nuget:
         required: false
         type: boolean
+      build_html:
+        required: true
+        type: boolean
       cxx_flags:
         required: false
         type: string
