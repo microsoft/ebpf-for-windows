@@ -23,14 +23,10 @@ ebpf_server_verify_and_load_program(
     if (info->instruction_count == 0) {
         return EBPF_INVALID_ARGUMENT;
     }
-    *logs = nullptr;
-    *logs_size = 0;
 
     // Set the handle of program being verified in thread-local storage.
     set_program_under_verification(reinterpret_cast<ebpf_handle_t>(info->program_handle));
 
-    const char* ebpf_logs = nullptr;
-    uint32_t ebpf_logs_size = 0;
     result = ebpf_verify_and_load_program(
         &info->program_type,
         reinterpret_cast<ebpf_handle_t>(info->program_handle),
@@ -40,19 +36,8 @@ ebpf_server_verify_and_load_program(
         info->handle_map,
         info->instruction_count,
         reinterpret_cast<ebpf_inst*>(info->instructions),
-        &ebpf_logs,
-        &ebpf_logs_size);
-
-    if (ebpf_logs) {
-        // The ebpf_logs buffer was allocated by the ebpf allocator whereas we
-        // must return a string allocated by the MIDL allocator.
-        *logs = (char*)MIDL_user_allocate(ebpf_logs_size);
-        if (*logs) {
-            memcpy(*logs, ebpf_logs, ebpf_logs_size);
-            ebpf_free((void*)ebpf_logs);
-            *logs_size = ebpf_logs_size;
-        }
-    }
+        const_cast<const char**>(logs),
+        logs_size);
 
     ebpf_clear_thread_local_storage();
     return result;
