@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **eBPF Performance Benchmark suite (Perf)** aims to evaluate the performance of the eBPF runtime, pinpoint areas for enhancement, and ensure timely detection and mitigation of performance regressions. The suite provides a comprehensive view of build-to-build performance, categorized by scenarios, aiding in the identification of areas requiring improvement. Measuring the performance of the user-mode libbpf library is a non-goal as libbpf operations are assumed to occur at a lower frequency.
+The **eBPF Performance Benchmark suite (Perf)** aims to evaluate the performance of the eBPF runtime, pinpoint areas for enhancement, and ensure timely detection and mitigation of performance regressions. The suite provides a comprehensive view of build-to-build performance, categorized by scenarios, aiding in the identification of areas requiring improvement. Measuring the performance of the user-mode libbpf library is a non-goal as libbpf operations are assumed to occur at a lower frequency. Performance tests are performed using the [bpf_performance](https://github.com/Alan-Jowett/bpf_performance) runner.
 
 ## Architecture
 
@@ -14,67 +14,7 @@ The Perf suite comprises these primary components:
 
 ## Test Runner
 
-The Test Runner (Runner) is a C++ program utilizing the libbpf library. It loads an eBPF program (in the kernel) and employs bpf_prog_test_run_opts to execute the BPF program on specified CPUs for a specified number of iterations. Subsequently, it calculates and outputs the average duration of the BPF programs. As a stretch goal, the Runner is designed to be platform-agnostic, enabling it to target both Windows and Linux eBPF runtimes. Given the importance of measuring both single threaded performance as well as concurrent performance, the test schema permit scheduling BPF programs on specific sets of CPUs.
-
-## Test Suites
-
-Each test is defined by a YAML file outlining test parameters and one or more associated eBPF programs. The parameters encompass:
-
-1. **Program -> CPU Assignment**: Specifies which CPUs execute each program, allowing concurrent execution.
-2. **Iteration Count**: Determines the number of iterations for the test.
-3. **For Each Program**:
-   - **Attach Type**: The type of attachment for the eBPF program (e.g., XDP, TC).
-   - **Input Data**: Initial data provided to the program.
-   - **Map State Preparation Function (optional)**: Function to prepare initial map state for the test.
-
-### Example YAML file
-
-```yaml
-tests:
-  - name: Baseline
-    description: The Baseline test with an empty eBPF program.
-    elf_file: baseline.o
-    entry_point: baseline_program
-    map_state_preparation: prepare_map_state_baseline
-    iteration_count: 100000
-    programs:
-      - attach_type: XDP
-        input_data: null
-
-  - name: Hash-table Map Read
-    description: Tests reading from a generic eBPF map.
-    elf_file: map_tests.o
-    entry_point: read_hash
-    map_state_preparation: prepare_hash_state_generic_read
-    iteration_count: 100000
-    programs:
-      - attach_type: XDP
-        input_data: null
-
-  - name: Hash-table Map Read/Write
-    description: Tests reading and write a generic eBPF map.
-    elf_file: map_tests.o
-    entry_point: [read_hash, write_hash]
-    map_state_preparation: prepare_hash_state_generic_read
-    program_cpu_assignment:
-        read_hash: [0, 1, 2]        # 3 CPUs assigned to read from the hash map
-        write_hash: [3]             # 1 CPU assigned to write to the hash map
-    iteration_count: 100000
-    programs:
-      - attach_type: XDP
-        input_data: null
-
-  - name: Type-Specific Map (Ring-Buffer)
-    description: Tests specific properties of a ring-buffer eBPF map.
-    elf_file: type_specific_ring_buffer.ebpf
-    entry_point: ring_buffer_program1
-    iteration_count: 100000
-    programs:
-      - attach_type: XDP
-        input_data: null
-
-  # Add more test cases as needed
-```
+For details of the test runner, see [bpf_performance](https://github.com/Alan-Jowett/bpf_performance).
 
 ## Baseline Test
 
@@ -110,7 +50,7 @@ Certain maps possess unique properties that differentiate them. These maps inclu
 ## Helper Function
 
 These tests involve invoking the runtime's helper functions, including the setup of any required state. This will include both general-purpose as well as program-type-specific helper function tests. Helper functions that might be of interest to measure include:
-1. **bpf_xdp_adjust_head** This program type specific helper function grows and shrinks a XDP buffer.
+1. **bpf_xdp_adjust_head** This program type specific helper function grows and shrinks an XDP buffer.
 2. **bpf_trace_printk** The performance impact of this function could be high and it is important to measure it.
 
 ## CI/CD Integration
