@@ -182,11 +182,9 @@ jobs:
       uses: jd-solanki/gh-action-md-to-html@v1.3.0
       id: tsg_markdown_to_html
       with:
-        input_files: '${{github.workspace}}/docs/TroubleShootingGuide.md'
-        output_files: '${{github.workspace}}/build/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TroubleShootingGuide.html'
-        builtin_stylesheet: 'style.css'
-        packages: 'pymdown-extensions'
-        extensions: '["pymdownx.extra"]'
+        files: '${{github.workspace}}/docs/TroubleShootingGuide.md'
+        title: 'TroubleShooting Guide'
+        debug: true
 
     - name: Build
       if: steps.skip_check.outputs.should_skip != 'true'
