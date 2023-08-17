@@ -23,7 +23,7 @@ on:
         required: false
         type: boolean
       build_msi:
-        required: false
+        required: true
         type: boolean
       build_nuget:
         required: false
@@ -271,3 +271,15 @@ jobs:
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
       uses: github/codeql-action/analyze@cdcdbb579706841c47f7063dda365e292e5cad7a
+
+    - name: Markdown to HTML conversion
+      # Convert markdown to HTML for the troubleshooting guide.
+      if: inputs.build_html == true && steps.skip_check.outputs.should_skip != 'true'
+      uses: ZacJW/markdown-html-action@1.1.0
+      id: tsg_markdown_to_html
+      with:
+        input_files: '${{github.workspace}}/docs/TroubleShootingGuide.md'
+        output_files: '${{github.workspace}}/build/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TroubleShootingGuide.html'
+        builtin_stylesheet: 'style.css'
+        packages: 'pymdown-extensions'
+        extensions: '["pymdownx.extra"]'
