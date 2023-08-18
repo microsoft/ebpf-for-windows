@@ -31,12 +31,6 @@ __drv_allocatesMem(Mem) _Must_inspect_result_
     return p;
 }
 
-__drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
-{
-    return ebpf_allocate_cache_aligned_with_tag(size, EBPF_POOL_TAG_DEFAULT);
-}
-
 void
 ebpf_free_cache_aligned(_Frees_ptr_opt_ void* memory)
 {

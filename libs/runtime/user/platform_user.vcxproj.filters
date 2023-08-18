@@ -108,9 +108,6 @@
     <ClInclude Include="..\ebpf_ring_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\ebpf_tracelog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\ebpf_random.h">
       <Filter>Header Files</Filter>
     </ClInclude>

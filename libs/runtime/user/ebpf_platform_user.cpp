@@ -40,12 +40,6 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
-{
-    return usersim_allocate_cache_aligned(size);
-}
-
-__drv_allocatesMem(Mem) _Must_inspect_result_
     _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned_with_tag(size_t size, uint32_t tag)
 {
     UNREFERENCED_PARAMETER(tag);

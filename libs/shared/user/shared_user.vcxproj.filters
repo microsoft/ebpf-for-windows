@@ -16,24 +16,27 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="tracelog.c">
+    <ClCompile Include="..\memory.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="memory.c">
+    <ClCompile Include="..\tracelog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ebpf_tracelog.h">
+    <ClInclude Include="..\ebpf_ring_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ebpf_ring_buffer.h">
+    <ClInclude Include="..\ebpf_serialize.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ebpf_serialize.h">
+    <ClInclude Include="..\ebpf_shared_framework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ebpf_shared_framework.h">
+    <ClInclude Include="..\ebpf_tracelog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shared_context.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
