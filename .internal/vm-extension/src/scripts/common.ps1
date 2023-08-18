@@ -3,13 +3,12 @@
 #######################################################
 # Define eBPF Handler Environment variables
 Set-Variable -Name "runTests" -Value $true
-Set-Variable -Name "EbpfPackagePath" -Value ".\package"
-Set-Variable -Name "EbpfDefaultInstallPath" -Value "$env:ProgramFiles\ebpf-for-windows"
+Set-Variable -Name "testRootFolder" -Value "C:\_ebpf\vm_ext"
 Set-Variable -Name "AksRegistryKeyPath" -Value "HKLM:\Software\AKS\Key" #TBD: change to the actual registry key
 Set-Variable -Name "AksRegistryKeyValue" -Value 1 #TBD: change to the actual registry value
-Set-Variable -Name "EbpfCoreDriverName" -Value "eBPFCore"
-Set-Variable -Name "NetEbpfExtDriverName" -Value "NetEbpfExt"
-Set-Variable -Name "NetshExtensionName" -Value "ebpfnetsh.dll"
+Set-Variable -Name "EbpfPackagePath" -Value ".\package"
+Set-Variable -Name "EbpfDefaultInstallPath" -Value "$env:ProgramFiles\ebpf-for-windows"
+Set-Variable -Name "EbpfNetshExtensionName" -Value "ebpfnetsh.dll"
 $EbpfDrivers =
 @{
     "EbpfCore" = "ebpfcore.sys";
@@ -118,10 +117,10 @@ function Create-StatusFile {
             configurationAppliedTime = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
             status = $status
             code = $statusCode
-            message = @{
-                id = "localized_resource_id"
-                params = @("MyParam0", "MyParam1")
-            }
+            # message = @{
+            #     id = "localized_resource_id"
+            #     params = @("MyParam0", "MyParam1")
+            # }
             formattedMessage = @{
                 lang = "en-US"
                 message = $statusMessage
@@ -163,10 +162,10 @@ function Get-FullDiskPathFromService {
         [string]$serviceName
     )
 
-    $queryOutput = sc qc $serviceName
+    $scQueryOutput = & "sc.exe" qc $serviceName
 
     # Search for the BINARY_PATH_NAME line using regex
-    $binaryPathLine = $queryOutput -split "`n" | Where-Object { $_ -match "BINARY_PATH_NAME\s+:\s+(.*)" }
+    $binaryPathLine = $scQueryOutput -split "`n" | Where-Object { $_ -match "BINARY_PATH_NAME\s+:\s+(.*)" }
 
     if ($binaryPathLine) {
         $binaryPath = $matches[1]
@@ -260,58 +259,6 @@ function Remove-DirectoryFromSystemPath {
     }
 }
 
-function Register-NetshExtension{
-    param (
-        [string]$installDirectory
-    )
-
-    Push-Location -Path $installDirectory
-
-    # Add the eBPF netsh helper.
-    $installResult = & "netsh.exe" add helper $NetshExtensionName
-
-    # Check the exit code to determine the result
-    if ($LASTEXITCODE -eq 0) {
-        Write-Log -level $LogLevelInfo -message "$NetshExtensionName registered successfully."
-    } else {
-        Write-Log -level $LogLevelError -message "Failed to register $NetshExtensionName. Error message: $installResult"
-    }
-
-    Pop-Location
-    return $LASTEXITCODE
-}
-
-function Unregister-NetshExtension{
-
-    # Add the eBPF netsh helper.
-    Push-Location -Path $EbpfDefaultInstallPath
-    $installResult = & "netsh.exe" delete helper $NetshExtensionName
-
-    # Check the exit code to determine the result
-    if ($LASTEXITCODE -eq 0) {
-        Write-Log -level $LogLevelInfo -message "$NetshExtensionName unregistered successfully."
-    } else {
-        Write-Log -level $LogLevelError -message "Failed to unregister $NetshExtensionName. Error message: $installResult"
-    }
-
-    Pop-Location
-    return $LASTEXITCODE
-}
-
-function CheckDriverInstalled {
-    param (
-        [string]$driverName
-    )
-    
-    $colServices = Get-WmiObject -Query "Select * from Win32_BaseService where Name='$driverName'"
-    
-    if ($colServices.Count -gt 0) {
-        return $true
-    } else {
-        return $false
-    }
-}
-
 function Install-Driver {
     param (
         [string]$serviceName,
@@ -321,8 +268,7 @@ function Install-Driver {
     Write-Log -level $LogLevelInfo -message "Installing service $serviceName"
 
     # Create the service using sc.exe (you'll need to replace this with the actual command)
-    $BinaryPath = Join-Path -Path $servicePath -ChildPath $serviceName
-    $scCreateOutput = & "sc.exe" create $serviceName type=kernel start=demand binPath="$BinaryPath.sys"
+    $scCreateOutput = & "sc.exe" create $serviceName type=kernel start=demand binPath="$servicePath"
 
     # Check the exit code to determine the result
     if ($LASTEXITCODE -eq 0) {
@@ -353,19 +299,7 @@ function Uninstall-Driver {
     return $LASTEXITCODE
 }
 
-function Stop-eBPFDrivers {
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        $driverName = $_.Key
-        Stop-Service -Name $driverName -ErrorAction SilentlyContinue
-        if ($?) {
-            Write-Log -Level $LogLevelInfo -Message "Stopped driver: $driverName"
-        } else {
-            Write-Log -Level $LogLevelError -Message "Failed to stop driver: $driverName"
-        }
-    }
-}
-
-function Copy-EbpFiles {
+function Copy-Directory {
     param (
         [string]$sourcePath,
         [string]$destinationPath
@@ -376,7 +310,7 @@ function Copy-EbpFiles {
         try {
             New-Item -Path $destinationPath -ItemType Directory -ErrorAction Stop
         } catch {
-            Write-Log -Level $LogLevelError -Message "Failed to create destination directory '$destinationPath': $_"
+            Write-Log -level $LogLevelError -message "Failed to create destination directory '$destinationPath': $_"
             return $false
         }
     }
@@ -384,15 +318,15 @@ function Copy-EbpFiles {
     # Recursively copy all files from source to destination.
     try {
         Copy-Item -Path ($sourcePath + "\*") -Destination $destinationPath -Recurse -Force -ErrorAction Stop
-        Write-Log -Level $LogLevelInfo -Message "Files copied from '$sourcePath' to '$destinationPath'."
+        Write-Log -level $LogLevelInfo -message "Files copied from '$sourcePath' to '$destinationPath'."
         return $true
     } catch {
-        Write-Log -Level $LogLevelError -Message "Error while copying files: $_"
+        Write-Log -level $LogLevelError -message "Error while copying files: $_"
         return $false
     }
 }
 
-function Delete-EbpfFiles {
+function Delete-Directory {
     param (
         [string]$destinationPath
     )
@@ -400,49 +334,93 @@ function Delete-EbpfFiles {
     if (Test-Path $destinationPath) {
         try {
             Remove-Item -Path $destinationPath -Recurse -Force -ErrorAction Stop
-            Write-Log -Level $LogLevelInfo -Message "Directory '$destinationPath' deleted successfully."
+            Write-Log -level $LogLevelInfo -message "Directory '$destinationPath' deleted successfully."
             return $true
         } catch {
-            Write-Log -Level $LogLevelError -Message "Failed to delete directory '$destinationPath'. Error: $_"
+            Write-Log -level $LogLevelError -message "Failed to delete directory '$destinationPath'. Error: $_"
             return $false
         }
     } else {
-        Write-Log -Level $LogLevelWarning -Message "Directory '$destinationPath' does not exist."
+        Write-Log -level $LogLevelWarning -message "Directory '$destinationPath' does not exist."
         return $false
     }
 }
 
-function Enable-Tracing {
+function DownloadAndUnpackEbpfRedistPackage {
+    param (
+        [string]$packageVersion,
+        [string]$targetDirectory
+    )
+
+    # Download the eBPF redist package from the MS CodeHub feed, and unpack just the eBPF package to the target directory
+    Start-Process nuget.exe  -ArgumentList "install eBPF-for-Windows-Redist -version $packageVersion -Source https://mscodehub.pkgs.visualstudio.com/eBPFForWindows/_packaging/eBPFForWindows/nuget/v3/index.json -OutputDirectory $targetDirectory" -Wait
+    Rename-Item -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\eBPF-for-Windows-Redist.$packageVersion.nupkg" -NewName "eBPF-for-Windows-Redist.$packageVersion.nupkg.zip"
+    Expand-Archive -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\eBPF-for-Windows-Redist.$packageVersion.nupkg.zip" -DestinationPath "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\temp"
+    Copy-Directory -sourcePath "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\temp\package\bin" -destinationPath "$targetDirectory\v$packageVersion"
+    Delete-Directory -destinationPath "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion"
+}
+
+#######################################################
+# VM Extension Handler Internal Helper Functions
+#######################################################
+function Enable-EbpfTracing {
 
     # TBD: Register trace providers
 }
 
-function Disable-Tracing {
+function Disable-EbpfTracing {
     
     # TBD: Unregister trace providers 
 }
 
+function Register-EbpfNetshExtension{
+    param (
+        [string]$installDirectory
+    )
 
-#######################################################
-# VM Extension Handler Functions
-#######################################################
+    Push-Location -Path $installDirectory
 
-function Reset-eBPF {
-    # NOP for this current implementation
-    # TBD: confirm if Reset does not need to generate a status file
+    # Add the eBPF netsh helper.
+    $installResult = & "netsh.exe" add helper $EbpfNetshExtensionName
+
+    # Check the exit code to determine the result
+    if ($LASTEXITCODE -eq 0) {
+        Write-Log -level $LogLevelInfo -message "$EbpfNetshExtensionName registered successfully."
+    } else {
+        Write-Log -level $LogLevelError -message "Failed to register $EbpfNetshExtensionName. Error message: $installResult"
+    }
+
+    Pop-Location
+    return $LASTEXITCODE
 }
 
-function Enable-eBPF {
-    # This is where any checks for prerequisites should be performed
+function Unregister-EbpfNetshExtension{
 
-    # Generate the status file
-    Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameEnable -status $StatusSuccess -statusCode 0 -statusMessage "eBPF enabled"
+    # Add the eBPF netsh helper.
+    Push-Location -Path $EbpfDefaultInstallPath
+    $installResult = & "netsh.exe" delete helper $EbpfNetshExtensionName
+
+    # Check the exit code to determine the result
+    if ($LASTEXITCODE -eq 0) {
+        Write-Log -level $LogLevelInfo -message "$EbpfNetshExtensionName unregistered successfully."
+    } else {
+        Write-Log -level $LogLevelError -message "Failed to unregister $EbpfNetshExtensionName. Error message: $installResult"
+    }
+
+    Pop-Location
+    return $LASTEXITCODE
 }
 
-function Disable-eBPF {
-    Stop-eBPFDrivers
-    # TBD: confirm if Disable does not need to generate a status file
-    Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameDisable -status $StatusSuccess -statusCode 0 -statusMessage "eBPF disabled"
+function Stop-eBPFDrivers {
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        $driverName = $_.Key
+        Stop-Service -Name $driverName -ErrorAction SilentlyContinue
+        if ($?) {
+            Write-Log -level $LogLevelInfo -message "Stopped driver: $driverName"
+        } else {
+            Write-Log -level $LogLevelError -message "Failed to stop driver: $driverName"
+        }
+    }
 }
 
 function Install-eBPF {
@@ -454,88 +432,47 @@ function Install-eBPF {
     Write-Log -level $LogLevelInfo -message "Installing eBPF for Windows"
 
     # Copy the eBPF files to the destination folder
-    $copyResult = Copy-EbpFiles -sourcePath $sourcePath -destinationPath $destinationPath
+    $copyResult = Copy-Directory -sourcePath $sourcePath -destinationPath $destinationPath
     if ($copyResult -eq $true) {
-        # Install the eBPF services and use the results to generate the status file
-        $installResult1 = Install-Driver -serviceName $EbpfCoreDriverName -servicePath "$destinationPath\drivers"
-        $installResult2 = Install-Driver -serviceName $NetEbpfExtDriverName -servicePath "$destinationPath\drivers"
 
-        # Determine the overall status and status message
-        if ($installResult1 -eq 0 -and $installResult2 -eq 0) {
+        # Install the eBPF services and use the results to generate the status file        
+        $failedServices = @() 
+        $EbpfDrivers.GetEnumerator() | ForEach-Object {
+            $driverName = $_.Key
+            $installResult = Install-Driver -serviceName $driverName -servicePath "$destinationPath\drivers\$driverName.sys"
+            if ($installResult -ne 0) {
+                $failedServices += $driverName
+            }
+        }
+
+        # Determine the overall installation status
+        if ($failedServices.Length -eq 0) {
 
             # Add the eBPF installation directory to the system PATH
             Add-DirectoryToSystemPath -directoryPath $destinationPath | Out-Null 
 
             # Register the netsh extension
-            Register-NetshExtension -installDirectory $destinationinstallDirectory | Out-Null 
+            Register-EbpfNetshExtension -installDirectory $destinationinstallDirectory | Out-Null 
                
             # Register the trace providers
-            Enable-Tracing | Out-Null 
+            Enable-EbpfTracing | Out-Null 
 
             $statusCode = 0
             Write-Log -level $LogLevelInfo -message "eBPF for Windows installed successfully."
         } else {
             $statusCode = 1
-            $failedServices = @()            
-            if ($installResult1 -ne 0) {
-                $failedServices += $EbpfCoreDriverName
-            }
-            if ($installResult2 -ne 0) {
-                $failedServices += $NetEbpfExtDriverName
-            }
             $failedServicesString = $failedServices -join ", "
-            Write-Log -level $LogLevelError -message "Failed to install service(s): $failedServicesString."
+            Write-Log -level $LogLevelError -message "Failed to install service(s): $failedServicesString -> reverting registration for the once that succeded."
+
+            # Uninstall any eBPF drivers
+            $EbpfDrivers.GetEnumerator() | ForEach-Object {
+                Unstall-Driver -serviceName $_.Key | Out-Null
+            }
         }
     } else {
         $statusCode = 1
         Write-Log -level $LogLevelError -message "Failed to copy eBPF files to the destination folder."
     }
-
-    return [int]$statusCode
-}
-
-function Uninstall-eBPF {
-    param (
-        [string]$installDirectory
-    )
-
-    Write-Log -level $LogLevelInfo -message "Uninstalling eBPF for Windows"
-    
-    # Stop all eBPF drivers (which will stop all the services which have a dependency on them).
-    Stop-eBPFDrivers | Out-Null 
-
-    # De-register the netsh extension
-    Unregister-NetshExtension | Out-Null 
-
-    # Uninstall the eBPF services and use the results to generate the status file
-    $uninstallResult1 = Uninstall-Driver -serviceName $EbpfCoreDriverName
-    $uninstallResult2 = Uninstall-Driver -serviceName $NetEbpfExtDriverName
-
-    # Determine the overall status and status message
-    if ($uninstallResult1 -eq 0 -and $uninstallResult2 -eq 0) {
-        $statusCode = 0
-        Write-Log -level $LogLevelInfo -message "eBPF for Windows uninstalled successfully."
-    } else {
-        $statusCode = 1
-        $failedServices = @()        
-        if ($uninstallResult1 -ne 0) {
-            $failedServices += $EbpfCoreDriverName
-        }
-        if ($uninstallResult2 -ne 0) {
-            $failedServices += $NetEbpfExtDriverName
-        }
-        $failedServicesString = $failedServices -join ", "
-        Write-Log -level $LogLevelError -message "Failed to uninstall service(s): $failedServicesString."
-    }
-
-    # Remove the eBPF installation directory from the system PATH
-    Remove-DirectoryFromSystemPath -directoryPath $installDirectory | Out-Null 
-
-    # Delete the eBPF files
-    Delete-EbpfFiles -destinationPath $installDirectory | Out-Null 
-
-    # Unregister the trace providers
-    Disable-Tracing | Out-Null 
 
     return [int]$statusCode
 }
@@ -573,6 +510,73 @@ function Upgrade-eBPF {
             }
         }
     }
+
+    return [int]$statusCode
+}
+
+#######################################################
+# VM Extension Handler Functions
+#######################################################
+
+function Reset-eBPF {
+    # NOP for this current implementation
+    # TBD: confirm if Reset does not need to generate a status file
+}
+
+function Enable-eBPF {
+    # This is where any checks for prerequisites should be performed
+
+    # Generate the status file
+    Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameEnable -status $StatusSuccess -statusCode 0 -statusMessage "eBPF enabled"
+}
+
+function Disable-eBPF {
+    Stop-eBPFDrivers
+    # TBD: confirm if Disable does not need to generate a status file
+    Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameDisable -status $StatusSuccess -statusCode 0 -statusMessage "eBPF disabled"
+}
+
+function Uninstall-eBPF {
+    param (
+        [string]$installDirectory
+    )
+
+    Write-Log -level $LogLevelInfo -message "Uninstalling eBPF for Windows"
+    
+    # Stop all eBPF drivers (which will stop all the services which have a dependency on them).
+    Stop-eBPFDrivers | Out-Null 
+
+    # De-register the netsh extension
+    Unregister-EbpfNetshExtension | Out-Null 
+
+    # Uninstall the eBPF services and use the results to generate the status file
+    $failedServices = @() 
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        $driverName = $_.Key
+        $uninstallResult = Uninstall-Driver -serviceName $driverName
+        if ($uninstallResult -ne 0) {
+            $failedServices += $driverName
+        }
+    }
+
+    # Determine the overall installation status
+    if ($failedServices.Length -eq 0) {
+        $statusCode = 0
+        Write-Log -level $LogLevelInfo -message "eBPF for Windows uninstalled successfully."
+    } else {
+        $statusCode = 1
+        $failedServicesString = $failedServices -join ", "
+        Write-Log -level $LogLevelError -message "Failed to uninstall service(s): $failedServicesString."
+    }
+
+    # Remove the eBPF installation directory from the system PATH
+    Remove-DirectoryFromSystemPath -directoryPath $installDirectory | Out-Null 
+
+    # Delete the eBPF files
+    Delete-Directory -destinationPath $installDirectory | Out-Null 
+
+    # Unregister the trace providers
+    Disable-EbpfTracing | Out-Null 
 
     return [int]$statusCode
 }
@@ -650,20 +654,29 @@ function InstallOrUpdate-eBPF {
     return [int]$statusCode
 }
 
-
 #######################################################
 # Main entry point
 #######################################################
-# Change the working directory to the root of the test environment, so to simulate the actual env that will be set up by the VM Agent.
-Push-Location -Path 'C:\_ebpf\vm_ext'
-if ($runTests -eq $true) {
+if ($runTests -eq $false) {
+    # Call the Get-HandlerEnvironment function, capture the output and set the global environment variable.
+    if (Get-HandlerEnvironment -ne $true) {
+        Write-Log -level $LogLevelError -message "Failed to load '$DefaultHandlerEnvironmentPath'."
+        exit       
+    }
+} else
+{
+    
+    # Change the working directory to the root of the test environment, so to simulate the actual env that will be set up by the VM Agent.
+    $currentDirectory = Get-Location
+    Set-Location "$testRootFolder"
 
     #Load test-environment (current working folder is the root folder in which the entire ZIP in unzipped).
     if (Get-HandlerEnvironment -handlerEnvironmentFullPath ".\HandlerEnvironment-test.json" -eq $true) {
 
         # Test cases
-        Write-Log -level $LogLevelInfo -message "= Cleaning up environment =================================================================================================="
-        # Quick & dirty cleanup
+        #######################################################
+        # Raw environment cleanup
+        Write-Log -level $LogLevelInfo -message "= Cleaning up environment =================================================================================================="        
         $null = net stop eBPFCore 2>&1
         $null = sc.exe delete eBPFCore 2>&1
         $null = net stop NetEbpfExt 2>&1
@@ -671,54 +684,52 @@ if ($runTests -eq $true) {
         $null = netsh delete helper ebpfnetsh.dll 2>&1
         $null = Remove-DirectoryFromSystemPath "$EbpfDefaultInstallPath" 2>&1
         $null = Remove-Item -Path "$EbpfDefaultInstallPath" -Recurse -Force 2>&1
-        Remove-Item -Path "$global:LogFilePath" -Recurse -Force 2>&1 | Out-Null    
- 
-        # Install an old version
-        Write-Log -level $LogLevelInfo -message "= Install an old version =================================================================================================="
-        Delete-EbpfFiles -destinationPath "$EbpfPackagePath"
-        Copy-EbpFiles -sourcePath ".\_redist-package_v0.7.0" -destinationPath "$EbpfPackagePath"
-        InstallOrUpdate-eBPF -vmAgentOperationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
+        $null = Remove-Item -Path "$global:LogFilePath" -Recurse -Force 2>&1
 
-        # Update to newer version
+        # Clean-up and set up the test environment with two versions of the eBPF redist package
+        $testRedistTargetDirectory = ".\_ebpf-redist"
+        Delete-Directory -destinationPath $testRedistTargetDirectory | Out-Null
+        DownloadAndUnpackEbpfRedistPackage -packageVersion "0.9.0" -targetDirectory $testRedistTargetDirectory | Out-Null
+        DownloadAndUnpackEbpfRedistPackage -packageVersion "0.9.1" -targetDirectory $testRedistTargetDirectory | Out-Null 
+ 
+        # Install an old version 
+        $packageVersion = "0.9.0"
+        Write-Log -level $LogLevelInfo -message "= Install an old version =================================================================================================="
+        Delete-Directory -destinationPath "$EbpfPackagePath" | Out-Null
+        Copy-Directory -sourcePath "$testRedistTargetDirectory\v$packageVersion" -destinationPath "$EbpfPackagePath" | Out-Null 
+        InstallOrUpdate-eBPF -vmAgentOperationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" | Out-Null 
+
+        # Update to a newer version
+        $packageVersion = "0.9.1"
         Write-Log -level $LogLevelInfo -message "= Update to newer version =================================================================================================="
-        Delete-EbpfFiles -destinationPath "$EbpfPackagePath"
-        Copy-EbpFiles -sourcePath ".\_redist-package_v0.10.0" -destinationPath "$EbpfPackagePath"
+        Delete-Directory -destinationPath "$EbpfPackagePath" | Out-Null 
+        Copy-Directory -sourcePath "$testRedistTargetDirectory\v$packageVersion" -destinationPath "$EbpfPackagePath" | Out-Null 
         Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -$statusMessage "Starting eBPF update"
-        InstallOrUpdate-eBPF -vmAgentOperationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
+        InstallOrUpdate-eBPF -vmAgentOperationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" | Out-Null 
         
-        # Update to older version
+        # Update back to an older version
+        $packageVersion = "0.9.0"
         Write-Log -level $LogLevelInfo -message "= Update to older version =================================================================================================="
-        Delete-EbpfFiles -destinationPath "$EbpfPackagePath"
-        Copy-EbpFiles -sourcePath ".\_redist-package_v0.7.0" -destinationPath "$EbpfPackagePath"
+        Delete-Directory -destinationPath "$EbpfPackagePath" | Out-Null 
+        Copy-Directory -sourcePath "$testRedistTargetDirectory\v$packageVersion" -destinationPath "$EbpfPackagePath" | Out-Null 
         Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -$statusMessage "Starting eBPF update"
-        InstallOrUpdate-eBPF -vmAgentOperationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
+        InstallOrUpdate-eBPF -vmAgentOperationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" | Out-Null 
 
         # Uninstall
         Write-Log -level $LogLevelInfo -message "= Uninstall =================================================================================================="
-        $statusString = $StatusSuccess
-        $statusCode = 0
-        $statusMessage = ""
-        $res = Uninstall-eBPF $EbpfDefaultInstallPath
-        if ($res -eq $true) {    
+        $statusCode = Uninstall-eBPF $EbpfDefaultInstallPath
+        if ($statusCode -eq 0) {
+            $statusString = $StatusSuccess
             $statusMessage = "eBPF for Windows was successfully uninstalled"
         }
         else {
             $statusString = $StatusError
-            $statusCode = 1
             $statusMessage = "eBPF for Windows was not uninstalled"
         }
         Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $OperationNameUninstall -status $statusString -statusCode $statusCode -statusMessage $statusMessage
     } else {
         Write-Log -level $LogLevelError -message "Failed to load .\HandlerEnvironment-test.json."
-        exit
     }
-} else
-{
-    # Call the Get-HandlerEnvironment function, capture the output and set the global environment variable.
-    if (Get-HandlerEnvironment -ne $true) {
-        Write-Log -level $LogLevelError -message "Failed to load '$DefaultHandlerEnvironmentPath'."
-        exit       
-    }
-}
 
-Pop-Location
+    Set-Location $currentDirectory    
+}

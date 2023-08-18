@@ -1,0 +1,15 @@
+{
+    "status":  {
+                   "name":  "eBPFforWindows",
+                   "code":  0,
+                   "configurationAppliedTime":  "2023-08-18T23:27:30Z",
+                   "formattedMessage":  {
+                                            "message":  "eBPF for Windows was successfully uninstalled",
+                                            "lang":  "en-US"
+                                        },
+                   "operation":  "uninstall",
+                   "status":  "success"
+               },
+    "timestampUTC":  "2023-08-18T23:27:30Z",
+    "version":  "1.0"
+}
