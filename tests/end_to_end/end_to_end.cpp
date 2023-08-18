@@ -35,7 +35,9 @@ namespace ebpf {
 #include <array>
 #include <cguid.h>
 #include <chrono>
+#include <lsalookup.h>
 #include <mutex>
+#define _NTDEF_ // UNICODE_STRING is already defined
 #include <ntsecapi.h>
 #include <thread>
 
