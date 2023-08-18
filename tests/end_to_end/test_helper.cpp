@@ -344,7 +344,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
         if (context->dll != nullptr) {
             FreeLibrary(context->dll);
         }
-        ebpf_free(context);
+        delete context;
     }
     _service_path_to_context_map.clear();
 }
@@ -633,7 +633,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_delete_se
             // Delete the service if it has not been loaded yet. Otherwise
             // mark it pending for delete.
             if (!context->loaded) {
-                ebpf_free(context);
+                delete context;
                 _service_path_to_context_map.erase(path);
             } else {
                 context->delete_pending = true;

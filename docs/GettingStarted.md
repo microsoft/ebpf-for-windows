@@ -173,49 +173,6 @@ and a few binaries just used for demo'ing eBPF functionality, as in the demo wal
 - `port_leak.exe`: A "buggy" utility to illustrate the effect of an app that leaks ports.
 - `port_quota.exe`: A sample utility to illustrate using eBPF to manage port quotas to defend against `port_leak.exe` and similar "buggy" apps.
 
-### How to clone and build the project using CMake
-
-#### Cloning the project
-
-```bash
-git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git
-```
-
-#### Configuring the project
-
-```bash
-cmake -S ebpf-for-windows -B build
-```
-
-#### Building the project
-
-Configuration: It is advised to use the Debug configuration for now.
-
-```bash
-cmake --build build --config <Configuration>
-```
-
-#### Running the tests
-
-Configure with the `EBPFFORWINDOWS_ENABLE_TESTS` option (enabled by default)
-
-```bash
-cmake -S ebpf-for-windows -B build -DEBPFFORWINDOWS_ENABLE_TESTS=true
-```
-
-Then build the tests
-
-```bash
-cmake -S ebpf-for-windows -B build
-```
-
-Finally, invoke CTest:
-
-```bash
-cd build
-ctest -V -C Debug
-```
-
 ## Installing eBPF for Windows
 
 Windows requires that one of the following criteria be met prior to loading a driver:
