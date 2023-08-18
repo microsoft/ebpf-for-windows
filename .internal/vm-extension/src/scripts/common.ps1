@@ -149,10 +149,10 @@ function Is-AKS-Environment {
         if ($null -ne $value) {
             return $true
         } else {
-            Write-Host "Value '$AksRegistryKeyValue' not found in registry key '$AksRegistryKeyPath'."
+            Write-Log -level $LogLevelInfo -message "Value '$AksRegistryKeyValue' not found in registry key '$AksRegistryKeyPath'."
         }
     } else {
-        Write-Host "Registry key '$AksRegistryKeyPath' not found."
+        Write-Log -level $LogLevelInfo -message "Registry key '$AksRegistryKeyPath' not found."
     }
 
     return $false
@@ -464,13 +464,13 @@ function Install-eBPF {
         if ($installResult1 -eq 0 -and $installResult2 -eq 0) {
 
             # Add the eBPF installation directory to the system PATH
-            Add-DirectoryToSystemPath -directoryPath $destinationPath
+            Add-DirectoryToSystemPath -directoryPath $destinationPath | Out-Null 
 
             # Register the netsh extension
-            Register-NetshExtension -installDirectory $destinationinstallDirectory
+            Register-NetshExtension -installDirectory $destinationinstallDirectory | Out-Null 
                
             # Register the trace providers
-            Enable-Tracing
+            Enable-Tracing | Out-Null 
 
             $statusCode = 0
             Write-Log -level $LogLevelInfo -message "eBPF for Windows installed successfully."
@@ -491,9 +491,6 @@ function Install-eBPF {
         Write-Log -level $LogLevelError -message "Failed to copy eBPF files to the destination folder."
     }
 
-    $statusCodeType = $statusCode.GetType()
-    Write-Host "statusCode Type: $($statusCodeType.FullName)"
-    Write-Host "statusCode Value: $statusCode"
     return [int]$statusCode
 }
 
@@ -505,10 +502,10 @@ function Uninstall-eBPF {
     Write-Log -level $LogLevelInfo -message "Uninstalling eBPF for Windows"
     
     # Stop all eBPF drivers (which will stop all the services which have a dependency on them).
-    Stop-eBPFDrivers
+    Stop-eBPFDrivers | Out-Null 
 
     # De-register the netsh extension
-    Unregister-NetshExtension
+    Unregister-NetshExtension | Out-Null 
 
     # Uninstall the eBPF services and use the results to generate the status file
     $uninstallResult1 = Uninstall-Driver -serviceName $EbpfCoreDriverName
@@ -532,13 +529,13 @@ function Uninstall-eBPF {
     }
 
     # Remove the eBPF installation directory from the system PATH
-    Remove-DirectoryFromSystemPath -directoryPath $installDirectory
+    Remove-DirectoryFromSystemPath -directoryPath $installDirectory | Out-Null 
 
     # Delete the eBPF files
-    Delete-EbpfFiles -destinationPath $installDirectory
+    Delete-EbpfFiles -destinationPath $installDirectory | Out-Null 
 
     # Unregister the trace providers
-    Disable-Tracing   
+    Disable-Tracing | Out-Null 
 
     return [int]$statusCode
 }
@@ -561,14 +558,12 @@ function Upgrade-eBPF {
 
         # For the moment, we just uninstall and install to the current installation folder
         $statusCode = Uninstall-eBPF "$installDirectory"
-        $statusCode = $statusCode[2]
         if ($statusCode -ne 0) {
             $statusMessage = "eBPF $vmAgentOperationName FAILED (Uninstall failed)."
             Write-Log -level $LogLevelError -message $statusMessage
         } else {
             Write-Log -level $LogLevelInfo -message "eBPF v$currProductVersion uninstalled successfully."
             $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$installDirectory"
-            $statusCode = $statusCode[1]
             if ($statusCode -ne 0) {
                 $statusMessage = "eBPF $vmAgentOperationName FAILED (Install failed)."
                 Write-Log -level $LogLevelError -message $statusMessage
@@ -642,12 +637,6 @@ function InstallOrUpdate-eBPF {
         
         # Proceed with a new installation from the artifact package within the extension ZIP file
         $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$currInstallPath"
-        Write-Host "statusCode Type:" $statusCode.GetType()
-        Write-Host "statusCode Value:" $($statusCode -join ' ')
-        foreach ($status in $statusCode) {
-            Write-Host "Status Type:" $status.GetType()
-        }
-        $statusCode = $statusCode[1]
         if ($statusCode -ne 0) {
             Write-Log -level $LogLevelError -message "Failed to install eBPF v$newProductVersion."
             Create-StatusFile -handlerWorkloadName $HandlerWorkloadName -operationName $vmAgentOperationName -status $StatusError -statusCode 1 -statusMessage "eBPF $vmAgentOperationName FAILED (Clean install failed)."
@@ -682,6 +671,7 @@ if ($runTests -eq $true) {
         $null = netsh delete helper ebpfnetsh.dll 2>&1
         $null = Remove-DirectoryFromSystemPath "$EbpfDefaultInstallPath" 2>&1
         $null = Remove-Item -Path "$EbpfDefaultInstallPath" -Recurse -Force 2>&1
+        Remove-Item -Path "$global:LogFilePath" -Recurse -Force 2>&1 | Out-Null    
  
         # Install an old version
         Write-Log -level $LogLevelInfo -message "= Install an old version =================================================================================================="
