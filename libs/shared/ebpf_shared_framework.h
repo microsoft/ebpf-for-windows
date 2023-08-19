@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #pragma once
+#include "cxplat.h"
 #include "ebpf_result.h"
 #include "shared_context.h"
 
@@ -50,12 +51,10 @@ extern "C"
         EBPF_POOL_TAG_STATE = 'atse',
     } ebpf_pool_tag_t;
 
-    /**
-     * @brief Duplicate a string.
-     * @param[in] size Size of memory to allocate.
-     * @returns Pointer to memory block allocated, or null on failure.
-     */
-    _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size);
+// TODO: get rid of this extra level of indirection
+#define ebpf_allocate cxplat_allocate
+#define ebpf_free cxplat_free
+#define ebpf_reallocate cxplat_reallocate
 
     /**
      * @brief Allocate memory.
@@ -64,41 +63,6 @@ extern "C"
      * @returns Pointer to memory block allocated, or null on failure.
      */
     _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag);
-
-    /**
-     * @brief Reallocate memory.
-     * @param[in] memory Allocation to be reallocated.
-     * @param[in] old_size Old size of memory to reallocate.
-     * @param[in] new_size New size of memory to reallocate.
-     * @returns Pointer to memory block allocated, or null on failure.
-     */
-    _Must_inspect_result_ _Ret_writes_maybenull_(new_size) void* ebpf_reallocate(
-        _In_ _Post_invalid_ void* memory, size_t old_size, size_t new_size);
-
-    /**
-     * @brief Free memory.
-     * @param[in] memory Allocation to be freed.
-     */
-    void
-    ebpf_free(_Frees_ptr_opt_ void* memory);
-
-    /**
-     * @brief Duplicate a null-terminated string.
-     * TODO: ebpf_strdup() and this seem to be duplicates.
-     *
-     * @param[in] source String to duplicate.
-     * @return Pointer to the duplicated string or NULL if out of memory.
-     */
-    _Must_inspect_result_ _Ret_maybenull_z_ char*
-    ebpf_duplicate_string(_In_z_ const char* source);
-
-    /**
-     * @brief Allocate memory.
-     * @param[in] source String to duplicate.
-     * @returns Pointer to duplicated string, or null on failure.
-     */
-    _Must_inspect_result_ _Ret_maybenull_z_ char*
-    ebpf_strdup(_In_z_ const char* source);
 
     /**
      * @brief Multiplies one value of type size_t by another and check for

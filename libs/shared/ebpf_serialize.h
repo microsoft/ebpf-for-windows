@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "cxplat.h"
 #include "ebpf_core_structs.h"
 
 // Everything in this file must be usable in both user mode and kernel mode,
@@ -22,7 +23,7 @@ extern "C"
     typedef struct _ebpf_map_info_internal
     {
         ebpf_map_definition_in_memory_t definition;
-        ebpf_utf8_string_t pin_path;
+        cxplat_utf8_string_t pin_path;
     } ebpf_map_info_internal_t;
 
     /**

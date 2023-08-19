@@ -17,7 +17,7 @@
 typedef struct _ebpf_core_map
 {
     ebpf_core_object_t object;
-    ebpf_utf8_string_t name;
+    cxplat_utf8_string_t name;
     ebpf_map_definition_in_memory_t ebpf_map_definition;
     uint32_t original_value_size;
     uint8_t* data;
@@ -2136,7 +2136,7 @@ _ebpf_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* object)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_create(
-    _In_ const ebpf_utf8_string_t* map_name,
+    _In_ const cxplat_utf8_string_t* map_name,
     _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_map_t** ebpf_map)

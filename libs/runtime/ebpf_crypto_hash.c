@@ -15,7 +15,7 @@ typedef struct _ebpf_cryptographic_hash
 } ebpf_cryptographic_hash_t;
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_cryptographic_hash_create(_In_ const ebpf_utf8_string_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash)
+ebpf_cryptographic_hash_create(_In_ const cxplat_utf8_string_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash)
 {
     ebpf_result_t result;
     NTSTATUS nt_status;

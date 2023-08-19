@@ -871,7 +871,7 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
         ebpf_free(map->pin_path);
-        map->pin_path = ebpf_duplicate_string(path);
+        map->pin_path = cxplat_duplicate_string(path);
         if (map->pin_path == nullptr) {
             EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
         }
@@ -893,7 +893,7 @@ ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noe
     ebpf_assert(map);
     char* old_path = map->pin_path;
     if (path != nullptr) {
-        path = ebpf_duplicate_string(path);
+        path = cxplat_duplicate_string(path);
         if (path == nullptr) {
             EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
         }
@@ -1726,13 +1726,13 @@ _initialize_ebpf_object_from_native_file(
         program->attach_type = info->expected_attach_type;
         program->fd = ebpf_fd_invalid;
 
-        program->section_name = ebpf_duplicate_string(info->section_name);
+        program->section_name = cxplat_duplicate_string(info->section_name);
         if (program->section_name == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
 
-        program->program_name = ebpf_duplicate_string(info->program_name);
+        program->program_name = cxplat_duplicate_string(info->program_name);
         if (program->program_name == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -1822,13 +1822,13 @@ _initialize_ebpf_object_from_file(
 {
     ebpf_result_t result = EBPF_SUCCESS;
 
-    new_object->file_name = ebpf_duplicate_string(path);
+    new_object->file_name = cxplat_duplicate_string(path);
     if (new_object->file_name == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Done;
     }
 
-    new_object->object_name = ebpf_duplicate_string(object_name ? object_name : path);
+    new_object->object_name = cxplat_duplicate_string(object_name ? object_name : path);
     if (new_object->object_name == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -2016,7 +2016,7 @@ _ebpf_pe_get_map_definitions(
 
                 const char* map_name =
                     _ebpf_get_section_string(pe_context, (uintptr_t)entry->name, section_header, buffer);
-                map->name = ebpf_duplicate_string(map_name);
+                map->name = cxplat_duplicate_string(map_name);
                 if (map->name == nullptr) {
                     pe_context->result = EBPF_NO_MEMORY;
                     goto Error;
@@ -2033,7 +2033,7 @@ _ebpf_pe_get_map_definitions(
                         pe_context->result = EBPF_INVALID_ARGUMENT;
                         goto Error;
                     }
-                    map->pin_path = ebpf_duplicate_string(pin_path_buffer);
+                    map->pin_path = cxplat_duplicate_string(pin_path_buffer);
                     if (map->pin_path == nullptr) {
                         pe_context->result = EBPF_NO_MEMORY;
                         goto Error;
@@ -2180,14 +2180,14 @@ _ebpf_pe_add_section(
     }
 
     memset(info, 0, sizeof(*info));
-    info->section_name = ebpf_duplicate_string(elf_section_name.c_str());
+    info->section_name = cxplat_duplicate_string(elf_section_name.c_str());
     if (info->section_name == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
         goto Exit;
     }
 
-    info->program_name = ebpf_duplicate_string(program_name.c_str());
+    info->program_name = cxplat_duplicate_string(program_name.c_str());
     if (info->program_name == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
@@ -2257,7 +2257,7 @@ _ebpf_enumerate_native_sections(
         DestructParsedPE(pe);
 
         if (context.result != EBPF_SUCCESS) {
-            *error_message = ebpf_duplicate_string("Failed to parse PE file.");
+            *error_message = cxplat_duplicate_string("Failed to parse PE file.");
             while (context.infos) {
                 ebpf_section_info_t* next = context.infos->next;
                 _ebpf_free_section_info(context.infos);

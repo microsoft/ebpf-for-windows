@@ -16,7 +16,7 @@ extern "C"
      */
     typedef struct _ebpf_pinning_entry
     {
-        ebpf_utf8_string_t path;
+        cxplat_utf8_string_t path;
         ebpf_core_object_t* object;
     } ebpf_pinning_entry_t;
 
@@ -53,7 +53,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_pinning_table_insert(
-        ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t* object);
+        ebpf_pinning_table_t* pinning_table, const cxplat_utf8_string_t* path, ebpf_core_object_t* object);
 
     /**
      * @brief Find an entry in the pinning table and acquire a reference on the
@@ -68,7 +68,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_pinning_table_find(
-        ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t** object);
+        ebpf_pinning_table_t* pinning_table, const cxplat_utf8_string_t* path, ebpf_core_object_t** object);
 
     /**
      * @brief Find an entry in the pinning table, remove it and release a
@@ -81,7 +81,7 @@ extern "C"
      *  table.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path);
+    ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const cxplat_utf8_string_t* path);
 
     /**
      * @brief Returns all entries in the pinning table of specified object type after acquiring a reference.
@@ -115,8 +115,8 @@ extern "C"
     ebpf_pinning_table_get_next_path(
         _Inout_ ebpf_pinning_table_t* pinning_table,
         ebpf_object_type_t object_type,
-        _In_ const ebpf_utf8_string_t* start_path,
-        _Inout_ ebpf_utf8_string_t* next_path);
+        _In_ const cxplat_utf8_string_t* start_path,
+        _Inout_ cxplat_utf8_string_t* next_path);
 
     /**
      * @brief Releases entries returned by ebpf_pinning_table_enumerate_entries.

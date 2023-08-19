@@ -16,9 +16,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\memory.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\tracelog.c">
       <Filter>Source Files</Filter>
     </ClCompile>

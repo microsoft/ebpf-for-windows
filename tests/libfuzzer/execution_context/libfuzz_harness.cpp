@@ -183,7 +183,7 @@ class fuzz_wrapper
             }
         }
         for (const auto& [name, def] : _map_definitions) {
-            ebpf_utf8_string_t utf8_name{reinterpret_cast<uint8_t*>(const_cast<char*>(name.data())), name.size()};
+            cxplat_utf8_string_t utf8_name{reinterpret_cast<uint8_t*>(const_cast<char*>(name.data())), name.size()};
             ebpf_handle_t handle;
             if (ebpf_core_create_map(&utf8_name, &def, ebpf_handle_invalid, &handle) == EBPF_SUCCESS) {
                 handles.push_back(handle);

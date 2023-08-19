@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "cxplat.h"
 #include "ebpf_handle.h"
 #include "ebpf_object.h"
 #include "ebpf_shared_framework.h"
@@ -348,30 +349,24 @@ ebpf_object_get_type(_In_ const ebpf_core_object_t* object)
     return object->type;
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source)
+ebpf_result_t
+ebpf_result_from_cxplat_status(cxplat_status_t status)
 {
-    if (!source->value || !source->length) {
-        destination->value = NULL;
-        destination->length = 0;
+    switch (status) {
+    case CXPLAT_STATUS_SUCCESS:
         return EBPF_SUCCESS;
-    } else {
-        destination->value = ebpf_allocate(source->length);
-        if (!destination->value) {
-            return EBPF_NO_MEMORY;
-        }
-        memcpy(destination->value, source->value, source->length);
-        destination->length = source->length;
-        return EBPF_SUCCESS;
+    case CXPLAT_STATUS_NO_MEMORY:
+        return EBPF_NO_MEMORY;
+    default:
+        return EBPF_FAILED;
     }
 }
 
-void
-ebpf_utf8_string_free(_Inout_ ebpf_utf8_string_t* string)
+_Must_inspect_result_ ebpf_result_t
+ebpf_duplicate_utf8_string(_Out_ cxplat_utf8_string_t* destination, _In_ const cxplat_utf8_string_t* source)
 {
-    ebpf_free(string->value);
-    string->value = NULL;
-    string->length = 0;
+    cxplat_status_t status = cxplat_duplicate_utf8_string(destination, source);
+    return ebpf_result_from_cxplat_status(status);
 }
 
 /**
@@ -515,18 +510,6 @@ ebpf_object_reference_by_handle(
 {
     return ebpf_reference_base_object_by_handle(
         handle, _ebpf_object_compare, &object_type, (ebpf_base_object_t**)object, file_id, line);
-}
-
-_Must_inspect_result_ _Ret_maybenull_z_ char*
-ebpf_duplicate_string(_In_z_ const char* source)
-{
-    size_t length = strlen(source) + 1;
-    char* destination = ebpf_allocate(length);
-    if (destination == NULL) {
-        return NULL;
-    }
-    memcpy(destination, source, length);
-    return destination;
 }
 
 _Must_inspect_result_ ebpf_result_t

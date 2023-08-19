@@ -194,15 +194,7 @@ extern "C"
      *  UTF-8 string.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source);
-
-    /**
-     * @brief Free a UTF-8 string allocated by ebpf_duplicate_utf8_string.
-     *
-     * @param[in,out] string The string to free.
-     */
-    void
-    ebpf_utf8_string_free(_Inout_ ebpf_utf8_string_t* string);
+    ebpf_duplicate_utf8_string(_Out_ cxplat_utf8_string_t* destination, _In_ const cxplat_utf8_string_t* source);
 
     /**
      * @brief Get the code integrity state from the platform.
@@ -789,7 +781,8 @@ extern "C"
      * @return EBPF_INVALID_ARGUMENT The algorithm is not supported.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_cryptographic_hash_create(_In_ const ebpf_utf8_string_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash);
+    ebpf_cryptographic_hash_create(
+        _In_ const cxplat_utf8_string_t* algorithm, _Outptr_ ebpf_cryptographic_hash_t** hash);
 
     /**
      * @brief Destroy a cryptographic hash object.
@@ -935,7 +928,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT Unable to convert the string.
      */
     ebpf_result_t
-    ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output);
+    ebpf_utf8_string_to_unicode(_In_ const cxplat_utf8_string_t* input, _Outptr_ wchar_t** output);
 
     /**
      * @brief Check if fault injection is enabled. (Fault injection

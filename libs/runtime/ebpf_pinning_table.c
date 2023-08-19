@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: MIT
 
 // The pinning table stores ebpf_pinning_entry_t objects in an ebpf_hash_table_t, which is designed to store fixed
-// size keys and values. The pinning table uses ebpf_utf8_string_t as the key for this table, which is a variable
-// sized structure with embedded pointers. As a result, ebpf_utf8_string_t structures are not directly comparable.
+// size keys and values. The pinning table uses cxplat_utf8_string_t as the key for this table, which is a variable
+// sized structure with embedded pointers. As a result, cxplat_utf8_string_t structures are not directly comparable.
 // To handle this case, the ebpf_hash_table_t exposes an extract method, that accepts a key and returns
-// a pointer to data that can be compared or hashed. The ebpf_hash_table_t is initialized to use ebpf_utf8_string_t*
+// a pointer to data that can be compared or hashed. The ebpf_hash_table_t is initialized to use cxplat_utf8_string_t*
 // as keys and ebpf_pinning_entry_t* as values.
-// Insertion - The key is a pointer to the ebpf_utf8_string_t embedded in the ebpf_pinning_entry_t and the value is
+// Insertion - The key is a pointer to the cxplat_utf8_string_t embedded in the ebpf_pinning_entry_t and the value is
 // a pointer to the ebpf_pinning_entry_t object.
-// Find/Delete - The key is a pointer to an ebpf_utf8_string_t that contains the string to search for.
+// Find/Delete - The key is a pointer to an cxplat_utf8_string_t that contains the string to search for.
 // Find returns a pointer to the ebpf_pinning_entry_t object. Comparison is done based on the value pointed to by the
 // key. Delete erases the entry from the ebpf_hash_table_t, but doesn't free the memory associated with the
 // ebpf_pinning_entry_t.
@@ -33,7 +33,7 @@ typedef struct _ebpf_pinning_table
 static void
 _ebpf_pinning_table_extract(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length)
 {
-    const ebpf_utf8_string_t* key = *(ebpf_utf8_string_t**)value;
+    const cxplat_utf8_string_t* key = *(cxplat_utf8_string_t**)value;
     *data = key->value;
     *length = key->length * 8;
 }
@@ -65,7 +65,7 @@ ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
     ebpf_lock_create(&(*pinning_table)->lock);
 
     const ebpf_hash_table_creation_options_t options = {
-        .key_size = sizeof(ebpf_utf8_string_t*),
+        .key_size = sizeof(cxplat_utf8_string_t*),
         .value_size = sizeof(ebpf_pinning_entry_t*),
         .extract_function = _ebpf_pinning_table_extract,
         .allocate = ebpf_allocate,
@@ -97,7 +97,7 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
-    ebpf_utf8_string_t* key = NULL;
+    cxplat_utf8_string_t* key = NULL;
     if (pinning_table && pinning_table->hash_table) {
         for (;;) {
             return_value = ebpf_hash_table_next_key(pinning_table->hash_table, NULL, (uint8_t*)&key);
@@ -116,12 +116,12 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_insert(
-    ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t* object)
+    ebpf_pinning_table_t* pinning_table, const cxplat_utf8_string_t* path, ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
-    ebpf_utf8_string_t* new_key;
+    cxplat_utf8_string_t* new_key;
     ebpf_pinning_entry_t* new_pinning_entry;
 
     if (path->length >= EBPF_MAX_PIN_PATH_LENGTH || path->length == 0) {
@@ -177,12 +177,12 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_find(
-    ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t** object)
+    ebpf_pinning_table_t* pinning_table, const cxplat_utf8_string_t* path, ebpf_core_object_t** object)
 {
     EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
-    const ebpf_utf8_string_t* existing_key = path;
+    const cxplat_utf8_string_t* existing_key = path;
     ebpf_pinning_entry_t** existing_pinning_entry;
 
     state = ebpf_lock_lock(&pinning_table->lock);
@@ -200,12 +200,12 @@ ebpf_pinning_table_find(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path)
+ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const cxplat_utf8_string_t* path)
 {
     EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
-    const ebpf_utf8_string_t* existing_key = path;
+    const cxplat_utf8_string_t* existing_key = path;
     ebpf_pinning_entry_t** existing_pinning_entry;
     ebpf_pinning_entry_t* entry = NULL;
 
@@ -249,7 +249,7 @@ ebpf_pinning_table_enumerate_entries(
     uint16_t local_entry_count = 0;
     uint16_t entries_array_length = 0;
     ebpf_pinning_entry_t* local_pinning_entries = NULL;
-    ebpf_utf8_string_t* next_object_path;
+    cxplat_utf8_string_t* next_object_path;
     ebpf_pinning_entry_t* new_entry = NULL;
 
     ebpf_assert(entry_count);
@@ -340,8 +340,8 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_get_next_path(
     _Inout_ ebpf_pinning_table_t* pinning_table,
     ebpf_object_type_t object_type,
-    _In_ const ebpf_utf8_string_t* start_path,
-    _Inout_ ebpf_utf8_string_t* next_path)
+    _In_ const cxplat_utf8_string_t* start_path,
+    _Inout_ cxplat_utf8_string_t* next_path)
 {
     EBPF_LOG_ENTRY();
     if ((pinning_table == NULL) || (start_path == NULL) || (next_path == NULL)) {
@@ -357,7 +357,7 @@ ebpf_pinning_table_get_next_path(
 
     for (;;) {
         // Get the next entry in the table.
-        ebpf_utf8_string_t* next_object_path;
+        cxplat_utf8_string_t* next_object_path;
         result = ebpf_hash_table_next_key_and_value(
             pinning_table->hash_table, previous_key, (uint8_t*)&next_object_path, (uint8_t**)&next_pinning_entry);
         if (result != EBPF_SUCCESS) {

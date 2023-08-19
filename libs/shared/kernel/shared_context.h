@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #pragma once
+#include <ntifs.h> // Must be included before ntddk.h
 #include <ntddk.h>
 
 #ifdef _DEBUG

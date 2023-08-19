@@ -36,7 +36,7 @@ typedef struct _ebpf_native_map
     ebpf_handle_t inner_map_handle;
     int32_t original_id;
     int32_t inner_map_original_id;
-    ebpf_utf8_string_t pin_path;
+    cxplat_utf8_string_t pin_path;
     bool reused;
     bool pinned;
 } ebpf_native_map_t;
@@ -961,7 +961,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
     ebpf_native_map_t* native_maps = NULL;
     map_entry_t* maps = NULL;
     size_t map_count = 0;
-    ebpf_utf8_string_t map_name = {0};
+    cxplat_utf8_string_t map_name = {0};
     ebpf_map_definition_in_memory_t map_definition = {0};
 
     // Get the maps

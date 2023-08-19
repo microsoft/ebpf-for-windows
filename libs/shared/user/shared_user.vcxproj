@@ -28,7 +28,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\memory.c" />
     <ClCompile Include="..\tracelog.c" />
   </ItemGroup>
   <ItemGroup>

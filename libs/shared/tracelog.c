@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "cxplat.h"
 #include "ebpf_tracelog.h"
-
-#include <TraceLoggingProvider.h>
-#include <winmeta.h>
 
 TRACELOGGING_DEFINE_PROVIDER(
     ebpf_tracelog_provider,
@@ -386,7 +384,7 @@ __declspec(noinline) void ebpf_log_message_utf8_string(
     ebpf_tracelog_level_t trace_level,
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
-    _In_ const ebpf_utf8_string_t* string)
+    _In_ const cxplat_utf8_string_t* string)
 {
     switch (trace_level) {
     CASE_LOG_ALWAYS:

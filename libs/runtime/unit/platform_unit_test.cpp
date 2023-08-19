@@ -364,8 +364,8 @@ TEST_CASE("pinning_test", "[platform]")
     some_object_t an_object;
     some_object_t another_object;
     some_object_t* some_object = nullptr;
-    ebpf_utf8_string_t foo = EBPF_UTF8_STRING_FROM_CONST_STRING("foo");
-    ebpf_utf8_string_t bar = EBPF_UTF8_STRING_FROM_CONST_STRING("bar");
+    cxplat_utf8_string_t foo = CXPLAT_UTF8_STRING_FROM_CONST_STRING("foo");
+    cxplat_utf8_string_t bar = CXPLAT_UTF8_STRING_FROM_CONST_STRING("bar");
 
     REQUIRE(
         EBPF_OBJECT_INITIALIZE(

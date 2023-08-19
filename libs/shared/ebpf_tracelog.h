@@ -3,10 +3,12 @@
 
 #pragma once
 
+#include "cxplat.h"
 #include "ebpf_core_structs.h"
 #include "ebpf_result.h"
+#include "ebpf_shared_framework.h"
 
-#include <windows.h>
+// Only include files that work in both KM and UM.
 #include <TraceLoggingProvider.h>
 #include <winmeta.h>
 typedef _Return_type_success_(return >= 0) long NTSTATUS;
@@ -246,7 +248,7 @@ extern "C"
         ebpf_tracelog_level_t trace_level,
         ebpf_tracelog_keyword_t keyword,
         _In_z_ const char* message,
-        _In_ const ebpf_utf8_string_t* string);
+        _In_ const cxplat_utf8_string_t* string);
 #define EBPF_LOG_MESSAGE_UTF8_STRING(trace_level, keyword, message, value)            \
     if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) {  \
         ebpf_log_message_utf8_string(_##trace_level##, _##keyword##, message, value); \

@@ -15,12 +15,9 @@
 #pragma warning(disable : 28196) // Inconsistent annotation for '_umul128'
 #include <ntstrsafe.h>
 #pragma warning(pop)
+#include <stdbool.h>
 #include <stdint.h>
 #include <wdm.h>
-
-#define bool BOOLEAN
-#define true 1
-#define false 0
 
 #define ebpf_list_entry_t LIST_ENTRY
 

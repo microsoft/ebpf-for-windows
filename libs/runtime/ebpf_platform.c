@@ -336,7 +336,7 @@ ebpf_safe_size_t_subtract(
 }
 
 ebpf_result_t
-ebpf_utf8_string_to_unicode(_In_ const ebpf_utf8_string_t* input, _Outptr_ wchar_t** output)
+ebpf_utf8_string_to_unicode(_In_ const cxplat_utf8_string_t* input, _Outptr_ wchar_t** output)
 {
     wchar_t* unicode_string = NULL;
     unsigned long unicode_byte_count = 0;

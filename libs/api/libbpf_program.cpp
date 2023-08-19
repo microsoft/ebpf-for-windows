@@ -346,7 +346,7 @@ __bpf_program__pin_name(struct bpf_program* prog)
 {
     char *name, *p;
 
-    name = p = ebpf_strdup(prog->section_name);
+    name = p = cxplat_duplicate_string(prog->section_name);
     if (name == nullptr) {
         return nullptr;
     }
