@@ -7,6 +7,8 @@ param ([parameter(Mandatory=$false)][string] $AdminTarget = "TEST_VM",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][bool] $Coverage = $false,
+       [parameter(Mandatory=$false)][bool] $RunKmStressTests = $false,
+       [parameter(Mandatory=$false)][bool] $RestartExtension = $false,
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName)
 
 Push-Location $WorkingDirectory
@@ -24,7 +26,11 @@ $VMList = $Config.VMMap.$SelfHostedRunnerName
 
 # Run tests on test VMs.
 foreach ($VM in $VMList) {
-    Invoke-CICDTestsOnVM -VMName $VM.Name -Coverage $Coverage
+    Invoke-CICDTestsOnVM `
+        -VMName $VM.Name `
+        -Coverage $Coverage `
+        -RunKmStressTests $RunKmStressTests `
+        -RestartExtension $RestartExtension
 }
 
 # Run XDP Tests.
