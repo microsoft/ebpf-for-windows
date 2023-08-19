@@ -100,7 +100,7 @@ function Create-StatusFile {
         [string]$statusMessage
     )
 
-    # Get the SequenceNumber from the name of the latest created .settings file
+    # Get the SequenceNumber from the name of the latest *created* .settings file
     $lastSequenceNumber = Get-ChildItem -Path "$($global:eBPFHandlerEnvObj.handlerEnvironment.configFolder)" -Filter "*.settings" | Sort-Object CreationTime -Descending | Select-Object -First 1
     if ($null -eq $lastSequenceNumber) {
         Write-Log -level $LogLevelError -message "No '.settings' file found."
@@ -697,7 +697,15 @@ if ($runTests -eq $false) {
         Write-Log -level $LogLevelInfo -message "= Install an old version =================================================================================================="
         Delete-Directory -destinationPath "$EbpfPackagePath" | Out-Null
         Copy-Directory -sourcePath "$testRedistTargetDirectory\v$packageVersion" -destinationPath "$EbpfPackagePath" | Out-Null 
-        InstallOrUpdate-eBPF -vmAgentOperationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" | Out-Null 
+        InstallOrUpdate-eBPF -vmAgentOperationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" | Out-Null
+
+        # Test that the status file name has the right sequence number (1002.settings is the one created last)
+        $statusFileName = Get-ChildItem -Path "$($global:eBPFHandlerEnvObj.handlerEnvironment.statusFolder)" -Filter "*.status" | Sort-Object CreationTime -Descending | Select-Object -First 1
+        if ($statusFileName.Name -ne "1002.status") {
+            Write-Log -level $LogLevelError -message "Status file name is not correct: $statusFileName"
+        } else {
+            Write-Log -level $LogLevelInfo -message "Status file name is correct: $statusFileName"
+        }
 
         # Update to a newer version
         $packageVersion = "0.9.1"
