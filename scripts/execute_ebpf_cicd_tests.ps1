@@ -7,7 +7,7 @@ param ([parameter(Mandatory=$false)][string] $AdminTarget = "TEST_VM",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][bool] $Coverage = $false,
-       [parameter(Mandatory=$false)][bool] $RunKmStressTests = $false,
+       [parameter(Mandatory=$false)][bool] $RunKmStressTestsOnly = $false,
        [parameter(Mandatory=$false)][bool] $RestartExtension = $false,
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName)
 
@@ -29,16 +29,26 @@ foreach ($VM in $VMList) {
     Invoke-CICDTestsOnVM `
         -VMName $VM.Name `
         -Coverage $Coverage `
-        -RunKmStressTests $RunKmStressTests `
+        -RunKmStressTestsOnly $RunKmStressTestsOnly `
         -RestartExtension $RestartExtension
 }
 
-# Run XDP Tests.
-Invoke-XDPTestsOnVM $Config.Interfaces $VMList[0].Name
+# This script is used to execute the regular kernel mode tests as well as the scheduled kernel mode stress tests. The
+# required behavior is selected by the $RunKmStressTestsOnly parameter which is set to 'true' only for the scheduled
+# runs.  The other tests i.e., Invoke-XDPTestsOnVM, Invoke-ConnectRedirectTestsOnVM and
+# Invoke-ConnectRedirectTestsOnVM are already handled by other jobs, so re-executing them again along with the stress
+# tests is redundant.
+if ($RunKmStressTestsOnly -eq $false) {
 
-# Run Connect Redirect Tests.
-Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest -UserType "Administrator" $VMList[0].Name
-Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest -UserType "StandardUser" $VMList[0].Name
+    # Run XDP Tests.
+    Invoke-XDPTestsOnVM $Config.Interfaces $VMList[0].Name
+
+    # Run Connect Redirect Tests.
+    Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest `
+        -UserType "Administrator" $VMList[0].Name
+    Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest `
+        -UserType "StandardUser" $VMList[0].Name
+}
 
 # Stop eBPF components on test VMs.
 foreach ($VM in $VMList) {
