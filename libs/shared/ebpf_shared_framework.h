@@ -9,10 +9,7 @@
 #include <specstrings.h>
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+CXPLAT_EXTERN_C_BEGIN
 
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
@@ -37,71 +34,40 @@ extern "C"
     while (0)                                                      \
     _Pragma("warning(pop)")
 
-    typedef enum _ebpf_pool_tag
-    {
-        EBPF_POOL_TAG_ASYNC = 'nsae',
-        EBPF_POOL_TAG_CORE = 'roce',
-        EBPF_POOL_TAG_DEFAULT = 'fpbe',
-        EBPF_POOL_TAG_EPOCH = 'cpee',
-        EBPF_POOL_TAG_LINK = 'knle',
-        EBPF_POOL_TAG_MAP = 'pame',
-        EBPF_POOL_TAG_NATIVE = 'vtne',
-        EBPF_POOL_TAG_PROGRAM = 'grpe',
-        EBPF_POOL_TAG_RING_BUFFER = 'fbre',
-        EBPF_POOL_TAG_STATE = 'atse',
-    } ebpf_pool_tag_t;
+typedef enum _ebpf_pool_tag
+{
+    EBPF_POOL_TAG_ASYNC = 'nsae',
+    EBPF_POOL_TAG_CORE = 'roce',
+    EBPF_POOL_TAG_DEFAULT = 'fpbe',
+    EBPF_POOL_TAG_EPOCH = 'cpee',
+    EBPF_POOL_TAG_LINK = 'knle',
+    EBPF_POOL_TAG_MAP = 'pame',
+    EBPF_POOL_TAG_NATIVE = 'vtne',
+    EBPF_POOL_TAG_PROGRAM = 'grpe',
+    EBPF_POOL_TAG_RING_BUFFER = 'fbre',
+    EBPF_POOL_TAG_STATE = 'atse',
+} ebpf_pool_tag_t;
 
-// TODO: get rid of this extra level of indirection
 #define ebpf_allocate cxplat_allocate
 #define ebpf_free cxplat_free
 #define ebpf_reallocate cxplat_reallocate
 
-    /**
-     * @brief Allocate memory.
-     * @param[in] size Size of memory to allocate.
-     * @param[in] tag Pool tag to use.
-     * @returns Pointer to memory block allocated, or null on failure.
-     */
-    _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag);
+#define ebpf_safe_size_t_add(augend, addend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_size_t_add(augend, addend, result))
+#define ebpf_safe_size_t_subtract(minuend, subtrahend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_size_t_subtract(minuend, subtrahend, result))
+#define ebpf_safe_size_t_multiply(multiplicand, multiplier, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_size_t_multiply(multiplicand, multiplier, result))
 
-    /**
-     * @brief Multiplies one value of type size_t by another and check for
-     *   overflow.
-     * @param[in] multiplicand The value to be multiplied by multiplier.
-     * @param[in] multiplier The value by which to multiply multiplicand.
-     * @param[out] result A pointer to the result.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Multiplication overflowed.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_safe_size_t_multiply(
-        size_t multiplicand, size_t multiplier, _Out_ _Deref_out_range_(==, multiplicand* multiplier) size_t* result);
+/**
+ * @brief Allocate memory.
+ * @param[in] size Size of memory to allocate.
+ * @param[in] tag Pool tag to use.
+ * @returns Pointer to memory block allocated, or null on failure.
+ */
+_Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag);
 
-    /**
-     * @brief Add one value of type size_t by another and check for
-     *   overflow.
-     * @param[in] augend The value to be added by addend.
-     * @param[in] addend The value add to augend.
-     * @param[out] result A pointer to the result.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Addition overflowed.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ _Deref_out_range_(==, augend + addend) size_t* result);
+ebpf_result_t
+ebpf_result_from_cxplat_status(cxplat_status_t status);
 
-    /**
-     * @brief Subtract one value of type size_t from another and check for
-     *   overflow or underflow.
-     * @param[in] minuend The value from which subtrahend is subtracted.
-     * @param[in] subtrahend The value subtract from minuend.
-     * @param[out] result A pointer to the result.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Addition overflowed or underflowed.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_safe_size_t_subtract(
-        size_t minuend, size_t subtrahend, _Out_ _Deref_out_range_(==, minuend - subtrahend) size_t* result);
-
-#ifdef __cplusplus
-}
-#endif
+CXPLAT_EXTERN_C_END

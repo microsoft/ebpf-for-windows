@@ -749,12 +749,6 @@ extern "C"
 
     TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
 
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_trace_initiate();
-
-    void
-    ebpf_trace_terminate();
-
     /**
      * @brief Update global helper information in eBPF store.
      *
@@ -929,18 +923,6 @@ extern "C"
      */
     ebpf_result_t
     ebpf_utf8_string_to_unicode(_In_ const cxplat_utf8_string_t* input, _Outptr_ wchar_t** output);
-
-    /**
-     * @brief Check if fault injection is enabled. (Fault injection
-     *        is not supported in kernel mode.)
-     *
-     * TODO(#2677): move this prototype to another project.
-     *
-     * @retval TRUE Fault injection is enabled. (User mode *ONLY*)
-     * @retval FALSE Fault injection is not enabled.
-     */
-    BOOLEAN
-    usersim_fault_injection_is_enabled();
 
 #ifdef __cplusplus
 }

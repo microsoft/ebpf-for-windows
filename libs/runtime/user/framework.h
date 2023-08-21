@@ -3,8 +3,6 @@
 
 #pragma once
 
-// TODO(#2677): remove the following include, which should be private to usersim.dll.
-//#include "..\..\..\external\usersim\src\framework.h"
 #include "ebpf_shared_framework.h"
 #include "usersim\ex.h"
 #include "usersim\ke.h"

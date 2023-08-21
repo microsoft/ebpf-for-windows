@@ -315,26 +315,6 @@ ebpf_memory_descriptor_get_base_address(MDL* memory_descriptor)
     return address;
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_safe_size_t_multiply(
-    size_t multiplicand, size_t multiplier, _Out_ _Deref_out_range_(==, multiplicand* multiplier) size_t* result)
-{
-    return RtlSizeTMult(multiplicand, multiplier, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ _Deref_out_range_(==, augend + addend) size_t* result)
-{
-    return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_safe_size_t_subtract(
-    size_t minuend, size_t subtrahend, _Out_ _Deref_out_range_(==, minuend - subtrahend) size_t* result)
-{
-    return RtlSizeTSub(minuend, subtrahend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
-}
-
 ebpf_result_t
 ebpf_utf8_string_to_unicode(_In_ const cxplat_utf8_string_t* input, _Outptr_ wchar_t** output)
 {

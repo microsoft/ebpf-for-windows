@@ -36,6 +36,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\ebpf_serialize.c" />
+    <ClCompile Include="..\shared_common.c" />
     <ClCompile Include="..\tracelog.c" />
   </ItemGroup>
   <ItemGroup>

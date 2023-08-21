@@ -3,6 +3,7 @@
 
 #include "ebpf_epoch.h"
 #include "ebpf_ring_buffer.h"
+#include "ebpf_ring_buffer_record.h"
 #include "ebpf_tracelog.h"
 
 typedef struct _ebpf_ring_buffer
@@ -256,13 +257,4 @@ ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data)
     MemoryBarrier();
     record->header.locked = 0;
     return EBPF_SUCCESS;
-}
-
-const ebpf_ring_buffer_record_t*
-ebpf_ring_buffer_next_record(_In_ const uint8_t* buffer, size_t buffer_length, size_t consumer, size_t producer)
-{
-    if (producer == consumer) {
-        return NULL;
-    }
-    return (ebpf_ring_buffer_record_t*)(buffer + consumer % buffer_length);
 }

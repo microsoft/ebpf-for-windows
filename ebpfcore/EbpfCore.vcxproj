@@ -116,7 +116,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -139,7 +139,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -162,7 +162,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -185,7 +185,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -212,11 +212,17 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\external\usersim\cxplat\src\cxplat_winkernel\cxplat_winkernel.vcxproj">
+      <Project>{1ebe3966-7dc4-49b4-b840-3d33d63415ec}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libs\execution_context\kernel\execution_context_kernel.vcxproj">
       <Project>{26e7ed0b-c128-4d7c-a90e-c246def40ad3}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libs\platform\kernel\platform_kernel.vcxproj">
+    <ProjectReference Include="..\libs\runtime\kernel\platform_kernel.vcxproj">
       <Project>{fc3f9998-4085-4767-8386-5453f07c3aad}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\libs\shared\kernel\shared_kernel.vcxproj">
+      <Project>{d1b81388-23ca-4e4b-916f-8d37989ae836}</Project>
     </ProjectReference>
     <ProjectReference Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'" Include="..\libs\ubpf\kernel\ubpf_kernel.vcxproj">
       <Project>{675b59f8-089e-40b5-8388-56254447cfa3}</Project>

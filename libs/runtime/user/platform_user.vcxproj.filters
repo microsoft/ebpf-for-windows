@@ -43,9 +43,6 @@
     <ClCompile Include="ebpf_platform_user.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_serialize.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ebpf_state.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -109,6 +106,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_random.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\external\usersim\cxplat\inc\cxplat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

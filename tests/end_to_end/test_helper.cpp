@@ -254,7 +254,7 @@ GlueCloseHandle(HANDLE object_handle)
     bool found = _duplicate_handles.dereference_if_found(handle);
     if (!found) {
         // No duplicates. Close the handle.
-        if (!(ebpf_api_close_handle(handle) == EBPF_SUCCESS || usersim_fault_injection_is_enabled())) {
+        if (!(ebpf_api_close_handle(handle) == EBPF_SUCCESS || cxplat_fault_injection_is_enabled())) {
             throw std::runtime_error("ebpf_api_close_handle failed");
         }
     }
@@ -414,7 +414,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _preprocess
             const ebpf_operation_load_native_module_request_t* request =
                 (ebpf_operation_load_native_module_request_t*)user_request;
             size_t service_name_length = ((uint8_t*)request) + request->header.length - (uint8_t*)request->data;
-            REQUIRE(((service_name_length % 2 == 0) || usersim_fault_injection_is_enabled()));
+            REQUIRE(((service_name_length % 2 == 0) || cxplat_fault_injection_is_enabled()));
 
             std::wstring service_path;
             service_path.assign((wchar_t*)request->data, service_name_length / 2);
@@ -831,7 +831,7 @@ set_native_module_failures(bool expected)
 bool
 get_native_module_failures()
 {
-    return _expect_native_module_load_failures || usersim_fault_injection_is_enabled();
+    return _expect_native_module_load_failures || cxplat_fault_injection_is_enabled();
 }
 
 _Must_inspect_result_ ebpf_result_t

@@ -203,8 +203,11 @@
     <ProjectReference Include="..\..\libs\pe-parse\pe-parse.vcxproj">
       <Project>{fe4fea79-bfbb-4822-abcb-0d3beea240a7}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\libs\platform\user\platform_user.vcxproj">
+    <ProjectReference Include="..\..\libs\runtime\user\platform_user.vcxproj">
       <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\libs\shared\user\shared_user.vcxproj">
+      <Project>{9388dd45-7941-45d7-b4ff-bc00f550af17}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\rpc_interface\rpc_interface.vcxproj">
       <Project>{1423245d-0249-40fc-a077-ff7780acfe3f}</Project>
@@ -224,8 +227,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\libs\execution_context\unit\execution_context_unit_test.cpp" />
-    <ClCompile Include="..\..\libs\platform\ebpf_tracelog.c" />
-    <ClCompile Include="..\..\libs\platform\unit\platform_unit_test.cpp" />
+    <ClCompile Include="..\..\libs\runtime\unit\platform_unit_test.cpp" />
     <ClCompile Include="..\..\libs\thunk\mock\mock.cpp" />
     <ClCompile Include="..\end_to_end\end_to_end.cpp" />
     <ClCompile Include="..\end_to_end\netsh_test.cpp" />

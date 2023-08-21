@@ -43,9 +43,6 @@
     <ClCompile Include="..\ebpf_ring_buffer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_serialize.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ebpf_state.c">
       <Filter>Source Files</Filter>
     </ClCompile>

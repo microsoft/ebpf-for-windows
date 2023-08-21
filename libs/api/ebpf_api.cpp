@@ -11,11 +11,10 @@
 #include "device_helper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_protocol.h"
-#include "ebpf_ring_buffer.h"
+#include "ebpf_ring_buffer_record.h"
 #include "ebpf_serialize.h"
 #include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
-//#include "framework.h"
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
 #include "libbpf.h"

@@ -9,8 +9,8 @@
 #ifdef USER_MODE
 #include "ebpf_utilities.h"
 #else
+#include <minwindef.h>
 #include <wdm.h>
-typedef HANDLE HKEY;
 #endif
 
 #define GUID_STRING_LENGTH 38 // not including the null terminator.

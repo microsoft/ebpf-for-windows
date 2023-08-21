@@ -22,7 +22,7 @@ static const uint32_t _ebpf_native_marker = 'entv';
 // Set this value if there is a need to block older version of the native driver.
 static bpf2c_version_t _ebpf_minimum_version = {0, 0, 0};
 
-#ifndef GUID_NULL
+#ifndef __CGUID_H__
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
 

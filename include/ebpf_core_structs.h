@@ -11,7 +11,6 @@
 #include "ebpf_structs.h"
 
 #include <sal.h>
-#include <stdint.h>
 
 #define EBPF_MAX_PIN_PATH_LENGTH 256
 

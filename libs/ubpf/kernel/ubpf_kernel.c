@@ -3,19 +3,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS 1
 
-#if 0
 #include "ebpf_platform.h"
-#else
-#include "ebpf_core_structs.h"
-#include "ebpf_extension.h"
-#include "ebpf_result.h"
-#include "ebpf_shared_framework.h"
-#include "ebpf_structs.h"
-#include "ebpf_windows.h"
-
-#include <TraceLoggingProvider.h>
-#include <winmeta.h>
-#endif
 
 #pragma warning(disable : 4100)
 #pragma warning(disable : 4018)
@@ -40,6 +28,7 @@
 #endif
 
 #undef stderr
+#undef errno
 #define stderr 0
 #define fprintf place_holder_fprintf
 #define strerror place_holder_strerror

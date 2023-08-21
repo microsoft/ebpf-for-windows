@@ -230,8 +230,8 @@ void
 ebpf_object_tracking_terminate()
 {
     for (int index = 0; index < EBPF_COUNT_OF(_ebpf_id_table); index++) {
-        ebpf_assert(_ebpf_id_table[index].object == NULL || usersim_fault_injection_is_enabled());
-        ebpf_assert(_ebpf_id_table[index].reference_count == 0 || usersim_fault_injection_is_enabled());
+        ebpf_assert(_ebpf_id_table[index].object == NULL || cxplat_fault_injection_is_enabled());
+        ebpf_assert(_ebpf_id_table[index].reference_count == 0 || cxplat_fault_injection_is_enabled());
     }
 }
 
@@ -347,19 +347,6 @@ ebpf_object_type_t
 ebpf_object_get_type(_In_ const ebpf_core_object_t* object)
 {
     return object->type;
-}
-
-ebpf_result_t
-ebpf_result_from_cxplat_status(cxplat_status_t status)
-{
-    switch (status) {
-    case CXPLAT_STATUS_SUCCESS:
-        return EBPF_SUCCESS;
-    case CXPLAT_STATUS_NO_MEMORY:
-        return EBPF_NO_MEMORY;
-    default:
-        return EBPF_FAILED;
-    }
 }
 
 _Must_inspect_result_ ebpf_result_t

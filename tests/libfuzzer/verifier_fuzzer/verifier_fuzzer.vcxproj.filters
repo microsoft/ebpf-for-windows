@@ -25,9 +25,6 @@
     <ClCompile Include="..\..\..\libs\thunk\mock\mock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\libs\shared\ebpf_tracelog.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\end_to_end\test_helper.hpp">

@@ -117,7 +117,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api_common;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api_common;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -137,7 +137,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api_common;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api_common;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -158,7 +158,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api_common;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api_common;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -177,7 +177,7 @@
       <PreprocessorDefinitions>NDEBUG;EBPFAPI_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api_common;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api_common;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -198,7 +198,7 @@
       <PreprocessorDefinitions>NDEBUG;EBPFAPI_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api_common;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api_common;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -219,7 +219,6 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\libs\shared\ebpf_tracelog.c" />
     <ClCompile Include="..\libs\thunk\windows\platform.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="rpc_client.cpp">
@@ -237,6 +236,9 @@
     <ProjectReference Include="..\external\ebpf-verifier\build\external\libbtf\libbtf\libbtf.vcxproj">
       <Project>{bc45d39c-f956-3951-bd46-44eae20ec7c9}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\external\usersim\cxplat\src\cxplat_winuser\cxplat_winuser.vcxproj">
+      <Project>{f2ca70ab-af9a-47d1-9da9-94d5ab573ac2}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libs\api\api.vcxproj">
       <Project>{c8bf60c3-40a9-43ad-891a-8aa34f1c3a68}</Project>
     </ProjectReference>
@@ -249,8 +251,8 @@
     <ProjectReference Include="..\libs\pe-parse\pe-parse.vcxproj">
       <Project>{fe4fea79-bfbb-4822-abcb-0d3beea240a7}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libs\platform\user\platform_user.vcxproj">
-      <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
+    <ProjectReference Include="..\libs\shared\user\shared_user.vcxproj">
+      <Project>{9388dd45-7941-45d7-b4ff-bc00f550af17}</Project>
     </ProjectReference>
     <ProjectReference Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='FuzzerDebug' Or '$(Configuration)'=='Release'" Include="..\libs\ubpf\user\ubpf_user.vcxproj">
       <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>
