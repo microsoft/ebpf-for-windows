@@ -202,8 +202,8 @@ jobs:
       if: steps.skip_check.outputs.should_skip != 'true' && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        scripts\Fetch-LatestArtifacts.ps1 -ArtifactName "build-RelWithDebInfo-windows-2022" -OutputPath "${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}" -Owner alan-jowett -repo bpf_performance
-        Compress-Archive -Path ${{env.GITHUB_WORKSPACE}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\bin -DestinationPath ${{env.GITHUB_WORKSPACE}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\build-RelWithDebInfo-windows-2022.zip
+        scripts\Fetch-LatestArtifacts.ps1 -ArtifactName "build-RelWithDebInfo-windows-2022" -OutputPath "${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}" -Owner alan-jowett -repo bpf_performance
+        Compress-Archive -Path ${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/bin -DestinationPath ${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/build-RelWithDebInfo-windows-2022.zip
 
     - name: Extract artifacts to build path
       if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
