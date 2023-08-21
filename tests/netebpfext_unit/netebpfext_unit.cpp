@@ -4,7 +4,6 @@
 #define CATCH_CONFIG_MAIN
 #include "bpf_helpers.h"
 #include "catch_wrapper.hpp"
-#include "ebpf_fault_injection.h"
 #include "netebpf_ext_helper.h"
 #include "passed_test_log.h"
 #include "watchdog.h"
@@ -521,7 +520,7 @@ sock_addr_thread_function(
     FWP_ACTION_TYPE result;
     uint16_t port_number;
 
-    bool fault_injection_enabled = ebpf_fault_injection_is_enabled();
+    bool fault_injection_enabled = usersim_fault_injection_is_enabled();
 
     if (start_port != end_port) {
         port_number = start_port - 1;

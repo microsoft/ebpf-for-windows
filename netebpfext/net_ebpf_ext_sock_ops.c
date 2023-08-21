@@ -259,13 +259,13 @@ _net_ebpf_sock_ops_update_store_entries()
 
     // Update section information.
     uint32_t section_info_count = sizeof(_ebpf_sock_ops_section_info) / sizeof(ebpf_program_section_info_t);
-    status = _ebpf_store_update_section_information(&_ebpf_sock_ops_section_info[0], section_info_count);
+    status = ebpf_store_update_section_information(&_ebpf_sock_ops_section_info[0], section_info_count);
     if (!NT_SUCCESS(status)) {
         return status;
     }
 
     // Update program information.
-    status = _ebpf_store_update_program_information(&_ebpf_sock_ops_program_info, 1);
+    status = ebpf_store_update_program_information(&_ebpf_sock_ops_program_info, 1);
 
     return status;
 }
@@ -443,7 +443,7 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, local_flow_context, "flow_context", result);
     memset(local_flow_context, 0, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t));
 
-    // Associate the filter context with the filter context.
+    // Associate the filter context with the local flow context.
     REFERENCE_FILTER_CONTEXT(&filter_context->base);
     local_flow_context->filter_context = filter_context;
 
@@ -504,6 +504,9 @@ net_ebpf_extension_sock_ops_flow_established_classify(
 
 Exit:
     if (local_flow_context != NULL) {
+        if (local_flow_context->filter_context != NULL) {
+            DEREFERENCE_FILTER_CONTEXT(&local_flow_context->filter_context->base);
+        }
         ExFreePool(local_flow_context);
     }
     if (attached_client != NULL) {

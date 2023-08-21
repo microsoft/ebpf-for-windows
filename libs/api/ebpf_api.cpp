@@ -204,20 +204,6 @@ ebpf_api_initiate() noexcept
     // it will be re-attempted before an IOCTL call is made.
     (void)initialize_device_handle();
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-    RPC_STATUS status = initialize_rpc_binding();
-
-    if (status != RPC_S_OK) {
-        clean_up_device_handle();
-        clean_up_rpc_binding();
-        EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(status));
-    }
-#endif
-
-    // Load provider data from ebpf store. This is best effort
-    // as there may be no data present in the store.
-    (void)load_ebpf_provider_data();
-
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
@@ -414,8 +400,9 @@ _get_map_descriptor_properties(
     map = _get_ebpf_map_from_handle(handle);
     if (map == nullptr) {
         // Map is not present in the local cache. Query map descriptor from EC.
+        ebpf_id_t id;
         ebpf_id_t inner_map_id;
-        result = query_map_definition(handle, type, key_size, value_size, max_entries, &inner_map_id);
+        result = query_map_definition(handle, &id, type, key_size, value_size, max_entries, &inner_map_id);
         if (result != EBPF_SUCCESS) {
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
@@ -1552,6 +1539,8 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache) noexcep
         }
     }
 
+    map->map_id = map_cache.id;
+    map->map_definition.inner_map_id = map_cache.inner_id;
     map->inner_map_original_fd = map_cache.verifier_map_descriptor.inner_map_fd;
 
     map->pinned = false;
@@ -1876,7 +1865,9 @@ _get_next_map_to_create(std::vector<ebpf_map_t*>& maps) noexcept
                 if (!inner_map) {
                     continue;
                 }
-                if (inner_map->original_fd == map->inner_map_original_fd) {
+                if ((map->map_definition.inner_map_id != EBPF_ID_NONE &&
+                     inner_map->map_id == map->map_definition.inner_map_id) ||
+                    (map->inner_map_original_fd == inner_map->original_fd)) {
                     map->inner_map = inner_map;
                     break;
                 }
@@ -1918,7 +1909,6 @@ _ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info) noexcept
     }
     ebpf_free((void*)info->program_name);
     ebpf_free((void*)info->section_name);
-    ebpf_free((void*)info->program_type_name);
     ebpf_free(info->raw_data);
     ebpf_free(info);
     EBPF_LOG_EXIT();
@@ -2006,7 +1996,7 @@ _ebpf_pe_get_map_definitions(
                 map->map_definition.max_entries = entry->definition.max_entries;
                 map->map_definition.pinning = entry->definition.pinning;
                 map->map_definition.inner_map_id = entry->definition.inner_id;
-                map->inner_map_original_fd = entry->definition.inner_map_idx;
+                map->inner_map_original_fd = map_idx_to_original_fd(entry->definition.inner_map_idx);
                 map->pinned = false;
                 map->reused = false;
                 map->pin_path = nullptr;
@@ -2158,7 +2148,6 @@ _ebpf_pe_add_section(
         return 0;
     }
     ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
-    const char* program_type_name = nullptr;
 
     // Get ELF section name.
     if (!pe_context->section_names.contains(pe_section_name)) {
@@ -2195,23 +2184,9 @@ _ebpf_pe_add_section(
     info->program_type = pe_context->section_program_types[pe_section_name];
     info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
 
-    program_type_name = ebpf_get_program_type_name(&pe_context->section_program_types[pe_section_name]);
-    if (program_type_name == nullptr) {
-        pe_context->result = EBPF_NO_MEMORY;
-        return_value = 1;
-        goto Exit;
-    }
-
-    info->program_type_name = ebpf_duplicate_string(program_type_name);
-    if (info->program_type_name == nullptr) {
-        pe_context->result = EBPF_NO_MEMORY;
-        return_value = 1;
-        goto Exit;
-    }
-
     info->raw_data_size = section_header.Misc.VirtualSize;
     info->raw_data = (char*)ebpf_allocate(section_header.Misc.VirtualSize);
-    if (info->raw_data == nullptr || info->program_type_name == nullptr || info->section_name == nullptr) {
+    if (info->raw_data == nullptr || info->section_name == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
         goto Exit;
@@ -2477,7 +2452,6 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
 
     clear_map_descriptors();
 
-    // TODO: update ebpf_map_definition_t structure so that it contains flag and pinning information.
     for (int count = 0; count < object->maps.size(); count++) {
         ebpf_map_t* map = _get_next_map_to_create(object->maps);
         if (map == nullptr) {
@@ -2610,26 +2584,23 @@ ebpf_program_load_bytes(
         ebpf_handle_t handle = Platform::_get_osfhandle(map_fd);
 
         // Look up inner map id.
+        uint32_t id;
         uint32_t type;
         uint32_t key_size;
         uint32_t value_size;
         uint32_t max_entries;
         ebpf_id_t inner_map_id;
-        result = query_map_definition(handle, &type, &key_size, &value_size, &max_entries, &inner_map_id);
+        result = query_map_definition(handle, &id, &type, &key_size, &value_size, &max_entries, &inner_map_id);
         if (result != EBPF_SUCCESS) {
             break;
         }
 
-        // Get a file descriptor for the inner map, if any.
-        int inner_map_fd = ebpf_fd_invalid;
-        if (inner_map_id != EBPF_ID_NONE) {
-            result = ebpf_get_map_fd_by_id(inner_map_id, &inner_map_fd);
-            if (result != EBPF_SUCCESS) {
-                break;
-            }
-        }
-
-        handle_map.emplace_back((uint32_t)map_fd, (uint32_t)inner_map_fd, (file_handle_t)handle);
+        handle_map.emplace_back(original_fd_handle_map_t{
+            .original_fd = (uint32_t)map_fd,
+            .id = id,
+            .inner_map_original_fd = 0,
+            .inner_id = inner_map_id,
+            .handle = (file_handle_t)handle});
     }
 
     const char* log_buffer_output = nullptr;
@@ -2639,13 +2610,6 @@ ebpf_program_load_bytes(
 
         uint32_t error_message_size = 0;
         result = ebpf_rpc_load_program(&load_info, &log_buffer_output, &error_message_size);
-    }
-
-    // Close any inner map fds.
-    for (original_fd_handle_map_t& entry : handle_map) {
-        if (entry.inner_map_original_fd != ebpf_fd_invalid) {
-            Platform::_close(entry.inner_map_original_fd);
-        }
     }
 
     if (log_buffer_size > 0) {
@@ -2696,9 +2660,13 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
 
         if (load_info.map_count > 0) {
             for (auto& map : object->maps) {
-                fd_t inner_map_original_fd = (map->inner_map) ? map->inner_map->original_fd : ebpf_fd_invalid;
+                ebpf_id_t inner_map_id = (map->inner_map) ? map->inner_map->map_id : EBPF_ID_NONE;
                 handle_map.emplace_back(
-                    map->original_fd, inner_map_original_fd, reinterpret_cast<file_handle_t>(map->map_handle));
+                    map->original_fd,
+                    map->map_id,
+                    map->inner_map_original_fd,
+                    inner_map_id,
+                    reinterpret_cast<file_handle_t>(map->map_handle));
             }
 
             load_info.handle_map = handle_map.data();

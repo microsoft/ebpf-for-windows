@@ -49,9 +49,6 @@
     <CopyFileToFolders Include="..\vm_run_tests.psm1">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="..\vm_list.json">
-      <Filter>Source Files</Filter>
-    </CopyFileToFolders>
     <CopyFileToFolders Include="..\ebpf-all.guid">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
@@ -67,7 +64,8 @@
     <CopyFileToFolders Include="..\test_execution.json">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="..\Test-FaultInjection.ps1" />
+    <CopyFileToFolders Include="..\..\external\usersim\scripts\Test-FaultInjection.ps1" />
+    <CopyFileToFolders Include="..\Run-Test.ps1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\pre-commit">

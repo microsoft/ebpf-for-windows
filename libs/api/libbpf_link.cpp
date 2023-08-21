@@ -15,7 +15,7 @@ bpf_link__pin(struct bpf_link* link, const char* path)
         return libbpf_err(-EBUSY);
     }
 
-    link->pin_path = strdup(path);
+    link->pin_path = ebpf_strdup(path);
     if (!link->pin_path) {
         return libbpf_err(-ENOMEM);
     }

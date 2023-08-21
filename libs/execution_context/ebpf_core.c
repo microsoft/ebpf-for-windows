@@ -13,6 +13,7 @@
 #include "ebpf_native.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program.h"
+#include "ebpf_random.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
 #include "ebpf_tracelog.h"
@@ -181,6 +182,11 @@ ebpf_core_initiate()
         goto Done;
     }
 
+    return_value = ebpf_random_initiate();
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     return_value = ebpf_trace_initiate();
     if (return_value != EBPF_SUCCESS) {
         goto Done;
@@ -285,6 +291,8 @@ ebpf_core_terminate()
     ebpf_object_tracking_terminate();
 
     ebpf_trace_terminate();
+
+    ebpf_random_terminate();
 
     ebpf_platform_terminate();
 }
@@ -2551,4 +2559,24 @@ ebpf_core_close_context(_In_opt_ void* context)
     EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT((&object->base));
 
     ebpf_epoch_exit(epoch_state);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_core_update_map_with_handle(
+    ebpf_handle_t map_handle, _In_ const uint8_t* key, size_t key_length, ebpf_handle_t value)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t retval;
+    ebpf_map_t* map = NULL;
+
+    retval = EBPF_OBJECT_REFERENCE_BY_HANDLE(map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    retval = ebpf_map_update_entry_with_handle(map, key_length, key, value, EBPF_ANY);
+
+Done:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    EBPF_RETURN_RESULT(retval);
 }

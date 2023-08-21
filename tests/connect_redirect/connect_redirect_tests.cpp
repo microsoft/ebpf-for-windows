@@ -25,7 +25,6 @@
 #include <ntsecapi.h>
 
 CATCH_REGISTER_LISTENER(_watchdog)
-
 static std::string _family;
 static std::string _protocol;
 static std::string _vip_v4;
@@ -37,7 +36,6 @@ static std::string _remote_ip_v6;
 static std::string _user_name;
 static std::string _password;
 static std::string _user_type_string;
-
 typedef enum _user_type
 {
     ADMINISTRATOR,
@@ -245,7 +243,8 @@ _initialize_test_globals()
     _globals.user_token = _log_on_user(_user_name, _password);
 
     // Load and attach the programs.
-    native_module_helper_t helper("cgroup_sock_addr2");
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr2");
     _globals.bpf_object.reset(bpf_object__open(helper.get_file_name().c_str()));
     REQUIRE(_globals.bpf_object.get() != nullptr);
     REQUIRE(bpf_object__load(_globals.bpf_object.get()) == 0);

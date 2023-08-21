@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_epoch.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_state.h"
 #include "ebpf_tracelog.h"
 
@@ -29,16 +30,14 @@ ebpf_state_initiate()
 
     _ebpf_state_next_index = 0;
 
-    if (ebpf_is_non_preemptible_work_item_supported()) {
-        _ebpf_state_cpu_table_size = ebpf_get_cpu_count();
-        _Analysis_assume_(_ebpf_state_cpu_table_size >= 1);
+    _ebpf_state_cpu_table_size = ebpf_get_cpu_count();
+    _Analysis_assume_(_ebpf_state_cpu_table_size >= 1);
 
-        _ebpf_state_cpu_table = ebpf_allocate_cache_aligned_with_tag(
-            sizeof(ebpf_state_entry_t) * _ebpf_state_cpu_table_size, EBPF_POOL_TAG_STATE);
-        if (!_ebpf_state_cpu_table) {
-            return_value = EBPF_NO_MEMORY;
-            goto Error;
-        }
+    _ebpf_state_cpu_table = ebpf_allocate_cache_aligned_with_tag(
+        sizeof(ebpf_state_entry_t) * _ebpf_state_cpu_table_size, EBPF_POOL_TAG_STATE);
+    if (!_ebpf_state_cpu_table) {
+        return_value = EBPF_NO_MEMORY;
+        goto Error;
     }
 
     const ebpf_hash_table_creation_options_t options = {

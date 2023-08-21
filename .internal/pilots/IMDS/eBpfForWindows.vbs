@@ -18,8 +18,6 @@ Const EBPF_NETSH_EXT_DEREGISTRATION_SUCCEEDED	= 13
 Const EBPF_NETSH_EXT_DEREGISTRATION_FAILED		= 14
 Const EBPF_TRACING_SETUP_FAILED					= 15
 Const EBPF_TRACING_SETUP_SUCCEEDED				= 16
-Const EBPF_TRACING_SETUP_FAILED					= 15
-Const EBPF_TRACING_SETUP_SUCCEEDED				= 16
 
 ' String constants
 Const EBPF_EBPFCORE_DRIVER_NAME				= "eBPFCore"
@@ -39,9 +37,7 @@ Const EBPF_LOG_ERROR		= 3
 Const EBPF_LOG_SOURCE		= "eBpfForWindows"
 Const EBPF_LOG_FILE_NAME	= "eBpfForWindows"
 Const EBPF_LOG_MAX_AGE_DAYS	= 30 'Files older than this (in days) will be deleted
-Const EBPF_LOG_MAX_AGE_DAYS	= 30 'Files older than this (in days) will be deleted
 Const EBPF_LOG_MIN_FILES	= 10 'Minimum number of log files to keep
-Dim EBPF_LOG_VERBOSITY: EBPF_LOG_VERBOSITY = EBPF_LOG_INFO
 Dim EBPF_LOG_VERBOSITY: EBPF_LOG_VERBOSITY = EBPF_LOG_INFO
 
 ' Global variables
@@ -54,11 +50,11 @@ Dim WmiService : Set WmiService = GetObject("winmgmts:\\.\root\cimv2")
 Dim g_tracingPath: g_tracingPath = FsObject.BuildPath(WshShell.ExpandEnvironmentStrings("%SystemRoot%"), "\Logs\eBPF")
 Dim g_installPath: g_installPath = FsObject.BuildPath(WshShell.ExpandEnvironmentStrings("%ProgramFiles%"), "\ebpf-for-windows")
 
-' Initialize the global variables and the local log file
+' Initialize the script
 If InitializeTracing Then
 	' Test code
 	If g_RunTests Then
-		InstallEbpf "D:\work\_scratch\imds\redist-package"
+		InstallEbpf "C:\_ebpf\redist-package" ' Customise to your local scratch folder
 		UninstallEbpf
 	End If
 End If
@@ -118,46 +114,6 @@ Sub LogEvent(level, method, logStatement, errReturnCode)
 	g_LogFile.WriteLine(logTxt)
 End Sub
 
-' Adds a new path to the System path, unless the path is already present in the system path.
-Function AddSystemPath(pathToAdd)
-	On Error Resume Next
-
-	Const THIS_FUNCTION_NAME = "AddSystemPath"
-
-	AddSystemPath = True
-	LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Adding path '" + pathToAdd + "' to System path...", 0
-
-	Dim sysENV : Set sysENV = WshShell.Environment("System")
-	systemPath = sysENV("PATH")
-	If InStr(systemPath, pathToAdd) = 0 Then
-		sysENV("PATH") = systemPath + ";" + pathToAdd
-		LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Successfully added System path '" + pathToAdd + "'", 0
-	Else
-		LogEvent EBPF_LOG_WARNING, THIS_FUNCTION_NAME, "System path '" + pathToAdd + "' was already present - no action taken.", 0
-	End If
-End Function
-
-' Removes the given path from the System path, unless the path isn't present.
-Function RemoveSystemPath(pathToRemove)
-	On Error Resume Next
-
-	Const THIS_FUNCTION_NAME = "RemoveSystemPath"
-	
-	RemoveSystemPath =  True
-	LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Removing System path '" + pathToRemove + "'...", 0
-	
-	Dim sysENV : Set sysENV = WshShell.Environment("System")
-	systemPath = sysENV("PATH")
-	If InStr(systemPath, pathToRemove) <> 0 Then
-		systemPath = Replace(systemPath, pathToRemove, "")
-		systemPath = Replace(systemPath, ";;", ";")
-		sysENV("PATH") = systemPath
-		LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Successfully removed System path '" + pathToRemove + "'", 0
-	Else
-		LogEvent EBPF_LOG_WARNING, THIS_FUNCTION_NAME, "System path '" + pathToRemove + "' was not present - no action taken.", 0
-	End If
-End Function
-
 ' This function executes a shell command and returns the exit code
 Function ExecuteShellCmd(cmd)
 	On Error Resume Next
@@ -177,7 +133,7 @@ Function ExecuteShellCmd(cmd)
 	End If
 End Function
 
-' This function creates a scheduled task from a given XML file.
+' This function creates a scheduled task
 Function CreateScheduledTask(taskName, taskFile)
 	On Error Resume Next
 
@@ -205,7 +161,7 @@ Function CreateEbpfTracingTasks()
 	CreateEbpfTracingTasks = true
 
 	' Delete the tasks if they already exist
-	call DeleteEbpfTracingTasks()
+	DeleteEbpfTracingTasks
 
 	if CreateScheduledTask(EBPF_TRACING_STARTUP_TASK_NAME, EBPF_TRACING_STARTUP_TASK_FILENAME) = EBPF_TRACING_SETUP_FAILED Then
 		CreateEbpfTracingTasks = False
@@ -216,31 +172,30 @@ Function CreateEbpfTracingTasks()
 	End If
 End Function
 
-' This function deletes the tasks to start eBPF tracing at boot, and execute periodic rundowns, and deletes the g_tracingPath
+' This function deletes the tasks to start eBPF tracing at boot, and execute periodic rundowns, and deletes the g_tracingPath directory and its contents
 Function DeleteEbpfTracingTasks()
 	On Error Resume Next
 
 	Const THIS_FUNCTION_NAME = "DeleteEbpfTracingTasks"
-	Dim errReturnCode
 
-	' Execute the script to stop eBPF tracing
+    ' Execute the script to stop eBPF tracing
 	Dim scriptPath : scriptPath = FsObject.BuildPath(g_installPath, EBPF_TRACING_TASK_CMD)
 	If FsObject.FileExists(scriptPath) Then
-		errReturnCode = ExecuteShellCmd("cmd.exe /c """"" + scriptPath + """ stop """ + g_tracingPath + """""")
+		errReturnCode = ExecuteShellCmd("""" + scriptPath + """ stop """ + g_tracingPath + """")
 		If errReturnCode <> 0 Then
-			CreateEbpfTracingTasks = EBPF_TRACING_SETUP_FAILED
+			DeleteEbpfTracingTasks = EBPF_TRACING_SETUP_FAILED
 			LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "FAILED executing '" + cmd + "'.", exec.Status
 		Else
-			CreateEbpfTracingTasks = EBPF_TRACING_SETUP_SUCCEEDED
+			DeleteEbpfTracingTasks = EBPF_TRACING_SETUP_SUCCEEDED
 			LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "SUCCESS executing '" + cmd + "'.", exec.Status
 		End If
 	Else
-		CreateEbpfTracingTasks = EBPF_TRACING_SETUP_FAILED
+		DeleteEbpfTracingTasks = EBPF_TRACING_SETUP_FAILED
 		LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "Tracing script not found '" + scriptPath + "'.", 1
 	End If
 
 	' Delete the startup task if it already exists
-	errReturnCode = ExecuteShellCmd("schtasks /delete /f /tn " + EBPF_TRACING_STARTUP_TASK_NAME)
+	errReturnCode = ExecuteShellCmd("schtasks.exe /delete /f /tn " + EBPF_TRACING_STARTUP_TASK_NAME)
 	If errReturnCode <> 0 Then
 		DeleteEbpfTracingTasks = EBPF_TRACING_SETUP_FAILED
 		LogEvent EBPF_LOG_WARNING, THIS_FUNCTION_NAME, "eBPF tracing task '" + EBPF_TRACING_STARTUP_TASK_NAME + "' does not exist, no action taken.", exec.Status
@@ -250,13 +205,11 @@ Function DeleteEbpfTracingTasks()
 	End If
 
 	' Delete the periodic task if it already exists
-	errReturnCode = ExecuteShellCmd("schtasks /delete /f /tn " + EBPF_TRACING_PERIODIC_TASK_NAME)
+	errReturnCode = ExecuteShellCmd("schtasks.exe /delete /f /tn " + EBPF_TRACING_PERIODIC_TASK_NAME)
 	If errReturnCode <> 0 Then
 		DeleteEbpfTracingTasks = EBPF_TRACING_SETUP_FAILED
 		LogEvent EBPF_LOG_WARNING, THIS_FUNCTION_NAME, "eBPF tracing task '" + EBPF_TRACING_PERIODIC_TASK_NAME + "' does not exist, no action taken.", exec.Status
 	Else
-		DeleteEbpfTracingTasks = EBPF_TRACING_SETUP_SUCCEEDED
-		LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "SUCCESS deleting the '" + EBPF_TRACING_PERIODIC_TASK_NAME + "' task.", exec.Status
 		DeleteEbpfTracingTasks = EBPF_TRACING_SETUP_SUCCEEDED
 		LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "SUCCESS deleting the '" + EBPF_TRACING_PERIODIC_TASK_NAME + "' task.", exec.Status
 	End If
@@ -284,44 +237,65 @@ Function CopyFilesToPath(sourcePath, destPath)
 
 	' Copy the files to the destination folder
 	FsObject.CopyFolder sourcePath, destPath, True
-	FsObject.CopyFolder sourcePath, destPath, True
 	If Err.number <> 0 Then
 		LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "Failed to copy files from " + sourcePath + " to " + destPath, Err.number
 		CopyFilesToPath = False
 	End If
 End Function
 
-' This function starts the given kernel driver (for delayed start).
-Function StartEbpfDriver(driverName)
+' This function installs the given kernel driver.
+Function InstallEbpfDriver(driverName, driverPath)
 	On Error Resume Next
-	Const THIS_FUNCTION_NAME = "StartEbpfDriver"
-	Dim objService, serviceQuery, errReturnCode
+	Const THIS_FUNCTION_NAME = "InstallEbpfDriver"
+	Dim objService, driverFullPath, errReturnCode
+	
+	LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Installing driver '" + driverName + ".sys'...", 0
 
-	LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Starting driver '" + driverName + ".sys'...", 0
-
-	serviceQuery = "Select * from Win32_BaseService where Name='" + driverName + "'"
-	Set colServices = WmiService.ExecQuery(serviceQuery)		
-	For Each objService in colServices
-		errReturnCode = objService.StartService()
-		If errReturnCode = 0 Then
-			InstallEbpfDriver = EBPF_DRIVER_START_SUCCEEDED
-			LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Successfully started '" + driverName + ".sys'", errReturnCode
+	driverFullPath = FsObject.BuildPath(driverPath, driverName + ".sys")
+		
+	oServiceAlreadyInstalled = CheckDriverInstalled(driverName)
+	If oServiceAlreadyInstalled = False Then
+		
+		' Create the driver service
+		Dim exec : Set exec = WshShell.Exec("sc.exe create " + driverName + " type=kernel start=auto binpath=""" + driverFullPath + """")				
+		While exec.Status = WshRunning
+			WScript.Sleep 1
+		Wend
+		If exec.Status = WshFailed Then
+			InstallEbpfDriver = EBPF_DRIVER_INSTALL_FAILED
+			LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "FAILED installing '" + driverName + ".sys'", exec.Status
 		Else
-			InstallEbpfDriver = EBPF_DRIVER_START_FAILED
-			LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "FAILED starting '" + driverName + ".sys'", errReturnCode
-		End If
-	Next			
+			InstallEbpfDriver = EBPF_DRIVER_INSTALL_SUCCEEDED
+			LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Successfully installed '" + driverName + ".sys'", exec.Status
+			
+			serviceQuery = "Select * from Win32_BaseService where Name='" + driverName + "'"
+			Set colServices = WmiService.ExecQuery(serviceQuery)		
+			For Each objService in colServices
+				errReturnCode = objService.StartService()
+				If errReturnCode = 0 Then
+					InstallEbpfDriver = EBPF_DRIVER_START_SUCCEEDED
+					LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Successfully started '" + driverName + ".sys'", errReturnCode
+				Else
+					InstallEbpfDriver = EBPF_DRIVER_START_FAILED
+					LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "FAILED starting '" + driverName + ".sys'", errReturnCode
+				End If
+			Next			
+		End If		
+	Else
+		InstallEbpfDriver = EBPF_DRIVER_ALREADY_INSTALLED
+		LogEvent EBPF_LOG_WARNING, THIS_FUNCTION_NAME, "Driver '" + driverName + ".sys' already installed.", 0
+	End If            
 End Function
 
-' This function stops then uninstalls the given kernel driver.
+' This function uninstalls the given kernel driver.
 Function UninstallEbpfDriver(driverName)
 	On Error Resume Next
 
 	Const THIS_FUNCTION_NAME = "UninstallEbpfDriver"
 	Dim colServices, serviceQuery, errReturnCode
-
+	
 	LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Unnstalling driver '" + driverName + ".sys'...", 0
-
+	
 	serviceQuery = "Select * from Win32_BaseService where Name='" + driverName + "'"
 	Set colServices = WmiService.ExecQuery(serviceQuery)
 
@@ -373,8 +347,11 @@ Function RegisterNetshHelper(extensionName, extensionPath)
 	LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Registering netsh.exe helper '" + extensionName + "'...", 0
 	
 	WshShell.CurrentDirectory = extensionPath	
-	errReturnCode = ExecuteShellCmd("netsh.exe add helper " + extensionName)
-	If errReturnCode <> 0 Then	
+	Dim exec : Set exec = WshShell.Exec("netsh.exe add helper " + extensionName)
+	While exec.Status = WshRunning
+		WScript.Sleep 1
+	Wend
+	If exec.Status = WshFailed Then		
 		RegisterNetshHelper = EBPF_NETSH_EXT_REGISTRATION_FAILED
 		LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "FAILED registering '" + extensionName + "'", exec.Status
 	Else
@@ -393,13 +370,56 @@ Function UnregisterNetshHelper(extensionName, extensionPath)
 	LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Unregistering netsh.exe helper '" + extensionName + "'...", 0
 		
 	WshShell.CurrentDirectory = extensionPath	
-	errReturnCode = ExecuteShellCmd("netsh.exe delete helper " + extensionName)
-	If errReturnCode <> 0 Then
+	Dim exec : Set exec = WshShell.Exec("netsh.exe delete helper " + extensionName)
+	While exec.Status = WshRunning
+		WScript.Sleep 1
+	Wend
+	If exec.Status = WshFailed Then		
 		UnregisterNetshHelper = EBPF_NETSH_EXT_DEREGISTRATION_FAILED
 		LogEvent EBPF_LOG_ERROR, THIS_FUNCTION_NAME, "FAILED unregistering '" + extensionName + "'", exec.Status
 	Else
 		UnregisterNetshHelper = EBPF_NETSH_EXT_DEREGISTRATION_SUCCEEDED
 		LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Successfully unregistered '" + extensionName + "'", exec.Status
+	End If
+End Function
+
+' Adds a new path to the System path, unless the path is already present in the system path.
+Function AddSystemPath(pathToAdd)
+	On Error Resume Next
+
+	Const THIS_FUNCTION_NAME = "AddSystemPath"
+
+	AddSystemPath = True
+	LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Adding path '" + pathToAdd + "' to System path...", 0
+
+	Dim sysENV : Set sysENV = WshShell.Environment("System")
+	systemPath = sysENV("PATH")
+	If InStr(systemPath, pathToAdd) = 0 Then
+		sysENV("PATH") = systemPath + ";" + pathToAdd
+		LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Successfully added System path '" + pathToAdd + "'", 0
+	Else
+		LogEvent EBPF_LOG_WARNING, THIS_FUNCTION_NAME, "System path '" + pathToAdd + "' was already present - no action taken.", 0
+	End If
+End Function
+
+' Removes the given path from the System path, unless the path isn't present.
+Function RemoveSystemPath(pathToRemove)
+	On Error Resume Next
+
+	Const THIS_FUNCTION_NAME = "RemoveSystemPath"
+	
+	RemoveSystemPath =  True
+	LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Removing System path '" + pathToRemove + "'...", 0
+	
+	Dim sysENV : Set sysENV = WshShell.Environment("System")
+	systemPath = sysENV("PATH")
+	If InStr(systemPath, pathToRemove) <> 0 Then
+		systemPath = Replace(systemPath, pathToRemove, "")
+		systemPath = Replace(systemPath, ";;", ";")
+		sysENV("PATH") = systemPath
+		LogEvent EBPF_LOG_INFO, THIS_FUNCTION_NAME, "Successfully removed System path '" + pathToRemove + "'", 0
+	Else
+		LogEvent EBPF_LOG_WARNING, THIS_FUNCTION_NAME, "System path '" + pathToRemove + "' was not present - no action taken.", 0
 	End If
 End Function
 
@@ -443,8 +463,9 @@ Function InstallEbpf(sourcePath)
 	End If
 		
 	' Install the drivers and the netsh extension
+	driversPath = FsObject.BuildPath(g_installPath, "drivers")	
 	Do While True
-		errReturnCode = InstallEbpfDriver(EBPF_EBPFCORE_DRIVER_NAME)
+		errReturnCode = InstallEbpfDriver(EBPF_EBPFCORE_DRIVER_NAME, driversPath)
 		Select Case errReturnCode
 		Case EBPF_DRIVER_INSTALL_FAILED
 			InstallEbpf = False
@@ -455,7 +476,7 @@ Function InstallEbpf(sourcePath)
 			Exit Do
 		End Select
 	
-		errReturnCode = InstallEbpfDriver(EBPF_EXTENSION_DRIVER_NAME)
+		errReturnCode = InstallEbpfDriver(EBPF_EXTENSION_DRIVER_NAME, driversPath)
 		Select Case errReturnCode
 		Case EBPF_DRIVER_INSTALL_FAILED	  	  
 			errReturnCode = UninstallEbpfDriver(EBPF_EBPFCORE_DRIVER_NAME)

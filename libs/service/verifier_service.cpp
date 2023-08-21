@@ -60,7 +60,7 @@ verify_byte_code(
         info.type = get_program_type_windows(*program_type);
     } catch (std::runtime_error e) {
         error << "error: " << e.what();
-        *error_message = allocate_string(error.str());
+        *error_message = allocate_string(error.str(), error_message_size);
         return EBPF_VERIFICATION_FAILED;
     }
 

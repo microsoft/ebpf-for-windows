@@ -242,7 +242,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 22 "sample/unsafe/printk_unsafe.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=8 dst=r0 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=8 dst=r0 src=r0 offset=0 imm=0
 #line 23 "sample/unsafe/printk_unsafe.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=9 dst=r0 src=r0 offset=0 imm=0
@@ -283,9 +283,16 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 9;
+    version->minor = 10;
     version->revision = 0;
 }
 
+static void
+_get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** map_initial_values, _Out_ size_t* count)
+{
+    *map_initial_values = NULL;
+    *count = 0;
+}
+
 metadata_table_t printk_unsafe_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version};
+    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};

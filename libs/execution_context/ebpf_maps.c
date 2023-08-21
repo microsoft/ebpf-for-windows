@@ -7,6 +7,7 @@
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
 #include "ebpf_handle.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
@@ -1794,7 +1795,9 @@ static _Requires_lock_held_(ring_buffer_map->lock) void _ebpf_ring_buffer_map_si
         ebpf_ring_buffer_query(
             (ebpf_ring_buffer_t*)map->data, &async_query_result->consumer, &async_query_result->producer);
         ebpf_list_remove_entry(&context->entry);
-        ebpf_async_complete(context->async_context, sizeof(*async_query_result), EBPF_SUCCESS);
+        ebpf_operation_ring_buffer_map_async_query_reply_t* reply =
+            EBPF_FROM_FIELD(ebpf_operation_ring_buffer_map_async_query_reply_t, async_query_result, async_query_result);
+        ebpf_async_complete(context->async_context, sizeof(*reply), EBPF_SUCCESS);
         ebpf_free(context);
         context = NULL;
     }

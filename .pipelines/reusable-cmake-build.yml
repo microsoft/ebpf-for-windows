@@ -1,0 +1,84 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+# This workflow performs a CMake-based build of the project.
+
+parameters:
+  # Name associated with the output of this build.
+  - name: build_artifact
+    type: string
+
+jobs:
+  - job: 'cmake'
+    timeoutInMinutes: 60
+
+    strategy:
+      matrix:
+        Debug:
+          buildConfiguration: 'Debug'
+        Release:
+          buildConfiguration: 'Release'
+      maxParallel: 2
+
+    pool:
+      vmImage: 'windows-2022'
+      type: windows
+
+    variables:
+      # Path to the solution file relative to the root of the project.
+      SOLUTION_FILE_PATH: ebpf-for-windows.sln
+      BUILD_ARTIFACT_NAME: ${{parameters.build_artifact}}
+      BUILD_CONFIGURATION: $(buildConfiguration)
+      BUILD_PLATFORM: x64
+      MSBUILD_PATH: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\amd64'
+      GDN_CODESIGN_TARGETDIRECTORY: '$(Build.SourcesDirectory)/build/$(BUILD_PLATFORM)/$(buildConfiguration)'
+      PLATFORM_TOOLSET: 'v143'
+      CMAKE_GENERATOR: 'Visual Studio 17 2022'
+
+    steps:
+      - checkout: self
+        displayName: 'Checkout Repo'
+        submodules: 'recursive'
+        fetchDepth: 0
+
+
+
+      ## TODO: Initialize CodeQL
+
+      - bash: |
+          choco install -y llvm --version 11.0.1 --allow-downgrade
+          echo "Old path is $PATH"
+          echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo '##vso[task.prependpath]C:\Program Files\LLVM\bin'
+        displayName:  'Install tools'
+        workingDirectory: $(Build.SourcesDirectory)
+
+      - bash: |
+          echo "New path is $PATH"
+          echo "StagingDirectory is $(Build.StagingDirectory)"
+          echo "codesign directory is $(GDN_CODESIGN_TARGETDIRECTORY)"
+        displayName: 'Print Paths (For testing only)'
+
+      - bash: |
+          cmake -S . -B build -G "$(CMAKE_GENERATOR)" -A $(BUILD_PLATFORM) -T $(PLATFORM_TOOLSET)
+        workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Configure the project'
+
+      - bash: |
+          cmake --build build --config $(BUILD_CONFIGURATION)
+        workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Build the project'
+
+      - powershell: |
+          Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/$(BUILD_PLATFORM)-$(BUILD_CONFIGURATION)-cilium-xdp.zip -OutFile x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
+        workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Download demo repository'
+
+      - script: |
+          tar -xf ..\..\..\x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
+        workingDirectory: $(Build.SourcesDirectory)/build/$(BUILD_PLATFORM)/$(buildConfiguration)
+        displayName: 'Extract artifacts to build path'
+
+      - publish: $(Build.SourcesDirectory)/build/$(BUILD_PLATFORM)/$(buildConfiguration)
+        artifact: "${{parameters.build_artifact}} $(buildConfiguration)"
+        displayName: "Upload Build Output"

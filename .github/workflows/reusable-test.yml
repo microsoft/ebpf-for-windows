@@ -63,7 +63,8 @@ permissions:
 
 jobs:
   run_test:
-    timeout-minutes: 60
+    # Due to app-verifier, unit tests take a lot longer to execute. Increase the timeout to 90 minutes.
+    timeout-minutes: 90
 
     strategy:
       matrix:
@@ -78,7 +79,9 @@ jobs:
       TEST_COMMAND: ${{inputs.test_command}}
       PRE_COMMAND: ${{inputs.pre_test}}
       POST_COMMAND: ${{inputs.post_test}}
-      EBPF_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
+      USERSIM_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
+      DUMP_PATH: c:/dumps/x64/${{matrix.configurations}}
+      TEST_TIMEOUT: 3600 # 1 hour timeout for tests.
 
     steps:
     - id: skip_check
@@ -101,21 +104,30 @@ jobs:
       with:
         ref: ${{ github.event.workflow_run.head_branch }}
 
+    - name: Install ProcDump
+      id: install_procdump
+      if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
+      run: |
+        choco install -y procdump
+        where procdump.exe
+
     - name: Set up OpenCppCoverage and add to PATH
       id: set_up_opencppcoverage
       if: (inputs.code_coverage == true) && (inputs.environment != 'ebpf_cicd_tests') && (steps.skip_check.outputs.should_skip != 'true')
       run: |
         choco install -y --requirechecksum=true --checksum=2295A733DA39412C61E4F478677519DD0BB1893D88313CE56B468C9E50517888 --checksum-type=sha256 OpenCppCoverage
         echo "C:\Program Files\OpenCppCoverage" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        where OpenCppCoverage.exe
 
     - name: Configure Windows Error Reporting to make a local copy of any crashes that occur.
       id: configure_windows_error_reporting
       if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
       run: |
-        mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        mkdir ${{env.DUMP_PATH}}
         New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
         New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
-        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}" -PropertyType ExpandString -ErrorAction SilentlyContinue
+        $dump_path = "${{env.DUMP_PATH}}".Replace("/", "\")
+        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "$dump_path" -PropertyType ExpandString -ErrorAction SilentlyContinue
 
     - name: Remove existing artifacts
       if: (inputs.environment == 'ebpf_cicd_tests') && (steps.skip_check.outputs.should_skip != 'true')
@@ -159,11 +171,18 @@ jobs:
         .\export_program_info.exe
 
     - name: Run pre test command
-      if: steps.skip_check.outputs.should_skip != 'true'
+      if: steps.skip_check.outputs.should_skip != 'true' && (inputs.environment != 'ebpf_cicd_tests')
       id: run_pre_test_command
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
         ${{env.PRE_COMMAND}}
+
+    - name: Run pre test command on self-hosted runner
+      if: steps.skip_check.outputs.should_skip != 'true' && (inputs.environment == 'ebpf_cicd_tests')
+      id: run_pre_test_command_self_hosted
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: |
+        ${{env.PRE_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }}
 
     # TODO: Clean up the combination of options: https://github.com/microsoft/ebpf-for-windows/issues/1590
     - name: Run test with Code Coverage in VS Dev environment
@@ -181,7 +200,7 @@ jobs:
       shell: cmd
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-FaultInjection.ps1 ${{env.TEST_COMMAND}} 4
+          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-FaultInjection.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}} 4
 
     - name: Run test with low resource simulation
       if: (inputs.code_coverage != true) && (inputs.fault_injection == true) && (steps.skip_check.outputs.should_skip != 'true')
@@ -190,7 +209,7 @@ jobs:
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          powershell.exe .\Test-FaultInjection.ps1 ${{env.TEST_COMMAND}} 16
+          powershell.exe .\Test-FaultInjection.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}} 16
 
     - name: Run test with Code Coverage
       if: (inputs.code_coverage == true) && (inputs.vs_dev != true) && (inputs.fault_injection != true) && (steps.skip_check.outputs.should_skip != 'true')
@@ -198,22 +217,39 @@ jobs:
       shell: cmd
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
+          OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
-    - name: Run test without Code Coverage
-      if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true')
-      id: run_test_without_code_coverage
+    - name: Run test on self-hosted runner
+      if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.environment == 'ebpf_cicd_tests') && (inputs.fault_injection != true)
+      id: run_test_self_hosted
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
-        ${{env.TEST_COMMAND}}
+        ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }}
+
+    - name: Run test without Code Coverage
+      if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.environment != 'ebpf_cicd_tests') && (inputs.fault_injection != true)
+      id: run_test_without_code_coverage
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      shell: cmd
+      run: |
+        cd /d ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}
+        powershell.exe .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
     - name: Run post test command
       # Run the post test command even if the workflow has failed.
-      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.environment != 'ebpf_cicd_tests')
       id: run_post_test_command
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
         ${{env.POST_COMMAND}}
+
+    - name: Run post test command on self-hosted runner
+      # Run the post test command even if the workflow has failed.
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.environment == 'ebpf_cicd_tests')
+      id: run_post_test_command_self_hosted
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: |
+        ${{env.POST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }}
 
     - name: Check for CodeCoverage
       if: steps.skip_check.outputs.should_skip != 'true'
@@ -289,9 +325,10 @@ jobs:
 
     - name: Stop ETW tracing
       id: stop_etw_tracing
-      if: (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
+      if: always() && (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
       shell: cmd
-      run: wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
+      run: |
+          wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
 
     - name: Copy any bpf2c test logs to TestLogs
       if: (inputs.name == 'bpf2c') && (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
@@ -305,7 +342,7 @@ jobs:
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
       id: check_dumps
       with:
-        files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
+        files: ${{env.DUMP_PATH}}/*.dmp
 
     - name: Upload any crash dumps
       # Upload crash dumps even if the workflow failed.
@@ -314,13 +351,13 @@ jobs:
       id: upload_crash_dumps
       with:
         name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
-        path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        path: ${{env.DUMP_PATH}}
         retention-days: 5
 
     - name: Check for TestLogs
       # Check for test logs even if the workflow failed.
       uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
-      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
+      if: always() && (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
       id: check_logs
       with:
         files: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs/*
@@ -363,7 +400,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969 # v2.4.0
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09 # v2.5.1
         with:
           disable-sudo: true
           egress-policy: block

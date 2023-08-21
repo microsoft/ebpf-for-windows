@@ -8,7 +8,6 @@
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
-#include "ebpf_fault_injection.h"
 #include "ebpf_platform.h"
 #include "hash.h"
 #include "helpers.h"
@@ -23,11 +22,6 @@
 #include <mutex>
 #include <sstream>
 using namespace std::chrono_literals;
-
-extern "C" bool ebpf_fuzzing_enabled;
-extern bool _ebpf_platform_is_preemptible;
-
-static bool _is_platform_preemptible = false;
 
 bool _ebpf_capture_corpus = false;
 
@@ -63,9 +57,9 @@ typedef struct _service_context
         sizeof(NPI_MODULEID),
         MIT_GUID,
     };
-    HMODULE dll;
-    bool loaded;
-    HANDLE nmr_client_handle;
+    HMODULE dll{};
+    bool loaded = false;
+    HANDLE nmr_client_handle{};
     NPI_CLIENT_CHARACTERISTICS nmr_client_characteristics = {
         0,
         sizeof(NPI_CLIENT_CHARACTERISTICS),
@@ -92,6 +86,15 @@ static std::mutex _service_path_to_context_mutex;
 static uint32_t _ebpf_service_handle_counter = 0;
 _Guarded_by_(
     _service_path_to_context_mutex) static std::map<std::wstring, service_context_t*> _service_path_to_context_map;
+
+std::mutex _overlapped_buffers_mutex;
+typedef struct _overlapped_completion
+{
+    std::vector<uint8_t> buffer;
+    uint8_t* output_buffer = nullptr;
+    size_t output_buffer_length = 0;
+} overlapped_completion_t;
+std::map<OVERLAPPED*, overlapped_completion_t> _overlapped_buffers;
 
 class duplicate_handles_table_t
 {
@@ -251,7 +254,7 @@ GlueCloseHandle(HANDLE object_handle)
     bool found = _duplicate_handles.dereference_if_found(handle);
     if (!found) {
         // No duplicates. Close the handle.
-        if (!(ebpf_api_close_handle(handle) == EBPF_SUCCESS || ebpf_fuzzing_enabled)) {
+        if (!(ebpf_api_close_handle(handle) == EBPF_SUCCESS || usersim_fault_injection_is_enabled())) {
             throw std::runtime_error("ebpf_api_close_handle failed");
         }
     }
@@ -280,10 +283,28 @@ GlueDuplicateHandle(
 }
 
 static void
+_complete_async_io(OVERLAPPED* overlapped, size_t output_buffer_length)
+{
+    std::unique_lock lock(_overlapped_buffers_mutex);
+    auto it = _overlapped_buffers.find(overlapped);
+    REQUIRE(it != _overlapped_buffers.end());
+    if (it->second.output_buffer != nullptr) {
+        memcpy(it->second.output_buffer, it->second.buffer.data(), output_buffer_length);
+    }
+    _overlapped_buffers.erase(it);
+}
+
+static void
 _complete_overlapped(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result)
 {
     UNREFERENCED_PARAMETER(output_buffer_length);
     auto overlapped = reinterpret_cast<OVERLAPPED*>(context);
+
+    // Copy the output buffer to the user buffer.
+    if (overlapped) {
+        _complete_async_io(overlapped, output_buffer_length);
+    }
+
     overlapped->InternalHigh = static_cast<ULONG_PTR>(output_buffer_length);
     overlapped->Internal = ebpf_result_to_ntstatus(result);
     SetEvent(overlapped->hEvent);
@@ -323,7 +344,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
         if (context->dll != nullptr) {
             FreeLibrary(context->dll);
         }
-        ebpf_free(context);
+        delete context;
     }
     _service_path_to_context_map.clear();
 }
@@ -361,12 +382,6 @@ _test_helper_client_detach_provider(_In_ void* client_binding_context)
 static void
 _preprocess_load_native_module(_Inout_ service_context_t* context)
 {
-    // Every time a native module is loaded, flip the bit for _ebpf_platform_is_preemptible.
-    // This ensures both the code paths are executed in the native module code, when the
-    // test cases are executed.
-    _ebpf_platform_is_preemptible = _is_platform_preemptible;
-    _is_platform_preemptible = !_is_platform_preemptible;
-
     context->dll = LoadLibraryW(context->file_path.c_str());
     REQUIRE(((context->dll != nullptr) || get_native_module_failures()));
 
@@ -399,7 +414,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _preprocess
             const ebpf_operation_load_native_module_request_t* request =
                 (ebpf_operation_load_native_module_request_t*)user_request;
             size_t service_name_length = ((uint8_t*)request) + request->header.length - (uint8_t*)request->data;
-            REQUIRE(((service_name_length % 2 == 0) || ebpf_fuzzing_enabled));
+            REQUIRE(((service_name_length % 2 == 0) || usersim_fault_injection_is_enabled()));
 
             std::wstring service_path;
             service_path.assign((wchar_t*)request->data, service_name_length / 2);
@@ -448,9 +463,22 @@ GlueDeviceIoControl(
     size_t minimum_reply_size = 0;
     bool async = false;
     unsigned long sharedBufferSize = (input_buffer_size > output_buffer_size) ? input_buffer_size : output_buffer_size;
-    std::vector<uint8_t> sharedBuffer;
     const void* local_input_buffer = nullptr;
     void* local_output_buffer = nullptr;
+
+    // To correctly emulate the kernel execution context, we need to use the same buffer
+    // for both input and output.  So we allocate a buffer that is large enough to hold
+    // either the input or output, and then use that buffer for both.
+    if (overlapped) {
+        std::unique_lock lock(_overlapped_buffers_mutex);
+        REQUIRE(_overlapped_buffers.find(overlapped) == _overlapped_buffers.end());
+        _overlapped_buffers[overlapped] = {{}, (uint8_t*)output_buffer, output_buffer_size};
+    }
+    std::vector<uint8_t> synchronousBuffer;
+
+    std::vector<uint8_t>& sharedBuffer = overlapped ? _overlapped_buffers[overlapped].buffer : synchronousBuffer;
+
+    sharedBuffer.resize(sharedBufferSize);
 
     result = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size, &async);
     if (result != EBPF_SUCCESS) {
@@ -477,18 +505,13 @@ GlueDeviceIoControl(
     // Intercept the call to perform any IOCTL specific _pre_ tasks.
     _preprocess_ioctl(user_request);
 
-    if (!async) {
-        // In the kernel execution context, the request and reply share
-        // the same memory.  So to catch bugs that only show up in that
-        // case, we force the same here.
-        sharedBuffer.resize(sharedBufferSize);
-        memcpy(sharedBuffer.data(), user_request, input_buffer_size);
-        local_input_buffer = sharedBuffer.data();
-        local_output_buffer = (minimum_reply_size > 0) ? sharedBuffer.data() : nullptr;
-    } else {
-        local_input_buffer = user_request;
-        local_output_buffer = user_reply;
-    }
+    // In the kernel execution context, the request and reply share
+    // the same memory.  So to catch bugs that only show up in that
+    // case, we force the same here.
+    sharedBuffer.resize(sharedBufferSize);
+    memcpy(sharedBuffer.data(), user_request, input_buffer_size);
+    local_input_buffer = sharedBuffer.data();
+    local_output_buffer = (minimum_reply_size > 0) ? sharedBuffer.data() : nullptr;
 
     result = ebpf_core_invoke_protocol_handler(
         request_id,
@@ -501,6 +524,11 @@ GlueDeviceIoControl(
 
     if (!async && minimum_reply_size > 0) {
         memcpy(user_reply, sharedBuffer.data(), output_buffer_size);
+    }
+
+    // If the request failed synchronously, complete the overlapped.
+    if (overlapped && !(result == EBPF_PENDING || result == EBPF_SUCCESS)) {
+        _complete_async_io(overlapped, 0);
     }
 
     if (result != EBPF_SUCCESS) {
@@ -605,7 +633,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_delete_se
             // Delete the service if it has not been loaded yet. Otherwise
             // mark it pending for delete.
             if (!context->loaded) {
-                ebpf_free(context);
+                delete context;
                 _service_path_to_context_map.erase(path);
             } else {
                 context->delete_pending = true;
@@ -677,6 +705,11 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     close_handler = Glue_close;
     create_service_handler = Glue_create_service;
     delete_service_handler = Glue_delete_service;
+}
+
+void
+_test_helper_end_to_end::initialize()
+{
     REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
     ec_initialized = true;
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
@@ -722,6 +755,12 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         _unload_all_native_modules();
 
         clear_program_info_cache();
+
+        {
+            std::unique_lock lock(_overlapped_buffers_mutex);
+            _overlapped_buffers.clear();
+        }
+
         if (api_initialized) {
             ebpf_api_terminate();
         }
@@ -737,40 +776,38 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 
         _expect_native_module_load_failures = false;
 
-        // Change back to original value.
-        _ebpf_platform_is_preemptible = true;
-
         set_verification_in_progress(false);
     } catch (Catch::TestFailureException&) {
     }
 }
 
 _test_helper_libbpf::_test_helper_libbpf()
+    : xdp_program_info(nullptr), xdp_hook(nullptr), bind_program_info(nullptr), bind_hook(nullptr),
+      cgroup_sock_addr_program_info(nullptr), cgroup_inet4_connect_hook(nullptr)
 {
     ebpf_clear_thread_local_storage();
+}
 
-    try {
-        xdp_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_XDP);
-        xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+void
+_test_helper_libbpf::initialize()
+{
+    xdp_program_info = new program_info_provider_t();
+    REQUIRE(xdp_program_info->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+    xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(xdp_hook->initialize() == EBPF_SUCCESS);
 
-        bind_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_BIND);
-        bind_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    bind_program_info = new program_info_provider_t();
+    REQUIRE(bind_program_info->initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    bind_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(bind_hook->initialize() == EBPF_SUCCESS);
 
-        cgroup_sock_addr_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
-        cgroup_inet4_connect_hook =
-            new single_instance_hook_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
-    } catch (...) {
-        delete xdp_hook;
-        delete xdp_program_info;
+    cgroup_sock_addr_program_info = new program_info_provider_t();
+    REQUIRE(cgroup_sock_addr_program_info->initialize(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) == EBPF_SUCCESS);
+    cgroup_inet4_connect_hook =
+        new single_instance_hook_t(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
+    REQUIRE(cgroup_inet4_connect_hook->initialize() == EBPF_SUCCESS);
 
-        delete bind_hook;
-        delete bind_program_info;
-
-        delete cgroup_inet4_connect_hook;
-        delete cgroup_sock_addr_program_info;
-
-        throw;
-    }
+    test_helper_end_to_end.initialize();
 }
 
 _test_helper_libbpf::~_test_helper_libbpf()
@@ -794,7 +831,7 @@ set_native_module_failures(bool expected)
 bool
 get_native_module_failures()
 {
-    return _expect_native_module_load_failures || ebpf_fault_injection_is_enabled();
+    return _expect_native_module_load_failures || usersim_fault_injection_is_enabled();
 }
 
 _Must_inspect_result_ ebpf_result_t

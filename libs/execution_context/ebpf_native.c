@@ -5,6 +5,7 @@
 
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_native.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
@@ -77,7 +78,7 @@ typedef struct _ebpf_native_module
 {
     ebpf_base_object_t base;
     GUID client_module_id;
-    metadata_table_t* table;
+    metadata_table_t table;
     ebpf_native_module_state_t state;
     bool detaching;
     _Field_z_ wchar_t* service_name; // This will be used to pass to the unload module workitem.
@@ -436,6 +437,14 @@ _ebpf_native_release_reference_internal(void* base_object, ebpf_file_id_t file_i
     ebpf_native_release_reference(base_object);
 }
 
+static void
+_ebpf_native_map_initial_values_fallback(
+    _Outptr_result_buffer_maybenull_(*count) map_initial_values_t** map_initial_values, _Out_ size_t* count)
+{
+    map_initial_values = NULL;
+    *count = 0;
+}
+
 static NTSTATUS
 _ebpf_native_provider_attach_client_callback(
     _In_ HANDLE nmr_binding_handle,
@@ -476,8 +485,8 @@ _ebpf_native_provider_attach_client_callback(
         goto Done;
     }
 
-    // If the metadata table changes in size, then require the regeneration of the native module.
-    if (table->size != sizeof(metadata_table_t)) {
+    // Check if the client module is compatible with the runtime.
+    if (table->size < EBPF_OFFSET_OF(metadata_table_t, version)) {
         result = EBPF_INVALID_ARGUMENT;
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -495,6 +504,14 @@ _ebpf_native_provider_attach_client_callback(
         goto Done;
     }
 
+    // Copy the metadata table.
+    memcpy(&client_context->table, table, min(table->size, sizeof(metadata_table_t)));
+
+    // Initialize the map initial values function pointer if it is not present.
+    if (!client_context->table.map_initial_values) {
+        client_context->table.map_initial_values = _ebpf_native_map_initial_values_fallback;
+    }
+
     ebpf_lock_create(&client_context->lock);
     client_context->base.marker = _ebpf_native_marker;
     client_context->base.acquire_reference = _ebpf_native_acquire_reference_internal;
@@ -503,7 +520,6 @@ _ebpf_native_provider_attach_client_callback(
     client_context->base.reference_count = 1;
     client_context->client_module_id = *client_module_id;
     client_context->state = MODULE_STATE_UNINITIALIZED;
-    client_context->table = table;
     client_context->nmr_binding_handle = nmr_binding_handle;
 
     // Insert the new client context in the hash table.
@@ -832,6 +848,111 @@ Exit:
     return result;
 }
 
+/**
+ * @brief Find the map with the given name in the module.
+ *
+ * @param[in] module Module to search.
+ * @param[in] name Map name to search for.
+ * @return Pointer to the map if found, NULL otherwise.
+ */
+static ebpf_native_map_t*
+_ebpf_native_find_map_by_name(_In_ const ebpf_native_module_t* module, _In_ const char* name)
+{
+    ebpf_native_map_t* map = NULL;
+    for (uint32_t i = 0; i < module->map_count; i++) {
+        if (strcmp(module->maps[i].entry->name, name) == 0) {
+            map = &module->maps[i];
+            break;
+        }
+    }
+    return map;
+}
+
+static ebpf_native_program_t*
+_ebpf_native_find_program_by_name(_In_ const ebpf_native_module_t* module, _In_ const char* name)
+{
+    ebpf_native_program_t* program = NULL;
+    for (uint32_t i = 0; i < module->program_count; i++) {
+        if (strcmp(module->programs[i].entry->program_name, name) == 0) {
+            program = &module->programs[i];
+            break;
+        }
+    }
+    return program;
+}
+
+static ebpf_result_t
+_ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_t* module)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    map_initial_values_t* map_initial_values = NULL;
+    size_t map_initial_values_count = 0;
+
+    // Get initial value for maps.
+    module->table.map_initial_values(&map_initial_values, &map_initial_values_count);
+
+    // For each map, update the initial values.
+    for (size_t i = 0; i < map_initial_values_count; i++) {
+        ebpf_native_map_t* native_map_to_update = _ebpf_native_find_map_by_name(module, map_initial_values[i].name);
+        if (native_map_to_update == NULL) {
+            result = EBPF_INVALID_ARGUMENT;
+            break;
+        }
+
+        if (native_map_to_update->reused) {
+            // Map is reused. Skip updating initial values.
+            continue;
+        }
+
+        // For each value in the map, find the map or program to insert.
+        for (size_t j = 0; j < map_initial_values[i].count; j++) {
+            // Skip empty initial values.
+            if (!map_initial_values[i].values[j]) {
+                continue;
+            }
+
+            ebpf_handle_t handle_to_insert = ebpf_handle_invalid;
+
+            if (native_map_to_update->entry->definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS) {
+                ebpf_native_map_t* native_map_to_insert =
+                    _ebpf_native_find_map_by_name(module, map_initial_values[i].values[j]);
+                if (native_map_to_update == NULL) {
+                    result = EBPF_INVALID_ARGUMENT;
+                    break;
+                }
+                handle_to_insert = native_map_to_insert->handle;
+            } else if (native_map_to_update->entry->definition.type == BPF_MAP_TYPE_PROG_ARRAY) {
+                ebpf_native_program_t* program_to_insert =
+                    _ebpf_native_find_program_by_name(module, map_initial_values[i].values[j]);
+                if (program_to_insert == NULL) {
+                    result = EBPF_INVALID_ARGUMENT;
+                    break;
+                }
+                handle_to_insert = program_to_insert->handle;
+            } else {
+                result = EBPF_INVALID_ARGUMENT;
+                break;
+            }
+
+            uint32_t key = (uint32_t)j;
+            result = ebpf_core_update_map_with_handle(
+                native_map_to_update->handle,
+                (uint8_t*)&key,
+                native_map_to_update->entry->definition.key_size,
+                handle_to_insert);
+            if (result != EBPF_SUCCESS) {
+                break;
+            }
+        }
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+    }
+
+    EBPF_RETURN_RESULT(result);
+}
+
 static ebpf_result_t
 _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
 {
@@ -844,7 +965,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
     ebpf_map_definition_in_memory_t map_definition = {0};
 
     // Get the maps
-    module->table->maps(&maps, &map_count);
+    module->table.maps(&maps, &map_count);
     if (map_count == 0) {
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
@@ -1105,7 +1226,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
     uint8_t* hash_type_name = NULL;
 
     // Get the programs.
-    module->table->programs(&programs, &program_count);
+    module->table.programs(&programs, &program_count);
     if (program_count == 0 || programs == NULL) {
         return EBPF_INVALID_OBJECT;
     }
@@ -1259,7 +1380,7 @@ _ebpf_native_get_count_of_maps(_In_ const ebpf_native_module_t* module)
 {
     map_entry_t* maps = NULL;
     size_t count_of_maps;
-    module->table->maps(&maps, &count_of_maps);
+    module->table.maps(&maps, &count_of_maps);
 
     return count_of_maps;
 }
@@ -1269,7 +1390,7 @@ _ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
 {
     program_entry_t* programs = NULL;
     size_t count_of_programs;
-    module->table->programs(&programs, &count_of_programs);
+    module->table.programs(&programs, &count_of_programs);
 
     return count_of_programs;
 }
@@ -1547,6 +1668,11 @@ ebpf_native_load_programs(
     bool maps_created = false;
     bool cleanup_context_created = false;
 
+    if ((count_of_map_handles > 0 && map_handles == NULL) ||
+        (count_of_program_handles > 0 && program_handles == NULL)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
     lock_acquired = true;
@@ -1632,6 +1758,17 @@ ebpf_native_load_programs(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_programs: program load failed",
+            module_id);
+        goto Done;
+    }
+
+    // Set initial map values.
+    result = _ebpf_native_set_initial_map_values(module);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_VERBOSE,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "ebpf_native_load_programs: set initial map values failed",
             module_id);
         goto Done;
     }

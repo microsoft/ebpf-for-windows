@@ -14,8 +14,10 @@
 #endif
 
 #include "ebpf_extension_uuids.h"
-#include "ebpf_registry_helper.h"
-#include "fwp_um.h"
+#include "ebpf_store_helper.h"
+#include "net_ebpf_ext.h"
+#include "net_ebpf_ext_tracelog.h"
+#include "usersim\fwp_test.h"
 
 #include <iostream>
 #include <vector>
@@ -30,65 +32,60 @@ typedef struct _netebpfext_helper_base_client_context
 typedef class _netebpf_ext_helper
 {
   public:
+    // If the caller invokes platform functions itself, the caller must pass initialize_platform = false
+    // and initialize/terminate the platform itself as needed.
+    _netebpf_ext_helper(bool initialize_platform = true);
     _netebpf_ext_helper(
-        _In_opt_ const void* npi_specific_characteristics = nullptr,
-        _In_opt_ _ebpf_extension_dispatch_function dispatch_function = nullptr,
-        _In_opt_ netebpfext_helper_base_client_context_t* client_context = nullptr);
+        _In_opt_ const void* npi_specific_characteristics,
+        _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
+        _In_opt_ netebpfext_helper_base_client_context_t* client_context,
+        bool initialize_platform = true);
     ~_netebpf_ext_helper();
 
     std::vector<GUID>
     program_info_provider_guids();
 
     ebpf_extension_data_t
-    get_program_info_provider_data(const GUID& program_info_provider);
+    get_program_info_provider_data(_In_ const GUID& program_info_provider);
 
     FWP_ACTION_TYPE
     classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
     {
-        return _fwp_engine::get()->classify_test_packet(layer_guid, if_index);
+        return usersim_fwp_classify_packet(layer_guid, if_index);
     }
 
     FWP_ACTION_TYPE
-    test_bind_ipv4(_In_ fwp_classify_parameters_t* parameters)
-    {
-        return _fwp_engine::get()->test_bind_ipv4(parameters);
-    }
+    test_bind_ipv4(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_bind_ipv4(parameters); }
 
     FWP_ACTION_TYPE
     test_cgroup_inet4_recv_accept(_In_ fwp_classify_parameters_t* parameters)
     {
-        return _fwp_engine::get()->test_cgroup_inet4_recv_accept(parameters);
+        return usersim_fwp_cgroup_inet4_recv_accept(parameters);
     }
 
     FWP_ACTION_TYPE
     test_cgroup_inet6_recv_accept(_In_ fwp_classify_parameters_t* parameters)
     {
-        return _fwp_engine::get()->test_cgroup_inet6_recv_accept(parameters);
+        return usersim_fwp_cgroup_inet6_recv_accept(parameters);
     }
 
     FWP_ACTION_TYPE
     test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameters)
     {
-        return _fwp_engine::get()->test_cgroup_inet4_connect(parameters);
+        return usersim_fwp_cgroup_inet4_connect(parameters);
     }
 
     FWP_ACTION_TYPE
     test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameters)
     {
-        return _fwp_engine::get()->test_cgroup_inet6_connect(parameters);
+        return usersim_fwp_cgroup_inet6_connect(parameters);
     }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v4(_In_ fwp_classify_parameters_t* parameters)
-    {
-        return _fwp_engine::get()->test_sock_ops_v4(parameters);
-    }
+    test_sock_ops_v4(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_sock_ops_v4(parameters); }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v6(_In_ fwp_classify_parameters_t* parameters)
-    {
-        return _fwp_engine::get()->test_sock_ops_v6(parameters);
-    }
+    test_sock_ops_v6(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_sock_ops_v6(parameters); }
 
   private:
     bool trace_initiated = false;
@@ -96,8 +93,6 @@ typedef class _netebpf_ext_helper
     bool provider_registered = false;
     bool wfp_initialized = false;
     bool platform_initialized = false;
-    bool nmr_program_info_client_handle_initialized = false;
-    bool nmr_hook_client_handle_initialized = false;
     DRIVER_OBJECT* driver_object = reinterpret_cast<DRIVER_OBJECT*>(this);
     DEVICE_OBJECT* device_object = reinterpret_cast<DEVICE_OBJECT*>(this);
 
@@ -128,7 +123,8 @@ typedef class _netebpf_ext_helper
             _In_ const NPI_CLIENT_CHARACTERISTICS* characteristics, _In_opt_ __drv_aliasesMem void* client_context)
         {
             nmr_client_handle = INVALID_HANDLE_VALUE;
-            REQUIRE(NmrRegisterClient(characteristics, client_context, &nmr_client_handle) == STATUS_SUCCESS);
+            // Don't use REQUIRE in a constructor.
+            (void)NmrRegisterClient(characteristics, client_context, &nmr_client_handle);
         }
 
         ~_nmr_client_registration()
@@ -138,7 +134,10 @@ typedef class _netebpf_ext_helper
                 if (status == STATUS_PENDING) {
                     status = NmrWaitForClientDeregisterComplete(nmr_client_handle);
                 }
-                REQUIRE(status == STATUS_SUCCESS);
+                if (status != STATUS_SUCCESS) {
+                    // Catch2 does not support using REQUIRE in a destructor.
+                    printf("ERROR: NmrWaitForClientDeregisterComplete failed with status %x\n", status);
+                }
             }
         }
 
@@ -207,7 +206,7 @@ typedef class _netebpf_ext_helper
         },
     };
 
-    _ebpf_extension_dispatch_function hook_invoke_function;
+    _ebpf_extension_dispatch_function hook_invoke_function = nullptr;
 
     std::unique_ptr<nmr_client_registration_t> nmr_program_info_client_handle;
     std::unique_ptr<nmr_client_registration_t> nmr_hook_client_handle;

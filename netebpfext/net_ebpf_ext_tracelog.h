@@ -379,12 +379,12 @@ net_ebpf_ext_log_message_uint64_uint64_uint64(
         }                                                                                                             \
     } while (false);
 
-#define NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(keyword, ptr, ptr_name, result)                                     \
+#define NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(keyword, ptr, ptr_name, status)                                     \
     do {                                                                                                              \
         if ((ptr) == NULL) {                                                                                          \
             NET_EBPF_EXT_LOG_MESSAGE(                                                                                 \
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, ##keyword##, "Failed to allocate " #ptr_name " in " __FUNCTION__); \
-            (result) = STATUS_INSUFFICIENT_RESOURCES;                                                                 \
+            (status) = STATUS_INSUFFICIENT_RESOURCES;                                                                 \
             goto Exit;                                                                                                \
         }                                                                                                             \
     } while (false);

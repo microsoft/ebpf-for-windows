@@ -14,7 +14,7 @@ This script synchronizes a local branch in the current repository from the upstr
 
 param (
     [Parameter(Mandatory = $false)]
-    [string]$BranchName = "main"
+    [string]$FullBranchName = "refs/heads/main"
 )
 
 <#
@@ -89,6 +89,11 @@ function Get-UpstreamBranches
 
     Write-Output "Done syncing new branches"
 }
+
+$BranchNameSuffix = $FullBranchName -split "refs/heads/"
+$BranchName = $BranchNameSuffix[1]
+
+Write-Output "Executing sync-mirror.ps1 for branch $BranchName"
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'

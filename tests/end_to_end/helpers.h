@@ -9,6 +9,7 @@
 #include "ebpf_program_types.h"
 #include "net_ebpf_ext_program_info.h"
 #include "sample_ext_program_info.h"
+#include "usersim/ke.h"
 
 // We need the NET_BUFFER typedefs without the other NT kernel defines that
 // ndis.h might pull in and conflict with user-mode headers.
@@ -49,8 +50,6 @@ typedef struct _close_bpf_link
 
 typedef std::unique_ptr<bpf_link, close_bpf_link_t> bpf_link_ptr;
 
-extern bool _ebpf_platform_is_preemptible;
-
 typedef class _emulate_dpc
 {
   public:
@@ -58,17 +57,18 @@ typedef class _emulate_dpc
     {
         uintptr_t new_thread_affinity_mask = 1ull << cpu_id;
         ebpf_assert_success(ebpf_set_current_thread_affinity(new_thread_affinity_mask, &old_thread_affinity_mask));
-        _ebpf_platform_is_preemptible = false;
+        KeRaiseIrql(DISPATCH_LEVEL, &old_irql);
     }
     ~_emulate_dpc()
     {
-        _ebpf_platform_is_preemptible = true;
+        KeLowerIrql(old_irql);
 
         ebpf_restore_current_thread_affinity(old_thread_affinity_mask);
     }
 
   private:
     uintptr_t old_thread_affinity_mask;
+    KIRQL old_irql;
 
 } emulate_dpc_t;
 
@@ -121,11 +121,12 @@ typedef class _single_instance_hook : public _hook_helper
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
         module_id.Guid = attach_type;
-
+    }
+    ebpf_result_t
+    initialize()
+    {
         NTSTATUS status = NmrRegisterProvider(&provider_characteristics, this, &nmr_provider_handle);
-        if (status != STATUS_SUCCESS) {
-            throw std::runtime_error("NmrRegisterProvider failed");
-        }
+        return (status == STATUS_SUCCESS) ? EBPF_SUCCESS : EBPF_FAILED;
     }
     ~_single_instance_hook()
     {
@@ -134,11 +135,13 @@ typedef class _single_instance_hook : public _hook_helper
             (void)ebpf_link_detach(link_object);
             (void)ebpf_link_close(link_object);
         }
-        NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
-        if (status == STATUS_PENDING) {
-            NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
-        } else {
-            ebpf_assert(status == STATUS_SUCCESS);
+        if (nmr_provider_handle != NULL) {
+            NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
+            if (status == STATUS_PENDING) {
+                NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
+            } else {
+                ebpf_assert(status == STATUS_SUCCESS);
+            }
         }
     }
 
@@ -532,9 +535,16 @@ static ebpf_extension_data_t _test_ebpf_sample_extension_program_info_provider_d
 typedef class _program_info_provider
 {
   public:
-    _program_info_provider(ebpf_program_type_t program_type, ebpf_extension_data_t* custom_provider_data = nullptr)
-        : program_type(program_type), provider_data(nullptr)
+    _program_info_provider() : provider_data(nullptr), nmr_provider_handle(INVALID_HANDLE_VALUE)
     {
+        memset(&_program_type, 0, sizeof(_program_type));
+    }
+
+    ebpf_result_t
+    initialize(ebpf_program_type_t program_type, ebpf_extension_data_t* custom_provider_data = nullptr)
+    {
+        this->_program_type = program_type;
+
         if (custom_provider_data != nullptr) {
             provider_data = custom_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_XDP) {
@@ -548,7 +558,8 @@ typedef class _program_info_provider
         } else if (program_type == EBPF_PROGRAM_TYPE_SAMPLE) {
             provider_data = &_test_ebpf_sample_extension_program_info_provider_data;
         } else {
-            throw std::invalid_argument("Unsupported program type");
+            // Unsupported program type.
+            return EBPF_INVALID_ARGUMENT;
         }
         ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
 
@@ -556,17 +567,17 @@ typedef class _program_info_provider
         provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics = provider_data;
 
         NTSTATUS status = NmrRegisterProvider(&provider_characteristics, this, &nmr_provider_handle);
-        if (status != STATUS_SUCCESS) {
-            throw std::runtime_error("NmrRegisterProvider failed");
-        }
+        return (NT_SUCCESS(status)) ? EBPF_SUCCESS : EBPF_FAILED;
     }
     ~_program_info_provider()
     {
-        NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
-        if (status == STATUS_PENDING) {
-            NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
-        } else {
-            ebpf_assert(status == STATUS_SUCCESS);
+        if (nmr_provider_handle != INVALID_HANDLE_VALUE) {
+            NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
+            if (status == STATUS_PENDING) {
+                NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
+            } else {
+                ebpf_assert(status == STATUS_SUCCESS);
+            }
         }
     }
 
@@ -603,7 +614,7 @@ typedef class _program_info_provider
         return EBPF_SUCCESS;
     };
 
-    ebpf_program_type_t program_type;
+    ebpf_program_type_t _program_type;
 
     const ebpf_extension_data_t* provider_data;
     NPI_MODULEID module_id = {

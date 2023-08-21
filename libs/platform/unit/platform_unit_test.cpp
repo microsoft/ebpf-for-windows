@@ -8,10 +8,12 @@
 #include "ebpf_async.h"
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
+#include "ebpf_hash_table.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_random.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
@@ -57,11 +59,13 @@ typedef std::unique_ptr<ebpf_trampoline_table_t, free_trampoline_table_t> ebpf_t
 class _test_helper
 {
   public:
-    _test_helper()
+    _test_helper() { ebpf_object_tracking_initiate(); }
+    void
+    initialize()
     {
-        ebpf_object_tracking_initiate();
         REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
         platform_initiated = true;
+        REQUIRE(ebpf_random_initiate() == EBPF_SUCCESS);
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
         epoch_initiated = true;
         REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
@@ -81,6 +85,7 @@ class _test_helper
             ebpf_epoch_flush();
             ebpf_epoch_terminate();
         }
+        ebpf_random_terminate();
         if (platform_initiated) {
             ebpf_platform_terminate();
         }
@@ -94,9 +99,19 @@ class _test_helper
     bool state_initiated = false;
 };
 
+struct ebpf_hash_table_destroyer_t
+{
+    void
+    operator()(_In_opt_ _Post_invalid_ ebpf_hash_table_t* table)
+    {
+        ebpf_hash_table_destroy(table);
+    }
+};
+
+using ebpf_hash_table_ptr = std::unique_ptr<ebpf_hash_table_t, ebpf_hash_table_destroyer_t>;
+
 TEST_CASE("hash_table_test", "[platform]")
 {
-    ebpf_hash_table_t* table = nullptr;
     std::vector<uint8_t> key_1(13);
     std::vector<uint8_t> key_2(13);
     std::vector<uint8_t> key_3(13);
@@ -105,6 +120,9 @@ TEST_CASE("hash_table_test", "[platform]")
     std::vector<uint8_t> data_3(37);
     uint8_t* returned_value = nullptr;
     std::vector<uint8_t> returned_key(13);
+
+    _test_helper test_helper;
+    test_helper.initialize();
 
     for (auto& v : key_1) {
         v = static_cast<uint8_t>(ebpf_random_uint32());
@@ -133,79 +151,123 @@ TEST_CASE("hash_table_test", "[platform]")
         .bucket_count = 1,
     };
 
-    REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
+    ebpf_hash_table_t* raw_ptr = nullptr;
+    REQUIRE(ebpf_hash_table_create(&raw_ptr, &options) == EBPF_SUCCESS);
+    ebpf_hash_table_ptr table(raw_ptr);
 
     // Insert first
     // Empty bucket case
     REQUIRE(
-        ebpf_hash_table_update(table, key_1.data(), data_1.data(), EBPF_HASH_TABLE_OPERATION_INSERT) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 1);
+        ebpf_hash_table_update(table.get(), key_1.data(), data_1.data(), EBPF_HASH_TABLE_OPERATION_INSERT) ==
+        EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 1);
 
     // Insert second
     // Existing bucket, no backup.
-    REQUIRE(ebpf_hash_table_update(table, key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 2);
+    REQUIRE(
+        ebpf_hash_table_update(table.get(), key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_ANY) ==
+        EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 2);
 
     // Insert third
     // Existing bucket, with backup.
-    REQUIRE(ebpf_hash_table_update(table, key_3.data(), data_3.data(), EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 3);
+    REQUIRE(
+        ebpf_hash_table_update(table.get(), key_3.data(), data_3.data(), EBPF_HASH_TABLE_OPERATION_ANY) ==
+        EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 3);
+
+    // Iterate through all keys.
+    uint64_t cookie = 0;
+    uint8_t keys_found = 0;
+    std::vector<const uint8_t*> keys;
+    std::vector<const uint8_t*> values;
+    size_t count = 2;
+    keys.resize(count);
+    values.resize(count);
+    // Bucket contains 3 keys, but we only have space for 2.
+    // Should fail with insufficient buffer.
+    REQUIRE(
+        ebpf_hash_table_iterate(table.get(), &cookie, &count, keys.data(), values.data()) == EBPF_INSUFFICIENT_BUFFER);
+    REQUIRE(count == 3);
+    keys.resize(count);
+    values.resize(count);
+    // Bucket contains 3 keys, and we have space for 3.
+    // Should succeed.
+    REQUIRE(ebpf_hash_table_iterate(table.get(), &cookie, &count, keys.data(), values.data()) == EBPF_SUCCESS);
+
+    // Verify that all keys are found.
+    for (size_t index = 0; index < 3; index++) {
+        if (memcmp(keys[index], key_1.data(), key_1.size()) == 0) {
+            REQUIRE(memcmp(values[index], data_1.data(), data_1.size()) == 0);
+            keys_found |= 1 << 0;
+        } else if (memcmp(keys[index], key_2.data(), key_2.size()) == 0) {
+            REQUIRE(memcmp(values[index], data_2.data(), data_2.size()) == 0);
+            keys_found |= 1 << 1;
+        } else if (memcmp(keys[index], key_3.data(), key_3.size()) == 0) {
+            REQUIRE(memcmp(values[index], data_3.data(), data_3.size()) == 0);
+            keys_found |= 1 << 2;
+        } else {
+            REQUIRE(false);
+        }
+    }
+    // Verify that there are no more keys.
+    REQUIRE(ebpf_hash_table_iterate(table.get(), &cookie, &count, keys.data(), values.data()) == EBPF_NO_MORE_KEYS);
+    REQUIRE(keys_found == 0x7);
 
     // Find the first
-    REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_find(table.get(), key_1.data(), &returned_value) == EBPF_SUCCESS);
     REQUIRE(memcmp(returned_value, data_1.data(), data_1.size()) == 0);
 
     // Find the second
-    REQUIRE(ebpf_hash_table_find(table, key_2.data(), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_find(table.get(), key_2.data(), &returned_value) == EBPF_SUCCESS);
     REQUIRE(memcmp(returned_value, data_2.data(), data_2.size()) == 0);
 
     // Find the third
-    REQUIRE(ebpf_hash_table_find(table, key_2.data(), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_find(table.get(), key_2.data(), &returned_value) == EBPF_SUCCESS);
     REQUIRE(memcmp(returned_value, data_2.data(), data_2.size()) == 0);
 
     // Replace the second
     memset(data_2.data(), '0x55', data_2.size());
     REQUIRE(
-        ebpf_hash_table_update(table, key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_REPLACE) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 3);
+        ebpf_hash_table_update(table.get(), key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_REPLACE) ==
+        EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 3);
 
     // Find the first
-    REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_find(table.get(), key_1.data(), &returned_value) == EBPF_SUCCESS);
     REQUIRE(memcmp(returned_value, data_1.data(), data_1.size()) == 0);
 
     // Next key
-    REQUIRE(ebpf_hash_table_next_key(table, nullptr, returned_key.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_next_key(table.get(), nullptr, returned_key.data()) == EBPF_SUCCESS);
     REQUIRE(returned_key == key_1);
 
-    REQUIRE(ebpf_hash_table_next_key(table, returned_key.data(), returned_key.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_next_key(table.get(), returned_key.data(), returned_key.data()) == EBPF_SUCCESS);
     REQUIRE(returned_key == key_2);
 
-    REQUIRE(ebpf_hash_table_next_key(table, returned_key.data(), returned_key.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_next_key(table.get(), returned_key.data(), returned_key.data()) == EBPF_SUCCESS);
     REQUIRE(returned_key == key_3);
 
-    REQUIRE(ebpf_hash_table_next_key(table, returned_key.data(), returned_key.data()) == EBPF_NO_MORE_KEYS);
+    REQUIRE(ebpf_hash_table_next_key(table.get(), returned_key.data(), returned_key.data()) == EBPF_NO_MORE_KEYS);
     REQUIRE(returned_key == key_3);
 
     // Delete middle key
-    REQUIRE(ebpf_hash_table_delete(table, key_2.data()) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 2);
+    REQUIRE(ebpf_hash_table_delete(table.get(), key_2.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 2);
 
     // Delete not found
-    REQUIRE(ebpf_hash_table_delete(table, key_2.data()) == EBPF_KEY_NOT_FOUND);
-    REQUIRE(ebpf_hash_table_key_count(table) == 2);
+    REQUIRE(ebpf_hash_table_delete(table.get(), key_2.data()) == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 2);
 
     // Find not found
-    REQUIRE(ebpf_hash_table_find(table, key_2.data(), &returned_value) == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_hash_table_find(table.get(), key_2.data(), &returned_value) == EBPF_KEY_NOT_FOUND);
 
     // Delete first key
-    REQUIRE(ebpf_hash_table_delete(table, key_1.data()) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 1);
+    REQUIRE(ebpf_hash_table_delete(table.get(), key_1.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 1);
 
     // Delete last key
-    REQUIRE(ebpf_hash_table_delete(table, key_3.data()) == EBPF_SUCCESS);
-    REQUIRE(ebpf_hash_table_key_count(table) == 0);
-
-    ebpf_hash_table_destroy(table);
+    REQUIRE(ebpf_hash_table_delete(table.get(), key_3.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_key_count(table.get()) == 0);
 }
 
 void
@@ -219,6 +281,7 @@ run_in_epoch(std::function<void()> function)
 TEST_CASE("hash_table_stress_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_hash_table_t* table = nullptr;
     const size_t iterations = 1000;
@@ -290,6 +353,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
 TEST_CASE("pinning_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     typedef struct _some_object
     {
@@ -339,6 +403,7 @@ TEST_CASE("pinning_test", "[platform]")
 TEST_CASE("epoch_test_single_epoch", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
     void* memory = ebpf_epoch_allocate(10);
@@ -350,6 +415,7 @@ TEST_CASE("epoch_test_single_epoch", "[platform]")
 TEST_CASE("epoch_test_two_threads", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     auto epoch = []() {
         ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
@@ -366,8 +432,6 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     thread_1.join();
     thread_2.join();
 }
-
-extern bool _ebpf_platform_is_preemptible;
 
 class _signal
 {
@@ -400,15 +464,15 @@ class _signal
  */
 TEST_CASE("epoch_test_stale_items", "[platform]")
 {
-    _ebpf_platform_is_preemptible = false;
-
     _test_helper test_helper;
+    test_helper.initialize();
     _signal signal_1;
     _signal signal_2;
 
     if (ebpf_get_cpu_count() < 2) {
         return;
     }
+
     size_t const test_iterations = 100;
     for (size_t test_iteration = 0; test_iteration < test_iterations; test_iteration++) {
 
@@ -454,6 +518,7 @@ static auto provider_function = []() { return EBPF_SUCCESS; };
 TEST_CASE("trampoline_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_trampoline_table_ptr table;
     ebpf_result_t (*test_function)();
@@ -513,6 +578,7 @@ typedef std::unique_ptr<ebpf_security_descriptor_t, ebpf_security_descriptor_t_f
 TEST_CASE("access_check", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     ebpf_security_generic_mapping_ptr sd_ptr;
     ebpf_security_descriptor_t* sd = NULL;
     unsigned long sd_size = 0;
@@ -542,12 +608,12 @@ TEST_CASE("access_check", "[platform]")
 struct ebpf_memory_descriptor_t_free
 {
     void
-    operator()(_Frees_ptr_opt_ ebpf_memory_descriptor_t* p)
+    operator()(_Frees_ptr_opt_ MDL* p)
     {
         ebpf_unmap_memory(p);
     }
 };
-typedef std::unique_ptr<ebpf_memory_descriptor_t, ebpf_memory_descriptor_t_free> ebpf_memory_descriptor_ptr;
+typedef std::unique_ptr<MDL, ebpf_memory_descriptor_t_free> ebpf_memory_descriptor_ptr;
 
 TEST_CASE("memory_map_test", "[platform]")
 {
@@ -562,6 +628,7 @@ TEST_CASE("memory_map_test", "[platform]")
 TEST_CASE("serialize_map_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     const int map_count = 10;
     ebpf_map_info_internal_t internal_map_info_array[map_count] = {};
@@ -635,6 +702,7 @@ TEST_CASE("serialize_map_test", "[platform]")
 TEST_CASE("serialize_program_info_test", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     ebpf_helper_function_prototype_t helper_prototype[] = {
         {1000,
@@ -722,6 +790,7 @@ TEST_CASE("serialize_program_info_test", "[platform]")
 TEST_CASE("state_test", "[state]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     size_t allocated_index_1 = 0;
     size_t allocated_index_2 = 0;
     struct
@@ -790,6 +859,7 @@ BIT_MASK_TEST(1025, false);
 TEST_CASE("async", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
 
     auto test = [](bool complete) {
         ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
@@ -842,6 +912,7 @@ TEST_CASE("async", "[platform]")
 TEST_CASE("ring_buffer_output", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     size_t consumer;
     size_t producer;
     ebpf_ring_buffer_t* ring_buffer;
@@ -898,6 +969,7 @@ TEST_CASE("ring_buffer_output", "[platform]")
 TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     size_t consumer;
     size_t producer;
     ebpf_ring_buffer_t* ring_buffer;
@@ -992,7 +1064,45 @@ TEST_CASE("interlocked operations", "[platform]")
 TEST_CASE("get_authentication_id", "[platform]")
 {
     _test_helper test_helper;
+    test_helper.initialize();
     uint64_t authentication_id = 0;
 
     REQUIRE(ebpf_platform_get_authentication_id(&authentication_id) == EBPF_SUCCESS);
+}
+
+// See https://en.wikipedia.org/wiki/Chi-squared_test for details.
+#define SEQUENCE_LENGTH 100000000
+#define NUM_BINS 65536
+#define CHI_SQUARED_STATISTIC_THRESHOLD \
+    66131.63094 // Critical value for Chi-squared test with 65535 degrees of freedom with significance level of 0.05.
+
+bool
+is_statistically_random(size_t sequence_length, std::function<uint32_t()> random_number_generator)
+{
+    std::vector<int> observed_values(NUM_BINS, 0);
+    double expected_value = static_cast<double>(sequence_length) / static_cast<double>(NUM_BINS);
+
+    for (int i = 0; i < sequence_length; i++) {
+        int bin = static_cast<int>(random_number_generator() % NUM_BINS);
+        observed_values[bin]++;
+    }
+
+    double chi_squared_statistic = 0.0;
+    for (int i = 0; i < NUM_BINS; i++) {
+        double observed = static_cast<double>(observed_values[i]);
+        chi_squared_statistic += pow(observed - expected_value, 2) / expected_value;
+    }
+
+    double critical_value = CHI_SQUARED_STATISTIC_THRESHOLD;
+    std::cout << chi_squared_statistic << std::endl;
+    return chi_squared_statistic < critical_value;
+}
+
+TEST_CASE("verify random", "[platform]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+
+    // Verify that the random number generator is statistically random.
+    REQUIRE(is_statistically_random(SEQUENCE_LENGTH, ebpf_random_uint32));
 }

@@ -11,8 +11,6 @@
 #define PERFORMANCE_MEASURE_ITERATION_COUNT 1000000
 #define PERFORMANCE_MEASURE_TIMEOUT 60000
 
-extern bool _ebpf_platform_is_preemptible;
-
 /**
  * @brief Test helper function that executes a provided method on each CPU
  * iterations times, measures elapsed time and returns average elapsed time
@@ -40,13 +38,8 @@ template <typename T> class _performance_measure
           preemptible(preemptible), test_name(test_name)
     {
         start_event = CreateEvent(nullptr, true, false, nullptr);
-        _ebpf_platform_is_preemptible = preemptible;
     }
-    ~_performance_measure()
-    {
-        _ebpf_platform_is_preemptible = true;
-        CloseHandle(start_event);
-    }
+    ~_performance_measure() { CloseHandle(start_event); }
 
     /**
      * @brief Perform the measurement.
@@ -66,6 +59,10 @@ template <typename T> class _performance_measure
                 SetThreadAffinityMask(GetCurrentThread(), thread_mask);
                 ebpf_interlocked_increment_int32(&ready_count);
                 WaitForSingleObject(start_event, INFINITE);
+                KIRQL old_irql = PASSIVE_LEVEL;
+                if (!preemptible) {
+                    old_irql = KeRaiseIrqlToDpcLevel();
+                }
                 QueryPerformanceCounter(&this->counters[local_cpu_id].first);
                 for (size_t k = 0; k < iterations; k++) {
                     if constexpr (std::is_same<T, void(__cdecl*)(uint32_t)>::value) {
@@ -75,6 +72,9 @@ template <typename T> class _performance_measure
                     }
                 }
                 QueryPerformanceCounter(&this->counters[local_cpu_id].second);
+                if (!preemptible) {
+                    KeLowerIrql(old_irql);
+                }
             }));
         }
         // Wait for threads to spin up.

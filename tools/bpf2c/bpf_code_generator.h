@@ -241,6 +241,22 @@ class bpf_code_generator
     parse();
 
     /**
+     * @brief Parse BTF map information in the eBPF file.
+     *
+     * @param[in] section_name Section in the ELF file to parse maps in.
+     */
+    void
+    parse_btf_maps_section(const unsafe_string& name);
+
+    /**
+     * @brief Parse legacy map information in the eBPF file.
+     *
+     * @param[in] section_name Section in the ELF file to parse maps in.
+     */
+    void
+    parse_legacy_maps_section(const unsafe_string& name);
+
+    /**
      * @brief Generate C code from the parsed eBPF file.
      *
      * @param[in] section_name Section in the ELF file to generate C code for.
@@ -422,4 +438,5 @@ class bpf_code_generator
     unsafe_string path;
     btf_section_to_instruction_to_line_info_t section_line_info;
     std::optional<std::vector<uint8_t>> elf_file_hash;
+    std::map<unsafe_string, std::vector<unsafe_string>> map_initial_values;
 };

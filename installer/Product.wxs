@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 <?define ProductVersion="022C44B5-8969-4B75-8DB0-73F98B1BD7DC"?>
 <?define UpgradeCode="B6BCACB1-C872-4159-ABCB-43A50668056C"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:ui="http://schemas.microsoft.com/wix/UIExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
-	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="0.9.0" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
+	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="0.10.0" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
 		<Package Description="eBPF for Windows" InstallerVersion="301" Compressed="yes" InstallScope="perMachine" Manufacturer="Microsoft" Platform="x64" />
 		<MajorUpgrade AllowSameVersionUpgrades="yes"
 					  Disallow="yes" DisallowUpgradeErrorMessage="An older version of [ProductName] is already installed. Please remove it first."
@@ -218,6 +218,15 @@ SPDX-License-Identifier: MIT
 			<Component Id="EXPORT_PROGRAM_INFO.PDB" DiskId="1" Guid="{88356FE4-6247-4876-BA14-42EDA88CC5C7}">
 				<File Id="EXPORT_PROGRAM_INFO.PDB" Name="export_program_info.pdb" Source="$(var.export_program_info.TargetDir)export_program_info.pdb" />
 			</Component>
+			<!-- TODO(#2677): move usersim.dll down to the testing component.  Until that issue is addressed,
+			     export_program_info.exe requires it.
+			-->
+			<Component Id="USERSIM.DLL" DiskId="1" Guid="{739017F0-9E33-48FF-A33F-C1434AC757BE}">
+				<File Id="USERSIM.DLL" Name="usersim.dll" Source="$(var.usersim.TargetPath)" />
+			</Component>
+			<Component Id="USERSIM.PDB" DiskId="1" Guid="{BCE1BF99-6A3D-48A6-A382-4E87A2B20FB2}">
+				<File Id="USERSIM.PDB" Name="usersim.pdb" Source="$(var.usersim.TargetDir)usersim.pdb" />
+			</Component>
 		</ComponentGroup>
 
 		<!--Clear/Setup the eBPF store-->
@@ -418,11 +427,7 @@ SPDX-License-Identifier: MIT
 				<File Id="LIBBPF_LEGACY.H" Name="libbpf_legacy.h" Source="$(var.SolutionDir)include\bpf\libbpf_legacy.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_include_kernel" Directory="dir_include_kernel">
-			<Component Id="EBPF_REGISTRY_HELPER.H" DiskId="1" Guid="{26717067-176B-4B94-8716-57A675E5F918}">
-				<File Id="EBPF_REGISTRY_HELPER.H" Name="ebpf_registry_helper.h" Source="$(var.SolutionDir)include\kernel\ebpf_registry_helper.h" />
-			</Component>
-		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_include_kernel" Directory="dir_include_kernel"/>
 		<ComponentGroup Id="eBPF_Development_include_linux" Directory="dir_include_linux">
 			<Component Id="BPF.H_2" DiskId="1" Guid="{ED4F7D03-0334-4FB3-A3AC-1DAD36FF1228}">
 				<File Id="BPF.H_2" Name="bpf.h" Source="$(var.SolutionDir)include\linux\bpf.h" />
@@ -588,14 +593,13 @@ SPDX-License-Identifier: MIT
 				<File Id="TCP.H" Name="tcp.h" Source="$(var.SolutionDir)include\uapi\linux\tcp.h" />
 			</Component>
 		</ComponentGroup>
-		<ComponentGroup Id="eBPF_Development_include_user" Directory="dir_include_user">
-			<Component Id="EBPF_REGISTRY_HELPER.H_1" DiskId="1" Guid="{D1BF1F4F-BD3D-484E-89D9-77A94522FC97}">
-				<File Id="EBPF_REGISTRY_HELPER.H_1" Name="ebpf_registry_helper.h" Source="$(var.SolutionDir)include\user\ebpf_registry_helper.h" />
-			</Component>
-		</ComponentGroup>
+		<ComponentGroup Id="eBPF_Development_include_user" Directory="dir_include_user"/>
 		<ComponentGroup Id="eBPF_Development_libs" Directory="dir_lib">
 			<Component Id="eBPFApi_lib" Guid="{A164197B-3C57-4ECA-B138-CBF558DA4401}">
 				<File Id="EbpfApi.lib" Name="EbpfApi.lib" DiskId="1" Source="$(var.api.TargetDir)EbpfApi.lib" />
+			</Component>
+			<Component Id="EBPF_STORE_HELPER_KM_lib" Guid="{F8A8A1D9-3F61-4F30-B75B-E51B63D6DB40}">
+				<File Id="EBPF_STORE_HELPER_KM.LIB" Name="ebpf_store_helper_km.lib" Source="$(var.ebpf_store_helper_km.TargetDir)ebpf_store_helper_km.lib" />
 			</Component>
 		</ComponentGroup>
 	</Fragment>
@@ -797,12 +801,18 @@ SPDX-License-Identifier: MIT
 			<Component Id="DROPPACKET_UNSAFE.O" DiskId="1" Guid="{40156401-DDEA-4435-B559-E7071D251395}">
 				<File Id="DROPPACKET_UNSAFE.O" Name="droppacket_unsafe.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\droppacket_unsafe.o" />
 			</Component>
-			<?if $(var.Configuration) = Debug ?>
-			<Component Id="EMPY_UM.DLL" DiskId="1" Guid="{321F2303-53CC-4CF2-8D92-5FCA988BDCB5}">
-				<File Id="EMPY_UM.DLL" Name="empty_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\empty_um.dll" />
+			<Component Id="EBPFCORE_USERSIM.DLL" DiskId="1" Guid="{860B3D19-02BE-482F-930A-B5B5CFAD2B82}">
+				<File Id="EBPFCORE_USERSIM.DLL" Name="ebpfcore_usersim.dll" Source="$(var.EbpfCore_Usersim.TargetPath)" />
 			</Component>
-			<Component Id="EMPY_UM.PDB" DiskId="1" Guid="{5A07EE87-FF00-47AB-BC15-0C8E1A5EF04F}">
-				<File Id="EMPY_UM.PDB" Name="empty_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\empty_um.pdb" />
+			<Component Id="EBPFCORE_USERSIM.PDB" DiskId="1" Guid="{DD7FB772-A974-4D2C-880A-B17C2F69D063}">
+				<File Id="EBPFCORE_USERSIM.PDB" Name="ebpfcore_usersim.pdb" Source="$(var.EbpfCore_Usersim.TargetDir)ebpfcore_usersim.pdb" />
+			</Component>
+			<?if $(var.Configuration) = Debug ?>
+			<Component Id="EMPTY_UM.DLL" DiskId="1" Guid="{321F2303-53CC-4CF2-8D92-5FCA988BDCB5}">
+				<File Id="EMPTY_UM.DLL" Name="empty_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\empty_um.dll" />
+			</Component>
+			<Component Id="EMPTY_UM.PDB" DiskId="1" Guid="{5A07EE87-FF00-47AB-BC15-0C8E1A5EF04F}">
+				<File Id="EMPTY_UM.PDB" Name="empty_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\empty_um.pdb" />
 			</Component>
 			<?endif?>
 			<Component Id="ENCAP_REFLECT_PACKET.O" DiskId="1" Guid="{767274A3-97F5-4F35-BB27-1A7166708AD8}">
@@ -849,29 +859,41 @@ SPDX-License-Identifier: MIT
 			<Component Id="MAP_UM.PDB" DiskId="1" Guid="{6F54DE00-C439-442D-8DAF-F0FE01E9D002}">
 				<File Id="MAP_UM.PDB" Name="map_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_um.pdb" />
 			</Component>
-			<Component Id="MAP_IN_MAP.O" DiskId="1" Guid="{D5BF9636-2A17-4E6C-8EFF-824794F48A01}">
-				<File Id="MAP_IN_MAP.O" Name="map_in_map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map.o" />
+			<Component Id="MAP_IN_MAP_BTF.O" DiskId="1" Guid="{D5BF9636-2A17-4E6C-8EFF-824794F48A01}">
+				<File Id="MAP_IN_MAP_BTF.O" Name="map_in_map_btf.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_btf.o" />
 			</Component>
-			<Component Id="MAP_IN_MAP.SYS" DiskId="1" Guid="{6AF324AB-39CD-4189-A18F-7DA43EFFF6CD}">
-				<File Id="MAP_IN_MAP.SYS" Name="map_in_map.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map.sys" />
+			<Component Id="MAP_IN_MAP_BTF.SYS" DiskId="1" Guid="{6AF324AB-39CD-4189-A18F-7DA43EFFF6CD}">
+				<File Id="MAP_IN_MAP_BTF.SYS" Name="map_in_map_btf.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_btf.sys" />
 			</Component>
-			<Component Id="MAP_IN_MAP_UM.DLL" DiskId="1" Guid="{E625FEC7-6D4A-495C-B8CE-14D39F572719}">
-				<File Id="MAP_IN_MAP_UM.DLL" Name="map_in_map_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_um.dll" />
+			<Component Id="MAP_IN_MAP_BTF_UM.DLL" DiskId="1" Guid="{E625FEC7-6D4A-495C-B8CE-14D39F572719}">
+				<File Id="MAP_IN_MAP_BTF_UM.DLL" Name="map_in_map_btf_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_btf_um.dll" />
 			</Component>
-			<Component Id="MAP_IN_MAP_UM.PDB" DiskId="1" Guid="{91D709F0-FABE-4EDF-9FB4-61E5EA633EBC}">
-				<File Id="MAP_IN_MAP_UM.PDB" Name="map_in_map_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_um.pdb" />
+			<Component Id="MAP_IN_MAP_BTF_UM.PDB" DiskId="1" Guid="{91D709F0-FABE-4EDF-9FB4-61E5EA633EBC}">
+				<File Id="MAP_IN_MAP_BTF_UM.PDB" Name="map_in_map_btf_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_btf_um.pdb" />
 			</Component>
-			<Component Id="MAP_IN_MAP_V2.O" DiskId="1" Guid="{D198FFAB-E146-4ED3-96B3-9FBED450C7D7}">
-				<File Id="MAP_IN_MAP_V2.O" Name="map_in_map_v2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_v2.o" />
+			<Component Id="MAP_IN_MAP_LEGACY_IDX.O" DiskId="1" Guid="{89FFF549-4331-43FA-8719-E7D7B113FC97}">
+				<File Id="MAP_IN_MAP_LEGACY_IDX.O" Name="map_in_map_legacy_idx.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_idx.o" />
 			</Component>
-			<Component Id="MAP_IN_MAP_V2.SYS" DiskId="1" Guid="{69B33845-E670-4485-A004-414BB39AB8B7}">
-				<File Id="MAP_IN_MAP_V2.SYS" Name="map_in_map_v2.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_v2.sys" />
+			<Component Id="MAP_IN_MAP_LEGACY_IDX.SYS" DiskId="1" Guid="{5DB35CCD-010F-4672-BDF4-FB848CBECDB5}">
+				<File Id="MAP_IN_MAP_LEGACY_IDX.SYS" Name="map_in_map_legacy_idx.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_idx.sys" />
 			</Component>
-			<Component Id="MAP_IN_MAP_V2_UM.DLL" DiskId="1" Guid="{F804A298-A598-4B2A-81C2-28D9021E1F54}">
-				<File Id="MAP_IN_MAP_V2_UM.DLL" Name="map_in_map_v2_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_v2_um.dll" />
+			<Component Id="MAP_IN_MAP_LEGACY_IDX_UM.DLL" DiskId="1" Guid="{95797C3C-1998-4712-8B65-F40C3B224357}">
+				<File Id="MAP_IN_MAP_LEGACY_IDX_UM.DLL" Name="map_in_map_legacy_idx_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_idx_um.dll" />
 			</Component>
-			<Component Id="MAP_IN_MAP_V2_UM.PDB" DiskId="1" Guid="{F2234642-B193-453E-B484-91E3028206F6}">
-				<File Id="MAP_IN_MAP_V2_UM.PDB" Name="map_in_map_v2_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_v2_um.pdb" />
+			<Component Id="MAP_IN_MAP_LEGACY_IDX_UM.PDB" DiskId="1" Guid="{4E316722-513D-4EFB-B761-0F1602903B6B}">
+				<File Id="MAP_IN_MAP_LEGACY_IDX_UM.PDB" Name="map_in_map_legacy_idx_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_idx_um.pdb" />
+			</Component>
+			<Component Id="MAP_IN_MAP_LEGACY_ID.O" DiskId="1" Guid="{D198FFAB-E146-4ED3-96B3-9FBED450C7D7}">
+				<File Id="MAP_IN_MAP_LEGACY_ID.O" Name="map_in_map_legacy_id.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_id.o" />
+			</Component>
+			<Component Id="MAP_IN_MAP_LEGACY_ID.SYS" DiskId="1" Guid="{69B33845-E670-4485-A004-414BB39AB8B7}">
+				<File Id="MAP_IN_MAP_LEGACY_ID.SYS" Name="map_in_map_legacy_id.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_id.sys" />
+			</Component>
+			<Component Id="MAP_IN_MAP_LEGACY_ID_UM.DLL" DiskId="1" Guid="{F804A298-A598-4B2A-81C2-28D9021E1F54}">
+				<File Id="MAP_IN_MAP_LEGACY_ID_UM.DLL" Name="map_in_map_legacy_id_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_id_um.dll" />
+			</Component>
+			<Component Id="MAP_IN_MAP_LEGACY_ID_UM.PDB" DiskId="1" Guid="{F2234642-B193-453E-B484-91E3028206F6}">
+				<File Id="MAP_IN_MAP_LEGACY_ID_UM.PDB" Name="map_in_map_legacy_id_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_in_map_legacy_id_um.pdb" />
 			</Component>
 			<Component Id="MAP_REUSE.O" DiskId="1" Guid="{3C17B815-A950-4103-A9D3-DB8EB5F41B47}">
 				<File Id="MAP_REUSE.O" Name="map_reuse.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map_reuse.o" />

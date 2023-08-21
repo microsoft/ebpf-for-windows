@@ -217,6 +217,9 @@ typedef struct _sample_ebpf_extension_hook_client
     const void* client_binding_context;
     const ebpf_extension_data_t* client_data;
     ebpf_program_invoke_function_t invoke_program;
+    ebpf_program_batch_begin_invoke_function_t begin_batch_program_invoke;
+    ebpf_program_batch_end_invoke_function_t end_batch_program_invoke;
+    ebpf_program_batch_invoke_function_t batch_program_invoke;
 } sample_ebpf_extension_hook_client_t;
 
 /**
@@ -316,7 +319,7 @@ _sample_ebpf_extension_update_store_entries()
         (GUID*)&EBPF_ATTACH_TYPE_SAMPLE,
         BPF_PROG_TYPE_SAMPLE,
         BPF_ATTACH_TYPE_SAMPLE};
-    status = _ebpf_store_update_section_information(&section_info, 1);
+    status = ebpf_store_update_section_information(&section_info, 1);
     if (!NT_SUCCESS(status)) {
         return status;
     }
@@ -328,7 +331,7 @@ _sample_ebpf_extension_update_store_entries()
                          .ProviderRegistrationInstance.NpiSpecificCharacteristics;
     program_data = (ebpf_program_data_t*)extension_data->data;
 
-    status = _ebpf_store_update_program_information(program_data->program_info, 1);
+    status = ebpf_store_update_program_information(program_data->program_info, 1);
 
     return status;
 }
@@ -421,6 +424,9 @@ _sample_ebpf_extension_hook_provider_attach_client(
         goto Exit;
     }
     hook_client->invoke_program = client_dispatch_table->ebpf_program_invoke_function;
+    hook_client->batch_program_invoke = client_dispatch_table->ebpf_program_batch_invoke_function;
+    hook_client->begin_batch_program_invoke = client_dispatch_table->ebpf_program_batch_begin_invoke_function;
+    hook_client->end_batch_program_invoke = client_dispatch_table->ebpf_program_batch_end_invoke_function;
 
     local_provider_context->attached_client = hook_client;
 
@@ -521,6 +527,73 @@ sample_ebpf_extension_invoke_program(_Inout_ sample_program_context_t* context, 
 
     // Run the eBPF program using cached copies of invoke_program and client_binding_context.
     return_value = invoke_program(client_binding_context, context, result);
+
+Exit:
+    return return_value;
+}
+
+_Must_inspect_result_ ebpf_result_t
+sample_ebpf_extension_invoke_batch_begin_program(_Inout_ ebpf_execution_context_state_t* state)
+{
+    ebpf_result_t return_value = EBPF_SUCCESS;
+
+    sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
+
+    sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
+
+    if (hook_client == NULL) {
+        return_value = EBPF_FAILED;
+        goto Exit;
+    }
+    ebpf_program_batch_begin_invoke_function_t batch_begin_function = hook_client->begin_batch_program_invoke;
+    const void* client_binding_context = hook_client->client_binding_context;
+
+    return_value = batch_begin_function(client_binding_context, sizeof(ebpf_execution_context_state_t), state);
+
+Exit:
+    return return_value;
+}
+
+_Must_inspect_result_ ebpf_result_t
+sample_ebpf_extension_invoke_batch_program(
+    _Inout_ sample_program_context_t* context, _In_ const ebpf_execution_context_state_t* state, _Out_ uint32_t* result)
+{
+    ebpf_result_t return_value = EBPF_SUCCESS;
+
+    sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
+
+    sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
+
+    if (hook_client == NULL) {
+        return_value = EBPF_FAILED;
+        goto Exit;
+    }
+    ebpf_program_batch_invoke_function_t batch_invoke_program = hook_client->batch_program_invoke;
+    const void* client_binding_context = hook_client->client_binding_context;
+
+    return_value = batch_invoke_program(client_binding_context, context, result, state);
+
+Exit:
+    return return_value;
+}
+
+_Must_inspect_result_ ebpf_result_t
+sample_ebpf_extension_invoke_batch_end_program(_Inout_ ebpf_execution_context_state_t* state)
+{
+    ebpf_result_t return_value = EBPF_SUCCESS;
+
+    sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
+
+    sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
+
+    if (hook_client == NULL) {
+        return_value = EBPF_FAILED;
+        goto Exit;
+    }
+    ebpf_program_batch_end_invoke_function_t batch_end_function = hook_client->end_batch_program_invoke;
+    const void* client_binding_context = hook_client->client_binding_context;
+
+    return_value = batch_end_function(client_binding_context, state);
 
 Exit:
     return return_value;

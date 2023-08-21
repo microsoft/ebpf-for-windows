@@ -19,8 +19,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         const char* error_message = nullptr;
         ebpf_api_elf_verify_section_from_memory(
             reinterpret_cast<const char*>(data), size, "", nullptr, false, &report, &error_message, nullptr);
-        free(const_cast<char*>(report));
-        free(const_cast<char*>(error_message));
+        ebpf_free_string(report);
+        ebpf_free_string(error_message);
     } catch (std::runtime_error&) {
     }
 

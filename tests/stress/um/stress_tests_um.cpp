@@ -107,6 +107,7 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
 
         // Attach and detach link.
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
         uint32_t ifindex = test_params.thread_index;
         bpf_link* link = nullptr;
         REQUIRE(hook.attach_link(local_program_object_info.fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
@@ -128,6 +129,7 @@ static void
 _droppacket_stress_thread_function(const stress_test_thread_context& test_params)
 {
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
     UNREFERENCED_PARAMETER(test_params);
     uint32_t count{0};
     using sc = std::chrono::steady_clock;
@@ -230,11 +232,14 @@ um_test_init()
     std::call_once(_um_test_init_done, [&]() {
         _test_helper = new _test_helper_end_to_end;
         REQUIRE(_test_helper != nullptr);
+        _test_helper->initialize();
 
-        _bind_program_info_provider = new program_info_provider_t(EBPF_PROGRAM_TYPE_BIND);
+        _bind_program_info_provider = new program_info_provider_t();
+        REQUIRE(_bind_program_info_provider->initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
         REQUIRE(_bind_program_info_provider != nullptr);
 
-        _xdp_program_info_provider = new program_info_provider_t(EBPF_PROGRAM_TYPE_XDP);
+        _xdp_program_info_provider = new program_info_provider_t();
+        REQUIRE(_xdp_program_info_provider->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
         REQUIRE(_xdp_program_info_provider != nullptr);
 
         _test_control_info = get_test_control_info();

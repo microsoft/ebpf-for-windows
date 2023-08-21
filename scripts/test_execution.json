@@ -1,45 +1,62 @@
 {
     "license":["Copyright (c) Microsoft Corporation", "SPDX-License-Identifier: MIT"],
 
-    "BasicTest":
+    "VMMap":
     {
-        "Name": "vm1"
+        "TK5-3WP08R0904":
+        [
+            {
+                "Name": "vm1"
+            }
+        ],
+        "TK5-3WP08R0904_2":
+        [
+            {
+                "Name": "vm2"
+            }
+        ],
+        "TK5-3WP08R0907":
+        [
+            {
+                "Name": "vm1"
+            }
+        ],
+        "TK5-3WP08R0907_2":
+        [
+            {
+                "Name": "vm2"
+            }
+        ]
     },
 
-    "MultiVMTest":
+    "Interfaces":
     [
         {
-            "Name": "vm1",
-            "Interfaces":
-            [
-                {
-                    "Alias": "Ethernet",
-                    "V4Address": "20.0.0.1",
-                    "V6Address": "2001:db8::1"
-                },
-                {
-                    "Alias": "Ethernet 2",
-                    "V4Address": "20.0.0.2",
-                    "V6Address": "2001:db8::2"
-                }
-            ]
+            "Alias": "duo1",
+            "V4Address": "192.168.1.11",
+            "V6Address": "fc00::1:11"
         },
         {
-            "Name": "vm2",
-            "Interfaces":
-            [
-                {
-                    "Alias": "Ethernet",
-                    "V4Address": "20.0.0.3",
-                    "V6Address": "2001:db8::3"
-                }
-            ]
+            "Alias": "duo2",
+            "V4Address": "192.168.1.12",
+            "V6Address": "fc00::1:12"
+        },
+        {
+            "Alias": "duo3",
+            "V4Address": "192.168.2.11",
+            "V6Address": "fc00::2:11"
+        },
+        {
+            "Alias": "duo4",
+            "V4Address": "192.168.2.12",
+            "V6Address": "fc00::2:12"
         }
     ],
+
     "ConnectRedirectTest":
     {
-        "V4VipAddress": "20.0.0.100",
-        "V6VipAddress": "2001:db8::100",
+        "V4VipAddress": "192.168.1.100",
+        "V6VipAddress": "fc00::1:100",
         "DestinationPort": 4444,
         "ProxyPort": 4443
     }
