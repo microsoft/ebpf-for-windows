@@ -50,8 +50,8 @@ Certain maps possess unique properties that differentiate them. These maps inclu
 ## Helper Function
 
 These tests involve invoking the runtime's helper functions, including the setup of any required state. This will include both general-purpose as well as program-type-specific helper function tests. Helper functions that might be of interest to measure include:
-1. **bpf_xdp_adjust_head** This program type specific helper function grows and shrinks an XDP buffer.
-2. **bpf_trace_printk** The performance impact of this function could be high and it is important to measure it.
+1. **bpf_xdp_adjust_head**: This program type specific helper function grows and shrinks an XDP buffer.
+2. **bpf_trace_printk**: The performance impact of this function could be high and it is important to measure it.
 
 ## CI/CD Integration
 
