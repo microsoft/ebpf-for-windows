@@ -74,6 +74,7 @@ $source_directory="."
     "bpf.sys",
     "bpftool_tests.exe",
     "bpftool_tests.pdb",
+    "build-RelWithDebInfo-windows-2022.zip"
     "cgroup_count_connect4.o",
     "cgroup_count_connect4_um.dll",
     "cgroup_count_connect4_um.pdb",
