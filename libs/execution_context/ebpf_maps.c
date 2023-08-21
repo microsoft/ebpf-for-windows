@@ -1055,6 +1055,7 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t
     state = ebpf_lock_lock(&map->lock);
     lock_held = true;
 
+    key_state = _get_key_state(map, entry);
     if (key_state != EBPF_LRU_KEY_COLD) {
         goto Exit;
     }
