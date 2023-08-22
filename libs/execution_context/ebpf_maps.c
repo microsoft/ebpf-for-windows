@@ -383,7 +383,7 @@ _update_array_map_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
+    uint8_t* entry = &map->data[key_value * map->ebpf_map_definition.value_size];
     if (data) {
         memcpy(entry, data, map->ebpf_map_definition.value_size);
     } else {
