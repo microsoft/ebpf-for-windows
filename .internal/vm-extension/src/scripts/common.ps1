@@ -16,7 +16,6 @@ Set-Variable -Name "EbpfTracingPeriodicTaskName" -Value "eBpfTracingPeriodicTask
 Set-Variable -Name "EbpfTracingPeriodicTaskFilename" -Value "ebpf_tracing_periodic_task.xml"
 Set-Variable -Name "EbpfTracingTaskCmd" -Value "ebpf_tracing.cmd"
 Set-Variable -Name "EbpfTracingPath" -Value "$env:SystemRoot\Logs\eBPF"
-
 $EbpfDrivers =
 @{
     "EbpfCore" = "ebpfcore.sys";
