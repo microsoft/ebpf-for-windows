@@ -1063,6 +1063,7 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t
     ebpf_list_remove_entry(&entry->list_entry);
     ebpf_list_insert_tail(&map->hot_list, &entry->list_entry);
     map->hot_list_size++;
+    entry->generation = map->current_generation;
 
     _merge_hot_into_cold_list_if_needed(map);
 
