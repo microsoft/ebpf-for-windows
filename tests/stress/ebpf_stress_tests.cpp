@@ -153,4 +153,9 @@ main(int argc, char* argv[])
     }
 
     session.run();
+
+    // Tests that run against the 'usersim' framework need explicit clean-up before process
+    // termination. This clean-up is handled by the OS and/or the in-kernel eBPF components for
+    // tests that run against the kernel components.
+    test_process_cleanup();
 }
