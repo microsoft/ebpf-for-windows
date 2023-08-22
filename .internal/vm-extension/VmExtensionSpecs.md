@@ -82,3 +82,22 @@ NOT IMPLEMENTED
 - 0: success, Non-0: failure
 - Writes status file: **"Yes?" NOT DEFINED IN DOCS**
 
+## UNDEFINED TOPICS FROM THE DOCS
+
+### 1.0 Partner Guide Overview
+[1.3 AggregateStatus Architecture Overview](https://github.com/Azure/azure-vmextension-publishing/wiki/1.0-Partner-Guide-Overview#13aggregatestatus-architecture-overview): `images/extensionarchitecture.png` link is broken.
+
+### 2.3.4 Update Command (empty - WIP)
+https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#234-update-command
+
+For example, does the `Update` call `Enable`, line the `Install`? Looks not clarified also in [2.2.3 Update a handler to different version](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#223update-a-handler-to-different-version)
+
+### 2.3.6 Summary
+https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#236-summary
+
+- The "Reserved Exit Code" & "Recommended Exit Code" paragraphs are WIP -> is the publisher free to use any?
+- In the "`VM Agent Contracts Expectations for Handler Commands Window VM"`, the `Disable` & `Reset` commands have a `"Yes?"`, which does not uniquely define the column "Extension writes status file".
+- Although the [2.2.1 Add a new handler on the VM (Install and Enable)](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#221-add-a-new-handler-on-the-vm-install-and-enable) specifies that the `Enable` command will be called and required to generate a Status file, in the summary it is defined as "NA", and [here](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#231-install-command) is undocumented.
+
+
+

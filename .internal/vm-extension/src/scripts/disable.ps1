@@ -7,4 +7,6 @@
 # On disable Azure VM Agent will execute the disable command in a separate process with ADMINISTRATIVE privileges.
 # On the execution of the disable command the handler is expected to complete the pending tasks and then 
 # stop any processes or services related to the handler that have been running on the machine.
+# The disable command should be idempotent. If the command is invoked multiple times, the command should check
+# if all the processes are disabled as expected, if yes, then the command should just exit with a success code.
 Disable-eBPf

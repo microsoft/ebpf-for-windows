@@ -633,7 +633,7 @@ function Upgrade-eBPF {
 
 function Reset-eBPF {
     # NOP for this current implementation.
-    # TBD: confirm if Reset does not need to generate a status file.
+    # TBD: confirm if Reset does not need to generate a status file. The docs say "Yes?"...
 }
 
 function Enable-eBPF {
@@ -641,10 +641,31 @@ function Enable-eBPF {
         [string]$operationName,
         [int]$statusCode
     )
+
     # This is where any checks for prerequisites should be performed.
+    # Currently, we just check if the eBPF drivers are installed and registered.
+    $statusInfo = [PSCustomObject]@{
+        StatusCode = 0
+        StatusString = $StatusSuccess
+    }
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        $driverName = $_.Key
+        $currDriverPath = Get-FullDiskPathFromService -serviceName $driverName
+        if ($currDriverPath) {
+            if ($?) {
+                Write-Log -level $LogLevelInfo -message "Enable-Ebpf(from $operationName): $driverName is registered correctly."
+            } else {
+                Write-Log -level $LogLevelError -message "Enable-Ebpf(from $operationName): $driverName is NOT registered correctly!"
+                $statusInfo.StatusCode = 1
+                $statusInfo.StatusString = $StatusError
+            }
+        }
+    }
 
     # Generate the status file
-    Create-StatusFile -name $StatusName -operation $operationName -status $StatusSuccess -statusCode $statusCode -statusMessage "eBPF enabled"
+    Create-StatusFile -name $StatusName -operation $operationName -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage "eBPF enabled"
+
+    return [int]$statusCode
 }
 
 function Disable-eBPF {
@@ -653,8 +674,8 @@ function Disable-eBPF {
         [int]$statusCode
     )
 
-    Stop-eBPFDrivers
-    # TBD: confirm if Disable does not need to generate a status file.
+    Stop-eBPFDrivers | Out-Null
+    # TBD: confirm if Disable does not need to generate a status file. The docs say "Yes?"...
     #Create-StatusFile -name $StatusName -operation $OperationNameDisable -status $StatusSuccess -statusCode 0 -statusMessage "eBPF disabled"
 }
 
