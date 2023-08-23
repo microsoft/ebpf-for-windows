@@ -66,30 +66,6 @@ extern "C"
     void
     ebpf_platform_terminate();
 
-    /**
-     * @brief Allocate memory that has a starting address that is cache aligned.
-     * @param[in] size Size of memory to allocate
-     * @returns Pointer to memory block allocated, or null on failure.
-     */
-    __drv_allocatesMem(Mem) _Must_inspect_result_
-        _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size);
-
-    /**
-     * @brief Allocate memory that has a starting address that is cache aligned with tag.
-     * @param[in] size Size of memory to allocate
-     * @param[in] tag Pool tag to use.
-     * @returns Pointer to memory block allocated, or null on failure.
-     */
-    __drv_allocatesMem(Mem) _Must_inspect_result_
-        _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned_with_tag(size_t size, uint32_t tag);
-
-    /**
-     * @brief Free memory that has a starting address that is cache aligned.
-     * @param[in] memory Allocation to be freed.
-     */
-    void
-    ebpf_free_cache_aligned(_Frees_ptr_opt_ void* memory);
-
     typedef enum _ebpf_page_protection
     {
         EBPF_PAGE_PROTECT_READ_ONLY,

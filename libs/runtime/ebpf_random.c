@@ -22,7 +22,7 @@ ebpf_random_initiate()
 
     uint32_t cpu_count = ebpf_get_cpu_count();
     size_t state_size = cpu_count * sizeof(ebpf_random_state_t);
-    _ebpf_random_number_generator_state = ebpf_allocate_cache_aligned(state_size);
+    _ebpf_random_number_generator_state = cxplat_allocate_cache_aligned(state_size);
     if (_ebpf_random_number_generator_state == NULL) {
         return EBPF_NO_MEMORY;
     }
@@ -35,7 +35,7 @@ ebpf_random_initiate()
 void
 ebpf_random_terminate()
 {
-    ebpf_free_cache_aligned((void*)_ebpf_random_number_generator_state);
+    cxplat_free_cache_aligned((void*)_ebpf_random_number_generator_state);
     _ebpf_random_number_generator_state = NULL;
 }
 

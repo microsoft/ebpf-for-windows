@@ -241,7 +241,7 @@ ebpf_epoch_initiate()
     _ebpf_release_epoch = 0;
     _ebpf_epoch_cpu_count = cpu_count;
 
-    _ebpf_epoch_cpu_table = ebpf_allocate_cache_aligned_with_tag(
+    _ebpf_epoch_cpu_table = cxplat_allocate_cache_aligned_with_tag(
         sizeof(ebpf_epoch_cpu_entry_t) * _ebpf_epoch_cpu_count, EBPF_POOL_TAG_EPOCH);
     if (!_ebpf_epoch_cpu_table) {
         return_value = EBPF_NO_MEMORY;
@@ -318,7 +318,7 @@ ebpf_epoch_terminate()
 
     _ebpf_epoch_cpu_count = 0;
 
-    ebpf_free_cache_aligned(_ebpf_epoch_cpu_table);
+    cxplat_free_cache_aligned(_ebpf_epoch_cpu_table);
     _ebpf_epoch_cpu_table = NULL;
     EBPF_RETURN_VOID();
 }
@@ -413,7 +413,8 @@ ebpf_epoch_flush()
     _ebpf_release_epoch = released_epoch;
 }
 
-_Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_with_tag(size_t size, uint32_t tag)
+__drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_with_tag(size_t size, uint32_t tag)
 {
     ebpf_assert(size);
     ebpf_epoch_allocation_header_t* header;

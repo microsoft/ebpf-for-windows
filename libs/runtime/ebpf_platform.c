@@ -19,17 +19,6 @@ typedef struct _ebpf_process_state
     KAPC_STATE state;
 } ebpf_process_state_t;
 
-__drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag)
-{
-    ebpf_assert(size);
-    void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size, tag);
-    if (p) {
-        memset(p, 0, size);
-    }
-    return p;
-}
-
 void
 ebpf_lock_create(_Out_ ebpf_lock_t* lock)
 {
@@ -514,10 +503,4 @@ void
 ebpf_platform_terminate()
 {
     KeFlushQueuedDpcs();
-}
-
-__drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned(size_t size)
-{
-    return ebpf_allocate_cache_aligned_with_tag(size, EBPF_POOL_TAG_DEFAULT);
 }

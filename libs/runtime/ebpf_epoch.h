@@ -57,7 +57,8 @@ extern "C"
      * @param[in] tag Pool tag to use.
      * @returns Pointer to memory block allocated, or null on failure.
      */
-    _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_with_tag(size_t size, uint32_t tag);
+    __drv_allocatesMem(Mem) _Must_inspect_result_
+        _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_with_tag(size_t size, uint32_t tag);
 
     /**
      * @brief Free memory under epoch control.

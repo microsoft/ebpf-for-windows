@@ -21,24 +21,6 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 static KDEFERRED_ROUTINE _ebpf_deferred_routine;
 static KDEFERRED_ROUTINE _ebpf_timer_routine;
 
-__drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned_with_tag(size_t size, uint32_t tag)
-{
-    void* p = ExAllocatePoolUninitialized(NonPagedPoolNxCacheAligned, size, tag);
-    if (p) {
-        memset(p, 0, size);
-    }
-    return p;
-}
-
-void
-ebpf_free_cache_aligned(_Frees_ptr_opt_ void* memory)
-{
-    if (memory) {
-        ExFreePool(memory);
-    }
-}
-
 _Ret_maybenull_ ebpf_ring_descriptor_t*
 ebpf_allocate_ring_buffer_memory(size_t length)
 {

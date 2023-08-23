@@ -33,7 +33,7 @@ ebpf_state_initiate()
     _ebpf_state_cpu_table_size = ebpf_get_cpu_count();
     _Analysis_assume_(_ebpf_state_cpu_table_size >= 1);
 
-    _ebpf_state_cpu_table = ebpf_allocate_cache_aligned_with_tag(
+    _ebpf_state_cpu_table = cxplat_allocate_cache_aligned_with_tag(
         sizeof(ebpf_state_entry_t) * _ebpf_state_cpu_table_size, EBPF_POOL_TAG_STATE);
     if (!_ebpf_state_cpu_table) {
         return_value = EBPF_NO_MEMORY;
@@ -68,7 +68,7 @@ ebpf_state_terminate()
     EBPF_LOG_ENTRY();
     ebpf_hash_table_destroy(_ebpf_state_thread_table);
     _ebpf_state_thread_table = NULL;
-    ebpf_free_cache_aligned(_ebpf_state_cpu_table);
+    cxplat_free_cache_aligned(_ebpf_state_cpu_table);
     _ebpf_state_cpu_table = NULL;
     EBPF_RETURN_VOID();
 }

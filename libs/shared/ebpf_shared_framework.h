@@ -51,6 +51,7 @@ typedef enum _ebpf_pool_tag
 #define ebpf_allocate cxplat_allocate
 #define ebpf_free cxplat_free
 #define ebpf_reallocate cxplat_reallocate
+#define ebpf_allocate_with_tag cxplat_allocate_with_tag
 
 #define ebpf_safe_size_t_add(augend, addend, result) \
     ebpf_result_from_cxplat_status(cxplat_safe_size_t_add(augend, addend, result))
@@ -58,14 +59,6 @@ typedef enum _ebpf_pool_tag
     ebpf_result_from_cxplat_status(cxplat_safe_size_t_subtract(minuend, subtrahend, result))
 #define ebpf_safe_size_t_multiply(multiplicand, multiplier, result) \
     ebpf_result_from_cxplat_status(cxplat_safe_size_t_multiply(multiplicand, multiplier, result))
-
-/**
- * @brief Allocate memory.
- * @param[in] size Size of memory to allocate.
- * @param[in] tag Pool tag to use.
- * @returns Pointer to memory block allocated, or null on failure.
- */
-_Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag);
 
 ebpf_result_t
 ebpf_result_from_cxplat_status(cxplat_status_t status);
