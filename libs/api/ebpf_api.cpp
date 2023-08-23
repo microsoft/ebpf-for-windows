@@ -1750,10 +1750,10 @@ _initialize_ebpf_object_from_native_file(
         program = nullptr;
     }
 
-    // The bpf2c tool orders programs by name, so we need to sort the programs
+    // The bpf2c tool orders programs by section name, so we need to sort the programs
     // vector to match.
     std::sort(object.programs.begin(), object.programs.end(), [](const ebpf_program_t* a, const ebpf_program_t* b) {
-        return strcmp(a->program_name, b->program_name) < 0;
+        return strcmp(a->section_name, b->section_name) < 0;
     });
 
 Exit:
