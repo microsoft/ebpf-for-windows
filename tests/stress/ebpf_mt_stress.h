@@ -104,3 +104,7 @@ get_jit_program_attributes(const std::string& program_name);
 // The query_supported_program_names() call is 'exported' by both the user and kernel mode test suites.
 const std::vector<std::string>
 query_supported_program_names();
+
+// The test_process_cleanup() call is 'exported' by both the user and kernel mode test suites.
+void
+test_process_cleanup();

@@ -44,6 +44,14 @@ query_supported_program_names()
     return program_names;
 }
 
+// This function is called by the common test initialization code to perform the requisite clean-up as the last action
+// prior to process termination.
+void
+test_process_cleanup()
+{
+    // As of now, we don't need to do anything here for kernel mode tests.
+}
+
 // Test thread control parameters (# of threads, run duration etc.).
 static test_control_info _global_test_control_info{0};
 
