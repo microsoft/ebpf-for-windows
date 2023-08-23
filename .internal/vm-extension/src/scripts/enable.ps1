@@ -10,4 +10,6 @@
 # Enable will have 5 minutes to complete its task, after which Azure VM Agent will kill the process.
 # The enable command should be idempotent. If the command is invoked multiple times, the command should check
 # if all the processes are running as expected, if yes, then the command should just exit with a success code.
-Enable-eBPF
+
+# Enable eBPF for Windows
+return Enable-eBPF -operationName $OperationNameEnable -statusCode $StatusCodeSuccess
