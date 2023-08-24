@@ -21,11 +21,17 @@
 
 #include <winsock2.h>
 #include <Windows.h>
+#include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <complex>
 #include <condition_variable>
+#include <fstream>
 #include <mutex>
+#include <numeric>
 #include <sddl.h>
 #include <thread>
+#include <vector>
 
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;
@@ -1070,32 +1076,130 @@ TEST_CASE("get_authentication_id", "[platform]")
     REQUIRE(ebpf_platform_get_authentication_id(&authentication_id) == EBPF_SUCCESS);
 }
 
-// See https://en.wikipedia.org/wiki/Chi-squared_test for details.
-#define SEQUENCE_LENGTH 100000000
-#define NUM_BINS 65536
+#define SEQUENCE_LENGTH 0x100000
 #define CHI_SQUARED_STATISTIC_THRESHOLD \
-    66131.63094 // Critical value for Chi-squared test with 65535 degrees of freedom with significance level of 0.05.
+    3.841 // Critical value for Chi-squared test with 2 degrees of freedom with significance level of 0.05.
 
+/**
+ * @brief Verify that the random number generator passes the chi-squared test.
+ *
+ * @param[in] sequence_length The number of random numbers to generate.
+ * @param[in] random_number_generator The random number generator.
+ * @return true The random number generator passes the chi-squared test.
+ * @return false The random number generator fails the chi-squared test.
+ */
 bool
-is_statistically_random(size_t sequence_length, std::function<uint32_t()> random_number_generator)
+passes_chi_squared_test(size_t sequence_length, std::function<uint32_t()> random_number_generator)
 {
-    std::vector<int> observed_values(NUM_BINS, 0);
-    double expected_value = static_cast<double>(sequence_length) / static_cast<double>(NUM_BINS);
+    // Hypothesis is that the random number generator produces a uniform distribution.
+    // There are two degrees of freedom: 0 and 1 for each bit in the random number.
+    // The expected population count for each degree of freedom is half the sequence length.
+    // The critical value for a chi-squared test with 2 degrees of freedom and a significance level of 0.05 is 3.841.
+    // See https://en.wikipedia.org/wiki/Chi-squared_test for details.
+    // The chi-squared statistic is the sum of the squared difference between the observed and expected values
+    // divided by the expected value. If the chi-squared statistic is less than the critical value, the hypothesis
+    // is accepted.
 
-    for (int i = 0; i < sequence_length; i++) {
-        int bin = static_cast<int>(random_number_generator() % NUM_BINS);
-        observed_values[bin]++;
+    double zero_count = 0;
+    double one_count = 0;
+    double expected_value = static_cast<double>(sequence_length) * sizeof(uint32_t) * 8 / 2;
+
+    // Treat each bit in the random number as degree of freedom.
+    for (size_t i = 0; i < sequence_length; i++) {
+        unsigned long value = static_cast<int>(random_number_generator());
+        size_t bit_count = __popcnt(value);
+        zero_count += static_cast<double>(32 - bit_count);
+        one_count += static_cast<double>(bit_count);
     }
 
-    double chi_squared_statistic = 0.0;
-    for (int i = 0; i < NUM_BINS; i++) {
-        double observed = static_cast<double>(observed_values[i]);
-        chi_squared_statistic += pow(observed - expected_value, 2) / expected_value;
-    }
+    double chi_squared_statistic = std::pow(zero_count - expected_value, 2) / expected_value;
+    chi_squared_statistic += std::pow(one_count - expected_value, 2) / expected_value;
 
     double critical_value = CHI_SQUARED_STATISTIC_THRESHOLD;
     std::cout << chi_squared_statistic << std::endl;
     return chi_squared_statistic < critical_value;
+}
+
+typedef std::complex<double> Complex;
+#if !defined(M_PI)
+#define M_PI (3.14159265358979323846264338327950288)
+#endif
+
+/**
+ * @brief Perform a Fast Fourier Transform on the input sequence.
+ * An implementation of "Cooley-Tukey Radix-2 Decimation in Time"
+ * See: https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm
+ *
+ * @param[in,out] samples The input sequence.  On output, the FFT of the input sequence.
+ * @param[in] invert If true, perform an inverse FFT.
+ */
+void
+fft(std::vector<Complex>& samples, bool invert = false)
+{
+    size_t n = samples.size();
+    if (n <= 1)
+        return;
+
+    std::vector<Complex> even(n / 2), odd(n / 2);
+    for (size_t i = 0, j = 0; i < n; i += 2, ++j) {
+        even[j] = samples[i];
+        odd[j] = samples[i + 1];
+    }
+
+    fft(even, invert);
+    fft(odd, invert);
+
+    double angle = 2 * M_PI / n * (invert ? -1 : 1);
+    Complex w(1), wn(std::cos(angle), std::sin(angle));
+
+    for (size_t i = 0; i < n / 2; ++i) {
+        Complex t = w * odd[i];
+        samples[i] = even[i] + t;
+        samples[i + n / 2] = even[i] - t;
+        if (invert) {
+            samples[i] /= 2;
+            samples[i + n / 2] /= 2;
+        }
+        w *= wn;
+    }
+}
+
+/**
+ * @brief Determine the provided random number generator has a dominant frequency in its output.
+ *
+ * @param[in] sequence_length The number of random numbers to examine. Must be a power of 2.
+ * @param[in] random_number_generator The random number generator.
+ * @return true The highest frequency in the random number generator's output is more than 6 standard deviations from
+ * the mean.
+ * @return false The highest frequency in the random number generator's output is less than 6 standard deviations from
+ * the mean.
+ */
+bool
+has_dominant_frequency(size_t sequence_length, std::function<uint32_t()> random_number_generator)
+{
+    std::vector<Complex> test_values;
+    for (size_t i = 0; i < sequence_length; i++) {
+        double sample = random_number_generator();
+        sample -= static_cast<double>(INT32_MAX);
+        sample /= static_cast<double>(INT32_MAX);
+        test_values.push_back({sample});
+    }
+    fft(test_values);
+
+    auto max_frequency = *std::max_element(
+        test_values.begin(), test_values.end(), [](Complex a, Complex b) { return std::abs(a) < std::abs(b); });
+
+    Complex c(0, 0);
+    auto average_frequency = std::abs(std::accumulate(test_values.begin(), test_values.end(), c)) / sequence_length;
+    auto std_dev_frequency = std::sqrt(
+        std::accumulate(
+            test_values.begin(),
+            test_values.end(),
+            0.0,
+            [&](double a, Complex b) { return a + std::pow(std::abs(b) - average_frequency, 2); }) /
+        sequence_length);
+
+    return std::abs(max_frequency) > 6 * std_dev_frequency;
 }
 
 TEST_CASE("verify random", "[platform]")
@@ -1103,6 +1207,9 @@ TEST_CASE("verify random", "[platform]")
     _test_helper test_helper;
     test_helper.initialize();
 
-    // Verify that the random number generator is statistically random.
-    REQUIRE(is_statistically_random(SEQUENCE_LENGTH, ebpf_random_uint32));
+    // Verify that the random number generators pass the chi-squared test.
+    REQUIRE(passes_chi_squared_test(SEQUENCE_LENGTH, ebpf_random_uint32));
+
+    // Verify that the random number generators do not have a dominant frequency.
+    REQUIRE(!has_dominant_frequency(SEQUENCE_LENGTH, ebpf_random_uint32));
 }
