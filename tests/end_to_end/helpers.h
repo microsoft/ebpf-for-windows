@@ -331,12 +331,12 @@ typedef class _single_instance_hook : public _hook_helper
     };
     HANDLE nmr_provider_handle;
 
-    PNPI_REGISTRATION_INSTANCE client_registration_instance;
-    const void* client_binding_context;
-    const ebpf_extension_data_t* client_data;
-    const ebpf_extension_dispatch_table_t* client_dispatch_table;
-    HANDLE nmr_binding_handle;
-    bpf_link* link_object;
+    PNPI_REGISTRATION_INSTANCE client_registration_instance = nullptr;
+    const void* client_binding_context = nullptr;
+    const ebpf_extension_data_t* client_data = nullptr;
+    const ebpf_extension_dispatch_table_t* client_dispatch_table = nullptr;
+    HANDLE nmr_binding_handle = nullptr;
+    bpf_link* link_object = nullptr;
 } single_instance_hook_t;
 
 typedef class xdp_md_helper : public xdp_md_t
