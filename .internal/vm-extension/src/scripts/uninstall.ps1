@@ -1,22 +1,7 @@
 # Dot source the utility script
 . .\common.ps1
 
-# Remove a handler from the VM (Disable and Uninstall): https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#222-remove-a-handler-from-the-vm-disable-and-uninstall
-
-# Uninstall eBPF for Windows
-# NOTE: The uninstall operation does not generate a status file, since it's also used by other operations.
-$res = Uninstall-eBPF -installDirectory "$EbpfDefaultInstallPath"
-if ($res -eq 0) {    
-    $statusString = $StatusSuccess
-    $statusCode = 0
-    $statusMessage = "eBPF for Windows was successfully uninstalled."
-}
-else {
-    $statusString = $StatusError
-    $statusCode = $res
-    $statusMessage = "eBPF for Windows was not uninstalled. Error: $res"
-}
-
-# Generate the status file
-Create-StatusFile -name $StatusName -operation $OperationNameUninstall -status $statusString -statusCode $statusCode -statusMessage $statusMessage
-return $res
+# Remove a handler from the VM (Disable and Uninstall):
+# https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#222-remove-a-handler-from-the-vm-disable-and-uninstall
+#
+return Uninstall-eBPF-Handler

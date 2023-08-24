@@ -54,7 +54,7 @@ This operation will start the eBPF services, and create a `*.*.status` file, wit
 ### Install VM Extension Handler
 This operation will install the eBPF runtime and eBPF programs, and will NOT create a `*.*.status` file, since the VM Agent will subsequently call the Handler with the `Enable` command.
 
-The install command is actually implemented by a single `InstallOrUpdate-eBPF` command, which will install the eBPF runtime and eBPF programs, if not already installed, or update them, if already installed.
+The install command is actually implemented by the `Install-eBPF-Handler` command, which will install the eBPF runtime and eBPF programs, if not already installed, or update them, if already installed.
 #### Return codes
 - 0: success, Non-0: failure
 - Writes status file: **No**
@@ -63,7 +63,7 @@ The install command is actually implemented by a single `InstallOrUpdate-eBPF` c
 >**NOTE**: this command is currently undocumented: https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#234-update-command
 
 This operation will update the eBPF runtime and eBPF programs, and will NOT create a `*.*.status` file, since the VM Agent will subsequently call the Handler with the `Enable` command.
-The install command is actually implemented by a single `InstallOrUpdate-eBPF` command, which will install the eBPF runtime and eBPF programs, if not already installed, or update them, if already installed.
+The install command is actually implemented by the `Update-eBPF-Handler` command, which will install the eBPF runtime and eBPF programs, if not already installed, or update them, if already installed.
 #### Return codes
 - 0: success, Non-0: failure
 - Writes status file: **No**

@@ -84,24 +84,50 @@ function Write-Log {
 #######################################################
 # Utility Functions
 #######################################################
+function Set-EnvironmentVariable {
+    param (
+        [string]$variableName,
+        [string]$variableValue
+    )
+
+    Write-Log -level $LogLevelInfo -message "Set-EnvironmentVariable($variableName, $variableValue)"
+    
+    try {
+        [Environment]::SetEnvironmentVariable($variableName, $variableValue, [System.EnvironmentVariableTarget]::Machine)
+        Write-Log -level $LogLevelInfo -message "Environment variable '$variableName' set successfully."
+        return $true
+    }
+    catch {
+        Write-Log -level $LogLevelError -message "Failed to set environment variable '$variableName'. Error: $_"
+        return $false
+    }
+}
+
 function Get-EnvironmentVariable {
     param (
         [string]$variableName
     )
-    
-    $value = (Get-Item "Env:$variableName").Value
-    if ([string]::IsNullOrWhiteSpace($value)) {
-        throw "Environment variable '$variableName' is not set."
+
+    Write-Log -level $LogLevelInfo -message "Get-EnvironmentVariable($variableName)"
+
+    $variableValue = [Environment]::GetEnvironmentVariable($variableName, [System.EnvironmentVariableTarget]::Machine)
+    if ([string]::IsNullOrWhiteSpace($variableValue)) {
+        Write-Log -level $LogLevelError -message "Environment variable '$variableName' is not set or has an empty value."
+    } else {
+        Write-Log -level $LogLevelInfo -message "Environment variable '$variableName' has value '$variableValue'."
     }
     
-    return $value
+    return $variableValue
 }
+
 
 function Get-HandlerEnvironment {
     param (
         # The HandlerEnvironment.json file is always located in the root of where the ZIP package is extracted.
         [string]$handlerEnvironmentFullPath = "$DefaultHandlerEnvironmentFilePath"
     )
+
+    Write-Log -level $LogLevelInfo -message "Get-HandlerEnvironment($handlerEnvironmentFullPath)"
 
     if (Test-Path $handlerEnvironmentFullPath -PathType Leaf) {
         $jsonContent = Get-Content -Path $handlerEnvironmentFullPath -Raw
@@ -174,12 +200,13 @@ function Create-StatusFile {
     Write-Log -level $LogLevelInfo -message "Status file generated: $statusFilePath"
 }
 
-function Is-AKS-Environment {
+function Is-Upgrade-Allowed {
 
-    Write-Log -level $LogLevelInfo -message "Is-AKS-Environment"
+    Write-Log -level $LogLevelInfo -message "Is-Upgrade-Allowed()"
 
+    # This function will return true if the upgrade is allowed, false otherwise.
+    # Currently, the only case where an upgrade is not allowed is when the eBPF is running in an AKS environment.
     $key = Get-Item -Path $AksRegistryKeyPath -ErrorAction SilentlyContinue
-
     if ($null -ne $key) {
         $value = $key.GetValue($AksRegistryKeyValue)
         if ($null -ne $value) {
@@ -333,12 +360,12 @@ function Install-Driver {
     return $LASTEXITCODE
 }
 
-function Unnstall-Driiver {
+function Uninstall-Driver {
     param (
         [string]$serviceName
     )
 
-    Write-Log -level $LogLevelInfo -message "Uninstal-Driver($serviceName)"
+    Write-Log -level $LogLevelInfo -message "Uninstall-Driver($serviceName)"
  
     # Delete the driver service
     $scDeleteOutput = & "sc.exe" delete $serviceName
@@ -403,7 +430,6 @@ function Delete-Directory {
     }
 }
 
-# Function to create a scheduled task
 function Create-Scheduled-Task {
     param (
         [string]$installDirectory,
@@ -430,30 +456,12 @@ function Create-Scheduled-Task {
 # VM Extension Handler Internal Helper Functions
 #######################################################
 
-function DownloadAndUnpackEbpfRedistPackage {
-    param (
-        [string]$packageVersion,
-        [string]$targetDirectory
-    )
-
-    Write-Log -level $LogLevelInfo -message "DownloadAndUnpackEbpfRedistPackage($packageVersion, $targetDirectory)"
-
-    # Download the eBPF redist package from the MS CodeHub feed, and unpack just the eBPF package to the target directory
-    Start-Process nuget.exe  -ArgumentList "install eBPF-for-Windows-Redist -version $packageVersion -Source https://mscodehub.pkgs.visualstudio.com/eBPFForWindows/_packaging/eBPFForWindows/nuget/v3/index.json -OutputDirectory $targetDirectory" -Wait
-    Rename-Item -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\eBPF-for-Windows-Redist.$packageVersion.nupkg" -NewName "eBPF-for-Windows-Redist.$packageVersion.nupkg.zip"
-    Expand-Archive -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\eBPF-for-Windows-Redist.$packageVersion.nupkg.zip" -DestinationPath "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\temp"
-    Copy-Directory -sourcePath "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\temp\package\bin" -destinationPath "$targetDirectory\v$packageVersion"
-    Delete-Directory -destinationPath "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion"
-}
-
-# This function deletes the tasks to start eBPF tracing at boot, and execute periodic rundowns,
-# and deletes the EbpfTracingPath directory and its contents
 function Delete-Ebpf-Tracing-Tasks {
     param (
         [string]$installDirectory
     )
 
-    Write-Log -level $LogLevelInfo -message "Delete-Ebpf-Tracing-Tasks"
+    Write-Log -level $LogLevelInfo -message "Delete-Ebpf-Tracing-Tasks($installDirectory)"
 
     # Firstly, lets stop the tracing providers
     $scriptPath = Join-Path $installDirectory $EbpfTracingTaskCmd
@@ -483,12 +491,11 @@ function Delete-Ebpf-Tracing-Tasks {
     return 0
 }
 
-
 function Create-Ebpf-Tracing-Tasks {
     param (
         [string]$installDirectory
     )
-    Write-Log -level $LogLevelInfo -message "Create-Ebpf-Tracing-Tasks"
+    Write-Log -level $LogLevelInfo -message "Create-Ebpf-Tracing-Tasks($installDirectory)"
 
     Delete-Ebpf-Tracing-Tasks -installDirectory $installDirectory | Out-Null
 
@@ -507,7 +514,7 @@ function Enable-EbpfTracing {
         [string]$installDirectory
     )
 
-    Write-Log -level $LogLevelInfo -message "Enable-EbpfTracing"
+    Write-Log -level $LogLevelInfo -message "Enable-EbpfTracing($installDirectory)"
     return Create-Ebpf-Tracing-Tasks -installDirectory $installDirectory
 }
 
@@ -516,7 +523,7 @@ function Disable-EbpfTracing {
         [string]$installDirectory
     )
 
-    Write-Log -level $LogLevelInfo -message "Disable-EbpfTracing"
+    Write-Log -level $LogLevelInfo -message "Disable-EbpfTracing($installDirectory)"
 
     Delete-Ebpf-Tracing-Tasks -installDirectory $installDirectory | Out-Null
 }
@@ -526,7 +533,7 @@ function Register-EbpfNetshExtension{
         [string]$installDirectory
     )
 
-    Write-Log -level $LogLevelInfo -message "Register-EbpfNetshExtension"
+    Write-Log -level $LogLevelInfo -message "Register-EbpfNetshExtension($installDirectory)"
 
     Push-Location -Path $installDirectory
 
@@ -565,7 +572,7 @@ function Unregister-EbpfNetshExtension{
 
 function Stop-eBPFDrivers {
 
-    Write-Log -level $LogLevelInfo -message "Stop-eBPFDrivers"
+    Write-Log -level $LogLevelInfo -message "Stop-eBPFDrivers()"
 
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         $driverName = $_.Key
@@ -642,14 +649,14 @@ function Upgrade-eBPF {
     
     Write-Log -level $LogLevelInfo -message "Upgrade-eBPF($operationName, $currProductVersion, $newProductVersion, $installDirectory)"
 
-    if (Is-AKS-Environment -eq $true) {
+    if (Is-Upgrade-Allowed -eq $true) {
         $statusCode = 1
-        Write-Log -level $LogLevelError -message "eBPF [$operationName] not allowed in an AKS environment."
+        Write-Log -level $LogLevelError -message "eBPF [$operationName] not allowed in the current environment."
     } else {
-        Write-Log -level $LogLevelInfo -message "eBPF [$operationName] in non-AKS environment."
+        Write-Log -level $LogLevelInfo -message "Performing eBPF [$operationName]."
 
         # For the moment, we just uninstall and install to the current installation folder.
-        $statusCode = Uninstall-eBPF "$installDirectory"
+        $statusCode = Uninstall-eBPF-Handler -installDirectory "$installDirectory" -createStatusFile $false
         if ($statusCode -ne 0) {
             $statusMessage = "eBPF $operationName FAILED (Uninstall failed)."
             Write-Log -level $LogLevelError -message $statusMessage
@@ -669,69 +676,12 @@ function Upgrade-eBPF {
     return [int]$statusCode
 }
 
-#######################################################
-# VM Extension Handler Functions
-#######################################################
-
-function Reset-eBPF {
-    # NOP for this current implementation.
-    # TBD: confirm if Reset does not need to generate a status file. The docs say "Yes?"...
-    Write-Log -level $LogLevelInfo -message "Reset-eBPF"
-}
-
-function Enable-eBPF {
-    param (
-        [string]$operationName,
-        [int]$statusCode
-    )
-    
-    Write-Log -level $LogLevelInfo -message "Enable-eBPF($operationName, $statusCode)"
-
-    # This is where any checks for prerequisites should be performed.
-    # Currently, we just check if the eBPF drivers are installed and registered.
-    $statusInfo = [PSCustomObject]@{
-        StatusCode = 0
-        StatusString = $StatusSuccess
-    }
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        $driverName = $_.Key
-        $currDriverPath = Get-FullDiskPathFromService -serviceName $driverName
-        if ($currDriverPath) {
-            if ($?) {
-                Write-Log -level $LogLevelInfo -message "Enable-Ebpf(from $operationName): $driverName is registered correctly."
-            } else {
-                Write-Log -level $LogLevelError -message "Enable-Ebpf(from $operationName): $driverName is NOT registered correctly!"
-                $statusInfo.StatusCode = 1
-                $statusInfo.StatusString = $StatusError
-            }
-        }
-    }
-
-    # Generate the status file
-    Create-StatusFile -name $StatusName -operation $operationName -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage "eBPF enabled"
-
-    return [int]$statusCode
-}
-
-function Disable-eBPF {
-    param (
-        [string]$operationName,
-        [int]$statusCode
-    )
-
-    Write-Log -level $LogLevelInfo -message "Disable-eBPF($operationName, $statusCode)"
-
-    Stop-eBPFDrivers | Out-Null
-    # TBD: confirm if Disable does not need to generate a status file. The docs say "Yes?"...
-    #Create-StatusFile -name $StatusName -operation $OperationNameDisable -status $StatusSuccess -statusCode 0 -statusMessage "eBPF disabled"
-}
-
 function Uninstall-eBPF {
     param (
         [string]$installDirectory
     )
 
-    Write-Log -level $LogLevelInfo -message "Uninstall-eBPF($installDirectory)"
+    Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler($installDirectory, $createStatusFile)"
     
     # Stop all eBPF drivers (which will stop all the services which have a dependency on them).
     Stop-eBPFDrivers | Out-Null 
@@ -766,19 +716,21 @@ function Uninstall-eBPF {
     Remove-DirectoryFromSystemPath -directoryPath $installDirectory | Out-Null 
 
     # Delete the eBPF files
-    Delete-Directory -destinationPath $installDirectory | Out-Null 
+    Delete-Directory -destinationPath $installDirectory | Out-Null
 
     return [int]$statusCode
 }
 
-function InstallOrUpdate-eBPF {
+# This function will install or update the eBPF handler.
+# It will return 0 if the operation was successful, 1 if it failed, and 2 if eBPF was not updated because it was either already up to date, or if it was a handler-only update.
+function InstallOrUpdate-eBPF-Handler {
     param (
         [string]$operationName,
         [string]$sourcePath,
         [string]$destinationPath
     )
 
-    Write-Log -level $LogLevelInfo -message "InstallOrUpdate-eBPF($operationName, $sourcePath, $destinationPath)"
+    Write-Log -level $LogLevelInfo -message "InstallOrUpdate-eBPF-Handler($operationName, $sourcePath, $destinationPath)"
 
     # Set the default product version to NULL (i.e. not installed).
     $currProductVersion = $null
@@ -790,7 +742,7 @@ function InstallOrUpdate-eBPF {
     $EbpfDriverName = ($EbpfDrivers.GetEnumerator() | Select-Object -First 1).Key
     $newProductVersion = Get-ProductVersionFromFile -filePath (Join-Path -Path $EbpfPackagePath -ChildPath "drivers\$EbpfDriverName.sys")
     
-    # Firstly, check if eBPFCore is installed and registered (as a test for eBPF to be installed).
+    # Firstly, check if the eBPF driver is installed and registered (as a test for eBPF to be installed).
     $currDriverPath = Get-FullDiskPathFromService -serviceName $EbpfDriverName
     if ($currDriverPath) {
         Write-Log -level $LogLevelInfo -message "Found eBPF driver installed and registered from: '$currDriverPath'"
@@ -815,24 +767,29 @@ function InstallOrUpdate-eBPF {
     if ($null -ne $currProductVersion) {
         Write-Log -level $LogLevelInfo -message "Found eBPF v$currProductVersion already installed."
 
-        $updateToVersion = [System.Environment]::GetEnvironmentVariable($VmAgentEnvVar_VERSION, [System.EnvironmentVariableTarget]::Machine)
+        $updateToVersion = Get-EnvironmentVariable($VmAgentEnvVar_VERSION)
         $comparison = Compare-VersionNumbers -version1 $currProductVersion -version2 $updateToVersion
         if ($comparison -eq 2) {
-            $statusCode = 0
+            # If the product version is the same as the version distributed with the VM extension, then we return a success code, as if the operation was successful.
+            # This because it's a handler-only update, so we don't need to do anything to the current eBPF installation.
+            $statusCode = 2
             $statusMessage = "This is a handler-only update to v($updateToVersion) -> no action taken."
             Write-Log -level $LogLevelInfo -message $statusMessage
         } else {
 
-            # If the product version is less than the version distributed with the VM extension, then upgrade it. Otherwise, no update is needed.
+            # Depending on the version comparison, we either upgrade, NOP or fail the operation.
             $comparison = Compare-VersionNumbers -version1 $currProductVersion -version2 $newProductVersion
             if ($comparison -lt 0) {
+                # If the product version is lower than the version distributed with the VM extension, then upgrade it.
                 [int]$statusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
             } elseif ($comparison -gt 0) {
-                $statusCode = 0
-                $statusMessage = "The installed eBPF version (v$currProductVersion) is newer than the one in the extension package (v$newProductVersion) -> no action taken."
-                Write-Log -level $LogLevelWarning -message $statusMessage
-            } else {
-                $statusCode = 0
+                # If the product version is greater than the version distributed with the VM extension, then we fail the operation.
+                $statusCode = 1
+                $statusMessage = "ERROR: The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> no action taken. Please notify the eBPF Team."
+                Write-Log -level $LogLevelError -message $statusMessage
+            } else {                
+                # If eBPF is already installed, then we return a success code, as if the operation was successful.
+                $statusCode = 2
                 $statusMessage = "eBPF version is up to date (v$currProductVersion)."
                 Write-Log -level $LogLevelInfo -message $statusMessage
             }
@@ -852,6 +809,123 @@ function InstallOrUpdate-eBPF {
     }
 
     return [int]$statusCode
+}
+
+function Restart-GuestProxyAgent-Service {
+
+    Write-Log -level $LogLevelInfo -message "Restart-GuestProxyAgent-Service()"
+
+    $GuestProxyAgentServiceName = "GuestProxyAgent"
+    $service = Get-Service -Name $GuestProxyAgentServiceName -ErrorAction SilentlyContinue
+    if ($null -eq $service) {
+        Write-Log -level $LogLevelWarning -message "Service '$GuestProxyAgentServiceName' is not installed -> no action taken."
+    } else {
+        Write-Log -level $LogLevelInfo -message "Restarting service '$GuestProxyAgentServiceName'..."
+        
+        Restart-Service -Name $GuestProxyAgentServiceName -Force
+        if ($?) {
+            Write-Log -level $LogLevelInfo -message "Service '$GuestProxyAgentServiceName' was succesfully restarted."
+        } else {
+            Write-Log -level $LogLevelError -message "Failed to restart service '$GuestProxyAgentServiceName'."
+        }
+    }
+}
+
+
+#######################################################
+# VM Extension Handler Functions
+#######################################################
+
+function Reset-eBPF-Handler {
+    # NOP for this current implementation.
+    # TBD: confirm if Reset does not need to generate a status file. The docs say "Yes?"...
+    Write-Log -level $LogLevelInfo -message "Reset-eBPF-Handler()"
+}
+
+function Enable-eBPF-Handler {
+
+    Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler()"
+
+    # This is where any checks for prerequisites should be performed.
+    # Currently, we just check if the eBPF drivers are installed and registered.
+    $statusInfo = [PSCustomObject]@{
+        StatusCode = 0
+        StatusString = $StatusSuccess
+    }
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        $driverName = $_.Key
+        $currDriverPath = Get-FullDiskPathFromService -serviceName $driverName
+        if ($currDriverPath) {
+            if ($?) {
+                Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler: $driverName is registered correctly."
+            } else {
+                Write-Log -level $LogLevelError -message "Enable-eBPF-Handler: $driverName is NOT registered correctly!"
+                $statusInfo.StatusCode = 1
+                $statusInfo.StatusString = $StatusError
+            }
+        }
+    }
+
+    # Generate the status file
+    Create-StatusFile -name $StatusName -operation $OperationNameEnable -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage "eBPF enabled"
+
+    return [int]$statusCode
+}
+
+function Disable-eBPF-Handler {
+
+    Write-Log -level $LogLevelInfo -message "Disable-eBPF-Handler()"
+
+    $statusCode = Stop-eBPFDrivers
+    # TBD: confirm if Disable does not need to generate a status file. The docs say "Yes?"...
+    #Create-StatusFile -name $StatusName -operation $OperationNameDisable -status $StatusSuccess -statusCode $statusCode -statusMessage "eBPF disabled"
+}
+
+function Uninstall-eBPF-Handler {
+
+    Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler()"
+
+    $res = Uninstall-eBPF -installDirectory "$EbpfDefaultInstallPath"
+    if ($res -eq 0) {    
+        $statusString = $StatusSuccess
+        $statusCode = 0
+        $statusMessage = "eBPF for Windows was successfully uninstalled."
+    }
+    else {
+        $statusString = $StatusError
+        $statusCode = $res
+        $statusMessage = "eBPF for Windows was not uninstalled."
+    }
+    Create-StatusFile -name $StatusName -operation $OperationNameUninstall -status $statusString -statusCode $statusCode -statusMessage $statusMessage
+
+    return [int]$statusCode
+}
+
+function Install-eBPF-Handler {
+
+    Write-Log -level $LogLevelInfo -message "Install-eBPF-Handler()"
+    # NOTE: The install operation does not generate a status file, since the VM Agent will afterwards call the enable operation.
+    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
+}
+
+function Update-eBPF-Handler {
+
+    Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler()"
+
+    # Change VM Extension status to "transitioning"
+    Create-StatusFile -name $StatusName -operation $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -statusMessage "Starting update"
+
+    $res =  InstallOrUpdate-eBPF-Handler -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
+    if ($res -eq 2) {
+        # If the result is 2, then we don't need to restart the Guest Proxy Agent service (as eBPF hasn't been updated), and the operation is successful.
+        $res = 0
+    } elseif ($res -eq 0) {        
+        # Restart the Guest Proxy Agent service: this is an extended operation that is not part of the eBPF VM Extension,
+        # therefore, we do not account success/failure of this operation in the update status.
+        Restart-GuestProxyAgent-Service | Out-Null
+    }
+
+    return $res
 }
 
 #######################################################
