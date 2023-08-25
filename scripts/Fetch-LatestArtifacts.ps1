@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory=$false)] [string] $RunId = $null)
 
 if ($null -eq (Get-Command 'gh.exe' -ErrorAction SilentlyContinue)) {
-    throw "Unable to locate gh.exe. This command to have the GitHub CLI installed and in your path."
+    throw "Unable to locate gh.exe. This command requires GitHub CLI installed and in your path."
 }
 
 if (!$runid) {
