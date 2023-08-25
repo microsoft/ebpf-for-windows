@@ -115,7 +115,7 @@ typedef class _single_instance_hook : public _hook_helper
     _single_instance_hook(ebpf_program_type_t program_type, ebpf_attach_type_t attach_type)
         : _hook_helper{attach_type}, client_binding_context(nullptr), client_data(nullptr),
           client_dispatch_table(nullptr), link_object(nullptr), client_registration_instance(nullptr),
-          nmr_binding_handle(nullptr)
+          nmr_binding_handle(nullptr), nmr_provider_handle(nullptr)
     {
         attach_provider_data.supported_program_type = program_type;
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
@@ -331,12 +331,12 @@ typedef class _single_instance_hook : public _hook_helper
     };
     HANDLE nmr_provider_handle;
 
-    PNPI_REGISTRATION_INSTANCE client_registration_instance;
-    const void* client_binding_context;
-    const ebpf_extension_data_t* client_data;
-    const ebpf_extension_dispatch_table_t* client_dispatch_table;
-    HANDLE nmr_binding_handle;
-    bpf_link* link_object;
+    PNPI_REGISTRATION_INSTANCE client_registration_instance = nullptr;
+    const void* client_binding_context = nullptr;
+    const ebpf_extension_data_t* client_data = nullptr;
+    const ebpf_extension_dispatch_table_t* client_dispatch_table = nullptr;
+    HANDLE nmr_binding_handle = nullptr;
+    bpf_link* link_object = nullptr;
 } single_instance_hook_t;
 
 typedef class xdp_md_helper : public xdp_md_t

@@ -383,7 +383,7 @@ _update_array_map_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
+    uint8_t* entry = &map->data[key_value * map->ebpf_map_definition.value_size];
     if (data) {
         memcpy(entry, data, map->ebpf_map_definition.value_size);
     } else {
@@ -1055,6 +1055,7 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t
     state = ebpf_lock_lock(&map->lock);
     lock_held = true;
 
+    key_state = _get_key_state(map, entry);
     if (key_state != EBPF_LRU_KEY_COLD) {
         goto Exit;
     }
@@ -1062,6 +1063,7 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t
     ebpf_list_remove_entry(&entry->list_entry);
     ebpf_list_insert_tail(&map->hot_list, &entry->list_entry);
     map->hot_list_size++;
+    entry->generation = map->current_generation;
 
     _merge_hot_into_cold_list_if_needed(map);
 

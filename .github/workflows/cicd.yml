@@ -61,13 +61,6 @@ jobs:
       build_nuget: true
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
-  cmake:
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
-    uses: ./.github/workflows/reusable-cmake-build.yml
-    with:
-      build_artifact: Build-x64-cmake
-
   # Run the unit tests in GitHub.
   unit_tests:
     # Always run this job.
@@ -374,6 +367,21 @@ jobs:
       fault_injection: true
       leak_detection: true
 
+  # Run a fast multi-threaded stress test pass against the usersim user-mode 'mock' framework.
+  # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
+  quick_user_mode_multi_threaded_stress_test:
+    needs: regular
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: quick_user_mode_multi_threaded_stress
+      test_command: .\ebpf_stress_tests_um -tt=8 -td=2
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      leak_detection: false
+      gather_dumps: true
+      capture_etw: true
+
   # Additional jobs to run on a schedule only (skip push and pull request).
   # ---------------------------------------------------------------------------
   codeql:
@@ -423,7 +431,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
-      test_command: .\ebpf_stress_tests_um -tt=32 -td=10
+      test_command: .\ebpf_stress_tests_um -tt=8 -td=10
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
@@ -431,36 +439,36 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
-  # Run multi-threaded stress tests against the kernel mode eBPF sub-system.
-  # The '-td' parameter specifies the run time per test, so the total run-time will be a multiple of the total number
-  # of tests, as each test is run sequentially.
-  kernel_mode_multi_threaded_stress_test:
+  # Run multi-threaded stress tests with 'restart extension' disabled (default behavior)
+  # against the kernel mode eBPF sub-system.
+  km_mt_stress_tests:
     needs: regular
     if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: kernel_mode_multi_threaded_stress
-      test_command: .\ebpf_stress_tests_km -tt=32 -td=10
+      name: km_mt_stress_tests
+      pre_test: .\setup_ebpf_cicd_stress_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -RunKmStressTests $true
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: ebpf_cicd_tests
       code_coverage: false
-      leak_detection: false
-      gather_dumps: true
-      capture_etw: true
+      # For this test, we only want kernel mode dumps and not user mode dumps.
+      gather_dumps: false
 
-  # Run multi-threaded stress tests against the kernel mode eBPF sub-system with extension restart enabled.
-  # The '-td' parameter specifies the run time per test, so the total run-time will be a multiple of the total number
-  # of tests, as each test is run sequentially.
-  kernel_mode_multi_threaded_stress_extension_restart_test:
+  # Run multi-threaded stress tests with 'restart extension' enabled
+  # against the kernel mode eBPF sub-system.
+  km_mt_stress_tests_restart_extension:
     needs: regular
     if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: kernel_mode_multi_threaded_stress_extension_restart
-      test_command: .\ebpf_stress_tests_km -tt=32 -td=10 -er=true -erd=250
+      name: km_mt_stress_tests_restart_extension
+      pre_test: .\setup_ebpf_cicd_stress_tests.ps1
+      test_command: .\execute_ebpf_cicd_stress_tests.ps1 -RunKmStressTests $true -RestartExtension $true
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: ebpf_cicd_tests
       code_coverage: false
-      leak_detection: false
-      gather_dumps: true
-      capture_etw: true
+      # For this test, we only want kernel mode dumps and not user mode dumps.
+      gather_dumps: false

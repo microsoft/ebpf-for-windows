@@ -75,6 +75,7 @@ typedef class _ebpf_hash_table_test_state
         cpu_count = ebpf_get_cpu_count();
         REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
         platform_initiated = true;
+        REQUIRE(ebpf_random_initiate() == EBPF_SUCCESS);
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
         epoch_initiated = true;
 
@@ -106,6 +107,7 @@ typedef class _ebpf_hash_table_test_state
         if (epoch_initiated) {
             ebpf_epoch_terminate();
         }
+        ebpf_random_terminate();
         if (platform_initiated) {
             ebpf_platform_terminate();
         }

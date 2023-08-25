@@ -15,13 +15,19 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 #
 # Execute tests on VM.
 #
-
 function Invoke-CICDTestsOnVM
 {
     param([parameter(Mandatory=$true)] [string] $VMName,
           [parameter(Mandatory=$false)] [bool] $VerboseLogs = $false,
-          [parameter(Mandatory=$false)] [bool] $Coverage = $false)
-    Write-Log "Running eBPF CI/CD tests on $VMName"
+          [parameter(Mandatory=$false)] [bool] $Coverage = $false,
+          [parameter(Mandatory=$false)][bool] $RunKmStressTests = $false,
+          [parameter(Mandatory=$false)][bool] $RestartExtension = $false)
+
+    if ($RunKmStressTests -eq $true) {
+        Write-Log "Executing eBPF kernel mode multi-threaded stress tests on $VMName"
+    } else {
+        Write-Log "Running eBPF CI/CD tests on $VMName"
+    }
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
@@ -33,7 +39,13 @@ function Invoke-CICDTestsOnVM
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Invoke-CICDTests -VerboseLogs $VerboseLogs -Coverage $Coverage 2>&1 | Write-Log
+        if ($RunKmStressTests -eq $true) {
+            Invoke-CICDStressTests -VerboseLogs $VerboseLogs -Coverage $Coverage `
+                -RestartExtension $RestartExtension 2>&1 | Write-Log
+        } else {
+            Invoke-CICDTests -VerboseLogs $VerboseLogs -Coverage $Coverage 2>&1 | Write-Log
+        }
+
     } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs, $Coverage) -ErrorAction Stop
 }
 
@@ -434,9 +446,9 @@ function Invoke-ConnectRedirectTestsOnVM
            -ScriptBlock {param ($StandardUser) Get-LocalUser -Name "$StandardUser"} `
            -Argumentlist $StandardUser -ErrorAction SilentlyContinue
     if($UserId) {
-		Write-Host "Deleting existing standard user:" $StandardUser "on" $VMName
-		Remove-StandardUserOnVM -VM $VMName -UserName $StandardUser
-	}
+        Write-Host "Deleting existing standard user:" $StandardUser "on" $VMName
+        Remove-StandardUserOnVM -VM $VMName -UserName $StandardUser
+    }
 
     # Add a standard user on VM1.
     Add-StandardUserOnVM -VM $VMName -UserName $StandardUser -Password $UnsecurePassword

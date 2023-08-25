@@ -11,7 +11,10 @@
 #include <ntifs.h>
 #include <netioddk.h>
 #include <ntddk.h>
+#pragma warning(push)
+#pragma warning(disable : 28196) // Inconsistent annotation for '_umul128'
 #include <ntstrsafe.h>
+#pragma warning(pop)
 #include <stdint.h>
 #include <wdm.h>
 

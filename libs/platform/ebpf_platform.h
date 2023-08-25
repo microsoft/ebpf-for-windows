@@ -117,6 +117,14 @@ extern "C"
 
     /**
      * @brief Allocate memory.
+     * @param[in] source String to duplicate.
+     * @returns Pointer to duplicated string, or null on failure.
+     */
+    _Must_inspect_result_ _Ret_maybenull_z_ char*
+    ebpf_strdup(_In_ PCSTR source);
+
+    /**
+     * @brief Duplicate a string.
      * @param[in] size Size of memory to allocate.
      * @returns Pointer to memory block allocated, or null on failure.
      */
@@ -779,14 +787,6 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_validate_security_descriptor(
         _In_ const ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
-
-    /**
-     * @brief Return a pseudorandom number.
-     *
-     * @return A pseudorandom number.
-     */
-    uint32_t
-    ebpf_random_uint32();
 
     /**
      * @brief Return time elapsed since boot in units of 100 nanoseconds.

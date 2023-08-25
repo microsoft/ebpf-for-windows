@@ -20,8 +20,10 @@
 #include <ws2tcpip.h>
 #include <chrono>
 #include <io.h>
+#include <lsalookup.h>
 #include <mstcpip.h>
 #include <mutex>
+#define _NTDEF_ // UNICODE_STRING is already defined
 #include <ntsecapi.h>
 #include <thread>
 #include <vector>

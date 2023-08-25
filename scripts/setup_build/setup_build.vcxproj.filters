@@ -34,6 +34,9 @@
     <CopyFileToFolders Include="..\setup_ebpf_cicd_tests.ps1">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="..\setup_ebpf_cicd_stress_tests.ps1">
+      <Filter>Source Files</Filter>
+    </CopyFileToFolders>
     <CopyFileToFolders Include="..\execute_ebpf_cicd_tests.ps1">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
