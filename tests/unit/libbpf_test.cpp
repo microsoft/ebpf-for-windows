@@ -2995,7 +2995,7 @@ emulate_bind_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, u
     ctx.operation = BIND_OPERATION_BIND;
 
     REQUIRE(invoke(reinterpret_cast<void*>(&ctx), &result) == EBPF_SUCCESS);
-    printf("emulate_bind_temp: result=%u\n", result);
+
     return static_cast<bind_action_t>(result);
 }
 
@@ -3056,7 +3056,7 @@ TEST_CASE("bindmonitor_tail_call_max", "[libbpf]")
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
-    // Bind port should fail because the tail call program at 32 is BIND_DENY.
+    // Bind port should fail because the tail call program exceeds 32.
     REQUIRE(emulate_bind_tail_call(invoke, fake_pid, "fake_app_1") == BIND_DENY);
 
     hook.detach_and_close_link(&link);

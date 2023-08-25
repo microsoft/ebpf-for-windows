@@ -74,7 +74,7 @@ struct
 {
     __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
     __type(key, uint32_t);
-    __uint(max_entries, MAX_TAIL_CALL_CNT + 3 + 1);
+    __uint(max_entries, MAX_TAIL_CALL_CNT + 3);
     __array(values, bind_action_t(bind_md_t* ctx));
 } bind_tail_call_map SEC(".maps") = {
     .values = {

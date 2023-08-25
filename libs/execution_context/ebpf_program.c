@@ -1356,6 +1356,11 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
 
     if (state->count == (MAX_TAIL_CALL_CNT - 1)) {
         EBPF_OBJECT_RELEASE_REFERENCE(&((ebpf_program_t*)next_program)->object);
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "State count exceeded maximum program tail call, Returning EBPF_NO_MORE_TAIL_CALLS",
+            state->count);
         return EBPF_NO_MORE_TAIL_CALLS;
     }
 

@@ -1354,8 +1354,7 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
         entry.available = true;
         entry.lock = std::make_unique<std::mutex>();
         entry.object = std::move(program_object);
-        // entry.attach = !(index % 2) ? true : false;
-        entry.attach = true;
+        entry.attach = !(index % 2) ? true : false;
         entry.index = index++;
         entry.reuse_count = 0;
         entry.tag = 0xC001DEA2;
