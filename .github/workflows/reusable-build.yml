@@ -204,8 +204,7 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        scripts\Fetch-LatestArtifacts.ps1 -ArtifactName "build-RelWithDebInfo-windows-2022" -OutputPath "${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}" -Owner alan-jowett -repo bpf_performance
-        Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\bin -DestinationPath ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\build-RelWithDebInfo-windows-2022.zip
+        scripts\Fetch-LatestArtifacts.ps1 -ArtifactName "build-RelWithDebInfo-windows-2022" -OutputPath "${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\performance" -Owner alan-jowett -repo bpf_performance
 
     - name: Extract artifacts to build path
       if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
