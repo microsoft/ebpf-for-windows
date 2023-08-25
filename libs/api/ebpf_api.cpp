@@ -1762,6 +1762,18 @@ _initialize_ebpf_object_from_native_file(
         }
     });
 
+    // The bpf2c tool orders programs by section name, so we need to sort the programs
+    // vector to match. If there are multiple programs per section, sort by program name.
+    std::sort(object.programs.begin(), object.programs.end(), [](const ebpf_program_t* a, const ebpf_program_t* b) {
+        int section_name_comparison = strcmp(a->section_name, b->section_name);
+        int program_name_comparison = strcmp(a->program_name, b->program_name);
+        if (section_name_comparison != 0) {
+            return section_name_comparison < 0;
+        } else {
+            return program_name_comparison < 0;
+        }
+    });
+
 Exit:
     if (result != EBPF_SUCCESS) {
         if (program) {

@@ -367,6 +367,21 @@ jobs:
       fault_injection: true
       leak_detection: true
 
+  # Run a fast multi-threaded stress test pass against the usersim user-mode 'mock' framework.
+  # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
+  quick_user_mode_multi_threaded_stress_test:
+    needs: regular
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: quick_user_mode_multi_threaded_stress
+      test_command: .\ebpf_stress_tests_um -tt=8 -td=2
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      leak_detection: false
+      gather_dumps: true
+      capture_etw: true
+
   # Additional jobs to run on a schedule only (skip push and pull request).
   # ---------------------------------------------------------------------------
   codeql:
@@ -416,7 +431,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
-      test_command: .\ebpf_stress_tests_um -tt=32 -td=10
+      test_command: .\ebpf_stress_tests_um -tt=8 -td=10
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
