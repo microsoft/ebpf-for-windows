@@ -853,8 +853,13 @@ ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
 
     uint32_t map_count = program->count_of_maps + 1;
-    ebpf_map_t** program_maps =
-        ebpf_reallocate(program->maps, program->count_of_maps * sizeof(ebpf_map_t*), map_count * sizeof(ebpf_map_t*));
+    ebpf_map_t** program_maps;
+    if (program->maps) {
+        program_maps = ebpf_reallocate(
+            program->maps, program->count_of_maps * sizeof(ebpf_map_t*), map_count * sizeof(ebpf_map_t*));
+    } else {
+        program_maps = ebpf_allocate_with_tag(map_count * sizeof(ebpf_map_t*), EBPF_POOL_TAG_PROGRAM);
+    }
     if (program_maps == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
