@@ -4,6 +4,9 @@
 #include "ebpf_platform.h"
 #include "ebpf_tracelog.h"
 
+_Ret_notnull_ DEVICE_OBJECT*
+ebpf_driver_get_device_object();
+
 static uint32_t _ebpf_platform_maximum_processor_count = 0;
 
 _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return _ebpf_platform_maximum_processor_count; }
@@ -493,14 +496,30 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_allocate_preemptible_work_item(
+    _Outptr_ cxplat_preemptible_work_item_t** work_item,
+    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
+    _Inout_opt_ void* work_item_context)
+{
+    cxplat_status_t status = cxplat_allocate_preemptible_work_item(
+        ebpf_driver_get_device_object(),
+        (cxplat_preemptible_work_item_t**)work_item,
+        work_item_routine,
+        work_item_context);
+    return ebpf_result_from_cxplat_status(status);
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
+    ebpf_result_t result = ebpf_result_from_cxplat_status(cxplat_initialize());
     ebpf_initialize_cpu_count();
-    return EBPF_SUCCESS;
+    return result;
 }
 
 void
 ebpf_platform_terminate()
 {
     KeFlushQueuedDpcs();
+    cxplat_cleanup();
 }

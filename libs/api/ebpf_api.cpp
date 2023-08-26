@@ -40,6 +40,7 @@ typedef unsigned char boolean;
 #include <fcntl.h>
 #include <io.h>
 #include <mutex>
+#include <rpc.h>
 
 using namespace peparse;
 using namespace Platform;

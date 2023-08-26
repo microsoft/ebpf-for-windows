@@ -5,8 +5,6 @@
 #include "ebpf_store_helper.h"
 #include "ebpf_tracelog.h"
 
-IO_WORKITEM_ROUTINE _ebpf_preemptible_routine;
-
 extern DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
@@ -179,72 +177,6 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NtQuerySystemInformation, status);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
-}
-
-typedef struct _ebpf_preemptible_work_item
-{
-    PIO_WORKITEM io_work_item;
-    void (*work_item_routine)(_Inout_opt_ void* work_item_context);
-    void* work_item_context;
-} ebpf_preemptible_work_item_t;
-
-void
-_ebpf_preemptible_routine(_In_ PDEVICE_OBJECT device_object, _In_opt_ void* context)
-{
-    UNREFERENCED_PARAMETER(device_object);
-    if (context == NULL) {
-        return;
-    }
-    ebpf_preemptible_work_item_t* work_item = (ebpf_preemptible_work_item_t*)context;
-    work_item->work_item_routine(work_item->work_item_context);
-
-    ebpf_free_preemptible_work_item(work_item);
-}
-
-void
-ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* work_item)
-{
-    if (!work_item) {
-        return;
-    }
-
-    IoFreeWorkItem(work_item->io_work_item);
-    ebpf_free(work_item->work_item_context);
-    ebpf_free(work_item);
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_allocate_preemptible_work_item(
-    _Outptr_ ebpf_preemptible_work_item_t** work_item,
-    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
-    _Inout_opt_ void* work_item_context)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-    *work_item = ebpf_allocate(sizeof(ebpf_preemptible_work_item_t));
-    if (*work_item == NULL) {
-        return EBPF_NO_MEMORY;
-    }
-
-    (*work_item)->io_work_item = IoAllocateWorkItem(ebpf_driver_get_device_object());
-    if ((*work_item)->io_work_item == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-    (*work_item)->work_item_routine = work_item_routine;
-    (*work_item)->work_item_context = work_item_context;
-
-Done:
-    if (result != EBPF_SUCCESS) {
-        ebpf_free(*work_item);
-        *work_item = NULL;
-    }
-    return result;
-}
-
-void
-ebpf_queue_preemptible_work_item(_Inout_ ebpf_preemptible_work_item_t* work_item)
-{
-    IoQueueWorkItem(work_item->io_work_item, _ebpf_preemptible_routine, DelayedWorkQueue, work_item);
 }
 
 _Must_inspect_result_ ebpf_result_t

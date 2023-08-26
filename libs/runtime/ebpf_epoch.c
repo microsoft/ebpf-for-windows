@@ -138,12 +138,12 @@ typedef struct _ebpf_epoch_allocation_header
 typedef struct _ebpf_epoch_work_item
 {
     ebpf_epoch_allocation_header_t header;
-    ebpf_preemptible_work_item_t* preemptible_work_item;
+    cxplat_preemptible_work_item_t* preemptible_work_item;
     void* callback_context;
     const void (*callback)(_Inout_ void* context);
 } ebpf_epoch_work_item_t;
 
-EX_RUNDOWN_REF _ebpf_epoch_work_item_rundown_ref;
+cxplat_rundown_reference_t _ebpf_epoch_work_item_rundown_ref;
 
 /**
  * @brief Hash a thread ID into an 8bit number.
@@ -220,9 +220,11 @@ _ebpf_epoch_work_item_callback(void* context)
     ebpf_epoch_work_item_t* work_item = (ebpf_epoch_work_item_t*)context;
     work_item->callback(work_item->callback_context);
     work_item->preemptible_work_item = NULL;
-    ExReleaseRundownProtection(&_ebpf_epoch_work_item_rundown_ref);
 
     // Caller of this function calls ebpf_free_preemptible_work_item.
+    ebpf_free(work_item);
+
+    cxplat_release_rundown_protection(&_ebpf_epoch_work_item_rundown_ref);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -233,7 +235,7 @@ ebpf_epoch_initiate()
     uint32_t cpu_id;
     uint32_t cpu_count;
 
-    ExInitializeRundownProtection(&_ebpf_epoch_work_item_rundown_ref);
+    cxplat_initialize_rundown_protection(&_ebpf_epoch_work_item_rundown_ref);
 
     cpu_count = ebpf_get_cpu_count();
 
@@ -314,7 +316,7 @@ ebpf_epoch_terminate()
     }
 
     // Wait for all work items to complete.
-    ExWaitForRundownProtectionRelease(&_ebpf_epoch_work_item_rundown_ref);
+    cxplat_wait_for_rundown_protection_release(&_ebpf_epoch_work_item_rundown_ref);
 
     _ebpf_epoch_cpu_count = 0;
 
@@ -476,7 +478,7 @@ ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ const void (*cal
     work_item->callback_context = callback_context;
     work_item->header.entry_type = EBPF_EPOCH_ALLOCATION_WORK_ITEM;
 
-    if (!ExAcquireRundownProtection(&_ebpf_epoch_work_item_rundown_ref)) {
+    if (!cxplat_acquire_rundown_protection(&_ebpf_epoch_work_item_rundown_ref)) {
         ebpf_free(work_item);
         return NULL;
     }
@@ -484,7 +486,7 @@ ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ const void (*cal
     ebpf_result_t result = ebpf_allocate_preemptible_work_item(
         &work_item->preemptible_work_item, _ebpf_epoch_work_item_callback, work_item);
     if (result != EBPF_SUCCESS) {
-        ExReleaseRundownProtection(&_ebpf_epoch_work_item_rundown_ref);
+        cxplat_release_rundown_protection(&_ebpf_epoch_work_item_rundown_ref);
         ebpf_free(work_item);
         return NULL;
     }
@@ -511,7 +513,7 @@ ebpf_epoch_schedule_work_item(_Inout_ ebpf_epoch_work_item_t* work_item)
         _ebpf_epoch_arm_timer_if_needed(&_ebpf_epoch_cpu_table[current_cpu]);
     } else {
         // If rundown is in progress, then the work item is executed immediately.
-        ebpf_queue_preemptible_work_item(work_item->preemptible_work_item);
+        cxplat_queue_preemptible_work_item(work_item->preemptible_work_item);
     }
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, lock_state);
 }
@@ -530,10 +532,10 @@ ebpf_epoch_cancel_work_item(_Inout_ ebpf_epoch_work_item_t* work_item)
 
     ebpf_assert(work_item->header.list_entry.Flink == NULL);
 
-    // ebpf_free_preemptible_work_item() frees both the work item and the preemptible work item.
-    ebpf_free_preemptible_work_item(work_item->preemptible_work_item);
+    cxplat_free_preemptible_work_item(work_item->preemptible_work_item);
+    ebpf_free(work_item);
 
-    ExReleaseRundownProtection(&_ebpf_epoch_work_item_rundown_ref);
+    cxplat_release_rundown_protection(&_ebpf_epoch_work_item_rundown_ref);
 }
 
 bool
@@ -586,7 +588,7 @@ _ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t
             break;
         case EBPF_EPOCH_ALLOCATION_WORK_ITEM: {
             ebpf_epoch_work_item_t* work_item = CONTAINING_RECORD(header, ebpf_epoch_work_item_t, header);
-            ebpf_queue_preemptible_work_item(work_item->preemptible_work_item);
+            cxplat_queue_preemptible_work_item(work_item->preemptible_work_item);
             break;
         }
         }

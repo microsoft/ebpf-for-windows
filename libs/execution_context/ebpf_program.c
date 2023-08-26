@@ -2123,6 +2123,7 @@ Done:
     context->completion_callback(
         result, context->program, context->options, context->completion_context, context->async_context);
     ebpf_program_dereference_providers((ebpf_program_t*)context->program);
+    ebpf_free(work_item_context);
 }
 
 static void
@@ -2146,7 +2147,7 @@ ebpf_program_execute_test_run(
     ebpf_result_t return_value = EBPF_SUCCESS;
     ebpf_program_test_run_context_t* test_run_context = NULL;
     void* context = NULL;
-    ebpf_preemptible_work_item_t* work_item = NULL;
+    cxplat_preemptible_work_item_t* work_item = NULL;
     ebpf_program_data_t* program_data = NULL;
     bool provider_data_referenced = false;
 
@@ -2202,8 +2203,8 @@ ebpf_program_execute_test_run(
 
     ebpf_assert_success(ebpf_async_set_cancel_callback(async_context, test_run_context, _ebpf_program_test_run_cancel));
 
-    // ebpf_queue_preemptible_work_item() will free both the work item and the context when it is done.
-    ebpf_queue_preemptible_work_item(work_item);
+    // cxplat_queue_preemptible_work_item() will free both the work item and the context when it is done.
+    cxplat_queue_preemptible_work_item(work_item);
 
     // This thread no longer owns the test run context.
     test_run_context = NULL;

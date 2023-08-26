@@ -33,7 +33,6 @@ extern "C"
         EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE = 1
     } ebpf_code_integrity_state_t;
 
-    typedef struct _ebpf_preemptible_work_item ebpf_preemptible_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
     typedef struct _ebpf_helper_function_prototype ebpf_helper_function_prototype_t;
 
@@ -302,25 +301,9 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_preemptible_work_item(
-        _Outptr_ ebpf_preemptible_work_item_t** work_item,
+        _Outptr_ cxplat_preemptible_work_item_t** work_item,
         _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
         _Inout_opt_ void* work_item_context);
-
-    /**
-     * @brief Free a preemptible work item.
-     *
-     * @param[in] work_item Pointer to the work item to free.
-     */
-    void
-    ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* work_item);
-
-    /**
-     * @brief Schedule a preemptible work item to run.
-     *
-     * @param[in, out] work_item Work item to schedule.
-     */
-    void
-    ebpf_queue_preemptible_work_item(_Inout_ ebpf_preemptible_work_item_t* work_item);
 
     /**
      * @brief Allocate a timer to run a non-preemptible work item.
@@ -899,6 +882,9 @@ extern "C"
      */
     ebpf_result_t
     ebpf_utf8_string_to_unicode(_In_ const cxplat_utf8_string_t* input, _Outptr_ wchar_t** output);
+
+    _Ret_notnull_ DEVICE_OBJECT*
+    ebpf_driver_get_device_object();
 
 #ifdef __cplusplus
 }

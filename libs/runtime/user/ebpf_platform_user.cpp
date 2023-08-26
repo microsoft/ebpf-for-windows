@@ -243,32 +243,10 @@ ntstatus_to_ebpf_result(NTSTATUS status)
     return win32_error_code_to_ebpf_result(error);
 }
 
-typedef struct _ebpf_preemptible_work_item
+_Ret_notnull_ DEVICE_OBJECT*
+ebpf_driver_get_device_object()
 {
-    int dummy;
-} ebpf_preemptible_work_item_t;
-
-void
-ebpf_free_preemptible_work_item(_Frees_ptr_opt_ ebpf_preemptible_work_item_t* work_item)
-{
-    return usersim_free_preemptible_work_item((usersim_preemptible_work_item_t*)work_item);
-}
-
-void
-ebpf_queue_preemptible_work_item(_Inout_ ebpf_preemptible_work_item_t* work_item)
-{
-    usersim_queue_preemptible_work_item((usersim_preemptible_work_item_t*)work_item);
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_allocate_preemptible_work_item(
-    _Outptr_ ebpf_preemptible_work_item_t** work_item,
-    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
-    _Inout_opt_ void* work_item_context)
-{
-    NTSTATUS status = usersim_allocate_preemptible_work_item(
-        (usersim_preemptible_work_item_t**)work_item, work_item_routine, work_item_context);
-    return ntstatus_to_ebpf_result(status);
+    return nullptr;
 }
 
 _Must_inspect_result_ ebpf_result_t
