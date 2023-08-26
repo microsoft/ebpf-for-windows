@@ -56,7 +56,7 @@ typedef enum _ebpf_pool_tag
  * @brief Allocate memory.
  * @param[in] size Size of memory to allocate.
  * @param[in] tag Pool tag to use.
- * @returns Pointer to memory block allocated, or null on failure.
+ * @returns Pointer to zero-initialized memory block allocated, or null on failure.
  */
 __forceinline __drv_allocatesMem(Mem) _Must_inspect_result_
     _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag)

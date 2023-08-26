@@ -671,8 +671,6 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
         goto Done;
     }
 
-    memset(local_program, 0, sizeof(ebpf_program_t));
-
     local_program->module_id.Type = MIT_GUID;
     local_program->module_id.Length = sizeof(local_program->module_id);
     retval = ebpf_guid_create(&local_program->module_id.Guid);
