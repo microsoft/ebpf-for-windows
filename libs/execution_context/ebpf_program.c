@@ -2035,7 +2035,8 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     uintptr_t old_thread_affinity;
     size_t batch_size = options->batch_size ? options->batch_size : 1024;
     ebpf_execution_context_state_t execution_context_state = {0};
-    ebpf_epoch_state_t* epoch_state = NULL;
+    ebpf_epoch_state_t epoch_state = {0};
+    bool in_epoch = false;
     bool irql_raised = false;
     bool thread_affinity_set = false;
     bool state_stored = false;
@@ -2049,7 +2050,8 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     old_irql = ebpf_raise_irql(context->required_irql);
     irql_raised = true;
 
-    epoch_state = ebpf_epoch_enter();
+    ebpf_epoch_enter(&epoch_state);
+    in_epoch = true;
 
     ebpf_get_execution_context_state(&execution_context_state);
     return_value =
@@ -2069,7 +2071,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
         // Start a new epoch every batch_size iterations.
         if (!batch_counter) {
             batch_counter = batch_size;
-            ebpf_epoch_exit(epoch_state);
+            ebpf_epoch_exit(&epoch_state);
             if (ebpf_should_yield_processor()) {
                 // Compute the elapsed time since the last yield.
                 end_time = ebpf_query_time_since_boot(false);
@@ -2086,7 +2088,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
                 // Reset the start time.
                 start_time = ebpf_query_time_since_boot(false);
             }
-            epoch_state = ebpf_epoch_enter(epoch_state);
+            ebpf_epoch_enter(&epoch_state);
         }
         ebpf_program_invoke(context->program, context->context, &return_value, &execution_context_state);
     }
@@ -2103,8 +2105,8 @@ Done:
         ebpf_assert_success(ebpf_state_store(ebpf_program_get_state_index(), 0, &execution_context_state));
     }
 
-    if (epoch_state) {
-        ebpf_epoch_exit(epoch_state);
+    if (in_epoch) {
+        ebpf_epoch_exit(&epoch_state);
     }
 
     if (irql_raised) {
