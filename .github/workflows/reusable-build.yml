@@ -75,7 +75,7 @@ jobs:
         powershell.exe "echo 'msvc_tools_path=%VCToolsInstallDir%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
         powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
 
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+    - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
       if: steps.skip_check.outputs.should_skip != 'true'
       with:
         submodules: 'recursive'
