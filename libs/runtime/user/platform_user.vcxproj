@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\shared\tracelog.c" />
     <ClCompile Include="..\ebpf_bitmap.c" />
     <ClCompile Include="..\ebpf_async.c" />
     <ClCompile Include="..\ebpf_crypto_hash.c" />

@@ -146,6 +146,18 @@ _When_(error != ERROR_SUCCESS, _Ret_range_(1, 65535)) __forceinline ebpf_result_
         result = EBPF_INVALID_POINTER;
         break;
 
+    case ERROR_TIMEOUT:
+        result = EBPF_TIMEOUT;
+        break;
+
+    case ERROR_BAD_COMMAND:
+        result = EBPF_STALE_ID;
+        break;
+
+    case ERROR_INVALID_STATE:
+        result = EBPF_INVALID_STATE;
+        break;
+
     default:
         result = EBPF_FAILED;
         break;

@@ -1,6 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+// This file uses normal TraceLogging when compiled into shared_{kernel,user}.lib,
+// but uses usersim's implementation when compiled into runtime_user.lib so that
+// logging can be redirected to stdout for testing.
+// TODO(issue #2677): rename the usersim runtime to runtime_usersim.lib to distinguish
+// it from a future runtime.lib usable as a normal user-mode eBPF runtime.
+
 #include "cxplat.h"
 #include "ebpf_tracelog.h"
 
