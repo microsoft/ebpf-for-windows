@@ -184,10 +184,9 @@ _ebpf_native_unload_work_item(_In_opt_ const void* service)
     // 1. We're not touching any epoch managed objects in this code path.
     // 2. Far more importantly, in the case where ebpfcore is shutting down, this work item will get executed _after_
     //    the 'epoch' functionality has already been shut down.
-
-    // Do not free "service" here. It is freed by platform.
     if (service != NULL) {
         ebpf_native_unload_driver((const wchar_t*)service);
+        ebpf_free((void*)service);
     }
 }
 
@@ -265,9 +264,8 @@ _ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
     module->programs = NULL;
     module->program_count = 0;
 
-    // Note: Do not free module->service_name here explicitly.
-    // It will be freed automatically when workitem is freed.
     cxplat_free_preemptible_work_item(module->cleanup_work_item);
+    ebpf_free(module->service_name);
 
     ebpf_lock_destroy(&module->lock);
 
@@ -1431,6 +1429,7 @@ _ebpf_native_close_handles_work_item(_In_opt_ const void* context)
     ebpf_free(handle_info->process_state);
     ebpf_free(handle_info->program_handles);
     ebpf_free(handle_info->map_handles);
+    ebpf_free(handle_info);
 }
 
 static void
@@ -1451,11 +1450,9 @@ _ebpf_native_clean_up_handle_cleanup_context(_Inout_ ebpf_native_handle_cleanup_
     }
 
     if (cleanup_context->handle_cleanup_work_item != NULL) {
-        // cxplat_free_preemptible_work_item() will free the handle_information.
         cxplat_free_preemptible_work_item(cleanup_context->handle_cleanup_work_item);
-    } else {
-        ebpf_free(cleanup_context->handle_information);
     }
+    ebpf_free(cleanup_context->handle_information);
 }
 
 static ebpf_result_t
