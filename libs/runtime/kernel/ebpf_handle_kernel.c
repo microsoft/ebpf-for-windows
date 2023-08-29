@@ -7,7 +7,7 @@
 #include "ebpf_tracelog.h"
 #include "framework.h"
 
-extern DEVICE_OBJECT*
+extern _Ret_notnull_ DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
 _Must_inspect_result_ ebpf_result_t

@@ -102,7 +102,7 @@ extern "C"
      * @param[in] work_item Pointer to work item to free.
      */
     void
-    ebpf_epoch_cancel_work_item(_Inout_ ebpf_epoch_work_item_t* work_item);
+    ebpf_epoch_cancel_work_item(_In_opt_ _Frees_ptr_opt_ ebpf_epoch_work_item_t* work_item);
 
     /**
      * @brief Check the state of the free list on a CPU.

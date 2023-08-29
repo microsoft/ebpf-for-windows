@@ -5,7 +5,7 @@
 #include "ebpf_store_helper.h"
 #include "ebpf_tracelog.h"
 
-extern DEVICE_OBJECT*
+extern _Ret_notnull_ DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
 struct _ebpf_ring_descriptor

@@ -243,10 +243,17 @@ ntstatus_to_ebpf_result(NTSTATUS status)
     return win32_error_code_to_ebpf_result(error);
 }
 
+struct _DEVICE_OBJECT
+{
+    int reserved;
+};
+
+static DEVICE_OBJECT _ebpf_device_object = {};
+
 _Ret_notnull_ DEVICE_OBJECT*
 ebpf_driver_get_device_object()
 {
-    return nullptr;
+    return &_ebpf_device_object;
 }
 
 _Must_inspect_result_ ebpf_result_t

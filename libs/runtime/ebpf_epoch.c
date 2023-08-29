@@ -519,7 +519,7 @@ ebpf_epoch_schedule_work_item(_Inout_ ebpf_epoch_work_item_t* work_item)
 }
 
 void
-ebpf_epoch_cancel_work_item(_Inout_ ebpf_epoch_work_item_t* work_item)
+ebpf_epoch_cancel_work_item(_In_opt_ _Frees_ptr_opt_ ebpf_epoch_work_item_t* work_item)
 {
     uint32_t current_cpu;
     current_cpu = ebpf_get_current_cpu();

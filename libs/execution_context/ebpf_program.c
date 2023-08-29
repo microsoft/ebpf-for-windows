@@ -2020,7 +2020,7 @@ typedef struct _ebpf_program_test_run_context
 } ebpf_program_test_run_context_t;
 
 static void
-_ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
+_ebpf_program_test_run_work_item(_In_opt_ void* work_item_context)
 {
     _Analysis_assume_(work_item_context != NULL);
 

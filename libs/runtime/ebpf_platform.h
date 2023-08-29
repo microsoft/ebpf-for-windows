@@ -294,7 +294,7 @@ extern "C"
      * @param[out] work_item Pointer to memory that will contain the pointer to
      *  the preemptible work item on success.
      * @param[in] work_item_routine Routine to execute as a work item.
-     * @param[in, out] work_item_context Context to pass to the routine.
+     * @param[in] work_item_context Context to pass to the routine, or NULL.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  work item.
@@ -302,8 +302,8 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_preemptible_work_item(
         _Outptr_ cxplat_preemptible_work_item_t** work_item,
-        _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
-        _Inout_opt_ void* work_item_context);
+        _In_ void (*work_item_routine)(_In_opt_ void* work_item_context),
+        _In_opt_ void* work_item_context);
 
     /**
      * @brief Allocate a timer to run a non-preemptible work item.

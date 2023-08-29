@@ -498,8 +498,8 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 _Must_inspect_result_ ebpf_result_t
 ebpf_allocate_preemptible_work_item(
     _Outptr_ cxplat_preemptible_work_item_t** work_item,
-    _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
-    _Inout_opt_ void* work_item_context)
+    _In_ void (*work_item_routine)(_In_opt_ void* work_item_context),
+    _In_opt_ void* work_item_context)
 {
     cxplat_status_t status = cxplat_allocate_preemptible_work_item(
         ebpf_driver_get_device_object(),
