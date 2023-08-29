@@ -241,12 +241,10 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
         // Calling FwpsFlowRemoveContext may cause the flowDeleteFn callback on the callout to be invoked synchronously.
         // The net_ebpf_extension_sock_ops_flow_delete function frees the flow context memory and
         // releases reference on the filter_context.
-#pragma warning(push)
-#pragma warning(disable : 4189) // 'status': local variable is initialized but not referenced
         NTSTATUS status =
             FwpsFlowRemoveContext(flow_parameters->flow_id, flow_parameters->layer_id, flow_parameters->callout_id);
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowRemoveContext", status);
         ASSERT(status == STATUS_SUCCESS);
-#pragma warning(pop)
     }
 
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
@@ -261,13 +259,27 @@ _net_ebpf_sock_ops_update_store_entries()
     uint32_t section_info_count = sizeof(_ebpf_sock_ops_section_info) / sizeof(ebpf_program_section_info_t);
     status = ebpf_store_update_section_information(&_ebpf_sock_ops_section_info[0], section_info_count);
     if (!NT_SUCCESS(status)) {
-        return status;
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "ebpf_store_update_section_information failed.",
+            status);
+        goto Exit;
     }
 
     // Update program information.
     status = ebpf_store_update_program_information(&_ebpf_sock_ops_program_info, 1);
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "ebpf_store_update_program_information failed.",
+            status);
+        goto Exit;
+    }
 
-    return status;
+Exit:
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 NTSTATUS
@@ -277,21 +289,31 @@ net_ebpf_ext_sock_ops_register_providers()
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
         &_ebpf_sock_ops_hook_provider_moduleid, &_net_ebpf_extension_sock_ops_hook_provider_data};
 
-    status = _net_ebpf_sock_ops_update_store_entries();
-    if (!NT_SUCCESS(status)) {
-        return status;
-    }
-
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_ops_program_info_provider_moduleid, &_ebpf_sock_ops_program_info_provider_data};
 
     NET_EBPF_EXT_LOG_ENTRY();
+
+    status = _net_ebpf_sock_ops_update_store_entries();
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "_net_ebpf_sock_ops_update_store_entries failed.",
+            status);
+        goto Exit;
+    }
 
     // Set the program type as the provider module id.
     _ebpf_sock_ops_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_SOCK_OPS;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_sock_ops_program_info_provider_context);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_program_info_provider_register failed.",
+            status);
         goto Exit;
     }
 
@@ -309,8 +331,12 @@ net_ebpf_ext_sock_ops_register_providers()
         _net_ebpf_extension_sock_ops_on_client_detach,
         NULL,
         &_ebpf_sock_ops_hook_provider_context);
-
     if (status != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_hook_provider_register failed.",
+            status);
         goto Exit;
     }
 
@@ -459,10 +485,9 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         // The client is not interested in this compartment Id.
         NET_EBPF_EXT_LOG_MESSAGE_UINT32(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
             "The cgroup_sock_ops eBPF program is not interested in this compartmentId",
             sock_ops_context->compartment_id);
-
         goto Exit;
     }
 
@@ -471,6 +496,11 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     local_flow_context->parameters.callout_id = net_ebpf_extension_get_callout_id_for_hook(hook_id);
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, sock_ops_context, &result) != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_hook_invoke_program failed.",
+            result);
         goto Exit;
     }
 
@@ -602,7 +632,7 @@ _ebpf_sock_ops_context_create(
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "Data is not supported");
         result = EBPF_INVALID_ARGUMENT;
-        goto Done;
+        goto Exit;
     }
 
     // This provider requires context.
@@ -610,7 +640,7 @@ _ebpf_sock_ops_context_create(
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "Context is required");
         result = EBPF_INVALID_ARGUMENT;
-        goto Done;
+        goto Exit;
     }
 
     sock_ops_context =
@@ -618,7 +648,7 @@ _ebpf_sock_ops_context_create(
 
     if (sock_ops_context == NULL) {
         result = EBPF_NO_MEMORY;
-        goto Done;
+        goto Exit;
     }
 
     memcpy(sock_ops_context, context_in, sizeof(bpf_sock_ops_t));
@@ -627,7 +657,7 @@ _ebpf_sock_ops_context_create(
     sock_ops_context = NULL;
     result = EBPF_SUCCESS;
 
-Done:
+Exit:
     if (sock_ops_context != NULL) {
         ExFreePool(sock_ops_context);
     }
@@ -646,7 +676,7 @@ _ebpf_sock_ops_context_destroy(
     NET_EBPF_EXT_LOG_ENTRY();
     UNREFERENCED_PARAMETER(data_out);
     if (context == NULL) {
-        return;
+        goto Exit;
     }
 
     // This provider doesn't support data.
@@ -661,5 +691,6 @@ _ebpf_sock_ops_context_destroy(
     }
 
     ExFreePool(context);
+Exit:
     NET_EBPF_EXT_LOG_EXIT();
 }
