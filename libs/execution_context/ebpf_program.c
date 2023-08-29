@@ -2078,25 +2078,25 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
         // Start a new epoch every batch_size iterations.
         if ((i % batch_size == (batch_size - 1))) {
             ebpf_epoch_exit(epoch_state);
-            epoch_state = ebpf_epoch_enter();
+            if (ebpf_should_yield_processor()) {
+                // Compute the elapsed time since the last yield.
+                end_time = ebpf_query_time_since_boot(false);
+
+                // Add the elapsed time to the cumulative time.
+                cumulative_time += end_time - start_time;
+
+                // Yield the CPU.
+                ebpf_lower_irql(old_irql);
+
+                // Reacquire the CPU.
+                old_irql = ebpf_raise_irql(context->required_irql);
+
+                // Reset the start time.
+                start_time = ebpf_query_time_since_boot(false);
+            }
+            epoch_state = ebpf_epoch_enter(epoch_state);
         }
         ebpf_program_invoke(context->program, context->context, &return_value, &execution_context_state);
-        if (ebpf_should_yield_processor()) {
-            // Compute the elapsed time since the last yield.
-            end_time = ebpf_query_time_since_boot(false);
-
-            // Add the elapsed time to the cumulative time.
-            cumulative_time += end_time - start_time;
-
-            // Yield the CPU.
-            ebpf_lower_irql(old_irql);
-
-            // Reacquire the CPU.
-            old_irql = ebpf_raise_irql(context->required_irql);
-
-            // Reset the start time.
-            start_time = ebpf_query_time_since_boot(false);
-        }
     }
     end_time = ebpf_query_time_since_boot(false);
 
