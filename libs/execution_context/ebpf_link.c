@@ -11,6 +11,7 @@
 #include "ebpf_object.h"
 #include "ebpf_platform.h"
 #include "ebpf_program.h"
+#include "ebpf_state.h"
 #include "ebpf_tracelog.h"
 
 /**
@@ -477,13 +478,18 @@ _ebpf_link_instance_invoke_batch_begin(
     bool provider_reference_held = false;
     ebpf_result_t return_value;
     ebpf_link_t* link = (ebpf_link_t*)client_binding_context;
+    ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
 
     if (state_size < sizeof(ebpf_execution_context_state_t)) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    ebpf_get_execution_context_state((ebpf_execution_context_state_t*)state);
+    ebpf_get_execution_context_state(execution_context_state);
+    return_value = ebpf_state_store(ebpf_program_get_state_index(), (uintptr_t)&state, execution_context_state);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     ((ebpf_execution_context_state_t*)state)->epoch_state = ebpf_epoch_enter();
     epoch_entered = true;
@@ -516,6 +522,7 @@ _ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_c
 {
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     ebpf_link_t* link = (ebpf_link_t*)extension_client_binding_context;
+    ebpf_assert_success(ebpf_state_store(ebpf_program_get_state_index(), 0, execution_context_state));
     ebpf_program_dereference_providers(link->program);
     ebpf_epoch_exit(execution_context_state->epoch_state);
     return EBPF_SUCCESS;
