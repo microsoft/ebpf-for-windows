@@ -2070,13 +2070,15 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     ebpf_get_execution_context_state(&execution_context_state);
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
+    // Use a counter instead of performing a modulus operation to determine when to start a new epoch.
+    // This is because the modulus operation is expensive and we want to minimize the overhead of
+    // the test run.
+    size_t batch_counter = batch_size;
     for (size_t i = 0; i < options->repeat_count; i++) {
-        if (context->canceled) {
-            result = EBPF_CANCELED;
-            break;
-        }
+        batch_counter--;
         // Start a new epoch every batch_size iterations.
-        if ((i % batch_size == (batch_size - 1))) {
+        if (!batch_counter) {
+            batch_counter = batch_size;
             ebpf_epoch_exit(epoch_state);
             if (ebpf_should_yield_processor()) {
                 // Compute the elapsed time since the last yield.
