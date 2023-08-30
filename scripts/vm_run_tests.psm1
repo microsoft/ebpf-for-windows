@@ -20,10 +20,10 @@ function Invoke-CICDTestsOnVM
     param([parameter(Mandatory=$true)] [string] $VMName,
           [parameter(Mandatory=$false)] [bool] $VerboseLogs = $false,
           [parameter(Mandatory=$false)] [bool] $Coverage = $false,
-          [parameter(Mandatory=$false)][bool] $RunKmStressTests = $false,
+          [parameter(Mandatory=$false)][bool] $RunKmStressTestsOnly = $false,
           [parameter(Mandatory=$false)][bool] $RestartExtension = $false)
 
-    if ($RunKmStressTests -eq $true) {
+    if ($RunKmStressTestsOnly -eq $true) {
         Write-Log "Executing eBPF kernel mode multi-threaded stress tests on $VMName"
     } else {
         Write-Log "Running eBPF CI/CD tests on $VMName"
@@ -34,19 +34,22 @@ function Invoke-CICDTestsOnVM
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName,
               [Parameter(Mandatory=$True)] [bool] $VerboseLogs,
-              [Parameter(Mandatory=$True)] [bool] $Coverage)
+              [Parameter(Mandatory=$True)] [bool] $Coverage,
+              [parameter(Mandatory=$True)][bool] $RunKmStressTestsOnly,
+              [parameter(Mandatory=$True)][bool] $RestartExtension)
+
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        if ($RunKmStressTests -eq $true) {
+        if ($RunKmStressTestsOnly -eq $true) {
             Invoke-CICDStressTests -VerboseLogs $VerboseLogs -Coverage $Coverage `
                 -RestartExtension $RestartExtension 2>&1 | Write-Log
         } else {
             Invoke-CICDTests -VerboseLogs $VerboseLogs -Coverage $Coverage 2>&1 | Write-Log
         }
 
-    } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs, $Coverage) -ErrorAction Stop
+    } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs, $Coverage, $RunKmStressTestsOnly, $RestartExtension) -ErrorAction Stop
 }
 
 function Add-eBPFProgramOnVM
