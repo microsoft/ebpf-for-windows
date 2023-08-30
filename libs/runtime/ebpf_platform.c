@@ -9,6 +9,8 @@ ebpf_driver_get_device_object();
 
 static uint32_t _ebpf_platform_maximum_processor_count = 0;
 
+static bool _ebpf_platform_is_cxplat_initialized = false;
+
 _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return _ebpf_platform_maximum_processor_count; }
 
 void
@@ -513,6 +515,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
     ebpf_result_t result = ebpf_result_from_cxplat_status(cxplat_initialize());
+    _ebpf_platform_is_cxplat_initialized = (result == EBPF_SUCCESS);
     ebpf_initialize_cpu_count();
     return result;
 }
@@ -521,5 +524,8 @@ void
 ebpf_platform_terminate()
 {
     KeFlushQueuedDpcs();
-    cxplat_cleanup();
+    if (_ebpf_platform_is_cxplat_initialized) {
+        cxplat_cleanup();
+        _ebpf_platform_is_cxplat_initialized = false;
+    }
 }
