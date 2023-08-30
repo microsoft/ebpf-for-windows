@@ -1126,7 +1126,7 @@ _set_up_tailcall_program(bpf_object* object, const std::string& map_name)
     LOG_VERBOSE("({}) Opened fd:{} for map:{}", __func__, prog_map_fd, map_name.c_str());
 
     // Set up tail calls.
-    for (int index = 0; index < MAX_TAIL_CALL_CNT; index++) {
+    for (int index = 0; index < MAX_TAIL_CALL_CNT - 1; index++) {
         try {
             std::string bind_program_name{"BindMonitor_Callee"};
             bind_program_name += std::to_string(index);
