@@ -198,6 +198,14 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/${{env.BUILD_PLATFORM}}-Release-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
+    - name: Download bpf_performance repository artifacts
+      if: steps.skip_check.outputs.should_skip != 'true' && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease')
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        scripts\Fetch-LatestArtifacts.ps1 -ArtifactName "build-RelWithDebInfo-windows-2022" -OutputPath "${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\performance" -Owner alan-jowett -repo bpf_performance
+
     - name: Extract artifacts to build path
       if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
       working-directory: ${{env.GITHUB_WORKSPACE}}

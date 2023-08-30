@@ -468,12 +468,20 @@ _net_ebpf_extension_sock_addr_on_client_attach(
 
     // SOCK_ADDR hook clients must always provide data.
     if (client_data == NULL) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "Attach denied. client data not provided.");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
     if (client_data->size > 0) {
         if ((client_data->size != sizeof(uint32_t)) || (client_data->data == NULL)) {
+            NET_EBPF_EXT_LOG_MESSAGE(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "Attach denied. Invalid client data.");
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
@@ -530,6 +538,8 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         status =
             FwpsRedirectHandleCreate(&EBPF_HOOK_ALE_CONNECT_REDIRECT_PROVIDER, 0, &filter_context->redirect_handle);
         if (!NT_SUCCESS(status)) {
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "FwpsRedirectHandleCreate", status);
             result = EBPF_FAILED;
         }
         NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
@@ -576,6 +586,7 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
         FwpsRedirectHandleDestroy(filter_context->redirect_handle);
     }
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 static NTSTATUS
@@ -587,12 +598,13 @@ _net_ebpf_sock_addr_update_store_entries()
     uint32_t section_info_count = sizeof(_ebpf_sock_addr_section_info) / sizeof(ebpf_program_section_info_t);
     status = ebpf_store_update_section_information(&_ebpf_sock_addr_section_info[0], section_info_count);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_RETURN_NTSTATUS(status);
+        goto Exit;
     }
 
     // Update program information.
     status = ebpf_store_update_program_information(&_ebpf_sock_addr_program_info, 1);
 
+Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
@@ -826,29 +838,46 @@ NTSTATUS
 net_ebpf_ext_sock_addr_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
+    bool sock_addr_globals_initialized = FALSE;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
+    const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
+        &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_info_provider_data};
+
     status = _net_ebpf_sock_addr_update_store_entries();
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_RETURN_NTSTATUS(status);
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "_net_ebpf_sock_addr_update_store_entries failed.",
+            status);
+        goto Exit;
     }
 
     status = _net_ebpf_sock_addr_create_security_descriptor();
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_RETURN_NTSTATUS(status);
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "_net_ebpf_sock_addr_create_security_descriptor failed.",
+            status);
+        goto Exit;
     }
 
     _net_ebpf_sock_addr_initialize_globals();
-
-    const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
-        &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_info_provider_data};
+    sock_addr_globals_initialized = TRUE;
 
     // Set the program type as the provider module id.
     _ebpf_sock_addr_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_sock_addr_program_info_provider_context);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_program_info_provider_register failed.",
+            status);
         goto Exit;
     }
 
@@ -877,13 +906,19 @@ net_ebpf_ext_sock_addr_register_providers()
             &_net_ebpf_extension_sock_addr_wfp_filter_parameters[i],
             &_ebpf_sock_addr_hook_provider_context[i]);
         if (!NT_SUCCESS(status)) {
-            goto Exit;
+            NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "net_ebpf_extension_hook_provider_register failed.",
+                status);
         }
     }
 
 Exit:
     if (!NT_SUCCESS(status)) {
-        net_ebpf_ext_sock_addr_unregister_providers();
+        if (sock_addr_globals_initialized) {
+            net_ebpf_ext_sock_addr_unregister_providers();
+        }
         _net_ebpf_sock_addr_clean_up_security_descriptor();
     }
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
@@ -1431,8 +1466,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "No \"write\" right; exiting.");
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
-        NET_EBPF_EXT_LOG_EXIT();
-        return;
+        goto Exit;
     }
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;

@@ -156,17 +156,33 @@ _net_ebpf_bind_update_store_entries()
 {
     NTSTATUS status;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     // Update section information.
     uint32_t section_info_count = sizeof(_ebpf_bind_section_info) / sizeof(ebpf_program_section_info_t);
     status = ebpf_store_update_section_information(&_ebpf_bind_section_info[0], section_info_count);
     if (!NT_SUCCESS(status)) {
-        return status;
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "ebpf_store_update_section_information",
+            status);
+        goto Exit;
     }
 
     // Update program information.
     status = ebpf_store_update_program_information(&_ebpf_bind_program_info, 1);
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "ebpf_store_update_program_information",
+            status);
+        goto Exit;
+    }
 
-    return status;
+Exit:
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 NTSTATUS
@@ -174,23 +190,33 @@ net_ebpf_ext_bind_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = _net_ebpf_bind_update_store_entries();
-    if (!NT_SUCCESS(status)) {
-        return status;
-    }
+    NET_EBPF_EXT_LOG_ENTRY();
 
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
         &_ebpf_bind_hook_provider_moduleid, &_net_ebpf_extension_bind_hook_provider_data};
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    status = _net_ebpf_bind_update_store_entries();
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "_net_ebpf_bind_update_store_entries failed.",
+            status);
+        goto Exit;
+    }
 
     // Set the program type as the provider module id.
     _ebpf_bind_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_BIND;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_bind_program_info_provider_context);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "net_ebpf_extension_program_info_provider_register",
+            status);
         goto Exit;
     }
 
@@ -206,6 +232,11 @@ net_ebpf_ext_bind_register_providers()
         NULL,
         &_ebpf_bind_hook_provider_context);
     if (status != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "net_ebpf_extension_hook_provider_register",
+            status);
         goto Exit;
     }
 
@@ -415,11 +446,7 @@ _ebpf_bind_context_create(
 
     bind_context =
         (bind_md_t*)ExAllocatePoolUninitialized(NonPagedPool, sizeof(bind_md_t), NET_EBPF_EXTENSION_POOL_TAG);
-
-    if (!bind_context) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, bind_context, "bind_context", result);
 
     // Copy the context from the caller.
     memcpy(bind_context, context_in, sizeof(bind_md_t));
@@ -431,6 +458,7 @@ _ebpf_bind_context_create(
     *context = bind_context;
     bind_context = NULL;
     result = EBPF_SUCCESS;
+
 Exit:
     if (bind_context) {
         ExFreePool(bind_context);
@@ -453,7 +481,7 @@ _ebpf_bind_context_destroy(
     bind_md_t* bind_context_out = (bind_md_t*)context_out;
 
     if (!bind_context) {
-        return;
+        goto Exit;
     }
 
     if (context_out != NULL && *context_size_out >= sizeof(bind_md_t)) {
@@ -477,5 +505,7 @@ _ebpf_bind_context_destroy(
     }
 
     ExFreePool(bind_context);
+
+Exit:
     NET_EBPF_EXT_LOG_EXIT();
 }

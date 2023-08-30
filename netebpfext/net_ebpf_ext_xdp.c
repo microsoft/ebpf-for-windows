@@ -22,18 +22,15 @@ _net_ebpf_extension_xdp_validate_if_index(uint32_t if_index)
 
     if_row =
         (MIB_IF_ROW2*)ExAllocatePoolUninitialized(NonPagedPoolNx, sizeof(MIB_IF_ROW2), NET_EBPF_EXTENSION_POOL_TAG);
-    if (if_row == NULL) {
-        status = STATUS_NO_MEMORY;
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, if_row, "if_row", status);
+
     memset(if_row, 0, sizeof(MIB_IF_ROW2));
     if_row->InterfaceIndex = if_index;
     status = GetIfEntry2(if_row);
-Exit:
-    if (if_row != NULL) {
-        ExFreePool(if_row);
-    }
 
+    ExFreePool(if_row);
+
+Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
@@ -138,12 +135,20 @@ net_ebpf_extension_xdp_on_client_attach(
     // XDP hook clients must always provide data.
     if (client_data == NULL) {
         result = EBPF_INVALID_ARGUMENT;
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "Attach attempt rejected. Client data not present.");
         goto Exit;
     }
 
     if (client_data->size > 0) {
         if ((client_data->size != sizeof(uint32_t)) || (client_data->data == NULL)) {
             result = EBPF_INVALID_ARGUMENT;
+            NET_EBPF_EXT_LOG_MESSAGE(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+                "Attach attempt rejected. Invalid client data.");
             goto Exit;
         }
         if_index = *(uint32_t*)client_data->data;
@@ -155,6 +160,11 @@ net_ebpf_extension_xdp_on_client_attach(
     result = net_ebpf_extension_hook_check_attach_parameter(
         sizeof(if_index), &if_index, &wild_card_if_index, (net_ebpf_extension_hook_provider_t*)provider_context);
     if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "net_ebpf_extension_hook_check_attach_parameter failed.",
+            result);
         goto Exit;
     }
 
@@ -175,6 +185,11 @@ net_ebpf_extension_xdp_on_client_attach(
         attaching_client,
         (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
     if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "net_ebpf_extension_wfp_filter_context_create failed.",
+            result);
         goto Exit;
     }
     filter_context->if_index = if_index;
@@ -190,6 +205,11 @@ net_ebpf_extension_xdp_on_client_attach(
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
         &filter_context->base.filter_ids);
     if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "net_ebpf_extension_add_wfp_filters failed.",
+            result);
         goto Exit;
     }
 
@@ -232,24 +252,33 @@ _net_ebpf_xdp_update_store_entries()
     uint32_t section_info_count = sizeof(_ebpf_xdp_section_info) / sizeof(ebpf_program_section_info_t);
     status = ebpf_store_update_section_information(&_ebpf_xdp_section_info[0], section_info_count);
     if (!NT_SUCCESS(status)) {
-        return status;
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "ebpf_store_update_section_information failed.",
+            status);
+        goto Exit;
     }
 
     // Update program information.
     status = ebpf_store_update_program_information(&_ebpf_xdp_program_info, 1);
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "ebpf_store_update_program_information failed.",
+            status);
+        goto Exit;
+    }
 
-    return status;
+Exit:
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 NTSTATUS
 net_ebpf_ext_xdp_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
-
-    status = _net_ebpf_xdp_update_store_entries();
-    if (!NT_SUCCESS(status)) {
-        return status;
-    }
 
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_xdp_program_info_provider_moduleid, &_ebpf_xdp_program_info_provider_data};
@@ -258,11 +287,26 @@ net_ebpf_ext_xdp_register_providers()
 
     NET_EBPF_EXT_LOG_ENTRY();
 
+    status = _net_ebpf_xdp_update_store_entries();
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "ebpf_store_update_section_information failed.",
+            status);
+        goto Exit;
+    }
+
     // Set the program type as the provider module id.
     _ebpf_xdp_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_XDP;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_xdp_program_info_provider_context);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "net_ebpf_extension_program_info_provider_register failed.",
+            status);
         goto Exit;
     }
 
@@ -277,8 +321,12 @@ net_ebpf_ext_xdp_register_providers()
         _net_ebpf_extension_xdp_on_client_detach,
         NULL,
         &_ebpf_xdp_hook_provider_context);
-
     if (status != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "net_ebpf_extension_hook_provider_register failed.",
+            status);
         goto Exit;
     }
 
@@ -334,6 +382,10 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32
     // Either original or cloned NBL must be present.
     if ((net_xdp_ctx->original_nbl == NULL) && (net_xdp_ctx->cloned_nbl == NULL)) {
         status = STATUS_INVALID_PARAMETER;
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "Original or cloned NBL not present.");
         goto Exit;
     }
 
@@ -346,15 +398,15 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32
     // Allocate buffer for the cloned NBL, accounting for any unused header.
     status = RtlULongAdd(old_net_buffer->DataLength, unused_header_length, (unsigned long*)&cloned_net_buffer_length);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "RtlULongAdd failed.", status);
         goto Exit;
     }
 
     packet_buffer =
         (uint8_t*)ExAllocatePoolUninitialized(NonPagedPoolNx, cloned_net_buffer_length, NET_EBPF_EXTENSION_POOL_TAG);
-    if (packet_buffer == NULL) {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, packet_buffer, "packet_buffer", status);
     RtlZeroMemory(packet_buffer, cloned_net_buffer_length);
 
     if (old_data != NULL) {
@@ -367,6 +419,7 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32
             old_net_buffer, old_net_buffer->DataLength, packet_buffer + unused_header_length, 1, 0);
         if (buffer == NULL) {
             status = STATUS_INSUFFICIENT_RESOURCES;
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "NdisGetDataBuffer", status);
             goto Exit;
         }
     }
@@ -379,6 +432,7 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32
     mdl_chain = IoAllocateMdl(packet_buffer, cloned_net_buffer_length, FALSE, FALSE, NULL);
     if (mdl_chain == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "IoAllocateMdl", status);
         goto Exit;
     }
     MmBuildMdlForNonPagedPool(mdl_chain);
@@ -387,6 +441,8 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32
     status = FwpsAllocateNetBufferAndNetBufferList(
         _net_ebpf_ext_nbl_pool_handle, 0, 0, mdl_chain, 0, cloned_net_buffer_length, &new_nbl);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "FwpsAllocateNetBufferAndNetBufferList", status);
         goto Exit;
     }
     mdl_chain = NULL;
@@ -456,6 +512,8 @@ _net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta)
         uint32_t absolute_delta = -delta;
         ndis_status = NdisRetreatNetBufferDataStart(net_buffer, absolute_delta, 0, NULL);
         if (ndis_status != NDIS_STATUS_SUCCESS) {
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "NdisRetreatNetBufferDataStart", ndis_status);
             return_value = -1;
             goto Exit;
         }
@@ -564,6 +622,8 @@ _net_ebpf_ext_handle_xdp_tx(
     } else {
         status = FwpsAllocateCloneNetBufferList(net_xdp_ctx->original_nbl, NULL, NULL, 0, &nbl);
         if (status != STATUS_SUCCESS) {
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "FwpsAllocateCloneNetBufferList", status);
             goto Exit;
         }
         cloned_packet = TRUE;
@@ -636,28 +696,28 @@ net_ebpf_ext_layer_2_classify(
     // need not process any outbound packets.
     //
     if (incoming_fixed_values->layerId == FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE) {
-        goto Done;
+        goto Exit;
     }
 
     filter_context = (net_ebpf_extension_xdp_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
     if (filter_context == NULL) {
-        goto Done;
+        goto Exit;
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     if (attached_client == NULL) {
-        goto Done;
+        goto Exit;
     }
 
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         attached_client = NULL;
-        goto Done;
+        goto Exit;
     }
 
     if (nbl == NULL) {
         NET_EBPF_EXT_LOG_MESSAGE(NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "Null NBL");
-        goto Done;
+        goto Exit;
     }
 
     net_xdp_ctx.base.ingress_ifindex =
@@ -667,7 +727,7 @@ net_ebpf_ext_layer_2_classify(
     ASSERT((client_if_index == 0) || (client_if_index == net_xdp_ctx.base.ingress_ifindex));
     if (client_if_index != 0 && client_if_index != net_xdp_ctx.base.ingress_ifindex) {
         // The client is not interested in this ingress ifindex.
-        goto Done;
+        goto Exit;
     }
 
     net_xdp_ctx.original_nbl = nbl;
@@ -676,9 +736,7 @@ net_ebpf_ext_layer_2_classify(
     if (net_buffer == NULL) {
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "net_buffer not present");
-
-        // nothing to do
-        goto Done;
+        goto Exit;
     }
 
     packet_buffer = (uint8_t*)NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, sizeof(uint16_t), 0);
@@ -687,7 +745,12 @@ net_ebpf_ext_layer_2_classify(
         // Allocate a cloned NBL with contiguous data.
         status = _net_ebpf_ext_allocate_cloned_nbl(&net_xdp_ctx, 0);
         if (!NT_SUCCESS(status)) {
-            goto Done;
+            NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+                "_net_ebpf_ext_allocate_cloned_nbl failed.",
+                status);
+            goto Exit;
         }
     } else {
         net_xdp_ctx.base.data = packet_buffer;
@@ -712,6 +775,12 @@ net_ebpf_ext_layer_2_classify(
                 // If cloned packet could be successfully injected, no need to audit for dropping the original.
                 // So absorb the original packet.
                 classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
+            } else {
+                NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+                    NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+                    "_net_ebpf_ext_receive_inject_cloned_nbl failed.",
+                    status);
             }
         }
         // No special processing required in the non-clone case.
@@ -739,14 +808,9 @@ net_ebpf_ext_layer_2_classify(
         break;
     }
 
-Done:
-
+Exit:
     if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
-    }
-
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
     }
 }
 
@@ -771,6 +835,7 @@ _ebpf_xdp_context_create(
     size_t context_size_in,
     _Outptr_ void** context)
 {
+    NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result;
     net_ebpf_xdp_md_t* new_context = NULL;
     MDL* mdl_chain = NULL;
@@ -786,15 +851,12 @@ _ebpf_xdp_context_create(
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "Data is required");
         result = EBPF_INVALID_ARGUMENT;
-        goto Done;
+        goto Exit;
     }
 
     new_context = (net_ebpf_xdp_md_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_xdp_md_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (new_context == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, new_context, "new_context", result);
 
     memset(new_context, 0, sizeof(net_ebpf_xdp_md_t));
 
@@ -802,15 +864,20 @@ _ebpf_xdp_context_create(
     mdl_chain = IoAllocateMdl((void*)data_in, (unsigned long)data_size_in, FALSE, FALSE, NULL);
     if (mdl_chain == NULL) {
         result = EBPF_NO_MEMORY;
-        goto Done;
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "IoAllocateMdl failed.", result);
+        goto Exit;
     }
     MmBuildMdlForNonPagedPool(mdl_chain);
 
     // Now allocate the cloned NBL using this MDL chain.
-    if (!NT_SUCCESS(FwpsAllocateNetBufferAndNetBufferList(
-            _net_ebpf_ext_nbl_pool_handle, 0, 0, mdl_chain, 0, data_size_in, &new_nbl))) {
+    status = FwpsAllocateNetBufferAndNetBufferList(
+        _net_ebpf_ext_nbl_pool_handle, 0, 0, mdl_chain, 0, data_size_in, &new_nbl);
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "FwpsAllocateNetBufferAndNetBufferList", status);
         result = EBPF_NO_MEMORY;
-        goto Done;
+        goto Exit;
     }
     mdl_chain = NULL;
 
@@ -831,7 +898,7 @@ _ebpf_xdp_context_create(
 
     result = EBPF_SUCCESS;
 
-Done:
+Exit:
     if (new_context) {
         ExFreePool(new_context);
     }
@@ -854,12 +921,13 @@ _ebpf_xdp_context_delete(
     _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
-    if (!context) {
-        return;
-    }
-
     net_ebpf_xdp_md_t* xdp_context = (net_ebpf_xdp_md_t*)context;
+
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    if (!context) {
+        goto Exit;
+    }
 
     // Copy the packet data to the output buffer.
     if (data_out != NULL && data_size_out != NULL && xdp_context->base.data != NULL) {
@@ -898,5 +966,7 @@ _ebpf_xdp_context_delete(
     }
 
     ExFreePool(xdp_context);
+
+Exit:
     NET_EBPF_EXT_LOG_EXIT();
 }

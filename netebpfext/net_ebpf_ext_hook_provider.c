@@ -83,12 +83,15 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     //
     // Allocate work item for client detach processing.
     //
     hook_client->detach_work_item = IoAllocateWorkItem(_net_ebpf_ext_driver_device_object);
     if (hook_client->detach_work_item == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "IoAllocateWorkItem", status);
         goto Exit;
     }
 
@@ -99,7 +102,7 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
     rundown->rundown_occurred = FALSE;
 
 Exit:
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 /**
@@ -111,8 +114,12 @@ Exit:
 static void
 _ebpf_ext_attach_enable_rundown(_Inout_ net_ebpf_ext_hook_client_rundown_t* rundown)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
+
     ExReInitializeRundownProtection(&rundown->protection);
     rundown->rundown_reinitialized = TRUE;
+
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 /**
@@ -124,8 +131,12 @@ _ebpf_ext_attach_enable_rundown(_Inout_ net_ebpf_ext_hook_client_rundown_t* rund
 static void
 _ebpf_ext_attach_wait_for_rundown(_Inout_ net_ebpf_ext_hook_client_rundown_t* rundown)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
+
     ExWaitForRundownProtectionRelease(&rundown->protection);
     rundown->rundown_occurred = TRUE;
+
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 IO_WORKITEM_ROUTINE _net_ebpf_extension_detach_client_completion;
@@ -147,10 +158,9 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
     PIO_WORKITEM work_item;
 
     PAGED_CODE();
+    UNREFERENCED_PARAMETER(device_object);
 
     NET_EBPF_EXT_LOG_ENTRY();
-
-    UNREFERENCED_PARAMETER(device_object);
 
     ASSERT(hook_client != NULL);
     _Analysis_assume_(hook_client != NULL);
@@ -244,6 +254,10 @@ net_ebpf_extension_hook_check_attach_parameter(
         // Client requested wild card attach parameter. This will only be allowed if there are no other clients
         // attached.
         if (!IsListEmpty(&provider_context->attached_clients_list)) {
+            NET_EBPF_EXT_LOG_MESSAGE(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "Wildcard attach denied as other clients present.");
             result = EBPF_ACCESS_DENIED;
             goto Exit;
         }
@@ -261,6 +275,10 @@ net_ebpf_extension_hook_check_attach_parameter(
                 (next_client_data->data == NULL) ? wild_card_attach_parameter : next_client_data->data;
             if (((memcmp(wild_card_attach_parameter, next_client_attach_parameter, attach_parameter_size) == 0)) ||
                 (memcmp(attach_parameter, next_client_attach_parameter, attach_parameter_size) == 0)) {
+                NET_EBPF_EXT_LOG_MESSAGE(
+                    NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                    "Attach denied as other clients present with wildcard/exact attach parameter.");
                 result = EBPF_ACCESS_DENIED;
                 goto Exit;
             }
@@ -385,7 +403,6 @@ _net_ebpf_extension_hook_provider_attach_client(
     }
 
 Exit:
-
     if (NT_SUCCESS(status)) {
         *provider_binding_context = hook_client;
         hook_client = NULL;
