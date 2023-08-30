@@ -68,6 +68,11 @@ typedef struct _ebpf_execution_context_state
         uint32_t cpu;
     } id;
     uint8_t current_irql;
+    struct
+    {
+        const void* next_program;
+        uint32_t count;
+    } tail_call_state;
 } ebpf_execution_context_state_t;
 
 #define EBPF_ATTACH_CLIENT_DATA_VERSION 0

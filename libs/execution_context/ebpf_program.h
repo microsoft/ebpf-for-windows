@@ -194,7 +194,7 @@ extern "C"
         _In_ const ebpf_program_t* program,
         _Inout_ void* context,
         _Out_ uint32_t* result,
-        _In_ const ebpf_execution_context_state_t* execution_state);
+        _Inout_ ebpf_execution_context_state_t* execution_state);
 
     /**
      * @brief Store the helper function IDs that are used by the eBPF program in an array
@@ -379,6 +379,14 @@ extern "C"
      */
     void
     ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program);
+
+    /**
+     * @brief Get the ebpf_state index assigned to the program module.
+     *
+     * @return The index in the ebpf_state array assigned to the program module.
+     */
+    size_t
+    ebpf_program_get_state_index();
 
 #ifdef __cplusplus
 }

@@ -1333,18 +1333,12 @@ ebpf_program_load_code(
     EBPF_RETURN_RESULT(result);
 }
 
-typedef struct _ebpf_program_tail_call_state
-{
-    const ebpf_program_t* next_program;
-    uint32_t count;
-} ebpf_program_tail_call_state_t;
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
 {
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
-    ebpf_program_tail_call_state_t* state = NULL;
+    ebpf_execution_context_state_t* state = NULL;
     result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
     if (result != EBPF_SUCCESS) {
         return result;
@@ -1354,12 +1348,12 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (state->count == (MAX_TAIL_CALL_CNT - 1)) {
+    if (state->tail_call_state.count == (MAX_TAIL_CALL_CNT - 1)) {
         EBPF_OBJECT_RELEASE_REFERENCE(&((ebpf_program_t*)next_program)->object);
         return EBPF_NO_MORE_TAIL_CALLS;
     }
 
-    state->next_program = next_program;
+    state->tail_call_state.next_program = next_program;
 
     return EBPF_SUCCESS;
 }
@@ -1387,22 +1381,13 @@ ebpf_program_invoke(
     _In_ const ebpf_program_t* program,
     _Inout_ void* context,
     _Out_ uint32_t* result,
-    _In_ const ebpf_execution_context_state_t* execution_state)
+    _Inout_ ebpf_execution_context_state_t* execution_state)
 {
     // High volume call - Skip entry/exit logging.
-    ebpf_program_tail_call_state_t state = {0};
     const ebpf_program_t* current_program = program;
 
-    bool program_state_stored = false;
-
-    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state, execution_state) == EBPF_SUCCESS) {
-        *result = 0;
-        goto Done;
-    }
-
-    program_state_stored = true;
-
-    for (state.count = 0; state.count < MAX_TAIL_CALL_CNT; state.count++) {
+    for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT;
+         execution_state->tail_call_state.count++) {
 
         if (current_program->parameters.code_type == EBPF_CODE_JIT ||
             current_program->parameters.code_type == EBPF_CODE_NATIVE) {
@@ -1423,22 +1408,17 @@ ebpf_program_invoke(
 #endif
         }
 
-        if (state.count != 0) {
+        if (execution_state->tail_call_state.count != 0) {
             EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)current_program);
             current_program = NULL;
         }
 
-        if (state.next_program == NULL) {
+        if (execution_state->tail_call_state.next_program == NULL) {
             break;
         } else {
-            current_program = state.next_program;
-            state.next_program = NULL;
+            current_program = execution_state->tail_call_state.next_program;
+            execution_state->tail_call_state.next_program = NULL;
         }
-    }
-
-Done:
-    if (program_state_stored) {
-        ebpf_assert_success(ebpf_state_store(_ebpf_program_state_index, 0, execution_state));
     }
 }
 
@@ -2055,6 +2035,7 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     ebpf_epoch_state_t* epoch_state = NULL;
     bool irql_raised = false;
     bool thread_affinity_set = false;
+    bool state_stored = false;
 
     result = ebpf_set_current_thread_affinity((uintptr_t)1 << options->cpu, &old_thread_affinity);
     if (result != EBPF_SUCCESS) {
@@ -2068,6 +2049,12 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     epoch_state = ebpf_epoch_enter();
 
     ebpf_get_execution_context_state(&execution_context_state);
+    return_value =
+        ebpf_state_store(ebpf_program_get_state_index(), (uintptr_t)&execution_context_state, &execution_context_state);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+    state_stored = true;
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
     // Use a counter instead of performing a modulus operation to determine when to start a new epoch.
@@ -2109,6 +2096,10 @@ _ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
     options->return_value = return_value;
 
 Done:
+    if (state_stored) {
+        ebpf_assert_success(ebpf_state_store(ebpf_program_get_state_index(), 0, &execution_context_state));
+    }
+
     if (epoch_state) {
         ebpf_epoch_exit(epoch_state);
     }
@@ -2274,4 +2265,10 @@ ebpf_program_get_code_type(_In_ const ebpf_program_t* program)
     ebpf_code_type_t code_type = program->parameters.code_type;
     ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
     return code_type;
+}
+
+size_t
+ebpf_program_get_state_index()
+{
+    return _ebpf_program_state_index;
 }
