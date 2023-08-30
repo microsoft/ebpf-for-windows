@@ -215,13 +215,12 @@ static KDEFERRED_ROUTINE _ebpf_epoch_stale_worker;
 static _Requires_lock_held_(cpu_entry->lock) void _ebpf_epoch_arm_timer_if_needed(ebpf_epoch_cpu_entry_t* cpu_entry);
 
 static void
-_ebpf_epoch_work_item_callback(void* context)
+_ebpf_epoch_work_item_callback(_In_ cxplat_preemptible_work_item_t* preemptible_work_item, void* context)
 {
     ebpf_epoch_work_item_t* work_item = (ebpf_epoch_work_item_t*)context;
     work_item->callback(work_item->callback_context);
-    work_item->preemptible_work_item = NULL;
-
-    // Caller of this function calls ebpf_free_preemptible_work_item.
+    ebpf_assert(preemptible_work_item == work_item->preemptible_work_item);
+    cxplat_free_preemptible_work_item(preemptible_work_item);
     ebpf_free(work_item);
 
     cxplat_release_rundown_protection(&_ebpf_epoch_work_item_rundown_ref);

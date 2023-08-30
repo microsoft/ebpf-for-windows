@@ -407,7 +407,7 @@ Exit:
     return status;
 }
 
-DEVICE_OBJECT*
+_Ret_notnull_ DEVICE_OBJECT*
 ebpf_driver_get_device_object()
 {
     return _ebpf_driver_device_object;

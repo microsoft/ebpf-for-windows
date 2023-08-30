@@ -2020,7 +2020,7 @@ typedef struct _ebpf_program_test_run_context
 } ebpf_program_test_run_context_t;
 
 static void
-_ebpf_program_test_run_work_item(_In_opt_ void* work_item_context)
+_ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item, _In_opt_ void* work_item_context)
 {
     _Analysis_assume_(work_item_context != NULL);
 
@@ -2126,6 +2126,7 @@ Done:
     context->completion_callback(
         result, context->program, context->options, context->completion_context, context->async_context);
     ebpf_program_dereference_providers((ebpf_program_t*)context->program);
+    cxplat_free_preemptible_work_item(work_item);
     ebpf_free(work_item_context);
 }
 
@@ -2210,6 +2211,7 @@ ebpf_program_execute_test_run(
     cxplat_queue_preemptible_work_item(work_item);
 
     // This thread no longer owns the test run context.
+    // It will be freed within _ebpf_program_test_run_work_item().
     test_run_context = NULL;
     // This thread no longer owns the reference to the provider data.
     provider_data_referenced = false;

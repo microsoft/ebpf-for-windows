@@ -302,7 +302,7 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_allocate_preemptible_work_item(
         _Outptr_ cxplat_preemptible_work_item_t** work_item,
-        _In_ void (*work_item_routine)(_In_opt_ void* work_item_context),
+        _In_ cxplat_work_item_routine_t work_item_routine,
         _In_opt_ void* work_item_context);
 
     /**
