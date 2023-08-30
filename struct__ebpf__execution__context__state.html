@@ -83,8 +83,29 @@ Data Fields</h2></td></tr>
 <tr class="separator:a07487ea7144439c7c3dd15325d7ee8c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a14ff4e0633ba01f3a0d1901f479301f6"><td class="memItemLeft" align="right" valign="top">uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__execution__context__state.html#a14ff4e0633ba01f3a0d1901f479301f6">current_irql</a></td></tr>
 <tr class="separator:a14ff4e0633ba01f3a0d1901f479301f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0dffd8b2275a0c84b6662199769a74e7"><td class="memItemLeft" >struct {</td></tr>
+<tr class="memitem:a862717f42a7a60a1445108c5812ab676"><td class="memItemLeft" >&#160;&#160;&#160;const void *&#160;&#160;&#160;<a class="el" href="struct__ebpf__execution__context__state.html#aa0903a5948d4111bd3706aac86127fa0">next_program</a></td></tr>
+<tr class="separator:a862717f42a7a60a1445108c5812ab676"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a86a6808e89b2699c266e208d7ff22851"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="struct__ebpf__execution__context__state.html#a38e30a2a676c443ba774e467a649b6a4">count</a></td></tr>
+<tr class="separator:a86a6808e89b2699c266e208d7ff22851"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0dffd8b2275a0c84b6662199769a74e7"><td class="memItemLeft" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__execution__context__state.html#a0dffd8b2275a0c84b6662199769a74e7">tail_call_state</a></td></tr>
+<tr class="separator:a0dffd8b2275a0c84b6662199769a74e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Field Documentation</h2>
+<a id="a38e30a2a676c443ba774e467a649b6a4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a38e30a2a676c443ba774e467a649b6a4">&#9670;&nbsp;</a></span>count</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t _ebpf_execution_context_state::count</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ad823d3311d507be84d54ff13d1a62492"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad823d3311d507be84d54ff13d1a62492">&#9670;&nbsp;</a></span>cpu</h2>
 
@@ -135,6 +156,34 @@ Data Fields</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">union { ... }  _ebpf_execution_context_state::id</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aa0903a5948d4111bd3706aac86127fa0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa0903a5948d4111bd3706aac86127fa0">&#9670;&nbsp;</a></span>next_program</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">const void* _ebpf_execution_context_state::next_program</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a0dffd8b2275a0c84b6662199769a74e7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0dffd8b2275a0c84b6662199769a74e7">&#9670;&nbsp;</a></span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct { ... }  _ebpf_execution_context_state::tail_call_state</td>
         </tr>
       </table>
 </div><div class="memdoc">
