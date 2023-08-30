@@ -178,7 +178,7 @@ _ebpf_native_helper_address_changed(
     size_t address_count, _In_reads_opt_(address_count) uintptr_t* addresses, _In_opt_ void* context);
 
 static void
-_ebpf_native_unload_work_item(_In_opt_ const void* service)
+_ebpf_native_unload_work_item(_In_ cxplat_preemptible_work_item_t* work_item, _In_opt_ const void* service)
 {
     // We do not need epoch awareness here. Specifically:
     // 1. We're not touching any epoch managed objects in this code path.
@@ -188,6 +188,7 @@ _ebpf_native_unload_work_item(_In_opt_ const void* service)
         ebpf_native_unload_driver((const wchar_t*)service);
         ebpf_free((void*)service);
     }
+    cxplat_free_preemptible_work_item(work_item);
 }
 
 static inline bool
@@ -253,6 +254,10 @@ _ebpf_native_clean_up_programs(
     ebpf_free(programs);
 }
 
+/**
+ * @brief Free all state for a given module.
+ * @param[in] module The module to free.
+ */
 static void
 _ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
 {
@@ -1393,16 +1398,16 @@ _ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
     return count_of_programs;
 }
 
+/**
+ * @brief close all handles associated with a given module.
+ * @param[in] context The module to free handles on.
+ */
 static void
-_ebpf_native_close_handles_work_item(_In_opt_ const void* context)
+_ebpf_native_close_handles_work_item(
+    _In_ cxplat_preemptible_work_item_t* work_item, _In_ ebpf_native_handle_cleanup_info_t* handle_info)
 {
-    if (context == NULL) {
-        return;
-    }
-
     // NOTE: This work item does not need epoch protection as we end up calling into the OS to close a handle, which in
     // turn calls back into the ebpfcore driver and that path _is_ epoch protected.
-    ebpf_native_handle_cleanup_info_t* handle_info = (ebpf_native_handle_cleanup_info_t*)context;
 
     // Attach process to this worker thread.
     ebpf_platform_attach_process(handle_info->process_handle, handle_info->process_state);
@@ -1430,15 +1435,16 @@ _ebpf_native_close_handles_work_item(_In_opt_ const void* context)
     ebpf_free(handle_info->program_handles);
     ebpf_free(handle_info->map_handles);
     ebpf_free(handle_info);
+    cxplat_free_preemptible_work_item(work_item);
 }
 
+/**
+ * @brief Clean up all handle information for a given module.
+ * @param[in,out] module The module to clean up handles for.
+ */
 static void
 _ebpf_native_clean_up_handle_cleanup_context(_Inout_ ebpf_native_handle_cleanup_context_t* cleanup_context)
 {
-    if (cleanup_context == NULL) {
-        return;
-    }
-
     if (cleanup_context->handle_information != NULL) {
         ebpf_free(cleanup_context->handle_information->map_handles);
         ebpf_free(cleanup_context->handle_information->program_handles);
@@ -1451,8 +1457,10 @@ _ebpf_native_clean_up_handle_cleanup_context(_Inout_ ebpf_native_handle_cleanup_
 
     if (cleanup_context->handle_cleanup_work_item != NULL) {
         cxplat_free_preemptible_work_item(cleanup_context->handle_cleanup_work_item);
+        cleanup_context->handle_cleanup_work_item = NULL;
     }
     ebpf_free(cleanup_context->handle_information);
+    cleanup_context->handle_information = NULL;
 }
 
 static ebpf_result_t
@@ -1503,7 +1511,7 @@ _ebpf_native_initialize_handle_cleanup_context(
 
     result = ebpf_allocate_preemptible_work_item(
         &cleanup_context->handle_cleanup_work_item,
-        _ebpf_native_close_handles_work_item,
+        (cxplat_work_item_routine_t)_ebpf_native_close_handles_work_item,
         cleanup_context->handle_information);
     if (result != EBPF_SUCCESS) {
         goto Done;
@@ -1545,7 +1553,8 @@ ebpf_native_load(
     }
     memcpy(local_service_name, (uint8_t*)service_name, service_name_length);
 
-    result = ebpf_allocate_preemptible_work_item(&cleanup_work_item, _ebpf_native_unload_work_item, local_service_name);
+    result = ebpf_allocate_preemptible_work_item(
+        &cleanup_work_item, (cxplat_work_item_routine_t)_ebpf_native_unload_work_item, local_service_name);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
