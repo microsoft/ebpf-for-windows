@@ -75,7 +75,7 @@ jobs:
         powershell.exe "echo 'msvc_tools_path=%VCToolsInstallDir%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
         powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
 
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+    - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
       if: steps.skip_check.outputs.should_skip != 'true'
       with:
         submodules: 'recursive'
@@ -197,6 +197,14 @@ jobs:
       if: steps.skip_check.outputs.should_skip != 'true' && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/${{env.BUILD_PLATFORM}}-Release-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
+
+    - name: Download bpf_performance repository artifacts
+      if: steps.skip_check.outputs.should_skip != 'true' && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease')
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        scripts\Fetch-LatestArtifacts.ps1 -ArtifactName "build-RelWithDebInfo-windows-2022" -OutputPath "${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\performance" -Owner alan-jowett -repo bpf_performance
 
     - name: Extract artifacts to build path
       if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
