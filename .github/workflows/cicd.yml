@@ -448,7 +448,7 @@ jobs:
     with:
       name: km_mt_stress_tests
       pre_test: .\setup_ebpf_cicd_stress_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1 -RunKmStressTests $true
+      test_command: .\execute_ebpf_cicd_tests.ps1 -RunKmStressTestsOnly $true
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
@@ -465,7 +465,7 @@ jobs:
     with:
       name: km_mt_stress_tests_restart_extension
       pre_test: .\setup_ebpf_cicd_stress_tests.ps1
-      test_command: .\execute_ebpf_cicd_stress_tests.ps1 -RunKmStressTests $true -RestartExtension $true
+      test_command: .\execute_ebpf_cicd_stress_tests.ps1 -RunKmStressTestsOnly $true -RestartExtension $true
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
