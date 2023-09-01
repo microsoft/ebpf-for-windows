@@ -52,6 +52,7 @@ typedef struct _ebpf_hash_bucket_header_and_lock
 struct _ebpf_hash_table
 {
     size_t bucket_count;            // Count of buckets.
+    size_t bucket_count_mask;       // Mask to use to get bucket index from hash.
     volatile size_t entry_count;    // Count of entries in the hash table.
     size_t max_entry_count;         // Maximum number of entries allowed or EBPF_HASH_TABLE_NO_LIMIT if no maximum.
     uint32_t seed;                  // Seed used for hashing.
@@ -209,14 +210,14 @@ _ebpf_hash_table_compare(_In_ const ebpf_hash_table_t* hash_table, _In_ const ui
 
 /**
  * @brief Given a potentially non-comparable key value, extract the key and
- * compute the hash.
+ * compute the hash and convert it to a bucket index.
  *
  * @param[in] hash_table Hash table the keys belong to.
  * @param[in] key Key to hash.
- * @return Hash of key.
+ * @return Bucket index.
  */
 static uint32_t
-_ebpf_hash_table_compute_hash(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
+_ebpf_hash_table_compute_bucket_index(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
 {
     size_t length;
     const uint8_t* data;
@@ -226,7 +227,8 @@ _ebpf_hash_table_compute_hash(_In_ const ebpf_hash_table_t* hash_table, _In_ con
         length = hash_table->key_size * 8;
         data = key;
     }
-    return _ebpf_murmur3_32(data, length, hash_table->seed);
+    uint32_t hash_value = _ebpf_murmur3_32(data, length, hash_table->seed);
+    return hash_value & hash_table->bucket_count_mask;
 }
 
 /**
@@ -466,16 +468,16 @@ _ebpf_hash_table_replace_bucket(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     size_t index;
-    uint32_t hash;
+    uint32_t bucket_index;
     uint8_t* old_data = NULL;
     uint8_t* new_data = NULL;
     ebpf_hash_bucket_header_t* old_bucket = NULL;
     ebpf_hash_bucket_header_t* new_bucket = NULL;
 
-    hash = _ebpf_hash_table_compute_hash(hash_table, key);
+    bucket_index = _ebpf_hash_table_compute_bucket_index(hash_table, key);
 
     // Lock the bucket.
-    ebpf_lock_state_t state = ebpf_lock_lock(&hash_table->buckets[hash % hash_table->bucket_count].lock);
+    ebpf_lock_state_t state = ebpf_lock_lock(&hash_table->buckets[bucket_index].lock);
 
     // Make a copy of the value to insert.
     if (operation != EBPF_HASH_BUCKET_OPERATION_DELETE) {
@@ -497,7 +499,7 @@ _ebpf_hash_table_replace_bucket(
     }
 
     // Find the old bucket.
-    old_bucket = hash_table->buckets[hash % hash_table->bucket_count].header;
+    old_bucket = hash_table->buckets[bucket_index].header;
     size_t old_bucket_count = old_bucket ? old_bucket->count : 0;
 
     // Find the entry in the bucket, if any.
@@ -553,12 +555,12 @@ _ebpf_hash_table_replace_bucket(
 
     // Update the bucket in the hash table.
     // From this point on the new bucket is immutable.
-    hash_table->buckets[hash % hash_table->bucket_count].header = new_bucket;
+    hash_table->buckets[bucket_index].header = new_bucket;
     new_data = NULL;
     new_bucket = NULL;
 
 Done:
-    ebpf_lock_unlock(&hash_table->buckets[hash % hash_table->bucket_count].lock, state);
+    ebpf_lock_unlock(&hash_table->buckets[bucket_index].lock, state);
 
     if (hash_table->notification_callback) {
         if (new_data) {
@@ -593,6 +595,14 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     void* (*allocate)(size_t size) = options->allocate ? options->allocate : ebpf_epoch_allocate;
     void (*free)(void* memory) = options->free ? options->free : ebpf_epoch_free;
 
+    // Increase bucket_count to next power of 2.
+    unsigned long msb_index;
+    _BitScanReverse64(&msb_index, bucket_count);
+
+    if (bucket_count != (1ull << msb_index)) {
+        bucket_count = 1ull << (msb_index + 1ull);
+    }
+
     retval = ebpf_safe_size_t_multiply(sizeof(ebpf_hash_bucket_header_and_lock_t), bucket_count, &table_size);
     if (retval != EBPF_SUCCESS) {
         goto Done;
@@ -613,6 +623,7 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     table->allocate = allocate;
     table->free = free;
     table->bucket_count = bucket_count;
+    table->bucket_count_mask = bucket_count - 1;
     table->entry_count = 0;
     table->seed = ebpf_random_uint32();
     table->extract = options->extract_function;
@@ -656,7 +667,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
 {
     ebpf_result_t retval;
-    uint32_t hash;
+    uint32_t bucket_index;
     uint8_t* data = NULL;
     size_t index;
     ebpf_hash_bucket_header_t* bucket;
@@ -666,8 +677,8 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
         goto Done;
     }
 
-    hash = _ebpf_hash_table_compute_hash(hash_table, key);
-    bucket = hash_table->buckets[hash % hash_table->bucket_count].header;
+    bucket_index = _ebpf_hash_table_compute_bucket_index(hash_table, key);
+    bucket = hash_table->buckets[bucket_index].header;
     if (!bucket) {
         retval = EBPF_KEY_NOT_FOUND;
         goto Done;
@@ -755,7 +766,7 @@ ebpf_hash_table_next_key_pointer_and_value(
     _Outptr_opt_ uint8_t** value)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    uint32_t hash;
+    uint32_t starting_bucket_index;
     ebpf_hash_bucket_entry_t* next_entry = NULL;
     size_t bucket_index;
     size_t data_index;
@@ -766,9 +777,10 @@ ebpf_hash_table_next_key_pointer_and_value(
         goto Done;
     }
 
-    hash = (previous_key != NULL) ? _ebpf_hash_table_compute_hash(hash_table, previous_key) : 0;
+    starting_bucket_index =
+        (previous_key != NULL) ? _ebpf_hash_table_compute_bucket_index(hash_table, previous_key) : 0;
 
-    for (bucket_index = hash % hash_table->bucket_count; bucket_index < hash_table->bucket_count; bucket_index++) {
+    for (bucket_index = starting_bucket_index; bucket_index < hash_table->bucket_count; bucket_index++) {
         ebpf_hash_bucket_header_t* bucket = hash_table->buckets[bucket_index].header;
         // Skip empty buckets.
         if (!bucket) {
