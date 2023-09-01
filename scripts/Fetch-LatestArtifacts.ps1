@@ -18,8 +18,11 @@ if ($null -eq (Get-Command 'gh.exe' -ErrorAction SilentlyContinue)) {
 
 if (!$runid) {
     # Get the latest run ID for the branch and workflow
-    $run = ((Invoke-WebRequest -Uri  "https://api.github.com/repos/$Owner/$Repo/actions/runs?per_page=1&exclude_pull_requests=true&branch=$Branch&status=completed&event=schedule&conclusion=success&name=$WorkflowName").Content | ConvertFrom-Json)
-    $runid = $run.workflow_runs[0].id
+    # GitHub REST API for Actions: https://docs.github.com/en/rest/reference/actions
+    # It does not support filtering by workflow name, so we have to get all runs and filter locally.
+    $run = ((Invoke-WebRequest -Uri  "https://api.github.com/repos/$Owner/$Repo/actions/runs?per_page=10&exclude_pull_requests=true&branch=$Branch&status=completed&event=schedule&conclusion=success").Content | ConvertFrom-Json)
+    $run = $run.workflow_runs | Where-Object { $_.name -eq $WorkflowName } | Select-Object -First 1
+    $runid = $run.id
 }
 
 Write-Output "Using run ID $runid in branch $Branch in repo $Owner/$Repo to fetch artifact $ArtifactName to $OutputPath."
