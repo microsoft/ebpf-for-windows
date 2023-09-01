@@ -95,12 +95,13 @@ function Set-EnvironmentVariable {
     try {
         [Environment]::SetEnvironmentVariable($variableName, $variableValue, [System.EnvironmentVariableTarget]::Machine)
         Write-Log -level $LogLevelInfo -message "Environment variable '$variableName' set successfully."
-        return $true
     }
     catch {
         Write-Log -level $LogLevelError -message "Failed to set environment variable '$variableName'. Error: $_"
-        return $false
+        return 1
     }
+    
+    return 0
 }
 
 function Get-EnvironmentVariable {
@@ -120,7 +121,6 @@ function Get-EnvironmentVariable {
     return $variableValue
 }
 
-
 function Get-HandlerEnvironment {
     param (
         # The HandlerEnvironment.json file is always located in the root of where the ZIP package is extracted.
@@ -129,6 +129,7 @@ function Get-HandlerEnvironment {
 
     Write-Log -level $LogLevelInfo -message "Get-HandlerEnvironment($handlerEnvironmentFullPath)"
 
+    $res = 0
     if (Test-Path $handlerEnvironmentFullPath -PathType Leaf) {
         $jsonContent = Get-Content -Path $handlerEnvironmentFullPath -Raw
         $jsonContent = $jsonContent | ConvertFrom-Json
@@ -147,16 +148,17 @@ function Get-HandlerEnvironment {
             Write-Log -level $LogLevelInfo -message "Events Folder: $($global:eBPFHandlerEnvObj.handlerEnvironment.eventsFolder)"
         } else {
             Write-Log -level $LogLevelInfo -message "$handlerEnvironmentFullPath does not contain a valid object."
-            return $false
+            $res = 1
         }
-        return $true
     } else {
         Write-Log -level $LogLevelError -message "$handlerEnvironmentFullPath file not found."
-        return $false
+        $res = 1
     }
+
+    return $res
 }
 
-function Create-StatusFile {
+function Report-Status {
     param (
         [string]$name,
         [string]$operation,
@@ -165,10 +167,10 @@ function Create-StatusFile {
         [string]$statusMessage
     )
 
-    Write-Log -level $LogLevelInfo -message "Create-StatusFile($name, $operation, $status, $statusCode, $statusMessage)"
+    Write-Log -level $LogLevelInfo -message "Report-Status($name, $operation, $status, $statusCode, $statusMessage)"
 
     # Get the SequenceNumber from the name of the latest *modified* .settings file.
-    # TBC: confirm this is the correct way to get the latest .settings file (i.e. by last written rather than the numbering in the file name).
+    # TBD: confirm this is the correct way to get the latest .settings file (i.e. by last written rather than the numbering in the file name).
     $settingsFiles = Get-ChildItem -Path "$($global:eBPFHandlerEnvObj.handlerEnvironment.configFolder)" -Include "$EbpfExtensionName.*.settings" -Recurse | Sort-Object LastWriteTime -Descending
     $lastSequenceNumber = $settingsFiles[0].Name
 
@@ -234,19 +236,17 @@ function Get-FullDiskPathFromService {
     $binaryPathLine = $scQueryOutput -split "`n" | Where-Object { $_ -match "BINARY_PATH_NAME\s+:\s+(.*)" }
 
     if ($binaryPathLine) {
-        $binaryPath = $matches[1]
 
         # Extract the full disk path using regex.
+        $binaryPath = $matches[1]
         $fullDiskPath = [regex]::Match($binaryPath, '(?<=\\)\w:.+')
 
         if ($fullDiskPath.Success) {
             return $fullDiskPath.Value
-        } else {
-            return $null
         }
-    } else {
-        return $null
     }
+    
+    return $null
 }
 
 function Get-ProductVersionFromFile {
@@ -259,15 +259,12 @@ function Get-ProductVersionFromFile {
     if (Test-Path -Path $filePath -PathType Leaf) {
         $fileVersionInfo = Get-ItemProperty -Path $filePath -Name VersionInfo
         $productVersion = $fileVersionInfo.VersionInfo.ProductVersion
-
         if ($productVersion) {
             return $productVersion
-        } else {
-            return $null
         }
-    } else {
-        return $null
     }
+
+    return $null
 }
 
 function Compare-VersionNumbers {
@@ -282,7 +279,6 @@ function Compare-VersionNumbers {
     $version2Digits = $version2 -split '\.'
 
     $maxDigits = [Math]::Max($version1Digits.Length, $version2Digits.Length)
-
     for ($i = 0; $i -lt $maxDigits; $i++) {
         $digit1 = if ($i -lt $version1Digits.Length) { [int]$version1Digits[$i] } else { 0 }
         $digit2 = if ($i -lt $version2Digits.Length) { [int]$version2Digits[$i] } else { 0 }
@@ -310,15 +306,22 @@ function Add-DirectoryToSystemPath {
     
     Write-Log -level $LogLevelInfo -message "Add-DirectoryToSystemPath($directoryPath)"
 
-    $currentPath = [System.Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
-
-    if ($currentPath -split ";" -contains $directoryPath) {
-        Write-Log -level $LogLevelInfo -message "'$directoryPath' is already in the system PATH -> no action taken."
-    } else {
-        $newPath = "$currentPath;$directoryPath"
-        [System.Environment]::SetEnvironmentVariable("PATH", $newPath, [System.EnvironmentVariableTarget]::Machine)
-        Write-Log -level $LogLevelInfo -message "'$directoryPath' added to the system PATH."
+    try {
+        $currentPath = [System.Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
+        if ($currentPath -split ";" -contains $directoryPath) {
+            Write-Log -level $LogLevelInfo -message "'$directoryPath' is already in the system PATH -> no action taken."
+        } else {
+            $newPath = "$currentPath;$directoryPath"
+            [System.Environment]::SetEnvironmentVariable("PATH", $newPath, [System.EnvironmentVariableTarget]::Machine)
+            Write-Log -level $LogLevelInfo -message "'$directoryPath' added to the system PATH."
+        }
     }
+    catch {
+        Write-Log -level $LogLevelError -message "An error occurred while adding '$directoryPath' to the system PATH: $_"
+        return 1
+    }
+
+    return 0
 }
 
 function Remove-DirectoryFromSystemPath {
@@ -328,15 +331,22 @@ function Remove-DirectoryFromSystemPath {
 
     Write-Log -level $LogLevelInfo -message "Remove-DirectoryFromSystemPath($directoryPath)"
 
-    $currentPath = [System.Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
-
-    if ($currentPath -split ";" -contains $directoryPath) {
-        $newPath = ($currentPath -split ";" | Where-Object { $_ -ne $directoryPath }) -join ";"
-        [System.Environment]::SetEnvironmentVariable("PATH", $newPath, [System.EnvironmentVariableTarget]::Machine)
-        Write-Log -level $LogLevelInfo -message "'$directoryPath' removed from the system PATH."
-    } else {
-        Write-Log -level $LogLevelInfo -message "'$directoryPath' is not found in the system PATH -> no action taken."
+    try {
+        $currentPath = [System.Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
+        if ($currentPath -split ";" -contains $directoryPath) {
+            $newPath = ($currentPath -split ";" | Where-Object { $_ -ne $directoryPath }) -join ";"
+            [System.Environment]::SetEnvironmentVariable("PATH", $newPath, [System.EnvironmentVariableTarget]::Machine)
+            Write-Log -level $LogLevelInfo -message "'$directoryPath' removed from the system PATH."
+        } else {
+            Write-Log -level $LogLevelInfo -message "'$directoryPath' is not found in the system PATH -> no action taken."
+        }
     }
+    catch {
+        Write-Log -level $LogLevelError -message "An error occurred while removing '$directoryPath' from the system PATH: $_"
+        return 1
+    }
+
+    return 0
 }
 
 function Install-Driver {
@@ -347,14 +357,19 @@ function Install-Driver {
 
     Write-Log -level $LogLevelInfo -message "Install-Driver($serviceName, $servicePath)"
 
-    # Create the service using sc.exe (you'll need to replace this with the actual command).
-    $scCreateOutput = & "sc.exe" create $serviceName type=kernel start=demand binPath="$servicePath"
+    try {
+        # Create the service using sc.exe (you'll need to replace this with the actual command).
+        $scCreateOutput = & "sc.exe" create $serviceName type=kernel start=demand binPath="$servicePath"
 
-    # Check the exit code to determine the result.
-    if ($LASTEXITCODE -eq 0) {
-        Write-Log -level $LogLevelInfo -message "'$serviceName' installed successfully."
-    } else {
-        Write-Log -level $LogLevelError -message "Failed to install '$serviceName'. Error message: $scCreateOutput"
+        # Check the exit code to determine the result.
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log -level $LogLevelInfo -message "'$serviceName' installed successfully."
+        } else {
+            Write-Log -level $LogLevelError -message "Failed to install '$serviceName'. Error message: $scCreateOutput"
+        }
+    }
+    catch {
+        Write-Log -level $LogLevelError -message "An error occurred while installing '$serviceName': $_"
     }
 
     return $LASTEXITCODE
@@ -364,18 +379,23 @@ function Uninstall-Driver {
     param (
         [string]$serviceName
     )
+    try {
+        Write-Log -level $LogLevelInfo -message "Uninstall-Driver($serviceName)"
+    
+        # Delete the driver service
+        $scDeleteOutput = & "sc.exe" delete $serviceName
 
-    Write-Log -level $LogLevelInfo -message "Uninstall-Driver($serviceName)"
- 
-    # Delete the driver service
-    $scDeleteOutput = & "sc.exe" delete $serviceName
-
-    # Check the exit code to determine the result.
-    if ($LASTEXITCODE -eq 0) {
-        Write-Log -level $LogLevelInfo -message "'$serviceName' uninstalled successfully."
-    } else {
-        Write-Log -level $LogLevelError -message "Failed to uninstall '$serviceName'. Error message: $scDeleteOutput"      
+        # Check the exit code to determine the result.
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log -level $LogLevelInfo -message "'$serviceName' uninstalled successfully."
+        } else {
+            Write-Log -level $LogLevelError -message "Failed to uninstall '$serviceName'. Error message: $scDeleteOutput"      
+        }
     }
+    catch {
+        Write-Log -level $LogLevelError -message "An error occurred while installing '$serviceName': $_"
+    }
+
     return $LASTEXITCODE
 }
 
@@ -387,25 +407,27 @@ function Copy-Directory {
 
     Write-Log -level $LogLevelInfo -message "Copy-Directory($sourcePath, $destinationPath)"
 
+    $res = 0
     # Create the destination directory, if it doesn't exist.
     if (-not (Test-Path $destinationPath)) {
         try {
-            New-Item -Path $destinationPath -ItemType Directory -ErrorAction Stop
+            New-Item -Path $destinationPath -ItemType Directory -ErrorAction Stop | Out-Null
         } catch {
             Write-Log -level $LogLevelError -message "Failed to create destination directory '$destinationPath': $_"
-            return $false
+            $res = 1
         }
     }
 
     # Recursively copy all files from source to destination.
     try {
-        Copy-Item -Path ($sourcePath + "\*") -Destination $destinationPath -Recurse -Force -ErrorAction Stop
+        Copy-Item -Path ($sourcePath + "\*") -Destination $destinationPath -Recurse -Force -ErrorAction Stop | Out-Null
         Write-Log -level $LogLevelInfo -message "Files copied from '$sourcePath' to '$destinationPath'."
-        return $true
     } catch {
         Write-Log -level $LogLevelError -message "Error while copying files: $_"
-        return $false
+        $res = 1
     }
+    
+    return $res
 }
 
 function Delete-Directory {
@@ -414,20 +436,22 @@ function Delete-Directory {
     )
     
     Write-Log -level $LogLevelInfo -message "Delete-Directory($destinationPath)"
-
+    
+    $res = 0
     if (Test-Path $destinationPath) {
         try {
             Remove-Item -Path $destinationPath -Recurse -Force -ErrorAction Stop
-            Write-Log -level $LogLevelInfo -message "Directory '$destinationPath' deleted successfully."
-            return $true
+            Write-Log -level $LogLevelInfo -message "Directory '$destinationPath' deleted successfully."            
         } catch {
             Write-Log -level $LogLevelError -message "Failed to delete directory '$destinationPath'. Error: $_"
-            return $false
+            $res = 1
         }
     } else {
         Write-Log -level $LogLevelWarning -message "Directory '$destinationPath' does not exist."
-        return $false
+        $res = 1
     }
+
+    return $res
 }
 
 function Create-Scheduled-Task {
@@ -450,7 +474,6 @@ function Create-Scheduled-Task {
 
     return 0
 }
-
 
 #######################################################
 # VM Extension Handler Internal Helper Functions
@@ -534,7 +557,6 @@ function Register-EbpfNetshExtension{
     )
 
     Write-Log -level $LogLevelInfo -message "Register-EbpfNetshExtension($installDirectory)"
-
     Push-Location -Path $installDirectory
 
     # Add the eBPF netsh helper.
@@ -554,9 +576,9 @@ function Register-EbpfNetshExtension{
 function Unregister-EbpfNetshExtension{
 
     Write-Log -level $LogLevelInfo -message "Unregister-EbpfNetshExtension"
+    Push-Location -Path $EbpfDefaultInstallPath
 
     # Add the eBPF netsh helper.
-    Push-Location -Path $EbpfDefaultInstallPath
     $installResult = & "netsh.exe" delete helper $EbpfNetshExtensionName
 
     # Check the exit code to determine the result.
@@ -595,7 +617,7 @@ function Install-eBPF {
 
     # Copy the eBPF files to the destination folder.
     $copyResult = Copy-Directory -sourcePath $sourcePath -destinationPath $destinationPath
-    if ($copyResult -eq $true) {
+    if ($copyResult -eq 0) {
 
         # Install the eBPF services and use the results to generate the status file  .      
         $failedServices = @() 
@@ -721,8 +743,6 @@ function Uninstall-eBPF {
     return [int]$statusCode
 }
 
-# This function will install or update the eBPF handler.
-# It will return 0 if the operation was successful, 1 if it failed, and 2 if eBPF was not updated because it was either already up to date, or if it was a handler-only update.
 function InstallOrUpdate-eBPF-Handler {
     param (
         [string]$operationName,
@@ -747,7 +767,7 @@ function InstallOrUpdate-eBPF-Handler {
     if ($currDriverPath) {
         Write-Log -level $LogLevelInfo -message "Found eBPF driver installed and registered from: '$currDriverPath'"
 
-        # TBC: check if the driver is registered in the default folder, if not, log a warning and proceed with the installation in the current folder.
+        # TBD: check if the driver is registered in the default folder, if not, log a warning and proceed with the installation in the current folder.
         $currInstallPath = Split-Path -Path $currDriverPath -Parent | Split-Path -Parent
         if ($currInstallPath -ne $EbpfDefaultInstallPath) {
             Write-Log -level $LogLevelWarning -message "'$EbpfDriverName' driver registered from a non-default folder: [$currInstallPath] instead of [$EbpfDefaultInstallPath]"
@@ -801,11 +821,21 @@ function InstallOrUpdate-eBPF-Handler {
         $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$currInstallPath"
         if ($statusCode -ne 0) {
             Write-Log -level $LogLevelError -message "Failed to install eBPF v$newProductVersion."
-            Create-StatusFile -name $StatusName -operation $operationName -status $StatusError -statusCode 1 -statusMessage "eBPF $operationName FAILED (Clean install failed)."
+            Report-Status -name $StatusName -operation $operationName -status $StatusError -statusCode 1 -statusMessage "eBPF $operationName FAILED (Clean install failed)."
         } else {
             Write-Log -level $LogLevelInfo -message "eBPF v$newProductVersion installed successfully."
             # If this was an 'Install' operation, the VM Agent will then call 'Enable' on the handler.
         }
+    }
+
+    # Restart the Guest Proxy Agent service: this is an extended operation that is not part of the eBPF VM Extension,
+    # therefore, we do not account success/failure of this operation in the update status.
+    if ($statusCode -eq 2) {
+        # If the result is 2, eBPF hasn't been updated therefore we don't need to restart the Guest Proxy Agent service, and the operation is successful.
+        $statusCode = 0
+    } elseif ($statusCode -eq 0) {        
+        # If the result is 0, eBPF has been installed or updated successfully, therefore we need to restart the Guest Proxy Agent service.
+        Restart-GuestProxyAgent-Service | Out-Null
     }
 
     return [int]$statusCode
@@ -816,21 +846,22 @@ function Restart-GuestProxyAgent-Service {
     Write-Log -level $LogLevelInfo -message "Restart-GuestProxyAgent-Service()"
 
     $GuestProxyAgentServiceName = "GuestProxyAgent"
-    $service = Get-Service -Name $GuestProxyAgentServiceName -ErrorAction SilentlyContinue
-    if ($null -eq $service) {
-        Write-Log -level $LogLevelWarning -message "Service '$GuestProxyAgentServiceName' is not installed -> no action taken."
-    } else {
-        Write-Log -level $LogLevelInfo -message "Restarting service '$GuestProxyAgentServiceName'..."
-        
-        Restart-Service -Name $GuestProxyAgentServiceName -Force
-        if ($?) {
-            Write-Log -level $LogLevelInfo -message "Service '$GuestProxyAgentServiceName' was succesfully restarted."
+    try {
+        $service = Get-Service -Name $GuestProxyAgentServiceName -ErrorAction Stop
+
+        if ($null -eq $service) {
+            Write-Log -level $LogLevelWarning -message "Service '$GuestProxyAgentServiceName' is not installed -> no action taken."
         } else {
-            Write-Log -level $LogLevelError -message "Failed to restart service '$GuestProxyAgentServiceName'."
+            Write-Log -level $LogLevelInfo -message "Restarting service '$GuestProxyAgentServiceName'..."
+            
+            Restart-Service -Name $GuestProxyAgentServiceName -Force -ErrorAction Stop
+            Write-Log -level $LogLevelInfo -message "Service '$GuestProxyAgentServiceName' was successfully restarted."
         }
     }
+    catch {
+        Write-Log -level $LogLevelError -message "An error occurred while restarting service '$GuestProxyAgentServiceName': $_"
+    }
 }
-
 
 #######################################################
 # VM Extension Handler Functions
@@ -867,7 +898,7 @@ function Enable-eBPF-Handler {
     }
 
     # Generate the status file
-    Create-StatusFile -name $StatusName -operation $OperationNameEnable -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage "eBPF enabled"
+    Report-Status -name $StatusName -operation $OperationNameEnable -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage "eBPF enabled"
 
     return [int]$statusCode
 }
@@ -876,27 +907,35 @@ function Disable-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Disable-eBPF-Handler()"
 
-    $statusCode = Stop-eBPFDrivers
     # TBD: confirm if Disable does not need to generate a status file. The docs say "Yes?"...
-    #Create-StatusFile -name $StatusName -operation $OperationNameDisable -status $StatusSuccess -statusCode $statusCode -statusMessage "eBPF disabled"
+    $statusCode = Stop-eBPFDrivers
+    if ($statusCode -eq 0) {    
+        $statusString = $StatusSuccess
+        $statusMessage = "eBPF for Windows was successfully disabled."
+    }
+    else {
+        $statusString = $StatusError
+        $statusMessage = "eBPF for Windows was not disabled."
+    }
+    Report-Status -name $StatusName -operation $OperationNameDisable -status $statusString -statusCode $statusCode -statusMessage $statusMessage
+    
+    return [int]$statusCode
 }
 
 function Uninstall-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler()"
 
-    $res = Uninstall-eBPF -installDirectory "$EbpfDefaultInstallPath"
-    if ($res -eq 0) {    
+    $statusCode = Uninstall-eBPF -installDirectory "$EbpfDefaultInstallPath"
+    if ($statusCode -eq 0) {    
         $statusString = $StatusSuccess
-        $statusCode = 0
         $statusMessage = "eBPF for Windows was successfully uninstalled."
     }
     else {
         $statusString = $StatusError
-        $statusCode = $res
         $statusMessage = "eBPF for Windows was not uninstalled."
     }
-    Create-StatusFile -name $StatusName -operation $OperationNameUninstall -status $statusString -statusCode $statusCode -statusMessage $statusMessage
+    Report-Status -name $StatusName -operation $OperationNameUninstall -status $statusString -statusCode $statusCode -statusMessage $statusMessage
 
     return [int]$statusCode
 }
@@ -904,6 +943,8 @@ function Uninstall-eBPF-Handler {
 function Install-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Install-eBPF-Handler()"
+
+    # Install or Update eBPF for Windows.
     # NOTE: The install operation does not generate a status file, since the VM Agent will afterwards call the enable operation.
     return InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
 }
@@ -913,19 +954,10 @@ function Update-eBPF-Handler {
     Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler()"
 
     # Change VM Extension status to "transitioning"
-    Create-StatusFile -name $StatusName -operation $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -statusMessage "Starting update"
+    Report-Status -name $StatusName -operation $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -statusMessage "Starting update"
 
-    $res =  InstallOrUpdate-eBPF-Handler -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
-    if ($res -eq 2) {
-        # If the result is 2, then we don't need to restart the Guest Proxy Agent service (as eBPF hasn't been updated), and the operation is successful.
-        $res = 0
-    } elseif ($res -eq 0) {        
-        # Restart the Guest Proxy Agent service: this is an extended operation that is not part of the eBPF VM Extension,
-        # therefore, we do not account success/failure of this operation in the update status.
-        Restart-GuestProxyAgent-Service | Out-Null
-    }
-
-    return $res
+    # Update eBPF for Windows.
+    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
 }
 
 #######################################################
