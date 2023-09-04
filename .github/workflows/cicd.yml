@@ -138,7 +138,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver
       build_artifact: Build-x64
@@ -157,7 +157,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver
       build_artifact: Build-x64-native-only
@@ -448,7 +448,7 @@ jobs:
     with:
       name: km_mt_stress_tests
       pre_test: .\setup_ebpf_cicd_stress_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1 -RunKmStressTestsOnly $true
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
@@ -465,10 +465,22 @@ jobs:
     with:
       name: km_mt_stress_tests_restart_extension
       pre_test: .\setup_ebpf_cicd_stress_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1 -RunKmStressTestsOnly $true -RestartExtension $true
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -RestartExtension $true
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
+
+  performance:
+    needs: regular
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      build_artifact: Build-x64
+      environment: ebpf_cicd_tests

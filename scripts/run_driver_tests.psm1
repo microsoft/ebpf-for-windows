@@ -267,4 +267,29 @@ function Invoke-CICDStressTests
     popd
 }
 
+function Invoke-CICDPerformanceTests
+{
+    param([parameter(Mandatory = $true)][bool] $VerboseLogs)
+    Push-Location $WorkingDirectory
+
+    Write-Log "Executing eBPF kernel mode performance tests."
+
+    $LASTEXITCODE = 0
+
+    # Stop the services, remove the driver from verifier, and restart the services.
+    net.exe stop ebpfsvc
+    net.exe stop ebpfcore
+    verifier.exe /volatile 0
+    verifier.exe /volatile /removedriver ebpfcore.sys
+    net.exe start ebpfcore
+    net.exe start ebpfsvc
+
+    # Extract the performance test zip file.
+    Expand-Archive -Path .\bpf_performance.zip -DestinationPath .\bpf_performance -Force
+    Set-Location bpf_performance
+    RelWithDebInfo\bpf_performance_runner.exe -i tests.yml -e .sys -r | Tee-Object -FilePath ..\bpf_performance_native.log
+
+    Pop-Location
+}
+
 Pop-Location

@@ -20,14 +20,10 @@ function Invoke-CICDTestsOnVM
     param([parameter(Mandatory=$true)] [string] $VMName,
           [parameter(Mandatory=$false)] [bool] $VerboseLogs = $false,
           [parameter(Mandatory=$false)] [bool] $Coverage = $false,
-          [parameter(Mandatory=$false)][bool] $RunKmStressTestsOnly = $false,
+          [parameter(Mandatory=$false)][string] $TestMode = "CI/CD",
           [parameter(Mandatory=$false)][bool] $RestartExtension = $false)
 
-    if ($RunKmStressTestsOnly -eq $true) {
-        Write-Log "Executing eBPF kernel mode multi-threaded stress tests on $VMName"
-    } else {
-        Write-Log "Running eBPF CI/CD tests on $VMName"
-    }
+    Write-Log "Running eBPF $TestMode tests on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
@@ -35,21 +31,32 @@ function Invoke-CICDTestsOnVM
               [Parameter(Mandatory=$True)] [string] $LogFileName,
               [Parameter(Mandatory=$True)] [bool] $VerboseLogs,
               [Parameter(Mandatory=$True)] [bool] $Coverage,
-              [parameter(Mandatory=$True)][bool] $RunKmStressTestsOnly,
+              [parameter(Mandatory=$True)][string] $TestMode,
               [parameter(Mandatory=$True)][bool] $RestartExtension)
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        if ($RunKmStressTestsOnly -eq $true) {
-            Invoke-CICDStressTests -VerboseLogs $VerboseLogs -Coverage $Coverage `
-                -RestartExtension $RestartExtension 2>&1 | Write-Log
-        } else {
-            Invoke-CICDTests -VerboseLogs $VerboseLogs -Coverage $Coverage 2>&1 | Write-Log
+        $TestMode = $TestMode.ToLower()
+        switch ($TestMode)
+        {
+            "ci/cd" {
+                Invoke-CICDTests -VerboseLogs $VerboseLogs -Coverage $Coverage 2>&1 | Write-Log
+            }
+            "stress" {
+                Invoke-CICDStressTests -VerboseLogs $VerboseLogs -Coverage $Coverage `
+                    -RestartExtension $RestartExtension 2>&1 | Write-Log
+            }
+            "performance" {
+                Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs 2>&1 | Write-Log
+            }
+            default {
+                throw "Invalid test mode: $TestMode"
+            }
         }
 
-    } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs, $Coverage, $RunKmStressTestsOnly, $RestartExtension) -ErrorAction Stop
+    } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs, $Coverage, $TestMode, $RestartExtension) -ErrorAction Stop
 }
 
 function Add-eBPFProgramOnVM
