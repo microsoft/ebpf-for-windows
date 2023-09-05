@@ -179,6 +179,8 @@ typedef struct _net_ebpf_bpf_sock_addr
     TOKEN_ACCESS_INFORMATION* access_information;
     uint64_t process_id;
     uint32_t flags;
+    char* redirect_context;
+    uint32_t redirect_context_size;
 } net_ebpf_sock_addr_t;
 
 /**
@@ -256,6 +258,14 @@ _ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx)
     logon_id = *(uint64_t*)(&(sock_addr_ctx->access_information->AuthenticationId));
 
     return logon_id;
+}
+
+static void
+_ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ char* data, _In_ uint32_t data_size)
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    sock_addr_ctx->redirect_context_size = data_size;
+    sock_addr_ctx->redirect_context = data;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL) static NTSTATUS _perform_access_check(
@@ -1307,6 +1317,7 @@ _net_ebpf_ext_process_redirect_verdict(
     NTSTATUS status = STATUS_SUCCESS;
     FWPS_CONNECT_REQUEST* connect_request = NULL;
     BOOLEAN commit_layer_data = FALSE;
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(redirected_context, net_ebpf_sock_addr_t, base);
 
     *redirected = FALSE;
 
@@ -1351,6 +1362,9 @@ _net_ebpf_ext_process_redirect_verdict(
 
         connect_request->localRedirectTargetPID = TARGET_PROCESS_ID;
         connect_request->localRedirectHandle = redirect_handle;
+
+        connect_request->localRedirectContext = sock_addr_ctx->redirect_context;
+        connect_request->localRedirectContextSize = sock_addr_ctx->redirect_context_size;
     }
 
 Exit:

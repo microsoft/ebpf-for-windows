@@ -156,6 +156,7 @@ typedef struct bpf_sock_addr
 typedef enum
 {
     BPF_FUNC_sock_addr_get_current_pid_tgid = SOCK_ADDR_EXT_HELPER_FN_BASE + 1,
+    BPF_FUNC_sock_addr_set_redirect_context = SOCK_ADDR_EXT_HELPER_FN_BASE + 2,
 } ebpf_sock_addr_helper_id_t;
 
 /**
@@ -173,6 +174,20 @@ EBPF_HELPER(uint64_t, bpf_sock_addr_get_current_pid_tgid, (bpf_sock_addr_t * ctx
 #ifndef __doxygen
 #define bpf_sock_addr_get_current_pid_tgid \
     ((bpf_sock_addr_get_current_pid_tgid_t)BPF_FUNC_sock_addr_get_current_pid_tgid)
+#endif
+
+/**
+ * @brief Set a context for consumption by a proxy application (sock_addr specific only).
+ *
+ * @param[in] ctx Pointer to bpf_sock_addr_t context.
+ * @param[in] data Pointer to data to store.
+ * @param[in] data_size The size of the data to store.
+ *
+ */
+EBPF_HELPER(void, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, char* data, uint32_t data_size));
+#ifndef __doxygen
+#define bpf_sock_addr_set_redirect_context \
+    ((bpf_sock_addr_set_redirect_context_t)BPF_FUNC_bpf_sock_addr_set_redirect_context)
 #endif
 
 /**
