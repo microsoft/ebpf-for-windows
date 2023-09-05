@@ -74,9 +74,11 @@ $(function() {
 <div class="title">ebpf_store_helper.h File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><code>#include &quot;framework.h&quot;</code><br />
-<code>#include &quot;<a class="el" href="ebpf__program__types_8h_source.html">ebpf_program_types.h</a>&quot;</code><br />
+<div class="textblock"><code>#include &quot;<a class="el" href="ebpf__program__types_8h_source.html">ebpf_program_types.h</a>&quot;</code><br />
+<code>#include &quot;ebpf_shared_framework.h&quot;</code><br />
 <code>#include &quot;<a class="el" href="ebpf__windows_8h_source.html">ebpf_windows.h</a>&quot;</code><br />
+<code>#include &lt;minwindef.h&gt;</code><br />
+<code>#include &lt;wdm.h&gt;</code><br />
 </div>
 <p><a href="ebpf__store__helper_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -87,12 +89,12 @@ Macros</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
-<tr class="memitem:a6d37afc0e3d09379c5a85db1d6f0a5b2"><td class="memItemLeft" align="right" valign="top">typedef HANDLE&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#a6d37afc0e3d09379c5a85db1d6f0a5b2">ebpf_store_key_t</a></td></tr>
-<tr class="separator:a6d37afc0e3d09379c5a85db1d6f0a5b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2c2cbb58cc8cc7afd7f1e5177b6680b7"><td class="memItemLeft" align="right" valign="top">typedef HKEY&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#a2c2cbb58cc8cc7afd7f1e5177b6680b7">ebpf_store_key_t</a></td></tr>
+<tr class="separator:a2c2cbb58cc8cc7afd7f1e5177b6680b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a42b9f64df180d218638a52756fdf7610"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#a42b9f64df180d218638a52756fdf7610">ebpf_store_update_helper_prototype</a> (<a class="el" href="ebpf__store__helper_8h.html#a6d37afc0e3d09379c5a85db1d6f0a5b2">ebpf_store_key_t</a> helper_info_key, const <a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a> *helper_info)</td></tr>
+<tr class="memitem:a42b9f64df180d218638a52756fdf7610"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#a42b9f64df180d218638a52756fdf7610">ebpf_store_update_helper_prototype</a> (<a class="el" href="ebpf__store__helper_8h.html#a2c2cbb58cc8cc7afd7f1e5177b6680b7">ebpf_store_key_t</a> helper_info_key, const <a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a> *helper_info)</td></tr>
 <tr class="memdesc:a42b9f64df180d218638a52756fdf7610"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update the provider prototype information in the eBPF store.  <a href="ebpf__store__helper_8h.html#a42b9f64df180d218638a52756fdf7610">More...</a><br /></td></tr>
 <tr class="separator:a42b9f64df180d218638a52756fdf7610"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac1f7c8f5ce16a53eebb619bd0ccc1030"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#ac1f7c8f5ce16a53eebb619bd0ccc1030">ebpf_store_update_global_helper_information</a> (_In_reads_(helper_info_count) <a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a> *helper_info, uint32_t helper_info_count)</td></tr>
@@ -107,7 +109,7 @@ Functions</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:a8013dd95cb462116d0de4432db68b77d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__store__helper_8h.html#a6d37afc0e3d09379c5a85db1d6f0a5b2">ebpf_store_key_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#a8013dd95cb462116d0de4432db68b77d">ebpf_store_root_key</a></td></tr>
+<tr class="memitem:a8013dd95cb462116d0de4432db68b77d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__store__helper_8h.html#a2c2cbb58cc8cc7afd7f1e5177b6680b7">ebpf_store_key_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#a8013dd95cb462116d0de4432db68b77d">ebpf_store_root_key</a></td></tr>
 <tr class="separator:a8013dd95cb462116d0de4432db68b77d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abeb6d9f3883dcd0f30a8446e1a8012e7"><td class="memItemLeft" align="right" valign="top">const wchar_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#abeb6d9f3883dcd0f30a8446e1a8012e7">ebpf_store_root_sub_key</a></td></tr>
 <tr class="separator:abeb6d9f3883dcd0f30a8446e1a8012e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -128,14 +130,14 @@ Variables</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Typedef Documentation</h2>
-<a id="a6d37afc0e3d09379c5a85db1d6f0a5b2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6d37afc0e3d09379c5a85db1d6f0a5b2">&#9670;&nbsp;</a></span>ebpf_store_key_t</h2>
+<a id="a2c2cbb58cc8cc7afd7f1e5177b6680b7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2c2cbb58cc8cc7afd7f1e5177b6680b7">&#9670;&nbsp;</a></span>ebpf_store_key_t</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef HANDLE <a class="el" href="ebpf__store__helper_8h.html#a6d37afc0e3d09379c5a85db1d6f0a5b2">ebpf_store_key_t</a></td>
+          <td class="memname">typedef HKEY <a class="el" href="ebpf__store__helper_8h.html#a2c2cbb58cc8cc7afd7f1e5177b6680b7">ebpf_store_key_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -190,7 +192,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_store_update_helper_prototype </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="ebpf__store__helper_8h.html#a6d37afc0e3d09379c5a85db1d6f0a5b2">ebpf_store_key_t</a>&#160;</td>
+          <td class="paramtype"><a class="el" href="ebpf__store__helper_8h.html#a2c2cbb58cc8cc7afd7f1e5177b6680b7">ebpf_store_key_t</a>&#160;</td>
           <td class="paramname"><em>helper_info_key</em>, </td>
         </tr>
         <tr>
@@ -306,7 +308,7 @@ Variables</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="ebpf__store__helper_8h.html#a6d37afc0e3d09379c5a85db1d6f0a5b2">ebpf_store_key_t</a> ebpf_store_root_key</td>
+          <td class="memname"><a class="el" href="ebpf__store__helper_8h.html#a2c2cbb58cc8cc7afd7f1e5177b6680b7">ebpf_store_key_t</a> ebpf_store_root_key</td>
         </tr>
       </table>
   </td>

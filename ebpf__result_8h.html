@@ -79,7 +79,7 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a02c846ac59536972540561451b0b3211"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__result_8h.html#a02c846ac59536972540561451b0b3211">EBPF_RESULT_COUNT</a>&#160;&#160;&#160;(<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a5b5560c0dbeb7a76316835e15be1b06f">EBPF_INVALID_POINTER</a> + 1)</td></tr>
+<tr class="memitem:a02c846ac59536972540561451b0b3211"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__result_8h.html#a02c846ac59536972540561451b0b3211">EBPF_RESULT_COUNT</a>&#160;&#160;&#160;(<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372af2c4bf36caa97cd1a45f57832a26b6b7">EBPF_INVALID_STATE</a> + 1)</td></tr>
 <tr class="separator:a02c846ac59536972540561451b0b3211"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
@@ -132,6 +132,7 @@ Enumerations</h2></td></tr>
 , <br />
 &#160;&#160;<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372ac118def76af126a038a7d8ba876ceca7">EBPF_TIMEOUT</a>
 , <a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372ac72e20369919955243219b16ad1fa9c8">EBPF_STALE_ID</a>
+, <a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372af2c4bf36caa97cd1a45f57832a26b6b7">EBPF_INVALID_STATE</a>
 <br />
  }</td></tr>
 <tr class="separator:a916ce31f9038720787b441792c088372"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -144,7 +145,7 @@ Enumerations</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define EBPF_RESULT_COUNT&#160;&#160;&#160;(<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a5b5560c0dbeb7a76316835e15be1b06f">EBPF_INVALID_POINTER</a> + 1)</td>
+          <td class="memname">#define EBPF_RESULT_COUNT&#160;&#160;&#160;(<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372af2c4bf36caa97cd1a45f57832a26b6b7">EBPF_INVALID_STATE</a> + 1)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -246,6 +247,8 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372ac118def76af126a038a7d8ba876ceca7"></a>EBPF_TIMEOUT&#160;</td><td class="fielddoc"><p>Operation timed out. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372ac72e20369919955243219b16ad1fa9c8"></a>EBPF_STALE_ID&#160;</td><td class="fielddoc"><p>ID is valid, but the object has been deleted. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372af2c4bf36caa97cd1a45f57832a26b6b7"></a>EBPF_INVALID_STATE&#160;</td><td class="fielddoc"><p>The system is in an invalid state for this operation. </p>
 </td></tr>
 </table>
 
