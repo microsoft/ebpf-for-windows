@@ -36,7 +36,7 @@ _test_helper_netsh::_test_helper_netsh() { _ebpf_netsh_objects.clear(); }
 
 _test_helper_netsh::~_test_helper_netsh()
 {
-    if (usersim_fault_injection_is_enabled()) {
+    if (cxplat_fault_injection_is_enabled()) {
         for (auto& object : _ebpf_netsh_objects) {
             bpf_object__close(object);
         }

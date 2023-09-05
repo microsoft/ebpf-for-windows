@@ -9,6 +9,6 @@
 
 #pragma once
 
-#include "framework.h"
+#include "ebpf_shared_framework.h"
 
 #include <Windows.h>

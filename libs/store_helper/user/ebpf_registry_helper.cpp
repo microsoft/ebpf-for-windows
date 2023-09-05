@@ -6,9 +6,10 @@
  * @brief Contains user mode registry related helper APIs.
  */
 
-#include "ebpf_platform.h"
 #include "ebpf_registry_helper.h"
+#include "ebpf_shared_framework.h"
 
+#include <rpc.h>
 #include <string>
 
 #define GUID_STRING_LENGTH 38 // not including the null terminator.

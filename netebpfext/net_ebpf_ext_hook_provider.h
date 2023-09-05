@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "ebpf_extension.h"
+#include "framework.h"
 #include "net_ebpf_ext.h"
 
 /**

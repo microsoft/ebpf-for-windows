@@ -20,3 +20,4 @@
 [submodule "external/usersim"]
 	path = external/usersim
 	url = https://github.com/microsoft/usersim.git
+	branch = doublefree
