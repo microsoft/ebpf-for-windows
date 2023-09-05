@@ -4,82 +4,43 @@
 #include "ebpf_epoch.h"
 #include "ebpf_tracelog.h"
 
-// Brief summary of how epoch tracking works.
-// Each free operation marks the memory as freed and records the current epoch.
-//
-// Each block of code that accesses epoch freed memory wraps access in calls to ebpf_epoch_enter/ebpf_epoch_exit.
-//
-// The per-CPU state is only accessed only by the CPU that owns it and only at IRQL >= DISPATCH_LEVEL.
-//
-// ebpf_epoch_enter:
-// First: The IRQL, CPU ID, and current epoch are saved in the ebpf_epoch_state_t.
-// Second: The ebpf_epoch_state_t is inserted into the per-CPU thread list.
-//
-// ebpf_epoch_exit:
-// First:
-// If the CPU ID in the ebpf_epoch_state_t is different than the current CPU ID, then a message is sent to the
-// CPU that owns the ebpf_epoch_state_t to remove the ebpf_epoch_state_t from the per-CPU thread list.
-//
-// Second:
-// The ebpf_epoch_state_t is removed from the per-CPU thread list.
-//
-// Third:
-// The timer is armed if needed.
-//
-// Computation of the released epoch is a two-phase process.
-// First phase: Determine the minimum epoch of all threads on the CPU.
-// Second phase: Commit the minimum epoch as the released epoch and release any memory that is older than the released
-// epoch.
-//
-// EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH message:
-// Message first is sent to CPU 0.
-// CPU == 0 declares the new current epoch and proposes it as the release epoch.
-// CPU != 0 sets current epoch to the new current epoch.
-// Each CPU then queries the epoch for each thread queued on that CPU and sets the proposed release epoch in the message
-// to the minimum of the local minima and the minima in the message. The message is then forwarded to the next CPU. Non
-// last CPU forwards the message to the next CPU. The last CPU then sends a
-// EBPF_EPOCH_CPU_MESSAGE_TYPE_COMMIT_RELEASE_EPOCH message to CPU 0 with the final proposed release epoch.
-//
-// EBPF_EPOCH_CPU_MESSAGE_TYPE_COMMIT_RELEASE_EPOCH message:
-// Message is sent to CPU 0.
-// Each CPU sets its released epoch to the proposed release epoch minus 1.
-// Each CPU then:
-// 1. Clears the timer-armed flag.
-// 2. Sets the released epoch to the proposed release epoch minus 1.
-// 3. Releases any items in the free list that are eligible for reclamation.
-// 4. Rearms the timer if need.
-// 5. Forwards the message to the next CPU.
-// The last CPU then sends a EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_EPOCH_COMPLETE message to CPU 0.
-//
-// EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_EPOCH_COMPLETE message:
-// Message is sent only to CPU 0.
-// CPU 0 clears the epoch computation in progress flag and signals the KEVENT associated with the message to signal any
-// waiting threads that the operation is completed.
-//
-// EBPF_EPOCH_CPU_MESSAGE_TYPE_EXIT_EPOCH message:
-// Message is sent from a thread that is exiting the epoch to the CPU that ebpf_epoch_enter was called on.
-// The CPU removes the ebpf_epoch_state_t from the per-CPU thread list and signals the KEVENT associated with the
-// message to signal any waiting threads that the operation is completed.
-//
-// EBPF_EPOCH_CPU_MESSAGE_TYPE_RUNDOWN_IN_PROGRESS message:
-// Message is sent to each CPU to notify it that epoch code is shutting down and that no future timers should be armed
-// and future messages should be ignored.
-//
-// EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY message:
-// Message is sent to each CPU to query if it's local free list is empty.
+/**
+ * @brief Epoch Base Memory Reclamation.
+ * Each thread that accesses memory that needs to be reclaimed is associated with an epoch via ebpf_epoch_enter() and
+ * ebpf_epoch_exit(). Each CPU maintains a list of threads that are currently in an epoch. When a thread enters an
+ * epoch, it is added to the per-CPU list. When a thread exits an epoch, it is removed from the per-CPU list. When a
+ * thread exits an epoch, the CPU checks if the per-CPU list is empty. If it is empty, then the CPU checks if the
+ * timer is armed. If the timer is not armed, then the CPU arms the timer. When the timer expires, the release epoch
+ * computation is initiated. The release epoch computation is a two-phase process. First, each CPU determines the
+ * minimum epoch of all threads on the CPU. Second, the minimum epoch is committed as the release epoch and any memory
+ * that is older than the release epoch is released. The release epoch computation is initiated by sending a message
+ * to CPU 0. Each CPU then queries the epoch for each thread linked to  this CPU and sets the proposed release epoch in
+ * the message to the minimum of the local minima and the minima in the message. The message is then forwarded to the
+ * next CPU. The last CPU then sends a epoch commit message to CPU 0 with the final proposed release epoch. CPU 0 then
+ * commits the proposed release epoch and releases any memory that is older than the release epoch and forwards the
+ * message to the next CPU. The last CPU then sends a epoch computation complete message to CPU 0 which permits the
+ * timer to be submit another release epoch computation.
+ */
 
-// Delay after the _ebpf_flush_timer is set before it runs.
+/**
+ * @brief Delay after the _ebpf_flush_timer is set before it runs.
+ */
 #define EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS 1000000
 
+/**
+ * @brief Number of 100ns intervals per filetime tick.
+ */
 #define EBPF_NANO_SECONDS_PER_FILETIME_TICK 100
 
-// Table to track per CPU state.
-// Each entry is only accessed by the CPU that owns it and only at IRQL >= DISPATCH_LEVEL.
-// This ensures that no locks are required to access the per CPU state.
 #pragma warning(disable : 4324) // Structure was padded due to alignment specifier.
+/**
+ * @brief Per-CPU state.
+ * Each entry is only accessed by the CPU that owns it and only at IRQL >= DISPATCH_LEVEL.
+ * This ensures that no locks are required to access the per CPU state.
+ */
 typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
 {
-    LIST_ENTRY thread_list;                ///< Per-CPU list of thread entries.
+    LIST_ENTRY epoch_state_list;           ///< Per-CPU list of thread entries.
     ebpf_list_entry_t free_list;           ///< Per-CPU free list.
     int64_t current_epoch;                 ///< The current epoch for this CPU.
     int64_t released_epoch;                ///< The newest epoch that can be released.
@@ -88,9 +49,19 @@ typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
     int epoch_computation_in_progress : 1; ///< Set if epoch computation is in progress.
 } ebpf_epoch_cpu_entry_t;
 
+/**
+ * @brief Table of per-CPU state.
+ */
 static _Writable_elements_(_ebpf_epoch_cpu_count) ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;
+
+/**
+ * @brief Number of CPUs in the system as determined at initialization time.
+ */
 static uint32_t _ebpf_epoch_cpu_count = 0;
 
+/**
+ * @brief Enum of messages sent between CPUs.
+ */
 typedef enum _ebpf_epoch_cpu_message_type
 {
     EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH, ///< This message is sent to CPU 0 to propose a new release
@@ -125,6 +96,9 @@ typedef enum _ebpf_epoch_cpu_message_type
                                                      ///< list is empty.
 } ebpf_epoch_cpu_message_type_t;
 
+/**
+ * @brief Message sent between CPUs.
+ */
 typedef struct _ebpf_epoch_cpu_message
 {
     ebpf_epoch_cpu_message_type_t message_type;
@@ -175,15 +149,21 @@ static KDPC _ebpf_epoch_timer_dpc;
  */
 static KDPC _ebpf_epoch_compute_release_epoch_dpc;
 
-// There are two possible actions that can be taken at the end of an epoch.
-// 1. Return a block of memory to the memory pool.
-// 2. Invoke a work item, which is used to free custom allocations.
+/**
+ * @brief Type of entry in the free list.
+ * There are two types of entries in the free list:
+ * 1. Memory allocation. This is a block of memory that is returned to the memory pool.
+ * 2. Work item. This is a work item that is invoked at the end of the epoch.
+ */
 typedef enum _ebpf_epoch_allocation_type
 {
     EBPF_EPOCH_ALLOCATION_MEMORY,    ///< Memory allocation.
     EBPF_EPOCH_ALLOCATION_WORK_ITEM, ///< Work item.
 } ebpf_epoch_allocation_type_t;
 
+/**
+ * @brief Header for each entry in the free list.
+ */
 typedef struct _ebpf_epoch_allocation_header
 {
     ebpf_list_entry_t list_entry; ///< List entry used to insert the item into the free list.
@@ -198,12 +178,15 @@ typedef struct _ebpf_epoch_allocation_header
  */
 typedef struct _ebpf_epoch_work_item
 {
-    ebpf_epoch_allocation_header_t header;               ///< Header used to insert the item into the free list.
+    ebpf_epoch_allocation_header_t header;                 ///< Header used to insert the item into the free list.
     cxplat_preemptible_work_item_t* preemptible_work_item; ///< Work item to invoke.
-    void* callback_context;                              ///< Context to pass to the callback.
-    const void (*callback)(_Inout_ void* context);       ///< Callback to invoke.
+    void* callback_context;                                ///< Context to pass to the callback.
+    const void (*callback)(_Inout_ void* context);         ///< Callback to invoke.
 } ebpf_epoch_work_item_t;
 
+/**
+ * @brief Rundown reference used to wait for all work items to complete.
+ */
 cxplat_rundown_reference_t _ebpf_epoch_work_item_rundown_ref;
 
 static void
@@ -236,22 +219,22 @@ _ebpf_epoch_work_item_callback(_In_ cxplat_preemptible_work_item_t* preemptible_
 _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_ _IRQL_raises_(DISPATCH_LEVEL) static inline KIRQL
     _ebpf_epoch_raise_to_dispatch_if_needed()
 {
-    KIRQL current_irql = KeGetCurrentIrql();
-    if (current_irql < DISPATCH_LEVEL) {
-        return KeRaiseIrqlToDpcLevel();
+    KIRQL old_irql = KeGetCurrentIrql();
+    if (old_irql < DISPATCH_LEVEL) {
+        old_irql = KeRaiseIrqlToDpcLevel();
     }
-    return current_irql;
+    return old_irql;
 }
 
 /**
- * @brief Lower the CPU's IRQL to the previous IRQL if it is below DISPATCH_LEVEL.
+ * @brief Lower the CPU's IRQL to the previous IRQL if previous level was below DISPATCH_LEVEL.
  * First check if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
  * calling KeLowerIrql() if it is not needed.
  *
  * @param[in] previous_irql The previous IRQL.
  */
-static inline void
-_ebpf_epoch_lower_to_previous_irql(_When_(previous_irql < DISPATCH_LEVEL, _IRQL_restores_) KIRQL previous_irql)
+_IRQL_requires_(DISPATCH_LEVEL) static inline void _ebpf_epoch_lower_to_previous_irql(
+    _When_(previous_irql < DISPATCH_LEVEL, _IRQL_restores_) KIRQL previous_irql)
 {
     if (previous_irql < DISPATCH_LEVEL) {
         KeLowerIrql(previous_irql);
@@ -283,7 +266,7 @@ ebpf_epoch_initiate()
     for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
         cpu_entry->current_epoch = 1;
-        ebpf_list_initialize(&cpu_entry->thread_list);
+        ebpf_list_initialize(&cpu_entry->epoch_state_list);
         ebpf_list_initialize(&cpu_entry->free_list);
     }
 
@@ -349,7 +332,7 @@ ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
 
     ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[epoch_state->cpu_id];
     epoch_state->epoch = cpu_entry->current_epoch;
-    ebpf_list_insert_tail(&cpu_entry->thread_list, &epoch_state->epoch_list_entry);
+    ebpf_list_insert_tail(&cpu_entry->epoch_state_list, &epoch_state->epoch_list_entry);
 
     _ebpf_epoch_lower_to_previous_irql(epoch_state->irql_at_enter);
 }
@@ -361,22 +344,21 @@ ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
 void
 ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
 {
-    // Assume that the BPF program didn't change the IRQL.
-    KIRQL old_irql = epoch_state->irql_at_enter;
+    KIRQL old_irql = _ebpf_epoch_raise_to_dispatch_if_needed();
 
-    // Assert that the BPF program didn't change the IRQL.
-    ebpf_assert(KeGetCurrentIrql() == epoch_state->irql_at_enter);
+    // Assert the IRQL is the same as when ebpf_epoch_enter() was called.
+    ebpf_assert(old_irql == epoch_state->irql_at_enter);
 
-    if (old_irql < DISPATCH_LEVEL) {
-        old_irql = KeRaiseIrqlToDpcLevel();
-    }
-
-    uint32_t cpu_id = old_irql < DISPATCH_LEVEL ? ebpf_get_current_cpu() : epoch_state->cpu_id;
+    uint32_t cpu_id = ebpf_get_current_cpu();
 
     // Special case: Thread has moved to a different CPU since entering the epoch.
     if (cpu_id != epoch_state->cpu_id) {
-        // Signal the other CPU to remove the thread entry.
+        // Assert that the IRQL is < DISPATCH_LEVEL. If it is DISPATCH_LEVEL, then
+        // then the thread moved to a different CPU (by dropping below DISPATCH_LEVEL)
+        // and then called ebpf_epoch_exit(). This is not allowed.
         ebpf_assert(epoch_state->irql_at_enter < DISPATCH_LEVEL);
+
+        // Signal the other CPU to remove the thread entry.
         if (old_irql < DISPATCH_LEVEL) {
             KeLowerIrql(old_irql);
         }
@@ -386,9 +368,8 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
         message.message.exit_epoch.epoch_state = epoch_state;
 
         // The other CPU will call ebpf_epoch_exit() on our behalf.
-        // This will trigger the assert at the top of the function because
-        // the IRQL will be DISPATCH_LEVEL. Set the irql_at_enter to DISPATCH_LEVEL
-        // to avoid the assert.
+        // The epoch was entered at < DISPATCH_LEVEL but will now exit at DISPATCH_LEVEL. To prevent the assert above
+        // from triggering, we need to set the irql_at_enter to DISPATCH_LEVEL.
         KIRQL saved_irql = epoch_state->irql_at_enter;
         epoch_state->irql_at_enter = DISPATCH_LEVEL;
 
@@ -665,6 +646,9 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
     }
 }
 
+/**
+ * @brief DPC that runs when a message is sent between CPUs.
+ */
 typedef void (*ebpf_epoch_messenger_worker_t)(
     _In_ KDPC* dpc,
     _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry,
@@ -672,19 +656,20 @@ typedef void (*ebpf_epoch_messenger_worker_t)(
     uint32_t current_cpu);
 
 /**
- * @brief This message is sent to each CPU to propose a release epoch. The first CPU
- * computes the minimum epoch and sends a message to the next CPU. The last CPU
- * sends a EBPF_EPOCH_CPU_MESSAGE_TYPE_COMMIT_RELEASE_EPOCH to the first CPU with
- * the minimum epoch.
+ * @brief Compute the next proposed release epoch and send it to the next CPU.
+ * Message first is sent to CPU 0.
+ * CPU == 0 declares the new current epoch and proposes it as the release epoch.
+ * CPU != 0 sets current epoch to the new current epoch.
+ * Each CPU then queries the epoch for each thread queued on that CPU and sets the proposed release epoch in the message
+ * to the minimum of the local minima and the minima in the message. The message is then forwarded to the next CPU. Non
+ * last CPU forwards the message to the next CPU. The last CPU then sends a
+ * EBPF_EPOCH_CPU_MESSAGE_TYPE_COMMIT_RELEASE_EPOCH message to CPU 0 with the final proposed release epoch.
  *
  * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to compute the epoch for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
  * @param[out] next_cpu Next CPU to send the message to.
- * @retval true Forward the message to the next CPU.
- * @retval false Do not forward the message to the next CPU.
- *
  */
 void
 _ebpf_epoch_messenger_propose_release_epoch(
@@ -695,8 +680,8 @@ _ebpf_epoch_messenger_propose_release_epoch(
 {
     UNREFERENCED_PARAMETER(dpc);
 
-    // Walk over each thread_entry in the thread_list and compute the minimum epoch.
-    ebpf_list_entry_t* entry = cpu_entry->thread_list.Flink;
+    // Walk over each thread_entry in the epoch_state_list and compute the minimum epoch.
+    ebpf_list_entry_t* entry = cpu_entry->epoch_state_list.Flink;
     ebpf_epoch_state_t* epoch_state;
     uint32_t next_cpu;
 
@@ -717,7 +702,7 @@ _ebpf_epoch_messenger_propose_release_epoch(
     // Previous CPU's minimum epoch.
     uint64_t minimum_epoch = message->message.propose_epoch.proposed_release_epoch;
 
-    while (entry != &cpu_entry->thread_list) {
+    while (entry != &cpu_entry->epoch_state_list) {
         epoch_state = CONTAINING_RECORD(entry, ebpf_epoch_state_t, epoch_list_entry);
         minimum_epoch = min(minimum_epoch, epoch_state->epoch);
         entry = entry->Flink;
@@ -742,17 +727,22 @@ _ebpf_epoch_messenger_propose_release_epoch(
 }
 
 /**
- * @brief Commit the release epoch and release any memory that is associated with
- * epochs that are older than the released epoch.
+ * @brief Commit the release epoch and send it to the next CPU.
+ * Message is sent to CPU 0.
+ * Each CPU sets its released epoch to the proposed release epoch minus 1.
+ * Each CPU then:
+ * 1. Clears the timer-armed flag.
+ * 2. Sets the released epoch to the proposed release epoch minus 1.
+ * 3. Releases any items in the free list that are eligible for reclamation.
+ * 4. Rearms the timer if need.
+ * 5. Forwards the message to the next CPU.
+ * The last CPU then sends a EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_EPOCH_COMPLETE message to CPU 0.
  *
  * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to rearm the timer for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
  * @param[out] next_cpu Next CPU to send the message to.
- * @retval true Forward the message to the next CPU.
- * @retval false Do not forward the message to the next CPU.
- *
  */
 void
 _ebpf_epoch_messenger_commit_release_epoch(
@@ -783,7 +773,11 @@ _ebpf_epoch_messenger_commit_release_epoch(
 }
 
 /**
- * @brief Mark the release epoch computation as complete.
+ * @brief Complete the release epoch computation and allow the next epoch computation to start.
+ * EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_EPOCH_COMPLETE message:
+ * Message is sent only to CPU 0.
+ * CPU 0 clears the epoch computation in progress flag and signals the KEVENT associated with the message to signal any
+ * waiting threads that the operation is completed.
  *
  * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to mark the computation as complete for.
@@ -792,7 +786,6 @@ _ebpf_epoch_messenger_commit_release_epoch(
  * @param[out] next_cpu Next CPU to send the message to.
  * @retval true Forward the message to the next CPU.
  * @retval false Do not forward the message to the next CPU.
- *
  */
 void
 _ebpf_epoch_messenger_compute_epoch_complete(
@@ -812,7 +805,11 @@ _ebpf_epoch_messenger_compute_epoch_complete(
 }
 
 /**
- * @brief Call ebpf_epoch_exit() on behalf of the other CPU.
+ * @brief Remove the provided thread from this CPU's thread list and signal the completion event.
+ * EBPF_EPOCH_CPU_MESSAGE_TYPE_EXIT_EPOCH message:
+ * Message is sent from a thread that is exiting the epoch to the CPU that ebpf_epoch_enter was called on.
+ * The CPU removes the ebpf_epoch_state_t from the per-CPU thread list and signals the KEVENT associated with the
+ * message to signal any waiting threads that the operation is completed.
  *
  * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to call ebpf_epoch_exit() for.
@@ -838,8 +835,10 @@ _ebpf_epoch_messenger_exit_epoch(
 }
 
 /**
- * @brief Set the _ebpf_epoch_cpu_entry_t.rundown_in_progress flag to true and send the message to the next CPU. If this
- * is the last CPU, then signal the caller that rundown is complete.
+ * @brief Message to notify each CPU that rundown is in progress.
+ * EBPF_EPOCH_CPU_MESSAGE_TYPE_RUNDOWN_IN_PROGRESS message:
+ * Message is sent to each CPU to notify it that epoch code is shutting down and that no future timers should be armed
+ * and future messages should be ignored.
  *
  * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to set the flag for.
@@ -848,7 +847,6 @@ _ebpf_epoch_messenger_exit_epoch(
  * @param[out] next_cpu Next CPU to send the message to.
  * @retval true Forward the message to the next CPU.
  * @retval false Do not forward the message to the next CPU.
- *
  */
 void
 _ebpf_epoch_messenger_rundown_in_progress(
@@ -878,7 +876,9 @@ _ebpf_epoch_messenger_rundown_in_progress(
 }
 
 /**
- * @brief Check if the free list is empty and signal the caller.
+ * @brief Message to query if the free list is empty.
+ * EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY message:
+ * Message is sent to each CPU to query if it's local free list is empty.
  *
  * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to check.
