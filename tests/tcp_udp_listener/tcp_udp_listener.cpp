@@ -25,6 +25,10 @@ _get_protocol_from_string(std::string protocol)
 void
 create_listener(_Inout_ receiver_socket_t* receiver_socket)
 {
+    std::string response;
+    char redirect_context_buffer[REDIRECT_CONTEXT_BUFFER_SIZE] = "\0";
+    uint32_t redirect_context_size = 0;
+
     _global_counter++;
     // Post a receive. Wait for client to connect.
     printf("=====================================\n");
@@ -37,9 +41,6 @@ create_listener(_Inout_ receiver_socket_t* receiver_socket)
     // Query for the redirect record.
     // This is expected to only be valid for local redirections.
     // If not present, use the generic SERVER_MESSAGE response.
-    std::string response;
-    char redirect_context_buffer[REDIRECT_CONTEXT_BUFFER_SIZE];
-    uint32_t redirect_context_size = 0;
     if (receiver_socket->query_redirect_context(
             &redirect_context_buffer, REDIRECT_CONTEXT_BUFFER_SIZE, redirect_context_size)) {
         response = SERVER_MESSAGE + std::to_string(_local_port);
