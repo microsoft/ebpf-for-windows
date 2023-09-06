@@ -289,8 +289,12 @@ function Invoke-CICDPerformanceTests
     # Extract the performance test zip file.
     Expand-Archive -Path .\bpf_performance.zip -DestinationPath .\bpf_performance -Force
     Set-Location bpf_performance
+    # Stop any existing tracing.
+    wpr.exe -cancel
+    # Capture CPU profile.
     wpr.exe -start CPU
     RelWithDebInfo\bpf_performance_runner.exe -i tests.yml -e .sys -r | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
+    # Stop and save the trace.
     wpr.exe -stop $WorkingDirectory\bpf_performance.etl
 
     Pop-Location
