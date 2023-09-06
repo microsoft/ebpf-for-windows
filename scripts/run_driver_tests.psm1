@@ -269,7 +269,9 @@ function Invoke-CICDStressTests
 
 function Invoke-CICDPerformanceTests
 {
-    param([parameter(Mandatory = $true)][bool] $VerboseLogs)
+    param(
+        [parameter(Mandatory = $true)][bool] $VerboseLogs,
+        [parameter(Mandatory = $true)][bool] $CaptureProfile)
     Push-Location $WorkingDirectory
 
     Write-Log "Executing eBPF kernel mode performance tests."
@@ -287,7 +289,9 @@ function Invoke-CICDPerformanceTests
     # Extract the performance test zip file.
     Expand-Archive -Path .\bpf_performance.zip -DestinationPath .\bpf_performance -Force
     Set-Location bpf_performance
-    RelWithDebInfo\bpf_performance_runner.exe -i tests.yml -e .sys -r | Tee-Object -FilePath ..\bpf_performance_native.log
+    wpr.exe -start CPU
+    RelWithDebInfo\bpf_performance_runner.exe -i tests.yml -e .sys -r | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
+    wpr.exe -stop $WorkingDirectory\bpf_performance.etl
 
     Pop-Location
 }

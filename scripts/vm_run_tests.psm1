@@ -6,7 +6,8 @@ param ([Parameter(Mandatory=$True)] [string] $Admin,
        [Parameter(Mandatory=$True)] [string] $StandardUser,
        [Parameter(Mandatory=$True)] [SecureString] $StandardUserPassword,
        [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-       [Parameter(Mandatory=$True)] [string] $LogFileName)
+       [Parameter(Mandatory=$True)] [string] $LogFileName,
+       [Parameter(Mandatory=$True)] [bool] $CaptureProfile)
 
 Push-Location $WorkingDirectory
 
@@ -32,7 +33,8 @@ function Invoke-CICDTestsOnVM
               [Parameter(Mandatory=$True)] [bool] $VerboseLogs,
               [Parameter(Mandatory=$True)] [bool] $Coverage,
               [parameter(Mandatory=$True)][string] $TestMode,
-              [parameter(Mandatory=$True)][bool] $RestartExtension)
+              [parameter(Mandatory=$True)][bool] $RestartExtension,
+              [parameter(Mandatory=$True)][bool] $CaptureProfile)
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
@@ -49,7 +51,7 @@ function Invoke-CICDTestsOnVM
                     -RestartExtension $RestartExtension 2>&1 | Write-Log
             }
             "performance" {
-                Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs 2>&1 | Write-Log
+                Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs -CaptureProfile $CaptureProfile 2>&1 | Write-Log
             }
             default {
                 throw "Invalid test mode: $TestMode"
