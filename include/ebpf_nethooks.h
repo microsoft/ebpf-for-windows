@@ -183,11 +183,13 @@ EBPF_HELPER(uint64_t, bpf_sock_addr_get_current_pid_tgid, (bpf_sock_addr_t * ctx
  * @param[in] data Pointer to data to store.
  * @param[in] data_size The size of the data to store.
  *
+ * @retval 0 The operation was successful.
+ * @retval <0 A failure occurred.
  */
-EBPF_HELPER(void, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, char* data, uint32_t data_size));
+EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, void* data, uint32_t data_size));
 #ifndef __doxygen
 #define bpf_sock_addr_set_redirect_context \
-    ((bpf_sock_addr_set_redirect_context_t)BPF_FUNC_bpf_sock_addr_set_redirect_context)
+    ((bpf_sock_addr_set_redirect_context_t)BPF_FUNC_sock_addr_set_redirect_context)
 #endif
 
 /**

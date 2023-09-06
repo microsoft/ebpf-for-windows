@@ -179,7 +179,8 @@ typedef struct _net_ebpf_bpf_sock_addr
     TOKEN_ACCESS_INFORMATION* access_information;
     uint64_t process_id;
     uint32_t flags;
-    char* redirect_context;
+    net_ebpf_extension_hook_id_t hook_id;
+    void* redirect_context;
     uint32_t redirect_context_size;
 } net_ebpf_sock_addr_t;
 
@@ -260,12 +261,38 @@ _ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx)
     return logon_id;
 }
 
-static void
-_ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ char* data, _In_ uint32_t data_size)
+static int
+_ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void* data, _In_ uint32_t data_size)
 {
+    int return_value = 0;
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    void* redirect_context = NULL;
+
+    // This function is only supported at the connect redirect layer
+    if (sock_addr_ctx->hook_id != EBPF_HOOK_ALE_CONNECT_REDIRECT_V4 &&
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_CONNECT_REDIRECT_V6) {
+        return_value = -1;
+        goto Exit;
+    }
+
+    // Allocate buffer to store redirect context
+    redirect_context = ExAllocatePoolUninitialized(NonPagedPoolNx, data_size, NET_EBPF_EXTENSION_POOL_TAG);
+    if (redirect_context == NULL) {
+        return_value = -1;
+        goto Exit;
+    }
+    memcpy(redirect_context, data, data_size);
+
+    // Set redirect context
+    sock_addr_ctx->redirect_context = redirect_context;
     sock_addr_ctx->redirect_context_size = data_size;
-    sock_addr_ctx->redirect_context = data;
+
+Exit:
+    if (return_value == -1) {
+        NET_EBPF_EXT_LOG_FUNCTION_ERROR(return_value);
+    }
+
+    return return_value;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL) static NTSTATUS _perform_access_check(
@@ -420,7 +447,8 @@ _ebpf_sock_addr_context_destroy(
 // SOCK_ADDR Program Information NPI Provider.
 //
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_get_current_pid_tgid};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {
+    (void*)_ebpf_sock_addr_get_current_pid_tgid, (void*)_ebpf_sock_addr_set_redirect_context};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_COUNT_OF(_ebpf_sock_addr_specific_helper_functions), (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
@@ -1063,6 +1091,8 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
 
     FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
 
+    sock_addr_ctx->hook_id = hook_id;
+
     // Copy IP address fields.
     if ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4) ||
         (hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V4)) {
@@ -1365,6 +1395,9 @@ _net_ebpf_ext_process_redirect_verdict(
 
         connect_request->localRedirectContext = sock_addr_ctx->redirect_context;
         connect_request->localRedirectContextSize = sock_addr_ctx->redirect_context_size;
+        // Ownership transferred to WFP
+        sock_addr_ctx->redirect_context = NULL;
+        sock_addr_ctx->redirect_context_size = 0;
     }
 
 Exit:
@@ -1660,6 +1693,10 @@ Exit:
 
     if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
+    }
+
+    if (net_ebpf_sock_addr_ctx.redirect_context != NULL) {
+        ExFreePool(net_ebpf_sock_addr_ctx.redirect_context);
     }
 
     NET_EBPF_EXT_LOG_EXIT();

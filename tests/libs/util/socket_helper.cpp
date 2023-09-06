@@ -128,7 +128,8 @@ _base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_
 
 _client_socket::_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
     : _base_socket{_sock_type, _protocol, _port, _family}, overlapped{}, receive_posted(false)
-{}
+{
+}
 
 void
 _client_socket::close()
@@ -256,7 +257,8 @@ _datagram_client_socket::send_message_to_remote_host(
 
 void
 _datagram_client_socket::cancel_send_message()
-{}
+{
+}
 
 void
 _datagram_client_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)
@@ -431,6 +433,21 @@ void
 _server_socket::complete_async_receive(bool timeout_expected)
 {
     complete_async_receive(1000, timeout_expected);
+}
+
+int
+_server_socket::query_redirect_context(_Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size)
+{
+    return WSAIoctl(
+        socket,
+        SIO_QUERY_WFP_CONNECTION_REDIRECT_CONTEXT,
+        nullptr,
+        0,
+        buffer,
+        static_cast<unsigned long>(buffer_size),
+        reinterpret_cast<unsigned long*>(&redirect_context_size),
+        nullptr,
+        nullptr);
 }
 
 _datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, uint16_t _port)

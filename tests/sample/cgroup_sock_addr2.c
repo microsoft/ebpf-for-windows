@@ -50,11 +50,18 @@ update_audit_map_entry(bpf_sock_addr_t* ctx)
     bpf_map_update_elem(&audit_map, &key, &entry, 0);
 }
 
+// __inline int
+// set_redirect_context(bpf_sock_addr_t* ctx)
+// {
+//     return bpf_sock_addr_set_redirect_context(ctx, REDIRECT_CONTEXT_MESSAGE, sizeof(REDIRECT_CONTEXT_MESSAGE));
+// }
+
 __inline int
 redirect_v4(bpf_sock_addr_t* ctx)
 {
     int verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     destination_entry_t entry = {0};
+
     entry.destination_ip.ipv4 = ctx->user_ip4;
     entry.destination_port = ctx->user_port;
     entry.protocol = ctx->protocol;
@@ -66,6 +73,13 @@ redirect_v4(bpf_sock_addr_t* ctx)
     if (ctx->family != AF_INET) {
         return verdict;
     }
+
+    if (bpf_sock_addr_set_redirect_context(ctx, REDIRECT_CONTEXT_MESSAGE, sizeof(REDIRECT_CONTEXT_MESSAGE)) < 0) {
+        return verdict;
+    }
+    // if (set_redirect_context(ctx) < 0) {
+    //     return verdict;
+    // }
 
     // Find the entry in the policy map.
     destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
@@ -95,6 +109,13 @@ redirect_v6(bpf_sock_addr_t* ctx)
     if (ctx->family != AF_INET6) {
         return verdict;
     }
+
+    if (bpf_sock_addr_set_redirect_context(ctx, REDIRECT_CONTEXT_MESSAGE, sizeof(REDIRECT_CONTEXT_MESSAGE)) < 0) {
+        return verdict;
+    }
+    // if (set_redirect_context(ctx) < 0) {
+    //     return verdict;
+    // }
 
     // Copy the IPv6 address. Note this has a design flaw for scoped IPv6 addresses
     // where the scope id or interface is not provided, so the policy can match the
