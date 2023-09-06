@@ -467,7 +467,7 @@ jobs:
     with:
       name: km_mt_stress_tests_restart_extension
       pre_test: .\setup_ebpf_cicd_stress_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -RestartExtension $true
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
@@ -482,7 +482,7 @@ jobs:
     with:
       name: km_performance
       pre_test: .\setup_ebpf_cicd_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -CaptureProfile $true
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
@@ -494,7 +494,7 @@ jobs:
     with:
       name: km_performance
       pre_test: .\setup_ebpf_cicd_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -CaptureProfile $true
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_tests

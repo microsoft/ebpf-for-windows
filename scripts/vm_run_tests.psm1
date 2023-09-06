@@ -21,8 +21,7 @@ function Invoke-CICDTestsOnVM
           [parameter(Mandatory=$false)] [bool] $VerboseLogs = $false,
           [parameter(Mandatory=$false)] [bool] $Coverage = $false,
           [parameter(Mandatory=$false)][string] $TestMode = "CI/CD",
-          [parameter(Mandatory=$false)][bool] $RestartExtension = $false,
-          [parameter(Mandatory=$false)][bool] $CaptureProfile = $false)
+          [parameter(Mandatory=$false)][string[]] $Options = @())
 
     Write-Log "Running eBPF $TestMode tests on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -33,8 +32,7 @@ function Invoke-CICDTestsOnVM
               [Parameter(Mandatory=$True)] [bool] $VerboseLogs,
               [Parameter(Mandatory=$True)] [bool] $Coverage,
               [parameter(Mandatory=$True)][string] $TestMode,
-              [parameter(Mandatory=$True)][bool] $RestartExtension,
-              [parameter(Mandatory=$True)][bool] $CaptureProfile)
+              [parameter(Mandatory=$True)][string[]] $Options)
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
@@ -47,10 +45,14 @@ function Invoke-CICDTestsOnVM
                 Invoke-CICDTests -VerboseLogs $VerboseLogs -Coverage $Coverage 2>&1 | Write-Log
             }
             "stress" {
+                # Set RestartExtension to true if options contains that string
+                $RestartExtension = $Options -contains "RestartExtension"
                 Invoke-CICDStressTests -VerboseLogs $VerboseLogs -Coverage $Coverage `
                     -RestartExtension $RestartExtension 2>&1 | Write-Log
             }
             "performance" {
+                # Set CaptureProfle to true if options contains that string
+                $CaptureProfile = $Options -contains "CaptureProfile"
                 Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs -CaptureProfile $CaptureProfile 2>&1 | Write-Log
             }
             default {
@@ -58,7 +60,7 @@ function Invoke-CICDTestsOnVM
             }
         }
 
-    } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs, $Coverage, $TestMode, $RestartExtension, $CaptureProfile) -ErrorAction Stop
+    } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs, $Coverage, $TestMode, $Options) -ErrorAction Stop
 }
 
 function Add-eBPFProgramOnVM
