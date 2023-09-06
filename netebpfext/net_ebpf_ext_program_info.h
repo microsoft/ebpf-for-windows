@@ -47,7 +47,7 @@ static const ebpf_helper_function_prototype_t _sock_addr_ebpf_extension_helper_f
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
     {BPF_FUNC_sock_addr_set_redirect_context,
-     "bpf_func_sock_addr_set_redirect_context",
+     "bpf_sock_addr_set_redirect_context",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 
