@@ -71,18 +71,21 @@ typedef enum _ebpf_epoch_cpu_message_type
                                                        ///< thread linked to this CPU and sets the proposed release
                                                        ///< epoch in the message to the minimum of the local minima and
                                                        ///< the minima in the message. The message is then forwarded to
-                                                       ///< the next CPU. The last CPU then sends an epoch commit message
-                                                       ///< to CPU 0 with the final proposed release epoch.
+                                                       ///< the next CPU. The last CPU then sends an epoch commit
+                                                       ///< message to CPU 0 with the final proposed release epoch.
 
     EBPF_EPOCH_CPU_MESSAGE_TYPE_COMMIT_RELEASE_EPOCH, ///< This message is sent to CPU 0 to commit the proposed release
                                                       ///< epoch.
                                                       ///< Each CPU then:
                                                       ///< 1. Clears the timer-armed flag.
-                                                      ///< 2. Sets the released epoch to the proposed release epoch minus 1.
-                                                      ///< 3. Releases any items in the free list that are eligible for reclamation.
+                                                      ///< 2. Sets the released epoch to the proposed release epoch
+                                                      ///< minus 1.
+                                                      ///< 3. Releases any items in the free list that are eligible for
+                                                      ///< reclamation.
                                                       ///< 4. Rearms the timer if need.
                                                       ///< 5. Forwards the message to the next CPU.
-                                                      ///< The last CPU then sends a epoch computation complete message to CPU 0.
+                                                      ///< The last CPU then sends a epoch computation complete message
+                                                      ///< to CPU 0.
     EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_EPOCH_COMPLETE, ///< This message is sent only to CPU 0 to signal that epoch
                                                         ///< computation is complete.
     EBPF_EPOCH_CPU_MESSAGE_TYPE_EXIT_EPOCH, ///< This message is used when a thread running with IRQL < DISPATCH calls
@@ -661,14 +664,13 @@ typedef void (*ebpf_epoch_messenger_worker_t)(
  * CPU != 0 sets current epoch to the new current epoch.
  * Each CPU then queries the epoch for each thread queued on that CPU and sets the proposed release epoch in the message
  * to the minimum of the local minima and the minima in the message. The message is then forwarded to the next CPU. Non
- * last CPU forwards the message to the next CPU. The last CPU then sends a
+ * last CPU forwards the message to the next CPU. The last CPU then sends an
  * EBPF_EPOCH_CPU_MESSAGE_TYPE_COMMIT_RELEASE_EPOCH message to CPU 0 with the final proposed release epoch.
  *
  * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to compute the epoch for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
- * @param[out] next_cpu Next CPU to send the message to.
  */
 void
 _ebpf_epoch_messenger_propose_release_epoch(
@@ -741,7 +743,6 @@ _ebpf_epoch_messenger_propose_release_epoch(
  * @param[in] cpu_entry CPU entry to rearm the timer for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
- * @param[out] next_cpu Next CPU to send the message to.
  */
 void
 _ebpf_epoch_messenger_commit_release_epoch(
@@ -782,9 +783,6 @@ _ebpf_epoch_messenger_commit_release_epoch(
  * @param[in] cpu_entry CPU entry to mark the computation as complete for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
- * @param[out] next_cpu Next CPU to send the message to.
- * @retval true Forward the message to the next CPU.
- * @retval false Do not forward the message to the next CPU.
  */
 void
 _ebpf_epoch_messenger_compute_epoch_complete(
@@ -814,9 +812,6 @@ _ebpf_epoch_messenger_compute_epoch_complete(
  * @param[in] cpu_entry CPU entry to call ebpf_epoch_exit() for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
- * @param[out] next_cpu Next CPU to send the message to.
- * @retval true Forward the message to the next CPU.
- * @retval false Do not forward the message to the next CPU.
  */
 void
 _ebpf_epoch_messenger_exit_epoch(
@@ -843,9 +838,6 @@ _ebpf_epoch_messenger_exit_epoch(
  * @param[in] cpu_entry CPU entry to set the flag for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
- * @param[out] next_cpu Next CPU to send the message to.
- * @retval true Forward the message to the next CPU.
- * @retval false Do not forward the message to the next CPU.
  */
 void
 _ebpf_epoch_messenger_rundown_in_progress(
@@ -883,9 +875,6 @@ _ebpf_epoch_messenger_rundown_in_progress(
  * @param[in] cpu_entry CPU entry to check.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
- * @param[out] next_cpu Next CPU to send the message to.
- * @retval true Forward the message to the next CPU.
- * @retval false Do not forward the message to the next CPU.
  */
 void
 _ebpf_epoch_messenger_is_free_list_empty(
