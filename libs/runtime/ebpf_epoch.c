@@ -8,8 +8,7 @@
  * @brief Epoch Base Memory Reclamation.
  * Each thread that accesses memory that needs to be reclaimed is associated with an epoch via ebpf_epoch_enter() and
  * ebpf_epoch_exit(). Each CPU maintains a list of threads that are currently in an epoch. When a thread enters an
- * epoch, it is added to the per-CPU list. When a thread exits an epoch, it is removed from the per-CPU list. When a
- * thread exits an epoch, the CPU checks if the per-CPU list is empty. If it is empty, then the CPU checks if the
+ * epoch, it is added to the per-CPU list. When a thread exits an epoch, it is removed from the per-CPU list and the CPU checks if the per-CPU list is empty. If it is empty, then the CPU checks if the
  * timer is armed. If the timer is not armed, then the CPU arms the timer. When the timer expires, the release epoch
  * computation is initiated. The release epoch computation is a two-phase process. First, each CPU determines the
  * minimum epoch of all threads on the CPU. Second, the minimum epoch is committed as the release epoch and any memory
@@ -18,7 +17,7 @@
  * the message to the minimum of the local minima and the minima in the message. The message is then forwarded to the
  * next CPU. The last CPU then sends an epoch commit message to CPU 0 with the final proposed release epoch. CPU 0 then
  * commits the proposed release epoch and releases any memory that is older than the release epoch and forwards the
- * message to the next CPU. The last CPU then sends a epoch computation complete message to CPU 0 which permits the
+ * message to the next CPU. The last CPU then sends an epoch computation complete message to CPU 0 which permits the
  * timer to be submit another release epoch computation.
  */
 
@@ -84,7 +83,7 @@ typedef enum _ebpf_epoch_cpu_message_type
                                                       ///< reclamation.
                                                       ///< 4. Rearms the timer if need.
                                                       ///< 5. Forwards the message to the next CPU.
-                                                      ///< The last CPU then sends a epoch computation complete message
+                                                      ///< The last CPU then sends an epoch computation complete message
                                                       ///< to CPU 0.
     EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_EPOCH_COMPLETE, ///< This message is sent only to CPU 0 to signal that epoch
                                                         ///< computation is complete.
@@ -869,7 +868,7 @@ _ebpf_epoch_messenger_rundown_in_progress(
 /**
  * @brief Message to query if the free list is empty.
  * EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY message:
- * Message is sent to each CPU to query if it's local free list is empty.
+ * Message is sent to each CPU to query if its local free list is empty.
  *
  * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to check.
