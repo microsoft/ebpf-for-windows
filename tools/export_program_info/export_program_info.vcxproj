@@ -115,7 +115,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USER_MODE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\sample\ext\drv;$(OutDir);$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)\libs\api_common;$(SolutionDir)include\user;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\sample\ext\drv;$(OutDir);$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)\libs\api_common;$(SolutionDir)include\user;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -138,7 +138,7 @@ $(OutputPath)export_program_info.exe</Command>
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USER_MODE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\sample\ext\drv;$(OutDir);$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)\libs\api_common;$(SolutionDir)include\user;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\sample\ext\drv;$(OutDir);$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)\libs\api_common;$(SolutionDir)include\user;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -163,7 +163,7 @@ $(OutputPath)export_program_info.exe</Command>
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USER_MODE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\sample\ext\drv;$(OutDir);$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)\libs\api_common;$(SolutionDir)include\user;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\sample\ext\drv;$(OutDir);$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)\libs\api_common;$(SolutionDir)include\user;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -188,7 +188,7 @@ $(OutputPath)export_program_info.exe</Command>
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USER_MODE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\sample\ext\drv;$(OutDir);$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)\libs\api_common;$(SolutionDir)include\user;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\sample\ext\drv;$(OutDir);$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)\libs\api_common;$(SolutionDir)include\user;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -213,7 +213,7 @@ $(OutputPath)export_program_info.exe</Command>
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USER_MODE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\sample\ext\drv;$(OutDir);$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)\libs\api_common;$(SolutionDir)include\user;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\sample\ext\drv;$(OutDir);$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)\libs\api_common;$(SolutionDir)include\user;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -239,7 +239,6 @@ $(OutputPath)export_program_info.exe</Command>
   <ItemGroup>
     <ClCompile Include="..\..\libs\api_common\store_helper_internal.cpp" />
     <ClCompile Include="..\..\libs\api_common\utilities.cpp" />
-    <ClCompile Include="..\..\libs\platform\ebpf_tracelog.c" />
     <ClCompile Include="export_program_info.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -247,11 +246,11 @@ $(OutputPath)export_program_info.exe</Command>
     <ClInclude Include="export_program_info.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\external\usersim\src\usersim.vcxproj">
-      <Project>{030a7ac6-14dc-45cf-af34-891057ab1402}</Project>
+    <ProjectReference Include="..\..\external\usersim\cxplat\src\cxplat_winuser\cxplat_winuser.vcxproj">
+      <Project>{f2ca70ab-af9a-47d1-9da9-94d5ab573ac2}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\libs\platform\user\platform_user.vcxproj">
-      <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
+    <ProjectReference Include="..\..\libs\shared\user\shared_user.vcxproj">
+      <Project>{9388dd45-7941-45d7-b4ff-bc00f550af17}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\libs\store_helper\user\ebpf_store_helper_um.vcxproj">
       <Project>{aa933b9f-b5d8-4aa8-ac18-98fe1a161e8a}</Project>

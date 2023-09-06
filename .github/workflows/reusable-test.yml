@@ -79,7 +79,7 @@ jobs:
       TEST_COMMAND: ${{inputs.test_command}}
       PRE_COMMAND: ${{inputs.pre_test}}
       POST_COMMAND: ${{inputs.post_test}}
-      USERSIM_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
+      CXPLAT_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
       DUMP_PATH: c:/dumps/x64/${{matrix.configurations}}
       TEST_TIMEOUT: 3600 # 1 hour timeout for tests.
 

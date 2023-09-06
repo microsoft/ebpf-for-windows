@@ -6,6 +6,9 @@
 #include "ebpf_api.h"
 #include "ebpf_tracelog.h"
 #include "platform.h"
+#define FALSE 0
+#define TRUE 1
+#include <winioctl.h>
 
 // Device type
 #define EBPF_IOCTL_TYPE FILE_DEVICE_NETWORK

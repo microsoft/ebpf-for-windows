@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "cxplat.h"
 #include "ebpf_object.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
@@ -123,7 +124,7 @@ extern "C"
      * @retval EBPF_NOT_FOUND No object was pinned to the provided path.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_core_get_pinned_object(_In_ const ebpf_utf8_string_t* path, _Out_ ebpf_handle_t* handle);
+    ebpf_core_get_pinned_object(_In_ const cxplat_utf8_string_t* path, _Out_ ebpf_handle_t* handle);
 
     /**
      * @brief Pin or unpin an object to the provided path. If supplied handle is
@@ -138,7 +139,7 @@ extern "C"
      * @retval EBPF_NOT_FOUND No object was pinned to the provided path.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const ebpf_utf8_string_t* path);
+    ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const cxplat_utf8_string_t* path);
 
     /**
      * @brief Create a new map object.
@@ -153,7 +154,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_core_create_map(
-        _In_ const ebpf_utf8_string_t* map_name,
+        _In_ const cxplat_utf8_string_t* map_name,
         _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
         ebpf_handle_t inner_map_handle,
         _Out_ ebpf_handle_t* map_handle);

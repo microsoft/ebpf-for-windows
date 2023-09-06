@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #include "api_common.hpp"
-#include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_result.h"
+#include "ebpf_shared_framework.h"
 #include "platform.h"
 #include "platform.hpp"
 #include "windows_platform_common.hpp"
