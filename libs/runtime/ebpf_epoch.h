@@ -40,14 +40,14 @@ extern "C"
      * @brief Called prior to touching memory with lifetime under epoch control.
      * @param[in] epoch_state Pointer to epoch state to be filled in.
      */
-    void
+    _IRQL_requires_same_ void
     ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state);
 
     /**
      * @brief Called after touching memory with lifetime under epoch control.
      * @param[in] epoch_state Pointer to epoch state returned by ebpf_epoch_enter.
      */
-    void
+    _IRQL_requires_same_ void
     ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state);
 
     /**

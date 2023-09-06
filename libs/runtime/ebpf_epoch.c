@@ -7,18 +7,16 @@
 /**
  * @brief Epoch Base Memory Reclamation.
  * Each thread that accesses memory that needs to be reclaimed is associated with an epoch via ebpf_epoch_enter() and
- * ebpf_epoch_exit(). Each CPU maintains a list of threads that are currently in an epoch. When a thread enters an
- * epoch, it is added to the per-CPU list. When a thread exits an epoch, it is removed from the per-CPU list and the CPU checks if the per-CPU list is empty. If it is empty, then the CPU checks if the
- * timer is armed. If the timer is not armed, then the CPU arms the timer. When the timer expires, the release epoch
- * computation is initiated. The release epoch computation is a two-phase process. First, each CPU determines the
- * minimum epoch of all threads on the CPU. Second, the minimum epoch is committed as the release epoch and any memory
- * that is older than the release epoch is released. The release epoch computation is initiated by sending a message
- * to CPU 0. Each CPU then queries the epoch for each thread linked to this CPU and sets the proposed release epoch in
- * the message to the minimum of the local minima and the minima in the message. The message is then forwarded to the
- * next CPU. The last CPU then sends an epoch commit message to CPU 0 with the final proposed release epoch. CPU 0 then
- * commits the proposed release epoch and releases any memory that is older than the release epoch and forwards the
- * message to the next CPU. The last CPU then sends an epoch computation complete message to CPU 0 which permits the
- * timer to be submit another release epoch computation.
+ * ebpf_epoch_exit().
+ * Each CPU maintains a list of threads that are currently in an epoch. When a thread enters an epoch, it is added to
+ * the per-CPU list. When a thread exits an epoch, it is removed from the per-CPU list and the CPU checks if the per-CPU
+ * list is empty. If it is empty, then the CPU checks if the timer is armed. If the timer is not armed, then the CPU
+ * arms the timer. When the timer expires, the release epoch computation is initiated. The release epoch computation is
+ * a three-phase process.
+ * 1) Each CPU determines the minimum epoch of all threads on the CPU.
+ * 2) The minimum epoch is committed as the release epoch and any memory that is older than the release epoch is
+ * released.
+ * 3) The epoch_computation_in_progress flag is cleared which allows the epoch computation to be initiated  again.
  */
 
 /**
@@ -89,8 +87,8 @@ typedef enum _ebpf_epoch_cpu_message_type
                                                         ///< computation is complete.
     EBPF_EPOCH_CPU_MESSAGE_TYPE_EXIT_EPOCH, ///< This message is used when a thread running with IRQL < DISPATCH calls
                                             ///< ebpf_epoch_exit on a different CPU than ebpf_epoch_enter. It is sent
-                                            ///< during from the thread that is existing the epoch to the CPU that
-                                            ///< ebpf_epoch_enter was called on.
+                                            ///< from the CPU where the thread called ebpf_epoch_exit to the CPU where
+                                            ///< the thread called ebpf_epoch_enter.
     EBPF_EPOCH_CPU_MESSAGE_TYPE_RUNDOWN_IN_PROGRESS, ///< This message is sent to each CPU to notify it that epoch code
                                                      ///< is shutting down and that no future timers should be armed and
                                                      ///< future messages should be ignored.
@@ -203,7 +201,7 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
 _IRQL_requires_max_(APC_LEVEL) static void _ebpf_epoch_send_message_and_wait(
     _In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id);
 
-static void
+_IRQL_requires_same_ static void
 _ebpf_epoch_insert_in_free_list(_In_ ebpf_epoch_allocation_header_t* header);
 
 static _IRQL_requires_(DISPATCH_LEVEL) void _ebpf_epoch_arm_timer_if_needed(ebpf_epoch_cpu_entry_t* cpu_entry);
@@ -324,9 +322,10 @@ ebpf_epoch_terminate()
 }
 
 #pragma warning(push)
-#pragma warning(disable : 28167) // Not sure how to annotate that _ebpf_epoch_raise_to_dispatch_if_needed may raise
-// the IRQL.
-void
+#pragma warning( \
+    disable : 28166) // warning C28166: The function 'ebpf_epoch_enter' does not restore the IRQL to the value that was
+                     // current at function entry and is required to do so. IRQL was last set to 2 at line 334.
+_IRQL_requires_same_ void
 ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
 {
     epoch_state->irql_at_enter = _ebpf_epoch_raise_to_dispatch_if_needed();
@@ -341,9 +340,11 @@ ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
 #pragma warning(pop)
 
 #pragma warning(push)
-#pragma warning(disable : 28167) // Not sure how to annotate that _ebpf_epoch_raise_to_dispatch_if_needed may raise
+#pragma warning( \
+    disable : 28166) // warning C28166: The function 'ebpf_epoch_exit' does not restore the IRQL to the value that was
+                     // current at function entry and is required to do so. IRQL was last set to 2 at line 353.
 // the IRQL.
-void
+_IRQL_requires_same_ void
 ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
 {
     KIRQL old_irql = _ebpf_epoch_raise_to_dispatch_if_needed();
@@ -574,8 +575,10 @@ _IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_arm_timer_if_needed(ebpf
  * @param[in] header Header of item to insert.
  */
 #pragma warning(push)
-#pragma warning(disable : 28167) // Not sure how to annotate that _ebpf_epoch_raise_to_dispatch_if_needed may raise
-static void
+#pragma warning(disable : 28166) //  warning C28166: The function '_ebpf_epoch_insert_in_free_list' does not restore the
+                                 //  IRQL to the value that was current at function entry and is required to do so. IRQL
+                                 //  was last set to 2 at line 587.
+_IRQL_requires_same_ static void
 _ebpf_epoch_insert_in_free_list(_In_ ebpf_epoch_allocation_header_t* header)
 {
     KIRQL old_irql = _ebpf_epoch_raise_to_dispatch_if_needed();
