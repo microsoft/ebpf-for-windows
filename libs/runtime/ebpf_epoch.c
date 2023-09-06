@@ -78,11 +78,11 @@ typedef enum _ebpf_epoch_cpu_message_type
                                                       ///< epoch.
                                                       ///< Each CPU then:
                                                       ///< 1. Clears the timer-armed flag.
-    ///< 2. Sets the released epoch to the proposed release epoch minus 1.
-    ///< 3. Releases any items in the free list that are eligible for reclamation.
-    ///< 4. Rearms the timer if need.
-    ///< 5. Forwards the message to the next CPU.
-    ///< The last CPU then sends a epoch computation complete message to CPU 0.
+                                                      ///< 2. Sets the released epoch to the proposed release epoch minus 1.
+                                                      ///< 3. Releases any items in the free list that are eligible for reclamation.
+                                                      ///< 4. Rearms the timer if need.
+                                                      ///< 5. Forwards the message to the next CPU.
+                                                      ///< The last CPU then sends a epoch computation complete message to CPU 0.
     EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_EPOCH_COMPLETE, ///< This message is sent only to CPU 0 to signal that epoch
                                                         ///< computation is complete.
     EBPF_EPOCH_CPU_MESSAGE_TYPE_EXIT_EPOCH, ///< This message is used when a thread running with IRQL < DISPATCH calls
@@ -353,9 +353,8 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
 
     // Special case: Thread has moved to a different CPU since entering the epoch.
     if (cpu_id != epoch_state->cpu_id) {
-        // Assert that the IRQL is < DISPATCH_LEVEL. If it is DISPATCH_LEVEL, then
-        // then the thread moved to a different CPU (by dropping below DISPATCH_LEVEL)
-        // and then called ebpf_epoch_exit(). This is not allowed.
+        // Assert that the IRQL is < DISPATCH_LEVEL. If it is DISPATCH_LEVEL, then the thread moved to a different CPU
+        // (by dropping below DISPATCH_LEVEL) and calling ebpf_epoch_exit(). This is not allowed.
         ebpf_assert(epoch_state->irql_at_enter < DISPATCH_LEVEL);
 
         // Signal the other CPU to remove the thread entry.
