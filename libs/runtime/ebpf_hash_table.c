@@ -591,7 +591,8 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     ebpf_hash_table_t* table = NULL;
     size_t table_size = 0;
     // Select default values for the hash table.
-    size_t bucket_count = options->bucket_count ? options->bucket_count : EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT;
+    size_t bucket_count =
+        options->minimum_bucket_count ? options->minimum_bucket_count : EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT;
     void* (*allocate)(size_t size) = options->allocate ? options->allocate : ebpf_epoch_allocate;
     void (*free)(void* memory) = options->free ? options->free : ebpf_epoch_free;
 

@@ -43,7 +43,7 @@ ebpf_state_initiate()
     const ebpf_hash_table_creation_options_t options = {
         .key_size = sizeof(uint64_t),
         .value_size = sizeof(ebpf_state_entry_t),
-        .bucket_count = ebpf_get_cpu_count(),
+        .minimum_bucket_count = ebpf_get_cpu_count(),
     };
 
     return_value = ebpf_hash_table_create(&_ebpf_state_thread_table, &options);

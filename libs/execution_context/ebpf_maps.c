@@ -858,7 +858,7 @@ _create_hash_map_internal(
     const ebpf_hash_table_creation_options_t options = {
         .key_size = local_map->ebpf_map_definition.key_size,
         .value_size = local_map->ebpf_map_definition.value_size,
-        .bucket_count = local_map->ebpf_map_definition.max_entries,
+        .minimum_bucket_count = local_map->ebpf_map_definition.max_entries,
         .max_entries = local_map->ebpf_map_definition.max_entries,
         .extract_function = extract_function,
         .supplemental_value_size = supplemental_value_size,
