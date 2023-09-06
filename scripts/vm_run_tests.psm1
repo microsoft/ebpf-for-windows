@@ -6,8 +6,7 @@ param ([Parameter(Mandatory=$True)] [string] $Admin,
        [Parameter(Mandatory=$True)] [string] $StandardUser,
        [Parameter(Mandatory=$True)] [SecureString] $StandardUserPassword,
        [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-       [Parameter(Mandatory=$True)] [string] $LogFileName,
-       [Parameter(Mandatory=$True)] [bool] $CaptureProfile)
+       [Parameter(Mandatory=$True)] [string] $LogFileName)
 
 Push-Location $WorkingDirectory
 
@@ -22,7 +21,8 @@ function Invoke-CICDTestsOnVM
           [parameter(Mandatory=$false)] [bool] $VerboseLogs = $false,
           [parameter(Mandatory=$false)] [bool] $Coverage = $false,
           [parameter(Mandatory=$false)][string] $TestMode = "CI/CD",
-          [parameter(Mandatory=$false)][bool] $RestartExtension = $false)
+          [parameter(Mandatory=$false)][bool] $RestartExtension = $false,
+          [parameter(Mandatory=$false)][bool] $CaptureProfile = $false)
 
     Write-Log "Running eBPF $TestMode tests on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -58,7 +58,7 @@ function Invoke-CICDTestsOnVM
             }
         }
 
-    } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs, $Coverage, $TestMode, $RestartExtension) -ErrorAction Stop
+    } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs, $Coverage, $TestMode, $RestartExtension, $CaptureProfile) -ErrorAction Stop
 }
 
 function Add-eBPFProgramOnVM
