@@ -46,8 +46,8 @@ function DownloadAndUnpackEbpfRedistPackage {
         Rename-Item -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\eBPF-for-Windows-Redist.$packageVersion.nupkg" -NewName "eBPF-for-Windows-Redist.$packageVersion.nupkg.zip" | Out-Null
         Expand-Archive -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\eBPF-for-Windows-Redist.$packageVersion.nupkg.zip" -DestinationPath "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\temp" | Out-Null
 
-        # Copy the eBPF package to the target directory, and remove the temp folder.
-        Copy-Item -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\temp\package\bin" -Destination "$targetDirectory\v$packageVersion" -Recurse -Force | Out-Null
+        # Copy the eBPF package to the target directory (in a "bin" subfolder), and remove the temp folder.
+        Copy-Item -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\temp\package\bin" -Destination "$targetDirectory\v$packageVersion\bin" -Recurse -Force | Out-Null
         Remove-Item -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion" -Recurse -Force | Out-Null
     }
     catch {

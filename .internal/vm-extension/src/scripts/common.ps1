@@ -127,15 +127,17 @@ function Get-HandlerEnvironment {
         [string]$handlerEnvironmentFullPath = "$DefaultHandlerEnvironmentFilePath"
     )
 
-    Write-Log -level $LogLevelInfo -message "Get-HandlerEnvironment($handlerEnvironmentFullPath)"
-
     $res = 0
     if (Test-Path $handlerEnvironmentFullPath -PathType Leaf) {
         $jsonContent = Get-Content -Path $handlerEnvironmentFullPath -Raw
         $jsonContent = $jsonContent | ConvertFrom-Json
         $global:eBPFHandlerEnvObj = $jsonContent[0]
         if ($null -ne $global:eBPFHandlerEnvObj) {
+            # Set the global log file path.
             $global:LogFilePath = Join-Path -Path $($global:eBPFHandlerEnvObj.handlerEnvironment.logFolder) -ChildPath $LogFileName
+
+            # Only write to log when we have a valid object, including the log file path.
+            Write-Log -level $LogLevelInfo -message "Get-HandlerEnvironment($handlerEnvironmentFullPath)"
             Write-Log -level $LogLevelInfo -message "Log Folder: $($global:eBPFHandlerEnvObj.handlerEnvironment.logFolder)"
             Write-Log -level $LogLevelInfo -message "Log File Path: $LogFilePath"
             Write-Log -level $LogLevelInfo -message "Config Folder: $($global:eBPFHandlerEnvObj.handlerEnvironment.configFolder)"
@@ -147,11 +149,11 @@ function Get-HandlerEnvironment {
             Write-Log -level $LogLevelInfo -message "Host Resolver Address: $($global:eBPFHandlerEnvObj.handlerEnvironment.hostResolverAddress)"
             Write-Log -level $LogLevelInfo -message "Events Folder: $($global:eBPFHandlerEnvObj.handlerEnvironment.eventsFolder)"
         } else {
-            Write-Log -level $LogLevelInfo -message "$handlerEnvironmentFullPath does not contain a valid object."
+            Write-Error "$handlerEnvironmentFullPath does not contain a valid object."
             $res = 1
         }
     } else {
-        Write-Log -level $LogLevelError -message "$handlerEnvironmentFullPath file not found."
+        Write-Error "$handlerEnvironmentFullPath file not found."
         $res = 1
     }
 
@@ -169,8 +171,8 @@ function Report-Status {
 
     Write-Log -level $LogLevelInfo -message "Report-Status($name, $operation, $status, $statusCode, $statusMessage)"
 
-    # Get the SequenceNumber from the name of the latest *modified* .settings file.
-    # TBD: confirm this is the correct way to get the latest .settings file (i.e. by last written rather than the numbering in the file name).
+    # Get the SequenceNumber from the name of the latest *modified* ..settings file.
+    # TBD: confirm this is the correct way to get the latest .settings file (i.e. rather than the numbering in the file name).
     $settingsFiles = Get-ChildItem -Path "$($global:eBPFHandlerEnvObj.handlerEnvironment.configFolder)" -Include "$EbpfExtensionName.*.settings" -Recurse | Sort-Object LastWriteTime -Descending
     $lastSequenceNumber = $settingsFiles[0].Name
 
@@ -616,7 +618,7 @@ function Install-eBPF {
     Write-Log -level $LogLevelInfo -message "Install-eBPF($sourcePath, $destinationPath)"
 
     # Copy the eBPF files to the destination folder.
-    $copyResult = Copy-Directory -sourcePath $sourcePath -destinationPath $destinationPath
+    $copyResult = Copy-Directory -sourcePath "$sourcePath\bin" -destinationPath $destinationPath
     if ($copyResult -eq 0) {
 
         # Install the eBPF services and use the results to generate the status file  .      
@@ -760,7 +762,7 @@ function InstallOrUpdate-eBPF-Handler {
 
     # Retrieve the product version of the driver in the extension package (anyone will do, as they should all have the same product version, so we don't have to hardcode a specific driver name)
     $EbpfDriverName = ($EbpfDrivers.GetEnumerator() | Select-Object -First 1).Key
-    $newProductVersion = Get-ProductVersionFromFile -filePath (Join-Path -Path $EbpfPackagePath -ChildPath "drivers\$EbpfDriverName.sys")
+    $newProductVersion = Get-ProductVersionFromFile -filePath (Join-Path -Path "$sourcePath\bin" -ChildPath "drivers\$EbpfDriverName.sys")
     
     # Firstly, check if the eBPF driver is installed and registered (as a test for eBPF to be installed).
     $currDriverPath = Get-FullDiskPathFromService -serviceName $EbpfDriverName
@@ -818,7 +820,7 @@ function InstallOrUpdate-eBPF-Handler {
         Write-Log -level $LogLevelInfo -message "No eBPF installation found in [$destinationPath]: installing (v$newProductVersion)."
         
         # Proceed with a new installation from the artifact package within the extension ZIP file.
-        $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$currInstallPath"
+        $statusCode = Install-eBPF -sourcePath "$sourcePath" -destinationPath "$currInstallPath"
         if ($statusCode -ne 0) {
             Write-Log -level $LogLevelError -message "Failed to install eBPF v$newProductVersion."
             Report-Status -name $StatusName -operation $operationName -status $StatusError -statusCode 1 -statusMessage "eBPF $operationName FAILED (Clean install failed)."
