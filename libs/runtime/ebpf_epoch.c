@@ -14,9 +14,9 @@
  * computation is initiated. The release epoch computation is a two-phase process. First, each CPU determines the
  * minimum epoch of all threads on the CPU. Second, the minimum epoch is committed as the release epoch and any memory
  * that is older than the release epoch is released. The release epoch computation is initiated by sending a message
- * to CPU 0. Each CPU then queries the epoch for each thread linked to  this CPU and sets the proposed release epoch in
+ * to CPU 0. Each CPU then queries the epoch for each thread linked to this CPU and sets the proposed release epoch in
  * the message to the minimum of the local minima and the minima in the message. The message is then forwarded to the
- * next CPU. The last CPU then sends a epoch commit message to CPU 0 with the final proposed release epoch. CPU 0 then
+ * next CPU. The last CPU then sends an epoch commit message to CPU 0 with the final proposed release epoch. CPU 0 then
  * commits the proposed release epoch and releases any memory that is older than the release epoch and forwards the
  * message to the next CPU. The last CPU then sends a epoch computation complete message to CPU 0 which permits the
  * timer to be submit another release epoch computation.
@@ -71,7 +71,7 @@ typedef enum _ebpf_epoch_cpu_message_type
                                                        ///< thread linked to this CPU and sets the proposed release
                                                        ///< epoch in the message to the minimum of the local minima and
                                                        ///< the minima in the message. The message is then forwarded to
-                                                       ///< the next CPU. The last CPU then sends a epoch commit message
+                                                       ///< the next CPU. The last CPU then sends an epoch commit message
                                                        ///< to CPU 0 with the final proposed release epoch.
 
     EBPF_EPOCH_CPU_MESSAGE_TYPE_COMMIT_RELEASE_EPOCH, ///< This message is sent to CPU 0 to commit the proposed release
@@ -92,7 +92,7 @@ typedef enum _ebpf_epoch_cpu_message_type
     EBPF_EPOCH_CPU_MESSAGE_TYPE_RUNDOWN_IN_PROGRESS, ///< This message is sent to each CPU to notify it that epoch code
                                                      ///< is shutting down and that no future timers should be armed and
                                                      ///< future messages should be ignored.
-    EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY,  ///< This message is sent to each CPU to query if it's local free
+    EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY,  ///< This message is sent to each CPU to query if its local free
                                                      ///< list is empty.
 } ebpf_epoch_cpu_message_type_t;
 
