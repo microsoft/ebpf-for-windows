@@ -1165,7 +1165,7 @@ fft(std::vector<Complex>& samples, bool invert = false)
 }
 
 /**
- * @brief Determine the provided random number generator has a dominant frequency in its output.
+ * @brief Determine if the provided random number generator has a dominant frequency in its output.
  *
  * @param[in] sequence_length The number of random numbers to examine. Must be a power of 2.
  * @param[in] random_number_generator The random number generator.
@@ -1184,6 +1184,12 @@ has_dominant_frequency(size_t sequence_length, std::function<uint32_t()> random_
         sample /= static_cast<double>(INT32_MAX);
         test_values.push_back({sample});
     }
+
+    // Check if sequence length is a power of 2.
+    if ((sequence_length & (sequence_length - 1)) != 0) {
+        throw std::runtime_error("sequence_length must be a power of 2");
+    }
+
     fft(test_values);
 
     auto max_frequency = *std::max_element(
