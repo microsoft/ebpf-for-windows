@@ -3,6 +3,7 @@
 
 #include "api_internal.h"
 #include "bpf.h"
+#include "ebpf_shared_framework.h"
 #include "libbpf.h"
 #include "libbpf_internal.h"
 #include "platform.h"
@@ -345,7 +346,7 @@ __bpf_program__pin_name(struct bpf_program* prog)
 {
     char *name, *p;
 
-    name = p = ebpf_strdup(prog->section_name);
+    name = p = cxplat_duplicate_string(prog->section_name);
     if (name == nullptr) {
         return nullptr;
     }

@@ -10,11 +10,12 @@
 
 #include "ebpf_windows.h"
 
-#if !defined(NO_CRT)
+#if !defined(NO_CRT) && !defined(_NO_CRT_STDIO_INLINE)
 #include <stdbool.h>
 #include <stdint.h>
 #else
 typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned long long uint64_t;
 #endif

@@ -530,7 +530,7 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_create_map(
-    _In_ const ebpf_utf8_string_t* map_name,
+    _In_ const cxplat_utf8_string_t* map_name,
     _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
     ebpf_handle_t inner_map_handle,
     _Out_ ebpf_handle_t* map_handle)
@@ -565,7 +565,7 @@ _ebpf_core_protocol_create_map(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
-    ebpf_utf8_string_t map_name = {0};
+    cxplat_utf8_string_t map_name = {0};
 
     if (request->header.length > EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data)) {
         map_name.value = (uint8_t*)request->data;
@@ -1055,8 +1055,8 @@ _ebpf_core_protocol_query_program_info(
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
     size_t required_reply_length;
-    ebpf_utf8_string_t file_name = {0};
-    ebpf_utf8_string_t section_name = {0};
+    cxplat_utf8_string_t file_name = {0};
+    cxplat_utf8_string_t section_name = {0};
     ebpf_code_type_t code_type;
 
     retval = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
@@ -1103,8 +1103,8 @@ _ebpf_core_protocol_query_program_info(
     reply->header.length = (uint16_t)required_reply_length;
 
 Done:
-    ebpf_utf8_string_free(&file_name);
-    ebpf_utf8_string_free(&section_name);
+    cxplat_utf8_string_free(&file_name);
+    cxplat_utf8_string_free(&section_name);
 
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
 
@@ -1112,7 +1112,7 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const ebpf_utf8_string_t* path)
+ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const cxplat_utf8_string_t* path)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval = EBPF_SUCCESS;
@@ -1146,7 +1146,7 @@ _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_
         goto Done;
     }
 
-    const ebpf_utf8_string_t path = {(uint8_t*)request->path, path_length};
+    const cxplat_utf8_string_t path = {(uint8_t*)request->path, path_length};
 
     if (path.length == 0) {
         retval = EBPF_INVALID_ARGUMENT;
@@ -1160,7 +1160,7 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_core_get_pinned_object(_In_ const ebpf_utf8_string_t* path, _Out_ ebpf_handle_t* handle)
+ebpf_core_get_pinned_object(_In_ const cxplat_utf8_string_t* path, _Out_ ebpf_handle_t* handle)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
@@ -1196,7 +1196,7 @@ _ebpf_core_protocol_get_pinned_object(
         goto Done;
     }
 
-    const ebpf_utf8_string_t path = {(uint8_t*)request->path, path_length};
+    const cxplat_utf8_string_t path = {(uint8_t*)request->path, path_length};
     retval = ebpf_core_get_pinned_object(&path, &reply->handle);
 
 Done:
@@ -1681,8 +1681,8 @@ _ebpf_core_protocol_get_next_pinned_program_path(
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
-    ebpf_utf8_string_t start_path;
-    ebpf_utf8_string_t next_path;
+    cxplat_utf8_string_t start_path;
+    cxplat_utf8_string_t next_path;
 
     size_t path_length;
     ebpf_result_t result = ebpf_safe_size_t_subtract(

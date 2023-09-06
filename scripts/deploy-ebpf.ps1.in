@@ -7,8 +7,6 @@
 $source_directory="."
 
 # The following files should be installed on all platforms.
-# TODO(#2677): export_program_info.exe temporarily requires usersim.dll,
-# usersim.dll should get moved down to the test files list.
 [System.Collections.ArrayList]$built_runtime_files=@(
     "bpftool.exe",
     "bpftool.pdb",
@@ -18,8 +16,6 @@ $source_directory="."
     "EbpfApi.pdb",
     "EbpfCore.sys",
     "EbpfCore.pdb",
-    "EbpfCore_usersim.dll",
-    "EbpfCore_usersim.pdb",
     "ebpfforwindows.wprp",
     "ebpfnetsh.dll",
     "ebpfnetsh.pdb",
@@ -28,9 +24,7 @@ $source_directory="."
     "NetEbpfExt.sys",
     "NetEbpfExt.pdb",
     "net-ebpf-ext.guid",
-    "ucrtbased.dll",
-    "usersim.dll",
-    "usersim.pdb")
+    "ucrtbased.dll")
 
 [System.Collections.ArrayList]$built_runtime_jit_files=@(
     "ebpfsvc.exe",
@@ -113,6 +107,8 @@ $source_directory="."
     "droppacket_um.dll",
     "droppacket_um.pdb",
     "droppacket_unsafe.o",
+    "EbpfCore_usersim.dll",
+    "EbpfCore_usersim.pdb",
     "ebpf_stress_tests_km.exe",
     "ebpf_stress_tests_km.pdb",
     "ebpf_stress_tests_um.exe",
@@ -212,6 +208,8 @@ $source_directory="."
     "test_utility_helpers.sys",
     "unit_tests.exe",
     "unit_tests.pdb",
+    "usersim.dll",
+    "usersim.pdb",
     "xdp_tests.exe",
     "xdp_tests.pdb")
 

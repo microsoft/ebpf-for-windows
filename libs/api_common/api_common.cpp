@@ -5,6 +5,7 @@
 #include "device_helper.hpp"
 #include "ebpf_protocol.h"
 #include "ebpf_result.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "map_descriptors.hpp"
 

@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <string>
+#include <winerror.h>
 
 int
 main(int argc, char** argv)

@@ -3,7 +3,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS 1
 
-#include "ebpf_platform.h"
+#include "ebpf_shared_framework.h"
 
 #pragma warning(disable : 4013)
 #pragma warning(disable : 4018)

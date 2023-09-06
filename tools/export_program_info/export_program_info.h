@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_shared_framework.h"
 
 extern "C"
 {

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_api.h"
-#include "ebpf_platform.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
 
 #include "rpc_interface_c.c"

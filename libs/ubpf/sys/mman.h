@@ -4,7 +4,7 @@
  */
 
 #pragma once
-#include "framework.h"
+#include "ebpf_shared_framework.h"
 
 #define PROT_READ 0
 #define PROT_WRITE 0
