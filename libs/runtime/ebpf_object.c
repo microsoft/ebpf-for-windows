@@ -114,6 +114,7 @@ static ebpf_lock_t _ebpf_object_reference_history_lock = {0};
 static inline void
 _update_reference_history(void* object, ebpf_object_reference_operation_t operation, uint32_t file_id, uint32_t line)
 {
+#if !defined(NDEBUG)
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_reference_history_lock);
 
     size_t index = _ebpf_object_reference_history_index++;
@@ -125,6 +126,12 @@ _update_reference_history(void* object, ebpf_object_reference_operation_t operat
     _ebpf_object_reference_history[index].line = line;
 
     ebpf_lock_unlock(&_ebpf_object_reference_history_lock, state);
+#else
+    UNREFERENCED_PARAMETER(object);
+    UNREFERENCED_PARAMETER(operation);
+    UNREFERENCED_PARAMETER(file_id);
+    UNREFERENCED_PARAMETER(line);
+#endif
 }
 
 /**
