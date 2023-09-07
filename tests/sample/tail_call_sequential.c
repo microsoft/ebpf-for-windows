@@ -93,7 +93,7 @@ struct
             sequential7,  sequential8,  sequential9,  sequential10, sequential11, sequential12, sequential13,
             sequential14, sequential15, sequential16, sequential17, sequential18, sequential19, sequential20,
             sequential21, sequential22, sequential23, sequential24, sequential25, sequential26, sequential27,
-            sequential28, sequential29, sequential30, sequential31, sequential32,
+            sequential28, sequential29, sequential30, sequential31, sequential32
         },
 };
 
@@ -105,9 +105,15 @@ struct
     __uint(value_size, sizeof(uint32_t));
 } canary SEC(".maps");
 
+// The first top-level program.
+SEC("xdp_prog") int sequential(struct xdp_md* ctx)
+{
+    return bpf_tail_call(ctx, &map, 0);
+}
+
 // Define a program that calls the next program in the array.
-// The first program in the array is at index 0.
-// The last program in the array is at index 32.
+// There are 33 tail calls in the array, starting from index 0 to 32.
+// The last program in the array is at index 33, to test MAX_TAIL_CALL_COUNT.
 // Each program increments the value in the canary map at index 0.
 // If the canary value is not equal to the program index, the program returns 1
 // which will cause the test to fail.
@@ -161,3 +167,4 @@ TAIL_CALL(29)
 TAIL_CALL(30)
 TAIL_CALL(31)
 TAIL_CALL(32)
+TAIL_CALL(33)

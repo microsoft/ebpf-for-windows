@@ -1345,10 +1345,12 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
     }
 
     if (state == NULL) {
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "ebpf tail call state load:", "NULL");
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (state->tail_call_state.count == (MAX_TAIL_CALL_CNT - 1)) {
+    if (state->tail_call_state.count == (MAX_TAIL_CALL_CNT)) {
         EBPF_OBJECT_RELEASE_REFERENCE(&((ebpf_program_t*)next_program)->object);
         return EBPF_NO_MORE_TAIL_CALLS;
     }
@@ -1386,7 +1388,8 @@ ebpf_program_invoke(
     // High volume call - Skip entry/exit logging.
     const ebpf_program_t* current_program = program;
 
-    for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT;
+    // Top-level tail caller + tail callees(33).
+    for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT + 1;
          execution_state->tail_call_state.count++) {
 
         if (current_program->parameters.code_type == EBPF_CODE_JIT ||
@@ -1394,6 +1397,7 @@ ebpf_program_invoke(
             ebpf_program_entry_point_t function_pointer;
             function_pointer = (ebpf_program_entry_point_t)(current_program->code_or_vm.code.code_pointer);
             *result = (function_pointer)(context);
+
         } else {
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
             uint64_t out_value;

@@ -23,7 +23,7 @@
 // in libbpf.h, but this code needs to use MAX_TAIL_CALL_CNT from bpf_helpers.h.
 // Work around this by defining MAX_TAIL_CALL_CNT here.
 #if !defined(MAX_TAIL_CALL_CNT)
-#define MAX_TAIL_CALL_CNT 32
+#define MAX_TAIL_CALL_CNT 33
 #endif
 
 // libbpf.h uses enum types and generates the
@@ -2898,7 +2898,9 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     }
 
     // Verify that the printk output is correct.
-    REQUIRE(output.size() == MAX_TAIL_CALL_CNT);
+    // In recurse ebpf program, the printk is added even to the caller.
+    // Hence the printk count is called MAX_TAIL_CALL_CNT + 1 times.
+    REQUIRE(output.size() == MAX_TAIL_CALL_CNT + 1);
     for (size_t i = 0; i < MAX_TAIL_CALL_CNT; i++) {
         REQUIRE(output[i] == std::format("recurse: *value={}", i));
     }
@@ -2909,8 +2911,8 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     // Read the map to determine how many times the program was called.
     REQUIRE(bpf_map_lookup_elem(canary_map_fd, &key, &value) == 0);
 
-    // The program should have been called MAX_TAIL_CALL_CNT times.
-    REQUIRE(value == MAX_TAIL_CALL_CNT);
+    // The program should have been called MAX_TAIL_CALL_CNT + 1 times.
+    REQUIRE(value == MAX_TAIL_CALL_CNT + 1);
 
     // Close the map and programs.
     bpf_object__close(object);
@@ -2942,7 +2944,7 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     fd_t canary_map_fd = bpf_map__fd(canary_map);
     REQUIRE(canary_map_fd > 0);
 
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "sequential0");
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "sequential");
     REQUIRE(program);
     // Get the fd for the program.
     fd_t program_fd = bpf_program__fd(program);
@@ -2964,7 +2966,9 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
         output = capture.buffer_to_printk_vector(capture.get_stdout_contents());
         REQUIRE(result == 0);
     }
-
+    for (auto& line : output) {
+        printf("%s\n", line.c_str());
+    }
     // Verify that the printk output is correct.
     REQUIRE(output.size() == MAX_TAIL_CALL_CNT);
     for (size_t i = 0; i < MAX_TAIL_CALL_CNT; i++) {
@@ -2981,4 +2985,86 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
 
     // The last program should have returned -EBPF_NO_MORE_TAIL_CALLS.
     REQUIRE(opts.retval == -EBPF_NO_MORE_TAIL_CALLS);
+}
+
+bind_action_t
+emulate_bind_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pid, const char* appid)
+{
+    uint32_t result;
+    std::string app_id = appid;
+    bind_md_t ctx{0};
+    ctx.app_id_start = (uint8_t*)app_id.c_str();
+    ctx.app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
+    ctx.process_id = pid;
+    ctx.operation = BIND_OPERATION_BIND;
+
+    REQUIRE(invoke(reinterpret_cast<void*>(&ctx), &result) == EBPF_SUCCESS);
+
+    return static_cast<bind_action_t>(result);
+}
+
+TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
+{
+    const int TOTAL_TAIL_CALL = MAX_TAIL_CALL_CNT + 2;
+    usersim_trace_logging_set_enabled(true, _EBPF_TRACELOG_LEVEL_ERROR, MAXUINT64);
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    struct bpf_object* object = bpf_object__open("tail_call_max_exceed_um.dll");
+    REQUIRE(object != nullptr);
+
+    // Load the BPF program.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Get the map used to store the next program to call.
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "bind_tail_call_map");
+    REQUIRE(map != nullptr);
+
+    // Get the fd of the prog array map.
+    fd_t map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
+    std::string first_program_name{"bind_test_caller"};
+    struct bpf_program* first_program = bpf_object__find_program_by_name(object, first_program_name.c_str());
+    REQUIRE(first_program != nullptr);
+
+    fd_t first_program_fd = bpf_program__fd(first_program);
+    REQUIRE(first_program_fd > 0);
+
+    // Verify that the prog_array map contains the correct number of 35 programs.
+    uint32_t key = 0;
+    uint32_t val = 0;
+    bpf_map_lookup_elem(map_fd, &key, &val);
+    for (int x = 0; x < TOTAL_TAIL_CALL - 1; x++) {
+        REQUIRE(bpf_map_get_next_key(map_fd, &key, &key) == 0);
+        uint32_t value = 0;
+        bpf_map_lookup_elem(map_fd, &key, &value);
+        REQUIRE(key != 0);
+    }
+    REQUIRE(bpf_map_get_next_key(map_fd, &key, &key) < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Create a hook for the bind program.
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+
+    // Attach the hook.
+    bpf_link_ptr link;
+    uint32_t ifindex = 0;
+    uint64_t fake_pid = 123456;
+    REQUIRE(hook.attach_link(first_program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+
+    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
+
+    // Bind port should deny because the tail call program exceeds 33.
+    REQUIRE(emulate_bind_tail_call(invoke, fake_pid, "fake_app_1") == BIND_DENY);
+
+    hook.detach_and_close_link(&link);
+
+    usersim_trace_logging_set_enabled(false, 0, 0);
 }

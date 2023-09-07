@@ -27,4 +27,4 @@
 
 #include "bpf_helper_defs.h"
 
-#define MAX_TAIL_CALL_CNT 32
+#define MAX_TAIL_CALL_CNT 33
