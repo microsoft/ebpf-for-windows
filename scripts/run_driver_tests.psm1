@@ -291,11 +291,15 @@ function Invoke-CICDPerformanceTests
     Set-Location bpf_performance
     # Stop any existing tracing.
     wpr.exe -cancel
-    # Capture CPU profile.
-    wpr.exe -start CPU
-    RelWithDebInfo\bpf_performance_runner.exe -i tests.yml -e .sys -r | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
-    # Stop and save the trace.
-    wpr.exe -stop $WorkingDirectory\bpf_performance.etl
+
+    if ($CaptureProfile) {
+        $pre_command = 'wpr.exe -start CPU'
+        $post_command = 'wpr.exe -stop ""' + $WorkingDirectory + '\bpf_performance_%NAME%.etl""'
+        RelWithDebInfo\bpf_performance_runner.exe -i tests.yml -e .sys -r --pre "$pre_command" --post "$post_command" | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
+    }
+    else {
+        RelWithDebInfo\bpf_performance_runner.exe -i tests.yml -e .sys -r | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
+    }
 
     Pop-Location
 }

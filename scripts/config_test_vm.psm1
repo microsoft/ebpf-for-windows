@@ -282,7 +282,7 @@ function Import-ResultsFromVM
 
         # Copy the performance profile if present
         Write-Log ("Copy performance profile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
-        Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\bpf_performance.etl" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
+        Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\bpf_performance*.etl" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
     }
     # Move runner test logs to TestLogs folder.
     Write-Host ("Copy $LogFileName from $env:TEMP on host runner to $pwd\TestLogs")
