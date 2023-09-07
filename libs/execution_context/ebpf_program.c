@@ -1391,7 +1391,7 @@ ebpf_program_invoke(
     // High volume call - Skip entry/exit logging.
     const ebpf_program_t* current_program = program;
 
-    // Top-level tail caller + tail callees(33).
+    // Top-level tail caller(1) + tail callees(33).
     for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT + 1;
          execution_state->tail_call_state.count++) {
 
@@ -1400,7 +1400,6 @@ ebpf_program_invoke(
             ebpf_program_entry_point_t function_pointer;
             function_pointer = (ebpf_program_entry_point_t)(current_program->code_or_vm.code.code_pointer);
             *result = (function_pointer)(context);
-
         } else {
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
             uint64_t out_value;

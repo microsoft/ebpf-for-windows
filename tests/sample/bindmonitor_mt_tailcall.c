@@ -42,7 +42,7 @@ BindMonitor_Caller(bind_md_t* ctx)
     bind_action_t BindMonitor_Callee##x(bind_md_t* ctx)       \
     {                                                         \
         int i = x + 1;                                        \
-        bpf_printk("BindMonitor_Callee: Tail call index %d\n", i); \
+        bpf_printk("Tail call index %d\n", i);                \
         if (bpf_tail_call(ctx, &bind_tail_call_map, i) < 0) { \
             bpf_printk("Tail call failed at index %d\n", i);  \
         }                                                     \

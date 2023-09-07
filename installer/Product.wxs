@@ -251,8 +251,6 @@ SPDX-License-Identifier: MIT
 								Account="[WIX_ACCOUNT_LOCALSERVICE]"
 								Vital="yes"
 								Interactive="no">
-
-
 					<ServiceConfig ServiceSid="restricted" OnInstall="yes" OnReinstall="yes" />
 				</ServiceInstall>
 				<ServiceControl Id="eBPFSvc_Start" Name="eBPFSvc"
