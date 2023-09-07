@@ -268,14 +268,14 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     void* redirect_context = NULL;
 
-    // This function is only supported at the connect redirect layer
+    // This function is only supported at the connect redirect layer.
     if (sock_addr_ctx->hook_id != EBPF_HOOK_ALE_CONNECT_REDIRECT_V4 &&
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_CONNECT_REDIRECT_V6) {
         return_value = -1;
         goto Exit;
     }
 
-    // Allocate buffer to store redirect context
+    // Allocate buffer to store redirect context.
     redirect_context = ExAllocatePoolUninitialized(NonPagedPoolNx, data_size, NET_EBPF_EXTENSION_POOL_TAG);
     if (redirect_context == NULL) {
         return_value = -1;
@@ -283,7 +283,7 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     }
     memcpy(redirect_context, data, data_size);
 
-    // Set redirect context
+    // Set redirect context.
     sock_addr_ctx->redirect_context = redirect_context;
     sock_addr_ctx->redirect_context_size = data_size;
 
@@ -1395,7 +1395,7 @@ _net_ebpf_ext_process_redirect_verdict(
 
         connect_request->localRedirectContext = sock_addr_ctx->redirect_context;
         connect_request->localRedirectContextSize = sock_addr_ctx->redirect_context_size;
-        // Ownership transferred to WFP
+        // Ownership transferred to WFP.
         sock_addr_ctx->redirect_context = NULL;
         sock_addr_ctx->redirect_context_size = 0;
     }
