@@ -733,7 +733,7 @@ bind_tailcall_test(_In_ struct bpf_object* object)
     WSACleanup();
 }
 
-#define MAX_TAIL_CALL_PROGS MAX_TAIL_CALL_CNT + 3
+#define MAX_TAIL_CALL_PROGS MAX_TAIL_CALL_CNT + 2
 
 TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
 {

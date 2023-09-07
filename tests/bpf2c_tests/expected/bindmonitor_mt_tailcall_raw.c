@@ -19,7 +19,7 @@ static map_entry_t _maps[] = {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
          4,                       // Size in bytes of a map value.
-         31,                      // Maximum number of entries allowed in the map.
+         33,                      // Maximum number of entries allowed in the map.
          0,                       // Inner map index.
          PIN_NONE,                // Pinning type for the map.
          0,                       // Identifier for a map template.
@@ -4267,38 +4267,380 @@ label_1:
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+static helper_function_entry_t BindMonitor_Callee30_helpers[] = {
+    {NULL, 13, "helper_id_13"},
+    {NULL, 5, "helper_id_5"},
+};
+
 static GUID BindMonitor_Callee30_program_type_guid = {
     0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
 static GUID BindMonitor_Callee30_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+static uint16_t BindMonitor_Callee30_maps[] = {
+    0,
+};
+
 #pragma code_seg(push, "bind/30")
 static uint64_t
 BindMonitor_Callee30(void* context)
-#line 95 "sample/bindmonitor_mt_tailcall.c"
+#line 83 "sample/bindmonitor_mt_tailcall.c"
 {
-#line 95 "sample/bindmonitor_mt_tailcall.c"
+#line 83 "sample/bindmonitor_mt_tailcall.c"
     // Prologue
-#line 95 "sample/bindmonitor_mt_tailcall.c"
+#line 83 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 95 "sample/bindmonitor_mt_tailcall.c"
+#line 83 "sample/bindmonitor_mt_tailcall.c"
     register uint64_t r0 = 0;
-#line 95 "sample/bindmonitor_mt_tailcall.c"
+#line 83 "sample/bindmonitor_mt_tailcall.c"
     register uint64_t r1 = 0;
-#line 95 "sample/bindmonitor_mt_tailcall.c"
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r2 = 0;
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r3 = 0;
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r4 = 0;
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r5 = 0;
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r6 = 0;
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r7 = 0;
+#line 83 "sample/bindmonitor_mt_tailcall.c"
     register uint64_t r10 = 0;
 
-#line 95 "sample/bindmonitor_mt_tailcall.c"
+#line 83 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uintptr_t)context;
-#line 95 "sample/bindmonitor_mt_tailcall.c"
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+
+    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r6 = r1;
+    // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=680997
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r1 = IMMEDIATE(680997);
+    // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r1 = (uint64_t)2339731488442490988;
+    // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r7 = (uint64_t)7809632219746099540;
+    // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r1 = r10;
+    // EBPF_OP_ADD64_IMM pc=10 dst=r1 src=r0 offset=0 imm=-32
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r1 += IMMEDIATE(-32);
+    // EBPF_OP_MOV64_IMM pc=11 dst=r2 src=r0 offset=0 imm=20
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r2 = IMMEDIATE(20);
+    // EBPF_OP_MOV64_IMM pc=12 dst=r3 src=r0 offset=0 imm=31
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r3 = IMMEDIATE(31);
+    // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r0 = BindMonitor_Callee30_helpers[0].address
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+         (r1, r2, r3, r4, r5);
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    if ((BindMonitor_Callee30_helpers[0].tail_call) && (r0 == 0))
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+        return 0;
+    // EBPF_OP_MOV64_REG pc=14 dst=r1 src=r6 offset=0 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r1 = r6;
+    // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r2 = POINTER(_maps[0].address);
+    // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=31
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r3 = IMMEDIATE(31);
+    // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r0 = BindMonitor_Callee30_helpers[1].address
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+         (r1, r2, r3, r4, r5);
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    if ((BindMonitor_Callee30_helpers[1].tail_call) && (r0 == 0))
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+        return 0;
+    // EBPF_OP_JSGT_IMM pc=19 dst=r0 src=r0 offset=16 imm=-1
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    if ((int64_t)r0 > IMMEDIATE(-1))
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+        goto label_1;
+    // EBPF_OP_MOV64_IMM pc=20 dst=r1 src=r0 offset=0 imm=10
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r1 = IMMEDIATE(10);
+    // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r1 = IMMEDIATE(1680154744);
+    // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r1 = (uint64_t)7306085893296906528;
+    // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r1 = (uint64_t)7234307576302018668;
+    // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r1 = r10;
+    // EBPF_OP_ADD64_IMM pc=32 dst=r1 src=r0 offset=0 imm=-32
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r1 += IMMEDIATE(-32);
+    // EBPF_OP_MOV64_IMM pc=33 dst=r2 src=r0 offset=0 imm=30
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r2 = IMMEDIATE(30);
+    // EBPF_OP_MOV64_IMM pc=34 dst=r3 src=r0 offset=0 imm=31
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r3 = IMMEDIATE(31);
+    // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r0 = BindMonitor_Callee30_helpers[0].address
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+         (r1, r2, r3, r4, r5);
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    if ((BindMonitor_Callee30_helpers[0].tail_call) && (r0 == 0))
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+        return 0;
+label_1:
+    // EBPF_OP_MOV64_IMM pc=36 dst=r0 src=r0 offset=0 imm=1
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    r0 = IMMEDIATE(1);
+    // EBPF_OP_EXIT pc=37 dst=r0 src=r0 offset=0 imm=0
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+    return r0;
+#line 83 "sample/bindmonitor_mt_tailcall.c"
+}
+#pragma code_seg(pop)
+#line __LINE__ __FILE__
+
+static helper_function_entry_t BindMonitor_Callee31_helpers[] = {
+    {NULL, 13, "helper_id_13"},
+    {NULL, 5, "helper_id_5"},
+};
+
+static GUID BindMonitor_Callee31_program_type_guid = {
+    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+static GUID BindMonitor_Callee31_attach_type_guid = {
+    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+static uint16_t BindMonitor_Callee31_maps[] = {
+    0,
+};
+
+#pragma code_seg(push, "bind/31")
+static uint64_t
+BindMonitor_Callee31(void* context)
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+{
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    // Prologue
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r0 = 0;
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r1 = 0;
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r2 = 0;
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r3 = 0;
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r4 = 0;
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r5 = 0;
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r6 = 0;
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r7 = 0;
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r10 = 0;
+
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 = (uintptr_t)context;
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+
+    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r6 = r1;
+    // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=680997
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 = IMMEDIATE(680997);
+    // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 = (uint64_t)2339731488442490988;
+    // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r7 = (uint64_t)7809632219746099540;
+    // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 = r10;
+    // EBPF_OP_ADD64_IMM pc=10 dst=r1 src=r0 offset=0 imm=-32
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 += IMMEDIATE(-32);
+    // EBPF_OP_MOV64_IMM pc=11 dst=r2 src=r0 offset=0 imm=20
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r2 = IMMEDIATE(20);
+    // EBPF_OP_MOV64_IMM pc=12 dst=r3 src=r0 offset=0 imm=32
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r3 = IMMEDIATE(32);
+    // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r0 = BindMonitor_Callee31_helpers[0].address
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+         (r1, r2, r3, r4, r5);
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    if ((BindMonitor_Callee31_helpers[0].tail_call) && (r0 == 0))
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+        return 0;
+    // EBPF_OP_MOV64_REG pc=14 dst=r1 src=r6 offset=0 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 = r6;
+    // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r2 = POINTER(_maps[0].address);
+    // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=32
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r3 = IMMEDIATE(32);
+    // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r0 = BindMonitor_Callee31_helpers[1].address
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+         (r1, r2, r3, r4, r5);
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    if ((BindMonitor_Callee31_helpers[1].tail_call) && (r0 == 0))
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+        return 0;
+    // EBPF_OP_JSGT_IMM pc=19 dst=r0 src=r0 offset=16 imm=-1
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    if ((int64_t)r0 > IMMEDIATE(-1))
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+        goto label_1;
+    // EBPF_OP_MOV64_IMM pc=20 dst=r1 src=r0 offset=0 imm=10
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 = IMMEDIATE(10);
+    // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 = IMMEDIATE(1680154744);
+    // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 = (uint64_t)7306085893296906528;
+    // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 = (uint64_t)7234307576302018668;
+    // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 = r10;
+    // EBPF_OP_ADD64_IMM pc=32 dst=r1 src=r0 offset=0 imm=-32
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r1 += IMMEDIATE(-32);
+    // EBPF_OP_MOV64_IMM pc=33 dst=r2 src=r0 offset=0 imm=30
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r2 = IMMEDIATE(30);
+    // EBPF_OP_MOV64_IMM pc=34 dst=r3 src=r0 offset=0 imm=32
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r3 = IMMEDIATE(32);
+    // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r0 = BindMonitor_Callee31_helpers[0].address
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+         (r1, r2, r3, r4, r5);
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    if ((BindMonitor_Callee31_helpers[0].tail_call) && (r0 == 0))
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+        return 0;
+label_1:
+    // EBPF_OP_MOV64_IMM pc=36 dst=r0 src=r0 offset=0 imm=1
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    r0 = IMMEDIATE(1);
+    // EBPF_OP_EXIT pc=37 dst=r0 src=r0 offset=0 imm=0
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+    return r0;
+#line 84 "sample/bindmonitor_mt_tailcall.c"
+}
+#pragma code_seg(pop)
+#line __LINE__ __FILE__
+
+static GUID BindMonitor_Callee32_program_type_guid = {
+    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+static GUID BindMonitor_Callee32_attach_type_guid = {
+    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+#pragma code_seg(push, "bind/32")
+static uint64_t
+BindMonitor_Callee32(void* context)
+#line 97 "sample/bindmonitor_mt_tailcall.c"
+{
+#line 97 "sample/bindmonitor_mt_tailcall.c"
+    // Prologue
+#line 97 "sample/bindmonitor_mt_tailcall.c"
+    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+#line 97 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r0 = 0;
+#line 97 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r1 = 0;
+#line 97 "sample/bindmonitor_mt_tailcall.c"
+    register uint64_t r10 = 0;
+
+#line 97 "sample/bindmonitor_mt_tailcall.c"
+    r1 = (uintptr_t)context;
+#line 97 "sample/bindmonitor_mt_tailcall.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=0
-#line 95 "sample/bindmonitor_mt_tailcall.c"
+#line 97 "sample/bindmonitor_mt_tailcall.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
-#line 95 "sample/bindmonitor_mt_tailcall.c"
+#line 97 "sample/bindmonitor_mt_tailcall.c"
     return r0;
-#line 95 "sample/bindmonitor_mt_tailcall.c"
+#line 97 "sample/bindmonitor_mt_tailcall.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -5689,13 +6031,41 @@ static program_entry_t _programs[] = {
         "bind/30",
         "bind/30",
         "BindMonitor_Callee30",
+        BindMonitor_Callee30_maps,
+        1,
+        BindMonitor_Callee30_helpers,
+        2,
+        38,
+        &BindMonitor_Callee30_program_type_guid,
+        &BindMonitor_Callee30_attach_type_guid,
+    },
+    {
+        0,
+        BindMonitor_Callee31,
+        "bind/31",
+        "bind/31",
+        "BindMonitor_Callee31",
+        BindMonitor_Callee31_maps,
+        1,
+        BindMonitor_Callee31_helpers,
+        2,
+        38,
+        &BindMonitor_Callee31_program_type_guid,
+        &BindMonitor_Callee31_attach_type_guid,
+    },
+    {
+        0,
+        BindMonitor_Callee32,
+        "bind/32",
+        "bind/32",
+        "BindMonitor_Callee32",
         NULL,
         0,
         NULL,
         0,
         2,
-        &BindMonitor_Callee30_program_type_guid,
-        &BindMonitor_Callee30_attach_type_guid,
+        &BindMonitor_Callee32_program_type_guid,
+        &BindMonitor_Callee32_attach_type_guid,
     },
     {
         0,
@@ -5788,7 +6158,7 @@ static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
 {
     *programs = _programs;
-    *count = 32;
+    *count = 34;
 }
 
 static void
