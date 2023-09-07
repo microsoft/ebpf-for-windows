@@ -183,7 +183,7 @@ static ebpf_result_t
 _ebpf_program_compute_program_information_hash(
     _In_ const ebpf_program_data_t* general_program_information_data,
     _In_ const ebpf_program_data_t* type_specific_program_information_data,
-    _In_ const ebpf_utf8_string_t* hash_algorithm,
+    _In_ const cxplat_utf8_string_t* hash_algorithm,
     _Outptr_ uint8_t** hash,
     _Out_ size_t* hash_length);
 
@@ -303,7 +303,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     ebpf_program_t* program = (ebpf_program_t*)client_context;
     const ebpf_program_data_t* type_specific_program_information_data;
     const ebpf_program_data_t* general_program_information_data;
-    ebpf_utf8_string_t hash_algorithm = {0};
+    cxplat_utf8_string_t hash_algorithm = {0};
     NTSTATUS status;
     uint8_t* hash = NULL;
     size_t hash_length = 0;
@@ -649,10 +649,10 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_program_t* local_program = NULL;
-    ebpf_utf8_string_t local_program_name = {NULL, 0};
-    ebpf_utf8_string_t local_section_name = {NULL, 0};
-    ebpf_utf8_string_t local_file_name = {NULL, 0};
-    ebpf_utf8_string_t local_hash_type_name = {NULL, 0};
+    cxplat_utf8_string_t local_program_name = {NULL, 0};
+    cxplat_utf8_string_t local_section_name = {NULL, 0};
+    cxplat_utf8_string_t local_file_name = {NULL, 0};
+    cxplat_utf8_string_t local_hash_type_name = {NULL, 0};
     uint8_t* local_program_info_hash = NULL;
 
     if (IsEqualGUID(&program_parameters->program_type, &EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
@@ -670,8 +670,6 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
         retval = EBPF_NO_MEMORY;
         goto Done;
     }
-
-    memset(local_program, 0, sizeof(ebpf_program_t));
 
     local_program->module_id.Type = MIT_GUID;
     local_program->module_id.Length = sizeof(local_program->module_id);
@@ -731,7 +729,7 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
 
     // If the hash type is not specified, use the default hash type.
     if (program_parameters->program_info_hash_type.length == 0) {
-        ebpf_utf8_string_t hash_algorithm = EBPF_UTF8_STRING_FROM_CONST_STRING(EBPF_HASH_ALGORITHM);
+        cxplat_utf8_string_t hash_algorithm = EBPF_UTF8_STRING_FROM_CONST_STRING(EBPF_HASH_ALGORITHM);
         retval = ebpf_duplicate_utf8_string(&local_hash_type_name, &hash_algorithm);
     } else {
         retval = ebpf_duplicate_utf8_string(&local_hash_type_name, &program_parameters->program_info_hash_type);
@@ -855,8 +853,13 @@ ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
 
     uint32_t map_count = program->count_of_maps + 1;
-    ebpf_map_t** program_maps =
-        ebpf_reallocate(program->maps, program->count_of_maps * sizeof(ebpf_map_t*), map_count * sizeof(ebpf_map_t*));
+    ebpf_map_t** program_maps;
+    if (program->maps) {
+        program_maps = ebpf_reallocate(
+            program->maps, program->count_of_maps * sizeof(ebpf_map_t*), map_count * sizeof(ebpf_map_t*));
+    } else {
+        program_maps = ebpf_allocate_with_tag(map_count * sizeof(ebpf_map_t*), EBPF_POOL_TAG_PROGRAM);
+    }
     if (program_maps == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -1854,7 +1857,7 @@ static ebpf_result_t
 _ebpf_program_compute_program_information_hash(
     _In_ const ebpf_program_data_t* general_program_information_data,
     _In_ const ebpf_program_data_t* type_specific_program_information_data,
-    _In_ const ebpf_utf8_string_t* hash_algorithm,
+    _In_ const cxplat_utf8_string_t* hash_algorithm,
     _Outptr_ uint8_t** hash,
     _Out_ size_t* hash_length)
 {
@@ -2021,7 +2024,7 @@ typedef struct _ebpf_program_test_run_context
 } ebpf_program_test_run_context_t;
 
 static void
-_ebpf_program_test_run_work_item(_Inout_opt_ void* work_item_context)
+_ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item, _In_opt_ void* work_item_context)
 {
     _Analysis_assume_(work_item_context != NULL);
 
@@ -2127,6 +2130,8 @@ Done:
     context->completion_callback(
         result, context->program, context->options, context->completion_context, context->async_context);
     ebpf_program_dereference_providers((ebpf_program_t*)context->program);
+    cxplat_free_preemptible_work_item(work_item);
+    ebpf_free(work_item_context);
 }
 
 static void
@@ -2150,7 +2155,7 @@ ebpf_program_execute_test_run(
     ebpf_result_t return_value = EBPF_SUCCESS;
     ebpf_program_test_run_context_t* test_run_context = NULL;
     void* context = NULL;
-    ebpf_preemptible_work_item_t* work_item = NULL;
+    cxplat_preemptible_work_item_t* work_item = NULL;
     ebpf_program_data_t* program_data = NULL;
     bool provider_data_referenced = false;
 
@@ -2206,10 +2211,11 @@ ebpf_program_execute_test_run(
 
     ebpf_assert_success(ebpf_async_set_cancel_callback(async_context, test_run_context, _ebpf_program_test_run_cancel));
 
-    // ebpf_queue_preemptible_work_item() will free both the work item and the context when it is done.
-    ebpf_queue_preemptible_work_item(work_item);
+    // cxplat_queue_preemptible_work_item() will free both the work item and the context when it is done.
+    cxplat_queue_preemptible_work_item(work_item);
 
     // This thread no longer owns the test run context.
+    // It will be freed within _ebpf_program_test_run_work_item().
     test_run_context = NULL;
     // This thread no longer owns the reference to the provider data.
     provider_data_referenced = false;
@@ -2245,7 +2251,7 @@ ebpf_program_register_for_helper_changes(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_get_program_file_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* file_name)
+ebpf_program_get_program_file_name(_In_ const ebpf_program_t* program, _Out_ cxplat_utf8_string_t* file_name)
 {
     ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
     ebpf_result_t return_value = ebpf_duplicate_utf8_string(file_name, &program->parameters.file_name);
@@ -2254,7 +2260,7 @@ ebpf_program_get_program_file_name(_In_ const ebpf_program_t* program, _Out_ ebp
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_get_program_section_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* section_name)
+ebpf_program_get_program_section_name(_In_ const ebpf_program_t* program, _Out_ cxplat_utf8_string_t* section_name)
 {
     ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
     ebpf_result_t return_value = ebpf_duplicate_utf8_string(section_name, &program->parameters.section_name);

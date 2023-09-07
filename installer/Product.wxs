@@ -218,15 +218,6 @@ SPDX-License-Identifier: MIT
 			<Component Id="EXPORT_PROGRAM_INFO.PDB" DiskId="1" Guid="{88356FE4-6247-4876-BA14-42EDA88CC5C7}">
 				<File Id="EXPORT_PROGRAM_INFO.PDB" Name="export_program_info.pdb" Source="$(var.export_program_info.TargetDir)export_program_info.pdb" />
 			</Component>
-			<!-- TODO(#2677): move usersim.dll down to the testing component.  Until that issue is addressed,
-			     export_program_info.exe requires it.
-			-->
-			<Component Id="USERSIM.DLL" DiskId="1" Guid="{739017F0-9E33-48FF-A33F-C1434AC757BE}">
-				<File Id="USERSIM.DLL" Name="usersim.dll" Source="$(var.usersim.TargetPath)" />
-			</Component>
-			<Component Id="USERSIM.PDB" DiskId="1" Guid="{BCE1BF99-6A3D-48A6-A382-4E87A2B20FB2}">
-				<File Id="USERSIM.PDB" Name="usersim.pdb" Source="$(var.usersim.TargetDir)usersim.pdb" />
-			</Component>
 		</ComponentGroup>
 
 		<!--Clear/Setup the eBPF store-->
@@ -1059,6 +1050,12 @@ SPDX-License-Identifier: MIT
 			</Component>
 			<Component Id="UNIT_TESTS.PDB" DiskId="1" Guid="{3CF32625-22F9-4ABD-A0BF-44FA7EA2BCDE}">
 				<File Id="UNIT_TESTS.PDB" Name="unit_tests.pdb" Source="$(var.unit_tests.TargetDir)unit_tests.pdb" />
+			</Component>
+			<Component Id="USERSIM.DLL" DiskId="1" Guid="{739017F0-9E33-48FF-A33F-C1434AC757BE}">
+				<File Id="USERSIM.DLL" Name="usersim.dll" Source="$(var.usersim.TargetPath)" />
+			</Component>
+			<Component Id="USERSIM.PDB" DiskId="1" Guid="{BCE1BF99-6A3D-48A6-A382-4E87A2B20FB2}">
+				<File Id="USERSIM.PDB" Name="usersim.pdb" Source="$(var.usersim.TargetDir)usersim.pdb" />
 			</Component>
 			<Component Id="XDP_TESTS.EXE" DiskId="1" Guid="{6A98B162-1DC5-4145-A91B-9DF757766119}">
 				<File Id="XDP_TESTS.EXE" Name="xdp_tests.exe" Source="$(var.xdp_tests.TargetDir)xdp_tests.exe" />

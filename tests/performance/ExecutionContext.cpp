@@ -96,7 +96,7 @@ typedef class _ebpf_map_test_state
   public:
     _ebpf_map_test_state(ebpf_map_type_t type, std::optional<uint32_t> map_size = {})
     {
-        ebpf_utf8_string_t name{(uint8_t*)"test", 4};
+        cxplat_utf8_string_t name{(uint8_t*)"test", 4};
         REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
         ebpf_map_definition_in_memory_t definition{
             type, sizeof(uint32_t), sizeof(uint64_t), map_size.has_value() ? map_size.value() : ebpf_get_cpu_count()};
@@ -201,7 +201,7 @@ typedef class _ebpf_map_lpm_trie_test_state
     void
     populate_ipv4_routes(size_t route_count)
     {
-        ebpf_utf8_string_t name{(uint8_t*)"ipv4_route_table", 11};
+        cxplat_utf8_string_t name{(uint8_t*)"ipv4_route_table", 11};
         ebpf_map_definition_in_memory_t definition{
             BPF_MAP_TYPE_LPM_TRIE, sizeof(uint32_t) * 2, sizeof(uint64_t), static_cast<uint32_t>(route_count)};
 

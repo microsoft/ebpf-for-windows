@@ -5,8 +5,8 @@
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "ebpf_api.h"
-#include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "elfio_wrapper.hpp"
 #define ebpf_inst ebpf_inst_btf
@@ -344,7 +344,7 @@ load_byte_code(
 
             program->handle = ebpf_handle_invalid;
             program->program_type = *(const GUID*)raw_program.info.type.platform_specific_data;
-            program->section_name = ebpf_duplicate_string(raw_program.section.c_str());
+            program->section_name = cxplat_duplicate_string(raw_program.section.c_str());
             if (program->section_name == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -414,7 +414,7 @@ load_byte_code(
                 goto Exit;
             }
             initialize_map(map, descriptor);
-            map->name = ebpf_duplicate_string(map_names[index].map_name.c_str());
+            map->name = cxplat_duplicate_string(map_names[index].map_name.c_str());
             if (map->name == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -426,7 +426,7 @@ load_byte_code(
                     result = EBPF_INVALID_ARGUMENT;
                     goto Exit;
                 }
-                map->pin_path = ebpf_duplicate_string(buffer);
+                map->pin_path = cxplat_duplicate_string(buffer);
                 if (map->pin_path == nullptr) {
                     result = EBPF_NO_MEMORY;
                     goto Exit;
@@ -438,7 +438,7 @@ load_byte_code(
 
         int index = 0;
         for (auto& iterator : programs) {
-            iterator->program_name = ebpf_duplicate_string(section_to_program_map[index].program_name.c_str());
+            iterator->program_name = cxplat_duplicate_string(section_to_program_map[index].program_name.c_str());
             if (iterator->program_name == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -485,7 +485,7 @@ _ebpf_add_stat(_Inout_ ebpf_section_info_t* info, std::string key, int value) no
     if (stat == nullptr) {
         throw std::runtime_error("Out of memory");
     }
-    stat->key = ebpf_duplicate_string(key.c_str());
+    stat->key = cxplat_duplicate_string(key.c_str());
     if (stat->key == nullptr) {
         ebpf_free(stat);
         throw std::runtime_error("Out of memory");
@@ -537,7 +537,7 @@ ebpf_api_elf_enumerate_sections(
                 _ebpf_add_stat(info, "Instructions", (int)raw_program.prog.size());
             }
 
-            info->section_name = ebpf_duplicate_string(raw_program.section.c_str());
+            info->section_name = cxplat_duplicate_string(raw_program.section.c_str());
             if (info->section_name == nullptr) {
                 throw std::runtime_error("Out of memory");
             }

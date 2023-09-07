@@ -8,6 +8,7 @@
 #pragma warning(pop)
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
+#include "ebpf_platform.h"
 #include "ebpf_tracelog.h"
 #include "ebpf_vm_isa.hpp"
 #include "helpers.h"

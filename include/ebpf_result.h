@@ -115,9 +115,12 @@ extern "C"
 
         /// ID is valid, but the object has been deleted.
         EBPF_STALE_ID,
+
+        /// The system is in an invalid state for this operation.
+        EBPF_INVALID_STATE,
     } ebpf_result_t;
 
-#define EBPF_RESULT_COUNT (EBPF_INVALID_POINTER + 1)
+#define EBPF_RESULT_COUNT (EBPF_INVALID_STATE + 1)
 
 #ifdef __cplusplus
 }

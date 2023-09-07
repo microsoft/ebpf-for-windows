@@ -28,7 +28,7 @@
     <ClCompile Include="..\..\libs\execution_context\unit\execution_context_unit_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\libs\platform\unit\platform_unit_test.cpp">
+    <ClCompile Include="..\..\libs\runtime\unit\platform_unit_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\end_to_end\netsh_test.cpp">
@@ -47,9 +47,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="export_program_info_test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\libs\platform\ebpf_tracelog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ebpfcore_test.cpp">

@@ -414,10 +414,11 @@ Exit:
 }
 
 /**
- * @brief Callback invoked when a hook NPI client (a.k.a eBPF link object) detaches.
+ * @brief Callback invoked when a hook NPI client (a.k.a. eBPF link object) detaches.
  *
  * @param[in] provider_binding_context Provider module's context for binding with the client.
  * @retval STATUS_SUCCESS The operation succeeded.
+ * @retval STATUS_PENDING The operation is pending completion.
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
 static NTSTATUS

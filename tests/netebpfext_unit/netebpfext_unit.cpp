@@ -520,7 +520,7 @@ sock_addr_thread_function(
     FWP_ACTION_TYPE result;
     uint16_t port_number;
 
-    bool fault_injection_enabled = usersim_fault_injection_is_enabled();
+    bool fault_injection_enabled = cxplat_fault_injection_is_enabled();
 
     if (start_port != end_port) {
         port_number = start_port - 1;
