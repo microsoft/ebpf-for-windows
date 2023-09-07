@@ -87,20 +87,31 @@ Official docs: https://github.com/Azure/azure-vmextension-publishing/wiki/Extens
 
 ### Creating the VM Extension Handler Package
 
-1. Once you have the eBPF redistributable package, create the VM Extension ZIP file by executing the following PowerShell script from the `.azure` folder, and following the below naming convention:
+1. Once you have the eBPF redistributable package, create the VM Extension ZIP file by executing the following PowerShell script from the `.azure` folder:
+
+    
+
+    ```PS
+    PS> .\create-zip-package.ps1 -versionNumber <x.y.z.p> -ebpfBinPackagePath "<full path to the eBPF binaries root from the eBPF Redist package>" -zipDestinationFolder "<full path to the destination folder for the ZIP package file>"
+
+    # Example:
+    PS> .\create-zip-package.ps1 -versionNumber "0.10.0.1" -ebpfBinPackagePath "D:\work\_scratch\v0.9.1" -zipDestinationFolder "D:\work\_scratch"
+
+    ```
+    The resulting ZIP file will be named after the following format:
+    
+    ```bash
+    <publisher>.<extension name>.<version>.zip
+    ```
+
+    where:
 
     - `<publisher>` is the publisher name, i.e. `Microsoft.eBPF`
 
     - `<extension name>` is the extension name, i.e. `eBpfForWindows`
 
     - `<version>` is the extension version, e.g. `0.10.0.1`
-
-    ```PS
-    PS> .\create-zip-package.ps1 -zipFileName "<publisher>.<extension name>.<version>.zip" -sourcePath "<full path to the eBPF binaries root from the eBPF Redist package>"
-
-    # Example:
-    PS> .\create-zip-package.ps1 -zipFileName "Microsoft.eBPF.eBpfForWindows.0.10.0.1.zip" -sourcePath "D:\work\_scratch\v0.9.1"
-    ```
+    
 1. Upload the zip file to the Azure Storage Account container named "`ebpf-vm-extension-artifacts`" within the "`eBPF-vm-extension`" resource group.
 
 ### Registering the VM Extension
