@@ -2902,7 +2902,7 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     // In recurse ebpf program, the printk is added even to the caller.
     // Hence the printk count is called MAX_TAIL_CALL_CNT + 1 times.
     REQUIRE(output.size() == MAX_TAIL_CALL_CNT + 1);
-    for (size_t i = 0; i < MAX_TAIL_CALL_CNT; i++) {
+    for (size_t i = 0; i < MAX_TAIL_CALL_CNT + 1; i++) {
         REQUIRE(output[i] == std::format("recurse: *value={}", i));
     }
 
@@ -2945,7 +2945,7 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     fd_t canary_map_fd = bpf_map__fd(canary_map);
     REQUIRE(canary_map_fd > 0);
 
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "sequential");
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "sequential0");
     REQUIRE(program);
     // Get the fd for the program.
     fd_t program_fd = bpf_program__fd(program);
@@ -2967,12 +2967,12 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
         output = capture.buffer_to_printk_vector(capture.get_stdout_contents());
         REQUIRE(result == 0);
     }
-    for (auto& line : output) {
-        printf("%s\n", line.c_str());
-    }
+
     // Verify that the printk output is correct.
-    REQUIRE(output.size() == MAX_TAIL_CALL_CNT);
-    for (size_t i = 0; i < MAX_TAIL_CALL_CNT; i++) {
+    // In sequential ebpf program, the printk is added even to the caller.
+    // Hence the printk count is called MAX_TAIL_CALL_CNT + 1 times.
+    REQUIRE(output.size() == MAX_TAIL_CALL_CNT + 1);
+    for (size_t i = 0; i < MAX_TAIL_CALL_CNT + 1; i++) {
         REQUIRE(output[i] == std::format("sequential{}: *value={}", i, i));
     }
 
@@ -2982,7 +2982,7 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     REQUIRE(bpf_map_lookup_elem(canary_map_fd, &key, &value) == 0);
 
     // The program should have been called MAX_TAIL_CALL_CNT times.
-    REQUIRE(value == MAX_TAIL_CALL_CNT);
+    REQUIRE(value == MAX_TAIL_CALL_CNT + 1);
 
     // The last program should have returned -EBPF_NO_MORE_TAIL_CALLS.
     REQUIRE(opts.retval == -EBPF_NO_MORE_TAIL_CALLS);
