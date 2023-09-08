@@ -2899,7 +2899,7 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     }
 
     // Verify that the printk output is correct.
-    // In recurse ebpf program, the printk is added even to the caller.
+    // In recurse ebpf programs, the printk is added even to the caller.
     // Hence the printk count is called MAX_TAIL_CALL_CNT + 1 times.
     REQUIRE(output.size() == MAX_TAIL_CALL_CNT + 1);
     for (size_t i = 0; i < MAX_TAIL_CALL_CNT + 1; i++) {
@@ -2969,7 +2969,7 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     }
 
     // Verify that the printk output is correct.
-    // In sequential ebpf program, the printk is added even to the caller.
+    // In sequential ebpf programs, the printk is added even to the caller.
     // Hence the printk count is called MAX_TAIL_CALL_CNT + 1 times.
     REQUIRE(output.size() == MAX_TAIL_CALL_CNT + 1);
     for (size_t i = 0; i < MAX_TAIL_CALL_CNT + 1; i++) {
@@ -3062,7 +3062,7 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
-    // Bind port should deny because the tail call program exceeds MAX_TAIL_CALL_COUNT.
+    // Binding to the port should be denied because the number of tail call programs exceeds MAX_TAIL_CALL_COUNT.
     REQUIRE(emulate_bind_tail_call(invoke, fake_pid, "fake_app_1") == BIND_DENY);
 
     hook.detach_and_close_link(&link);
