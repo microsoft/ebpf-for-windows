@@ -20,13 +20,6 @@
 #include <stop_token>
 #include <thread>
 
-// The helper function definitions in bpf_helpers.h conflict with the definitions
-// in libbpf.h, but this code needs to use MAX_TAIL_CALL_CNT from bpf_helpers.h.
-// Work around this by defining MAX_TAIL_CALL_CNT here.
-#if !defined(MAX_TAIL_CALL_CNT)
-#define MAX_TAIL_CALL_CNT 33
-#endif
-
 // libbpf.h uses enum types and generates the
 // following warning whenever an enum type is used below:
 // "The enum type 'bpf_attach_type' is unscoped.
