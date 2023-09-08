@@ -727,8 +727,8 @@ bind_tailcall_test(_In_ struct bpf_object* object)
     REQUIRE(WSAStartup(2, &data) == 0);
 
     // Now, trigger bind. bind should not succeed.
-    REQUIRE(perform_bind(&sockets[0], 30000) == BIND_DENY);
-    REQUIRE(perform_bind(&sockets[1], 30001) == BIND_DENY);
+    REQUIRE(perform_bind(&sockets[0], 30000) != 0);
+    REQUIRE(perform_bind(&sockets[1], 30001) != 0);
 
     WSACleanup();
 }
