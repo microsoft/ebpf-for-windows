@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ebpf.h"
+#include "ebpf_program_types.h"
 #include "ebpf_structs.h"
 #include "elfio_wrapper.hpp"
 
@@ -227,10 +228,10 @@ class bpf_code_generator
      */
     void
     parse(
-        const unsafe_string& section_name,
+        const bpf_code_generator::unsafe_string& section_name,
         const GUID& program_type,
         const GUID& attach_type,
-        const std::optional<std::vector<uint8_t>>& program_info_hash,
+        _In_ ebpf_program_info_t* program_info,
         const std::string& program_info_hash_type);
 
     /**
@@ -272,6 +273,25 @@ class bpf_code_generator
     void
     emit_c_code(std::ostream& output);
 
+    /**
+     * @brief Get the helper function ids used by the current program.
+     *
+     * @return Vector of helper ids.
+     */
+    std::vector<int32_t>
+    get_helper_ids();
+
+    const ebpf_program_info_t*
+    get_program_info();
+
+    /**
+     * @brief Set the program hash info object
+     *
+     * @param program_info_hash Optional bytes containing hash of the program info.
+     */
+    void
+    set_program_hash_info(const std::optional<std::vector<uint8_t>>& program_info_hash);
+
   private:
     typedef struct _helper_function
     {
@@ -308,6 +328,7 @@ class bpf_code_generator
         std::set<size_t> referenced_map_indices;
         std::map<unsafe_string, helper_function_t> helper_functions;
         std::string program_info_hash_type{};
+        ebpf_program_info_t* program_info = nullptr;
     } section_t;
 
     typedef struct _line_info
@@ -339,13 +360,13 @@ class bpf_code_generator
      *
      * @param[in] program_type Program type GUID.
      * @param[in] attach_type Attach type GUID.
-     * @param[in] program_info_hash Hash of the program information used to verify this program.
+     * @param[in] program_info Pointer to the program info.
      */
     void
-    set_program_and_attach_type_and_hash(
+    set_program_and_attach_type_and_info(
         const GUID& program_type,
         const GUID& attach_type,
-        const std::optional<std::vector<uint8_t>>& program_info_hash,
+        _In_ ebpf_program_info_t* program_info,
         const std::string& program_info_hash_type);
 
     /**

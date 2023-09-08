@@ -1520,6 +1520,8 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
 
     *address = (uint64_t)function_address;
 
+    // TODO: Update hash here, if not already updated.
+
     return_value = EBPF_SUCCESS;
 
 Done:
@@ -1835,6 +1837,7 @@ _ebpf_helper_id_to_index_compare(const void* lhs, const void* rhs)
  *
  * Notes on why this works:
  * 1) The user application creates an ebpf_program_t object and sets the program type.
+ * 2) When helper addresses are first resolved for this program, the program information is hashed and stored.
  * 2) During initialization, the program binds to the program information provider.
  * 3) During the attach callback, the program information is hashed and stored.
  * 4) The verifier then queries the program information from the ebpf_program_t object and uses it to verify the program
@@ -1851,6 +1854,8 @@ _ebpf_helper_id_to_index_compare(const void* lhs, const void* rhs)
  */
 static ebpf_result_t
 _ebpf_program_compute_program_information_hash(
+    _In_ const uint32_t* actual_helper_ids,
+    size_t count_of_actual_helper_ids,
     _In_ const ebpf_program_data_t* general_program_information_data,
     _In_ const ebpf_program_data_t* type_specific_program_information_data,
     _In_ const cxplat_utf8_string_t* hash_algorithm,
