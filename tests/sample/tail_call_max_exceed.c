@@ -1,11 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// clang -O2 -Werror -c bindmonitor_mt_tailcall.c -o bindmonitor_mt_tailcall_jit.o
-//
-// For bpf code: clang -target bpf -O2 -Werror -c bindmonitor_mt_tailcall.c -o bindmonitor_mt_tailcall.o
-// this passes the checker
-
 // Whenever this sample program changes, bpf2c_tests will fail unless the
 // expected files in tests\bpf2c_tests\expected are updated. The following
 // script can be used to regenerate the expected files:
@@ -25,7 +20,7 @@
     bind_action_t bind_test_callee##x(bind_md_t* ctx)                       \
     {                                                                       \
         int i = x + 1;                                                      \
-        bpf_printk("Calling Tail call index [x = %d], [x+1 = %d]\n", x, i); \
+        bpf_printk("Calling tail call index [x = %d], [x+1 = %d]\n", x, i); \
         if (bpf_tail_call(ctx, &bind_tail_call_map, i) < 0) {               \
             bpf_printk("Tail call failed at index %d\n", i);                \
         }                                                                   \
@@ -128,9 +123,9 @@ SEC("bind")
 bind_action_t
 bind_test_caller(bind_md_t* ctx)
 {
-    bpf_printk("bind_test_caller: Start Tail call index %d\n", 0);
+    bpf_printk("bind_test_caller: Start tail caller.\n");
     if (bpf_tail_call(ctx, &bind_tail_call_map, 0) < 0) {
-        bpf_printk("Failed Tail call index %d\n", 0);
+        bpf_printk("Failed tail call index %d\n", 0);
     }
 
     return BIND_DENY;
@@ -140,7 +135,7 @@ SEC("bind/34")
 bind_action_t
 bind_test_callee34(bind_md_t* ctx)
 {
-    bpf_printk("Last Tail call index: bind_test_callee34\n");
+    bpf_printk("Last tail call index: bind_test_callee34\n");
     // This function is the last tail call function for the bind hook.
     // This function returns BIND_PERMIT to allow the bind request to proceed.
     return BIND_PERMIT;
