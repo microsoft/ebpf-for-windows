@@ -3036,7 +3036,7 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
     fd_t first_program_fd = bpf_program__fd(first_program);
     REQUIRE(first_program_fd > 0);
 
-    // Verify that the prog_array map contains the correct number of 35 programs.
+    // Verify that the prog_array map contains the correct number of TOTAL_TAIL_CALL programs.
     uint32_t key = 0;
     uint32_t val = 0;
     bpf_map_lookup_elem(map_fd, &key, &val);
