@@ -281,7 +281,9 @@ function Invoke-CICDPerformanceTests
     # Stop the services, remove the driver from verifier, and restart the services.
     net.exe stop ebpfsvc
     net.exe stop ebpfcore
+    # Remove the global verifier settings (this will remove the verifer interceptions that can degrade performance).
     verifier.exe /volatile 0
+    # Remove the ebpfcore.sys driver from the verifier.
     verifier.exe /volatile /removedriver ebpfcore.sys
     net.exe start ebpfcore
     net.exe start ebpfsvc
