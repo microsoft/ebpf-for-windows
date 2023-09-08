@@ -283,7 +283,12 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     }
     memcpy(redirect_context, data, data_size);
 
-    // Set redirect context.
+    // If a redirect context already exists, free the existing buffer.
+    if (sock_addr_ctx->redirect_context != NULL) {
+        ExFreePool(sock_addr_ctx->redirect_context);
+    }
+
+    // Set the redirect context.
     sock_addr_ctx->redirect_context = redirect_context;
     sock_addr_ctx->redirect_context_size = data_size;
 
