@@ -51,10 +51,6 @@ CATCH_REGISTER_LISTENER(_watchdog)
 
 #define WAIT_TIME_IN_MS 5000
 
-#if !defined(MAX_TAIL_CALL_CNT)
-#define MAX_TAIL_CALL_CNT 33
-#endif
-
 typedef struct _audit_entry
 {
     uint64_t logon_id;
