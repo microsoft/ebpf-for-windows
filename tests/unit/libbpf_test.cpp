@@ -2892,7 +2892,7 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     }
 
     // Verify that the printk output is correct.
-    // In recurse ebpf programs, the printk is added even to the caller.
+    // In 'recurse' ebpf program, the printk is added even to the caller.
     // Hence the printk count is called MAX_TAIL_CALL_CNT + 1 times.
     REQUIRE(output.size() == MAX_TAIL_CALL_CNT + 1);
     for (size_t i = 0; i < MAX_TAIL_CALL_CNT + 1; i++) {
@@ -2962,7 +2962,7 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     }
 
     // Verify that the printk output is correct.
-    // In sequential ebpf programs, the printk is added even to the caller.
+    // In 'sequential' ebpf program, the printk is added even to the caller.
     // Hence the printk count is called MAX_TAIL_CALL_CNT + 1 times.
     REQUIRE(output.size() == MAX_TAIL_CALL_CNT + 1);
     for (size_t i = 0; i < MAX_TAIL_CALL_CNT + 1; i++) {
