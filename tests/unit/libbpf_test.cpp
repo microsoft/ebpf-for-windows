@@ -3062,7 +3062,7 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
-    // Bind port should deny because the tail call program exceeds 33.
+    // Bind port should deny because the tail call program exceeds MAX_TAIL_CALL_COUNT.
     REQUIRE(emulate_bind_tail_call(invoke, fake_pid, "fake_app_1") == BIND_DENY);
 
     hook.detach_and_close_link(&link);
