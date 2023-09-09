@@ -1526,7 +1526,6 @@ static ebpf_result_t
 _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
-    uint32_t max_cpu = map->ebpf_map_definition.value_size / EBPF_PAD_8(map->original_value_size);
 
     if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].per_cpu)) {
         return EBPF_SUCCESS;
@@ -1534,9 +1533,6 @@ _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 
     current_cpu = ebpf_get_current_cpu();
 
-    if (current_cpu > max_cpu) {
-        return EBPF_INVALID_ARGUMENT;
-    }
     (*value) += EBPF_PAD_8((size_t)map->original_value_size) * current_cpu;
     return EBPF_SUCCESS;
 }
