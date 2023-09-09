@@ -137,11 +137,74 @@ When the extension is getting published, it can take a few hours sometimes in ce
 ```PS
 $publisherName="Microsoft.eBPF"
 $typeName="eBpfForWindows"
-$version="0.10.0.1"
+$version="0.9.1.1"
 $resourceGroupName = "eBpfForWindows"
 $name = $publisherName + "." + $typeName + "/" + $version
 (Get-AzResource -ResourceGroupName $resourceGroupName -Name $name -ExpandProperties).Properties.replicationStatus.summary | Sort-Object -Property "region" | Format-Table
 ```
+
+### Deploying the VM Extension within a VM
+
+Important: then VM **must** be created within the same subscription of the publisher, otherwise the VM Extension will not be found.
+
+#### Creating the VM
+
+Due to the Prod subscription limitations, creating it from the Azure portal is not possible, so we need to create it from PowerShell:
+
+```PS
+$credential = Get-Credential
+$resourceGroupName = "eBpfVmExtension"
+$location = "Central US EUAP"
+$vmName = "eBpfTestVMCanary"
+$imagePublisher = "MicrosoftWindowsServer"
+$imageOffer = "WindowsServer"
+#$imageSku = "2019-Datacenter"
+$imageSku = "2019-datacenter-gensecond"
+$imageVersion = "latest"
+$vmSize = "Standard_B2als_v2"
+
+$imageReference = "/subscriptions/78a9bec8-945c-4cc0-83bf-77c6d384d2ca/resourceGroups/$resourceGroupName/providers/Microsoft.Compute/galleries/$imageOffer/images/$imageSku/versions/$imageVersion"
+New-AzVM `
+  -Name $vmName `
+  -Credential $credential `
+  -ResourceGroupName $resourceGroupName `
+  -Location $location `
+  -Size $vmSize `
+  -ImageReferenceId $imageReference
+
+$imageReference = Get-AzVMImage -Location $location -PublisherName $imagePublisher -Offer $imageOffer -Skus $imageSku -Version $imageVersion
+New-AzVM `
+  -Name $vmName `
+  -Credential $credential `
+  -ResourceGroupName $resourceGroupName `
+  -Location $location `
+  -Size $vmSize `
+  -Image $imageReference[0].Id
+```
+
+#### Installing the VM Extension
+
+```PS
+# https://learn.microsoft.com/en-us/powershell/module/az.compute/set-azvmextension?view=azps-10.3.0
+$publisherName="Microsoft.eBPF"
+$typeName="eBpfForWindows"
+$version="0.9.1.1"
+$extName = "eBpfForWindows"
+$vmLocation = "SouthCentralUS"
+$resourceGroup = "eBpfVmExtension"
+$vm = "eBpfVmTest"
+
+Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $extName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $resourceGroup -VMName $vm
+```
+
+While CollectGuestLogs.exe is always under `C:\WindowsAzure``, different guest agent versions will have it in different subfolders, so the PowerShell command below will find it in whichever `C:\WindowsAzure`` subfolder it resides, and then run it.
+Run the following command from elevated PowerShell:
+
+```PS
+invoke-expression (get-childitem -Path c:\windowsazure -Filter CollectGuestLogs.exe -Recurse | sort LastAccessTime -desc | select -first 1).FullName
+ 
+``` 
+
 ## UNDEFINED TOPICS FROM THE DOCS
 
 ### 1.0 Partner Guide Overview
