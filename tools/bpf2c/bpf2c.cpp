@@ -390,12 +390,14 @@ main(int argc, char** argv)
         for (const auto& section : sections) {
             generator.generate(section);
 
-            std::optional<std::vector<uint8_t>> program_info_hash;
-            // Generate hash of the program.
-            std::vector<int32_t> helper_ids = generator.get_helper_ids();
-            const ebpf_program_info_t* program_info = generator.get_program_info();
-            program_info_hash = get_program_info_type_hash(program_info, helper_ids, hash_algorithm);
-            generator.set_program_hash_info(program_info_hash);
+            if (verify_programs && (hash_algorithm != "none")) {
+                std::optional<std::vector<uint8_t>> program_info_hash;
+                // Generate hash of the program.
+                std::vector<int32_t> helper_ids = generator.get_helper_ids();
+                const ebpf_program_info_t* program_info = generator.get_program_info();
+                program_info_hash = get_program_info_type_hash(program_info, helper_ids, hash_algorithm);
+                generator.set_program_hash_info(program_info_hash);
+            }
         }
 
         // // Now generate hash for all the programs.
