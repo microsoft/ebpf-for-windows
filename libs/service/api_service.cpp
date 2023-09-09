@@ -282,6 +282,14 @@ ebpf_verify_and_load_program(
             goto Exit;
         }
 
+        std::vector<uint64_t> helper_id_address;
+        uint32_t unwind_index;
+        result = _build_helper_id_to_address_map(
+            program_handle, instructions, instruction_count, helper_id_address, unwind_index);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
         // Verify the program.
         set_verification_in_progress(true);
         result = verify_byte_code(program_type, instructions, instruction_count, error_message, error_message_size);
@@ -295,14 +303,6 @@ ebpf_verify_and_load_program(
         }
 
         result = _resolve_ec_function(EBPF_EC_FUNCTION_LOG, &log_function_address);
-        if (result != EBPF_SUCCESS) {
-            goto Exit;
-        }
-
-        std::vector<uint64_t> helper_id_address;
-        uint32_t unwind_index;
-        result = _build_helper_id_to_address_map(
-            program_handle, instructions, instruction_count, helper_id_address, unwind_index);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
