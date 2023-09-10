@@ -147,7 +147,7 @@ get_program_info_type_hash(
     _In_ const ebpf_program_info_t* program_info, std::vector<int32_t>& actual_helper_ids, const std::string& algorithm)
 {
     std::map<uint32_t, size_t> helper_id_ordering;
-    // std::map<uint32_t, size_t> actual_helper_id_ordering;
+    size_t actual_helper_id_count = actual_helper_ids.size();
 
     // Note:
     // Only the helper functions which are actually called by the eBPF program are to be included in the hash.
@@ -161,26 +161,30 @@ get_program_info_type_hash(
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.program_type);
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.bpf_prog_type);
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.is_privileged);
-    hash_t::append_byte_range(byte_range, program_info->count_of_program_type_specific_helpers);
+    hash_t::append_byte_range(byte_range, actual_helper_id_count);
 
     // First, create a map of helper_id to index in the program_type_specific_helper_prototype array.
     // Only include the helper IDs which are actually called by the eBPF program.
-    for (size_t index = 0; index < program_info->count_of_program_type_specific_helpers; index++) {
-        uint32_t helper_id = program_info->program_type_specific_helper_prototype[index].helper_id;
-        if (std::find(actual_helper_ids.begin(), actual_helper_ids.end(), helper_id) != actual_helper_ids.end()) {
-            helper_id_ordering[helper_id] = index;
+    if (actual_helper_id_count > 0) {
+        for (size_t index = 0; index < program_info->count_of_program_type_specific_helpers; index++) {
+            uint32_t helper_id = program_info->program_type_specific_helper_prototype[index].helper_id;
+            if (std::find(actual_helper_ids.begin(), actual_helper_ids.end(), helper_id) != actual_helper_ids.end()) {
+                helper_id_ordering[helper_id] = index;
+            }
         }
-    }
-    // Hash helper ids in increasing helper_id order
-    for (auto [helper_id, index] : helper_id_ordering) {
-        hash_t::append_byte_range(byte_range, program_info->program_type_specific_helper_prototype[index].helper_id);
-        hash_t::append_byte_range(byte_range, program_info->program_type_specific_helper_prototype[index].name);
-        hash_t::append_byte_range(byte_range, program_info->program_type_specific_helper_prototype[index].return_type);
-        for (size_t argument = 0;
-             argument < _countof(program_info->program_type_specific_helper_prototype[index].arguments);
-             argument++) {
+        // Hash helper ids in increasing helper_id order
+        for (auto [helper_id, index] : helper_id_ordering) {
             hash_t::append_byte_range(
-                byte_range, program_info->program_type_specific_helper_prototype[index].arguments[argument]);
+                byte_range, program_info->program_type_specific_helper_prototype[index].helper_id);
+            hash_t::append_byte_range(byte_range, program_info->program_type_specific_helper_prototype[index].name);
+            hash_t::append_byte_range(
+                byte_range, program_info->program_type_specific_helper_prototype[index].return_type);
+            for (size_t argument = 0;
+                 argument < _countof(program_info->program_type_specific_helper_prototype[index].arguments);
+                 argument++) {
+                hash_t::append_byte_range(
+                    byte_range, program_info->program_type_specific_helper_prototype[index].arguments[argument]);
+            }
         }
     }
     hash_t hash(algorithm);
