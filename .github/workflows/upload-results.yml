@@ -1,0 +1,62 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+# This workflow executes a single test, optionally gathering code coverage and logs.
+
+name: Reusable Test Workflow
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        required: true
+        type: string
+      result_artifact:
+        required: true
+        type: string
+
+permissions:
+  contents: write  # Required by actions/checkout to fetch code.
+
+jobs:
+  upload_results:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      with:
+        ref: bpf_performance_benchmarks
+
+    - name: Download performance result artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: Test-Logs-${{inputs.result_artifact}}
+        path: results
+
+    - name: Add results to repo
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "edgeosebpf@microsoft.com"
+        mkdir -p results\${{github.sha}}
+        cp -r results/*.csv results\${{github.sha}}
+        git add results
+        git commit -m "Add results for commit ${{github.sha}}" --no-verify
+        git push
+
+    - name: Post-process results
+      run: |
+        # Download script to convert CSV to SQL from GitHub.
+        curl https://raw.githubusercontent.com/Alan-Jowett/bpf_performance/e5ae44184c3b93325254174906879ea6b3e7bba4/scripts/process_results.py > process_results.py
+        # Compare hash of downloaded script.
+        sha256sum process_results.py | grep  3a54e7efb1eb101b1d509481c7c413d75fd94a96ea6f16448f1b97b1b5ef90d0  -q || exit 1
+        # Run script to convert CSV to SQL.
+        python3 scripts/process_results.py --csv-directory ${{github.workspace}}/results --sql-script-file ${{github.workspace}}/results/upload.sql --commit_id ${{github.sha}} --platform "Windows 2019"
+
+    - name: Upload results to POSTGRES
+      env:
+        PGHOST: ${{secrets.PGHOST}}
+        PGUSER: ${{secrets.PGUSER}}
+        PGPORT: ${{secrets.PGPORT}}
+        PGDATABASE: ${{secrets.PGDATABASE}}
+        PGPASSWORD: ${{secrets.PGPASSWORD}}
+      run: |
+        psql -f ${{github.workspace}}/results/upload.sql
