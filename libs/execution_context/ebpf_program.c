@@ -75,6 +75,7 @@ typedef struct _ebpf_program
     // Array of helper function ids referred by this program.
     size_t helper_function_count;
     uint32_t* helper_function_ids;
+    bool helper_ids_set;
 
     ebpf_epoch_work_item_t* cleanup_work_item;
 
@@ -311,6 +312,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     size_t hash_length = 0;
     uint32_t* actual_helper_function_ids = NULL;
     size_t actual_helper_function_count = 0;
+    bool actual_helper_ids_set = false;
 
     void* provider_binding_context;
     void* provider_dispatch;
@@ -340,6 +342,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     // So it is safe to use it without holding the lock.
     actual_helper_function_ids = program->helper_function_ids;
     actual_helper_function_count = program->helper_function_count;
+    actual_helper_ids_set = program->helper_ids_set;
 
     ebpf_lock_unlock(&program->lock, state);
     lock_held = false;
@@ -375,17 +378,21 @@ _ebpf_program_type_specific_program_information_attach_provider(
 
     type_specific_program_information_data = (ebpf_program_data_t*)provider_data->data;
 
-    // Compute the hash of the program information. This requires passive IRQL and must be done outside the lock.
-    if (_ebpf_program_compute_program_information_hash(
-            actual_helper_function_ids,
-            actual_helper_function_count,
-            general_program_information_data,
-            type_specific_program_information_data,
-            &hash_algorithm,
-            &hash,
-            &hash_length) != EBPF_SUCCESS) {
-        status = STATUS_NO_MEMORY;
-        goto Done;
+    // Compute (and compare) the hash only if the actual helper IDs have been set.
+    if (actual_helper_ids_set) {
+        // Compute the hash of the program information. This requires passive IRQL
+        // and must be done outside the lock.
+        if (_ebpf_program_compute_program_information_hash(
+                actual_helper_function_ids,
+                actual_helper_function_count,
+                general_program_information_data,
+                type_specific_program_information_data,
+                &hash_algorithm,
+                &hash,
+                &hash_length) != EBPF_SUCCESS) {
+            status = STATUS_NO_MEMORY;
+            goto Done;
+        }
     }
 
     state = ebpf_lock_lock(&program->lock);
@@ -404,7 +411,10 @@ _ebpf_program_type_specific_program_information_attach_provider(
 
     // Only if there is a stored hash, do a comparision. The hash will be stored in the
     // program object in ebpf_program_set_helper_function_ids().
-    if (program->parameters.program_info_hash_length != 0) {
+
+    // Compare the hash only if actual helper IDs have been set.
+
+    if (actual_helper_ids_set) {
         // Verify that the hash matches the stored hash.
         if (program->parameters.program_info_hash_length != hash_length ||
             memcmp(program->parameters.program_info_hash, hash, hash_length) != 0) {
@@ -1578,8 +1588,12 @@ ebpf_program_set_helper_function_ids(
     EBPF_LOG_ENTRY();
 
     ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_lock_state_t state = 0;
+
+    state = ebpf_lock_lock(&program->lock);
 
     if (helper_function_count == 0) {
+        program->helper_ids_set = true;
         goto Exit;
     }
 
@@ -1606,6 +1620,7 @@ ebpf_program_set_helper_function_ids(
     }
 
 Exit:
+    ebpf_lock_unlock(&program->lock, state);
     EBPF_RETURN_RESULT(result);
 }
 
@@ -1620,6 +1635,7 @@ ebpf_program_clear_helper_function_ids(_Inout_ ebpf_program_t* program)
     ebpf_free(program->helper_function_ids);
     program->helper_function_ids = NULL;
     program->helper_function_count = 0;
+    program->helper_ids_set = false;
 
     ebpf_lock_unlock(&program->lock, state);
 }
@@ -1644,15 +1660,15 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
     state = ebpf_lock_lock(&program->lock);
     lock_held = true;
 
-    if (program->parameters.program_info_hash) {
-        EBPF_LOG_MESSAGE(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "ebpf_program_set_program_info_hash - hash already set");
-        // Helper function IDs already set.
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
+    // if (program->parameters.program_info_hash) {
+    //     EBPF_LOG_MESSAGE(
+    //         EBPF_TRACELOG_LEVEL_ERROR,
+    //         EBPF_TRACELOG_KEYWORD_PROGRAM,
+    //         "ebpf_program_set_program_info_hash - hash already set");
+    //     // Helper function IDs already set.
+    //     result = EBPF_INVALID_ARGUMENT;
+    //     goto Exit;
+    // }
 
     // Acquire reference to the program info provider.
     if (ebpf_program_reference_providers((ebpf_program_t*)program) != EBPF_SUCCESS) {
@@ -1696,10 +1712,21 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
     state = ebpf_lock_lock(&program->lock);
     lock_held = true;
 
-    // This is the only time hash information is saved in the program object.
-    program->parameters.program_info_hash_length = hash_length;
-    program->parameters.program_info_hash = hash;
-    hash = NULL;
+    // If program info hash is already set (which is possible for native mode), compare the computed hash with the
+    // stored hash.
+
+    if (program->parameters.program_info_hash) {
+        if ((program->parameters.program_info_hash_length != hash_length) ||
+            (memcmp(program->parameters.program_info_hash, hash, hash_length) != 0)) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+    } else {
+        // Set the program info hash.
+        program->parameters.program_info_hash_length = hash_length;
+        program->parameters.program_info_hash = hash;
+        hash = NULL;
+    }
 
 Exit:
     ebpf_free(hash);
