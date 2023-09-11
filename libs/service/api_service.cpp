@@ -22,6 +22,10 @@ extern "C"
 // Maximum size of JIT'ed native code.
 #define MAX_NATIVE_CODE_SIZE_IN_BYTES (32 * 1024) // 32 KB
 
+// TODO(Issue #345 (ubpf)): uBPF has a max number of helper functions hard coded,
+// but doesn't expose the define to callers, so we define it here.
+#define UBPF_MAX_EXT_FUNCS 64
+
 static ebpf_result_t
 _resolve_helper_functions(
     ebpf_handle_t program_handle,
@@ -86,18 +90,18 @@ _build_helper_id_to_address_map(
     std::map<uint32_t, uint32_t> helper_id_mapping;
     unwind_index = MAXUINT32;
 
-    uint32_t index = 0;
-    for (auto [helper_id, helper_address] : helper_id_to_address) {
-        helper_id_mapping[helper_id] = index++;
-    }
-
     if (helper_id_mapping.size() == 0) {
         return EBPF_SUCCESS;
     }
 
-    // uBPF jitter supports a maximum of 64 helper functions
-    if (helper_id_mapping.size() > 64) {
+    // uBPF jitter supports a maximum of UBPF_MAX_EXT_FUNCS helper functions.
+    if (helper_id_mapping.size() > UBPF_MAX_EXT_FUNCS) {
         return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    uint32_t index = 0;
+    for (auto [helper_id, helper_address] : helper_id_to_address) {
+        helper_id_mapping[helper_id] = index++;
     }
 
     // Replace old helper_ids in range [1, MAXUINT32] with new helper ids in range [0,63]

@@ -1184,11 +1184,9 @@ _ebpf_native_resolve_helpers_for_program(
         goto Done;
     }
 
-    if (helper_count > 0) {
-        // Update the addresses in the helper entries.
-        for (uint16_t i = 0; i < helper_count; i++) {
-            helpers[i].address = helper_addresses[i];
-        }
+    // Update the addresses in the helper entries.
+    for (uint16_t i = 0; i < helper_count; i++) {
+        helpers[i].address = helper_addresses[i];
     }
 
 Done:
