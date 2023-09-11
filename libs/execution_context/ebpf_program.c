@@ -75,7 +75,6 @@ typedef struct _ebpf_program
     // Array of helper function ids referred by this program.
     size_t helper_function_count;
     uint32_t* helper_function_ids;
-    bool helper_function_ids_set;
 
     ebpf_epoch_work_item_t* cleanup_work_item;
 
@@ -1553,6 +1552,10 @@ ebpf_program_get_helper_function_addresses(
         goto Exit;
     }
 
+    if (addresses_count == 0) {
+        goto Exit;
+    }
+
     for (uint32_t index = 0; index < program->helper_function_count; index++) {
         result =
             _ebpf_program_get_helper_function_address(program, program->helper_function_ids[index], &addresses[index]);
@@ -1575,6 +1578,58 @@ ebpf_program_set_helper_function_ids(
     EBPF_LOG_ENTRY();
 
     ebpf_result_t result = EBPF_SUCCESS;
+
+    if (helper_function_count == 0) {
+        goto Exit;
+    }
+
+    if (program->helper_function_ids != NULL) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "ebpf_program_set_helper_function_ids - helper function IDs already set");
+        // Helper function IDs already set.
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    program->helper_function_count = helper_function_count;
+    program->helper_function_ids =
+        ebpf_allocate_with_tag(sizeof(uint32_t) * helper_function_count, EBPF_POOL_TAG_PROGRAM);
+    if (program->helper_function_ids == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    for (size_t index = 0; index < helper_function_count; index++) {
+        program->helper_function_ids[index] = helper_function_ids[index];
+    }
+
+Exit:
+    EBPF_RETURN_RESULT(result);
+}
+
+void
+ebpf_program_clear_helper_function_ids(_Inout_ ebpf_program_t* program)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_lock_state_t state = 0;
+
+    state = ebpf_lock_lock(&program->lock);
+
+    ebpf_free(program->helper_function_ids);
+    program->helper_function_ids = NULL;
+    program->helper_function_count = 0;
+
+    ebpf_lock_unlock(&program->lock, state);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
+{
+    EBPF_LOG_ENTRY();
+
+    ebpf_result_t result = EBPF_SUCCESS;
     bool provider_data_referenced = false;
     const ebpf_program_data_t* type_specific_program_information_data;
     const ebpf_program_data_t* general_program_information_data;
@@ -1586,11 +1641,14 @@ ebpf_program_set_helper_function_ids(
     ebpf_lock_state_t state = 0;
     bool lock_held = false;
 
-    if (program->helper_function_ids_set) {
+    state = ebpf_lock_lock(&program->lock);
+    lock_held = true;
+
+    if (program->parameters.program_info_hash) {
         EBPF_LOG_MESSAGE(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "ebpf_program_set_helper_function_ids - helper function IDs already set");
+            "ebpf_program_set_program_info_hash - hash already set");
         // Helper function IDs already set.
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
@@ -1613,42 +1671,30 @@ ebpf_program_set_helper_function_ids(
         goto Exit;
     }
 
-    // Compute the hash of the program information. This requires passive IRQL and must be done outside the lock.
     general_program_information_data = (ebpf_program_data_t*)program->general_helper_provider_data->data;
     type_specific_program_information_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
     actual_helper_function_ids = program->helper_function_ids;
     actual_helper_function_count = program->helper_function_count;
 
+    ebpf_lock_unlock(&program->lock, state);
+    lock_held = false;
+
     // Compute the hash of the program information. This requires passive IRQL and must be done outside the lock.
-    if (_ebpf_program_compute_program_information_hash(
-            actual_helper_function_ids,
-            actual_helper_function_count,
-            general_program_information_data,
-            type_specific_program_information_data,
-            &hash_algorithm,
-            &hash,
-            &hash_length) != EBPF_SUCCESS) {
-        result = EBPF_NO_MEMORY;
+    result = _ebpf_program_compute_program_information_hash(
+        actual_helper_function_ids,
+        actual_helper_function_count,
+        general_program_information_data,
+        type_specific_program_information_data,
+        &hash_algorithm,
+        &hash,
+        &hash_length);
+    if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
     // Acquire lock for the program object.
     state = ebpf_lock_lock(&program->lock);
     lock_held = true;
-
-    if (helper_function_count != 0) {
-        program->helper_function_count = helper_function_count;
-        program->helper_function_ids =
-            ebpf_allocate_with_tag(sizeof(uint32_t) * helper_function_count, EBPF_POOL_TAG_PROGRAM);
-        if (program->helper_function_ids == NULL) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-
-        for (size_t index = 0; index < helper_function_count; index++) {
-            program->helper_function_ids[index] = helper_function_ids[index];
-        }
-    }
 
     // This is the only time hash information is saved in the program object.
     program->parameters.program_info_hash_length = hash_length;
@@ -1661,6 +1707,7 @@ Exit:
 
     if (lock_held) {
         ebpf_lock_unlock(&program->lock, state);
+        lock_held = false;
     }
 
     if (provider_data_referenced) {
@@ -1994,7 +2041,11 @@ _ebpf_program_compute_program_information_hash(
             helper_function_index++;
         }
 
-        ebpf_assert(helper_function_index == helper_function_count);
+        // Some of the helper IDs were not found.
+        if (helper_function_index != helper_function_count) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
 
         // Sort helper_id_to_index by helper_id.
         qsort(

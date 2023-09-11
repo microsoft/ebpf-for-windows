@@ -216,6 +216,14 @@ extern "C"
         _In_reads_(helper_function_count) const uint32_t* helper_function_ids);
 
     /**
+     * @brief Clear the helper function IDs that are stored in the eBPF program.
+     *
+     * @param[in, out] program Program object to clear the helper functions for.
+     */
+    void
+    ebpf_program_clear_helper_function_ids(_Inout_ ebpf_program_t* program);
+
+    /**
      * @brief Get the addresses of helper functions referred to by the program. Assumes
      * ebpf_program_set_helper_function_ids has already been invoked on the program object.
      *
@@ -231,6 +239,18 @@ extern "C"
         _In_ const ebpf_program_t* program,
         const size_t addresses_count,
         _Out_writes_(addresses_count) uint64_t* addresses);
+
+    /**
+     * @brief Compute program info hash for the program object. Assumes ebpf_program_set_helper_function_ids has
+     * already been invoked on the program object.
+     *
+     * @param[in] program Program object to compute hash on.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INSUFFICIENT_BUFFER Output array is insufficient.
+     * @retval EBPF_INVALID_ARGUMENT At least one helper function id is not valid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program);
 
     /**
      * @brief Attach a link object to an eBPF program.

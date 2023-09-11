@@ -392,7 +392,15 @@ ebpf_core_resolve_helper(
         goto Done;
     }
 
+    return_value = ebpf_program_set_program_info_hash(program);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
 Done:
+    if (return_value != EBPF_SUCCESS && program != NULL) {
+        ebpf_program_clear_helper_function_ids(program);
+    }
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
     EBPF_RETURN_RESULT(return_value);
 }
@@ -423,17 +431,19 @@ _ebpf_core_protocol_resolve_helper(
         goto Done;
     }
 
-    if (count_of_helpers == 0) {
-        goto Done;
-    }
+    // if (count_of_helpers == 0) {
+    //     goto Done;
+    // }
 
-    request_helper_ids = (uint32_t*)ebpf_allocate_with_tag(count_of_helpers * sizeof(uint32_t), EBPF_POOL_TAG_CORE);
-    if (request_helper_ids == NULL) {
-        return_value = EBPF_NO_MEMORY;
-        goto Done;
-    }
-    for (helper_index = 0; helper_index < count_of_helpers; helper_index++) {
-        request_helper_ids[helper_index] = request->helper_id[helper_index];
+    if (count_of_helpers != 0) {
+        request_helper_ids = (uint32_t*)ebpf_allocate_with_tag(count_of_helpers * sizeof(uint32_t), EBPF_POOL_TAG_CORE);
+        if (request_helper_ids == NULL) {
+            return_value = EBPF_NO_MEMORY;
+            goto Done;
+        }
+        for (helper_index = 0; helper_index < count_of_helpers; helper_index++) {
+            request_helper_ids[helper_index] = request->helper_id[helper_index];
+        }
     }
 
     return_value =

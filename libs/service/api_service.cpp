@@ -23,11 +23,61 @@ extern "C"
 #define MAX_NATIVE_CODE_SIZE_IN_BYTES (32 * 1024) // 32 KB
 
 static ebpf_result_t
-_build_helper_id_to_address_map(
+_resolve_helper_functions(
     ebpf_handle_t program_handle,
     _In_reads_(instruction_count) ebpf_inst* instructions,
     uint32_t instruction_count,
-    std::vector<uint64_t>& helper_addresses,
+    std::map<uint32_t, uint64_t>& helper_id_to_address)
+{
+    // Note:
+    // eBPF supports helper IDs in the range [1, MAXUINT32]
+    // uBPF jitter only supports helper IDs in the range [0,63]
+    // Build a table to map [1, MAXUINT32] -> [0,63]
+    for (size_t index = 0; index < instruction_count; index++) {
+        ebpf_inst& instruction = instructions[index];
+        if (instruction.opcode != INST_OP_CALL) {
+            continue;
+        }
+        helper_id_to_address[instruction.imm] = 0;
+    }
+
+    ebpf_protocol_buffer_t request_buffer(
+        offsetof(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t) * helper_id_to_address.size());
+
+    ebpf_protocol_buffer_t reply_buffer(
+        offsetof(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uint64_t) * helper_id_to_address.size());
+
+    auto request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request_buffer.data());
+    auto reply = reinterpret_cast<ebpf_operation_resolve_helper_reply_t*>(reply_buffer.data());
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_HELPER;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->program_handle = program_handle;
+
+    uint32_t index = 0;
+    for (auto& [helper_id, address] : helper_id_to_address) {
+        request->helper_id[index] = helper_id;
+        index++;
+    }
+
+    uint32_t result = invoke_ioctl(request_buffer, reply_buffer);
+    if (result != ERROR_SUCCESS) {
+        return win32_error_code_to_ebpf_result(result);
+    }
+
+    index = 0;
+    for (auto& [helper_id, helper_address] : helper_id_to_address) {
+        helper_address = reply->address[index++];
+    }
+
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_build_helper_id_to_address_map(
+    _In_reads_(instruction_count) ebpf_inst* instructions,
+    uint32_t instruction_count,
+    // std::vector<uint64_t>& helper_addresses,
+    const std::map<uint32_t, uint64_t>& helper_id_to_address,
     uint32_t& unwind_index)
 {
     // Note:
@@ -37,12 +87,9 @@ _build_helper_id_to_address_map(
     std::map<uint32_t, uint32_t> helper_id_mapping;
     unwind_index = MAXUINT32;
 
-    for (size_t index = 0; index < instruction_count; index++) {
-        ebpf_inst& instruction = instructions[index];
-        if (instruction.opcode != INST_OP_CALL) {
-            continue;
-        }
-        helper_id_mapping[instruction.imm] = 0;
+    uint32_t index = 0;
+    for (auto [helper_id, helper_address] : helper_id_to_address) {
+        helper_id_mapping[helper_id] = index++;
     }
 
     if (helper_id_mapping.size() == 0) {
@@ -54,38 +101,38 @@ _build_helper_id_to_address_map(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_protocol_buffer_t request_buffer(
-        offsetof(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t) * helper_id_mapping.size());
+    // ebpf_protocol_buffer_t request_buffer(
+    //     offsetof(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t) * helper_id_mapping.size());
 
-    ebpf_protocol_buffer_t reply_buffer(
-        offsetof(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uint64_t) * helper_id_mapping.size());
+    // ebpf_protocol_buffer_t reply_buffer(
+    //     offsetof(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uint64_t) * helper_id_mapping.size());
 
-    auto request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request_buffer.data());
-    auto reply = reinterpret_cast<ebpf_operation_resolve_helper_reply_t*>(reply_buffer.data());
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_HELPER;
-    request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->program_handle = program_handle;
+    // auto request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request_buffer.data());
+    // auto reply = reinterpret_cast<ebpf_operation_resolve_helper_reply_t*>(reply_buffer.data());
+    // request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_HELPER;
+    // request->header.length = static_cast<uint16_t>(request_buffer.size());
+    // request->program_handle = program_handle;
 
     // Build list of helper_ids to resolve and assign new helper id.
     // New helper ids are in the range [0,63]
-    uint32_t index = 0;
-    for (auto& [old_helper_id, new_helper_id] : helper_id_mapping) {
-        request->helper_id[index] = old_helper_id;
-        new_helper_id = index;
-        index++;
-    }
+    // uint32_t index = 0;
+    // for (auto& [old_helper_id, new_helper_id] : helper_id_mapping) {
+    //     request->helper_id[index] = old_helper_id;
+    //     new_helper_id = index;
+    //     index++;
+    // }
 
-    uint32_t result = invoke_ioctl(request_buffer, reply_buffer);
-    if (result != ERROR_SUCCESS) {
-        return win32_error_code_to_ebpf_result(result);
-    }
+    // uint32_t result = invoke_ioctl(request_buffer, reply_buffer);
+    // if (result != ERROR_SUCCESS) {
+    //     return win32_error_code_to_ebpf_result(result);
+    // }
 
-    helper_addresses.resize(helper_id_mapping.size());
+    // helper_addresses.resize(helper_id_mapping.size());
 
-    index = 0;
-    for (auto& address : helper_addresses) {
-        address = reply->address[index++];
-    }
+    // index = 0;
+    // for (auto& address : helper_addresses) {
+    //     address = reply->address[index++];
+    // }
 
     // Replace old helper_ids in range [1, MAXUINT32] with new helper ids in range [0,63]
     for (index = 0; index < instruction_count; index++) {
@@ -282,10 +329,8 @@ ebpf_verify_and_load_program(
             goto Exit;
         }
 
-        std::vector<uint64_t> helper_id_address;
-        uint32_t unwind_index;
-        result = _build_helper_id_to_address_map(
-            program_handle, instructions, instruction_count, helper_id_address, unwind_index);
+        std::map<uint32_t, uint64_t> helper_id_to_address;
+        result = _resolve_helper_functions(program_handle, instructions, instruction_count, helper_id_to_address);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -305,6 +350,17 @@ ebpf_verify_and_load_program(
         result = _resolve_ec_function(EBPF_EC_FUNCTION_LOG, &log_function_address);
         if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
+
+        uint32_t unwind_index;
+        result = _build_helper_id_to_address_map(instructions, instruction_count, helper_id_to_address, unwind_index);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        std::vector<uint64_t> helper_id_address;
+        for (auto& [helper_id, address] : helper_id_to_address) {
+            helper_id_address.push_back(address);
         }
 
         ebpf_code_buffer_t machine_code(MAX_NATIVE_CODE_SIZE_IN_BYTES);
