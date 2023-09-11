@@ -268,6 +268,12 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     void* redirect_context = NULL;
 
+    // Check for invalid parameters.
+    if (data == NULL || data_size == 0) {
+        return_value = -1;
+        goto Exit;
+    }
+
     // This function is only supported at the connect redirect layer.
     if (sock_addr_ctx->hook_id != EBPF_HOOK_ALE_CONNECT_REDIRECT_V4 &&
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_CONNECT_REDIRECT_V6) {
