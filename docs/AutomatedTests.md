@@ -75,6 +75,4 @@ Tests in this category currently include:
 ## Performance tests
 Performance tests check for performance regressions across builds.
 
-Tests in this category currently include:
-* ebpf_performance.exe: Currently this only outputs performance numbers, rather than
-  checking for regressions.  Improving this is issue #1915.
+This invokes the bpf_performance test suite with a variety of test cases.
