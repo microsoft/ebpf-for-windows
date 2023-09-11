@@ -714,6 +714,63 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
     cleanup();
 }
 
+void
+bind_tailcall_test(_In_ struct bpf_object* object)
+{
+    UNREFERENCED_PARAMETER(object);
+    WSAData data;
+    SOCKET sockets[2];
+    REQUIRE(WSAStartup(2, &data) == 0);
+
+    // Now, trigger bind. bind should not succeed.
+    REQUIRE(perform_bind(&sockets[0], 30000) != 0);
+    REQUIRE(perform_bind(&sockets[1], 30001) != 0);
+
+    WSACleanup();
+}
+
+#define MAX_TAIL_CALL_PROGS MAX_TAIL_CALL_CNT + 2
+
+TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+
+    program_load_attach_helper_t _helper;
+    _helper.initialize(
+        "tail_call_max_exceed.sys",
+        BPF_PROG_TYPE_BIND,
+        "bind_test_caller",
+        EBPF_EXECUTION_NATIVE,
+        nullptr,
+        0,
+        hook);
+    object = _helper.get_object();
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "bind_tail_call_map");
+    REQUIRE(prog_map_fd > 0);
+
+    struct bpf_program* caller = bpf_object__find_program_by_name(object, "bind_test_caller");
+    REQUIRE(caller != nullptr);
+
+    // Check each tail call program in the map.
+    for (int i = 0; i < MAX_TAIL_CALL_PROGS; i++) {
+        std::string program_name{"bind_test_callee"};
+        program_name += std::to_string(i);
+
+        struct bpf_program* program = bpf_object__find_program_by_name(object, program_name.c_str());
+        REQUIRE(program != nullptr);
+    }
+
+    // Perform bind test.
+    bind_tailcall_test(object);
+
+    // Clean up tail calls.
+    for (int index = 0; index < MAX_TAIL_CALL_PROGS; index++) {
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    }
+}
+
 #define SOCKET_TEST_PORT 0x3bbf
 
 TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")

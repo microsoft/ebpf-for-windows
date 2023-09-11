@@ -17,6 +17,8 @@ on:
   # Run on pull request to validate code changes.
   pull_request:
   merge_group:
+  # Permit manual runs of the workflow.
+  workflow_dispatch:
   # Run on push so we can capture the baseline code coverage.
   push:
     branches: [ main ]
@@ -40,7 +42,7 @@ jobs:
   # Perform the regular build.
   regular:
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64
@@ -138,7 +140,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver
       build_artifact: Build-x64
@@ -157,7 +159,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver
       build_artifact: Build-x64-native-only
@@ -448,7 +450,7 @@ jobs:
     with:
       name: km_mt_stress_tests
       pre_test: .\setup_ebpf_cicd_stress_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1 -RunKmStressTestsOnly $true
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
@@ -465,10 +467,34 @@ jobs:
     with:
       name: km_mt_stress_tests_restart_extension
       pre_test: .\setup_ebpf_cicd_stress_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1 -RunKmStressTestsOnly $true -RestartExtension $true
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
+
+  performance:
+    needs: regular
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      build_artifact: Build-x64
+      environment: ebpf_cicd_tests
+
+  performance_with_profile:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      build_artifact: Build-x64
+      environment: ebpf_cicd_tests

@@ -13,13 +13,6 @@
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 
-// The helper function definitions in bpf_helpers.h conflict with the definitions
-// in libbpf.h, but this code needs to use MAX_TAIL_CALL_CNT from bpf_helpers.h.
-// Work around this by defining MAX_TAIL_CALL_CNT here.
-#if !defined(MAX_TAIL_CALL_CNT)
-#define MAX_TAIL_CALL_CNT 32
-#endif
-
 // Note: The 'program' and 'execution' types are not required for km tests.
 static const std::map<std::string, test_program_attributes> _test_program_info = {
     {{"cgroup_sock_addr"},
@@ -1126,7 +1119,7 @@ _set_up_tailcall_program(bpf_object* object, const std::string& map_name)
     LOG_VERBOSE("({}) Opened fd:{} for map:{}", __func__, prog_map_fd, map_name.c_str());
 
     // Set up tail calls.
-    for (int index = 0; index < MAX_TAIL_CALL_CNT - 1; index++) {
+    for (int index = 0; index < MAX_TAIL_CALL_CNT; index++) {
         try {
             std::string bind_program_name{"BindMonitor_Callee"};
             bind_program_name += std::to_string(index);

@@ -58,8 +58,9 @@ extern "C"
         ebpf_hash_table_extract_function extract_function; //< Function to extract key from stored value.
         ebpf_hash_table_allocate allocate; //< Function to allocate memory - defaults to ebpf_epoch_allocate.
         ebpf_hash_table_free free;         //< Function to free memory - defaults to ebpf_epoch_free.
-        size_t bucket_count; //< Number of buckets to use - defaults to EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT.
-        size_t max_entries;  //< Maximum number of entries in the hash table - defaults to EBPF_HASH_TABLE_NO_LIMIT.
+        size_t minimum_bucket_count;       //< Minimum number of buckets to use - defaults to
+                                           // EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT.
+        size_t max_entries; //< Maximum number of entries in the hash table - defaults to EBPF_HASH_TABLE_NO_LIMIT.
         size_t supplemental_value_size; //< Size of supplemental value to store in each entry - defaults to 0.
         void* notification_context;     //< Context to pass to notification functions.
         ebpf_hash_table_notification_function
