@@ -84,7 +84,7 @@ typedef class _ebpf_hash_table_test_state
         const ebpf_hash_table_creation_options_t options = {
             .key_size = sizeof(uint32_t),
             .value_size = sizeof(uint64_t),
-            .bucket_count = keys.size(),
+            .minimum_bucket_count = keys.size(),
         };
         REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
         for (auto& key : keys) {

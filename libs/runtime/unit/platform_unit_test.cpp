@@ -148,7 +148,7 @@ TEST_CASE("hash_table_test", "[platform]")
         .value_size = data_1.size(),
         .allocate = ebpf_allocate,
         .free = ebpf_free,
-        .bucket_count = 1,
+        .minimum_bucket_count = 1,
     };
 
     ebpf_hash_table_t* raw_ptr = nullptr;
@@ -292,7 +292,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
     const ebpf_hash_table_creation_options_t options = {
         .key_size = sizeof(uint32_t),
         .value_size = sizeof(uint64_t),
-        .bucket_count = static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
+        .minimum_bucket_count = static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
     };
     REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
     auto worker = [table, iterations, key_count, load_factor, &cpu_id]() {
