@@ -37,7 +37,7 @@ get_address_from_string(
     _Out_opt_ ADDRESS_FAMILY* address_family = nullptr);
 
 std::string
-get_string_from_address(_In_ SOCKADDR* sockaddr);
+get_string_from_address(_In_ const SOCKADDR* sockaddr);
 
 typedef enum _expected_result
 {
@@ -160,6 +160,9 @@ typedef class _server_socket : public _base_socket
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length) = 0;
     virtual void
     close() = 0;
+
+    int
+    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size);
 
   protected:
     WSAOVERLAPPED overlapped;

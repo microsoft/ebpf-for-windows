@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #define SOCKET_TEST_PORT 8989
+#define REDIRECT_CONTEXT_MESSAGE "RedirectContextTestMessage"
 
 typedef struct _ip_address
 {
