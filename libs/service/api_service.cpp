@@ -90,12 +90,12 @@ _build_helper_id_to_address_map(
     std::map<uint32_t, uint32_t> helper_id_mapping;
     unwind_index = MAXUINT32;
 
-    if (helper_id_mapping.size() == 0) {
+    if (helper_id_to_address.size() == 0) {
         return EBPF_SUCCESS;
     }
 
     // The uBPF JIT compiler supports a maximum of UBPF_MAX_EXT_FUNCS helper functions.
-    if (helper_id_mapping.size() > UBPF_MAX_EXT_FUNCS) {
+    if (helper_id_to_address.size() > UBPF_MAX_EXT_FUNCS) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 

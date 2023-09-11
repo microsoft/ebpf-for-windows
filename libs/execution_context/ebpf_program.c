@@ -1987,8 +1987,7 @@ _ebpf_contains_helper_id(_In_ const uint32_t* helper_ids, size_t count_of_helper
  * @return EBPF_SUCCESS the program info hash matches.
  * @return EBPF_INVALID_ARGUMENT the program info hash does not match.
  */
-static ebpf_result_t
-_ebpf_program_compute_program_information_hash(
+_IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_program_information_hash(
     _In_ const uint32_t* actual_helper_ids,
     size_t count_of_actual_helper_ids,
     _In_ const ebpf_program_data_t* general_program_information_data,
