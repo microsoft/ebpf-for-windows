@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #define CATCH_CONFIG_RUNNER
-#define REDIRECT_CONTEXT_BUFFER_SIZE 100
+#define REDIRECT_CONTEXT_BUFFER_SIZE 128
 
 #include "catch_wrapper.hpp"
 #include "socket_helper.h"
@@ -38,7 +38,7 @@ create_listener(_Inout_ receiver_socket_t* receiver_socket)
     receiver_socket->complete_async_receive(WSA_INFINITE, false);
     printf("Received data from remote\n");
 
-    // Query for the redirect record.
+    // Query for the redirect context.
     // This is expected to only be valid for local redirections.
     // If not present, use the generic SERVER_MESSAGE response.
     if (receiver_socket->query_redirect_context(

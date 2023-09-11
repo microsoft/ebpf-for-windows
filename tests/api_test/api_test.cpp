@@ -1001,6 +1001,10 @@ test_sock_addr_native_program_load_attach(const char* file_name)
         test_sock_addr_native_program_load_attach((const char*)"cgroup_sock_addr2_"##version ".sys"); \
     }
 
+// Commenting the regression test for 0.9.0 as a breaking change was added.
+// This test needs to be enabled once v0.11.0 is released. Tracking issue #2839.
+// DECLARE_REGRESSION_TEST_CASE("0.9.0")
+
 // The below tests try to load native drivers for invalid programs (that will fail verification).
 // Since verification can be skipped in bpf2c for only Debug builds, these tests are applicable
 // only for Debug build.
