@@ -155,6 +155,7 @@ Enumerations</h2></td></tr>
  }</td></tr>
 <tr class="separator:a9e5d69be705b1f7503ab2fd752c41d02"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3a163a4fff0e95e1a572099e4478620e"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a3a163a4fff0e95e1a572099e4478620e">ebpf_sock_addr_helper_id_t</a> { <a class="el" href="ebpf__nethooks_8h.html#a3a163a4fff0e95e1a572099e4478620ea4b649ab500451e49d56e8b49b14f6edc">BPF_FUNC_sock_addr_get_current_pid_tgid</a> = SOCK_ADDR_EXT_HELPER_FN_BASE + 1
+, <a class="el" href="ebpf__nethooks_8h.html#a3a163a4fff0e95e1a572099e4478620ea17a2b2e39b5d83904a653ad0a40e9edf">BPF_FUNC_sock_addr_set_redirect_context</a> = SOCK_ADDR_EXT_HELPER_FN_BASE + 2
  }</td></tr>
 <tr class="separator:a3a163a4fff0e95e1a572099e4478620e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab1d2513464cb18a40a430026238606f6"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6">_bpf_sock_op_type</a> { <a class="el" href="ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6afb55f456c9926e60bdb1923bba9b03df">BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB</a>
@@ -171,6 +172,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a26e7a8b44782fb6df0944e67db68f2ca"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a26e7a8b44782fb6df0944e67db68f2ca">bpf_sock_addr_get_current_pid_tgid</a> (<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *ctx)</td></tr>
 <tr class="memdesc:a26e7a8b44782fb6df0944e67db68f2ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get current pid and tgid (sock_addr specific only).  <a href="ebpf__nethooks_8h.html#a26e7a8b44782fb6df0944e67db68f2ca">More...</a><br /></td></tr>
 <tr class="separator:a26e7a8b44782fb6df0944e67db68f2ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a64775b27bf65ea4c8fa5c8e951b60006"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a64775b27bf65ea4c8fa5c8e951b60006">bpf_sock_addr_set_redirect_context</a> (<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *ctx, void *data, uint32_t data_size)</td></tr>
+<tr class="memdesc:a64775b27bf65ea4c8fa5c8e951b60006"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a context for consumption by a user-mode application (sock_addr specific only). This function is not supported for the recv_accept hooks.  <a href="ebpf__nethooks_8h.html#a64775b27bf65ea4c8fa5c8e951b60006">More...</a><br /></td></tr>
+<tr class="separator:a64775b27bf65ea4c8fa5c8e951b60006"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="aba240a25be818fb3c8014aa295e6727a"></a>
@@ -582,6 +586,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a3a163a4fff0e95e1a572099e4478620ea4b649ab500451e49d56e8b49b14f6edc"></a>BPF_FUNC_sock_addr_get_current_pid_tgid&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a3a163a4fff0e95e1a572099e4478620ea17a2b2e39b5d83904a653ad0a40e9edf"></a>BPF_FUNC_sock_addr_set_redirect_context&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>
@@ -612,6 +617,57 @@ Functions</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>a 64-bit integer containing the current tgid and pid, and created as such:</dd></dl>
 <p><em>current_task</em>\ <b>-&gt;tgid &lt;&lt; 32 |</b> <em>current_task</em>\ <b>-&gt;pid</b>. </p>
+
+</div>
+</div>
+<a id="a64775b27bf65ea4c8fa5c8e951b60006"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a64775b27bf65ea4c8fa5c8e951b60006">&#9670;&nbsp;</a></span>bpf_sock_addr_set_redirect_context()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_sock_addr_set_redirect_context </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *&#160;</td>
+          <td class="paramname"><em>ctx</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>data_size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set a context for consumption by a user-mode application (sock_addr specific only). This function is not supported for the recv_accept hooks. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Pointer to bpf_sock_addr_t context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Pointer to data to store. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">data_size</td><td>The size of the data to store.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>A failure occurred. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
