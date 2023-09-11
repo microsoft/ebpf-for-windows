@@ -277,6 +277,10 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     // This function is only supported at the connect redirect layer.
     if (sock_addr_ctx->hook_id != EBPF_HOOK_ALE_CONNECT_REDIRECT_V4 &&
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_CONNECT_REDIRECT_V6) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "_ebpf_sock_addr_set_redirect_context invoked at incorrect hook.");
         return_value = -1;
         goto Exit;
     }
@@ -284,6 +288,10 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     // Allocate buffer to store redirect context.
     redirect_context = ExAllocatePoolUninitialized(NonPagedPoolNx, data_size, NET_EBPF_EXTENSION_POOL_TAG);
     if (redirect_context == NULL) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "_ebpf_sock_addr_set_redirect_context failed to allocate memory for the redirect context.");
         return_value = -1;
         goto Exit;
     }
