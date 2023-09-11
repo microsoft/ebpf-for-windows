@@ -26,3 +26,7 @@
 #endif
 
 #include "bpf_helper_defs.h"
+
+#ifndef _WIN32
+#define _WIN32
+#endif
