@@ -69,20 +69,6 @@ elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _
               << std::endl;
 }
 
-void
-copy_helper_prototype(ebpf_helper_function_prototype_t* destination, const ebpf_helper_function_prototype_t* source)
-{
-    destination->helper_id = source->helper_id;
-    destination->name = _strdup(source->name);
-    if (destination->name == nullptr) {
-        throw std::runtime_error(std::string("Failed to allocate memory for helper prototype"));
-    }
-    destination->return_type = source->return_type;
-    for (size_t argument = 0; argument < _countof(source->arguments); argument++) {
-        destination->arguments[argument] = source->arguments[argument];
-    }
-}
-
 std::vector<uint8_t>
 get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const std::string& algorithm)
 {
