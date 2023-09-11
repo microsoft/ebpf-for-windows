@@ -377,7 +377,6 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
     NTSTATUS status;
     WDFDRIVER driver_handle;
     WDFDEVICE device;
-    bool ebpf_trace_initiated = false;
 
     status = ebpf_trace_initiate();
     if (!NT_SUCCESS(status)) {
@@ -386,7 +385,6 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
         // EBPF_LOG_EXIT() call at the end will not log anything either.
         goto Exit;
     }
-    ebpf_trace_initiated = true;
 
     EBPF_LOG_ENTRY();
 
@@ -405,12 +403,6 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
     _ebpf_driver_device_object = WdfDeviceWdmGetDeviceObject(device);
 
 Exit:
-    if (!NT_SUCCESS(status)) {
-        if (ebpf_trace_initiated) {
-            ebpf_trace_terminate();
-        }
-    }
-
     EBPF_LOG_EXIT();
     return status;
 }
