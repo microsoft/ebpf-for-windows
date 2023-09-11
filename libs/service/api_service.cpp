@@ -76,7 +76,6 @@ static ebpf_result_t
 _build_helper_id_to_address_map(
     _In_reads_(instruction_count) ebpf_inst* instructions,
     uint32_t instruction_count,
-    // std::vector<uint64_t>& helper_addresses,
     const std::map<uint32_t, uint64_t>& helper_id_to_address,
     uint32_t& unwind_index)
 {

@@ -338,8 +338,6 @@ _ebpf_program_type_specific_program_information_attach_provider(
 
     general_program_information_data = (ebpf_program_data_t*)program->general_helper_provider_data->data;
 
-    // Note: program->helper_function_ids cannot be changed once it is set.
-    // So it is safe to use it without holding the lock.
     actual_helper_function_ids = program->helper_function_ids;
     actual_helper_function_count = program->helper_function_count;
     actual_helper_ids_set = program->helper_ids_set;

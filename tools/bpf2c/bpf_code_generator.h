@@ -279,9 +279,6 @@ class bpf_code_generator
     std::vector<int32_t>
     get_helper_ids();
 
-    const ebpf_program_info_t*
-    get_program_info();
-
     /**
      * @brief Set the program hash info object
      *
