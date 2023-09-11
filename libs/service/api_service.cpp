@@ -84,9 +84,9 @@ _build_helper_id_to_address_map(
     uint32_t& unwind_index)
 {
     // Note:
-    // eBPF supports helper IDs in the range [1, MAXUINT32]
-    // uBPF jitter only supports helper IDs in the range [0,63]
-    // Build a table to map [1, MAXUINT32] -> [0,63]
+    // eBPF supports helper IDs in the range [1, MAXUINT32].
+    // uBPF jitter only supports helper IDs in the range [0,63].
+    // Build a table to map [1, MAXUINT32] -> [0,63].
     std::map<uint32_t, uint32_t> helper_id_mapping;
     unwind_index = MAXUINT32;
 

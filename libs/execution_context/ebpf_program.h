@@ -241,7 +241,8 @@ extern "C"
         _Out_writes_(addresses_count) uint64_t* addresses);
 
     /**
-     * @brief Compute program info hash for the program object. Assumes ebpf_program_set_helper_function_ids has
+     * @brief Compute program info hash for the program object. This function
+     * assumes ebpf_program_set_helper_function_ids has
      * already been invoked on the program object.
      *
      * @param[in] program Program object to compute hash on.
