@@ -83,65 +83,6 @@ copy_helper_prototype(ebpf_helper_function_prototype_t* destination, const ebpf_
     }
 }
 
-ebpf_program_info_t*
-get_program_info()
-{
-    const ebpf_program_info_t* program_info;
-    ebpf_result_t result = ebpf_get_program_info_from_verifier(&program_info);
-    if (result != EBPF_SUCCESS) {
-        throw std::runtime_error(std::string("Failed to get program information"));
-    }
-
-    // Create a copy of the program info to return.
-    ebpf_program_info_t* program_info_copy = (ebpf_program_info_t*)malloc(sizeof(ebpf_program_info_t));
-    if (program_info_copy == nullptr) {
-        throw std::runtime_error(std::string("Failed to allocate memory for program information"));
-    }
-
-    // program_type_descriptor.
-    program_info_copy->program_type_descriptor.name = _strdup(program_info->program_type_descriptor.name);
-    if (program_info_copy->program_type_descriptor.name == nullptr) {
-        throw std::runtime_error(std::string("Failed to allocate memory for program information"));
-    }
-    program_info_copy->program_type_descriptor.context_descriptor =
-        (ebpf_context_descriptor_t*)malloc(sizeof(ebpf_context_descriptor_t));
-    if (program_info_copy->program_type_descriptor.context_descriptor == nullptr) {
-        throw std::runtime_error(std::string("Failed to allocate memory for program information"));
-    }
-    program_info_copy->program_type_descriptor.program_type = program_info->program_type_descriptor.program_type;
-    program_info_copy->program_type_descriptor.bpf_prog_type = program_info->program_type_descriptor.bpf_prog_type;
-    program_info_copy->program_type_descriptor.is_privileged = program_info->program_type_descriptor.is_privileged;
-
-    // program_type_specific_helper_prototype.
-    program_info_copy->count_of_program_type_specific_helpers = program_info->count_of_program_type_specific_helpers;
-    ebpf_helper_function_prototype_t* program_type_specific_helper = (ebpf_helper_function_prototype_t*)malloc(
-        sizeof(ebpf_helper_function_prototype_t) * program_info->count_of_program_type_specific_helpers);
-    if (program_type_specific_helper == nullptr) {
-        throw std::runtime_error(std::string("Failed to allocate memory for program information"));
-    }
-
-    for (size_t index = 0; index < program_info->count_of_program_type_specific_helpers; index++) {
-        copy_helper_prototype(
-            &program_type_specific_helper[index], &program_info->program_type_specific_helper_prototype[index]);
-    }
-    program_info_copy->program_type_specific_helper_prototype = program_type_specific_helper;
-
-    // global_helper_prototype
-    program_info_copy->count_of_global_helpers = program_info->count_of_global_helpers;
-    ebpf_helper_function_prototype_t* global_helper_prototype = (ebpf_helper_function_prototype_t*)malloc(
-        sizeof(ebpf_helper_function_prototype_t) * program_info->count_of_global_helpers);
-    if (global_helper_prototype == nullptr) {
-        throw std::runtime_error(std::string("Failed to allocate memory for program information"));
-    }
-
-    for (size_t index = 0; index < program_info->count_of_global_helpers; index++) {
-        copy_helper_prototype(&global_helper_prototype[index], &program_info->global_helper_prototype[index]);
-    }
-    program_info_copy->global_helper_prototype = global_helper_prototype;
-
-    return program_info_copy;
-}
-
 std::vector<uint8_t>
 get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const std::string& algorithm)
 {
@@ -373,7 +314,6 @@ main(int argc, char** argv)
             const char* error_message = nullptr;
             ebpf_api_verifier_stats_t stats;
             std::optional<std::vector<uint8_t>> program_info_hash;
-            ebpf_program_info_t* program_info = nullptr;
             if (verify_programs && ebpf_api_elf_verify_section_from_memory(
                                        data.c_str(),
                                        data.size(),
@@ -388,7 +328,7 @@ main(int argc, char** argv)
                     std::string("Verification failed for ") + section.raw() + std::string(" with error ") +
                     std::string(error_message) + std::string("\n Report:\n") + std::string(report));
             }
-            generator.parse(section, program_type, attach_type, program_info, hash_algorithm);
+            generator.parse(section, program_type, attach_type, hash_algorithm);
             generator.generate(section);
 
             if (verify_programs && (hash_algorithm != "none")) {
@@ -397,25 +337,6 @@ main(int argc, char** argv)
                 generator.set_program_hash_info(program_info_hash);
             }
         }
-
-        // for (const auto& section : sections) {
-        //     generator.generate(section);
-
-        //     if (verify_programs && (hash_algorithm != "none")) {
-        //         std::optional<std::vector<uint8_t>> program_info_hash;
-        //         // Generate hash of the program.
-        //         std::vector<int32_t> helper_ids = generator.get_helper_ids();
-        //         const ebpf_program_info_t* program_info = generator.get_program_info();
-        //         program_info_hash = get_program_info_type_hash(helper_ids, hash_algorithm);
-        //         generator.set_program_hash_info(program_info_hash);
-        //     }
-        // }
-
-        // // Now generate hash for all the programs.
-        // for (const auto& section : sections) {
-
-        //     generator.generate_hash(section);
-        // }
 
         std::ofstream output_file;
         if (!output_file_name.empty()) {

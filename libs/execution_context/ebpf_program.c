@@ -409,11 +409,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     }
     program->info_extension_provider_data = provider_data;
 
-    // Only if there is a stored hash, do a comparision. The hash will be stored in the
-    // program object in ebpf_program_set_helper_function_ids().
-
     // Compare the hash only if actual helper IDs have been set.
-
     if (actual_helper_ids_set) {
         // Verify that the hash matches the stored hash.
         if (program->parameters.program_info_hash_length != hash_length ||
@@ -1538,8 +1534,6 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
 
     *address = (uint64_t)function_address;
 
-    // TODO: Update hash here, if not already updated.
-
     return_value = EBPF_SUCCESS;
 
 Done:
@@ -1559,10 +1553,6 @@ ebpf_program_get_helper_function_addresses(
 
     if (program->helper_function_count > addresses_count) {
         result = EBPF_INSUFFICIENT_BUFFER;
-        goto Exit;
-    }
-
-    if (addresses_count == 0) {
         goto Exit;
     }
 
@@ -1660,16 +1650,6 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
     state = ebpf_lock_lock(&program->lock);
     lock_held = true;
 
-    // if (program->parameters.program_info_hash) {
-    //     EBPF_LOG_MESSAGE(
-    //         EBPF_TRACELOG_LEVEL_ERROR,
-    //         EBPF_TRACELOG_KEYWORD_PROGRAM,
-    //         "ebpf_program_set_program_info_hash - hash already set");
-    //     // Helper function IDs already set.
-    //     result = EBPF_INVALID_ARGUMENT;
-    //     goto Exit;
-    // }
-
     // Acquire reference to the program info provider.
     if (ebpf_program_reference_providers((ebpf_program_t*)program) != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_GUID(
@@ -1712,9 +1692,8 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
     state = ebpf_lock_lock(&program->lock);
     lock_held = true;
 
-    // If program info hash is already set (which is possible for native mode), compare the computed hash with the
-    // stored hash.
-
+    // If program info hash is already set (which is possible for native mode), compare the
+    // computed hash with the stored hash.
     if (program->parameters.program_info_hash) {
         if ((program->parameters.program_info_hash_length != hash_length) ||
             (memcmp(program->parameters.program_info_hash, hash, hash_length) != 0)) {
@@ -1988,12 +1967,6 @@ _ebpf_contains_helper_id(_In_ const uint32_t* helper_ids, size_t count_of_helper
     return false;
 }
 
-// static ebpf_result_t
-// _ebpf_program_set_program_information_hash(_Inout_ ebpf_program_t* program)
-// {
-
-// }
-
 /**
  * @brief Compute the hash of the program info and compare it with the hash stored in the program. If the hash does not
  * match then the program was verified against the wrong program info. If the hash is not present then store the hash
@@ -2001,8 +1974,10 @@ _ebpf_contains_helper_id(_In_ const uint32_t* helper_ids, size_t count_of_helper
  *
  * Notes on why this works:
  * 1) The user application creates an ebpf_program_t object and sets the program type.
- * 2) When helper addresses are first resolved for this program, the program information is hashed and stored.
  * 2) During initialization, the program binds to the program information provider.
+ * 3.1) For JIT and interpret mode, before verification, ebpfsvc resolves the helper functions for the program.
+ * 3.2) For native mode, hash from native module is set in the program object.
+ * 4) When helper addresses are resolved for this program, the program information is hashed and stored.
  * 3) During the attach callback, the program information is hashed and stored.
  * 4) The verifier then queries the program information from the ebpf_program_t object and uses it to verify the program
  * safety.

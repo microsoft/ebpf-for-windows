@@ -223,7 +223,6 @@ class bpf_code_generator
      * @param[in] section_name Section in the ELF file to parse.
      * @param[in] program_type Program type GUID for the section.
      * @param[in] attach_type Expected attach type GUID for the section.
-     * @param[in] program_info_hash Optional bytes containing hash of the program info.
      * @param[in] program_info_hash_type Optional bytes containing hash type of the program info.
      */
     void
@@ -231,7 +230,6 @@ class bpf_code_generator
         const bpf_code_generator::unsafe_string& section_name,
         const GUID& program_type,
         const GUID& attach_type,
-        _In_ ebpf_program_info_t* program_info,
         const std::string& program_info_hash_type);
 
     /**
@@ -360,14 +358,11 @@ class bpf_code_generator
      *
      * @param[in] program_type Program type GUID.
      * @param[in] attach_type Attach type GUID.
-     * @param[in] program_info Pointer to the program info.
+     * @param[in] program_info_hash_type Hash algorithm used for program info hash.
      */
     void
-    set_program_and_attach_type_and_info(
-        const GUID& program_type,
-        const GUID& attach_type,
-        _In_ ebpf_program_info_t* program_info,
-        const std::string& program_info_hash_type);
+    set_program_and_attach_type_and_hash_type(
+        const GUID& program_type, const GUID& attach_type, const std::string& program_info_hash_type);
 
     /**
      * @brief Extract the helper function and map relocation data from the eBPF file.

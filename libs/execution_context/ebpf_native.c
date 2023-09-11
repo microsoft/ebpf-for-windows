@@ -1155,11 +1155,6 @@ _ebpf_native_resolve_helpers_for_program(
     uint16_t helper_count = program->entry->helper_count;
     helper_function_entry_t* helpers = program->entry->helpers;
 
-    // if (helper_count == 0) {
-    //     // No helpers called by this program.
-    //     EBPF_RETURN_RESULT(EBPF_SUCCESS);
-    // }
-
     if (helper_count > 0) {
         helper_ids = ebpf_allocate_with_tag(helper_count * sizeof(uint32_t), EBPF_POOL_TAG_NATIVE);
         if (helper_ids == NULL) {

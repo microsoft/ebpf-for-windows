@@ -431,10 +431,6 @@ _ebpf_core_protocol_resolve_helper(
         goto Done;
     }
 
-    // if (count_of_helpers == 0) {
-    //     goto Done;
-    // }
-
     if (count_of_helpers != 0) {
         request_helper_ids = (uint32_t*)ebpf_allocate_with_tag(count_of_helpers * sizeof(uint32_t), EBPF_POOL_TAG_CORE);
         if (request_helper_ids == NULL) {

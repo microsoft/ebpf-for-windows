@@ -287,7 +287,6 @@ bpf_code_generator::parse(
     const bpf_code_generator::unsafe_string& section_name,
     const GUID& program_type,
     const GUID& attach_type,
-    _In_ ebpf_program_info_t* program_info,
     const std::string& program_info_hash_type)
 {
     current_section = &sections[section_name];
@@ -296,33 +295,17 @@ bpf_code_generator::parse(
     get_register_name(10);
 
     set_pe_section_name(section_name);
-    set_program_and_attach_type_and_info(program_type, attach_type, program_info, program_info_hash_type);
+    set_program_and_attach_type_and_hash_type(program_type, attach_type, program_info_hash_type);
     extract_program(section_name);
     extract_relocations_and_maps(section_name);
 }
 
-// void
-// bpf_code_generator::generate_hash(
-//     const bpf_code_generator::unsafe_string& section_name)
-// {
-//     current_section = &sections[section_name];
-
-//     set_pe_section_name(section_name);
-//     set_program_and_attach_type_and_info(program_type, attach_type, program_info);
-//     extract_program(section_name);
-//     extract_relocations_and_maps(section_name);
-// }
-
 void
-bpf_code_generator::set_program_and_attach_type_and_info(
-    const GUID& program_type,
-    const GUID& attach_type,
-    _In_ ebpf_program_info_t* program_info,
-    const std::string& program_info_hash_type)
+bpf_code_generator::set_program_and_attach_type_and_hash_type(
+    const GUID& program_type, const GUID& attach_type, const std::string& program_info_hash_type)
 {
     memcpy(&current_section->program_type, &program_type, sizeof(GUID));
     memcpy(&current_section->expected_attach_type, &attach_type, sizeof(GUID));
-    current_section->program_info = program_info;
     current_section->program_info_hash_type = program_info_hash_type;
 }
 
@@ -351,12 +334,6 @@ bpf_code_generator::get_helper_ids()
     }
 
     return helper_ids;
-}
-
-const ebpf_program_info_t*
-bpf_code_generator::get_program_info()
-{
-    return current_section->program_info;
 }
 
 void
