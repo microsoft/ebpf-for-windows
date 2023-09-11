@@ -178,6 +178,7 @@ EBPF_HELPER(uint64_t, bpf_sock_addr_get_current_pid_tgid, (bpf_sock_addr_t * ctx
 
 /**
  * @brief Set a context for consumption by a proxy application (sock_addr specific only).
+ * This function is not supported for the recv_accept hooks.
  *
  * @param[in] ctx Pointer to bpf_sock_addr_t context.
  * @param[in] data Pointer to data to store.
