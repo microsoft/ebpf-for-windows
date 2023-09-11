@@ -143,11 +143,15 @@ get_program_info()
 }
 
 std::vector<uint8_t>
-get_program_info_type_hash(
-    _In_ const ebpf_program_info_t* program_info, std::vector<int32_t>& actual_helper_ids, const std::string& algorithm)
+get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const std::string& algorithm)
 {
     std::map<uint32_t, size_t> helper_id_ordering;
     size_t actual_helper_id_count = actual_helper_ids.size();
+    const ebpf_program_info_t* program_info;
+    ebpf_result_t result = ebpf_get_program_info_from_verifier(&program_info);
+    if (result != EBPF_SUCCESS) {
+        throw std::runtime_error(std::string("Failed to get program information"));
+    }
 
     // Note:
     // Only the helper functions which are actually called by the eBPF program are to be included in the hash.
@@ -384,25 +388,28 @@ main(int argc, char** argv)
                     std::string("Verification failed for ") + section.raw() + std::string(" with error ") +
                     std::string(error_message) + std::string("\n Report:\n") + std::string(report));
             }
-            if (verify_programs && (hash_algorithm != "none")) {
-                program_info = get_program_info();
-                // program_info_hash = get_program_info_type_hash(hash_algorithm);
-            }
             generator.parse(section, program_type, attach_type, program_info, hash_algorithm);
-        }
-
-        for (const auto& section : sections) {
             generator.generate(section);
 
             if (verify_programs && (hash_algorithm != "none")) {
-                std::optional<std::vector<uint8_t>> program_info_hash;
-                // Generate hash of the program.
                 std::vector<int32_t> helper_ids = generator.get_helper_ids();
-                const ebpf_program_info_t* program_info = generator.get_program_info();
-                program_info_hash = get_program_info_type_hash(program_info, helper_ids, hash_algorithm);
+                program_info_hash = get_program_info_type_hash(helper_ids, hash_algorithm);
                 generator.set_program_hash_info(program_info_hash);
             }
         }
+
+        // for (const auto& section : sections) {
+        //     generator.generate(section);
+
+        //     if (verify_programs && (hash_algorithm != "none")) {
+        //         std::optional<std::vector<uint8_t>> program_info_hash;
+        //         // Generate hash of the program.
+        //         std::vector<int32_t> helper_ids = generator.get_helper_ids();
+        //         const ebpf_program_info_t* program_info = generator.get_program_info();
+        //         program_info_hash = get_program_info_type_hash(helper_ids, hash_algorithm);
+        //         generator.set_program_hash_info(program_info_hash);
+        //     }
+        // }
 
         // // Now generate hash for all the programs.
         // for (const auto& section : sections) {
