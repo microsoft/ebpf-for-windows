@@ -94,7 +94,7 @@ _build_helper_id_to_address_map(
         return EBPF_SUCCESS;
     }
 
-    // uBPF jitter supports a maximum of UBPF_MAX_EXT_FUNCS helper functions.
+    // The uBPF JIT compiler supports a maximum of UBPF_MAX_EXT_FUNCS helper functions.
     if (helper_id_mapping.size() > UBPF_MAX_EXT_FUNCS) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
