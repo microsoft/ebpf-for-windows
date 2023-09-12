@@ -94,8 +94,8 @@ Official docs: https://github.com/Azure/azure-vmextension-publishing/wiki/Extens
     ```PS
     PS> .\create-zip-package.ps1 -versionNumber <x.y.z.p> -ebpfBinPackagePath "<full path to the eBPF binaries root from the eBPF Redist package>" -zipDestinationFolder "<full path to the destination folder for the ZIP package file>"
 
-    # Example:
-    PS> .\create-zip-package.ps1 -versionNumber "0.10.0.1" -ebpfBinPackagePath "D:\work\_scratch\v0.9.1" -zipDestinationFolder "D:\work\_scratch"
+    # Example: deploying eBPF v0.9.1, and extension handler patch v1 for that eBPF version -> v0.9.1.1
+    PS> .\create-zip-package.ps1 -versionNumber "0.9.1.1" -ebpfBinPackagePath "D:\work\_scratch\v0.9.1" -zipDestinationFolder "D:\work\_scratch"
 
     ```
     The resulting ZIP file will be named after the following format:
@@ -110,7 +110,7 @@ Official docs: https://github.com/Azure/azure-vmextension-publishing/wiki/Extens
 
     - `<extension name>` is the extension name, i.e. `eBpfForWindows`
 
-    - `<version>` is the extension version, e.g. `0.10.0.1`
+    - `<version>` is the extension version, conventionally matching its first 3 digits with the eBPF version, e.g. `0.9.1.1`
     
 1. Upload the zip file to the Azure Storage Account container named "`ebpf-vm-extension-artifacts`" within the "`eBPF-vm-extension`" resource group.
 
@@ -147,11 +147,12 @@ $name = $publisherName + "." + $typeName + "/" + $version
 
 Important: then VM **must** be created within the same subscription of the publisher, otherwise the VM Extension will not be found.
 
-#### Creating the VM
+#### Creating the Test-VM
 
 Due to the Prod subscription limitations, creating it from the Azure portal is not possible, so we need to create it from PowerShell:
 
 ```PS
+# Setting up the environment variables
 $credential = Get-Credential
 $resourceGroupName = "eBpfVmExtension"
 $location = "Central US EUAP"
@@ -163,6 +164,9 @@ $imageSku = "2019-datacenter-gensecond"
 $imageVersion = "latest"
 $vmSize = "Standard_B2als_v2"
 
+# Either:
+
+# Create the VM through direct reference to the image
 $imageReference = "/subscriptions/78a9bec8-945c-4cc0-83bf-77c6d384d2ca/resourceGroups/$resourceGroupName/providers/Microsoft.Compute/galleries/$imageOffer/images/$imageSku/versions/$imageVersion"
 New-AzVM `
   -Name $vmName `
@@ -172,6 +176,9 @@ New-AzVM `
   -Size $vmSize `
   -ImageReferenceId $imageReference
 
+# OR...
+
+# Create the VM through indirect reference to the image (from the first record of the 'Get-AzVMImage' query)
 $imageReference = Get-AzVMImage -Location $location -PublisherName $imagePublisher -Offer $imageOffer -Skus $imageSku -Version $imageVersion
 New-AzVM `
   -Name $vmName `
