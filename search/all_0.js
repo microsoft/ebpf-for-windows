@@ -60,7 +60,7 @@ var searchData=
   ['_5febpf_5fstat_57',['_ebpf_stat',['../struct__ebpf__stat.html',1,'']]],
   ['_5febpf_5ftest_5frun_5foptions_58',['_ebpf_test_run_options',['../struct__ebpf__test__run__options.html',1,'']]],
   ['_5fethernet_5fheader_59',['_ETHERNET_HEADER',['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html',1,'']]],
-  ['_5ffield_5fsize_5f_60',['_Field_size_',['../struct__ebpf__extension__dispatch__table.html#af24df383f76c21bf80fa5facb4c626b1',1,'_ebpf_extension_dispatch_table::_Field_size_()'],['../struct__ebpf__section__info.html#afab77e8b94d2bc648bd4d651d171b4a5',1,'_ebpf_section_info::_Field_size_()']]],
+  ['_5ffield_5fsize_5f_60',['_Field_size_',['../struct__ebpf__section__info.html#afab77e8b94d2bc648bd4d651d171b4a5',1,'_ebpf_section_info::_Field_size_()'],['../struct__ebpf__extension__dispatch__table.html#af24df383f76c21bf80fa5facb4c626b1',1,'_ebpf_extension_dispatch_table::_Field_size_()']]],
   ['_5fhelper_5ffunction_5fentry_61',['_helper_function_entry',['../struct__helper__function__entry.html',1,'']]],
   ['_5fipv4_5fheader_62',['_IPV4_HEADER',['../struct___i_p_v4___h_e_a_d_e_r.html',1,'']]],
   ['_5fipv6_5fheader_63',['_IPV6_HEADER',['../struct___i_p_v6___h_e_a_d_e_r.html',1,'']]],
@@ -70,6 +70,7 @@ var searchData=
   ['_5fprogram_5fentry_67',['_program_entry',['../struct__program__entry.html',1,'']]],
   ['_5freadable_5fbytes_5f_68',['_Readable_bytes_',['../struct__ebpf__test__run__options.html#ac7a877d6a0996aa94b80904f79d6c0bf',1,'_ebpf_test_run_options::_Readable_bytes_(data_size_in) const uint8_t *data_in'],['../struct__ebpf__test__run__options.html#a750de00392ed86486b768c28916a5c04',1,'_ebpf_test_run_options::_Readable_bytes_(context_size_in) const uint8_t *context_in']]],
   ['_5fwhen_5f_69',['_When_',['../ebpf__utilities_8h.html#aec984ca719d11b96a5abeef195a01f0b',1,'ebpf_utilities.h']]],
-  ['_5fwritable_5fbytes_5f_70',['_Writable_bytes_',['../struct__ebpf__test__run__options.html#ae963f1d440686fe0918a00ea2df3a087',1,'_ebpf_test_run_options::_Writable_bytes_(data_size_out) uint8_t *data_out'],['../struct__ebpf__test__run__options.html#a780806bc67545b522f85267655dd3cc6',1,'_ebpf_test_run_options::_Writable_bytes_(context_size_out) uint8_t *context_out']]],
-  ['_5fxdp_5faction_71',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
+  ['_5fwin32_70',['_WIN32',['../bpf__helpers_8h.html#a7d7e5874cd6f169187aac7db998625f3',1,'bpf_helpers.h']]],
+  ['_5fwritable_5fbytes_5f_71',['_Writable_bytes_',['../struct__ebpf__test__run__options.html#ae963f1d440686fe0918a00ea2df3a087',1,'_ebpf_test_run_options::_Writable_bytes_(data_size_out) uint8_t *data_out'],['../struct__ebpf__test__run__options.html#a780806bc67545b522f85267655dd3cc6',1,'_ebpf_test_run_options::_Writable_bytes_(context_size_out) uint8_t *context_out']]],
+  ['_5fxdp_5faction_72',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
 ];

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['win32_5flean_5fand_5fmean_1699',['WIN32_LEAN_AND_MEAN',['../ebpf__utilities_8h.html#ac7bef5d85e3dcd73eef56ad39ffc84a9',1,'ebpf_utilities.h']]]
+  ['ubpf_5fstack_5fsize_1701',['UBPF_STACK_SIZE',['../bpf2c_8h.html#ab41a6986b0045cc2e5c84a75d08c7a12',1,'bpf2c.h']]]
 ];

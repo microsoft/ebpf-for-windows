@@ -1,9 +1,12 @@
 var searchData=
 [
-  ['immediate_1686',['IMMEDIATE',['../bpf2c_8h.html#a5a02d8f10b4a165eda85ddd526b49a1f',1,'bpf2c.h']]],
-  ['iphdr_1687',['iphdr',['../net_2ip_8h.html#acc2149ae0876f6c32b6e7acc45f4b2a3',1,'ip.h']]],
-  ['ipproto_5fipv4_1688',['IPPROTO_IPV4',['../net_2ip_8h.html#a560a5b023930d466359b6e243762f353',1,'ip.h']]],
-  ['ipproto_5fipv6_1689',['IPPROTO_IPV6',['../net_2ip_8h.html#a029fc3b9526146e54addf53ca297e629',1,'ip.h']]],
-  ['ipproto_5ftcp_1690',['IPPROTO_TCP',['../net_2ip_8h.html#a94f83c72c1e5e6ef453e47cf59885fb5',1,'ip.h']]],
-  ['ipproto_5fudp_1691',['IPPROTO_UDP',['../net_2ip_8h.html#ab332d40b15142f33a88d4fcb1d6a5920',1,'ip.h']]]
+  ['h_5fproto_1680',['h_proto',['../net_2if__ether_8h.html#a3fc023e67be859031668e4bc0449c363',1,'if_ether.h']]],
+  ['htobe16_1681',['htobe16',['../bpf2c_8h.html#a02ba1fc05a319ff6fb0cd94006bb6717',1,'bpf2c.h']]],
+  ['htobe32_1682',['htobe32',['../bpf2c_8h.html#a9d1d75301107082f82a490742fde3bba',1,'bpf2c.h']]],
+  ['htobe64_1683',['htobe64',['../bpf2c_8h.html#a14f7cf2ac198f7ca55f6b1215919c352',1,'bpf2c.h']]],
+  ['htole16_1684',['htole16',['../bpf2c_8h.html#a123798197cfdb18eda68d5e06d3935d3',1,'bpf2c.h']]],
+  ['htole32_1685',['htole32',['../bpf2c_8h.html#ae7097d76cf5c7bb23224f24684898158',1,'bpf2c.h']]],
+  ['htole64_1686',['htole64',['../bpf2c_8h.html#aa7a69f75140a2833eade65985ad2f258',1,'bpf2c.h']]],
+  ['htonl_1687',['htonl',['../bpf__endian_8h.html#a4be6d04dda69d558c3fb2bc22d0566dc',1,'bpf_endian.h']]],
+  ['htons_1688',['htons',['../bpf__endian_8h.html#a463850890cb814906018adbc3768858a',1,'bpf_endian.h']]]
 ];

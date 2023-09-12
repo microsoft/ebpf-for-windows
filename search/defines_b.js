@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['pointer_1696',['POINTER',['../bpf2c_8h.html#ad33ea4fd38a55e663830db71ceb504f8',1,'bpf2c.h']]]
+  ['offset_1698',['OFFSET',['../bpf2c_8h.html#ac8bd2a1944f0a8ee4c3c876688b77508',1,'bpf2c.h']]]
 ];
