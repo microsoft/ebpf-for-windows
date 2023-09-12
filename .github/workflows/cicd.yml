@@ -50,7 +50,7 @@ jobs:
       build_msi: true
       build_nuget: true
       build_options: /p:ReleaseJIT='True'
-      configurations: '["Debug", "Release"]' #"FuzzerDebug", "Release"]'
+      configurations: '["Debug"]' #', "Release"]' #"FuzzerDebug", "Release"]'
 
   # # Perform the native-only build.
   # regular_native-only:
