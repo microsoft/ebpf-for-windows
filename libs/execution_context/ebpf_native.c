@@ -1155,26 +1155,23 @@ _ebpf_native_resolve_helpers_for_program(
     uint16_t helper_count = program->entry->helper_count;
     helper_function_entry_t* helpers = program->entry->helpers;
 
-    if (helper_count == 0) {
-        // No helpers called by this program.
-        EBPF_RETURN_RESULT(EBPF_SUCCESS);
-    }
+    if (helper_count > 0) {
+        helper_ids = ebpf_allocate_with_tag(helper_count * sizeof(uint32_t), EBPF_POOL_TAG_NATIVE);
+        if (helper_ids == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
 
-    helper_ids = ebpf_allocate_with_tag(helper_count * sizeof(uint32_t), EBPF_POOL_TAG_NATIVE);
-    if (helper_ids == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
+        helper_addresses = ebpf_allocate_with_tag(helper_count * sizeof(helper_function_address), EBPF_POOL_TAG_NATIVE);
+        if (helper_addresses == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
 
-    helper_addresses = ebpf_allocate_with_tag(helper_count * sizeof(helper_function_address), EBPF_POOL_TAG_NATIVE);
-    if (helper_addresses == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    // Iterate over the helper indices to get all the helper ids.
-    for (uint16_t i = 0; i < helper_count; i++) {
-        helper_ids[i] = helpers[i].helper_id;
+        // Iterate over the helper indices to get all the helper ids.
+        for (uint16_t i = 0; i < helper_count; i++) {
+            helper_ids[i] = helpers[i].helper_id;
+        }
     }
 
     result = ebpf_core_resolve_helper(program->handle, helper_count, helper_ids, (uint64_t*)helper_addresses);

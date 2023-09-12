@@ -359,6 +359,7 @@ connect_redirect_test(
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
     uint64_t authentication_id;
+    std::string proxy_address_string = get_string_from_address(reinterpret_cast<const SOCKADDR*>(&proxy));
 
     // Update policy in the map to redirect the connection to the proxy.
     _update_policy_map(destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
@@ -378,7 +379,14 @@ connect_redirect_test(
 
         sender_socket->get_received_message(bytes_received, received_message);
 
-        std::string expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
+        // Remote redirection expects the SERVER_MESSAGE response.
+        // Local redirection expects the redirect context response.
+        std::string expected_response;
+        if (proxy_address_string == _remote_ip_v4 || proxy_address_string == _remote_ip_v6) {
+            expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
+        } else {
+            expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
+        }
         REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
         REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
     }

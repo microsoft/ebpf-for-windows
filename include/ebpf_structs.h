@@ -20,6 +20,8 @@ typedef unsigned int uint32_t;
 typedef unsigned long long uint64_t;
 #endif
 
+#define MAX_TAIL_CALL_CNT 33
+
 #define BPF_ENUM_TO_STRING(X) #X
 
 typedef enum bpf_map_type
