@@ -31,7 +31,7 @@ Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
 # Download the release artifacts for regression tests.
-Get-RegressionTestArtifacts
+#Get-RegressionTestArtifacts
 
 Get-Duonic
 
