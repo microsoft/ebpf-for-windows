@@ -245,7 +245,7 @@ jobs:
 
     - name: Run post test command on self-hosted runner
       # Run the post test command even if the workflow has failed.
-      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.environment == 'ebpf_cicd_tests' && inputs.environment != 'ebpf_cicd_perf')
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.environment == 'ebpf_cicd_tests' || inputs.environment == 'ebpf_cicd_perf')
       id: run_post_test_command_self_hosted
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
