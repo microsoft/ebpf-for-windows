@@ -477,7 +477,6 @@ jobs:
 
   performance:
     needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
