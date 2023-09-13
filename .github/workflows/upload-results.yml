@@ -20,6 +20,9 @@ permissions:
 
 jobs:
   upload_results:
+    permissions:
+      contents: write  # for Git to git push
+
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
@@ -46,6 +49,7 @@ jobs:
         git config --global user.email "edgeosebpf@microsoft.com"
         git add ${{github.workspace}}/results/${{github.sha}}
         git commit -m "Add results for commit ${{github.sha}}" --no-verify
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/microsoft/ebpf-for-windows.git
         git push
 
     - name: Post-process results
