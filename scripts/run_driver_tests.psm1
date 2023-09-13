@@ -297,10 +297,10 @@ function Invoke-CICDPerformanceTests
     if ($CaptureProfile) {
         $pre_command = 'wpr.exe -start CPU'
         $post_command = 'wpr.exe -stop ""' + $WorkingDirectory + '\bpf_performance_%NAME%.etl""'
-        RelWithDebInfo\bpf_performance_runner.exe -i tests.yml -e .sys -r --pre "$pre_command" --post "$post_command" | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
+        Release\bpf_performance_runner.exe -i tests.yml -e .sys -r --pre "$pre_command" --post "$post_command" | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
     }
     else {
-        RelWithDebInfo\bpf_performance_runner.exe -i tests.yml -e .sys -r | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
+        Release\bpf_performance_runner.exe -i tests.yml -e .sys -r | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
     }
 
     Pop-Location
