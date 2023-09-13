@@ -477,6 +477,7 @@ jobs:
 
   performance:
     needs: regular
+    if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
@@ -485,6 +486,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_perf
+      configurations: '["Release"]'
 
   performance_with_profile:
     needs: regular
@@ -497,3 +499,4 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_perf
+      configurations: '["Release"]'
