@@ -69,14 +69,17 @@ redirect_v4(bpf_sock_addr_t* ctx)
         return verdict;
     }
 
-    if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
-        return verdict;
-    }
-
     // Find the entry in the policy map.
     destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
     if (policy != NULL) {
         bpf_printk("Found v4 proxy entry value: %u, %u", policy->destination_ip.ipv4, policy->destination_port);
+
+        // Set the redirect context.
+        if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
+            return verdict;
+        }
+
+        // Redirect the connection.
         ctx->user_ip4 = policy->destination_ip.ipv4;
         ctx->user_port = policy->destination_port;
 
@@ -103,10 +106,6 @@ redirect_v6(bpf_sock_addr_t* ctx)
         return verdict;
     }
 
-    if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
-        return verdict;
-    }
-
     // Copy the IPv6 address. Note this has a design flaw for scoped IPv6 addresses
     // where the scope id or interface is not provided, so the policy can match the
     // wrong address.
@@ -118,7 +117,14 @@ redirect_v6(bpf_sock_addr_t* ctx)
     destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
     if (policy != NULL) {
         bpf_printk("Found v6 proxy entry value");
+
+        // Set the redirect context.
+        if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
+            return verdict;
+        }
+
         __builtin_memcpy(ctx->user_ip6, policy->destination_ip.ipv6, sizeof(ctx->user_ip6));
+        // Redirect the connection.
         ctx->user_port = policy->destination_port;
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;

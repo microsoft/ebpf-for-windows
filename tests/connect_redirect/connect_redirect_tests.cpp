@@ -379,14 +379,8 @@ connect_redirect_test(
 
         sender_socket->get_received_message(bytes_received, received_message);
 
-        // Remote redirection expects the SERVER_MESSAGE response.
-        // Local redirection expects the redirect context response.
-        std::string expected_response;
-        if (proxy_address_string == _remote_ip_v4 || proxy_address_string == _remote_ip_v6) {
-            expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
-        } else {
-            expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
-        }
+        // Check for the expected response, which is the redirect context message.
+        std::string expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
         REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
         REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
     }

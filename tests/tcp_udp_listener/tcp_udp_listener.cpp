@@ -38,15 +38,10 @@ create_listener(_Inout_ receiver_socket_t* receiver_socket)
     receiver_socket->complete_async_receive(WSA_INFINITE, false);
     printf("Received data from remote\n");
 
-    // Query for the redirect context.
-    // This is expected to only be valid for local redirections.
-    // If not present, use the generic SERVER_MESSAGE response.
-    if (receiver_socket->query_redirect_context(
-            &redirect_context_buffer, REDIRECT_CONTEXT_BUFFER_SIZE, redirect_context_size)) {
-        response = SERVER_MESSAGE + std::to_string(_local_port);
-    } else {
-        response = redirect_context_buffer + std::to_string(_local_port);
-    }
+    // Query the redirect context which is used as the response message.
+    receiver_socket->query_redirect_context(
+        &redirect_context_buffer, REDIRECT_CONTEXT_BUFFER_SIZE, redirect_context_size);
+    response = redirect_context_buffer + std::to_string(_local_port);
     printf("Sending response: %s\n", response.c_str());
     // Send a response back.
     receiver_socket->send_async_response(response.c_str());
