@@ -30,14 +30,20 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: Test-Logs-${{inputs.result_artifact}}
-        path: ${{github.workspace}}/results
+        path: ${{github.workspace}}/results_artifact
 
-    - name: Add results to repo
+    - name: Gather CSV results into results directory
+      run: |
+        mkdir -p ${{github.workspace}}/results/${{github.sha}}
+        curl https://raw.githubusercontent.com/microsoft/bpf_performance/1a50dae54c0c1d8b7f73331936e69a7154b3f659/scripts/gather_csv.sh > gather_csv.sh
+        sha256sum gather_csv.sh | grep  a279517d50093eaa46778642620ec11b2c07f47ace61c4d854982e23c46f22fa  -q || exit 1
+        chmod a+x gather_csv.sh
+        ./gather_csv.sh ${{github.workspace}}/results_artifact ${{github.workspace}}/results/${{github.sha}}/results
+
+    - name: Add results to git
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "edgeosebpf@microsoft.com"
-        mkdir -p ${{github.workspace}}/results/${{github.sha}}
-        cp -r results/vm1/logs/bpf_performance_native.csv ${{github.workspace}}/results/${{github.sha}}
         git add ${{github.workspace}}/results/${{github.sha}}
         git commit -m "Add results for commit ${{github.sha}}" --no-verify
         git push
