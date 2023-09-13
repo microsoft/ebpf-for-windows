@@ -83,13 +83,6 @@ jobs:
       build_nuget: true
       configurations: ["NativeOnlyDebug", "NativeOnlyRelease"]
 
-# cmake
-# Always run this job.
-- ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
-  - template: ./reusable-cmake-build.yml
-    parameters:
-      build_artifact: Build-x64-cmake
-
 # unit_tests
 # Always run this job.
 - ${{ if in(variables['Build.Reason'], 'PullRequest', 'BatchedCI', 'IndividualCI', 'Schedule') }}:
