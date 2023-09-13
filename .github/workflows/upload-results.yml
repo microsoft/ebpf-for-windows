@@ -37,7 +37,7 @@ jobs:
         git config --global user.name "GitHub Actions"
         git config --global user.email "edgeosebpf@microsoft.com"
         mkdir -p results\${{github.sha}}
-        cp -r results/*.csv results\${{github.sha}}
+        cp -r results/*.csv results/${{github.sha}}
         git add results
         git commit -m "Add results for commit ${{github.sha}}" --no-verify
         git push
