@@ -30,15 +30,15 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: Test-Logs-${{inputs.result_artifact}}
-        path: results
+        path: ${{github.workspace}}/results
 
     - name: Add results to repo
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "edgeosebpf@microsoft.com"
-        mkdir -p results\${{github.sha}}
-        cp -r results/*.csv results/${{github.sha}}
-        git add results
+        mkdir -p ${{github.workspace}}/results/${{github.sha}}
+        cp -r results/vm1/logs/bpf_performance_native.csv ${{github.workspace}}/results/${{github.sha}}
+        git add ${{github.workspace}}/results/${{github.sha}}
         git commit -m "Add results for commit ${{github.sha}}" --no-verify
         git push
 
