@@ -15,20 +15,10 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: write  # Required by actions/checkout to fetch code.
-
 jobs:
   upload_results:
-    permissions:
-      contents: write  # for Git to git push
-
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
-      with:
-        ref: bpf_performance_benchmarks
-
     - name: Download performance result artifacts
       uses: actions/download-artifact@v2
       with:
@@ -42,15 +32,6 @@ jobs:
         sha256sum gather_csv.sh | grep  a279517d50093eaa46778642620ec11b2c07f47ace61c4d854982e23c46f22fa  -q || exit 1
         chmod a+x gather_csv.sh
         ./gather_csv.sh ${{github.workspace}}/results_artifact ${{github.workspace}}/results/${{github.sha}}/results
-
-    - name: Add results to git
-      run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "edgeosebpf@microsoft.com"
-        git add ${{github.workspace}}/results/${{github.sha}}
-        git commit -m "Add results for commit ${{github.sha}}" --no-verify
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/microsoft/ebpf-for-windows.git
-        git push
 
     - name: Post-process results
       run: |
