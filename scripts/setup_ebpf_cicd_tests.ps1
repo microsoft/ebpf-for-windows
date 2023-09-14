@@ -30,8 +30,8 @@ Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 # Get all VMs to ready state.
 Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
-# Download the release artifacts for regression tests.
-Get-RegressionTestArtifacts
+# # Download the release artifacts for regression tests.
+# Get-RegressionTestArtifacts
 
 Get-Duonic
 
