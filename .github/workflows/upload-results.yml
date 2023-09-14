@@ -36,11 +36,35 @@ jobs:
     - name: Post-process results
       run: |
         # Download script to convert CSV to SQL from GitHub.
-        curl https://raw.githubusercontent.com/microsoft/bpf_performance/85d6f2f78065d4ecebdfc33ff1afddb4c4241b9e/scripts/process_results.py > process_results.py
+        curl https://raw.githubusercontent.com/microsoft/bpf_performance/ee798c5b299ea7e798503106e9d3d3884bec2833/scripts/process_results.py > process_results.py
         # Compare hash of downloaded script.
-        sha256sum process_results.py | grep 313d24cce580ec2ecc79667fab1f7fc577ca0c1e6b88d3585a606bd4ac5f1427 -q || exit 1
+        sha256sum process_results.py | grep dc616f27b6d345e8086de451ffd3f73cc71b5d51d18894ce08c02db56d67e0f4 -q || exit 1
         # Run script to convert CSV to SQL.
         python3 ./process_results.py --csv-directory ${{github.workspace}}/results --sql-script-file ${{github.workspace}}/results/upload.sql --commit_id ${{github.sha}} --platform "Windows 2019" --repository ${{github.repository}}
+
+    - name: Log into Azure
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Fetch secrets
+      run: |
+        az keyvault secret show --vault-name bpfperformacesecrets --name PGDATABASE --query value | sed 's/"//g' > ${{github.workspace}}/PGDATABASE
+        az keyvault secret show --vault-name bpfperformacesecrets --name PGHOST --query value | sed 's/"//g' >> ${{github.workspace}}/PGHOST
+        az keyvault secret show --vault-name bpfperformacesecrets --name PGUSER --query value | sed 's/"//g' >> ${{github.workspace}}/PGUSER
+        az keyvault secret show --vault-name bpfperformacesecrets --name PGPASSWORD --query value | sed 's/"//g' >> ${{github.workspace}}/PGPASSWORD
+        az keyvault secret show --vault-name bpfperformacesecrets --name PGPORT --query value | sed 's/"//g' >> ${{github.workspace}}/PGPORT
+
+    - name: Upload results to POSTGRES
+      run: |
+        export PGPASSWORD=$(cat ${{github.workspace}}/PGPASSWORD)
+        export PGHOST=$(cat ${{github.workspace}}/PGHOST)
+        export PGUSER=$(cat ${{github.workspace}}/PGUSER)
+        export PGPORT=$(cat ${{github.workspace}}/PGPORT)
+        export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
+        psql -f ${{github.workspace}}/results/upload.sql
 
     - name: Upload results to POSTGRES
       env:
