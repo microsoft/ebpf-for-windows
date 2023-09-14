@@ -16,7 +16,6 @@
 
 #define CLIENT_MESSAGE "request from client"
 #define SERVER_MESSAGE "response from server"
-#define REDIRECT_CONTEXT_BUFFER_SIZE 128
 
 typedef enum _socket_family
 {
@@ -175,7 +174,7 @@ typedef class _server_socket : public _base_socket
 typedef class _datagram_server_socket : public _server_socket
 {
   public:
-    _datagram_server_socket(int _sock_type, int _protocol, uint16_t _port);
+    _datagram_server_socket(int _sock_type, int _protocol, uint16_t port);
     void
     post_async_receive();
     void
@@ -193,24 +192,6 @@ typedef class _datagram_server_socket : public _server_socket
     sockaddr_storage sender_address;
     int sender_address_size;
 } datagram_server_socket_t;
-
-/**
- * @class A dual stack UDP or raw socket bound to wildcard address that is used to receive datagrams. This socket is
- * also configured to expect redirection
- */
-typedef class _datagram_server_socket_with_redirection : public _datagram_server_socket
-{
-  public:
-    _datagram_server_socket_with_redirection(int _sock_type, int _protocol, uint16_t _port);
-    void
-    post_async_receive();
-    int
-    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size);
-
-  private:
-    char redirect_context[REDIRECT_CONTEXT_BUFFER_SIZE];
-    uint32_t redirect_context_size;
-} datagram_server_socket_with_redirection_t;
 
 /**
  * @class A dual stack stream socket bound to wildcard address that is used to accept inbound connection.

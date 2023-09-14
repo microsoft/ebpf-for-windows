@@ -67,7 +67,7 @@ void
 create_udp_listener(uint16_t local_port)
 {
     printf("Creating UDP listener socket with local port %d ...\n", local_port);
-    datagram_server_socket_with_redirection_t receiver_socket(SOCK_DGRAM, IPPROTO_UDP, local_port);
+    datagram_server_socket_t receiver_socket(SOCK_DGRAM, IPPROTO_UDP, local_port);
     // Create a listener in a loop to accept new connections.
     // The tests / user need to kill the process to stop the listener.
     while (true) {
