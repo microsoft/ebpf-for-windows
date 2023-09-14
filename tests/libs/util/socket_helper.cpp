@@ -67,7 +67,8 @@ get_string_from_address(_In_ const SOCKADDR* sockaddr)
     return std::string(ip_string);
 }
 
-_base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
+_base_socket::_base_socket(
+    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
     : socket(INVALID_SOCKET), family(_family), sock_type(_sock_type), protocol(_protocol), port(_port), local_address{},
       local_address_size(sizeof(local_address)), recv_buffer(std::vector<char>(1024)), recv_flags(0)
 {
@@ -90,8 +91,8 @@ _base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port, socket
 
     // Bind it to the wildcard address and supplied port.
     SOCKADDR_STORAGE local_addr;
+    memcpy(&local_addr, &_source_address, sizeof(_source_address));
     local_addr.ss_family = address_family;
-    INETADDR_SETANY((PSOCKADDR)&local_addr);
     INETADDR_SET_PORT((PSOCKADDR)&local_addr, htons(port));
 
     error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
@@ -126,8 +127,9 @@ _base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_
     message = recv_buffer.data();
 }
 
-_client_socket::_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
-    : _base_socket{_sock_type, _protocol, _port, _family}, overlapped{}, receive_posted(false)
+_client_socket::_client_socket(
+    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
+    : _base_socket{_sock_type, _protocol, _port, _family, _source_address}, overlapped{}, receive_posted(false)
 {}
 
 void
@@ -217,8 +219,9 @@ _client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
     }
 }
 
-_datagram_client_socket::_datagram_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
-    : _client_socket{_sock_type, _protocol, _port, _family}
+_datagram_client_socket::_datagram_client_socket(
+    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
+    : _client_socket{_sock_type, _protocol, _port, _family, _source_address}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
@@ -265,8 +268,9 @@ _datagram_client_socket::complete_async_send(int timeout_in_ms, expected_result_
     UNREFERENCED_PARAMETER(expected_result);
 }
 
-_stream_client_socket::_stream_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
-    : _client_socket{_sock_type, _protocol, _port, _family}, connectex(nullptr)
+_stream_client_socket::_stream_client_socket(
+    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& source_address)
+    : _client_socket{_sock_type, _protocol, _port, _family, source_address}, connectex(nullptr)
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
