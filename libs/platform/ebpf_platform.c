@@ -35,6 +35,17 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_writes_maybenull_(size) void*
     return ebpf_allocate_with_tag(size, EBPF_POOL_TAG_DEFAULT);
 }
 
+_Must_inspect_result_ _Ret_maybenull_z_ char*
+ebpf_strdup(_In_ PCSTR source)
+{
+    size_t size = strlen(source) + 1;
+    char* destination = (char*)ebpf_allocate(size);
+    if (destination) {
+        strcpy_s(destination, size, source);
+    }
+    return destination;
+}
+
 void
 ebpf_free(_Frees_ptr_opt_ void* memory)
 {
@@ -360,14 +371,6 @@ ebpf_safe_size_t_subtract(
     size_t minuend, size_t subtrahend, _Out_ _Deref_out_range_(==, minuend - subtrahend) size_t* result)
 {
     return RtlSizeTSub(minuend, subtrahend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
-}
-
-uint32_t
-ebpf_random_uint32()
-{
-    LARGE_INTEGER p = KeQueryPerformanceCounter(NULL);
-    unsigned long seed = p.LowPart ^ (unsigned long)p.HighPart;
-    return RtlRandomEx(&seed);
 }
 
 ebpf_result_t

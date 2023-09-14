@@ -227,6 +227,7 @@
     <ClCompile Include="..\end_to_end\end_to_end.cpp" />
     <ClCompile Include="..\end_to_end\netsh_test.cpp" />
     <ClCompile Include="..\end_to_end\test_helper.cpp" />
+    <ClCompile Include="ebpfcore_test.cpp" />
     <ClCompile Include="export_program_info_test.cpp" />
     <ClCompile Include="libbpf_test.cpp" />
   </ItemGroup>
