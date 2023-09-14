@@ -219,9 +219,8 @@ _client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
     }
 }
 
-_datagram_client_socket::_datagram_client_socket(
-    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
-    : _client_socket{_sock_type, _protocol, _port, _family, _source_address}
+_datagram_client_socket::_datagram_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
+    : _client_socket{_sock_type, _protocol, _port, _family}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))

@@ -445,7 +445,7 @@ get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket, cons
     if (_globals.protocol == IPPROTO_TCP) {
         new_socket = (client_socket_t*)new stream_client_socket_t(SOCK_STREAM, IPPROTO_TCP, 0, family, source_address);
     } else {
-        new_socket = (client_socket_t*)new datagram_client_socket_t(SOCK_DGRAM, IPPROTO_UDP, 0, family, source_address);
+        new_socket = (client_socket_t*)new datagram_client_socket_t(SOCK_DGRAM, IPPROTO_UDP, 0, family);
     }
 
     *sender_socket = new_socket;
@@ -663,26 +663,26 @@ DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(loopback_address, local_address, lo
 // IPv4, TCP
 DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, IPPROTO_TCP)
 
-// // IPv4, UDP
-// DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, IPPROTO_UDP)
+// IPv4, UDP
+DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, IPPROTO_UDP)
 
-// // Dual stack socket, IPv4, TCP
-// DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, IPPROTO_TCP)
+// Dual stack socket, IPv4, TCP
+DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, IPPROTO_TCP)
 
-// // Dual stack socket, IPv4, UDP
-// DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, IPPROTO_UDP)
+// Dual stack socket, IPv4, UDP
+DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, IPPROTO_UDP)
 
-// // IPv6, TCP
-// DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, IPPROTO_TCP)
+// IPv6, TCP
+DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, IPPROTO_TCP)
 
-// // IPv6, UDP
-// DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, IPPROTO_UDP)
+// IPv6, UDP
+DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, IPPROTO_UDP)
 
-// // Dual stack socket, IPv6, TCP
-// DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, IPPROTO_TCP)
+// Dual stack socket, IPv6, TCP
+DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, IPPROTO_TCP)
 
-// // Dual stack socket, IPv6, UDP
-// DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, IPPROTO_UDP)
+// Dual stack socket, IPv6, UDP
+DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, IPPROTO_UDP)
 
 int
 main(int argc, char* argv[])
