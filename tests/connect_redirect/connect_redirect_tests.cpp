@@ -383,13 +383,10 @@ connect_redirect_test(
         // check for the SERVER_MESSAGE generic response.
         bool redirected =
             (destination_port != proxy_port || !INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&proxy));
-        bool local_redirect =
-            !(INETADDR_ISEQUAL(
-                  (SOCKADDR*)&destination, (SOCKADDR*)&_globals.addresses[socket_family_t::IPv4].remote_address) ||
-              INETADDR_ISEQUAL(
-                  (SOCKADDR*)&destination, (SOCKADDR*)&_globals.addresses[socket_family_t::IPv6].remote_address) ||
-              INETADDR_ISEQUAL(
-                  (SOCKADDR*)&destination, (SOCKADDR*)&_globals.addresses[socket_family_t::Dual].remote_address));
+        bool local_redirect = !(
+            INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[socket_family_t::IPv4].remote_address) ||
+            INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[socket_family_t::IPv6].remote_address) ||
+            INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[socket_family_t::Dual].remote_address));
         std::string expected_response;
         if (redirected && local_redirect) {
             expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
