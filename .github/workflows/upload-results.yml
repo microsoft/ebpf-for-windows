@@ -29,18 +29,18 @@ jobs:
       run: |
         mkdir -p ${{github.workspace}}/results/${{github.sha}}
         curl https://raw.githubusercontent.com/microsoft/bpf_performance/1a50dae54c0c1d8b7f73331936e69a7154b3f659/scripts/gather_csv.sh > gather_csv.sh
-        sha256sum gather_csv.sh | grep  a279517d50093eaa46778642620ec11b2c07f47ace61c4d854982e23c46f22fa  -q || exit 1
+        sha256sum gather_csv.sh | grep a279517d50093eaa46778642620ec11b2c07f47ace61c4d854982e23c46f22fa -q || exit 1
         chmod a+x gather_csv.sh
         ./gather_csv.sh ${{github.workspace}}/results_artifact ${{github.workspace}}/results/${{github.sha}}/results
 
     - name: Post-process results
       run: |
         # Download script to convert CSV to SQL from GitHub.
-        curl https://raw.githubusercontent.com/Alan-Jowett/bpf_performance/e5ae44184c3b93325254174906879ea6b3e7bba4/scripts/process_results.py > process_results.py
+        curl https://raw.githubusercontent.com/microsoft/bpf_performance/85d6f2f78065d4ecebdfc33ff1afddb4c4241b9e/scripts/process_results.py > process_results.py
         # Compare hash of downloaded script.
-        sha256sum process_results.py | grep  3a54e7efb1eb101b1d509481c7c413d75fd94a96ea6f16448f1b97b1b5ef90d0  -q || exit 1
+        sha256sum process_results.py | grep 313d24cce580ec2ecc79667fab1f7fc577ca0c1e6b88d3585a606bd4ac5f1427 -q || exit 1
         # Run script to convert CSV to SQL.
-        python3 scripts/process_results.py --csv-directory ${{github.workspace}}/results --sql-script-file ${{github.workspace}}/results/upload.sql --commit_id ${{github.sha}} --platform "Windows 2019"
+        python3 ./process_results.py --csv-directory ${{github.workspace}}/results --sql-script-file ${{github.workspace}}/results/upload.sql --commit_id ${{github.sha}} --platform "Windows 2019" --repository ${{github.repository}}
 
     - name: Upload results to POSTGRES
       env:
