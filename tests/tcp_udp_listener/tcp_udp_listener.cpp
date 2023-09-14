@@ -27,7 +27,6 @@ create_listener(_Inout_ receiver_socket_t* receiver_socket)
 {
     std::string response;
     char redirect_context_buffer[REDIRECT_CONTEXT_BUFFER_SIZE] = "\0";
-    uint32_t redirect_context_size = 0;
 
     _global_counter++;
     // Post a receive. Wait for client to connect.
@@ -41,8 +40,7 @@ create_listener(_Inout_ receiver_socket_t* receiver_socket)
     // Query for the redirect context.
     // This is expected to only be valid for local redirections.
     // If not present, use the generic SERVER_MESSAGE response.
-    if (receiver_socket->query_redirect_context(
-            redirect_context_buffer, sizeof(redirect_context_buffer), redirect_context_size)) {
+    if (receiver_socket->query_redirect_context(redirect_context_buffer, sizeof(redirect_context_buffer))) {
         response = SERVER_MESSAGE + std::to_string(_local_port);
     } else {
         response = redirect_context_buffer + std::to_string(_local_port);
@@ -69,7 +67,7 @@ void
 create_udp_listener(uint16_t local_port)
 {
     printf("Creating UDP listener socket with local port %d ...\n", local_port);
-    datagram_server_socket_t receiver_socket(SOCK_DGRAM, IPPROTO_UDP, local_port);
+    datagram_server_socket_with_redirection_t receiver_socket(SOCK_DGRAM, IPPROTO_UDP, local_port);
     // Create a listener in a loop to accept new connections.
     // The tests / user need to kill the process to stop the listener.
     while (true) {

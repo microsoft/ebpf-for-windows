@@ -162,12 +162,10 @@ typedef class _server_socket : public _base_socket
     virtual void
     close() = 0;
     virtual int
-    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size) = 0;
+    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size) = 0;
 
   protected:
     WSAOVERLAPPED overlapped;
-
-  private:
     LPFN_WSARECVMSG receive_message;
 } receiver_socket_t;
 
@@ -177,7 +175,7 @@ typedef class _server_socket : public _base_socket
 typedef class _datagram_server_socket : public _server_socket
 {
   public:
-    _datagram_server_socket(int _sock_type, int _protocol, uint16_t port);
+    _datagram_server_socket(int _sock_type, int _protocol, uint16_t _port);
     void
     post_async_receive();
     void
@@ -189,13 +187,30 @@ typedef class _datagram_server_socket : public _server_socket
     void
     close();
     int
-    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size);
+    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size);
 
   private:
     sockaddr_storage sender_address;
     int sender_address_size;
-    char redirect_context_buffer[REDIRECT_CONTEXT_BUFFER_SIZE];
 } datagram_server_socket_t;
+
+/**
+ * @class A dual stack UDP or raw socket bound to wildcard address that is used to receive datagrams. This socket is
+ * also configured to expect redirection
+ */
+typedef class _datagram_server_socket_with_redirection : public _datagram_server_socket
+{
+  public:
+    _datagram_server_socket_with_redirection(int _sock_type, int _protocol, uint16_t _port);
+    void
+    post_async_receive();
+    int
+    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size);
+
+  private:
+    char redirect_context[REDIRECT_CONTEXT_BUFFER_SIZE];
+    uint32_t redirect_context_size;
+} datagram_server_socket_with_redirection_t;
 
 /**
  * @class A dual stack stream socket bound to wildcard address that is used to accept inbound connection.
@@ -216,7 +231,7 @@ typedef class _stream_server_socket : public _server_socket
     void
     close();
     int
-    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size);
+    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size);
 
   private:
     void

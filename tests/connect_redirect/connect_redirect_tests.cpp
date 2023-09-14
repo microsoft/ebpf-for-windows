@@ -388,7 +388,7 @@ connect_redirect_test(
             INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[socket_family_t::IPv6].remote_address) ||
             INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[socket_family_t::Dual].remote_address));
         std::string expected_response;
-        if (redirected && local_redirect && _globals.protocol == IPPROTO_TCP) {
+        if (redirected && local_redirect) {
             expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
         } else {
             expected_response = SERVER_MESSAGE + std::to_string(proxy_port);

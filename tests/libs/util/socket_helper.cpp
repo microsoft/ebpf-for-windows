@@ -440,13 +440,6 @@ _datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, 
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
         FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
              "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
-    uint32_t redirect_context = 1;
-    setsockopt(
-        socket,
-        IPPROTO_IP,
-        IP_WFP_REDIRECT_CONTEXT,
-        reinterpret_cast<const char*>(&redirect_context),
-        sizeof(redirect_context));
 }
 
 void
@@ -521,14 +514,99 @@ _datagram_server_socket::complete_async_send(int timeout_in_ms)
 }
 
 int
-_datagram_server_socket::query_redirect_context(
-    _Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size)
+_datagram_server_socket::query_redirect_context(_Out_ void* buffer, uint32_t buffer_size)
 {
     UNREFERENCED_PARAMETER(buffer);
     UNREFERENCED_PARAMETER(buffer_size);
-    UNREFERENCED_PARAMETER(redirect_context_size);
-    return 1;
-    // memcpy(buffer, redirect_context_buffer, buffer_size);
+    return 0;
+}
+
+_datagram_server_socket_with_redirection::_datagram_server_socket_with_redirection(
+    int _sock_type, int _protocol, uint16_t _port)
+    : _datagram_server_socket{_sock_type, _protocol, _port}
+{
+    // Set the socket option so that we can query the redirect context.
+    uint32_t redirect_context_option = 1;
+    setsockopt(
+        socket,
+        IPPROTO_IP,
+        IP_WFP_REDIRECT_CONTEXT,
+        reinterpret_cast<const char*>(&redirect_context_option),
+        sizeof(redirect_context_option));
+}
+
+void
+_datagram_server_socket_with_redirection::post_async_receive()
+{
+    // Create an event handle and set up the overlapped structure.
+    overlapped.hEvent = WSACreateEvent();
+    if (overlapped.hEvent == nullptr) {
+        FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
+    }
+
+    WSAMSG wsa_msg{};
+    WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+    char control_buffer[REDIRECT_CONTEXT_BUFFER_SIZE];
+    wsa_msg.lpBuffers = &wsa_recv_buffer;
+    wsa_msg.dwBufferCount = 1;
+    wsa_msg.Control.buf = control_buffer;
+    wsa_msg.Control.len = sizeof(control_buffer);
+    wsa_msg.dwFlags = 0;
+
+    // uint32_t bytes_received;
+    int error =
+        receive_message(socket, &wsa_msg, reinterpret_cast<unsigned long*>(&bytes_received), &overlapped, nullptr);
+    if (error != 0) {
+        int wsaerr = WSAGetLastError();
+        if (wsaerr != WSA_IO_PENDING) {
+            FAIL("WSARecvFrom failed with " << wsaerr);
+        }
+    }
+
+    char* buffer = wsa_msg.Control.buf;
+    uint32_t buffer_length = wsa_msg.Control.len;
+    uint32_t cmsg_space_0 = CMSG_SPACE(0);
+    while (buffer_length >= cmsg_space_0) // cmsg_space_0)
+    {
+        PCMSGHDR header = (PCMSGHDR)buffer;
+        if (header->cmsg_len < CMSG_SPACE(0)) {
+            return;
+        }
+
+        char* data = reinterpret_cast<char*>(WSA_CMSG_DATA(header));
+        uint32_t data_length = static_cast<uint32_t>(header->cmsg_len) - cmsg_space_0; // CMSG_SPACE(0);
+        if (buffer_length < CMSG_SPACE(data_length)) {
+            return;
+        }
+
+        buffer += CMSG_SPACE(data_length);
+        buffer_length -= CMSG_SPACE(data_length);
+        if (header->cmsg_level != IPPROTO_IP) {
+            return;
+        }
+
+        switch (header->cmsg_type) {
+        case IP_WFP_REDIRECT_CONTEXT: {
+            if (data_length > redirect_context_size) {
+                return;
+            }
+            memcpy(redirect_context, data, data_length);
+            redirect_context_size = data_length;
+            break;
+        }
+        }
+    }
+}
+
+int
+_datagram_server_socket_with_redirection::query_redirect_context(_Out_ void* buffer, uint32_t buffer_size)
+{
+    if (redirect_context_size == 0 || buffer_size < redirect_context_size) {
+        return 1;
+    }
+
+    memcpy(buffer, redirect_context, redirect_context_size);
+    return 0;
 }
 
 void
@@ -685,9 +763,9 @@ _stream_server_socket::close()
 }
 
 int
-_stream_server_socket::query_redirect_context(
-    _Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size)
+_stream_server_socket::query_redirect_context(_Out_ void* buffer, uint32_t buffer_size)
 {
+    uint32_t redirect_context_size = 0;
     return WSAIoctl(
         accept_socket,
         SIO_QUERY_WFP_CONNECTION_REDIRECT_CONTEXT,
