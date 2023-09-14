@@ -245,7 +245,7 @@ Ref. docs: [Create a new hardware submission](https://learn.microsoft.com/en-us/
 
 #### Submitting the HLKX package to HDC for driver signing
 
-- Go to you [HDC Dashboard](https://partner.microsoft.com/en-us/dashboard/home).
+- Go to your [HDC Dashboard](https://partner.microsoft.com/en-us/dashboard/home).
 
 - Click on the `Hardware` tile and then on `Create a new submission`:
 
@@ -255,7 +255,7 @@ Ref. docs: [Create a new hardware submission](https://learn.microsoft.com/en-us/
 
     ![](.\images\HDC-Submit_new_hw.png)
 
-- Fill in the "`Product name`" and drop the HLKX package in the underlying area:
+- Fill in the "`Product name`" and drop your ESRP-signed HLKX package in the underlying area:
 
     ![](.\images\HDC-Upload-hklx.png)
 
