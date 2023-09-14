@@ -167,7 +167,7 @@ On HLK Studio, navigate sequentially to the following tabs:
 
             ![Hardware-enforced Stack Protection Compatibility](.\images\Hardware-enforced_Stack_Protection_Compatibility_Test.png)
 
-        - `"TransitionTechnologies_Tests"`: acknowledge all prompts by clicking `"OK` on the dialog box prompts that will appear during the `"Teredo HLK tests"`.
+        - `"TransitionTechnologies_Tests"`: acknowledge all prompts by clicking `"OK` on the dialog box prompts that will appear during each individual test of this group.
 
         - `"WindowsFilteringPlatform_Tests"`: will prompt for filling in a "WFPLogo.Info" file within Notepad, and then save it. The file is already precompiled for the `NetEbpfExt.sys` driver, which is the subject of this test, and is located within the same folder of this documentation ([.\test_data\WFPLogo.Info](.\test_data\WFPLogo.Info)), so just copy-paste its contents into the open Notepad window, **save it (!!)** then click `OK` on the prompt.
         There will be a few more prompts, just click `"OK` on the dialog box prompts that will appear during the tests.
@@ -196,40 +196,68 @@ On HLK Studio, navigate sequentially to the following tabs:
     - Click on `"Create Package"`, and chose `"Do not sign"` on the `"Signing Options"` dialog box.
     - The HLKX package will be created in the provided folder.
 
-## Submitting the HLKX package to HDC for driver signing
+## Signing a release for production
 
-### Submitting to MODS for signing the HLKX package 
+### Signing the User-Mode binaries 
 
+- **[One-time operation]** Create a new `Sign Operation` in the [ESRP Portal](https://portal.esrp.microsoft.com/), by adding ["`CP-233102`" ,"`SigntoolSign`"] and ["`CP-233102`", "`SigntoolVerify`"]. Here is a screenshot of how the  `"Operation Details"` should look like:
+
+    ![](.\images\Operation_Details_UM.png)
+
+- Create a new request in [ESRP Portal](https://portal.esrp.microsoft.com/):
+    - Select the `"MANUAL SIGN"` tab from the left menu, then `"Sign Request"` from the drop menu.
+    - Select `"New Request"` and fill in the fields:
+        - `Description`: e.g., `"eBPF for Windows v0.11.0 - User-mode binaries"`
+        - `Sign Operation`: e.g., `"eBPF Signing - User-mode Binaries"` (created as described above).
+        - `Approvers`: you need 2 reviewers to approve your manual submission (they can be from your same Team).
+        - Click on `"Browse file"` and upload all the user-mode binaries to be signed.
+        - Click on `"Submit"`.
+- Once approved, the signed binaries will be available to download, within the request page in the ESRP Portal.
+
+    Here is a screenshot of how a request should look like:
+
+    ![](.\images\Sign_Request_UM.png)
+
+### Signing the HLKX package 
+
+Ref. docs: [Create a new hardware submission](https://learn.microsoft.com/en-us/windows-hardware/drivers/dashboard/hardware-submission-create)
 >NOTE: Make sure you submit the **merged `.hlkx` package** for manual signing.
 
-- Create a new `Sign Operation`, by following the following instructions: ["Signing drivers, and driver packages for submission to HDC - OSGWiki"](https://www.osgwiki.com/wiki/Signing_drivers,_and_driver_packages_for_submission_to_HDC).
+- **[One-time operation]**Create a new `Sign Operation` in the [ESRP Portal](https://portal.esrp.microsoft.com/), by following the below instructions: ["Signing drivers, and driver packages for submission to HDC - OSGWiki"](https://www.osgwiki.com/wiki/Signing_drivers,_and_driver_packages_for_submission_to_HDC).
 
     Here is a screenshot of how the  `"Operation Details"` should look like:
 
-    ![](.\images\Operation_Details.png)
+    ![](.\images\Operation_Details_HLKX.png)
 
-- Submit a new request in [ESRP Portal](https://portal.esrp.microsoft.com/)
+- Create a new request in [ESRP Portal](https://portal.esrp.microsoft.com/):
     - Select the `"MANUAL SIGN"` tab from the left menu, then `"Sign Request"` from the drop menu.
     - Select `"New Request"` and fill in the fields:
-        - `Description`: e.g., `"eBPF for Windows v0.10.0 HLK package"`
-        - `Sign Operation`: e.g., `"eBPF Driver Signing - Pilot (HLKX packages)"` (created from the steps in the OSGWiki page linked above).
-        - `Approvers`: you need 2 reviewers to approve your manual submission (they can be from you same Team).
+        - `Description`: e.g., `"eBPF for Windows v0.10.0 - HLK package"`
+        - `Sign Operation`: e.g., `"eBPF Signing - HLKX packages"` (created from the steps in the OSGWiki page linked above).
+        - `Approvers`: you need 2 reviewers to approve your manual submission (they can be from your same Team).
         - Click on `"Browse file"` and upload the combined HLKX package to be signed.
         - Click on `"Submit"`.
 - Once approved, the signed HLKX package will be available to download, within the request page in the ESRP Portal.
 
     Here is a screenshot of how a request should look like:
 
-    ![](.\images\Sign_Request.png)
+    ![](.\images\Sign_Request_HLKX.png)
 
-
-
-### Submitting the HLKX package to HDC for driver signing
+#### Submitting the HLKX package to HDC for driver signing
 
 - Go to you [HDC Dashboard](https://partner.microsoft.com/en-us/dashboard/home).
 
-> **TBC what below, as my account does not have the "Hardware" submission option**
-- Click on the `Hardware` tile and then on `Create a new submission`
-- Once approved, download the production-signed HLKX package, inside which you will find the prod-signed eBPF drivers.
+- Click on the `Hardware` tile and then on `Create a new submission`:
 
-Ref. docs: [Create a new hardware submission](https://learn.microsoft.com/en-us/windows-hardware/drivers/dashboard/hardware-submission-create)
+    ![](.\images\HDC-Hardware_button.png)
+
+- Click on the `Submit the Hardware` button:
+
+    ![](.\images\HDC-Submit_new_hw.png)
+
+- Fill in the "`Product name`" and drop the HLKX package in the underlying area:
+
+    ![](.\images\HDC-Upload-hklx.png)
+
+- Once approved, download the production-signed HLKX package, inside which you will find the prod-signed eBPF drivers, to be packaged as required.
+
