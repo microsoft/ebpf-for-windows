@@ -11,7 +11,13 @@ extern "C"
 #endif
 
     typedef struct _ebpf_epoch_work_item ebpf_epoch_work_item_t;
-    typedef struct _ebpf_epoch_state ebpf_epoch_state_t;
+    typedef struct _ebpf_epoch_state
+    {
+        LIST_ENTRY epoch_list_entry; /// List entry for the epoch list.
+        uint64_t epoch;              /// The epoch when this entry was added to the list.
+        uint32_t cpu_id;             /// The CPU on which this entry was added to the list.
+        KIRQL irql_at_enter;         /// The IRQL when this entry was added to the list.
+    } ebpf_epoch_state_t;
 
     /**
      * @brief Initialize the eBPF epoch tracking module.
@@ -32,16 +38,16 @@ extern "C"
 
     /**
      * @brief Called prior to touching memory with lifetime under epoch control.
-     * @returns Pointer to epoch state that must be passed to ebpf_epoch_exit.
+     * @param[in] epoch_state Pointer to epoch state to be filled in.
      */
-    ebpf_epoch_state_t*
-    ebpf_epoch_enter();
+    _IRQL_requires_same_ void
+    ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state);
 
     /**
      * @brief Called after touching memory with lifetime under epoch control.
      * @param[in] epoch_state Pointer to epoch state returned by ebpf_epoch_enter.
      */
-    void
+    _IRQL_requires_same_ void
     ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state);
 
     /**
