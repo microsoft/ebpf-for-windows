@@ -16,6 +16,7 @@
 
 #define CLIENT_MESSAGE "request from client"
 #define SERVER_MESSAGE "response from server"
+#define REDIRECT_CONTEXT_BUFFER_SIZE 128
 
 typedef enum _socket_family
 {
@@ -160,9 +161,8 @@ typedef class _server_socket : public _base_socket
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length) = 0;
     virtual void
     close() = 0;
-
-    int
-    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size);
+    virtual int
+    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size) = 0;
 
   protected:
     WSAOVERLAPPED overlapped;
@@ -188,10 +188,13 @@ typedef class _datagram_server_socket : public _server_socket
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
     void
     close();
+    int
+    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size);
 
   private:
     sockaddr_storage sender_address;
     int sender_address_size;
+    char redirect_context_buffer[REDIRECT_CONTEXT_BUFFER_SIZE];
 } datagram_server_socket_t;
 
 /**
@@ -212,6 +215,8 @@ typedef class _stream_server_socket : public _server_socket
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
     void
     close();
+    int
+    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size);
 
   private:
     void

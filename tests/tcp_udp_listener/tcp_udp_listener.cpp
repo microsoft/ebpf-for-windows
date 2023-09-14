@@ -42,7 +42,7 @@ create_listener(_Inout_ receiver_socket_t* receiver_socket)
     // This is expected to only be valid for local redirections.
     // If not present, use the generic SERVER_MESSAGE response.
     if (receiver_socket->query_redirect_context(
-            &redirect_context_buffer, REDIRECT_CONTEXT_BUFFER_SIZE, redirect_context_size)) {
+            redirect_context_buffer, sizeof(redirect_context_buffer), redirect_context_size)) {
         response = SERVER_MESSAGE + std::to_string(_local_port);
     } else {
         response = redirect_context_buffer + std::to_string(_local_port);
