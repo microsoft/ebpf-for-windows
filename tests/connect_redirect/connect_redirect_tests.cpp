@@ -359,7 +359,6 @@ connect_redirect_test(
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
     uint64_t authentication_id;
-    std::string proxy_address_string = get_string_from_address(reinterpret_cast<const SOCKADDR*>(&proxy));
 
     // Update policy in the map to redirect the connection to the proxy.
     _update_policy_map(destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
@@ -384,13 +383,32 @@ connect_redirect_test(
         // check for the SERVER_MESSAGE generic response.
         bool redirected =
             (destination_port != proxy_port || !INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&proxy));
-        bool local_redirect = !(proxy_address_string == _remote_ip_v4 || proxy_address_string == _remote_ip_v6);
+        bool local_redirect =
+            !(INETADDR_ISEQUAL(
+                  (SOCKADDR*)&destination, (SOCKADDR*)&_globals.addresses[socket_family_t::IPv4].remote_address) ||
+              INETADDR_ISEQUAL(
+                  (SOCKADDR*)&destination, (SOCKADDR*)&_globals.addresses[socket_family_t::IPv6].remote_address) ||
+              INETADDR_ISEQUAL(
+                  (SOCKADDR*)&destination, (SOCKADDR*)&_globals.addresses[socket_family_t::Dual].remote_address));
         std::string expected_response;
         if (redirected && local_redirect) {
             expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
         } else {
             expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
         }
+        std::string proxy_address_string = get_string_from_address(reinterpret_cast<const SOCKADDR*>(&proxy));
+        std::string remote_v4 = get_string_from_address(
+            reinterpret_cast<const SOCKADDR*>(&_globals.addresses[socket_family_t::IPv4].remote_address));
+        std::string remote_v6 = get_string_from_address(
+            reinterpret_cast<const SOCKADDR*>(&_globals.addresses[socket_family_t::IPv6].remote_address));
+        std::string dual = get_string_from_address(
+            reinterpret_cast<const SOCKADDR*>(&_globals.addresses[socket_family_t::Dual].remote_address));
+        INFO(
+            "proxy_address_string: " << proxy_address_string << ", remote_v4: " << remote_v4
+                                     << ", remote_v6: " << remote_v6 << ", dual: " << dual);
+
+        INFO("redirected: " << redirected << ", local_redirect: " << local_redirect);
+
         INFO("Received message is:[" << received_message << "]");
         INFO("Expected message is:[" << expected_response << "]");
         REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
