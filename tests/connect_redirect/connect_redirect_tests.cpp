@@ -359,7 +359,7 @@ connect_redirect_test(
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
     uint64_t authentication_id;
-    std::string proxy_address_string = get_string_from_address(reinterpret_cast<const SOCKADDR*>(&proxy));
+    // std::string proxy_address_string = get_string_from_address(reinterpret_cast<const SOCKADDR*>(&proxy));
 
     // Update policy in the map to redirect the connection to the proxy.
     _update_policy_map(destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
@@ -379,8 +379,17 @@ connect_redirect_test(
 
         sender_socket->get_received_message(bytes_received, received_message);
 
-        // Check for the expected response, which is the redirect context message.
-        std::string expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
+        // If redirection is expected, check for the redirect context response.
+        // If redirection is not expected, check for the SERVER_MESSAGE generic response.
+        std::string expected_response;
+        if (destination_port != proxy_port || !INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&proxy)) {
+            expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
+        } else {
+            expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
+        }
+
+        INFO("Received message is:[" << received_message << "]");
+        INFO("Expected message is:[" << expected_response << "]");
         REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
         REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
     }
