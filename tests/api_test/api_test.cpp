@@ -738,13 +738,7 @@ TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
 
     program_load_attach_helper_t _helper;
     _helper.initialize(
-        "tail_call_max_exceed.sys",
-        BPF_PROG_TYPE_BIND,
-        "bind_test_caller",
-        EBPF_EXECUTION_NATIVE,
-        nullptr,
-        0,
-        hook);
+        "tail_call_max_exceed.sys", BPF_PROG_TYPE_BIND, "bind_test_caller", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
     object = _helper.get_object();
 
     fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "bind_tail_call_map");
@@ -1058,9 +1052,7 @@ test_sock_addr_native_program_load_attach(const char* file_name)
         test_sock_addr_native_program_load_attach((const char*)"cgroup_sock_addr2_"##version ".sys"); \
     }
 
-// Commenting the regression test for 0.9.0 as a breaking change was added.
-// This test needs to be enabled once v0.11.0 is released. Tracking issue #2839.
-// DECLARE_REGRESSION_TEST_CASE("0.9.0")
+DECLARE_REGRESSION_TEST_CASE("0.11.0")
 
 // The below tests try to load native drivers for invalid programs (that will fail verification).
 // Since verification can be skipped in bpf2c for only Debug builds, these tests are applicable
