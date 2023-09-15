@@ -517,8 +517,10 @@ _datagram_server_socket::complete_async_send(int timeout_in_ms)
 }
 
 int
-_datagram_server_socket::query_redirect_context(void*, uint32_t)
+_datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size)
 {
+    UNREFERENCED_PARAMETER(buffer);
+    UNREFERENCED_PARAMETER(buffer_size);
     return 1;
 }
 
@@ -676,7 +678,7 @@ _stream_server_socket::close()
 }
 
 int
-_stream_server_socket::query_redirect_context(_Out_ void* buffer, uint32_t buffer_size)
+_stream_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size)
 {
     uint32_t redirect_context_size = 0;
     return WSAIoctl(

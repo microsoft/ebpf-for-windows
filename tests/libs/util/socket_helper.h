@@ -176,7 +176,7 @@ typedef class _server_socket : public _base_socket
     virtual void
     close() = 0;
     virtual int
-    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size) = 0;
+    query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size) = 0;
 
   protected:
     WSAOVERLAPPED overlapped;
@@ -203,7 +203,7 @@ typedef class _datagram_server_socket : public _server_socket
     void
     close();
     int
-    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size);
+    query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size);
 
   private:
     sockaddr_storage sender_address;
@@ -229,7 +229,7 @@ typedef class _stream_server_socket : public _server_socket
     void
     close();
     int
-    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size);
+    query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size);
 
   private:
     void
