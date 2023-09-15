@@ -999,36 +999,50 @@ _ebpf_core_protocol_program_test_run(
 
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
-    size_t data_in_end;
+    size_t data_size_in;
     size_t data_size_out;
     size_t context_size_in;
+    size_t context_size_out;
 
-    // Validate that the request is large enough to contain the context_offset.
-    retval = ebpf_safe_size_t_add(
-        EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data), request->context_offset, &data_in_end);
+    data_size_in = request->context_offset;
 
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
+    context_size_in = request->header.length;
 
+    // Subtract the header.
     retval = ebpf_safe_size_t_subtract(
-        reply_length, EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data), &data_size_out);
-
+        context_size_in, EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data), &context_size_in);
     if (retval != EBPF_SUCCESS) {
+        // Request isn't big enough to contain the header.
         goto Done;
     }
 
-    retval = ebpf_safe_size_t_subtract(data_in_end, request->context_offset, &context_size_in);
-
-    if (data_in_end > request->header.length) {
-        retval = EBPF_INVALID_ARGUMENT;
+    // Subtract the dat size.
+    retval = ebpf_safe_size_t_subtract(context_size_in, data_size_in, &context_size_in);
+    if (retval != EBPF_SUCCESS) {
+        // Request isn't big enough to contain the data.
         goto Done;
     }
 
-    retval = ebpf_safe_size_t_subtract(data_size_out, context_size_in, &data_size_out);
+    data_size_out = reply_length;
 
+    // Subtract the header.
+    retval = ebpf_safe_size_t_subtract(
+        data_size_out, EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data), &data_size_out);
     if (retval != EBPF_SUCCESS) {
+        // Reply isn't big enough to contain the header.
         goto Done;
+    }
+
+    if (context_size_in > 0) {
+        context_size_out = context_size_in;
+        // Subtract the context size.
+        retval = ebpf_safe_size_t_subtract(data_size_out, context_size_out, &data_size_out);
+        if (retval != EBPF_SUCCESS) {
+            // Reply isn't big enough to contain the header and the context.
+            goto Done;
+        }
+    } else {
+        context_size_out = 0;
     }
 
     retval =
@@ -1043,9 +1057,9 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
     }
 
-    options->data_size_in = data_in_end;
+    options->data_size_in = data_size_in;
     options->context_size_in = context_size_in;
-    options->context_size_out = context_size_in;
+    options->context_size_out = context_size_out;
     options->data_size_out = data_size_out;
     options->repeat_count = request->repeat_count;
     options->flags = request->flags;
