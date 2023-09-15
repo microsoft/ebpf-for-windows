@@ -517,10 +517,8 @@ _datagram_server_socket::complete_async_send(int timeout_in_ms)
 }
 
 int
-_datagram_server_socket::query_redirect_context(_Out_ void* buffer, uint32_t buffer_size)
+_datagram_server_socket::query_redirect_context(void*, uint32_t)
 {
-    UNREFERENCED_PARAMETER(buffer);
-    UNREFERENCED_PARAMETER(buffer_size);
     return 1;
 }
 
