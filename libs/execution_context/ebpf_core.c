@@ -1000,6 +1000,8 @@ _ebpf_core_protocol_program_test_run(
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
     size_t data_in_end;
+    size_t data_size_out;
+    size_t context_size_in;
 
     // Validate that the request is large enough to contain the context_offset.
     retval = ebpf_safe_size_t_add(
@@ -1009,8 +1011,23 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
     }
 
+    retval = ebpf_safe_size_t_subtract(
+        reply_length, EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data), &data_size_out);
+
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    retval = ebpf_safe_size_t_subtract(data_in_end, request->context_offset, &context_size_in);
+
     if (data_in_end > request->header.length) {
         retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    retval = ebpf_safe_size_t_subtract(data_size_out, context_size_in, &data_size_out);
+
+    if (retval != EBPF_SUCCESS) {
         goto Done;
     }
 
@@ -1026,11 +1043,10 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
     }
 
-    options->data_size_in = request->context_offset;
-    options->context_size_in = (size_t)(request->header.length) - data_in_end;
-    options->context_size_out = options->context_size_in;
-    options->data_size_out = (size_t)reply_length - EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) -
-                             options->context_size_out;
+    options->data_size_in = data_in_end;
+    options->context_size_in = context_size_in;
+    options->context_size_out = context_size_in;
+    options->data_size_out = data_size_out;
     options->repeat_count = request->repeat_count;
     options->flags = request->flags;
     options->cpu = request->cpu;
@@ -2436,11 +2452,15 @@ ebpf_core_invoke_protocol_handler(
     case EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY:
+    case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC:
         if (input_buffer_length < handler->minimum_request_size) {
             retval = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
         break;
+    default:
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
     // Validate output_buffer_length and output_buffer.
@@ -2462,11 +2482,15 @@ ebpf_core_invoke_protocol_handler(
         break;
     case EBPF_PROTOCOL_FIXED_REQUEST_VARIABLE_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY:
+    case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC:
         if (!output_buffer || output_buffer_length < handler->minimum_reply_size) {
             retval = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
         break;
+    default:
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
     if (request->length > input_buffer_length || request->length < sizeof(*request)) {
