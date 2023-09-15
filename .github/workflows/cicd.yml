@@ -485,7 +485,8 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
-      environment: ebpf_cicd_tests
+      environment: ebpf_cicd_perf
+      configurations: '["Release"]'
 
   performance_with_profile:
     needs: regular
@@ -497,4 +498,5 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
-      environment: ebpf_cicd_tests
+      environment: ebpf_cicd_perf
+      configurations: '["Release"]'
