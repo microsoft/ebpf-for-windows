@@ -337,7 +337,7 @@ function Initialize-NetworkInterfacesOnVMs
 
 function Get-RegressionTestArtifacts
 {
-    $ArifactVersionList = @("0.9.0")
+    $ArifactVersionList = @("0.11.0")
     $RegressionTestArtifactsPath = "$pwd\regression"
     mkdir $RegressionTestArtifactsPath
 
@@ -354,9 +354,9 @@ function Get-RegressionTestArtifacts
 
         Write-Log "Extracting $ArtifactName"
         Expand-Archive -Path "$DownloadPath\artifact.zip" -DestinationPath $DownloadPath -Force
-        Expand-Archive -Path "$DownloadPath\build-Release.zip" -DestinationPath $DownloadPath -Force
+        Expand-Archive -Path "$DownloadPath\build-NativeOnlyRelease.zip" -DestinationPath $DownloadPath -Force
 
-        Move-Item -Path "$DownloadPath\Release\cgroup_sock_addr2.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
+        Move-Item -Path "$DownloadPath\NativeOnlyRelease\cgroup_sock_addr2.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
         Remove-Item -Path $DownloadPath -Force -Recurse
     }
 }
