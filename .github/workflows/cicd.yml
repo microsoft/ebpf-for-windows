@@ -502,12 +502,12 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       configurations: '["Release"]'
-      environment: ebpf_cicd_tests
+      environment: ebpf_cicd_perf
 
   upload_perf_results:
     needs: performance
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
-    uses: ./.github/workflows/upload-results.yml
+    uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_perf_results
       result_artifact: km_performance-x64-Release
