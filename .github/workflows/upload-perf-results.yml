@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Download performance result artifacts
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
         name: Test-Logs-${{inputs.result_artifact}}
         path: ${{github.workspace}}/results_artifact
