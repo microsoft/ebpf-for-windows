@@ -44,12 +44,25 @@ typedef enum _ebpf_pool_tag
     EBPF_POOL_TAG_MAP = 'pame',
     EBPF_POOL_TAG_NATIVE = 'vtne',
     EBPF_POOL_TAG_PROGRAM = 'grpe',
+    EBPF_POOL_TAG_RANDOM = 'gnre',
     EBPF_POOL_TAG_RING_BUFFER = 'fbre',
     EBPF_POOL_TAG_STATE = 'atse',
 } ebpf_pool_tag_t;
 
-#define ebpf_allocate cxplat_allocate
-#define ebpf_free cxplat_free
+/**
+ * @brief Allocate memory.
+ * @deprecated Use ebpf_allocate_with_tag() instead.
+ * @param[in] size Size of memory to allocate.
+ * @param[in] tag Pool tag to use.
+ * @returns Pointer to zero-initialized memory block allocated, or null on failure.
+ */
+__forceinline __drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
+{
+    return cxplat_allocate(CxPlatNonPagedPoolNx, size, EBPF_POOL_TAG_DEFAULT, true);
+}
+
+#define ebpf_free cxplat_free_any_tag
 #define ebpf_reallocate cxplat_reallocate
 
 /**
@@ -61,7 +74,7 @@ typedef enum _ebpf_pool_tag
 __forceinline __drv_allocatesMem(Mem) _Must_inspect_result_
     _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag)
 {
-    return cxplat_allocate_with_tag(CxPlatNonPagedPoolNx, size, tag, true);
+    return cxplat_allocate(CxPlatNonPagedPoolNx, size, tag, true);
 }
 
 #define ebpf_safe_size_t_add(augend, addend, result) \

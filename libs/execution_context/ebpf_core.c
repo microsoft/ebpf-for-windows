@@ -1109,8 +1109,8 @@ _ebpf_core_protocol_query_program_info(
     reply->header.length = (uint16_t)required_reply_length;
 
 Done:
-    cxplat_utf8_string_free(&file_name);
-    cxplat_utf8_string_free(&section_name);
+    cxplat_free_utf8_string(&file_name);
+    cxplat_free_utf8_string(&section_name);
 
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
 
