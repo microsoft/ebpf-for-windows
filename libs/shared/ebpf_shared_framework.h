@@ -59,10 +59,15 @@ typedef enum _ebpf_pool_tag
 __forceinline __drv_allocatesMem(Mem) _Must_inspect_result_
     _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
 {
-    return cxplat_allocate(CxPlatNonPagedPoolNx, size, EBPF_POOL_TAG_DEFAULT, true);
+    return cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, size, EBPF_POOL_TAG_DEFAULT);
 }
 
-#define ebpf_free cxplat_free_any_tag
+__forceinline void
+ebpf_free(_Frees_ptr_opt_ void* pointer)
+{
+    cxplat_free(pointer, CXPLAT_POOL_FLAG_NON_PAGED, 0);
+}
+
 #define ebpf_reallocate cxplat_reallocate
 
 /**
@@ -74,7 +79,7 @@ __forceinline __drv_allocatesMem(Mem) _Must_inspect_result_
 __forceinline __drv_allocatesMem(Mem) _Must_inspect_result_
     _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag)
 {
-    return cxplat_allocate(CxPlatNonPagedPoolNx, size, tag, true);
+    return cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, size, tag);
 }
 
 #define ebpf_safe_size_t_add(augend, addend, result) \

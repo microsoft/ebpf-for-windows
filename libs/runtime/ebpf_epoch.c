@@ -254,8 +254,10 @@ ebpf_epoch_initiate()
 
     _ebpf_epoch_cpu_count = cpu_count;
 
-    _ebpf_epoch_cpu_table =
-        cxplat_allocate_cache_aligned(sizeof(ebpf_epoch_cpu_entry_t) * _ebpf_epoch_cpu_count, EBPF_POOL_TAG_EPOCH);
+    _ebpf_epoch_cpu_table = cxplat_allocate(
+        CXPLAT_POOL_FLAG_NON_PAGED | CXPLAT_POOL_FLAG_CACHE_ALIGNED,
+        sizeof(ebpf_epoch_cpu_entry_t) * _ebpf_epoch_cpu_count,
+        EBPF_POOL_TAG_EPOCH);
     if (!_ebpf_epoch_cpu_table) {
         return_value = EBPF_NO_MEMORY;
         goto Error;
@@ -316,7 +318,8 @@ ebpf_epoch_terminate()
 
     _ebpf_epoch_cpu_count = 0;
 
-    cxplat_free(_ebpf_epoch_cpu_table, EBPF_POOL_TAG_EPOCH);
+    cxplat_free(
+        _ebpf_epoch_cpu_table, CXPLAT_POOL_FLAG_NON_PAGED | CXPLAT_POOL_FLAG_CACHE_ALIGNED, EBPF_POOL_TAG_EPOCH);
     _ebpf_epoch_cpu_table = NULL;
     EBPF_RETURN_VOID();
 }
