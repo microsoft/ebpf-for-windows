@@ -14,6 +14,13 @@ on:
       result_artifact:
         required: true
         type: string
+    secrets:
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
 
 jobs:
   upload_results:
@@ -64,14 +71,4 @@ jobs:
         export PGUSER=$(cat ${{github.workspace}}/PGUSER)
         export PGPORT=$(cat ${{github.workspace}}/PGPORT)
         export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
-        psql -f ${{github.workspace}}/results/upload.sql
-
-    - name: Upload results to POSTGRES
-      env:
-        PGHOST: ${{secrets.PGHOST}}
-        PGUSER: ${{secrets.PGUSER}}
-        PGPORT: ${{secrets.PGPORT}}
-        PGDATABASE: ${{secrets.PGDATABASE}}
-        PGPASSWORD: ${{secrets.PGPASSWORD}}
-      run: |
         psql -f ${{github.workspace}}/results/upload.sql
