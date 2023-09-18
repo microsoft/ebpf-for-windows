@@ -136,7 +136,7 @@ jobs:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows'
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -344,6 +344,7 @@ jobs:
   # Run the fault injection simulator in GitHub.
   fault_injection:
     needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection
@@ -358,6 +359,7 @@ jobs:
   # Run the low memory simulator for netebpfext_unit tests.
   fault_injection_netebpfext_unit:
     needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection
@@ -373,6 +375,7 @@ jobs:
   # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
   quick_user_mode_multi_threaded_stress_test:
     needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: quick_user_mode_multi_threaded_stress
@@ -485,7 +488,8 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
-      environment: ebpf_cicd_tests
+      environment: ebpf_cicd_perf
+      configurations: '["Release"]'
 
   performance_with_profile:
     needs: regular
@@ -497,4 +501,13 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
-      environment: ebpf_cicd_tests
+      configurations: '["Release"]'
+      environment: ebpf_cicd_perf
+
+  upload_perf_results:
+    needs: performance
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_perf_results
+      result_artifact: km_performance-x64-Release
