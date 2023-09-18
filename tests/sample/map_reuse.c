@@ -19,7 +19,7 @@
 #include "bpf_helpers.h"
 
 #define PIN_NONE 0
-#define PIN_GLOBAL_NS 2
+#define PIN_BY_NAME 1
 
 struct
 {
@@ -35,7 +35,7 @@ struct
     __type(key, uint32_t);
     __type(value, uint32_t);
     __uint(max_entries, 1);
-    __uint(pinning, PIN_GLOBAL_NS);
+    __uint(pinning, PIN_BY_NAME);
     __array(values, inner_map);
 } outer_map SEC(".maps");
 
@@ -45,7 +45,7 @@ struct
     __type(key, uint32_t);
     __type(value, uint32_t);
     __uint(max_entries, 1);
-    __uint(pinning, PIN_GLOBAL_NS);
+    __uint(pinning, PIN_BY_NAME);
 } port_map SEC(".maps");
 
 SEC("xdp_prog") int lookup_update(struct xdp_md* ctx)

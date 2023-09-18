@@ -699,7 +699,7 @@ _ebpf_native_initialize_maps(
     }
 
     for (uint32_t i = 0; i < map_count; i++) {
-        if (maps[i].definition.pinning != PIN_NONE && maps[i].definition.pinning != PIN_GLOBAL_NS) {
+        if (maps[i].definition.pinning != PIN_NONE && maps[i].definition.pinning != PIN_BY_NAME) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
@@ -712,7 +712,7 @@ _ebpf_native_initialize_maps(
         native_maps[i].original_id = i + ORIGINAL_ID_OFFSET;
         maps[i].address = NULL;
 
-        if (maps[i].definition.pinning == PIN_GLOBAL_NS) {
+        if (maps[i].definition.pinning == PIN_BY_NAME) {
             // Construct the pin path.
             size_t prefix_length = strnlen(DEFAULT_PIN_ROOT_PATH, EBPF_MAX_PIN_PATH_LENGTH);
             size_t name_length = strnlen_s(maps[i].name, BPF_OBJ_NAME_LEN);
@@ -1005,7 +1005,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
             break;
         }
 
-        if (native_map->entry->definition.pinning == PIN_GLOBAL_NS) {
+        if (native_map->entry->definition.pinning == PIN_BY_NAME) {
             result = _ebpf_native_reuse_map(native_map);
             if (result != EBPF_SUCCESS) {
                 break;

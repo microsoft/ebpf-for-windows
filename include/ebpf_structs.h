@@ -87,19 +87,19 @@ typedef enum ebpf_map_option
     EBPF_EXIST    ///< Update an existing element.
 } ebpf_map_option_t;
 
+/**
+ * @brief Pinning type for eBPF objects. The values should match the
+ * LIBBPF_PIN_* pin types defined in libbpf.
+ */
 typedef enum ebpf_pin_type
 {
-    PIN_NONE,      ///< Object is not pinned.
-    PIN_OBJECT_NS, ///< Pinning that is local to an object.
-    PIN_GLOBAL_NS, ///< Pinning with a global namespace.
-    PIN_CUSTOM_NS  ///< Pinning with a custom path given as section parameter.
+    PIN_NONE,    ///< Object is not pinned.
+    PIN_BY_NAME, ///< Pinning with a global namespace.
 } ebpf_pin_type_t;
 
 static const char* const _ebpf_pin_type_names[] = {
     BPF_ENUM_TO_STRING(PIN_NONE),
-    BPF_ENUM_TO_STRING(PIN_OBJECT_NS),
-    BPF_ENUM_TO_STRING(PIN_GLOBAL_NS),
-    BPF_ENUM_TO_STRING(PIN_CUSTOM_NS),
+    BPF_ENUM_TO_STRING(PIN_BY_NAME),
 };
 
 typedef uint32_t ebpf_id_t;

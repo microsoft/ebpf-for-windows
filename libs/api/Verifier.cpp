@@ -402,8 +402,7 @@ load_byte_code(
                 goto Exit;
             }
 
-            // Currently only PIN_NONE and PIN_GLOBAL_NS pinning options are supported.
-            if (descriptor.pinning != PIN_NONE && descriptor.pinning != PIN_GLOBAL_NS) {
+            if (descriptor.pinning != PIN_NONE && descriptor.pinning != PIN_BY_NAME) {
                 result = EBPF_INVALID_ARGUMENT;
                 goto Exit;
             }
@@ -419,7 +418,7 @@ load_byte_code(
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
-            if (descriptor.pinning == PIN_GLOBAL_NS) {
+            if (descriptor.pinning == PIN_BY_NAME) {
                 char buffer[EBPF_MAX_PIN_PATH_LENGTH];
                 int len = snprintf(buffer, EBPF_MAX_PIN_PATH_LENGTH, "%s/%s", pin_root_path, map->name);
                 if (len < 0 || len >= EBPF_MAX_PIN_PATH_LENGTH) {

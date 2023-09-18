@@ -54,7 +54,7 @@ struct bpf_map_def dummy_map = {
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),
     .max_entries = 1000,
-    .pinning = PIN_GLOBAL_NS};
+    .pinning = PIN_BY_NAME};
 
 SEC("maps")
 // Dummy map. Should not be populated by UM.
@@ -63,7 +63,7 @@ struct bpf_map_def dummy_map2 = {
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),
     .max_entries = 10,
-    .pinning = PIN_GLOBAL_NS};
+    .pinning = PIN_BY_NAME};
 
 SEC("maps")
 struct _ebpf_map_definition_in_file dummy_outer_map = {
@@ -97,7 +97,7 @@ struct bpf_map_def dummy_map3 = {
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),
     .max_entries = 10,
-    .pinning = PIN_GLOBAL_NS};
+    .pinning = PIN_BY_NAME};
 
 inline process_entry_t*
 find_or_create_process_entry(bind_md_t* ctx)
