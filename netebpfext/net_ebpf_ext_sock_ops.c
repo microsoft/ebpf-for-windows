@@ -643,8 +643,8 @@ _ebpf_sock_ops_context_create(
         goto Exit;
     }
 
-    sock_ops_context =
-        (bpf_sock_ops_t*)ExAllocatePoolUninitialized(NonPagedPool, sizeof(bpf_sock_ops_t), NET_EBPF_EXTENSION_POOL_TAG);
+    sock_ops_context = (bpf_sock_ops_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(bpf_sock_ops_t), NET_EBPF_EXTENSION_POOL_TAG);
 
     if (sock_ops_context == NULL) {
         result = EBPF_NO_MEMORY;
