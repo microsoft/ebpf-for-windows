@@ -359,6 +359,14 @@ connect_redirect_test(
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
     uint64_t authentication_id;
+    bool redirected = (destination_port != proxy_port || !INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&proxy));
+    // IPv6 redirect tests always redirect to the IPv6 address. The IPv4 address may be the dual stack or IPv4 address,
+    // depending on the inputs.
+    socket_family_t remote_address_family = (_globals.family == AF_INET6)
+                                                ? socket_family_t::IPv6
+                                                : (dual_stack ? socket_family_t::Dual : socket_family_t::IPv4);
+    bool local_redirect =
+        !INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[remote_address_family].remote_address);
 
     // Update policy in the map to redirect the connection to the proxy.
     _update_policy_map(destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
@@ -381,14 +389,8 @@ connect_redirect_test(
         // For local redirection, the redirect context is expected to be set and returned.
         // If the connection is not redirected or is redirected to a remote address,
         // check for the SERVER_MESSAGE generic response.
-        bool redirected =
-            (destination_port != proxy_port || !INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&proxy));
-        bool local_redirect = !(
-            INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[socket_family_t::IPv4].remote_address) ||
-            INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[socket_family_t::IPv6].remote_address) ||
-            INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[socket_family_t::Dual].remote_address));
         std::string expected_response;
-        if (redirected && local_redirect && _globals.protocol == IPPROTO_TCP) {
+        if (redirected && local_redirect && (_globals.protocol == IPPROTO_TCP)) {
             expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
         } else {
             expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
