@@ -218,11 +218,12 @@ query_supported_program_names()
 // These objects should be created just _once_ per (test) process. This is only needed for user mode tests that use the
 // user mode 'mock' framework.  Note that these cannot be created globally and _must_ be created in the context of a
 // a Catch2 test 'session' (Per Catch2 documentation, Catch2's exception framework is apparently not quite ready until
-// then).  This is an issue in our usage as we make extensive use of Catch2's REQUIRE verification/validation macros
-// (based on this framework) during the creation of these objects;
-static _test_helper_end_to_end* _test_helper{nullptr};
-static program_info_provider_t* _bind_program_info_provider{nullptr};
-static program_info_provider_t* _xdp_program_info_provider{nullptr};
+// then).  This becomes an issue in our usage as we make extensive use of Catch2's REQUIRE verification/validation
+// macros (based on this framework) during the creation of these objects;
+static std::unique_ptr<_test_helper_end_to_end> _test_helper;
+static std::unique_ptr<program_info_provider_t> _bind_program_info_provider;
+static std::unique_ptr<program_info_provider_t> _xdp_program_info_provider;
+
 static test_control_info _test_control_info{0};
 
 static std::once_flag _um_test_init_done;
@@ -230,17 +231,20 @@ static void
 um_test_init()
 {
     std::call_once(_um_test_init_done, [&]() {
-        _test_helper = new _test_helper_end_to_end;
-        REQUIRE(_test_helper != nullptr);
-        _test_helper->initialize();
+        _test_helper_end_to_end* local_test_helper = new _test_helper_end_to_end;
+        REQUIRE(local_test_helper != nullptr);
+        local_test_helper->initialize();
+        _test_helper.reset(local_test_helper);
 
-        _bind_program_info_provider = new program_info_provider_t();
-        REQUIRE(_bind_program_info_provider->initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-        REQUIRE(_bind_program_info_provider != nullptr);
+        program_info_provider_t* local_bind_program_info_provider = new program_info_provider_t();
+        REQUIRE(local_bind_program_info_provider != nullptr);
+        REQUIRE(local_bind_program_info_provider->initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+        _bind_program_info_provider.reset(local_bind_program_info_provider);
 
-        _xdp_program_info_provider = new program_info_provider_t();
-        REQUIRE(_xdp_program_info_provider->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
-        REQUIRE(_xdp_program_info_provider != nullptr);
+        program_info_provider_t* local_xdp_program_info_provider = new program_info_provider_t();
+        REQUIRE(local_xdp_program_info_provider != nullptr);
+        REQUIRE(local_xdp_program_info_provider->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+        _xdp_program_info_provider.reset(local_xdp_program_info_provider);
 
         _test_control_info = get_test_control_info();
         if (_test_control_info.programs.size()) {
@@ -267,6 +271,17 @@ um_test_init()
         LOG_INFO("test duration (in minutes): {}", _test_control_info.duration_minutes);
         LOG_INFO("test verbose output       : {}", _test_control_info.verbose_output);
     });
+}
+
+// This function is called by the common test initialization code to perform the requisite clean-up as the last action
+// prior to process termination.
+void
+test_process_cleanup()
+{
+    // We need to explicitly 'free' these resources in tests that run against the user-mode 'usersim' framework.
+    _xdp_program_info_provider.reset(nullptr);
+    _bind_program_info_provider.reset(nullptr);
+    _test_helper.reset(nullptr);
 }
 
 TEST_CASE("load_attach_detach_unload_sequential_test", "[mt_stress_test]")

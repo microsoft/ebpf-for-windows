@@ -55,6 +55,8 @@ redirect_v4(bpf_sock_addr_t* ctx)
 {
     int verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     destination_entry_t entry = {0};
+    char redirect_context[] = REDIRECT_CONTEXT_MESSAGE;
+
     entry.destination_ip.ipv4 = ctx->user_ip4;
     entry.destination_port = ctx->user_port;
     entry.protocol = ctx->protocol;
@@ -64,6 +66,10 @@ redirect_v4(bpf_sock_addr_t* ctx)
     }
 
     if (ctx->family != AF_INET) {
+        return verdict;
+    }
+
+    if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
         return verdict;
     }
 
@@ -87,12 +93,17 @@ redirect_v6(bpf_sock_addr_t* ctx)
 {
     int verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     destination_entry_t entry = {0};
+    char redirect_context[] = REDIRECT_CONTEXT_MESSAGE;
 
     if (ctx->protocol != IPPROTO_TCP && ctx->protocol != IPPROTO_UDP) {
         return verdict;
     }
 
     if (ctx->family != AF_INET6) {
+        return verdict;
+    }
+
+    if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
         return verdict;
     }
 

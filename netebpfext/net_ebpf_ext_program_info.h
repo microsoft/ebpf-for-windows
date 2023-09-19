@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include "ebpf_extension.h"
 #include "ebpf_nethooks.h"
-#include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_shared_framework.h"
 
 #define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
 
@@ -45,7 +46,11 @@ static const ebpf_helper_function_prototype_t _sock_addr_ebpf_extension_helper_f
     {BPF_FUNC_sock_addr_get_current_pid_tgid,
      "bpf_sock_addr_get_current_pid_tgid",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
+    {BPF_FUNC_sock_addr_set_redirect_context,
+     "bpf_sock_addr_set_redirect_context",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 
 // CGROUP_SOCK_ADDR global helper function prototypes.
 static const ebpf_helper_function_prototype_t _ebpf_sock_addr_global_helper_function_prototype[] = {

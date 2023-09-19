@@ -238,4 +238,72 @@ function Invoke-ConnectRedirectTest
     popd
 }
 
+function Invoke-CICDStressTests
+{
+    param([parameter(Mandatory = $true)][bool] $VerboseLogs,
+          [parameter(Mandatory = $false)][bool] $Coverage = $false,
+          [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
+
+    pushd $WorkingDirectory
+    $env:EBPF_ENABLE_WER_REPORT = "yes"
+
+    Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
+
+    $LASTEXITCODE = 0
+    # The '-td' parameter specifies the run time per test, so the total run-time will be a multiple of the total
+    # number of tests, as each test is run sequentially.
+    if ($RestartExtension -eq $false) {
+        write-host "Test command-line: .\ebpf_stress_tests_km -tt=8 -td=5"
+        .\ebpf_stress_tests_km -tt=8 -td=5
+    } else {
+        write-host "Test command-line: .\ebpf_stress_tests_km -tt=8 -td=5 -erd=1000 -er=1"
+        .\ebpf_stress_tests_km -tt=8 -td=5 -erd=1000 -er=1
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "*** ERROR *** eBPF kernel mode multi-threaded stress tests FAILED (restart extension:$RestartExtension)"
+    }
+
+    popd
+}
+
+function Invoke-CICDPerformanceTests
+{
+    param(
+        [parameter(Mandatory = $true)][bool] $VerboseLogs,
+        [parameter(Mandatory = $true)][bool] $CaptureProfile)
+    Push-Location $WorkingDirectory
+
+    Write-Log "Executing eBPF kernel mode performance tests."
+
+    $LASTEXITCODE = 0
+
+    # Stop the services, remove the driver from verifier, and restart the services.
+    net.exe stop ebpfsvc
+    net.exe stop ebpfcore
+    # Remove the global verifier settings (this will remove the verifer interceptions that can degrade performance).
+    verifier.exe /volatile 0
+    # Remove the ebpfcore.sys driver from the verifier.
+    verifier.exe /volatile /removedriver ebpfcore.sys
+    net.exe start ebpfcore
+    net.exe start ebpfsvc
+
+    # Extract the performance test zip file.
+    Expand-Archive -Path .\bpf_performance.zip -DestinationPath .\bpf_performance -Force
+    Set-Location bpf_performance
+    # Stop any existing tracing.
+    wpr.exe -cancel
+
+    if ($CaptureProfile) {
+        $pre_command = 'wpr.exe -start CPU'
+        $post_command = 'wpr.exe -stop ""' + $WorkingDirectory + '\bpf_performance_%NAME%.etl""'
+        Release\bpf_performance_runner.exe -i tests.yml -e .sys -r --pre "$pre_command" --post "$post_command" | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
+    }
+    else {
+        Release\bpf_performance_runner.exe -i tests.yml -e .sys -r | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
+    }
+
+    Pop-Location
+}
+
 Pop-Location

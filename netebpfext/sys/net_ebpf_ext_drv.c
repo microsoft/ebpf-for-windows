@@ -80,8 +80,8 @@ _net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _I
     driver_configuration.EvtDriverUnload = _net_ebpf_ext_driver_unload;
 
     status = WdfDriverCreate(driver_object, registry_path, WDF_NO_OBJECT_ATTRIBUTES, &driver_configuration, &driver);
-
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfDriverCreate", status);
         goto Exit;
     }
 
@@ -91,6 +91,8 @@ _net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _I
     );
     if (!device_initialize) {
         status = STATUS_INSUFFICIENT_RESOURCES;
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfControlDeviceInitAllocate", status);
         goto Exit;
     }
 
@@ -103,14 +105,14 @@ _net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _I
     RtlInitUnicodeString(&ebpf_device_name, NET_EBPF_EXT_DEVICE_NAME);
     status = WdfDeviceInitAssignName(device_initialize, &ebpf_device_name);
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfDeviceInitAssignName", status);
         goto Exit;
     }
 
     status = WdfDeviceCreate(&device_initialize, WDF_NO_OBJECT_ATTRIBUTES, &_net_ebpf_ext_device);
-
     if (!NT_SUCCESS(status)) {
-        // do not free if any other call
-        // after WdfDeviceCreate fails.
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfDeviceCreate", status);
+        // Do not free if any other call after WdfDeviceCreate fails.
         WdfDeviceInitFree(device_initialize);
         device_initialize = NULL;
         goto Exit;
@@ -155,11 +157,8 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
     status = _net_ebpf_ext_driver_initialize_objects(driver_object, registry_path);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_CRITICAL,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE,
-            (char*)"_net_ebpf_ext_driver_initialize_objects() failed",
-            status);
+
+        // Specific errors already logged by the (dedicated) callee. No additional traces required here.
         goto Exit;
     }
 

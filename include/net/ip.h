@@ -10,6 +10,10 @@
 #define AF_INET 2
 #define AF_INET6 23
 
+#ifndef DEFAULT_COMPARTMENT_ID
+#define DEFAULT_COMPARTMENT_ID 1
+#endif
+
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union

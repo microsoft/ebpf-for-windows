@@ -7,6 +7,8 @@ param ([parameter(Mandatory=$false)][string] $AdminTarget = "TEST_VM",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][bool] $Coverage = $false,
+       [parameter(Mandatory=$false)][string] $TestMode = "CI/CD",
+       [parameter(Mandatory=$false)][string[]] $Options = @("None"),
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName)
 
 Push-Location $WorkingDirectory
@@ -24,15 +26,26 @@ $VMList = $Config.VMMap.$SelfHostedRunnerName
 
 # Run tests on test VMs.
 foreach ($VM in $VMList) {
-    Invoke-CICDTestsOnVM -VMName $VM.Name -Coverage $Coverage
+    Invoke-CICDTestsOnVM `
+        -VMName $VM.Name `
+        -Coverage $Coverage `
+        -TestMode $TestMode `
+        -Options $Options
 }
 
-# Run XDP Tests.
-Invoke-XDPTestsOnVM $Config.Interfaces $VMList[0].Name
+# This script is used to execute the various kernel mode tests. The required behavior is selected by the $TestMode
+# parameter.
+if ($TestMode -eq "CI/CD") {
 
-# Run Connect Redirect Tests.
-Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest -UserType "Administrator" $VMList[0].Name
-Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest -UserType "StandardUser" $VMList[0].Name
+    # Run XDP Tests.
+    Invoke-XDPTestsOnVM $Config.Interfaces $VMList[0].Name
+
+    # Run Connect Redirect Tests.
+    Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest `
+        -UserType "Administrator" $VMList[0].Name
+    Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest `
+        -UserType "StandardUser" $VMList[0].Name
+}
 
 # Stop eBPF components on test VMs.
 foreach ($VM in $VMList) {

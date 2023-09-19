@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_platform.h"
 #include "svc_common.h"
 
 #include <winsock2.h>

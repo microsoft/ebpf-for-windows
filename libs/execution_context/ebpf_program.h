@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "cxplat.h"
 #include "ebpf_link.h"
 #include "ebpf_maps.h"
 #include "ebpf_platform.h"
@@ -32,13 +33,13 @@ extern "C"
     {
         ebpf_program_type_t program_type;
         ebpf_attach_type_t expected_attach_type;
-        ebpf_utf8_string_t program_name;
-        ebpf_utf8_string_t section_name;
-        ebpf_utf8_string_t file_name;
+        cxplat_utf8_string_t program_name;
+        cxplat_utf8_string_t section_name;
+        cxplat_utf8_string_t file_name;
         ebpf_code_type_t code_type;
         const uint8_t* program_info_hash;
         size_t program_info_hash_length;
-        ebpf_utf8_string_t program_info_hash_type;
+        cxplat_utf8_string_t program_info_hash_type;
     } ebpf_program_parameters_t;
 
     typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);
@@ -83,7 +84,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_get_program_file_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* file_name);
+    ebpf_program_get_program_file_name(_In_ const ebpf_program_t* program, _Out_ cxplat_utf8_string_t* file_name);
 
     /**
      * @brief Get the original section name of the program.
@@ -94,7 +95,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_get_program_section_name(_In_ const ebpf_program_t* program, _Out_ ebpf_utf8_string_t* section_name);
+    ebpf_program_get_program_section_name(_In_ const ebpf_program_t* program, _Out_ cxplat_utf8_string_t* section_name);
 
     /**
      * @brief Get the code type of the program.
@@ -194,7 +195,7 @@ extern "C"
         _In_ const ebpf_program_t* program,
         _Inout_ void* context,
         _Out_ uint32_t* result,
-        _In_ const ebpf_execution_context_state_t* execution_state);
+        _Inout_ ebpf_execution_context_state_t* execution_state);
 
     /**
      * @brief Store the helper function IDs that are used by the eBPF program in an array
@@ -215,6 +216,14 @@ extern "C"
         _In_reads_(helper_function_count) const uint32_t* helper_function_ids);
 
     /**
+     * @brief Clear the helper function IDs that are stored in the eBPF program.
+     *
+     * @param[in, out] program Program object to clear the helper functions for.
+     */
+    void
+    ebpf_program_clear_helper_function_ids(_Inout_ ebpf_program_t* program);
+
+    /**
      * @brief Get the addresses of helper functions referred to by the program. Assumes
      * ebpf_program_set_helper_function_ids has already been invoked on the program object.
      *
@@ -230,6 +239,19 @@ extern "C"
         _In_ const ebpf_program_t* program,
         const size_t addresses_count,
         _Out_writes_(addresses_count) uint64_t* addresses);
+
+    /**
+     * @brief Compute program info hash for the program object. This function
+     * assumes ebpf_program_set_helper_function_ids has
+     * already been invoked on the program object.
+     *
+     * @param[in] program Program object to compute hash on.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INSUFFICIENT_BUFFER Output array is insufficient.
+     * @retval EBPF_INVALID_ARGUMENT At least one helper function id is not valid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program);
 
     /**
      * @brief Attach a link object to an eBPF program.
@@ -379,6 +401,14 @@ extern "C"
      */
     void
     ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program);
+
+    /**
+     * @brief Get the ebpf_state index assigned to the program module.
+     *
+     * @return The index in the ebpf_state array assigned to the program module.
+     */
+    size_t
+    ebpf_program_get_state_index();
 
 #ifdef __cplusplus
 }

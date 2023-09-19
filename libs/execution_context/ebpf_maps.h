@@ -4,6 +4,7 @@
 #pragma once
 
 #include "bpf_helpers.h"
+#include "cxplat.h"
 #include "ebpf_core_structs.h"
 #include "ebpf_platform.h"
 
@@ -30,7 +31,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_create(
-        _In_ const ebpf_utf8_string_t* map_name,
+        _In_ const cxplat_utf8_string_t* map_name,
         _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
         ebpf_handle_t inner_map_handle,
         _Outptr_ ebpf_map_t** map);

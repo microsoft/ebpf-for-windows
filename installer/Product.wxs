@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 <?define ProductVersion="022C44B5-8969-4B75-8DB0-73F98B1BD7DC"?>
 <?define UpgradeCode="B6BCACB1-C872-4159-ABCB-43A50668056C"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:ui="http://schemas.microsoft.com/wix/UIExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
-	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="0.10.0" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
+	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="0.11.0" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
 		<Package Description="eBPF for Windows" InstallerVersion="301" Compressed="yes" InstallScope="perMachine" Manufacturer="Microsoft" Platform="x64" />
 		<MajorUpgrade AllowSameVersionUpgrades="yes"
 					  Disallow="yes" DisallowUpgradeErrorMessage="An older version of [ProductName] is already installed. Please remove it first."
@@ -217,15 +217,6 @@ SPDX-License-Identifier: MIT
 			</Component>
 			<Component Id="EXPORT_PROGRAM_INFO.PDB" DiskId="1" Guid="{88356FE4-6247-4876-BA14-42EDA88CC5C7}">
 				<File Id="EXPORT_PROGRAM_INFO.PDB" Name="export_program_info.pdb" Source="$(var.export_program_info.TargetDir)export_program_info.pdb" />
-			</Component>
-			<!-- TODO(#2677): move usersim.dll down to the testing component.  Until that issue is addressed,
-			     export_program_info.exe requires it.
-			-->
-			<Component Id="USERSIM.DLL" DiskId="1" Guid="{739017F0-9E33-48FF-A33F-C1434AC757BE}">
-				<File Id="USERSIM.DLL" Name="usersim.dll" Source="$(var.usersim.TargetPath)" />
-			</Component>
-			<Component Id="USERSIM.PDB" DiskId="1" Guid="{BCE1BF99-6A3D-48A6-A382-4E87A2B20FB2}">
-				<File Id="USERSIM.PDB" Name="usersim.pdb" Source="$(var.usersim.TargetDir)usersim.pdb" />
 			</Component>
 		</ComponentGroup>
 
@@ -1003,6 +994,18 @@ SPDX-License-Identifier: MIT
 			<Component Id="TAIL_CALL_MULTIPLE_UM.PDB" DiskId="1" Guid="{D918F2DB-BC80-406F-B0AD-0C340D5EF280}">
 				<File Id="TAIL_CALL_MULTIPLE_UM.PDB" Name="tail_call_multiple_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_multiple_um.pdb" />
 			</Component>
+			<Component Id="TAIL_CALL_MAX_EXCEED.O" DiskId="1" Guid="{A3E840BD-B510-4F02-80A6-1EA0553C6746}">
+				<File Id="TAIL_CALL_MAX_EXCEED.O" Name="tail_call_max_exceed.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_recursive.o" />
+			</Component>
+			<Component Id="TAIL_CALL_MAX_EXCEED.SYS" DiskId="1" Guid="{D3EE01E4-8258-46D4-89FA-C207960C90E6}">
+				<File Id="TAIL_CALL_MAX_EXCEED.SYS" Name="tail_call_max_exceed.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_recursive.sys" />
+			</Component>
+			<Component Id="TAIL_CALL_MAX_EXCEED_UM.DLL" DiskId="1" Guid="{916F7BF5-6B8A-4C99-A09F-102CBB404AA5}">
+				<File Id="TAIL_CALL_MAX_EXCEED_UM.DLL" Name="tail_call_max_exceed_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_recursive_um.dll" />
+			</Component>
+			<Component Id="TAIL_CALL_MAX_EXCEED_UM.PDB" DiskId="1" Guid="{9A1BFAAD-D94F-4805-842F-B8DB77B6FC6C}">
+				<File Id="TAIL_CALL_MAX_EXCEED_UM.PDB" Name="tail_call_max_exceed_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_recursive_um.pdb" />
+			</Component>
 			<Component Id="TAIL_CALL_RECURSIVE.O" DiskId="1" Guid="{7469C19C-7706-44B7-BA35-6F27195F311A}">
 				<File Id="TAIL_CALL_RECURSIVE.O" Name="tail_call_recursive.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\tail_call_recursive.o" />
 			</Component>
@@ -1047,6 +1050,12 @@ SPDX-License-Identifier: MIT
 			</Component>
 			<Component Id="UNIT_TESTS.PDB" DiskId="1" Guid="{3CF32625-22F9-4ABD-A0BF-44FA7EA2BCDE}">
 				<File Id="UNIT_TESTS.PDB" Name="unit_tests.pdb" Source="$(var.unit_tests.TargetDir)unit_tests.pdb" />
+			</Component>
+			<Component Id="USERSIM.DLL" DiskId="1" Guid="{739017F0-9E33-48FF-A33F-C1434AC757BE}">
+				<File Id="USERSIM.DLL" Name="usersim.dll" Source="$(var.usersim.TargetPath)" />
+			</Component>
+			<Component Id="USERSIM.PDB" DiskId="1" Guid="{BCE1BF99-6A3D-48A6-A382-4E87A2B20FB2}">
+				<File Id="USERSIM.PDB" Name="usersim.pdb" Source="$(var.usersim.TargetDir)usersim.pdb" />
 			</Component>
 			<Component Id="XDP_TESTS.EXE" DiskId="1" Guid="{6A98B162-1DC5-4145-A91B-9DF757766119}">
 				<File Id="XDP_TESTS.EXE" Name="xdp_tests.exe" Source="$(var.xdp_tests.TargetDir)xdp_tests.exe" />

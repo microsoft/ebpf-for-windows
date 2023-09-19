@@ -70,9 +70,10 @@ elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _
 }
 
 std::vector<uint8_t>
-get_program_info_type_hash(const std::string& algorithm)
+get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const std::string& algorithm)
 {
     std::map<uint32_t, size_t> helper_id_ordering;
+    size_t actual_helper_id_count = actual_helper_ids.size();
     const ebpf_program_info_t* program_info;
     ebpf_result_t result = ebpf_get_program_info_from_verifier(&program_info);
     if (result != EBPF_SUCCESS) {
@@ -80,6 +81,8 @@ get_program_info_type_hash(const std::string& algorithm)
     }
 
     // Note:
+    // Only the helper functions which are actually called by the eBPF program are to be included in the hash.
+    //
     // Order and fields being hashed is important. The order and fields being hashed must match the order and fields
     // being hashed in _ebpf_program_verify_program_info_hash. If new fields are added to the program info, then the
     // hash must be updated to include the new fields, both here and in _ebpf_program_verify_program_info_hash.
@@ -89,20 +92,30 @@ get_program_info_type_hash(const std::string& algorithm)
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.program_type);
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.bpf_prog_type);
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.is_privileged);
-    hash_t::append_byte_range(byte_range, program_info->count_of_program_type_specific_helpers);
-    for (size_t index = 0; index < program_info->count_of_program_type_specific_helpers; index++) {
-        helper_id_ordering[program_info->program_type_specific_helper_prototype[index].helper_id] = index;
-    }
-    // Hash helper ids in increasing helper_id order
-    for (auto [helper_id, index] : helper_id_ordering) {
-        hash_t::append_byte_range(byte_range, program_info->program_type_specific_helper_prototype[index].helper_id);
-        hash_t::append_byte_range(byte_range, program_info->program_type_specific_helper_prototype[index].name);
-        hash_t::append_byte_range(byte_range, program_info->program_type_specific_helper_prototype[index].return_type);
-        for (size_t argument = 0;
-             argument < _countof(program_info->program_type_specific_helper_prototype[index].arguments);
-             argument++) {
+    hash_t::append_byte_range(byte_range, actual_helper_id_count);
+
+    // First, create a map of helper_id to index in the program_type_specific_helper_prototype array.
+    // Only include the helper IDs which are actually called by the eBPF program.
+    if (actual_helper_id_count > 0) {
+        for (size_t index = 0; index < program_info->count_of_program_type_specific_helpers; index++) {
+            uint32_t helper_id = program_info->program_type_specific_helper_prototype[index].helper_id;
+            if (std::find(actual_helper_ids.begin(), actual_helper_ids.end(), helper_id) != actual_helper_ids.end()) {
+                helper_id_ordering[helper_id] = index;
+            }
+        }
+        // Hash helper ids in increasing helper_id order
+        for (auto [helper_id, index] : helper_id_ordering) {
             hash_t::append_byte_range(
-                byte_range, program_info->program_type_specific_helper_prototype[index].arguments[argument]);
+                byte_range, program_info->program_type_specific_helper_prototype[index].helper_id);
+            hash_t::append_byte_range(byte_range, program_info->program_type_specific_helper_prototype[index].name);
+            hash_t::append_byte_range(
+                byte_range, program_info->program_type_specific_helper_prototype[index].return_type);
+            for (size_t argument = 0;
+                 argument < _countof(program_info->program_type_specific_helper_prototype[index].arguments);
+                 argument++) {
+                hash_t::append_byte_range(
+                    byte_range, program_info->program_type_specific_helper_prototype[index].arguments[argument]);
+            }
         }
     }
     hash_t hash(algorithm);
@@ -301,14 +314,14 @@ main(int argc, char** argv)
                     std::string("Verification failed for ") + section.raw() + std::string(" with error ") +
                     std::string(error_message) + std::string("\n Report:\n") + std::string(report));
             }
-            if (verify_programs && (hash_algorithm != "none")) {
-                program_info_hash = get_program_info_type_hash(hash_algorithm);
-            }
-            generator.parse(section, program_type, attach_type, program_info_hash, hash_algorithm);
-        }
-
-        for (const auto& section : sections) {
+            generator.parse(section, program_type, attach_type, hash_algorithm);
             generator.generate(section);
+
+            if (verify_programs && (hash_algorithm != "none")) {
+                std::vector<int32_t> helper_ids = generator.get_helper_ids();
+                program_info_hash = get_program_info_type_hash(helper_ids, hash_algorithm);
+                generator.set_program_hash_info(program_info_hash);
+            }
         }
 
         std::ofstream output_file;

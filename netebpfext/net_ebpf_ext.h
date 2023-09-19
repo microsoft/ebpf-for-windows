@@ -8,9 +8,9 @@
  */
 
 #include "ebpf_nethooks.h"
-#include "ebpf_platform.h"
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_program_types.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_windows.h"
 #include "net_ebpf_ext_hook_provider.h"
 #include "net_ebpf_ext_prog_info_provider.h"
