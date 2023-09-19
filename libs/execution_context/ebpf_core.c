@@ -1016,7 +1016,7 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
     }
 
-    // Subtract the dat size.
+    // Subtract the data size.
     retval = ebpf_safe_size_t_subtract(context_size_in, data_size_in, &context_size_in);
     if (retval != EBPF_SUCCESS) {
         // Request isn't big enough to contain the data.
