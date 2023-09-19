@@ -259,5 +259,7 @@ Ref. docs: [Create a new hardware submission](https://learn.microsoft.com/en-us/
 
     ![](.\images\HDC-Upload-hklx.png)
 
-- Once approved, download the production-signed HLKX package, inside which you will find the prod-signed eBPF drivers, to be packaged as required.
+- Once approved, download the production-signed HLKX package, inside which you will find the prod-signed eBPF drivers, to be packaged as required:
+
+    ![](.\images\HDC-Download-hklx.png)
 
