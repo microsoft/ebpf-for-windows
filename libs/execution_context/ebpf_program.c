@@ -1341,7 +1341,8 @@ ebpf_program_load_code(
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "ebpf_program_load_code unknown program->parameters.code_type",
             program->parameters.code_type);
-
+        // Reset the code type to none.
+        program->parameters.code_type = EBPF_CODE_NONE;
         result = EBPF_INVALID_ARGUMENT;
     }
     }
