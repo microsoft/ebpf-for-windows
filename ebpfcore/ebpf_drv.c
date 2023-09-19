@@ -13,7 +13,10 @@
 #include "ebpf_version.h"
 #include "git_commit_id.h"
 
+#pragma warning(push)
+#pragma warning(disable : 4062) // enumerator 'identifier' in switch of enum 'enumeration' is not handled
 #include <wdf.h>
+#pragma warning(pop)
 
 // Driver global variables
 static DEVICE_OBJECT* _ebpf_driver_device_object;
