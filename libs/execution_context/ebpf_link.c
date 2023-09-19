@@ -604,6 +604,9 @@ _Requires_lock_held_(link->lock) static void _ebpf_link_set_state(
         // Program is unlinked from a provider.
         ebpf_assert(old_state == EBPF_LINK_STATE_DETACHING);
         break;
+    default:
+        ebpf_assert(!"Invalid link state");
+        break;
     }
     UNREFERENCED_PARAMETER(old_state);
     link->state = new_state;

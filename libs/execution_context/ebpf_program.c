@@ -635,6 +635,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_epoch_free(_In_opt_
         break;
     case EBPF_CODE_NONE:
         break;
+    default:
+        ebpf_assert(!"Invalid code type");
+        break;
     }
 
     ebpf_free(program->parameters.program_name.value);

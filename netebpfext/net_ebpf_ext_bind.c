@@ -345,6 +345,9 @@ net_ebpf_ext_resource_allocation_classify(
             classify_output->actionType = FWP_ACTION_BLOCK;
             classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
             break;
+        default:
+            ebpf_assert(!"Invalid result from bind hook program.");
+            break;
         }
     }
 

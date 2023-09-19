@@ -355,6 +355,7 @@ _ebpf_driver_io_device_control(
         }
         break;
     default:
+        status = STATUS_INVALID_DEVICE_REQUEST;
         break;
     }
 

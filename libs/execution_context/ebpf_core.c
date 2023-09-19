@@ -1800,6 +1800,9 @@ _ebpf_core_protocol_get_object_info(
     case EBPF_OBJECT_PROGRAM:
         result = ebpf_program_get_info((ebpf_program_t*)object, request->info, reply->info, &info_size);
         break;
+    default:
+        result = EBPF_INVALID_ARGUMENT;
+        break;
     }
 
     if (result == EBPF_SUCCESS) {
@@ -2574,6 +2577,9 @@ ebpf_core_invoke_protocol_handler(
             ebpf_assert_success(ebpf_async_reset_completion_callback(async_context));
         }
         break;
+    default:
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
 Done:

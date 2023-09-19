@@ -1079,6 +1079,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             case EBPF_SIZE_DW:
                 size_type = "uint64_t";
                 break;
+            default:
+                throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
             output.lines.push_back(
                 std::format("{} = *({}*)(uintptr_t)({} + {});", destination, size_type, source, offset));
@@ -1114,6 +1116,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 size_type = "uint64_t";
                 lock_type = "volatile int64_t";
                 break;
+            default:
+                throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
             raw_source = source;
             source = "(" + size_type + ")" + source;

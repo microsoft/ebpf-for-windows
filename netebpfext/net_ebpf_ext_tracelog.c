@@ -94,6 +94,7 @@ net_ebpf_ext_trace_terminate()
         _NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(KEYWORD_XDP, api_name, status);       \
         break;                                                                       \
     default:                                                                         \
+        ebpf_assert(!"Invalid keyword");                                             \
         break;                                                                       \
     }
 
@@ -129,6 +130,7 @@ __declspec(noinline) void net_ebpf_ext_log_ntstatus_api_failure(
         _NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(KEYWORD_XDP, api_name, status, message, string_value);  \
         break;                                                                                                        \
     default:                                                                                                          \
+        ebpf_assert(!"Invalid keyword");                                                                              \
         break;                                                                                                        \
     }
 
@@ -163,6 +165,7 @@ __declspec(noinline) void net_ebpf_ext_log_ntstatus_api_failure_message_string(
         _NET_EBPF_EXT_LOG_MESSAGE(trace_level, KEYWORD_XDP, message);       \
         break;                                                              \
     default:                                                                \
+        ebpf_assert(!"Invalid keyword");                                    \
         break;                                                              \
     }
 
@@ -188,6 +191,9 @@ __declspec(noinline) void net_ebpf_ext_log_message(
     CASE_VERBOSE:
         NET_EBPF_EXT_LOG_MESSAGE_KEYWORD_SWITCH(LEVEL_VERBOSE, message);
         break;
+    default:
+        ebpf_assert(!"Invalid trace level");
+        break;
     }
 }
 
@@ -212,6 +218,7 @@ __declspec(noinline) void net_ebpf_ext_log_message(
         _NET_EBPF_EXT_LOG_MESSAGE_STRING(trace_level, KEYWORD_XDP, message, string_value);       \
         break;                                                                                   \
     default:                                                                                     \
+        ebpf_assert(!"Invalid keyword");                                                         \
         break;                                                                                   \
     }
 
@@ -240,6 +247,9 @@ __declspec(noinline) void net_ebpf_ext_log_message_string(
     CASE_VERBOSE:
         NET_EBPF_EXT_LOG_MESSAGE_STRING_KEYWORD_SWITCH(LEVEL_VERBOSE, message, string_value);
         break;
+    default:
+        ebpf_assert(!"Invalid trace level");
+        break;
     }
 }
 
@@ -264,6 +274,7 @@ __declspec(noinline) void net_ebpf_ext_log_message_string(
         _NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(trace_level, KEYWORD_XDP, message, status);       \
         break;                                                                               \
     default:                                                                                 \
+        ebpf_assert(!"Invalid keyword");                                                     \
         break;                                                                               \
     }
 
@@ -292,6 +303,9 @@ __declspec(noinline) void net_ebpf_ext_log_message_ntstatus(
     CASE_VERBOSE:
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS_KEYWORD_SWITCH(LEVEL_VERBOSE, message, status);
         break;
+    default:
+        ebpf_assert(!"Invalid trace level");
+        break;
     }
 }
 
@@ -316,6 +330,7 @@ __declspec(noinline) void net_ebpf_ext_log_message_ntstatus(
         _NET_EBPF_EXT_LOG_MESSAGE_UINT32(trace_level, KEYWORD_XDP, message, status);       \
         break;                                                                             \
     default:                                                                               \
+        ebpf_assert(!"Invalid keyword");                                                   \
         break;                                                                             \
     }
 
@@ -344,6 +359,9 @@ __declspec(noinline) void net_ebpf_ext_log_message_uint32(
     CASE_VERBOSE:
         NET_EBPF_EXT_LOG_MESSAGE_UINT32_KEYWORD_SWITCH(LEVEL_VERBOSE, message, value);
         break;
+    default:
+        ebpf_assert(!"Invalid trace level");
+        break;
     }
 }
 
@@ -368,6 +386,7 @@ __declspec(noinline) void net_ebpf_ext_log_message_uint32(
         _NET_EBPF_EXT_LOG_MESSAGE_UINT64(trace_level, KEYWORD_XDP, message, status);       \
         break;                                                                             \
     default:                                                                               \
+        ebpf_assert(!"Invalid keyword");                                                   \
         break;                                                                             \
     }
 
@@ -396,6 +415,9 @@ __declspec(noinline) void net_ebpf_ext_log_message_uint64(
     CASE_VERBOSE:
         NET_EBPF_EXT_LOG_MESSAGE_UINT64_KEYWORD_SWITCH(LEVEL_VERBOSE, message, value);
         break;
+    default:
+        ebpf_assert(!"Invalid trace level");
+        break;
     }
 }
 
@@ -420,6 +442,7 @@ __declspec(noinline) void net_ebpf_ext_log_message_uint64(
         _NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(KEYWORD_XDP, api_name, status, value1, value2);       \
         break;                                                                                                     \
     default:                                                                                                       \
+        ebpf_assert(!"Invalid keyword");                                                                           \
         break;                                                                                                     \
     }
 
@@ -454,6 +477,7 @@ __declspec(noinline) void net_ebpf_ext_log_ntstatus_api_failure_uint64_uint64(
         _NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(trace_level, KEYWORD_XDP, message, value1, value2);       \
         break;                                                                                            \
     default:                                                                                              \
+        ebpf_assert(!"Invalid keyword");                                                                  \
         break;                                                                                            \
     }
 
@@ -483,6 +507,9 @@ __declspec(noinline) void net_ebpf_ext_log_message_uint64_uint64(
     CASE_VERBOSE:
         NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_KEYWORD_SWITCH(LEVEL_VERBOSE, message, value1, value2);
         break;
+    default:
+        ebpf_assert(!"Invalid trace level");
+        break;
     }
 }
 
@@ -509,6 +536,7 @@ __declspec(noinline) void net_ebpf_ext_log_message_uint64_uint64(
         _NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64(trace_level, KEYWORD_XDP, message, value1, value2, value3);  \
         break;                                                                                                      \
     default:                                                                                                        \
+        ebpf_assert(!"Invalid keyword");                                                                            \
         break;                                                                                                      \
     }
 
@@ -538,6 +566,9 @@ __declspec(noinline) void net_ebpf_ext_log_message_uint64_uint64_uint64(
         break;
     CASE_VERBOSE:
         NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64_UINT64_KEYWORD_SWITCH(LEVEL_VERBOSE, message, value1, value2, value3);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
