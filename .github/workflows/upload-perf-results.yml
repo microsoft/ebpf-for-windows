@@ -22,6 +22,9 @@ on:
       AZURE_SUBSCRIPTION_ID:
         required: true
 
+permissions:
+  id-token: write # Required to log in to Azure.
+
 jobs:
   upload_results:
     runs-on: ubuntu-latest
