@@ -67,10 +67,10 @@ function Setup-Test-Package {
     Write-Log -level $LogLevelInfo -message "Setup-Test-Package($packageVersion, $testRedistTargetDirectory)"
 
     $res = 0
-    if ((Delete-Directory -destinationPath "$EbpfPackagePath") -ne 0) {
+    if ((Delete-Directory -destinationPath "$EbpfPackageRelativePath") -ne 0) {
         $res = 1
     }    
-    if ((Copy-Directory -sourcePath "$testRedistTargetDirectory\v$packageVersion" -destinationPath "$EbpfPackagePath") -ne 0) {
+    if ((Copy-Directory -sourcePath "$testRedistTargetDirectory\v$packageVersion" -destinationPath "$EbpfPackageRelativePath") -ne 0) {
         $res = 1
     }
 
@@ -232,8 +232,3 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
 }
 
 Exit-Tests -testPass 0
-
-
-
-
-

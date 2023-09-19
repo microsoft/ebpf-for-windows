@@ -10,17 +10,16 @@
 
 1. From within the `eBPF-for-Windows-Redist.X.Y.Z\package\bin` folder, copy following list of binaries to a separate working directory, for them to be signed. **This folder should have strict ACLs**, and typically would be a shared folder on the network, accessible by the signing team:
 
-    - `Bpf2c.exe`
     - `Bpftool.exe`
     - `Ebpfapi.dll`
     - `Ebpfnetsh.dll`
     - `drivers\ebpfcore.sys`
     - `drivers\netebpfext.sys`
-    - `printk.sys` (if needed, this can be copied from the `regular_native-only Release` build artifacts, as it is not included in the NuGet package)
+    - `drivers\printk.sys` (if needed, this can be copied from the `regular_native-only Release` build artifacts, as it is not included in the NuGet package)
     
     **Special cases** (binaries that are not included in the NuGet package, but that we offer to sign for internal customers):
 
-    - `redirect.bpf.sys` (**if** necessary, i.e., supplied by IMDS)
+    - `drivers\redirect.bpf.sys` (i.e., supplied by IMDS)
 
 ## Repackaging the signed eBPF binaries
 

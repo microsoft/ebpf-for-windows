@@ -81,50 +81,65 @@ NOT IMPLEMENTED
 - 0: success, Non-0: failure
 - Writes status file: **"Yes?" NOT DEFINED IN DOCS**
 
-## VM Extension Handler Publishing
+## Publishing the VM Extension Handler
 
 Official docs: https://github.com/Azure/azure-vmextension-publishing/wiki/Extension-Handler-Publishing
+
+### Prerequisites
+
+- Ask to be "`Azure Service Deploy Release Management Contributor`" of the Team's Azure Prod subscription, currently "`eBPF for Windows`", SubscriptionID: `78a9bec8-945c-4cc0-83bf-77c6d384d2ca`.
+- Create a resource group named "`eBpfForWindows`" in the Azure Prod subscription.
+- Create as Azure Storage Account account in the Azure Prod subscription, named "`ebpfstorageaccount`", within the "`eBpfForWindows`" resource group.
+- Create an Azure Blob Container named "`ebpf-ext-container`" within the "`ebpfstorageaccount`" Storage Account.
 
 ### Creating the VM Extension Handler Package
 
 1. Once you have the eBPF redistributable package, create the VM Extension ZIP file by executing the following PowerShell script from the `.azure` folder:
 
-    
-
     ```PS
     PS> .\create-zip-package.ps1 -versionNumber <x.y.z.p> -ebpfBinPackagePath "<full path to the eBPF binaries root from the eBPF Redist package>" -zipDestinationFolder "<full path to the destination folder for the ZIP package file>"
 
-    # Example: deploying eBPF v0.9.1, and extension handler patch v1 for that eBPF version -> v0.9.1.1
+    # Example: creating the package for eBPF v0.9.1, with the extension handler patch v1 for that eBPF version -> v0.9.1.1
     PS> .\create-zip-package.ps1 -versionNumber "0.9.1.1" -ebpfBinPackagePath "D:\work\_scratch\v0.9.1" -zipDestinationFolder "D:\work\_scratch"
 
     ```
     The resulting ZIP file will be named after the following format:
     
     ```bash
-    <publisher>.<extension name>.<version>.zip
+    <publisher>.<extension name>.<version>.zip # Example: Microsoft.eBPF.eBpfForWindows.0.9.1.1.zip
     ```
 
     where:
 
-    - `<publisher>` is the publisher name, i.e. `Microsoft.eBPF`
+    - `<publisher>` is the publisher name, i.e. `Microsoft.eBPF`.
 
-    - `<extension name>` is the extension name, i.e. `eBpfForWindows`
+    - `<extension name>` is the extension name, i.e. `eBpfForWindows`.
 
-    - `<version>` is the extension version, conventionally matching its first 3 digits with the eBPF version, e.g. `0.9.1.1`
+    - `<version>` is the extension version, conventionally matching its first 3 digits with the eBPF version, e.g. `0.9.1.1`.
     
 1. Upload the zip file to the Azure Storage Account container named "`ebpf-vm-extension-artifacts`" within the "`eBPF-vm-extension`" resource group.
 
 ### Registering the VM Extension
-Deploy the ARM template using the PowerShell cmdlet as follows (**this is a on-time operation**):
+Register the ARM template using the PowerShell cmdlet from you Azure Prod subscription, as follows (**this is a on-time operation**):
 
 ```PS
-PS> New-AzResourceGroup -Name eBpfForWindows -Location SouthCentralUS
+# Register the VM Extension within the created resource group
 PS> New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName eBpfForWindows -TemplateFile .\.azure\eBpfArmRegisteringTemplate.json -Verbose
 ```
 
-### Publishing the VM Extension (Canary is "Central US EUAP")
+### Publishing the VM Extension
+> NOTE: Canary regions can be either "`East US EUAP`" or "`Central US EUAP`" (to be specified in the ARM **publishing** JSON template).
 
-Deploy the ARM template using the PowerShell cmdlet as follows:
+```
+Az PS7 core
+install-module az
+connect-azaccount -subscription "eBPF for Windows"
+
+
+Microsoft.eBPF
+```
+
+Publish the ARM template using the PowerShell cmdlet from you Azure Prod subscription, as follows:
     
 ```PS
 PS> New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName eBpfForWindows -TemplateFile .\.azure\eBpfArmPublishingTemplate.json -Verbose
@@ -143,68 +158,58 @@ $name = $publisherName + "." + $typeName + "/" + $version
 (Get-AzResource -ResourceGroupName $resourceGroupName -Name $name -ExpandProperties).Properties.replicationStatus.summary | Sort-Object -Property "region" | Format-Table
 ```
 
-### Deploying the VM Extension within a VM
+## Testing the VM Extension Handler
 
-Important: then VM **must** be created within the same subscription of the publisher, otherwise the VM Extension will not be found.
+#### Creating a Test-VM
 
-#### Creating the Test-VM
+There are two options for creating a Test-VM for testing the VM Extension Handler: from within the Team's Azure Production subscription, or within the Team's Azure Test subscription (recommended for more flexibility).
 
-Due to the Prod subscription limitations, creating it from the Azure portal is not possible, so we need to create it from PowerShell:
+>Important: then VM **must** be created within the ***same region in which the VM Extension Handler has been registered an published***, otherwise the VM Extension will not be found.
+
+##### Creating a Test-VM within the Test subscription
+
+###### Prerequisites
+
+- Request to be "`owner`" of the Team's Azure Test subscription, currently "`CoreOS_LIOF_eBPF_for_Windows_Dev - Microsoft Azure`", SubscriptionID: `15cd5cd8-c222-405e-bb37-c5c6712a075f`.
+- Create a resource group named "`eBpfVmExtension`" in the Azure Test subscription.
+
+Simply create the VM though the Azure Portal (or with PowerShell), with the desired configuration, but  just making sure that the VM is created within the same region in which the VM Extension Handler has been registered an published. 
+
+##### Creating a Test-VM within the Production subscription
+
+Due to the Production subscription limitations, creating a VM from the Azure portal is denied, so it must be created it from PowerShell:
 
 ```PS
 # Setting up the environment variables
 $credential = Get-Credential
-$resourceGroupName = "eBpfVmExtension"
-$location = "Central US EUAP"
-$vmName = "eBpfTestVMCanary"
-$imagePublisher = "MicrosoftWindowsServer"
-$imageOffer = "WindowsServer"
-#$imageSku = "2019-Datacenter"
-$imageSku = "2019-datacenter-gensecond"
-$imageVersion = "latest"
-$vmSize = "Standard_B2als_v2"
+$resourceGroupName = 'eBpfVmExtension'
+$location = 'eastuseup'
+$vmName = 'eBpfVmMEastEUAP' # Max 15 chars
+$vmSize = 'Standard_B2als_v2'
+$image = 'MicrosoftWindowsServer:WindowsServer:2019-datacenter-gensecond:latest'
 
-# Either:
-
-# Create the VM through direct reference to the image
-$imageReference = "/subscriptions/78a9bec8-945c-4cc0-83bf-77c6d384d2ca/resourceGroups/$resourceGroupName/providers/Microsoft.Compute/galleries/$imageOffer/images/$imageSku/versions/$imageVersion"
-New-AzVM `
-  -Name $vmName `
-  -Credential $credential `
-  -ResourceGroupName $resourceGroupName `
-  -Location $location `
-  -Size $vmSize `
-  -ImageReferenceId $imageReference
-
-# OR...
-
-# Create the VM through indirect reference to the image (from the first record of the 'Get-AzVMImage' query)
-$imageReference = Get-AzVMImage -Location $location -PublisherName $imagePublisher -Offer $imageOffer -Skus $imageSku -Version $imageVersion
-New-AzVM `
-  -Name $vmName `
-  -Credential $credential `
-  -ResourceGroupName $resourceGroupName `
-  -Location $location `
-  -Size $vmSize `
-  -Image $imageReference[0].Id
+New-AzVM -Name $vmName -Credential $credential -ResourceGroupName $resourceGroupName -Location $location -Size $vmSize -Image $image
 ```
 
-#### Installing the VM Extension
+#### Installing the VM Extension on the Test-VM
+
+Ref docs: https://learn.microsoft.com/en-us/powershell/module/az.compute/set-azvmextension?view=azps-10.3.0
 
 ```PS
-# https://learn.microsoft.com/en-us/powershell/module/az.compute/set-azvmextension?view=azps-10.3.0
+# Example: installing the eBPF VM Extension on the VM named "eBpfVmM-EastEUAP", located in the "eastuseup" region.
+
 $publisherName="Microsoft.eBPF"
 $typeName="eBpfForWindows"
 $version="0.9.1.1"
 $extName = "eBpfForWindows"
-$vmLocation = "SouthCentralUS"
 $resourceGroup = "eBpfVmExtension"
-$vm = "eBpfVmTest"
+$vmLocation = "eastuseup"
+$vm = "eBpfVmM-EastEUAP"
 
 Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $extName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $resourceGroup -VMName $vm
 ```
 
-While CollectGuestLogs.exe is always under `C:\WindowsAzure``, different guest agent versions will have it in different subfolders, so the PowerShell command below will find it in whichever `C:\WindowsAzure`` subfolder it resides, and then run it.
+While CollectGuestLogs.exe is always under `C:\WindowsAzure`, different guest agent versions will have it in different subfolders, so the PowerShell command below will find it in whichever `C:\WindowsAzure`` subfolder it resides, and then run it.
 Run the following command from elevated PowerShell:
 
 ```PS
@@ -228,6 +233,3 @@ https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Han
 - The "Reserved Exit Code" & "Recommended Exit Code" paragraphs are WIP -> is the publisher free to use any?
 - In the "`VM Agent Contracts Expectations for Handler Commands Window VM"`, the `Disable` & `Reset` commands have a `"Yes?"`, which does not uniquely define the column "Extension writes status file".
 - Although the [2.2.1 Add a new handler on the VM (Install and Enable)](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#221-add-a-new-handler-on-the-vm-install-and-enable) specifies that the `Enable` command will be called and required to generate a Status file, in the summary it is defined as "NA", and [here](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#231-install-command) is undocumented.
-
-
-

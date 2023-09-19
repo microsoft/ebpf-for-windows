@@ -1,11 +1,9 @@
 #######################################################
 # Global Variables
 #######################################################
-# Define eBPF Handler Environment variables.
-Set-Variable -Name "AksRegistryKeyPath" -Value "HKLM:\Software\AKS\Key" # TBD: change to the actual registry key
-Set-Variable -Name "AksRegistryKeyValue" -Value 1 # TBD: change to the actual registry value
+# Define the eBPF Handler Environment variables.
 Set-Variable -Name "EbpfExtensionName" -Value "eBPFforWindows"
-Set-Variable -Name "EbpfPackagePath" -Value ".\package"
+Set-Variable -Name "EbpfPackageRelativePath" -Value ".\package"
 Set-Variable -Name "EbpfDefaultInstallPath" -Value "$env:ProgramFiles\ebpf-for-windows"
 Set-Variable -Name "EbpfNetshExtensionName" -Value "ebpfnetsh.dll"
 Set-Variable -Name "EbpfTracingStartupTaskName" -Value "eBpfTracingStartupTask"
@@ -204,25 +202,14 @@ function Report-Status {
     Write-Log -level $LogLevelInfo -message "Status file generated: $statusFilePath"
 }
 
-function Is-Upgrade-Allowed {
+function Is-Upgrade-Supported {
 
-    Write-Log -level $LogLevelInfo -message "Is-Upgrade-Allowed()"
 
-    # This function will return true if the upgrade is allowed, false otherwise.
-    # Currently, the only case where an upgrade is not allowed is when the eBPF is running in an AKS environment.
-    $key = Get-Item -Path $AksRegistryKeyPath -ErrorAction SilentlyContinue
-    if ($null -ne $key) {
-        $value = $key.GetValue($AksRegistryKeyValue)
-        if ($null -ne $value) {
-            return $true
-        } else {
-            Write-Log -level $LogLevelInfo -message "Value '$AksRegistryKeyValue' not found in registry key '$AksRegistryKeyPath'."
-        }
-    } else {
-        Write-Log -level $LogLevelInfo -message "Registry key '$AksRegistryKeyPath' not found."
-    }
+    # This function will return true if the upgrade is allowed in the current environment, false otherwise.
+    # Currently, it is a placeholder for future requirements.
 
-    return $false
+    Write-Log -level $LogLevelInfo -message "Is-Upgrade-Supported()"
+    return $true
 }
 
 function Get-FullDiskPathFromService {
@@ -673,10 +660,7 @@ function Upgrade-eBPF {
     
     Write-Log -level $LogLevelInfo -message "Upgrade-eBPF($operationName, $currProductVersion, $newProductVersion, $installDirectory)"
 
-    if (Is-Upgrade-Allowed -eq $true) {
-        $statusCode = 1
-        Write-Log -level $LogLevelError -message "eBPF [$operationName] not allowed in the current environment."
-    } else {
+    if (Is-Upgrade-Supported) {
         Write-Log -level $LogLevelInfo -message "Performing eBPF [$operationName]."
 
         # For the moment, we just uninstall and install to the current installation folder.
@@ -686,7 +670,7 @@ function Upgrade-eBPF {
             Write-Log -level $LogLevelError -message $statusMessage
         } else {
             Write-Log -level $LogLevelInfo -message "eBPF v$currProductVersion uninstalled successfully."
-            $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$installDirectory"
+            $statusCode = Install-eBPF -sourcePath "$EbpfPackageRelativePath" -destinationPath "$installDirectory"
             if ($statusCode -ne 0) {
                 $statusMessage = "eBPF $operationName FAILED (Install failed)."
                 Write-Log -level $LogLevelError -message $statusMessage
@@ -694,7 +678,10 @@ function Upgrade-eBPF {
                 $statusMessage = "eBPF $operationName succeeded."
                 Write-Log -level $LogLevelInfo -message $statusMessage
             }
-        }
+        } 
+    } else {       
+        $statusCode = 1
+        Write-Log -level $LogLevelError -message "eBPF [$operationName] not allowed in the current environment."
     }
 
     return [int]$statusCode
@@ -769,7 +756,7 @@ function InstallOrUpdate-eBPF-Handler {
     if ($currDriverPath) {
         Write-Log -level $LogLevelInfo -message "Found eBPF driver installed and registered from: '$currDriverPath'"
 
-        # TBD: check if the driver is registered in the default folder, if not, log a warning and proceed with the installation in the current folder.
+        # TBD: check if the driver is registered in the default folder, if not, log a warning and proceed with the installation in the current folder it was found in.
         $currInstallPath = Split-Path -Path $currDriverPath -Parent | Split-Path -Parent
         if ($currInstallPath -ne $EbpfDefaultInstallPath) {
             Write-Log -level $LogLevelWarning -message "'$EbpfDriverName' driver registered from a non-default folder: [$currInstallPath] instead of [$EbpfDefaultInstallPath]"
@@ -948,7 +935,7 @@ function Install-eBPF-Handler {
 
     # Install or Update eBPF for Windows.
     # NOTE: The install operation does not generate a status file, since the VM Agent will afterwards call the enable operation.
-    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
+    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackageRelativePath" -destinationPath "$EbpfDefaultInstallPath"
 }
 
 function Update-eBPF-Handler {
@@ -959,11 +946,11 @@ function Update-eBPF-Handler {
     Report-Status -name $StatusName -operation $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -statusMessage "Starting update"
 
     # Update eBPF for Windows.
-    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
+    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameUpdate -sourcePath "$EbpfPackageRelativePath" -destinationPath "$EbpfDefaultInstallPath"
 }
 
 #######################################################
 # Main entry point
 #######################################################
-# Call the Get-HandlerEnvironment function, capture the output and set the global environment variable.
+# Call the Get-HandlerEnvironment function, capture the output and set the global environment object variable.
 Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironmentFilePath" | Out-Null
