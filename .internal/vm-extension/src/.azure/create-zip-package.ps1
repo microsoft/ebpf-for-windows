@@ -9,7 +9,7 @@ param (
 )
 
 # Define constants for publisher name and type name
-$publisherName = "Microsoft.eBPF"
+$publisherName = "Microsoft.eBpfForWindows"
 $typeName = "eBpfForWindows"
 
 # Verify that the specified source path exists

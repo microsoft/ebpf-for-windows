@@ -106,12 +106,12 @@ Official docs: https://github.com/Azure/azure-vmextension-publishing/wiki/Extens
     The resulting ZIP file will be named after the following format:
     
     ```bash
-    <publisher>.<extension name>.<version>.zip # Example: Microsoft.eBPF.eBpfForWindows.0.9.1.1.zip
+    <publisher>.<extension name>.<version>.zip # Example: Microsoft.eBpfForWindows.eBpfForWindows.0.9.1.1.zip
     ```
 
     where:
 
-    - `<publisher>` is the publisher name, i.e. `Microsoft.eBPF`.
+    - `<publisher>` is the publisher name, i.e. `Microsoft.eBpfForWindows`.
 
     - `<extension name>` is the extension name, i.e. `eBpfForWindows`.
 
@@ -120,29 +120,27 @@ Official docs: https://github.com/Azure/azure-vmextension-publishing/wiki/Extens
 1. Upload the zip file to the Azure Storage Account container named "`ebpf-vm-extension-artifacts`" within the "`eBPF-vm-extension`" resource group.
 
 ### Registering the VM Extension
-Register the ARM template using the PowerShell cmdlet from you Azure Prod subscription, as follows (**this is a on-time operation**):
+
+From your SAW Machine, register the ARM template using the following PowerShell commands, as follows (**this is a on-time operation**):
 
 ```PS
-# Register the VM Extension within the created resource group
-PS> New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName eBpfForWindows -TemplateFile .\.azure\eBpfArmRegisteringTemplate.json -Verbose
+# Make sure you install Az PowerShell v6.0.0
+Install-Module az # Only needed once
+Connect-AzAccount
+Select-AzSubscription -SubscriptionId 78a9bec8-945c-4cc0-83bf-77c6d384d2ca
+
+# CD to the path where the ARM template is located, and register the VM Extension within the created resource group:
+New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName eBpfForWindows -TemplateFile .\eBpfArmRegisteringTemplate.json -Verbose
 ```
 
 ### Publishing the VM Extension
 > NOTE: Canary regions can be either "`East US EUAP`" or "`Central US EUAP`" (to be specified in the ARM **publishing** JSON template).
 
-```
-Az PS7 core
-install-module az
-connect-azaccount -subscription "eBPF for Windows"
-
-
-Microsoft.eBPF
-```
-
 Publish the ARM template using the PowerShell cmdlet from you Azure Prod subscription, as follows:
     
 ```PS
-PS> New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName eBpfForWindows -TemplateFile .\.azure\eBpfArmPublishingTemplate.json -Verbose
+# CD to the path where the ARM template is located, and publish the VM Extension within the created resource group:
+New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName eBpfForWindows -TemplateFile .\eBpfArmPublishingTemplate.json -Verbose
 ```
 
 ### Verifying Publishing Status
@@ -150,7 +148,7 @@ PS> New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName e
 When the extension is getting published, it can take a few hours sometimes in certain regions. Until the extension is replicated in all regions it will not be listed. But you can verify the regional status by using the following PowerShell commands. These commands must be executed within the context of the publisher's subscription.
 
 ```PS
-$publisherName="Microsoft.eBPF"
+$publisherName="Microsoft.eBpfForWindows"
 $typeName="eBpfForWindows"
 $version="0.9.1.1"
 $resourceGroupName = "eBpfForWindows"
@@ -198,15 +196,15 @@ Ref docs: https://learn.microsoft.com/en-us/powershell/module/az.compute/set-azv
 ```PS
 # Example: installing the eBPF VM Extension on the VM named "eBpfVmM-EastEUAP", located in the "eastuseup" region.
 
-$publisherName="Microsoft.eBPF"
-$typeName="eBpfForWindows"
-$version="0.9.1.1"
-$extName = "eBpfForWindows"
+$publisherName="Microsoft.eBpfForWindows"
 $resourceGroup = "eBpfVmExtension"
+$typeName="eBPFforWindows"
+$version="0.9.1.1"
+$extName = "eBpfForWindows" # NOTE: this is the desired name for the extension on the VM, not the VM Extension name!
 $vmLocation = "eastuseup"
-$vm = "eBpfVmM-EastEUAP"
+$vmName = "eBpfVmM-EastEUAP"
 
-Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $extName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $resourceGroup -VMName $vm
+Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $extName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $resourceGroup -VMName $vmName
 ```
 
 While CollectGuestLogs.exe is always under `C:\WindowsAzure`, different guest agent versions will have it in different subfolders, so the PowerShell command below will find it in whichever `C:\WindowsAzure`` subfolder it resides, and then run it.
