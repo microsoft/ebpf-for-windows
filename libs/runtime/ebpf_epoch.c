@@ -314,7 +314,7 @@ ebpf_epoch_terminate()
         ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
         // Release all memory that is still in the free list.
         _ebpf_epoch_release_free_list(cpu_entry, MAXINT64);
-        EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, ebpf_list_is_empty(&cpu_entry->free_list));
+        ebpf_assert(ebpf_list_is_empty(&cpu_entry->free_list));
     }
 
     // Wait for all work items to complete.
@@ -426,6 +426,7 @@ ebpf_epoch_free(_Frees_ptr_opt_ void* memory)
 
     header--;
 
+    // Pool corruption or double free.
     EBPF_EPOCH_FAIL_FAST(FAST_FAIL_HEAP_METADATA_CORRUPTION, header->freed_epoch == 0);
     header->entry_type = EBPF_EPOCH_ALLOCATION_MEMORY;
 
@@ -474,7 +475,8 @@ ebpf_epoch_cancel_work_item(_In_opt_ _Frees_ptr_opt_ ebpf_epoch_work_item_t* wor
         return;
     }
 
-    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_CORRUPT_LIST_ENTRY, work_item->header.list_entry.Flink == NULL);
+    // Internal error. Work item has already been queued.
+    ebpf_assert(work_item->header.list_entry.Flink == NULL);
 
     cxplat_free_preemptible_work_item(work_item->preemptible_work_item);
     ebpf_free(work_item);
@@ -534,6 +536,7 @@ _ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t
                 break;
             }
             default:
+                // Pool corruption or internal error.
                 EBPF_EPOCH_FAIL_FAST(FAST_FAIL_CORRUPT_LIST_ENTRY, !"Invalid entry type");
             }
         } else {
@@ -935,7 +938,7 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
     _Analysis_assume_(arg1 != NULL);
 
     if (message->message_type > EBPF_COUNT_OF(_ebpf_epoch_messenger_workers) || message->message_type < 0) {
-        EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, !"Invalid message type");
+        ebpf_assert(!"Invalid message type");
         return;
     }
 
@@ -978,7 +981,8 @@ _ebpf_epoch_work_item_callback(_In_ cxplat_preemptible_work_item_t* preemptible_
 {
     ebpf_epoch_work_item_t* work_item = (ebpf_epoch_work_item_t*)context;
     work_item->callback(work_item->callback_context);
-    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, preemptible_work_item == work_item->preemptible_work_item);
+    // Internal consistency check.
+    ebpf_assert(preemptible_work_item == work_item->preemptible_work_item);
     cxplat_free_preemptible_work_item(preemptible_work_item);
     ebpf_free(work_item);
 
