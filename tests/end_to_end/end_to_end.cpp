@@ -21,7 +21,7 @@ namespace ebpf {
 #include "net/ip.h"
 #include "net/udp.h"
 }; // namespace ebpf
-#include "passed_test_log.h"
+#include "cxplat_passed_test_log.h"
 #include "platform.h"
 #include "program_helper.h"
 #include "sample_test_common.h"
@@ -43,7 +43,7 @@ namespace ebpf {
 
 using namespace Platform;
 
-CATCH_REGISTER_LISTENER(_passed_test_log)
+CATCH_REGISTER_LISTENER(cxplat_passed_test_log)
 CATCH_REGISTER_LISTENER(_watchdog)
 
 #define NATIVE_DRIVER_SERVICE_NAME L"test_service"

@@ -30,6 +30,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  id-token: write # Required to log in to Azure.
   contents: read
   checks: read  # Required by reusable-test.yml to check build status.
   security-events: write # Required by codeql task.

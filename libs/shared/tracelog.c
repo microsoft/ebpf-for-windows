@@ -135,6 +135,7 @@ ebpf_trace_terminate()
         _EBPF_LOG_NTSTATUS_API_FAILURE(KEYWORD_NATIVE, api_name, status);              \
         break;                                                                         \
     default:                                                                           \
+        ebpf_assert(!"Invalid keyword");                                               \
         break;                                                                         \
     }
 __declspec(noinline) void ebpf_log_ntstatus_api_failure(
@@ -188,6 +189,7 @@ __declspec(noinline) void ebpf_log_ntstatus_api_failure(
         _EBPF_LOG_NTSTATUS_API_FAILURE_MESSAGE(KEYWORD_NATIVE, api_name, status, message);              \
         break;                                                                                          \
     default:                                                                                            \
+        ebpf_assert(!"Invalid keyword");                                                                \
         break;                                                                                          \
     }
 __declspec(noinline) void ebpf_log_ntstatus_api_failure_message(
@@ -239,6 +241,7 @@ __declspec(noinline) void ebpf_log_ntstatus_api_failure_message(
         _EBPF_LOG_MESSAGE(trace_level, KEYWORD_NATIVE, message);              \
         break;                                                                \
     default:                                                                  \
+        ebpf_assert(!"Invalid keyword");                                      \
         break;                                                                \
     }
 __declspec(noinline) void ebpf_log_message(
@@ -262,6 +265,9 @@ __declspec(noinline) void ebpf_log_message(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_KEYWORD_SWITCH(LEVEL_VERBOSE, message);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
@@ -310,6 +316,7 @@ __declspec(noinline) void ebpf_log_message(
         _EBPF_LOG_MESSAGE_STRING(trace_level, KEYWORD_NATIVE, message, string_value);              \
         break;                                                                                     \
     default:                                                                                       \
+        ebpf_assert(!"Invalid keyword");                                                           \
         break;                                                                                     \
     }
 __declspec(noinline) void ebpf_log_message_string(
@@ -336,6 +343,9 @@ __declspec(noinline) void ebpf_log_message_string(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_STRING_KEYWORD_SWITCH(LEVEL_VERBOSE, message, string_value);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
@@ -384,6 +394,7 @@ __declspec(noinline) void ebpf_log_message_string(
         _EBPF_LOG_MESSAGE_UTF8_STRING(trace_level, KEYWORD_NATIVE, message, string_value);              \
         break;                                                                                          \
     default:                                                                                            \
+        ebpf_assert(!"Invalid keyword");                                                                \
         break;                                                                                          \
     }
 __declspec(noinline) void ebpf_log_message_utf8_string(
@@ -410,6 +421,9 @@ __declspec(noinline) void ebpf_log_message_utf8_string(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_UTF8_STRING_KEYWORD_SWITCH(LEVEL_VERBOSE, message, string);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
@@ -458,6 +472,7 @@ __declspec(noinline) void ebpf_log_message_utf8_string(
         _EBPF_LOG_MESSAGE_WSTRING(trace_level, KEYWORD_NATIVE, message, wstring);              \
         break;                                                                                 \
     default:                                                                                   \
+        ebpf_assert(!"Invalid keyword");                                                       \
         break;                                                                                 \
     }
 __declspec(noinline) void ebpf_log_message_wstring(
@@ -484,6 +499,9 @@ __declspec(noinline) void ebpf_log_message_wstring(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_WSTRING_KEYWORD_SWITCH(LEVEL_VERBOSE, message, wstring);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
@@ -534,6 +552,7 @@ __declspec(noinline) void ebpf_log_message_wstring(
         _EBPF_LOG_MESSAGE_GUID_GUID_STRING(trace_level, KEYWORD_NATIVE, message, string, guid1, guid2);              \
         break;                                                                                                       \
     default:                                                                                                         \
+        ebpf_assert(!"Invalid keyword");                                                                             \
         break;                                                                                                       \
     }
 __declspec(noinline) void ebpf_log_message_guid_guid_string(
@@ -562,6 +581,9 @@ __declspec(noinline) void ebpf_log_message_guid_guid_string(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_VERBOSE, keyword, message, string, *guid1, *guid2);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
@@ -611,6 +633,7 @@ __declspec(noinline) void ebpf_log_message_guid_guid_string(
         _EBPF_LOG_MESSAGE_GUID_GUID(trace_level, KEYWORD_NATIVE, message, guid1, guid2);              \
         break;                                                                                        \
     default:                                                                                          \
+        ebpf_assert(!"Invalid keyword");                                                              \
         break;                                                                                        \
     }
 __declspec(noinline) void ebpf_log_message_guid_guid(
@@ -638,6 +661,9 @@ __declspec(noinline) void ebpf_log_message_guid_guid(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_GUID_GUID_KEYWORD_SWITCH(LEVEL_VERBOSE, keyword, message, *guid1, *guid2);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
@@ -686,6 +712,7 @@ __declspec(noinline) void ebpf_log_message_guid_guid(
         _EBPF_LOG_MESSAGE_GUID(trace_level, KEYWORD_NATIVE, message, guid);              \
         break;                                                                           \
     default:                                                                             \
+        ebpf_assert(!"Invalid keyword");                                                 \
         break;                                                                           \
     }
 __declspec(noinline) void ebpf_log_message_guid(
@@ -712,6 +739,9 @@ __declspec(noinline) void ebpf_log_message_guid(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_GUID_KEYWORD_SWITCH(LEVEL_VERBOSE, keyword, message, *guid);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
@@ -760,6 +790,7 @@ __declspec(noinline) void ebpf_log_message_guid(
         _EBPF_LOG_MESSAGE_NTSTATUS(trace_level, KEYWORD_NATIVE, message, status);              \
         break;                                                                                 \
     default:                                                                                   \
+        ebpf_assert(!"Invalid keyword");                                                       \
         break;                                                                                 \
     }
 __declspec(noinline) void ebpf_log_message_ntstatus(
@@ -783,6 +814,9 @@ __declspec(noinline) void ebpf_log_message_ntstatus(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_NTSTATUS_KEYWORD_SWITCH(LEVEL_VERBOSE, message, status);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
@@ -831,6 +865,7 @@ __declspec(noinline) void ebpf_log_message_ntstatus(
         _EBPF_LOG_MESSAGE_UINT64(trace_level, KEYWORD_NATIVE, message, value);              \
         break;                                                                              \
     default:                                                                                \
+        ebpf_assert(!"Invalid keyword");                                                    \
         break;                                                                              \
     }
 __declspec(noinline) void ebpf_log_message_uint64(
@@ -854,6 +889,9 @@ __declspec(noinline) void ebpf_log_message_uint64(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_UINT64_KEYWORD_SWITCH(LEVEL_VERBOSE, message, value);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
@@ -903,6 +941,7 @@ __declspec(noinline) void ebpf_log_message_uint64(
         _EBPF_LOG_MESSAGE_UINT64_UINT64(trace_level, KEYWORD_NATIVE, message, value1, value2);              \
         break;                                                                                              \
     default:                                                                                                \
+        ebpf_assert(!"Invalid keyword");                                                                    \
         break;                                                                                              \
     }
 __declspec(noinline) void ebpf_log_message_uint64_uint64(
@@ -930,6 +969,9 @@ __declspec(noinline) void ebpf_log_message_uint64_uint64(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_UINT64_UINT64_KEYWORD_SWITCH(LEVEL_VERBOSE, message, value1, value2);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
@@ -978,6 +1020,7 @@ __declspec(noinline) void ebpf_log_message_uint64_uint64(
         _EBPF_LOG_MESSAGE_ERROR(trace_level, KEYWORD_NATIVE, message, error);              \
         break;                                                                             \
     default:                                                                               \
+        ebpf_assert(!"Invalid keyword");                                                   \
         break;                                                                             \
     }
 __declspec(noinline) void ebpf_log_message_error(
@@ -1001,6 +1044,9 @@ __declspec(noinline) void ebpf_log_message_error(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_ERROR_KEYWORD_SWITCH(LEVEL_VERBOSE, message, error);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
         break;
     }
 }
@@ -1052,6 +1098,7 @@ __declspec(noinline) void ebpf_log_ntstatus_wstring_api(
         _EBPF_LOG_NTSTATUS_WSTRING_API(KEYWORD_NATIVE, wstring, api, status);
         break;
     default:
+        ebpf_assert(!"Invalid keyword");
         break;
     }
 }
