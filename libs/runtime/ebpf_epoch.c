@@ -356,7 +356,7 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
     KIRQL old_irql = _ebpf_epoch_raise_to_dispatch_if_needed();
 
     // Assert the IRQL is the same as when ebpf_epoch_enter() was called.
-    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, old_irql == epoch_state->irql_at_enter);
+    ebpf_assert(old_irql == epoch_state->irql_at_enter);
 
     uint32_t cpu_id = ebpf_get_current_cpu();
 
