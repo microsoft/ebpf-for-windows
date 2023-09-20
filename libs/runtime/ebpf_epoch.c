@@ -29,10 +29,10 @@
  */
 #define EBPF_NANO_SECONDS_PER_FILETIME_TICK 100
 
-#define EBPF_ASSERT_AND_FAIL(X)                   \
-    if (!(X)) {                                   \
-        ebpf_assert(!#X);                         \
-        __fastfail(FAST_FAIL_CORRUPT_LIST_ENTRY); \
+#define EBPF_EPOCH_FAIL_FAST(REASON, ASSERTION) \
+    if (!(ASSERTION)) {                         \
+        ebpf_assert(!#ASSERTION);               \
+        __fastfail(REASON);                     \
     }
 
 #pragma warning(disable : 4324) // Structure was padded due to alignment specifier.
@@ -314,7 +314,7 @@ ebpf_epoch_terminate()
         ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
         // Release all memory that is still in the free list.
         _ebpf_epoch_release_free_list(cpu_entry, MAXINT64);
-        EBPF_ASSERT_AND_FAIL(ebpf_list_is_empty(&cpu_entry->free_list));
+        EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, ebpf_list_is_empty(&cpu_entry->free_list));
     }
 
     // Wait for all work items to complete.
@@ -356,7 +356,7 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
     KIRQL old_irql = _ebpf_epoch_raise_to_dispatch_if_needed();
 
     // Assert the IRQL is the same as when ebpf_epoch_enter() was called.
-    EBPF_ASSERT_AND_FAIL(old_irql == epoch_state->irql_at_enter);
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, old_irql == epoch_state->irql_at_enter);
 
     uint32_t cpu_id = ebpf_get_current_cpu();
 
@@ -364,7 +364,7 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
     if (cpu_id != epoch_state->cpu_id) {
         // Assert that the IRQL is < DISPATCH_LEVEL. If it is DISPATCH_LEVEL, then the thread moved to a different CPU
         // (by dropping below DISPATCH_LEVEL) and calling ebpf_epoch_exit(). This is not allowed.
-        EBPF_ASSERT_AND_FAIL(epoch_state->irql_at_enter < DISPATCH_LEVEL);
+        EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, epoch_state->irql_at_enter < DISPATCH_LEVEL);
 
         // Signal the other CPU to remove the thread entry.
         if (old_irql < DISPATCH_LEVEL) {
@@ -426,7 +426,7 @@ ebpf_epoch_free(_Frees_ptr_opt_ void* memory)
 
     header--;
 
-    EBPF_ASSERT_AND_FAIL(header->freed_epoch == 0);
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_HEAP_METADATA_CORRUPTION, header->freed_epoch == 0);
     header->entry_type = EBPF_EPOCH_ALLOCATION_MEMORY;
 
     _ebpf_epoch_insert_in_free_list(header);
@@ -474,7 +474,7 @@ ebpf_epoch_cancel_work_item(_In_opt_ _Frees_ptr_opt_ ebpf_epoch_work_item_t* wor
         return;
     }
 
-    EBPF_ASSERT_AND_FAIL(work_item->header.list_entry.Flink == NULL);
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_CORRUPT_LIST_ENTRY, work_item->header.list_entry.Flink == NULL);
 
     cxplat_free_preemptible_work_item(work_item->preemptible_work_item);
     ebpf_free(work_item);
@@ -534,7 +534,7 @@ _ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t
                 break;
             }
             default:
-                EBPF_ASSERT_AND_FAIL(!"Invalid entry type");
+                EBPF_EPOCH_FAIL_FAST(FAST_FAIL_CORRUPT_LIST_ENTRY, !"Invalid entry type");
             }
         } else {
             break;
@@ -935,7 +935,7 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
     _Analysis_assume_(arg1 != NULL);
 
     if (message->message_type > EBPF_COUNT_OF(_ebpf_epoch_messenger_workers) || message->message_type < 0) {
-        EBPF_ASSERT_AND_FAIL(!"Invalid message type");
+        EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, !"Invalid message type");
         return;
     }
 
@@ -978,7 +978,7 @@ _ebpf_epoch_work_item_callback(_In_ cxplat_preemptible_work_item_t* preemptible_
 {
     ebpf_epoch_work_item_t* work_item = (ebpf_epoch_work_item_t*)context;
     work_item->callback(work_item->callback_context);
-    EBPF_ASSERT_AND_FAIL(preemptible_work_item == work_item->preemptible_work_item);
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, preemptible_work_item == work_item->preemptible_work_item);
     cxplat_free_preemptible_work_item(preemptible_work_item);
     ebpf_free(work_item);
 
