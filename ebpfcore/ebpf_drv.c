@@ -113,9 +113,6 @@ _ebpf_driver_initialize_device(WDFDRIVER driver_handle, _Out_ WDFDEVICE* device)
 
     status = WdfDeviceCreate(&device_initialize, WDF_NO_OBJECT_ATTRIBUTES, device);
     if (!NT_SUCCESS(status)) {
-
-        // Do not free if any other call after WdfDeviceCreate fails.
-        WdfDeviceInitFree(device_initialize);
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, WdfDeviceCreate, status);
         goto Exit;
     }
@@ -129,6 +126,9 @@ _ebpf_driver_initialize_device(WDFDRIVER driver_handle, _Out_ WDFDEVICE* device)
     }
 
 Exit:
+    if (device_initialize) {
+        WdfDeviceInitFree(device_initialize);
+    }
     return status;
 }
 

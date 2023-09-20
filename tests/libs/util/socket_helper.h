@@ -52,7 +52,12 @@ typedef enum _expected_result
 typedef class _base_socket
 {
   public:
-    _base_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family);
+    _base_socket(
+        int _sock_type,
+        int _protocol,
+        uint16_t port,
+        socket_family_t family,
+        const sockaddr_storage& source_address = {});
     virtual ~_base_socket();
 
     void
@@ -82,7 +87,12 @@ typedef class _base_socket
 typedef class _client_socket : public _base_socket
 {
   public:
-    _client_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family);
+    _client_socket(
+        int _sock_type,
+        int _protocol,
+        uint16_t port,
+        socket_family_t family,
+        const sockaddr_storage& source_address = {});
     virtual void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port) = 0;
@@ -124,7 +134,12 @@ typedef class _datagram_client_socket : public _client_socket
 typedef class _stream_client_socket : public _client_socket
 {
   public:
-    _stream_client_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual);
+    _stream_client_socket(
+        int _sock_type,
+        int _protocol,
+        uint16_t port,
+        socket_family_t family = Dual,
+        const sockaddr_storage& source_address = {});
     void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
@@ -160,9 +175,8 @@ typedef class _server_socket : public _base_socket
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length) = 0;
     virtual void
     close() = 0;
-
-    int
-    query_redirect_context(_Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size);
+    virtual int
+    query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size) = 0;
 
   protected:
     WSAOVERLAPPED overlapped;
@@ -188,6 +202,8 @@ typedef class _datagram_server_socket : public _server_socket
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
     void
     close();
+    int
+    query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size);
 
   private:
     sockaddr_storage sender_address;
@@ -212,6 +228,8 @@ typedef class _stream_server_socket : public _server_socket
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
     void
     close();
+    int
+    query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size);
 
   private:
     void
