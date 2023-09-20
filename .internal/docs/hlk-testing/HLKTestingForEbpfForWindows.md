@@ -200,7 +200,7 @@ On HLK Studio, navigate sequentially to the following tabs:
 
 ### Signing the User-Mode binaries 
 
-- **[One-time operation]** Create a new `Sign Operation` in the [ESRP Portal](https://portal.esrp.microsoft.com/), by adding ["`CP-233102`" ,"`SigntoolSign`"] and ["`CP-233102`", "`SigntoolVerify`"]. Here is a screenshot of how the  `"Operation Details"` should look like:
+- **[One-time operation]** Create a new `Sign Operation` in the [ESRP Portal](https://portal.esrp.microsoft.com/), by adding ["`CP-230012`" ,"`SigntoolSign`"] and ["`CP-230012`", "`SigntoolVerify`"]. Here is a screenshot of how the  `"Operation Details"` should look like:
 
     ![](.\images\Operation_Details_UM.png)
 
