@@ -210,7 +210,7 @@ On HLK Studio, navigate sequentially to the following tabs:
         - `Description`: e.g., `"eBPF for Windows v0.11.0 - User-mode binaries"`
         - `Sign Operation`: e.g., `"eBPF Signing - User-mode Binaries"` (created as described above).
         - `Approvers`: you need 2 reviewers to approve your manual submission (they can be from your same Team).
-        - Click on `"Browse file"` and upload all the user-mode binaries to be signed.
+        - Click on `"Browse file"` and upload all the user-mode binaries that need to be signed.
         - Click on `"Submit"`.
 - Once approved, the signed binaries will be available to download, within the request page in the ESRP Portal.
 
