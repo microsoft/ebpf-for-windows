@@ -88,8 +88,8 @@ Official docs: https://github.com/Azure/azure-vmextension-publishing/wiki/Extens
 ### Prerequisites
 
 - Ask to be "`Azure Service Deploy Release Management Contributor`" of the Team's Azure Prod subscription, currently "`eBPF for Windows`", SubscriptionID: `78a9bec8-945c-4cc0-83bf-77c6d384d2ca`.
-- Create a resource group named "`eBpfForWindows`" in the Azure Prod subscription.
-- Create as Azure Storage Account account in the Azure Prod subscription, named "`ebpfstorageaccount`", within the "`eBpfForWindows`" resource group.
+- Create a resource group named "`eBpfVmExtension`" in the Azure Prod subscription.
+- Create as Azure Storage Account account in the Azure Prod subscription, named "`ebpfstorageaccount`", within the "`eBpfVmExtension`" resource group.
 - Create an Azure Blob Container named "`ebpf-ext-container`" within the "`ebpfstorageaccount`" Storage Account.
 
 ### Creating the VM Extension Handler Package
@@ -119,9 +119,9 @@ Official docs: https://github.com/Azure/azure-vmextension-publishing/wiki/Extens
     
 1. Upload the zip file to the Azure Storage Account container named "`ebpf-vm-extension-artifacts`" within the "`eBPF-vm-extension`" resource group.
 
-### Registering the VM Extension
+### Registering the VM Extension (this is a on-time operation!)
 
-From your SAW Machine, register the ARM template using the following PowerShell commands, as follows (**this is a on-time operation**):
+From your SAW Machine, register the ARM template using the following PowerShell commands, as follows:
 
 ```PS
 # Make sure you install Az PowerShell v6.0.0
@@ -130,7 +130,7 @@ Connect-AzAccount
 Select-AzSubscription -SubscriptionId 78a9bec8-945c-4cc0-83bf-77c6d384d2ca
 
 # CD to the path where the ARM template is located, and register the VM Extension within the created resource group:
-New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName eBpfForWindows -TemplateFile .\eBpfArmRegisteringTemplate.json -Verbose
+New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName eBpfVmExtension -TemplateFile .\eBpfArmRegisteringTemplate.json -Verbose
 ```
 
 ### Publishing the VM Extension
@@ -140,7 +140,7 @@ Publish the ARM template using the PowerShell cmdlet from you Azure Prod subscri
     
 ```PS
 # CD to the path where the ARM template is located, and publish the VM Extension within the created resource group:
-New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName eBpfForWindows -TemplateFile .\eBpfArmPublishingTemplate.json -Verbose
+New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName eBpfVmExtension -TemplateFile .\eBpfArmPublishingTemplate.json -Verbose
 ```
 
 ### Verifying Publishing Status
@@ -151,7 +151,7 @@ When the extension is getting published, it can take a few hours sometimes in ce
 $publisherName="Microsoft.eBpfForWindows"
 $typeName="eBpfForWindows"
 $version="0.9.1.1"
-$resourceGroupName = "eBpfForWindows"
+$resourceGroupName = "eBpfVmExtension"
 $name = $publisherName + "." + $typeName + "/" + $version
 (Get-AzResource -ResourceGroupName $resourceGroupName -Name $name -ExpandProperties).Properties.replicationStatus.summary | Sort-Object -Property "region" | Format-Table
 ```
