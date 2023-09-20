@@ -194,17 +194,20 @@ New-AzVM -Name $vmName -Credential $credential -ResourceGroupName $resourceGroup
 Ref docs: https://learn.microsoft.com/en-us/powershell/module/az.compute/set-azvmextension?view=azps-10.3.0
 
 ```PS
-# Example: installing the eBPF VM Extension on the VM named "eBpfVmM-EastEUAP", located in the "eastuseup" region.
+# Example: installing the eBPF VM Extension on a Test-VM named "eBpfVmM-EastEUAP", located in the "eastuseup" region.
 
+# Below are the VM Extension parameters
 $publisherName="Microsoft.eBpfForWindows"
-$resourceGroup = "eBpfVmExtension"
 $typeName="eBPFforWindows"
 $version="0.9.1.1"
-$extName = "eBpfForWindows" # NOTE: this is the desired name for the extension on the VM, not the VM Extension name!
+
+# Blow are the Test-VM parameters
+$vmExtName = "eBpfForWindows" # NOTE: this is the desired name for the extension on the Test-VM, not the VM Extension name!
+$vmResourceGroup = "eBpfVmExtension"
 $vmLocation = "eastuseup"
 $vmName = "eBpfVmM-EastEUAP"
 
-Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $extName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $resourceGroup -VMName $vmName
+Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $vmExtName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $vmResourceGroup -VMName $vmName
 ```
 
 While CollectGuestLogs.exe is always under `C:\WindowsAzure`, different guest agent versions will have it in different subfolders, so the PowerShell command below will find it in whichever `C:\WindowsAzure`` subfolder it resides, and then run it.
