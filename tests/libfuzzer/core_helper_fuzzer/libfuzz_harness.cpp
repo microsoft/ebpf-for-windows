@@ -317,7 +317,7 @@ fuzz_program(
     xdp_md_helper_t xdp_helper(packet);
     char writable_buffer[MAX_BUFFER_SIZE] = {0};
     int readable_buffer_index = 0;
-    char readable_buffer[2][MAX_BUFFER_SIZE];
+    char readable_buffer[5][MAX_BUFFER_SIZE];
     char map_key[MAX_BUFFER_SIZE];
     char map_value[MAX_BUFFER_SIZE];
     ebpf_map_type_t map_type = BPF_MAP_TYPE_UNSPEC;
@@ -441,6 +441,12 @@ fuzz_program(
         case EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM:
             // Put a pointer to the writable buffer into the argument.
             argument[arg_count] = (uint64_t)writable_buffer;
+            break;
+        case EBPF_ARGUMENT_TYPE_DONTCARE:
+            argument[arg_count] = (uint64_t)readable_buffer[readable_buffer_index++];
+            break;
+        case EBPF_ARGUMENT_TYPE_UNSUPPORTED:
+            // Unsupported argument type.
             break;
         }
         arg_count++;

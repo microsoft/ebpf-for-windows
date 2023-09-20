@@ -345,6 +345,11 @@ net_ebpf_ext_resource_allocation_classify(
             classify_output->actionType = FWP_ACTION_BLOCK;
             classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
             break;
+        // If the program returns any other value, we will block the bind.
+        default:
+            classify_output->actionType = FWP_ACTION_BLOCK;
+            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+            break;
         }
     }
 

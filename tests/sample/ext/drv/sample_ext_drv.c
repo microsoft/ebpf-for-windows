@@ -12,7 +12,10 @@
 #include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"
 
+#pragma warning(push)
+#pragma warning(disable : 4062) // enumerator 'identifier' in switch of enum 'enumeration' is not handled
 #include <wdf.h>
+#pragma warning(pop)
 
 #define SAMPLE_EBPF_EXT_DEVICE_NAME L"\\Device\\" SAMPLE_EBPF_EXT_NAME_W
 #define SAMPLE_EBPF_EXT_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\" SAMPLE_EBPF_EXT_DEVICE_BASE_NAME

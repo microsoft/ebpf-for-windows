@@ -126,6 +126,9 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         (void)helper.test_sock_ops_v4(&parameters);
         (void)helper.test_sock_ops_v6(&parameters);
         break;
+    // Explicitly ignore all other program types.
+    default:
+        break;
     }
 
     return 0; // Non-zero return values are reserved for future use.
