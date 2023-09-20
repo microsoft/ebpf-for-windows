@@ -134,7 +134,7 @@ New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName eBpfV
 ```
 
 ### Publishing the VM Extension
-> NOTE: Canary regions can be either "`East US EUAP`" or "`Central US EUAP`" (to be specified in the ARM **publishing** JSON template).
+> NOTE: Canary regions can be either "`East US 2 EUAP`" or "`Central US EUAP`" (to be specified in the ARM **publishing** JSON template).
 
 Publish the ARM template using the PowerShell cmdlet from you Azure Prod subscription, as follows:
     
@@ -181,7 +181,7 @@ Due to the Production subscription limitations, creating a VM from the Azure por
 # Setting up the environment variables
 $credential = Get-Credential
 $resourceGroupName = 'eBpfVmExtension'
-$location = 'eastuseup'
+$location = 'eastus2euap'
 $vmName = 'eBpfVmMEastEUAP' # Max 15 chars
 $vmSize = 'Standard_B2als_v2'
 $image = 'MicrosoftWindowsServer:WindowsServer:2019-datacenter-gensecond:latest'
@@ -194,18 +194,22 @@ New-AzVM -Name $vmName -Credential $credential -ResourceGroupName $resourceGroup
 Ref docs: https://learn.microsoft.com/en-us/powershell/module/az.compute/set-azvmextension?view=azps-10.3.0
 
 ```PS
-# Example: installing the eBPF VM Extension on a Test-VM named "eBpfVmM-EastEUAP", located in the "eastuseup" region.
+# Example: installing the eBPF VM Extension on a Test-VM named "eBpfVmM-EastEUAP", located in the "eastus2euap" region.
+
+Connect-AzAccount
+Select-AzSubscription -SubscriptionId 15cd5cd8-c222-405e-bb37-c5c6712a075f
+
 
 # Below are the VM Extension parameters
 $publisherName="Microsoft.eBpfForWindows"
-$typeName="eBPFforWindows"
-$version="0.9.1.1"
+$typeName="eBpfForWindows"
+$version="0.9" # NOTE: the VM Extension platform only supports 2 digits for the version number, when installed from the client, so we need to truncate the eBPF version number to 2 digits! Ref: https://github.com/Azure/azure-vmextension-publishing/wiki/Extension-Handler-Publishing#about-extension-versioning
 
-# Blow are the Test-VM parameters
+# Below are the Test-VM parameters
 $vmExtName = "eBpfForWindows" # NOTE: this is the desired name for the extension on the Test-VM, not the VM Extension name!
 $vmResourceGroup = "eBpfVmExtension"
-$vmLocation = "eastuseup"
-$vmName = "eBpfVmM-EastEUAP"
+$vmLocation = "eastus2euap"
+$vmName = "eBpfVm-EastEUAP"
 
 Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $vmExtName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $vmResourceGroup -VMName $vmName
 ```
