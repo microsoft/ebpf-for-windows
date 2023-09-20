@@ -867,7 +867,11 @@ ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
     ebpf_map_t** program_maps;
     if (program->maps) {
         program_maps = ebpf_reallocate(
-            program->maps, program->count_of_maps * sizeof(ebpf_map_t*), map_count * sizeof(ebpf_map_t*));
+            program->maps,
+            CXPLAT_POOL_FLAG_NON_PAGED,
+            program->count_of_maps * sizeof(ebpf_map_t*),
+            map_count * sizeof(ebpf_map_t*),
+            EBPF_POOL_TAG_PROGRAM);
     } else {
         program_maps = ebpf_allocate_with_tag(map_count * sizeof(ebpf_map_t*), EBPF_POOL_TAG_PROGRAM);
     }
