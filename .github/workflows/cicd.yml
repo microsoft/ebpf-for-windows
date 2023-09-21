@@ -92,11 +92,11 @@ jobs:
         # Set environment variables for the jobs to run.
         run: |
           switch (${{ github.event_name }}) {
-            'pull_request' { $tests = $env:PULL_REQUEST -split ',' }
-            'push' { $tests = $env:PUSH -split ',' }
-            'merge_group' { $tests = $env:MERGE_GROUP -split ',' }
-            'schedule' { $tests = $env:SCHEDULE -split ',' }
-            'workflow_dispatch' { $tests = ${{ github.event.inputs.type }} }
+            'pull_request' { $tests = $env:PULL_REQUEST }
+            'push' { $tests = $env:PUSH }
+            'merge_group' { $tests = $env:MERGE_GROUP  }
+            'schedule' { $tests = $env:SCHEDULE }
+            'workflow_dispatch' { $tests = '${{ github.event.inputs.type }}' }
           }
           echo "tests=$tests"
 
