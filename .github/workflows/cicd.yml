@@ -21,122 +21,38 @@ on:
   workflow_dispatch:
     # Provide arguments to the workflow_dispatch event.
     inputs:
-      unit_tests:
-        description: 'Run unit tests'
-        required: false
-        type: boolean
-      netebpf_ext_unit_tests:
-        description: 'Run netebpf_ext unit tests'
-        required: false
-        type: boolean
-      bpf2c:
-        description: 'Run bpf2c tests'
-        required: false
-        type: boolean
-      bpf2c_conformance:
-        description: 'Run bpf2c conformance tests'
-        required: false
-        type: boolean
-      driver_ws2019:
-        description: 'Run driver tests on Windows Server 2019'
-        required: false
-        type: boolean
-      driver_ws2022:
-        description: 'Run driver tests on Windows Server 2022'
-        required: false
-        type: boolean
-      driver_native_only_ws2019:
-        description: 'Run native-only driver tests on Windows Server 2019'
-        required: false
-        type: boolean
-      driver_native_only_ws2022:
-        description: 'Run native-only driver tests on Windows Server 2022'
-        required: false
-        type: boolean
-      ossar:
-        description: 'Run OSSAR scan'
-        required: false
-        type: boolean
-      bpf2c_fuzzer:
-        description: 'Run bpf2c fuzzer'
-        required: false
-        type: boolean
-      bpf2c_fuzzer_scheduled:
-        description: 'Run bpf2c fuzzer scheduled'
-        required: false
-        type: boolean
-      execution_context_fuzzer:
-        description: 'Run execution context fuzzer'
-        required: false
-        type: boolean
-      verifier_fuzzer:
-        description: 'Run verifier fuzzer'
-        required: false
-        type: boolean
-      verifier_fuzzer_scheduled:
-        description: 'Run verifier fuzzer scheduled'
-        required: false
-        type: boolean
-      core_helper_fuzzer:
-        description: 'Run core helper fuzzer'
-        required: false
-        type: boolean
-      netebpfext_fuzzer:
-        description: 'Run netebpfext fuzzer'
-        required: false
-        type: boolean
-      cilium_tests:
-        description: 'Run Cilium regression tests'
-        required: false
-        type: boolean
-      stress:
-        description: 'Run stress tests'
-        required: false
-        type: boolean
-      sanitize_unit_tests:
-        description: 'Run unit tests with address sanitizer'
-        required: false
-        type: boolean
-      fault_injection:
-        description: 'Run fault injection simulator'
-        required: false
-        type: boolean
-      fault_injection_netebpfext_unit:
-        description: 'Run fault injection simulator for netebpfext_unit tests'
-        required: false
-        type: boolean
-      quick_user_mode_multi_threaded_stress_test:
-        description: 'Run quick user-mode multi-threaded stress test'
-        required: false
-        type: boolean
-      fault_injection_full:
-        description: 'Run full fault injection simulator'
-        required: false
-        type: boolean
-      netebpfext_fault_injection_full:
-        description: 'Run full fault injection simulator for netebpfext'
-        required: false
-        type: boolean
-      user_mode_multi_threaded_stress_test:
-        description: 'Run user-mode multi-threaded stress test'
-        required: false
-        type: boolean
-      km_mt_stress_tests:
-        description: 'Run kernel-mode multi-threaded stress tests'
-        required: false
-        type: boolean
-      km_mt_stress_tests_restart_extension:
-        description: 'Run kernel-mode multi-threaded stress tests with extension restart'
-        required: false
-        type: boolean
-      performance:
-        description: 'Run performance tests'
-        required: false
-        type: boolean
-      performance_with_profile:
-        description: 'Run performance tests with profiling'
-        required: false
-        type: boolean
+      type:
+        description: 'Type of test to run'
+        required: true
+        type: choice
+        options:
+        - 'unit_tests'
+        - 'netebpf_ext_unit_tests'
+        - 'bpf2c'
+        - 'bpf2c_conformance'
+        - 'driver_ws2019'
+        - 'driver_ws2022'
+        - 'driver_native_only_ws2019'
+        - 'driver_native_only_ws2022'
+        - 'ossar'
+        - 'bpf2c_fuzzer'
+        - 'bpf2c_fuzzer_scheduled'
+        - 'execution_context_fuzzer'
+        - 'verifier_fuzzer'
+        - 'verifier_fuzzer_scheduled'
+        - 'core_helper_fuzzer'
+        - 'netebpfext_fuzzer'
+        - 'cilium_tests'
+        - 'stress'
+        - 'sanitize_unit_tests'
+        - 'fault_injection'
+        - 'fault_injection_netebpfext_unit'
+        - 'quick_user_mode_multi_threaded_stress_test'
+        - 'user_mode_multi_threaded_stress_test'
+        - 'km_mt_stress_tests'
+        - 'km_mt_stress_tests_restart_extension'
+        - 'performance'
+        - 'performance_with_profile'
 
   # Run on push so we can capture the baseline code coverage.
   push:
@@ -184,40 +100,40 @@ jobs:
   # Select which jobs to run on workflow_dispatch.
   # TODO - Figure out how to do this without duplicating the list of jobs.
   select-jobs-workflow-dispatch:
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     steps:
       - shell: powershell
         run: \
-          echo 'UNIT_TESTS=${{github.event.inputs.unit_tests}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'NETEBPF_EXT_UNIT_TESTS=${{github.event.inputs.netebpf_ext_unit_tests}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'BPF2C=${{github.event.inputs.bpf2c}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'BPF2C_CONFORMANCE=${{github.event.inputs.bpf2c_conformance}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'DRIVER_WS2019=${{github.event.inputs.driver_ws2019}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'DRIVER_WS2022=${{github.event.inputs.driver_ws2022}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'DRIVER_NATIVE_ONLY_WS2019=${{github.event.inputs.driver_native_only_ws2019}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'DRIVER_NATIVE_ONLY_WS2022=${{github.event.inputs.driver_native_only_ws2022}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'OSSAR=${{github.event.inputs.ossar}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'BPF2C_FUZZER=${{github.event.inputs.bpf2c_fuzzer}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'BPF2C_FUZZER_SCHEDULED=${{github.event.inputs.bpf2c_fuzzer_scheduled}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'EXECUTION_CONTEXT_FUZZER=${{github.event.inputs.execution_context_fuzzer}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'VERIFIER_FUZZER=${{github.event.inputs.verifier_fuzzer}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'VERIFIER_FUZZER_SCHEDULED=${{github.event.inputs.verifier_fuzzer_scheduled}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'CORE_HELPER_FUZZER=${{github.event.inputs.core_helper_fuzzer}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'NETEBPFEXT_FUZZER=${{github.event.inputs.netebpfext_fuzzer}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'CILIUM_TESTS=${{github.event.inputs.cilium_tests}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'STRESS=${{github.event.inputs.stress}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'SANITIZE_UNIT_TESTS=${{github.event.inputs.sanitize_unit_tests}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'FAULT_INJECTION=${{github.event.inputs.fault_injection}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'FAULT_INJECTION_NETEBPFEXT_UNIT=${{github.event.inputs.fault_injection_netebpfext_unit}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'QUICK_USER_MODE_MULTI_THREADED_STRESS_TEST=${{github.event.inputs.quick_user_mode_multi_threaded_stress_test}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'FAULT_INJECTION_FULL=${{github.event.inputs.fault_injection_full}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'NETEBPFEXT_FAULT_INJECTION_FULL=${{github.event.inputs.netebpfext_fault_injection_full}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'USER_MODE_MULTI_THREADED_STRESS_TEST=${{github.event.inputs.user_mode_multi_threaded_stress_test}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'KM_MT_STRESS_TESTS=${{github.event.inputs.km_mt_stress_tests}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'KM_MT_STRESS_TESTS_RESTART_EXTENSION=${{github.event.inputs.km_mt_stress_tests_restart_extension}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'PERFORMANCE=${{github.event.inputs.performance}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-          echo 'PERFORMANCE_WITH_PROFILE=${{github.event.inputs.performance_with_profile}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          if (${{ github.event.inputs.type }} -eq 'unit_tests') { echo 'UNIT_TESTS=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'netebpf_ext_unit_tests') { echo 'NETEBPF_EXT_UNIT_TESTS=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'bpf2c') { echo 'BPF2C=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'bpf2c_conformance') { echo 'BPF2C_CONFORMANCE=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'driver_ws2019') { echo 'DRIVER_WS2019=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'driver_ws2022') { echo 'DRIVER_WS2022=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'driver_native_only_ws2019') { echo 'DRIVER_NATIVE_ONLY_WS2019=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'driver_native_only_ws2022') { echo 'DRIVER_NATIVE_ONLY_WS2022=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'ossar') { echo 'OSSAR=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'bpf2c_fuzzer') { echo 'BPF2C_FUZZER=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'bpf2c_fuzzer_scheduled') { echo 'BPF2C_FUZZER_SCHEDULED=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'execution_context_fuzzer') { echo 'EXECUTION_CONTEXT_FUZZER=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'verifier_fuzzer') { echo 'VERIFIER_FUZZER=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'verifier_fuzzer_scheduled') { echo 'VERIFIER_FUZZER_SCHEDULED=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'core_helper_fuzzer') { echo 'CORE_HELPER_FUZZER=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'netebpfext_fuzzer') { echo 'NETEBPFEXT_FUZZER=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'cilium_tests') { echo 'CILIUM_TESTS=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'stress') { echo 'STRESS=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'sanitize_unit_tests') { echo 'SANITIZE_UNIT_TESTS=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'fault_injection') { echo 'FAULT_INJECTION=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'fault_injection_netebpfext_unit') { echo 'FAULT_INJECTION_NETEBPFEXT_UNIT=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'quick_user_mode_multi_threaded_stress_test') { echo 'QUICK_USER_MODE_MULTI_THREADED_STRESS_TEST=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'fault_injection_full') { echo 'FAULT_INJECTION_FULL=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'netebpfext_fault_injection_full') { echo 'NETEBPFEXT_FAULT_INJECTION_FULL=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'user_mode_multi_threaded_stress_test') { echo 'USER_MODE_MULTI_THREADED_STRESS_TEST=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'km_mt_stress_tests') { echo 'KM_MT_STRESS_TESTS=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'km_mt_stress_tests_restart_extension') { echo 'KM_MT_STRESS_TESTS_RESTART_EXTENSION=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'performance') { echo 'PERFORMANCE=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+          if (${{ github.event.inputs.type }} -eq 'performance_with_profile') { echo 'PERFORMANCE_WITH_PROFILE=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
 
   # Jobs to run on pull, push, and schedule.
   # ---------------------------------------------------------------------------
