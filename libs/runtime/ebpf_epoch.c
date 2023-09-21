@@ -599,6 +599,8 @@ _ebpf_epoch_insert_in_free_list(_In_ ebpf_epoch_allocation_header_t* header)
             cxplat_queue_preemptible_work_item(work_item->preemptible_work_item);
             break;
         }
+        default:
+            ebpf_assert(!"Invalid entry type");
         }
         return;
     }
