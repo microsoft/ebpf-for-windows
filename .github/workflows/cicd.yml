@@ -19,6 +19,41 @@ on:
   merge_group:
   # Permit manual runs of the workflow.
   workflow_dispatch:
+    # Provide arguments to the workflow_dispatch event.
+    inputs:
+      type:
+        description: 'Type of test to run'
+        required: true
+        type: choice
+        options:
+        - 'unit_tests'
+        - 'netebpf_ext_unit_tests'
+        - 'bpf2c'
+        - 'bpf2c_conformance'
+        - 'driver_ws2019'
+        - 'driver_ws2022'
+        - 'driver_native_only_ws2019'
+        - 'driver_native_only_ws2022'
+        - 'ossar'
+        - 'bpf2c_fuzzer'
+        - 'bpf2c_fuzzer_scheduled'
+        - 'execution_context_fuzzer'
+        - 'verifier_fuzzer'
+        - 'verifier_fuzzer_scheduled'
+        - 'core_helper_fuzzer'
+        - 'netebpfext_fuzzer'
+        - 'cilium_tests'
+        - 'stress'
+        - 'sanitize_unit_tests'
+        - 'fault_injection'
+        - 'fault_injection_netebpfext_unit'
+        - 'quick_user_mode_multi_threaded_stress_test'
+        - 'user_mode_multi_threaded_stress_test'
+        - 'km_mt_stress_tests'
+        - 'km_mt_stress_tests_restart_extension'
+        - 'performance'
+        - 'performance_with_profile'
+
   # Run on push so we can capture the baseline code coverage.
   push:
     branches: [ main ]
@@ -68,7 +103,7 @@ jobs:
   unit_tests:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'unit_tests')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -86,7 +121,7 @@ jobs:
   netebpf_ext_unit_tests:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'netebpf_ext_unit_tests')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpf_ext_unit_tests
@@ -103,7 +138,7 @@ jobs:
   bpf2c:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'bpf2c')
     uses: ./.github/workflows/reusable-test.yml
     with:
       test_command: .\bpf2c_tests.exe -d yes
@@ -119,7 +154,7 @@ jobs:
   bpf2c_conformance:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'bpf2c_conformance')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.4/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
@@ -137,7 +172,7 @@ jobs:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'driver_ws2019')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -156,7 +191,7 @@ jobs:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'driver_ws2022')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -175,7 +210,7 @@ jobs:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'driver_native_only_ws2019')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -194,7 +229,7 @@ jobs:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'driver_native_only_ws2022')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -212,7 +247,7 @@ jobs:
   ossar:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'ossar')
     uses: ./.github/workflows/ossar-scan.yml
     with:
       build_artifact: Build-x64
@@ -222,7 +257,7 @@ jobs:
   # Build with C++ static analyzer.
   analyze:
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Analyze
@@ -232,7 +267,7 @@ jobs:
   # Build with C++ address sanitizer.
   sanitize:
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Sanitize
@@ -240,7 +275,7 @@ jobs:
 
   bpf2c_fuzzer:
     needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'bpf2c_fuzzer')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -253,7 +288,7 @@ jobs:
 
   bpf2c_fuzzer_scheduled:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'bpf2c_fuzzer_scheduled')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -267,7 +302,7 @@ jobs:
   execution_context_fuzzer:
     needs: regular
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'execution_context_fuzzer')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
@@ -282,7 +317,7 @@ jobs:
   verifier_fuzzer:
     needs: regular
     # Always run this job.
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'verifier_fuzzer')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -296,7 +331,7 @@ jobs:
   verifier_fuzzer_scheduled:
     needs: regular
     # Always run this job.
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'verifier_fuzzer_scheduled')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -310,7 +345,7 @@ jobs:
   core_helper_fuzzer:
     needs: regular
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'core_helper_fuzzer')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
@@ -324,7 +359,7 @@ jobs:
   netebpfext_fuzzer:
     needs: regular
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'netebpfext_fuzzer')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fuzzer
@@ -339,7 +374,7 @@ jobs:
   cilium_tests:
     needs: regular
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'cilium_tests')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: cilium_tests
@@ -353,7 +388,7 @@ jobs:
   stress:
     needs: regular
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'stress')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: stress
@@ -368,7 +403,7 @@ jobs:
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     needs: sanitize
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'sanitize_unit_tests')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -383,7 +418,7 @@ jobs:
   # Run the fault injection simulator in GitHub.
   fault_injection:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'fault_injection')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection
@@ -398,7 +433,7 @@ jobs:
   # Run the low memory simulator for netebpfext_unit tests.
   fault_injection_netebpfext_unit:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'fault_injection_netebpfext_unit')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection
@@ -414,7 +449,7 @@ jobs:
   # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
   quick_user_mode_multi_threaded_stress_test:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'quick_user_mode_multi_threaded_stress_test')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: quick_user_mode_multi_threaded_stress
@@ -441,7 +476,7 @@ jobs:
   # Runs on a schedule as this takes a long time to run.
   fault_injection_full:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'fault_injection_full')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection_full
@@ -457,7 +492,7 @@ jobs:
   # Runs on a schedule as this takes a long time to run.
   netebpfext_fault_injection_full:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'netebpfext_fault_injection_full')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection_full
@@ -471,7 +506,7 @@ jobs:
   # Run multi-threaded stress tests against the user mode 'mock' framework.
   user_mode_multi_threaded_stress_test:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'user_mode_multi_threaded_stress_test')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
@@ -487,7 +522,7 @@ jobs:
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'km_mt_stress_tests')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests
@@ -504,7 +539,7 @@ jobs:
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests_restart_extension:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'km_mt_stress_tests_restart_extension')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests_restart_extension
@@ -519,7 +554,7 @@ jobs:
 
   performance:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'performance')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
@@ -532,7 +567,7 @@ jobs:
 
   performance_with_profile:
     needs: regular
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'performance_with_profile')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
