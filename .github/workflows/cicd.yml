@@ -21,38 +21,122 @@ on:
   workflow_dispatch:
     # Provide arguments to the workflow_dispatch event.
     inputs:
-      type:
-        description: 'Type of test to run'
-        required: true
-        type: choice
-        options:
-        - 'unit_tests'
-        - 'netebpf_ext_unit_tests'
-        - 'bpf2c'
-        - 'bpf2c_conformance'
-        - 'driver_ws2019'
-        - 'driver_ws2022'
-        - 'driver_native_only_ws2019'
-        - 'driver_native_only_ws2022'
-        - 'ossar'
-        - 'bpf2c_fuzzer'
-        - 'bpf2c_fuzzer_scheduled'
-        - 'execution_context_fuzzer'
-        - 'verifier_fuzzer'
-        - 'verifier_fuzzer_scheduled'
-        - 'core_helper_fuzzer'
-        - 'netebpfext_fuzzer'
-        - 'cilium_tests'
-        - 'stress'
-        - 'sanitize_unit_tests'
-        - 'fault_injection'
-        - 'fault_injection_netebpfext_unit'
-        - 'quick_user_mode_multi_threaded_stress_test'
-        - 'user_mode_multi_threaded_stress_test'
-        - 'km_mt_stress_tests'
-        - 'km_mt_stress_tests_restart_extension'
-        - 'performance'
-        - 'performance_with_profile'
+      unit_tests:
+        description: 'Run unit tests'
+        required: false
+        type: boolean
+      netebpf_ext_unit_tests:
+        description: 'Run netebpf_ext unit tests'
+        required: false
+        type: boolean
+      bpf2c:
+        description: 'Run bpf2c tests'
+        required: false
+        type: boolean
+      bpf2c_conformance:
+        description: 'Run bpf2c conformance tests'
+        required: false
+        type: boolean
+      driver_ws2019:
+        description: 'Run driver tests on Windows Server 2019'
+        required: false
+        type: boolean
+      driver_ws2022:
+        description: 'Run driver tests on Windows Server 2022'
+        required: false
+        type: boolean
+      driver_native_only_ws2019:
+        description: 'Run native-only driver tests on Windows Server 2019'
+        required: false
+        type: boolean
+      driver_native_only_ws2022:
+        description: 'Run native-only driver tests on Windows Server 2022'
+        required: false
+        type: boolean
+      ossar:
+        description: 'Run OSSAR scan'
+        required: false
+        type: boolean
+      bpf2c_fuzzer:
+        description: 'Run bpf2c fuzzer'
+        required: false
+        type: boolean
+      bpf2c_fuzzer_scheduled:
+        description: 'Run bpf2c fuzzer scheduled'
+        required: false
+        type: boolean
+      execution_context_fuzzer:
+        description: 'Run execution context fuzzer'
+        required: false
+        type: boolean
+      verifier_fuzzer:
+        description: 'Run verifier fuzzer'
+        required: false
+        type: boolean
+      verifier_fuzzer_scheduled:
+        description: 'Run verifier fuzzer scheduled'
+        required: false
+        type: boolean
+      core_helper_fuzzer:
+        description: 'Run core helper fuzzer'
+        required: false
+        type: boolean
+      netebpfext_fuzzer:
+        description: 'Run netebpfext fuzzer'
+        required: false
+        type: boolean
+      cilium_tests:
+        description: 'Run Cilium regression tests'
+        required: false
+        type: boolean
+      stress:
+        description: 'Run stress tests'
+        required: false
+        type: boolean
+      sanitize_unit_tests:
+        description: 'Run unit tests with address sanitizer'
+        required: false
+        type: boolean
+      fault_injection:
+        description: 'Run fault injection simulator'
+        required: false
+        type: boolean
+      fault_injection_netebpfext_unit:
+        description: 'Run fault injection simulator for netebpfext_unit tests'
+        required: false
+        type: boolean
+      quick_user_mode_multi_threaded_stress_test:
+        description: 'Run quick user-mode multi-threaded stress test'
+        required: false
+        type: boolean
+      fault_injection_full:
+        description: 'Run full fault injection simulator'
+        required: false
+        type: boolean
+      netebpfext_fault_injection_full:
+        description: 'Run full fault injection simulator for netebpfext'
+        required: false
+        type: boolean
+      user_mode_multi_threaded_stress_test:
+        description: 'Run user-mode multi-threaded stress test'
+        required: false
+        type: boolean
+      km_mt_stress_tests:
+        description: 'Run kernel-mode multi-threaded stress tests'
+        required: false
+        type: boolean
+      km_mt_stress_tests_restart_extension:
+        description: 'Run kernel-mode multi-threaded stress tests with extension restart'
+        required: false
+        type: boolean
+      performance:
+        description: 'Run performance tests'
+        required: false
+        type: boolean
+      performance_with_profile:
+        description: 'Run performance tests with profiling'
+        required: false
+        type: boolean
 
   # Run on push so we can capture the baseline code coverage.
   push:
@@ -72,13 +156,74 @@ permissions:
   issues: write # Required to create issues.
 
 jobs:
+  # Select which jobs to run on pull requests and pushes.
+  select-jobs-pull-request:
+    if: github.event_name != 'workflow_dispatch'
+    env:
+      # List of tests to run on pull requests.
+      PULL_REQUEST: "unit_tests, netebpf_ext_unit_tests, bpf2c, bpf2c_conformance, driver_ws2019, driver_ws2022, driver_native_only_ws2019, driver_native_only_ws2022, ossar, bpf2c_fuzzer, execution_context_fuzzer, verifier_fuzzer, core_helper_fuzzer, netebpfext_fuzzer, cilium_tests, stress, sanitize_unit_tests, fault_injection, fault_injection_netebpfext_unit"
+      PUSH: "unit_tests, netebpf_ext_unit_tests, bpf2c, bpf2c_conformance, driver_ws2019, driver_ws2022, driver_native_only_ws2019, driver_native_only_ws2022"
+      MERGE_GROUP: "unit_tests, netebpf_ext_unit_tests, bpf2c, bpf2c_conformance, driver_ws2019, driver_ws2022, driver_native_only_ws2019, driver_native_only_ws2022, ossar, bpf2c_fuzzer, execution_context_fuzzer, verifier_fuzzer, core_helper_fuzzer, netebpfext_fuzzer, cilium_tests, stress, sanitize_unit_tests, fault_injection, fault_injection_netebpfext_unit"
+      SCHEDULE: "unit_tests, netebpf_ext_unit_tests, bpf2c, bpf2c_conformance, driver_ws2019, driver_ws2022, driver_native_only_ws2019, driver_native_only_ws2022, ossar, bpf2c_fuzzer_scheduled, execution_context_fuzzer, verifier_fuzzer_scheduled, core_helper_fuzzer, netebpfext_fuzzer, cilium_tests, stress, sanitize_unit_tests, quick_user_mode_multi_threaded_stress_test, fault_injection_full, netebpfext_fault_injection_full, user_mode_multi_threaded_stress_test, km_mt_stress_tests, km_mt_stress_tests_restart_extension, performance"
+
+    runs-on: windows-latest
+    steps:
+      - shell: powershell
+        # Set environment variables for the jobs to run.
+        run: |
+          switch (${{ github.event_name }}) {
+            'pull_request' { $tests = $env:PULL_REQUEST -split ',' }
+            'push' { $tests = $env:PUSH -split ',' }
+            'merge_group' { $tests = $env:MERGE_GROUP -split ',' }
+            'schedule' { $tests = $env:SCHEDULE -split ',' }
+          }
+          foreach ($test in $tests) {
+            echo "$test=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+
+  # Select which jobs to run on workflow_dispatch.
+  # TODO - Figure out how to do this without duplicating the list of jobs.
+  select-jobs-workflow-dispatch:
+    if: github.event_name == 'schedule'
+    runs-on: windows-latest
+    steps:
+      - shell: powershell
+        run: \
+          echo 'UNIT_TESTS=${{github.event.inputs.unit_tests}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'NETEBPF_EXT_UNIT_TESTS=${{github.event.inputs.netebpf_ext_unit_tests}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'BPF2C=${{github.event.inputs.bpf2c}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'BPF2C_CONFORMANCE=${{github.event.inputs.bpf2c_conformance}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'DRIVER_WS2019=${{github.event.inputs.driver_ws2019}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'DRIVER_WS2022=${{github.event.inputs.driver_ws2022}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'DRIVER_NATIVE_ONLY_WS2019=${{github.event.inputs.driver_native_only_ws2019}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'DRIVER_NATIVE_ONLY_WS2022=${{github.event.inputs.driver_native_only_ws2022}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'OSSAR=${{github.event.inputs.ossar}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'BPF2C_FUZZER=${{github.event.inputs.bpf2c_fuzzer}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'BPF2C_FUZZER_SCHEDULED=${{github.event.inputs.bpf2c_fuzzer_scheduled}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'EXECUTION_CONTEXT_FUZZER=${{github.event.inputs.execution_context_fuzzer}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'VERIFIER_FUZZER=${{github.event.inputs.verifier_fuzzer}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'VERIFIER_FUZZER_SCHEDULED=${{github.event.inputs.verifier_fuzzer_scheduled}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'CORE_HELPER_FUZZER=${{github.event.inputs.core_helper_fuzzer}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'NETEBPFEXT_FUZZER=${{github.event.inputs.netebpfext_fuzzer}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'CILIUM_TESTS=${{github.event.inputs.cilium_tests}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'STRESS=${{github.event.inputs.stress}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'SANITIZE_UNIT_TESTS=${{github.event.inputs.sanitize_unit_tests}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'FAULT_INJECTION=${{github.event.inputs.fault_injection}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'FAULT_INJECTION_NETEBPFEXT_UNIT=${{github.event.inputs.fault_injection_netebpfext_unit}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'QUICK_USER_MODE_MULTI_THREADED_STRESS_TEST=${{github.event.inputs.quick_user_mode_multi_threaded_stress_test}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'FAULT_INJECTION_FULL=${{github.event.inputs.fault_injection_full}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'NETEBPFEXT_FAULT_INJECTION_FULL=${{github.event.inputs.netebpfext_fault_injection_full}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'USER_MODE_MULTI_THREADED_STRESS_TEST=${{github.event.inputs.user_mode_multi_threaded_stress_test}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'KM_MT_STRESS_TESTS=${{github.event.inputs.km_mt_stress_tests}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'KM_MT_STRESS_TESTS_RESTART_EXTENSION=${{github.event.inputs.km_mt_stress_tests_restart_extension}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'PERFORMANCE=${{github.event.inputs.performance}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          echo 'PERFORMANCE_WITH_PROFILE=${{github.event.inputs.performance_with_profile}}' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+
   # Jobs to run on pull, push, and schedule.
   # ---------------------------------------------------------------------------
 
   # Perform the regular build.
   regular:
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64
@@ -90,8 +235,6 @@ jobs:
 
   # Perform the native-only build.
   regular_native-only:
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-native-only
@@ -101,9 +244,9 @@ jobs:
 
   # Run the unit tests in GitHub.
   unit_tests:
-    # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'unit_tests')
+    # Run if the unit_tests environment variable is set.
+    if: ${{ env.UNIT_TESTS == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -119,9 +262,9 @@ jobs:
 
   # Run the netebpfext unit tests in GitHub.
   netebpf_ext_unit_tests:
-    # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'netebpf_ext_unit_tests')
+    # Run if the netebpf_ext_unit_tests environment variable is set.
+    if: ${{ env.NETEBPF_EXT_UNIT_TESTS == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpf_ext_unit_tests
@@ -136,9 +279,9 @@ jobs:
 
   # Run the bpf2c tests in GitHub.
   bpf2c:
-    # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'bpf2c')
+    # Run if the bpf2c environment variable is set.
+    if: ${{ env.BPF2C == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       test_command: .\bpf2c_tests.exe -d yes
@@ -152,9 +295,9 @@ jobs:
 
   # Run the bpf2c conformance tests in GitHub.
   bpf2c_conformance:
-    # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'bpf2c_conformance')
+    # Run if the bpf2c_conformance environment variable is set.
+    if: ${{ env.BPF2C_CONFORMANCE == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.4/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
@@ -169,10 +312,9 @@ jobs:
 
   # Run the driver tests on self-hosted runners.
   driver_ws2019:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
     needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'driver_ws2019')
+    # Run if the driver_ws2019 environment variable is set.
+    if: ${{ env.DRIVER_WS2019 == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -188,10 +330,9 @@ jobs:
 
   # Run the driver tests on self-hosted runners.
   driver_ws2022:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
     needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'driver_ws2022')
+    # Run if the driver_ws2022 environment variable is set.
+    if: ${{ env.DRIVER_WS2022 == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -207,10 +348,9 @@ jobs:
 
   # Run the native-only driver tests on self-hosted runners.
   driver_native_only_ws2019:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'driver_native_only_ws2019')
+    # Run if the driver_native_only_ws2019 environment variable is set.
+    if: ${{ env.DRIVER_NATIVE_ONLY_WS2019 == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -226,10 +366,9 @@ jobs:
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   driver_native_only_ws2022:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'driver_native_only_ws2022')
+    # Run if the driver_native_only_ws2022 environment variable is set.
+    if: ${{ env.DRIVER_NATIVE_ONLY_WS2022 == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -245,9 +384,9 @@ jobs:
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   ossar:
-    # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'ossar')
+    # Run if the ossar environment variable is set.
+    if: ${{ env.OSSAR == '1' }}
     uses: ./.github/workflows/ossar-scan.yml
     with:
       build_artifact: Build-x64
@@ -256,8 +395,6 @@ jobs:
   # ---------------------------------------------------------------------------
   # Build with C++ static analyzer.
   analyze:
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Analyze
@@ -266,8 +403,6 @@ jobs:
 
   # Build with C++ address sanitizer.
   sanitize:
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Sanitize
@@ -275,7 +410,8 @@ jobs:
 
   bpf2c_fuzzer:
     needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'bpf2c_fuzzer')
+    # Run if the bpf2c_fuzzer environment variable is set.
+    if: ${{ env.BPF2C_FUZZER == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -288,7 +424,8 @@ jobs:
 
   bpf2c_fuzzer_scheduled:
     needs: regular
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'bpf2c_fuzzer_scheduled')
+    # Run if the bpf2c_fuzzer_scheduled environment variable is set.
+    if: ${{ env.BPF2C_FUZZER_SCHEDULED == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -301,8 +438,7 @@ jobs:
 
   execution_context_fuzzer:
     needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'execution_context_fuzzer')
+    # Run if the execution_context_fuzzer environment variable is set.
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
@@ -316,8 +452,8 @@ jobs:
   # Run the verifier fuzzer.
   verifier_fuzzer:
     needs: regular
-    # Always run this job.
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'verifier_fuzzer')
+    # Run if the verifier_fuzzer environment variable is set.
+    if: ${{ env.VERIFIER_FUZZER == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -330,8 +466,8 @@ jobs:
 
   verifier_fuzzer_scheduled:
     needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'verifier_fuzzer_scheduled')
+    # Run if the verifier_fuzzer_scheduled environment variable is set.
+    if: ${{ env.VERIFIER_FUZZER_SCHEDULED == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -344,8 +480,8 @@ jobs:
 
   core_helper_fuzzer:
     needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'core_helper_fuzzer')
+    # Run if the core_helper_fuzzer environment variable is set.
+    if: ${{ env.CORE_HELPER_FUZZER == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
@@ -358,8 +494,8 @@ jobs:
 
   netebpfext_fuzzer:
     needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'netebpfext_fuzzer')
+    # Run if the netebpfext_fuzzer environment variable is set.
+    if: ${{ env.NETEBPFEXT_FUZZER == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fuzzer
@@ -373,8 +509,8 @@ jobs:
   # Run Cilium regression tests in GitHub.
   cilium_tests:
     needs: regular
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'cilium_tests')
+    # Run if the cilium_tests environment variable is set.
+    if: ${{ env.CILIUM_TESTS == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: cilium_tests
@@ -387,8 +523,8 @@ jobs:
   # Run the quick stress tests in GitHub.
   stress:
     needs: regular
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'stress')
+    # Run if the stress environment variable is set.
+    if: ${{ env.STRESS == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: stress
@@ -403,7 +539,6 @@ jobs:
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     needs: sanitize
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'sanitize_unit_tests')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -418,7 +553,8 @@ jobs:
   # Run the fault injection simulator in GitHub.
   fault_injection:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'fault_injection')
+    # Run if the fault_injection environment variable is set.
+    if: ${{ env.FAULT_INJECTION == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection
@@ -433,7 +569,8 @@ jobs:
   # Run the low memory simulator for netebpfext_unit tests.
   fault_injection_netebpfext_unit:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'fault_injection_netebpfext_unit')
+    # Run if the fault_injection_netebpfext_unit environment variable is set.
+    if: ${{ env.FAULT_INJECTION_NETEBPFEXT_UNIT == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection
@@ -449,7 +586,8 @@ jobs:
   # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
   quick_user_mode_multi_threaded_stress_test:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'quick_user_mode_multi_threaded_stress_test')
+    # Run if the quick_user_mode_multi_threaded_stress_test environment variable is set.
+    if: ${{ env.QUICK_USER_MODE_MULTI_THREADED_STRESS_TEST == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: quick_user_mode_multi_threaded_stress
@@ -464,8 +602,8 @@ jobs:
   # Additional jobs to run on a schedule only (skip push and pull request).
   # ---------------------------------------------------------------------------
   codeql:
-    # Only run during daily scheduled run
-    if: github.event_name == 'schedule'
+    # Run if the codeql environment variable is set.
+    if: ${{ env.CODEQL == '1' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-CodeQl
@@ -476,7 +614,8 @@ jobs:
   # Runs on a schedule as this takes a long time to run.
   fault_injection_full:
     needs: regular
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'fault_injection_full')
+    # Run if the fault_injection_full environment variable is set.
+    if: ${{ env.FAULT_INJECTION_FULL == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection_full
@@ -492,7 +631,8 @@ jobs:
   # Runs on a schedule as this takes a long time to run.
   netebpfext_fault_injection_full:
     needs: regular
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'netebpfext_fault_injection_full')
+    # Run if the netebpfext_fault_injection_full environment variable is set.
+    if: ${{ env.NETEBPFEXT_FAULT_INJECTION_FULL == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection_full
@@ -506,7 +646,8 @@ jobs:
   # Run multi-threaded stress tests against the user mode 'mock' framework.
   user_mode_multi_threaded_stress_test:
     needs: regular
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'user_mode_multi_threaded_stress_test')
+    # Run if the user_mode_multi_threaded_stress_test environment variable is set.
+    if: ${{ env.USER_MODE_MULTI_THREADED_STRESS_TEST == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
@@ -522,7 +663,7 @@ jobs:
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests:
     needs: regular
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'km_mt_stress_tests')
+    if: ${{ env.KM_MT_STRESS_TESTS == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests
@@ -539,7 +680,8 @@ jobs:
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests_restart_extension:
     needs: regular
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'km_mt_stress_tests_restart_extension')
+    # Run if the km_mt_stress_tests_restart_extension environment variable is set.
+    if: ${{ env.KM_MT_STRESS_TESTS_RESTART_EXTENSION == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests_restart_extension
@@ -554,7 +696,8 @@ jobs:
 
   performance:
     needs: regular
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'performance')
+    # Run if the performance environment variable is set.
+    if: ${{ env.PERFORMANCE == '1' }}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
@@ -567,7 +710,7 @@ jobs:
 
   performance_with_profile:
     needs: regular
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'performance_with_profile')
+    # Run if the performance_with_profile environment variable is set.
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
