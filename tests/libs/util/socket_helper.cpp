@@ -67,7 +67,8 @@ get_string_from_address(_In_ const SOCKADDR* sockaddr)
     return std::string(ip_string);
 }
 
-_base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
+_base_socket::_base_socket(
+    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
     : socket(INVALID_SOCKET), family(_family), sock_type(_sock_type), protocol(_protocol), port(_port), local_address{},
       local_address_size(sizeof(local_address)), recv_buffer(std::vector<char>(1024)), recv_flags(0)
 {
@@ -90,8 +91,8 @@ _base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port, socket
 
     // Bind it to the wildcard address and supplied port.
     SOCKADDR_STORAGE local_addr;
+    memcpy(&local_addr, &_source_address, sizeof(_source_address));
     local_addr.ss_family = address_family;
-    INETADDR_SETANY((PSOCKADDR)&local_addr);
     INETADDR_SET_PORT((PSOCKADDR)&local_addr, htons(port));
 
     error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
@@ -126,10 +127,10 @@ _base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_
     message = recv_buffer.data();
 }
 
-_client_socket::_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
-    : _base_socket{_sock_type, _protocol, _port, _family}, overlapped{}, receive_posted(false)
-{
-}
+_client_socket::_client_socket(
+    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
+    : _base_socket{_sock_type, _protocol, _port, _family, _source_address}, overlapped{}, receive_posted(false)
+{}
 
 void
 _client_socket::close()
@@ -257,8 +258,7 @@ _datagram_client_socket::send_message_to_remote_host(
 
 void
 _datagram_client_socket::cancel_send_message()
-{
-}
+{}
 
 void
 _datagram_client_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)
@@ -267,8 +267,9 @@ _datagram_client_socket::complete_async_send(int timeout_in_ms, expected_result_
     UNREFERENCED_PARAMETER(expected_result);
 }
 
-_stream_client_socket::_stream_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
-    : _client_socket{_sock_type, _protocol, _port, _family}, connectex(nullptr)
+_stream_client_socket::_stream_client_socket(
+    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& source_address)
+    : _client_socket{_sock_type, _protocol, _port, _family, source_address}, connectex(nullptr)
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
@@ -435,21 +436,6 @@ _server_socket::complete_async_receive(bool timeout_expected)
     complete_async_receive(1000, timeout_expected);
 }
 
-int
-_server_socket::query_redirect_context(_Out_ void* buffer, uint32_t buffer_size, _Out_ uint32_t& redirect_context_size)
-{
-    return WSAIoctl(
-        socket,
-        SIO_QUERY_WFP_CONNECTION_REDIRECT_CONTEXT,
-        nullptr,
-        0,
-        buffer,
-        static_cast<unsigned long>(buffer_size),
-        reinterpret_cast<unsigned long*>(&redirect_context_size),
-        nullptr,
-        nullptr);
-}
-
 _datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, uint16_t _port)
     : _server_socket{_sock_type, _protocol, _port}, sender_address{}, sender_address_size(sizeof(sender_address))
 {
@@ -528,6 +514,14 @@ void
 _datagram_server_socket::complete_async_send(int timeout_in_ms)
 {
     UNREFERENCED_PARAMETER(timeout_in_ms);
+}
+
+int
+_datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size)
+{
+    UNREFERENCED_PARAMETER(buffer);
+    UNREFERENCED_PARAMETER(buffer_size);
+    return 1;
 }
 
 void
@@ -681,4 +675,20 @@ _stream_server_socket::close()
         closesocket(accept_socket);
     }
     accept_socket = INVALID_SOCKET;
+}
+
+int
+_stream_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size)
+{
+    uint32_t redirect_context_size = 0;
+    return WSAIoctl(
+        accept_socket,
+        SIO_QUERY_WFP_CONNECTION_REDIRECT_CONTEXT,
+        nullptr,
+        0,
+        buffer,
+        static_cast<unsigned long>(buffer_size),
+        reinterpret_cast<unsigned long*>(&redirect_context_size),
+        nullptr,
+        nullptr);
 }

@@ -20,7 +20,10 @@
 #include <fwpsk.h>
 #pragma warning(pop)
 #include <netiodef.h>
+#pragma warning(push)
+#pragma warning(disable : 4062) // enumerator 'identifier' in switch of enum 'enumeration' is not handled
 #include <wdf.h>
+#pragma warning(pop)
 
 #define NET_EBPF_EXT_DEVICE_NAME L"\\Device\\NetEbpfExt"
 

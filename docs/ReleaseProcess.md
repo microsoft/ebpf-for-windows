@@ -7,7 +7,7 @@ eBPF for Windows, and how to service it later.
 
 ## Creating a new release
 
-1. Create a working branch from "`main`" on your private repo fork, and check it out.
+1. Create a working branch from "`main`" on your private repo fork, and check it out (e.g., `<user>/release-X-Y-Z`).
 1. Run the following script from the root directory of the repository, within a "*Developer Poweshell for VS 2022"* instance. Make sure to follow [Semantic Versioning 2.0](https://semver.org) ("`X.Y.Z`"):
 
     ```ps
@@ -124,10 +124,15 @@ As a result of creating new release or servicing an existing one, the following 
 1. Click on the "`Choose a tag`" combo box and select the tag with new "`vX.Y.Z`" version number, as created earlier.
 1. Fill in the release title as "`vX.Y.Z`" (replace "`X.Y.Z`" with the version number being released).
 1. Manually enter release notes or click "`Generate release notes`" and then edit as desired.
-1. Attach the `.msi` and the (non-redist) `.nupkg` files by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area.
+1. Attach the `.msi`, the (non-redist) `.nupkg`, and the `Build-x64-native-only-Release.X.Y.Z.zip` build (from the CI/CD artifacts), by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area. For example, the file list for `v0.11.0` should be:
+
+    - *Build-x64-native-only-Release.0.11.0.zip*
+    - *ebpf-for-windows.0.11.0.msi*
+    - *eBPF-for-Windows.0.11.0.nupkg*
+
 1. Check the "`Set as a pre-release`" checkbox, unless the release is production-signed.
 1. Once the uploads are complete, click "`Publish release`".
 
 ### Publishing the Release to NuGet.org
 
-Upload the (non-redist) `.nupkg` file to [NuGet.org](https://www.nuget.org/) (the metadata inside the `.nuget` package itself will automatically populate all the other form fields).
+Upload the (**non-redist**) `.nupkg` file to [NuGet.org](https://www.nuget.org/) (the metadata inside the `.nuget` package itself will automatically populate all the other form fields).

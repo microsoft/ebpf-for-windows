@@ -4,14 +4,14 @@
 #define CATCH_CONFIG_MAIN
 #include "bpf_helpers.h"
 #include "catch_wrapper.hpp"
+#include "cxplat_passed_test_log.h"
 #include "netebpf_ext_helper.h"
-#include "passed_test_log.h"
 #include "watchdog.h"
 
 #include <map>
 
 CATCH_REGISTER_LISTENER(_watchdog)
-CATCH_REGISTER_LISTENER(_passed_test_log)
+CATCH_REGISTER_LISTENER(cxplat_passed_test_log)
 
 #define CONCURRENT_THREAD_RUN_TIME_IN_SECONDS 10
 

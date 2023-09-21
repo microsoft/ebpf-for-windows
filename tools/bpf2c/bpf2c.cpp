@@ -346,6 +346,8 @@ main(int argc, char** argv)
         case output_type::UserPE:
             emit_skeleton(out_stream, c_name, bpf2c_dll);
             break;
+        default:
+            throw std::runtime_error("Invalid output type");
         }
         generator.emit_c_code(out_stream);
     } catch (std::runtime_error err) {

@@ -632,8 +632,8 @@ _load_all_section_data_information()
     try {
         for (uint32_t index = 0; index < section_info_count; index++) {
             ebpf_section_definition_t* info = section_info[index];
-            _windows_section_definitions.emplace_back(ebpf_section_info_ptr_t(info));
             section_info[index] = nullptr;
+            _windows_section_definitions.emplace_back(ebpf_section_info_ptr_t(info));
         }
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
@@ -675,9 +675,9 @@ _load_all_program_data_information()
     try {
         for (uint32_t index = 0; index < program_info_count; index++) {
             ebpf_program_info_t* info = program_info[index];
+            program_info[index] = nullptr;
             ebpf_program_type_t program_type = info->program_type_descriptor.program_type;
             _windows_program_information[program_type] = ebpf_program_info_ptr_t(info);
-            program_info[index] = nullptr;
 
             EbpfProgramType* program_data = nullptr;
             result = _get_program_descriptor_from_info(info, &program_data);
