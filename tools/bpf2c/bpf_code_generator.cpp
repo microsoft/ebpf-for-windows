@@ -287,7 +287,6 @@ bpf_code_generator::parse(
     const bpf_code_generator::unsafe_string& section_name,
     const GUID& program_type,
     const GUID& attach_type,
-    const std::optional<std::vector<uint8_t>>& program_info_hash,
     const std::string& program_info_hash_type)
 {
     current_section = &sections[section_name];
@@ -296,22 +295,24 @@ bpf_code_generator::parse(
     get_register_name(10);
 
     set_pe_section_name(section_name);
-    set_program_and_attach_type_and_hash(program_type, attach_type, program_info_hash, program_info_hash_type);
+    set_program_and_attach_type_and_hash_type(program_type, attach_type, program_info_hash_type);
     extract_program(section_name);
     extract_relocations_and_maps(section_name);
 }
 
 void
-bpf_code_generator::set_program_and_attach_type_and_hash(
-    const GUID& program_type,
-    const GUID& attach_type,
-    const std::optional<std::vector<uint8_t>>& program_info_hash,
-    const std::string& program_info_hash_type)
+bpf_code_generator::set_program_and_attach_type_and_hash_type(
+    const GUID& program_type, const GUID& attach_type, const std::string& program_info_hash_type)
 {
     memcpy(&current_section->program_type, &program_type, sizeof(GUID));
     memcpy(&current_section->expected_attach_type, &attach_type, sizeof(GUID));
-    current_section->program_info_hash = program_info_hash;
     current_section->program_info_hash_type = program_info_hash_type;
+}
+
+void
+bpf_code_generator::set_program_hash_info(const std::optional<std::vector<uint8_t>>& program_info_hash)
+{
+    current_section->program_info_hash = program_info_hash;
 }
 
 void
@@ -322,6 +323,17 @@ bpf_code_generator::generate(const bpf_code_generator::unsafe_string& section_na
     generate_labels();
     build_function_table();
     encode_instructions(section_name);
+}
+
+std::vector<int32_t>
+bpf_code_generator::get_helper_ids()
+{
+    std::vector<int32_t> helper_ids;
+    for (const auto& [name, helper] : current_section->helper_functions) {
+        helper_ids.push_back(helper.id);
+    }
+
+    return helper_ids;
 }
 
 void
@@ -1067,6 +1079,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             case EBPF_SIZE_DW:
                 size_type = "uint64_t";
                 break;
+            default:
+                throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
             output.lines.push_back(
                 std::format("{} = *({}*)(uintptr_t)({} + {});", destination, size_type, source, offset));
@@ -1102,6 +1116,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 size_type = "uint64_t";
                 lock_type = "volatile int64_t";
                 break;
+            default:
+                throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
             raw_source = source;
             source = "(" + size_type + ")" + source;

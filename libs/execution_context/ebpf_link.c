@@ -474,11 +474,11 @@ static ebpf_result_t
 _ebpf_link_instance_invoke_batch_begin(
     _In_ const void* client_binding_context, size_t state_size, _Out_writes_(state_size) void* state)
 {
+    ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     bool epoch_entered = false;
     bool provider_reference_held = false;
     ebpf_result_t return_value;
     ebpf_link_t* link = (ebpf_link_t*)client_binding_context;
-    ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
 
     if (state_size < sizeof(ebpf_execution_context_state_t)) {
         return_value = EBPF_INVALID_ARGUMENT;
@@ -491,7 +491,7 @@ _ebpf_link_instance_invoke_batch_begin(
         goto Done;
     }
 
-    ((ebpf_execution_context_state_t*)state)->epoch_state = ebpf_epoch_enter();
+    ebpf_epoch_enter((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
     epoch_entered = true;
 
     return_value = ebpf_program_reference_providers(link->program);
@@ -511,7 +511,7 @@ Done:
     }
 
     if (return_value != EBPF_SUCCESS && epoch_entered) {
-        ebpf_epoch_exit(((ebpf_execution_context_state_t*)state)->epoch_state);
+        ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
     }
 
     return return_value;
@@ -524,7 +524,7 @@ _ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_c
     ebpf_link_t* link = (ebpf_link_t*)extension_client_binding_context;
     ebpf_assert_success(ebpf_state_store(ebpf_program_get_state_index(), 0, execution_context_state));
     ebpf_program_dereference_providers(link->program);
-    ebpf_epoch_exit(execution_context_state->epoch_state);
+    ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
     return EBPF_SUCCESS;
 }
 
@@ -603,6 +603,9 @@ _Requires_lock_held_(link->lock) static void _ebpf_link_set_state(
     case EBPF_LINK_STATE_DETACHED:
         // Program is unlinked from a provider.
         ebpf_assert(old_state == EBPF_LINK_STATE_DETACHING);
+        break;
+    default:
+        ebpf_assert(!"Invalid link state");
         break;
     }
     UNREFERENCED_PARAMETER(old_state);

@@ -275,6 +275,14 @@ function Import-ResultsFromVM
         # Copy ETL from Test VM.
         Write-Log ("Copy $EtlFile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
         Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\$EtlFile" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
+
+        # Copy performance results from Test VM.
+        Write-Log ("Copy performance results from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
+        Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\*.csv" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
+
+        # Copy the performance profile if present.
+        Write-Log ("Copy performance profile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
+        Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\bpf_performance*.etl" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
     }
     # Move runner test logs to TestLogs folder.
     Write-Host ("Copy $LogFileName from $env:TEMP on host runner to $pwd\TestLogs")
@@ -329,7 +337,7 @@ function Initialize-NetworkInterfacesOnVMs
 
 function Get-RegressionTestArtifacts
 {
-    $ArifactVersionList = @("0.9.0")
+    $ArifactVersionList = @("0.11.0")
     $RegressionTestArtifactsPath = "$pwd\regression"
     mkdir $RegressionTestArtifactsPath
 
@@ -346,9 +354,9 @@ function Get-RegressionTestArtifacts
 
         Write-Log "Extracting $ArtifactName"
         Expand-Archive -Path "$DownloadPath\artifact.zip" -DestinationPath $DownloadPath -Force
-        Expand-Archive -Path "$DownloadPath\build-Release.zip" -DestinationPath $DownloadPath -Force
+        Expand-Archive -Path "$DownloadPath\build-NativeOnlyRelease.zip" -DestinationPath $DownloadPath -Force
 
-        Move-Item -Path "$DownloadPath\Release\cgroup_sock_addr2.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
+        Move-Item -Path "$DownloadPath\NativeOnlyRelease\cgroup_sock_addr2.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
         Remove-Item -Path $DownloadPath -Force -Recurse
     }
 }

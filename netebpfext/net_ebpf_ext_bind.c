@@ -345,6 +345,11 @@ net_ebpf_ext_resource_allocation_classify(
             classify_output->actionType = FWP_ACTION_BLOCK;
             classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
             break;
+        // If the program returns any other value, we will block the bind.
+        default:
+            classify_output->actionType = FWP_ACTION_BLOCK;
+            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+            break;
         }
     }
 
@@ -445,7 +450,7 @@ _ebpf_bind_context_create(
     }
 
     bind_context =
-        (bind_md_t*)ExAllocatePoolUninitialized(NonPagedPool, sizeof(bind_md_t), NET_EBPF_EXTENSION_POOL_TAG);
+        (bind_md_t*)ExAllocatePoolUninitialized(NonPagedPoolNx, sizeof(bind_md_t), NET_EBPF_EXTENSION_POOL_TAG);
     NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, bind_context, "bind_context", result);
 
     // Copy the context from the caller.

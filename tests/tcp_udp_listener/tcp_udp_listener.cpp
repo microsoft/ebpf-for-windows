@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #define CATCH_CONFIG_RUNNER
+#define REDIRECT_CONTEXT_BUFFER_SIZE 128
 
 #include "catch_wrapper.hpp"
 #include "socket_helper.h"
@@ -24,6 +25,9 @@ _get_protocol_from_string(std::string protocol)
 void
 create_listener(_Inout_ receiver_socket_t* receiver_socket)
 {
+    std::string response;
+    char redirect_context_buffer[REDIRECT_CONTEXT_BUFFER_SIZE] = "\0";
+
     _global_counter++;
     // Post a receive. Wait for client to connect.
     printf("=====================================\n");
@@ -33,9 +37,16 @@ create_listener(_Inout_ receiver_socket_t* receiver_socket)
     receiver_socket->complete_async_receive(WSA_INFINITE, false);
     printf("Received data from remote\n");
 
-    // Send a response back.
-    std::string response = SERVER_MESSAGE + std::to_string(_local_port);
+    // Query for the redirect context.
+    // This is expected to only be valid for local redirections.
+    // If not present, use the generic SERVER_MESSAGE response.
+    if (receiver_socket->query_redirect_context(redirect_context_buffer, sizeof(redirect_context_buffer))) {
+        response = SERVER_MESSAGE + std::to_string(_local_port);
+    } else {
+        response = redirect_context_buffer + std::to_string(_local_port);
+    }
     printf("Sending response: %s\n", response.c_str());
+    // Send a response back.
     receiver_socket->send_async_response(response.c_str());
     receiver_socket->complete_async_send(1000);
     printf("Sent data to remote\n");

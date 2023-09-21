@@ -858,7 +858,7 @@ _create_hash_map_internal(
     const ebpf_hash_table_creation_options_t options = {
         .key_size = local_map->ebpf_map_definition.key_size,
         .value_size = local_map->ebpf_map_definition.value_size,
-        .bucket_count = local_map->ebpf_map_definition.max_entries,
+        .minimum_bucket_count = local_map->ebpf_map_definition.max_entries,
         .max_entries = local_map->ebpf_map_definition.max_entries,
         .extract_function = extract_function,
         .supplemental_value_size = supplemental_value_size,
@@ -1142,6 +1142,8 @@ _lru_hash_table_notification(
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
         _insert_into_hot_list(lru_map, entry);
         break;
+    default:
+        ebpf_assert(!"Invalid notification type");
     }
 }
 
@@ -1526,7 +1528,6 @@ static ebpf_result_t
 _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
-    uint32_t max_cpu = map->ebpf_map_definition.value_size / EBPF_PAD_8(map->original_value_size);
 
     if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].per_cpu)) {
         return EBPF_SUCCESS;
@@ -1534,9 +1535,6 @@ _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 
     current_cpu = ebpf_get_current_cpu();
 
-    if (current_cpu > max_cpu) {
-        return EBPF_INVALID_ARGUMENT;
-    }
     (*value) += EBPF_PAD_8((size_t)map->original_value_size) * current_cpu;
     return EBPF_SUCCESS;
 }

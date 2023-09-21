@@ -13,7 +13,7 @@
 param ([switch]$Uninstall,
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log")
 
-$WorkingDirectory = "$PSScriptRoot\.."
+$WorkingDirectory = "$PSScriptRoot"
 Write-Host "PSScriptRoot is $PSScriptRoot"
 Write-Host "WorkingDirectory is $WorkingDirectory"
 Write-Host "LogFileName is $LogFileName"

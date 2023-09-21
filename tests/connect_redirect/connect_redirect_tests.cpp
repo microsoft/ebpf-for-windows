@@ -359,6 +359,14 @@ connect_redirect_test(
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
     uint64_t authentication_id;
+    bool redirected = (destination_port != proxy_port || !INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&proxy));
+    // IPv6 redirect tests always redirect to the IPv6 address. The IPv4 address may be the dual stack or IPv4 address,
+    // depending on the inputs.
+    socket_family_t remote_address_family = (_globals.family == AF_INET6)
+                                                ? socket_family_t::IPv6
+                                                : (dual_stack ? socket_family_t::Dual : socket_family_t::IPv4);
+    bool local_redirect =
+        !INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[remote_address_family].remote_address);
 
     // Update policy in the map to redirect the connection to the proxy.
     _update_policy_map(destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
@@ -378,7 +386,15 @@ connect_redirect_test(
 
         sender_socket->get_received_message(bytes_received, received_message);
 
-        std::string expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
+        // For local redirection, the redirect context is expected to be set and returned.
+        // If the connection is not redirected or is redirected to a remote address,
+        // check for the SERVER_MESSAGE generic response.
+        std::string expected_response;
+        if (redirected && local_redirect && (_globals.protocol == IPPROTO_TCP)) {
+            expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
+        } else {
+            expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
+        }
         REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
         REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
     }
@@ -419,7 +435,7 @@ authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& de
 }
 
 void
-get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket)
+get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket, const sockaddr_storage& source_address = {})
 {
     impersonation_helper_t helper(_globals.user_type);
 
@@ -429,7 +445,7 @@ get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket)
                                  ? socket_family_t::Dual
                                  : ((_globals.family == AF_INET) ? socket_family_t::IPv4 : socket_family_t::IPv6);
     if (_globals.protocol == IPPROTO_TCP) {
-        new_socket = (client_socket_t*)new stream_client_socket_t(SOCK_STREAM, IPPROTO_TCP, 0, family);
+        new_socket = (client_socket_t*)new stream_client_socket_t(SOCK_STREAM, IPPROTO_TCP, 0, family, source_address);
     } else {
         new_socket = (client_socket_t*)new datagram_client_socket_t(SOCK_DGRAM, IPPROTO_UDP, 0, family);
     }
@@ -452,11 +468,14 @@ authorize_test_wrapper(bool dual_stack, _Inout_ sockaddr_storage& destination)
 
 void
 connect_redirect_test_wrapper(
-    _Inout_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy, bool dual_stack)
+    _In_ const sockaddr_storage& source_address,
+    _Inout_ sockaddr_storage& destination,
+    _In_ const sockaddr_storage& proxy,
+    bool dual_stack)
 {
     client_socket_t* sender_socket = nullptr;
 
-    get_client_socket(dual_stack, &sender_socket);
+    get_client_socket(dual_stack, &sender_socket, source_address);
     connect_redirect_test(
         sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
     delete sender_socket;
@@ -546,47 +565,48 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv
 // Dual stack socket, IPv6, UDP
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, IPPROTO_UDP)
 
-#define DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(original_destination, new_destination)                           \
-    void connection_redirection_tests_##original_destination##_##new_destination##(                                   \
-        ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)                   \
-    {                                                                                                                 \
-        _initialize_test_globals();                                                                                   \
-        _globals.family = family;                                                                                     \
-        _globals.protocol = protocol;                                                                                 \
-        const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                             \
-        const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                                   \
-        const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";                                  \
-        printf(                                                                                                       \
-            "REDIRECT: " #original_destination " -> " #new_destination " | %s | %s | %s\n",                           \
-            protocol_string,                                                                                          \
-            family_string,                                                                                            \
-            dual_stack_string);                                                                                       \
-        connect_redirect_test_wrapper(addresses.##original_destination##, addresses.##new_destination##, dual_stack); \
+#define DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(source, original_destination, new_destination)               \
+    void connection_redirection_tests_##original_destination##_##new_destination##(                               \
+        ADDRESS_FAMILY family, IPPROTO protocol, bool dual_stack, _In_ test_addresses_t& addresses)               \
+    {                                                                                                             \
+        _initialize_test_globals();                                                                               \
+        _globals.family = family;                                                                                 \
+        _globals.protocol = protocol;                                                                             \
+        const char* protocol_string = (_globals.protocol == IPPROTO_TCP) ? "TCP" : "UDP";                         \
+        const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                               \
+        const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";                              \
+        printf(                                                                                                   \
+            "REDIRECT: " #original_destination " -> " #new_destination " | %s | %s | %s\n",                       \
+            protocol_string,                                                                                      \
+            family_string,                                                                                        \
+            dual_stack_string);                                                                                   \
+        connect_redirect_test_wrapper(                                                                            \
+            addresses.##source##, addresses.##original_destination##, addresses.##new_destination##, dual_stack); \
     }
 
 // Declare connection_redirection_* test functions.
 
 // remote (vip) address to another remote address.
 // connection_redirection_tests_vip_address_remote_address
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(vip_address, remote_address)
+DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, remote_address)
 // remote (vip) address to loopback address.
 // connection_redirection_tests_vip_address_loopback_address
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(vip_address, loopback_address)
+DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(loopback_address, vip_address, loopback_address)
 // remote (vip) address to local address.
 // connection_redirection_tests_vip_address_local_address
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(vip_address, local_address)
+DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, local_address)
 // loopback address to remote address.
 // connection_redirection_tests_loopback_address_remote_address
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(loopback_address, remote_address)
+DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, remote_address)
 // loopback address to local address.
 // connection_redirection_tests_loopback_address_local_address
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(loopback_address, local_address)
+DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, local_address)
 // local address to remote address.
 // connection_redirection_tests_local_address_remote_address
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, remote_address)
+DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, remote_address)
 // local address to loopback address.
 // connection_redirection_tests_local_address_loopback_address
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address)
+DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(loopback_address, local_address, loopback_address)
 
 #define DECLARE_CONNECTION_REDIRECTION_V4_TEST_CASE(                                                     \
     socket_family_name, socket_family_type, dual_stack, protocol, original_destination, new_destination) \

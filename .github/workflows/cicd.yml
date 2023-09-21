@@ -17,6 +17,8 @@ on:
   # Run on pull request to validate code changes.
   pull_request:
   merge_group:
+  # Permit manual runs of the workflow.
+  workflow_dispatch:
   # Run on push so we can capture the baseline code coverage.
   push:
     branches: [ main ]
@@ -28,6 +30,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  id-token: write # Required to log in to Azure.
   contents: read
   checks: read  # Required by reusable-test.yml to check build status.
   security-events: write # Required by codeql task.
@@ -40,7 +43,7 @@ jobs:
   # Perform the regular build.
   regular:
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64
@@ -130,38 +133,76 @@ jobs:
       capture_etw: true
 
   # Run the driver tests on self-hosted runners.
-  driver:
+  driver_ws2019:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows'
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
       post_test: .\cleanup_ebpf_cicd_tests.ps1
-      name: driver
+      name: driver_ws2019
       build_artifact: Build-x64
-      environment: ebpf_cicd_tests
+      environment: ebpf_cicd_tests_ws2019
+      # driver test copies dumps to testlog folder.
+      gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
+
+  # Run the driver tests on self-hosted runners.
+  driver_ws2022:
+    # Always run this job.
+    # Only run this on repos that have self-host runners.
+    needs: regular
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      name: driver_ws2022
+      build_artifact: Build-x64
+      environment: ebpf_cicd_tests_ws2022
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage
       code_coverage: false
 
   # Run the native-only driver tests on self-hosted runners.
-  driver_native_only:
+  driver_native_only_ws2019:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows'
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
       post_test: .\cleanup_ebpf_cicd_tests.ps1
-      name: driver
+      name: driver_native_only_ws2019
       build_artifact: Build-x64-native-only
-      environment: ebpf_cicd_tests
+      environment: ebpf_cicd_tests_ws2019
+      # driver test copies dumps to testlog folder.
+      gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
+
+  driver_native_only_ws2022:
+    # Always run this job.
+    # Only run this on repos that have self-host runners.
+    needs: regular_native-only
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      name: driver_native_only_ws2022
+      build_artifact: Build-x64-native-only
+      environment: ebpf_cicd_tests_ws2022
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage
@@ -342,6 +383,7 @@ jobs:
   # Run the fault injection simulator in GitHub.
   fault_injection:
     needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection
@@ -356,6 +398,7 @@ jobs:
   # Run the low memory simulator for netebpfext_unit tests.
   fault_injection_netebpfext_unit:
     needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection
@@ -371,6 +414,7 @@ jobs:
   # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
   quick_user_mode_multi_threaded_stress_test:
     needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: quick_user_mode_multi_threaded_stress
@@ -448,7 +492,7 @@ jobs:
     with:
       name: km_mt_stress_tests
       pre_test: .\setup_ebpf_cicd_stress_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1 -RunKmStressTestsOnly $true
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
@@ -465,10 +509,48 @@ jobs:
     with:
       name: km_mt_stress_tests_restart_extension
       pre_test: .\setup_ebpf_cicd_stress_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1 -RunKmStressTestsOnly $true -RestartExtension $true
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
+
+  performance:
+    needs: regular
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      build_artifact: Build-x64
+      environment: ebpf_cicd_perf_ws2022
+      configurations: '["Release"]'
+
+  performance_with_profile:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      build_artifact: Build-x64
+      configurations: '["Release"]'
+      environment: ebpf_cicd_perf_ws2022
+
+  upload_perf_results:
+    needs: performance
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_perf_results
+      result_artifact: km_performance-x64-Release
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}

@@ -392,7 +392,15 @@ ebpf_core_resolve_helper(
         goto Done;
     }
 
+    return_value = ebpf_program_set_program_info_hash(program);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
 Done:
+    if (return_value != EBPF_SUCCESS && program != NULL) {
+        ebpf_program_clear_helper_function_ids(program);
+    }
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
     EBPF_RETURN_RESULT(return_value);
 }
@@ -423,17 +431,15 @@ _ebpf_core_protocol_resolve_helper(
         goto Done;
     }
 
-    if (count_of_helpers == 0) {
-        goto Done;
-    }
-
-    request_helper_ids = (uint32_t*)ebpf_allocate_with_tag(count_of_helpers * sizeof(uint32_t), EBPF_POOL_TAG_CORE);
-    if (request_helper_ids == NULL) {
-        return_value = EBPF_NO_MEMORY;
-        goto Done;
-    }
-    for (helper_index = 0; helper_index < count_of_helpers; helper_index++) {
-        request_helper_ids[helper_index] = request->helper_id[helper_index];
+    if (count_of_helpers != 0) {
+        request_helper_ids = (uint32_t*)ebpf_allocate_with_tag(count_of_helpers * sizeof(uint32_t), EBPF_POOL_TAG_CORE);
+        if (request_helper_ids == NULL) {
+            return_value = EBPF_NO_MEMORY;
+            goto Done;
+        }
+        for (helper_index = 0; helper_index < count_of_helpers; helper_index++) {
+            request_helper_ids[helper_index] = request->helper_id[helper_index];
+        }
     }
 
     return_value =
@@ -993,19 +999,50 @@ _ebpf_core_protocol_program_test_run(
 
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
-    size_t data_in_end;
+    size_t data_size_in;
+    size_t data_size_out;
+    size_t context_size_in;
+    size_t context_size_out;
 
-    // Validate that the request is large enough to contain the context_offset.
-    retval = ebpf_safe_size_t_add(
-        EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data), request->context_offset, &data_in_end);
+    data_size_in = request->context_offset;
 
+    context_size_in = request->header.length;
+
+    // Subtract the header.
+    retval = ebpf_safe_size_t_subtract(
+        context_size_in, EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data), &context_size_in);
     if (retval != EBPF_SUCCESS) {
+        // Request isn't big enough to contain the header.
         goto Done;
     }
 
-    if (data_in_end > request->header.length) {
-        retval = EBPF_INVALID_ARGUMENT;
+    // Subtract the data size.
+    retval = ebpf_safe_size_t_subtract(context_size_in, data_size_in, &context_size_in);
+    if (retval != EBPF_SUCCESS) {
+        // Request isn't big enough to contain the data.
         goto Done;
+    }
+
+    data_size_out = reply_length;
+
+    // Subtract the header.
+    retval = ebpf_safe_size_t_subtract(
+        data_size_out, EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data), &data_size_out);
+    if (retval != EBPF_SUCCESS) {
+        // Reply isn't big enough to contain the header.
+        goto Done;
+    }
+
+    if (context_size_in > 0) {
+        context_size_out = context_size_in;
+        // Subtract the context size.
+        retval = ebpf_safe_size_t_subtract(data_size_out, context_size_out, &data_size_out);
+        if (retval != EBPF_SUCCESS) {
+            // Reply isn't big enough to contain the header and the context.
+            goto Done;
+        }
+    } else {
+        context_size_out = 0;
     }
 
     retval =
@@ -1020,11 +1057,10 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
     }
 
-    options->data_size_in = request->context_offset;
-    options->context_size_in = (size_t)(request->header.length) - data_in_end;
-    options->context_size_out = options->context_size_in;
-    options->data_size_out = (size_t)reply_length - EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) -
-                             options->context_size_out;
+    options->data_size_in = data_size_in;
+    options->context_size_in = context_size_in;
+    options->context_size_out = context_size_out;
+    options->data_size_out = data_size_out;
     options->repeat_count = request->repeat_count;
     options->flags = request->flags;
     options->cpu = request->cpu;
@@ -1103,8 +1139,8 @@ _ebpf_core_protocol_query_program_info(
     reply->header.length = (uint16_t)required_reply_length;
 
 Done:
-    cxplat_utf8_string_free(&file_name);
-    cxplat_utf8_string_free(&section_name);
+    cxplat_free_utf8_string(&file_name);
+    cxplat_free_utf8_string(&section_name);
 
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
 
@@ -1764,6 +1800,9 @@ _ebpf_core_protocol_get_object_info(
     case EBPF_OBJECT_PROGRAM:
         result = ebpf_program_get_info((ebpf_program_t*)object, request->info, reply->info, &info_size);
         break;
+    default:
+        result = EBPF_INVALID_ARGUMENT;
+        break;
     }
 
     if (result == EBPF_SUCCESS) {
@@ -2391,7 +2430,8 @@ ebpf_core_invoke_protocol_handler(
     _In_opt_ void (*on_complete)(_Inout_ void*, size_t, ebpf_result_t))
 {
     ebpf_result_t retval;
-    ebpf_epoch_state_t* epoch_state = NULL;
+    ebpf_epoch_state_t epoch_state = {0};
+    bool in_epoch = false;
     ebpf_protocol_handler_t* handler = &_ebpf_protocol_handlers[operation_id];
     ebpf_operation_header_t* request = (ebpf_operation_header_t*)input_buffer;
     ebpf_operation_header_t* reply = (ebpf_operation_header_t*)output_buffer;
@@ -2430,11 +2470,15 @@ ebpf_core_invoke_protocol_handler(
     case EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY:
+    case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC:
         if (input_buffer_length < handler->minimum_request_size) {
             retval = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
         break;
+    default:
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
     // Validate output_buffer_length and output_buffer.
@@ -2456,11 +2500,15 @@ ebpf_core_invoke_protocol_handler(
         break;
     case EBPF_PROTOCOL_FIXED_REQUEST_VARIABLE_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY:
+    case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC:
         if (!output_buffer || output_buffer_length < handler->minimum_reply_size) {
             retval = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
         break;
+    default:
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
     if (request->length > input_buffer_length || request->length < sizeof(*request)) {
@@ -2468,7 +2516,8 @@ ebpf_core_invoke_protocol_handler(
         goto Done;
     }
 
-    epoch_state = ebpf_epoch_enter();
+    ebpf_epoch_enter(&epoch_state);
+    in_epoch = true;
     retval = EBPF_SUCCESS;
 
     switch (handler->call_type) {
@@ -2528,11 +2577,14 @@ ebpf_core_invoke_protocol_handler(
             ebpf_assert_success(ebpf_async_reset_completion_callback(async_context));
         }
         break;
+    default:
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
 Done:
-    if (epoch_state) {
-        ebpf_epoch_exit(epoch_state);
+    if (in_epoch) {
+        ebpf_epoch_exit(&epoch_state);
     }
     return retval;
 }
@@ -2540,9 +2592,10 @@ Done:
 bool
 ebpf_core_cancel_protocol_handler(_Inout_ void* async_context)
 {
-    ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
+    ebpf_epoch_state_t epoch_state = {0};
+    ebpf_epoch_enter(&epoch_state);
     bool return_value = ebpf_async_cancel(async_context);
-    ebpf_epoch_exit(epoch_state);
+    ebpf_epoch_exit(&epoch_state);
     return return_value;
 }
 
@@ -2553,12 +2606,13 @@ ebpf_core_close_context(_In_opt_ void* context)
         return;
     }
 
-    ebpf_epoch_state_t* epoch_state = ebpf_epoch_enter();
+    ebpf_epoch_state_t epoch_state = {0};
+    ebpf_epoch_enter(&epoch_state);
 
     ebpf_core_object_t* object = (ebpf_core_object_t*)context;
     EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT((&object->base));
 
-    ebpf_epoch_exit(epoch_state);
+    ebpf_epoch_exit(&epoch_state);
 }
 
 _Must_inspect_result_ ebpf_result_t

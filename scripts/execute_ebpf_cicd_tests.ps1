@@ -7,8 +7,8 @@ param ([parameter(Mandatory=$false)][string] $AdminTarget = "TEST_VM",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][bool] $Coverage = $false,
-       [parameter(Mandatory=$false)][bool] $RunKmStressTestsOnly = $false,
-       [parameter(Mandatory=$false)][bool] $RestartExtension = $false,
+       [parameter(Mandatory=$false)][string] $TestMode = "CI/CD",
+       [parameter(Mandatory=$false)][string[]] $Options = @("None"),
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName)
 
 Push-Location $WorkingDirectory
@@ -29,16 +29,13 @@ foreach ($VM in $VMList) {
     Invoke-CICDTestsOnVM `
         -VMName $VM.Name `
         -Coverage $Coverage `
-        -RunKmStressTestsOnly $RunKmStressTestsOnly `
-        -RestartExtension $RestartExtension
+        -TestMode $TestMode `
+        -Options $Options
 }
 
-# This script is used to execute the regular kernel mode tests as well as the scheduled kernel mode stress tests. The
-# required behavior is selected by the $RunKmStressTestsOnly parameter which is set to 'true' only for the scheduled
-# runs.  The other tests i.e., Invoke-XDPTestsOnVM, Invoke-ConnectRedirectTestsOnVM and
-# Invoke-ConnectRedirectTestsOnVM are already handled by other jobs, so re-executing them again along with the stress
-# tests is redundant.
-if ($RunKmStressTestsOnly -eq $false) {
+# This script is used to execute the various kernel mode tests. The required behavior is selected by the $TestMode
+# parameter.
+if ($TestMode -eq "CI/CD") {
 
     # Run XDP Tests.
     Invoke-XDPTestsOnVM $Config.Interfaces $VMList[0].Name
