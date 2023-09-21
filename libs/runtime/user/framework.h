@@ -3,12 +3,15 @@
 
 #pragma once
 
+#include "cxplat_fault_injection.h"
 #include "ebpf_shared_framework.h"
 #include "usersim\ex.h"
 #include "usersim\ke.h"
 #include "usersim\ps.h"
 #include "usersim\rtl.h"
 #include "usersim\se.h"
+
+#define ebpf_fault_injection_is_enabled() cxplat_fault_injection_is_enabled()
 
 #ifdef __cplusplus
 extern "C"
