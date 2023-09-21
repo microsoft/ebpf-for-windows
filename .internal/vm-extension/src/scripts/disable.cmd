@@ -1,0 +1,1 @@
+powershell.exe .\scripts\disable.ps1

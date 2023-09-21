@@ -7,6 +7,7 @@ Set-Location "$testRootFolder"
 . ..\scripts\common.ps1
 
 $testPass = 0
+$EbpfPackagePath = ".\package"
 
 function Exit-Tests {
     param (

@@ -1,9 +1,11 @@
 #######################################################
 # Global Variables
 #######################################################
-# Define the eBPF Handler Environment variables.
+# Define eBPF Handler Environment variables.
+#Set-Variable -Name "AksRegistryKeyPath" -Value "HKLM:\Software\AKS\Key" # TBD: change to the actual registry key
+#Set-Variable -Name "AksRegistryKeyValue" -Value 1 # TBD: change to the actual registry value
 Set-Variable -Name "EbpfExtensionName" -Value "eBPFforWindows"
-Set-Variable -Name "EbpfPackageRelativePath" -Value ".\package"
+Set-Variable -Name "EbpfPackagePath" -Value ".\"
 Set-Variable -Name "EbpfDefaultInstallPath" -Value "$env:ProgramFiles\ebpf-for-windows"
 Set-Variable -Name "EbpfNetshExtensionName" -Value "ebpfnetsh.dll"
 Set-Variable -Name "EbpfTracingStartupTaskName" -Value "eBpfTracingStartupTask"
@@ -170,9 +172,12 @@ function Report-Status {
     Write-Log -level $LogLevelInfo -message "Report-Status($name, $operation, $status, $statusCode, $statusMessage)"
 
     # Get the SequenceNumber from the name of the latest *modified* ..settings file.
-    # TBD: confirm this is the correct way to get the latest .settings file (i.e. rather than the numbering in the file name).
-    $settingsFiles = Get-ChildItem -Path "$($global:eBPFHandlerEnvObj.handlerEnvironment.configFolder)" -Include "$EbpfExtensionName.*.settings" -Recurse | Sort-Object LastWriteTime -Descending
-    $lastSequenceNumber = $settingsFiles[0].Name
+    # TBD (UNRELIABLE!!): confirm this is the correct way to get the latest .settings file (i.e. rather than the numbering in the file name).
+    # $settingsFiles = Get-ChildItem -Path "$($global:eBPFHandlerEnvObj.handlerEnvironment.configFolder)" -Include "$EbpfExtensionName.*.settings" -Recurse | Sort-Object LastWriteTime -Descending
+    # $lastSequenceNumber = $settingsFiles[0].Name
+	
+    # Retrieve the SequenceNumber from the process' environment variable.
+	$lastSequenceNumber = $env:ConfigSequenceNumber
 
     # Construct the status JSON object
     $statusObject = @{
@@ -670,7 +675,7 @@ function Upgrade-eBPF {
             Write-Log -level $LogLevelError -message $statusMessage
         } else {
             Write-Log -level $LogLevelInfo -message "eBPF v$currProductVersion uninstalled successfully."
-            $statusCode = Install-eBPF -sourcePath "$EbpfPackageRelativePath" -destinationPath "$installDirectory"
+            $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$installDirectory"
             if ($statusCode -ne 0) {
                 $statusMessage = "eBPF $operationName FAILED (Install failed)."
                 Write-Log -level $LogLevelError -message $statusMessage
@@ -756,7 +761,7 @@ function InstallOrUpdate-eBPF-Handler {
     if ($currDriverPath) {
         Write-Log -level $LogLevelInfo -message "Found eBPF driver installed and registered from: '$currDriverPath'"
 
-        # TBD: check if the driver is registered in the default folder, if not, log a warning and proceed with the installation in the current folder it was found in.
+        # TBD: check if the driver is registered in the default folder, if not, log a warning and proceed with the installation in the current folder.
         $currInstallPath = Split-Path -Path $currDriverPath -Parent | Split-Path -Parent
         if ($currInstallPath -ne $EbpfDefaultInstallPath) {
             Write-Log -level $LogLevelWarning -message "'$EbpfDriverName' driver registered from a non-default folder: [$currInstallPath] instead of [$EbpfDefaultInstallPath]"
@@ -935,7 +940,7 @@ function Install-eBPF-Handler {
 
     # Install or Update eBPF for Windows.
     # NOTE: The install operation does not generate a status file, since the VM Agent will afterwards call the enable operation.
-    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackageRelativePath" -destinationPath "$EbpfDefaultInstallPath"
+    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
 }
 
 function Update-eBPF-Handler {
@@ -946,11 +951,11 @@ function Update-eBPF-Handler {
     Report-Status -name $StatusName -operation $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -statusMessage "Starting update"
 
     # Update eBPF for Windows.
-    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameUpdate -sourcePath "$EbpfPackageRelativePath" -destinationPath "$EbpfDefaultInstallPath"
+    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
 }
 
 #######################################################
 # Main entry point
 #######################################################
-# Call the Get-HandlerEnvironment function, capture the output and set the global environment object variable.
+# Call the Get-HandlerEnvironment function, capture the output and set the global environment variable.
 Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironmentFilePath" | Out-Null

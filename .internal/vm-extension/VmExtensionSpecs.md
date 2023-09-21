@@ -210,8 +210,9 @@ $vmExtName = "eBpfForWindows" # NOTE: this is the desired name for the extension
 $vmResourceGroup = "eBpfVmExtension"
 $vmLocation = "eastus2euap"
 $vmName = "eBpfVm-EastEUAP"
+$extSettings = @{"runtimeSettings" = "[]";};
 
-Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $vmExtName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $vmResourceGroup -VMName $vmName
+Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $vmExtName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $vmResourceGroup -VMName $vmName -Settings $extSettings
 ```
 
 While CollectGuestLogs.exe is always under `C:\WindowsAzure`, different guest agent versions will have it in different subfolders, so the PowerShell command below will find it in whichever `C:\WindowsAzure`` subfolder it resides, and then run it.
