@@ -22,37 +22,9 @@ on:
     # Provide arguments to the workflow_dispatch event.
     inputs:
       type:
-        description: 'Type of test to run'
+        description: 'Type of test to run. One or more of: unit_tests, netebpf_ext_unit_tests, bpf2c, bpf2c_conformance, driver_ws2019, driver_ws2022, driver_native_only_ws2019, driver_native_only_ws2022, ossar, bpf2c_fuzzer, bpf2c_fuzzer_scheduled, execution_context_fuzzer, verifier_fuzzer, verifier_fuzzer_scheduled, core_helper_fuzzer, netebpfext_fuzzer, cilium_tests, stress, sanitize_unit_tests, fault_injection, fault_injection_netebpfext_unit, quick_user_mode_multi_threaded_stress_test, user_mode_multi_threaded_stress_test, km_mt_stress_tests, km_mt_stress_tests_restart_extension, performance, performance_with_profile'
         required: true
-        type: choice
-        options:
-        - 'unit_tests'
-        - 'netebpf_ext_unit_tests'
-        - 'bpf2c'
-        - 'bpf2c_conformance'
-        - 'driver_ws2019'
-        - 'driver_ws2022'
-        - 'driver_native_only_ws2019'
-        - 'driver_native_only_ws2022'
-        - 'ossar'
-        - 'bpf2c_fuzzer'
-        - 'bpf2c_fuzzer_scheduled'
-        - 'execution_context_fuzzer'
-        - 'verifier_fuzzer'
-        - 'verifier_fuzzer_scheduled'
-        - 'core_helper_fuzzer'
-        - 'netebpfext_fuzzer'
-        - 'cilium_tests'
-        - 'stress'
-        - 'sanitize_unit_tests'
-        - 'fault_injection'
-        - 'fault_injection_netebpfext_unit'
-        - 'quick_user_mode_multi_threaded_stress_test'
-        - 'user_mode_multi_threaded_stress_test'
-        - 'km_mt_stress_tests'
-        - 'km_mt_stress_tests_restart_extension'
-        - 'performance'
-        - 'performance_with_profile'
+        type: string
 
   # Run on push so we can capture the baseline code coverage.
   push:
@@ -99,6 +71,8 @@ jobs:
             'workflow_dispatch' { $tests = '${{ github.event.inputs.type }}' }
           }
           echo "tests=$tests"
+          echo "JOB=${{githb.job}}"
+          echo "::set-output name=tests::$tests" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
 
   # Jobs to run on pull, push, and schedule.
   # ---------------------------------------------------------------------------
@@ -269,6 +243,7 @@ jobs:
   # ---------------------------------------------------------------------------
   # Build with C++ static analyzer.
   analyze:
+    needs: select-jobs
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Analyze
@@ -277,6 +252,7 @@ jobs:
 
   # Build with C++ address sanitizer.
   sanitize:
+    needs: select-jobs
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Sanitize
