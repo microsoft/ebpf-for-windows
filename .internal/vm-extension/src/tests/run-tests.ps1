@@ -7,7 +7,6 @@ Set-Location "$testRootFolder"
 . ..\scripts\common.ps1
 
 $testPass = 0
-$EbpfPackagePath = ".\package"
 
 function Exit-Tests {
     param (
@@ -80,6 +79,13 @@ function Setup-Test-Package {
 
 # Load test-environment (current working folder is the root folder in which the entire ZIP in unzipped).
 if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironmentFilePath") -eq 0) {
+    
+    # Override the default package path.
+    $EbpfPackagePath = ".\package"
+
+    # Mock the VM-Agent provisioning the SequenceNumber environment variable.
+    Set-EnvironmentVariable($VmAgentEnvVar_SEQUENCE_NO, "1002") | Out-Null
+
 
     # Test cases
     #######################################################

@@ -20,6 +20,7 @@ $EbpfDrivers =
 
 # VM Agent-generated environment variables.
 Set-Variable -Name "VmAgentEnvVar_VERSION" -Value "VERSION"
+Set-Variable -Name "VmAgentEnvVar_SEQUENCE_NO" -Value "ConfigSequenceNumber"
 
 # Define the VM extension's generic and Status file constants.
 Set-Variable -Name "DefaultHandlerEnvironmentFilePath" -Value ".\HandlerEnvironment.json"
@@ -170,7 +171,7 @@ function Report-Status {
     Write-Log -level $LogLevelInfo -message "Report-Status($name, $operation, $status, $statusCode, $statusMessage)"
 
     # Retrieve the SequenceNumber from the process' environment variable.
-	$lastSequenceNumber = Get-EnvironmentVariable("ConfigSequenceNumber")
+	$lastSequenceNumber = Get-EnvironmentVariable($VmAgentEnvVar_SEQUENCE_NO)
 
     # Construct the status JSON object
     $statusObject = @{
