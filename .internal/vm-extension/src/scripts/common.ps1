@@ -2,8 +2,6 @@
 # Global Variables
 #######################################################
 # Define eBPF Handler Environment variables.
-#Set-Variable -Name "AksRegistryKeyPath" -Value "HKLM:\Software\AKS\Key" # TBD: change to the actual registry key
-#Set-Variable -Name "AksRegistryKeyValue" -Value 1 # TBD: change to the actual registry value
 Set-Variable -Name "EbpfExtensionName" -Value "eBPFforWindows"
 Set-Variable -Name "EbpfPackagePath" -Value ".\"
 Set-Variable -Name "EbpfDefaultInstallPath" -Value "$env:ProgramFiles\ebpf-for-windows"
@@ -93,7 +91,7 @@ function Set-EnvironmentVariable {
     Write-Log -level $LogLevelInfo -message "Set-EnvironmentVariable($variableName, $variableValue)"
     
     try {
-        [Environment]::SetEnvironmentVariable($variableName, $variableValue, [System.EnvironmentVariableTarget]::Machine)
+        [Environment]::SetEnvironmentVariable($variableName, $variableValue, [System.EnvironmentVariableTarget]::Process)
         Write-Log -level $LogLevelInfo -message "Environment variable '$variableName' set successfully."
     }
     catch {
@@ -111,7 +109,7 @@ function Get-EnvironmentVariable {
 
     Write-Log -level $LogLevelInfo -message "Get-EnvironmentVariable($variableName)"
 
-    $variableValue = [Environment]::GetEnvironmentVariable($variableName, [System.EnvironmentVariableTarget]::Machine)
+    $variableValue = [Environment]::GetEnvironmentVariable($variableName, [System.EnvironmentVariableTarget]::Process)
     if ([string]::IsNullOrWhiteSpace($variableValue)) {
         Write-Log -level $LogLevelError -message "Environment variable '$variableName' is not set or has an empty value."
     } else {
@@ -171,13 +169,8 @@ function Report-Status {
 
     Write-Log -level $LogLevelInfo -message "Report-Status($name, $operation, $status, $statusCode, $statusMessage)"
 
-    # Get the SequenceNumber from the name of the latest *modified* ..settings file.
-    # TBD (UNRELIABLE!!): confirm this is the correct way to get the latest .settings file (i.e. rather than the numbering in the file name).
-    # $settingsFiles = Get-ChildItem -Path "$($global:eBPFHandlerEnvObj.handlerEnvironment.configFolder)" -Include "$EbpfExtensionName.*.settings" -Recurse | Sort-Object LastWriteTime -Descending
-    # $lastSequenceNumber = $settingsFiles[0].Name
-	
     # Retrieve the SequenceNumber from the process' environment variable.
-	$lastSequenceNumber = $env:ConfigSequenceNumber
+	$lastSequenceNumber = Get-EnvironmentVariable("ConfigSequenceNumber")
 
     # Construct the status JSON object
     $statusObject = @{
@@ -761,7 +754,7 @@ function InstallOrUpdate-eBPF-Handler {
     if ($currDriverPath) {
         Write-Log -level $LogLevelInfo -message "Found eBPF driver installed and registered from: '$currDriverPath'"
 
-        # TBD: check if the driver is registered in the default folder, if not, log a warning and proceed with the installation in the current folder.
+        # TBC: check if the driver is registered in the default folder, if not, log a warning and proceed with the installation in the current folder.
         $currInstallPath = Split-Path -Path $currDriverPath -Parent | Split-Path -Parent
         if ($currInstallPath -ne $EbpfDefaultInstallPath) {
             Write-Log -level $LogLevelWarning -message "'$EbpfDriverName' driver registered from a non-default folder: [$currInstallPath] instead of [$EbpfDefaultInstallPath]"
@@ -863,7 +856,7 @@ function Restart-GuestProxyAgent-Service {
 
 function Reset-eBPF-Handler {
     # NOP for this current implementation.
-    # TBD: confirm if Reset does not need to generate a status file. The docs say "Yes?"...
+    # Reset does not need to generate a status file.
     Write-Log -level $LogLevelInfo -message "Reset-eBPF-Handler()"
 }
 
@@ -901,7 +894,7 @@ function Disable-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Disable-eBPF-Handler()"
 
-    # TBD: confirm if Disable does not need to generate a status file. The docs say "Yes?"...
+    # Disable does not need to generate a status file.
     $statusCode = Stop-eBPFDrivers
     if ($statusCode -eq 0) {    
         $statusString = $StatusSuccess
