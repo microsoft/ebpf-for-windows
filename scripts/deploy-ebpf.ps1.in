@@ -119,6 +119,10 @@ $source_directory="."
     "encap_reflect_packet_um.dll",
     "encap_reflect_packet_um.pdb",
     "encap_reflect_packet.sys",
+    "hash_of_map_in_array_map.o"
+    "hash_of_map_in_array_map_um.dll",
+    "hash_of_map_in_array_map_um.pdb",
+    "hash_of_map_in_array_map.sys",
     "invalid_maps1_um.dll",
     "invalid_maps1.sys",
     "invalid_maps2_um.dll",

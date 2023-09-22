@@ -1662,7 +1662,8 @@ TEST_CASE("simple hash of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYP
 
 // Verify an app can communicate with an eBPF program via an array of maps.
 static void
-_array_of_maps_test(ebpf_execution_type_t execution_type, _In_ PCSTR dll_name, _In_ PCSTR obj_name)
+_array_of_maps_test(
+    ebpf_execution_type_t execution_type, ebpf_map_type_t inner_map_type, _In_ PCSTR dll_name, _In_ PCSTR obj_name)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -1688,7 +1689,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type, _In_ PCSTR dll_name, _
     REQUIRE(outer_map_fd > 0);
 
     // Create an inner map.
-    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
+    int inner_map_fd = bpf_map_create(inner_map_type, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
     // Add a value to the inner map.
@@ -1724,16 +1725,26 @@ _array_of_maps_test(ebpf_execution_type_t execution_type, _In_ PCSTR dll_name, _
 static void
 _array_of_btf_maps_test(ebpf_execution_type_t execution_type)
 {
-    _array_of_maps_test(execution_type, "map_in_map_btf_um.dll", "map_in_map_btf.o");
+    _array_of_maps_test(execution_type, BPF_MAP_TYPE_HASH, "map_in_map_btf_um.dll", "map_in_map_btf.o");
 }
 
 DECLARE_JIT_TEST_CASES("array of btf maps", "[libbpf]", _array_of_btf_maps_test);
+
+// Create a map-in-map with outer map of hash_of_maps and inner map of array.
+static void
+_array_of_hash_maps_test(ebpf_execution_type_t execution_type)
+{
+    _array_of_maps_test(
+        execution_type, BPF_MAP_TYPE_ARRAY, "hash_of_map_in_array_map_um.dll", "hash_of_map_in_array_map.o");
+}
+
+DECLARE_JIT_TEST_CASES("array of hash maps", "[libbpf]", _array_of_hash_maps_test);
 
 // Create a map-in-map using id and inner_id.
 static void
 _array_of_id_maps_test(ebpf_execution_type_t execution_type)
 {
-    _array_of_maps_test(execution_type, "map_in_map_legacy_id_um.dll", "map_in_map_legacy_id.o");
+    _array_of_maps_test(execution_type, BPF_MAP_TYPE_HASH, "map_in_map_legacy_id_um.dll", "map_in_map_legacy_id.o");
 }
 
 DECLARE_JIT_TEST_CASES("array of id maps", "[libbpf]", _array_of_id_maps_test);
@@ -1742,7 +1753,7 @@ DECLARE_JIT_TEST_CASES("array of id maps", "[libbpf]", _array_of_id_maps_test);
 static void
 _array_of_idx_maps_test(ebpf_execution_type_t execution_type)
 {
-    _array_of_maps_test(execution_type, "map_in_map_legacy_idx_um.dll", "map_in_map_legacy_idx.o");
+    _array_of_maps_test(execution_type, BPF_MAP_TYPE_HASH, "map_in_map_legacy_idx_um.dll", "map_in_map_legacy_idx.o");
 }
 
 DECLARE_JIT_TEST_CASES("array of idx maps", "[libbpf]", _array_of_idx_maps_test);
