@@ -905,7 +905,6 @@ function Disable-eBPF-Handler {
         $statusString = $StatusError
         $statusMessage = "eBPF for Windows was not disabled."
     }
-    Report-Status -name $StatusName -operation $OperationNameDisable -status $statusString -statusCode $statusCode -statusMessage $statusMessage
     
     return [int]$statusCode
 }

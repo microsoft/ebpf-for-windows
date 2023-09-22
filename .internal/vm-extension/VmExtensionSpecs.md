@@ -210,7 +210,7 @@ $vmExtName = "eBpfForWindows" # NOTE: this is the desired name for the extension
 $vmResourceGroup = "eBpfVmExtension"
 $vmLocation = "eastus2euap"
 $vmName = "eBpfVm-EastEUAP"
-$extSettings = @{"temp" = "";}; # NOTE! A dummy settings file is necessary for the VM Extension handler to retrieve a SequenceNumber and generate status files, even if the VM Extension does not support user-settings!
+$extSettings = @{"temp" = "";}; # NOTE! A dummy settings file is necessary for the VM Extension handler to retrieve a SequenceNumber and generate status files, even if the VM Extension does not support user-settings! This is "by design".
 
 Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $vmExtName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $vmResourceGroup -VMName $vmName -Settings $extSettings
 ```

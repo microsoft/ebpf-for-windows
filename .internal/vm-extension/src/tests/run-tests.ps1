@@ -67,10 +67,10 @@ function Setup-Test-Package {
     Write-Log -level $LogLevelInfo -message "Setup-Test-Package($packageVersion, $testRedistTargetDirectory)"
 
     $res = 0
-    if ((Delete-Directory -destinationPath "$EbpfPackageRelativePath") -ne 0) {
+    if ((Delete-Directory -destinationPath "$EbpfPackagePath") -ne 0) {
         $res = 1
     }    
-    if ((Copy-Directory -sourcePath "$testRedistTargetDirectory\v$packageVersion" -destinationPath "$EbpfPackageRelativePath") -ne 0) {
+    if ((Copy-Directory -sourcePath "$testRedistTargetDirectory\v$packageVersion" -destinationPath "$EbpfPackagePath") -ne 0) {
         $res = 1
     }
 
@@ -84,8 +84,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     $EbpfPackagePath = ".\package"
 
     # Mock the VM-Agent provisioning the SequenceNumber environment variable.
-    Set-EnvironmentVariable($VmAgentEnvVar_SEQUENCE_NO, "1002") | Out-Null
-
+    Set-Item -Path Env:\$VmAgentEnvVar_SEQUENCE_NO -Value "1" | Out-Null
 
     # Test cases
     #######################################################
@@ -161,7 +160,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     # Test that the status file name has the right sequence number ($EbpfExtensionName.1002.settings is artificially set to the one modified last).
     Report-Status -name $StatusName -operation "test" -status $StatusTransitioning -statusCode 0 -$statusMessage "Dummy status"
     $statusFileName = Get-ChildItem -Path "$($global:eBPFHandlerEnvObj.handlerEnvironment.statusFolder)" -Filter "*.status" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    if ($statusFileName.Name -ne "$EbpfExtensionName.1002.status") {
+    if ($statusFileName.Name -ne "1.status") {
         Exit-Tests -testPass 1
         Write-Log -level $LogLevelError -message "Status file name is not correct: $statusFileName"
     } else {

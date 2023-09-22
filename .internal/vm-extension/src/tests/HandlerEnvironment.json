@@ -2,7 +2,7 @@
     {
         "version": 1.0,
         "handlerEnvironment": {
-            "logFolder": "c:\\_ebpf\\vm_ext\\tests\\logs",
+            "logFolder": "c:\\_ebpf\\vm_ext\\tests",
             "configFolder": "c:\\_ebpf\\vm_ext\\tests\\config",
             "statusFolder": "c:\\_ebpf\\vm_ext\\tests\\status",
             "heartbeatFile": "c:\\_ebpf\\vm_ext\\tests\\heartbeat",
