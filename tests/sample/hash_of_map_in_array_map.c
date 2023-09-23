@@ -31,9 +31,7 @@ struct
     __uint(max_entries, LB_MAGLEV_MAP_MAX_ENTRIES);
     /* Maglev inner map definition */
     __array(values, inner_map);
-} outer_map SEC(".maps") = {
-    .values = {&inner_map},
-};
+} outer_map SEC(".maps");
 
 SEC("xdp_prog") int lookup(struct xdp_md* ctx)
 {

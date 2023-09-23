@@ -922,8 +922,7 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_t* module)
 
             ebpf_handle_t handle_to_insert = ebpf_handle_invalid;
 
-            ebpf_map_type_t map_type = native_map_to_update->entry->definition.type;
-            if (map_type == BPF_MAP_TYPE_ARRAY_OF_MAPS || map_type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+            if (native_map_to_update->entry->definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS) {
                 ebpf_native_map_t* native_map_to_insert =
                     _ebpf_native_find_map_by_name(module, map_initial_values[i].values[j]);
                 if (native_map_to_update == NULL) {
@@ -931,7 +930,7 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_t* module)
                     break;
                 }
                 handle_to_insert = native_map_to_insert->handle;
-            } else if (map_type == BPF_MAP_TYPE_PROG_ARRAY) {
+            } else if (native_map_to_update->entry->definition.type == BPF_MAP_TYPE_PROG_ARRAY) {
                 ebpf_native_program_t* program_to_insert =
                     _ebpf_native_find_program_by_name(module, map_initial_values[i].values[j]);
                 if (program_to_insert == NULL) {
