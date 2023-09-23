@@ -700,6 +700,11 @@ _ebpf_native_initialize_maps(
 
     for (uint32_t i = 0; i < map_count; i++) {
         if (maps[i].definition.pinning != PIN_NONE && maps[i].definition.pinning != PIN_GLOBAL_NS) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "_ebpf_native_initialize_maps: Unsupported pinning type",
+                maps[i].definition.pinning);
             result = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
