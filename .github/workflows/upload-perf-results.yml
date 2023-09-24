@@ -75,3 +75,11 @@ jobs:
         export PGPORT=$(cat ${{github.workspace}}/PGPORT)
         export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
         psql -f ${{github.workspace}}/results/upload.sql
+
+
+    # Grab the output from the results directory and upload it as an artifact to debug failures.
+    - name: Upload data as artifacts for debugging
+      uses: actions/upload-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      with:
+        name: Test-Results-${{inputs.result_artifact}}
+        path: ${{github.workspace}}/results
