@@ -19,6 +19,42 @@ on:
   merge_group:
   # Permit manual runs of the workflow.
   workflow_dispatch:
+    # Provide arguments to the workflow_dispatch event.
+    # Future - Allow running multiple tests in a single workflow_dispatch - # Issue: #2909
+    inputs:
+      type:
+        description: 'Type of test to run'
+        required: true
+        type: choice
+        options:
+        - 'unit_tests'
+        - 'netebpf_ext_unit_tests'
+        - 'bpf2c'
+        - 'bpf2c_conformance'
+        - 'driver_ws2019'
+        - 'driver_ws2022'
+        - 'driver_native_only_ws2019'
+        - 'driver_native_only_ws2022'
+        - 'ossar'
+        - 'bpf2c_fuzzer'
+        - 'bpf2c_fuzzer_scheduled'
+        - 'execution_context_fuzzer'
+        - 'verifier_fuzzer'
+        - 'verifier_fuzzer_scheduled'
+        - 'core_helper_fuzzer'
+        - 'netebpfext_fuzzer'
+        - 'cilium_tests'
+        - 'stress'
+        - 'sanitize_unit_tests'
+        - 'fault_injection'
+        - 'fault_injection_netebpfext_unit'
+        - 'quick_user_mode_multi_threaded_stress_test'
+        - 'user_mode_multi_threaded_stress_test'
+        - 'km_mt_stress_tests'
+        - 'km_mt_stress_tests_restart_extension'
+        - 'performance'
+        - 'performance_with_profile'
+
   # Run on push so we can capture the baseline code coverage.
   push:
     branches: [ main ]
@@ -37,13 +73,26 @@ permissions:
   issues: write # Required to create issues.
 
 jobs:
-  # Jobs to run on pull, push, and schedule.
-  # ---------------------------------------------------------------------------
+  # Select which jobs to run based on the event type.
+  select-jobs:
+    runs-on: ubuntu-latest
+    outputs:
+      tests: ${{ steps.set-tests.outputs.tests }}
+    steps:
+      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      - id: set-tests
+        run: |
+          event_name=${{github.event_name}}
+          tests=$(jq -c 'reduce .'$event_name'[] as $prop ({}; .[$prop] = "true")' ./.github/workflows/tests.json)
+          if [ "$event_name" == "workflow_dispatch" ]; then
+            tests='{"'${{github.events.inputs.type}}'":true}'
+          fi
+          echo "tests=$tests" >> "$GITHUB_OUTPUT"
+          echo "tests=$tests"
 
   # Perform the regular build.
   regular:
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    needs: select-jobs
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64
@@ -55,8 +104,7 @@ jobs:
 
   # Perform the native-only build.
   regular_native-only:
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    needs: select-jobs
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-native-only
@@ -66,9 +114,8 @@ jobs:
 
   # Run the unit tests in GitHub.
   unit_tests:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['unit_tests'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -84,9 +131,8 @@ jobs:
 
   # Run the netebpfext unit tests in GitHub.
   netebpf_ext_unit_tests:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['netebpf_ext_unit_tests'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpf_ext_unit_tests
@@ -101,9 +147,8 @@ jobs:
 
   # Run the bpf2c tests in GitHub.
   bpf2c:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['bpf2c'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       test_command: .\bpf2c_tests.exe -d yes
@@ -117,9 +162,8 @@ jobs:
 
   # Run the bpf2c conformance tests in GitHub.
   bpf2c_conformance:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['bpf2c_conformance'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.4/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
@@ -134,10 +178,8 @@ jobs:
 
   # Run the driver tests on self-hosted runners.
   driver_ws2019:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
-    needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['driver_ws2019'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -153,10 +195,8 @@ jobs:
 
   # Run the driver tests on self-hosted runners.
   driver_ws2022:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
-    needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['driver_ws2022'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -172,10 +212,8 @@ jobs:
 
   # Run the native-only driver tests on self-hosted runners.
   driver_native_only_ws2019:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
-    needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    needs: [regular_native-only, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['driver_native_only_ws2019'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -191,10 +229,8 @@ jobs:
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   driver_native_only_ws2022:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
-    needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    needs: [regular_native-only, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['driver_native_only_ws2022'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1
@@ -210,9 +246,8 @@ jobs:
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   ossar:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['ossar'])}}
     uses: ./.github/workflows/ossar-scan.yml
     with:
       build_artifact: Build-x64
@@ -221,8 +256,7 @@ jobs:
   # ---------------------------------------------------------------------------
   # Build with C++ static analyzer.
   analyze:
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    needs: select-jobs
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Analyze
@@ -231,16 +265,15 @@ jobs:
 
   # Build with C++ address sanitizer.
   sanitize:
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    needs: select-jobs
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Sanitize
       build_options: /p:AddressSanitizer='True'
 
   bpf2c_fuzzer:
-    needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['bpf2c_fuzzer'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -252,8 +285,8 @@ jobs:
       configurations: '["FuzzerDebug"]'
 
   bpf2c_fuzzer_scheduled:
-    needs: regular
-    if: github.event_name == 'schedule'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['bpf2c_fuzzer_scheduled'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -265,9 +298,8 @@ jobs:
       configurations: '["FuzzerDebug"]'
 
   execution_context_fuzzer:
-    needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['execution_context_fuzzer'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
@@ -280,9 +312,8 @@ jobs:
 
   # Run the verifier fuzzer.
   verifier_fuzzer:
-    needs: regular
-    # Always run this job.
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['verifier_fuzzer'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -294,9 +325,8 @@ jobs:
       configurations: '["FuzzerDebug"]'
 
   verifier_fuzzer_scheduled:
-    needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['verifier_fuzzer_scheduled'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -308,9 +338,8 @@ jobs:
       configurations: '["FuzzerDebug"]'
 
   core_helper_fuzzer:
-    needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['core_helper_fuzzer'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
@@ -322,9 +351,8 @@ jobs:
       configurations: '["FuzzerDebug"]'
 
   netebpfext_fuzzer:
-    needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['netebpfext_fuzzer'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fuzzer
@@ -337,9 +365,8 @@ jobs:
 
   # Run Cilium regression tests in GitHub.
   cilium_tests:
-    needs: regular
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['cilium_tests'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: cilium_tests
@@ -351,9 +378,8 @@ jobs:
 
   # Run the quick stress tests in GitHub.
   stress:
-    needs: regular
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['stress'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: stress
@@ -368,7 +394,7 @@ jobs:
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     needs: sanitize
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['sanitize_unit_tests'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -382,8 +408,8 @@ jobs:
 
   # Run the fault injection simulator in GitHub.
   fault_injection:
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['fault_injection'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection
@@ -397,8 +423,8 @@ jobs:
 
   # Run the low memory simulator for netebpfext_unit tests.
   fault_injection_netebpfext_unit:
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['fault_injection_netebpfext_unit'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection
@@ -413,8 +439,8 @@ jobs:
   # Run a fast multi-threaded stress test pass against the usersim user-mode 'mock' framework.
   # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
   quick_user_mode_multi_threaded_stress_test:
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['quick_user_mode_multi_threaded_stress_test'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: quick_user_mode_multi_threaded_stress
@@ -429,8 +455,7 @@ jobs:
   # Additional jobs to run on a schedule only (skip push and pull request).
   # ---------------------------------------------------------------------------
   codeql:
-    # Only run during daily scheduled run
-    if: github.event_name == 'schedule'
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['codeql'])}}
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-CodeQl
@@ -440,8 +465,8 @@ jobs:
   # Run the complete fault injection simulator in GitHub.
   # Runs on a schedule as this takes a long time to run.
   fault_injection_full:
-    needs: regular
-    if: github.event_name == 'schedule'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['fault_injection_full'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection_full
@@ -456,8 +481,8 @@ jobs:
   # Run the complete fault injection simulator for netebpfext in GitHub.
   # Runs on a schedule as this takes a long time to run.
   netebpfext_fault_injection_full:
-    needs: regular
-    if: github.event_name == 'schedule'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['netebpfext_fault_injection_full'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection_full
@@ -470,8 +495,8 @@ jobs:
 
   # Run multi-threaded stress tests against the user mode 'mock' framework.
   user_mode_multi_threaded_stress_test:
-    needs: regular
-    if: github.event_name == 'schedule'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['user_mode_multi_threaded_stress_test'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
@@ -486,8 +511,8 @@ jobs:
   # Run multi-threaded stress tests with 'restart extension' disabled (default behavior)
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests:
-    needs: regular
-    if: github.event_name == 'schedule'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['km_mt_stress_tests'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests
@@ -503,8 +528,8 @@ jobs:
   # Run multi-threaded stress tests with 'restart extension' enabled
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests_restart_extension:
-    needs: regular
-    if: github.event_name == 'schedule'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['km_mt_stress_tests_restart_extension'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests_restart_extension
@@ -518,8 +543,8 @@ jobs:
       gather_dumps: false
 
   performance:
-    needs: regular
-    if: github.event_name == 'schedule'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['performance'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
@@ -531,8 +556,8 @@ jobs:
       configurations: '["Release"]'
 
   performance_with_profile:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
+    needs: [regular, select-jobs]
+    if: ${{fromJson(fromJson(needs.select-jobs.outputs.tests)['performance_with_profile'])}}
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
@@ -545,7 +570,6 @@ jobs:
 
   upload_perf_results:
     needs: performance
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
     uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_perf_results
