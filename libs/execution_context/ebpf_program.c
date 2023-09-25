@@ -635,6 +635,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_epoch_free(_In_opt_
         break;
     case EBPF_CODE_NONE:
         break;
+    default:
+        ebpf_assert(!"Invalid code type");
+        break;
     }
 
     ebpf_free(program->parameters.program_name.value);
@@ -867,7 +870,11 @@ ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
     ebpf_map_t** program_maps;
     if (program->maps) {
         program_maps = ebpf_reallocate(
-            program->maps, program->count_of_maps * sizeof(ebpf_map_t*), map_count * sizeof(ebpf_map_t*));
+            program->maps,
+            CXPLAT_POOL_FLAG_NON_PAGED,
+            program->count_of_maps * sizeof(ebpf_map_t*),
+            map_count * sizeof(ebpf_map_t*),
+            EBPF_POOL_TAG_PROGRAM);
     } else {
         program_maps = ebpf_allocate_with_tag(map_count * sizeof(ebpf_map_t*), EBPF_POOL_TAG_PROGRAM);
     }
@@ -1338,7 +1345,8 @@ ebpf_program_load_code(
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "ebpf_program_load_code unknown program->parameters.code_type",
             program->parameters.code_type);
-
+        // Reset the code type to none.
+        program->parameters.code_type = EBPF_CODE_NONE;
         result = EBPF_INVALID_ARGUMENT;
     }
     }

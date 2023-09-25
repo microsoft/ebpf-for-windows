@@ -1142,6 +1142,8 @@ _lru_hash_table_notification(
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
         _insert_into_hot_list(lru_map, entry);
         break;
+    default:
+        ebpf_assert(!"Invalid notification type");
     }
 }
 

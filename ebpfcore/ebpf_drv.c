@@ -13,7 +13,10 @@
 #include "ebpf_version.h"
 #include "git_commit_id.h"
 
+#pragma warning(push)
+#pragma warning(disable : 4062) // enumerator 'identifier' in switch of enum 'enumeration' is not handled
 #include <wdf.h>
+#pragma warning(pop)
 
 // Driver global variables
 static DEVICE_OBJECT* _ebpf_driver_device_object;
@@ -113,9 +116,6 @@ _ebpf_driver_initialize_device(WDFDRIVER driver_handle, _Out_ WDFDEVICE* device)
 
     status = WdfDeviceCreate(&device_initialize, WDF_NO_OBJECT_ATTRIBUTES, device);
     if (!NT_SUCCESS(status)) {
-
-        // Do not free if any other call after WdfDeviceCreate fails.
-        WdfDeviceInitFree(device_initialize);
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, WdfDeviceCreate, status);
         goto Exit;
     }
@@ -129,6 +129,9 @@ _ebpf_driver_initialize_device(WDFDRIVER driver_handle, _Out_ WDFDEVICE* device)
     }
 
 Exit:
+    if (device_initialize) {
+        WdfDeviceInitFree(device_initialize);
+    }
     return status;
 }
 
@@ -355,6 +358,7 @@ _ebpf_driver_io_device_control(
         }
         break;
     default:
+        status = STATUS_INVALID_DEVICE_REQUEST;
         break;
     }
 

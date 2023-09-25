@@ -227,6 +227,9 @@ _does_attach_type_support_attachable_fd(enum bpf_attach_type type)
     case BPF_CGROUP_SOCK_OPS:
         supported = TRUE;
         break;
+    default:
+        supported = FALSE;
+        break;
     }
 
     return supported;
