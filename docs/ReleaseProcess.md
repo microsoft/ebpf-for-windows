@@ -82,12 +82,9 @@ Servicing a release has two main scenarios:
     git mergetool
     ```
 1. Verify all the changes then commit all in the working branch.
-    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, format them with the following:
+    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, override them with the following:
     >```bash
-    ># In bash
-    >./scripts/format-code --staged
-    ># In PowerShell
-    >.\\scripts\\format-code.ps1 --staged
+    >git commit --no-verify
     >```
 1. Create a **Draft** pull-request for your working branch into the main repo's "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Wait for  the CI/CD pipeline for the PR to complete successfully.

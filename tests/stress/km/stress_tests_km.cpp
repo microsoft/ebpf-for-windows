@@ -13,13 +13,6 @@
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 
-// The helper function definitions in bpf_helpers.h conflict with the definitions
-// in libbpf.h, but this code needs to use MAX_TAIL_CALL_CNT from bpf_helpers.h.
-// Work around this by defining MAX_TAIL_CALL_CNT here.
-#if !defined(MAX_TAIL_CALL_CNT)
-#define MAX_TAIL_CALL_CNT 32
-#endif
-
 // Note: The 'program' and 'execution' types are not required for km tests.
 static const std::map<std::string, test_program_attributes> _test_program_info = {
     {{"cgroup_sock_addr"},
@@ -42,6 +35,14 @@ query_supported_program_names()
     }
 
     return program_names;
+}
+
+// This function is called by the common test initialization code to perform the requisite clean-up as the last action
+// prior to process termination.
+void
+test_process_cleanup()
+{
+    // As of now, we don't need to do anything here for kernel mode tests.
 }
 
 // Test thread control parameters (# of threads, run duration etc.).

@@ -114,6 +114,8 @@ typedef std::unique_ptr<ebpf_map_t, ebpf_object_deleter<ebpf_map_t>> map_ptr;
 typedef std::unique_ptr<ebpf_program_t, ebpf_object_deleter<ebpf_program_t>> program_ptr;
 typedef std::unique_ptr<ebpf_link_t, ebpf_object_deleter<ebpf_link_t>> link_ptr;
 
+static const uint32_t _test_map_size = 512;
+
 static void
 _test_crud_operations(ebpf_map_type_t map_type)
 {
@@ -176,17 +178,17 @@ _test_crud_operations(ebpf_map_type_t map_type)
         dpc = {emulate_dpc_t(1)};
     }
 
-    ebpf_map_definition_in_memory_t map_definition{map_type, sizeof(uint32_t), sizeof(uint64_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{map_type, sizeof(uint32_t), sizeof(uint64_t), _test_map_size};
     map_ptr map;
     {
         ebpf_map_t* local_map;
-        ebpf_utf8_string_t map_name = {0};
+        cxplat_utf8_string_t map_name = {0};
         REQUIRE(
             ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
     }
     std::vector<uint8_t> value(ebpf_map_get_definition(map.get())->value_size);
-    for (uint32_t key = 0; key < 10; key++) {
+    for (uint32_t key = 0; key < _test_map_size; key++) {
         *reinterpret_cast<uint64_t*>(value.data()) = static_cast<uint64_t>(key) * static_cast<uint64_t>(key);
         REQUIRE(
             ebpf_map_update_entry(
@@ -200,7 +202,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
     }
 
     // Test for inserting max_entries + 1.
-    uint32_t bad_key = 10;
+    uint32_t bad_key = _test_map_size;
     *reinterpret_cast<uint64_t*>(value.data()) = static_cast<uint64_t>(bad_key) * static_cast<uint64_t>(bad_key);
     REQUIRE(
         ebpf_map_update_entry(
@@ -219,12 +221,12 @@ _test_crud_operations(ebpf_map_type_t map_type)
             expected_result);
     }
 
-    for (uint32_t key = 0; key < 10; key++) {
+    for (uint32_t key = 0; key < _test_map_size; key++) {
         ebpf_result_t expected_result;
         if (replace_on_full) {
             expected_result = key == 0 ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
         } else {
-            expected_result = key == 10 ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
+            expected_result = key == _test_map_size ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
         }
         REQUIRE(
             ebpf_map_find_entry(
@@ -238,7 +240,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
     uint32_t previous_key;
     uint32_t next_key;
     std::set<uint32_t> keys;
-    for (uint32_t key = 0; key < 10; key++) {
+    for (uint32_t key = 0; key < _test_map_size; key++) {
         REQUIRE(
             ebpf_map_next_key(
                 map.get(),
@@ -249,7 +251,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
         previous_key = next_key;
         keys.insert(previous_key);
     }
-    REQUIRE(keys.size() == 10);
+    REQUIRE(keys.size() == _test_map_size);
     REQUIRE(
         ebpf_map_next_key(
             map.get(),
@@ -339,7 +341,7 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
     map_ptr map;
     {
         ebpf_map_t* local_map;
-        ebpf_utf8_string_t map_name = {0};
+        cxplat_utf8_string_t map_name = {0};
         REQUIRE(
             ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
@@ -424,7 +426,7 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
     map_ptr map;
     {
         ebpf_map_t* local_map;
-        ebpf_utf8_string_t map_name = {0};
+        cxplat_utf8_string_t map_name = {0};
         REQUIRE(
             ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
@@ -520,7 +522,7 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
     map_ptr map;
     {
         ebpf_map_t* local_map;
-        ebpf_utf8_string_t map_name = {0};
+        cxplat_utf8_string_t map_name = {0};
         REQUIRE(
             ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
@@ -605,7 +607,7 @@ TEST_CASE("map_crud_operations_stack", "[execution_context]")
     map_ptr map;
     {
         ebpf_map_t* local_map;
-        ebpf_utf8_string_t map_name = {0};
+        cxplat_utf8_string_t map_name = {0};
         REQUIRE(
             ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
@@ -666,8 +668,8 @@ TEST_CASE("program", "[execution_context]")
 
     program_info_provider_t program_info_provider;
     REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
-    const ebpf_utf8_string_t program_name{(uint8_t*)("foo"), 3};
-    const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
+    const cxplat_utf8_string_t program_name{(uint8_t*)("foo"), 3};
+    const cxplat_utf8_string_t section_name{(uint8_t*)("bar"), 3};
     const ebpf_program_parameters_t program_parameters{
         EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP, program_name, section_name};
     program_ptr program;
@@ -681,7 +683,7 @@ TEST_CASE("program", "[execution_context]")
     map_ptr map;
     {
         ebpf_map_t* local_map;
-        ebpf_utf8_string_t map_name = {0};
+        cxplat_utf8_string_t map_name = {0};
         REQUIRE(
             ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
@@ -840,9 +842,9 @@ TEST_CASE("name size", "[execution_context]")
     core.initialize();
     program_info_provider_t program_info_provider;
     REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-    const ebpf_utf8_string_t oversize_name{
+    const cxplat_utf8_string_t oversize_name{
         (uint8_t*)("a234567890123456789012345678901234567890123456789012345678901234"), 64};
-    const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
+    const cxplat_utf8_string_t section_name{(uint8_t*)("bar"), 3};
     const ebpf_program_parameters_t program_parameters{
         EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, oversize_name, section_name};
     ebpf_program_t* local_program = nullptr;
@@ -885,7 +887,7 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
     map_ptr map;
     {
         ebpf_map_t* local_map;
-        ebpf_utf8_string_t map_name = {0};
+        cxplat_utf8_string_t map_name = {0};
         REQUIRE(
             ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
@@ -1105,7 +1107,7 @@ create_various_objects(std::vector<ebpf_handle_t>& program_handles, std::map<std
         program_handles.push_back(handle);
     }
     for (const auto& [name, def] : _map_definitions) {
-        ebpf_utf8_string_t utf8_name{reinterpret_cast<uint8_t*>(const_cast<char*>(name.data())), name.size()};
+        cxplat_utf8_string_t utf8_name{reinterpret_cast<uint8_t*>(const_cast<char*>(name.data())), name.size()};
         ebpf_handle_t handle;
         ebpf_handle_t inner_handle = ebpf_handle_invalid;
         if (def.inner_map_id != 0) {

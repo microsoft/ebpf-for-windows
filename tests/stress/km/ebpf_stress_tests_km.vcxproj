@@ -91,7 +91,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)tests\stress;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\socket;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\Platform;$(SolutionDir)libs\Platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\api_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\stress;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\socket;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\api_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -105,7 +105,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)tests\stress;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\socket;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\Platform;$(SolutionDir)libs\Platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\api_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\stress;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\socket;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\api_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -119,7 +119,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)tests\stress;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\socket;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\Platform;$(SolutionDir)libs\Platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\api_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\stress;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\socket;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\api_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -136,7 +136,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)tests\stress;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\socket;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\Platform;$(SolutionDir)libs\Platform\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\api_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\stress;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)tests\socket;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\api_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -151,12 +151,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\libs\platform\ebpf_tracelog.c">
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_TRACE_LOGGING_OVERRIDE;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">NO_TRACE_LOGGING_OVERRIDE;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">NO_TRACE_LOGGING_OVERRIDE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NO_TRACE_LOGGING_OVERRIDE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
     <ClCompile Include="..\ebpf_stress_tests.cpp" />
     <ClCompile Include="stress_tests_km.cpp" />
   </ItemGroup>

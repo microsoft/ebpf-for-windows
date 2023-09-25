@@ -17,7 +17,7 @@
 typedef struct _ebpf_core_map
 {
     ebpf_core_object_t object;
-    ebpf_utf8_string_t name;
+    cxplat_utf8_string_t name;
     ebpf_map_definition_in_memory_t ebpf_map_definition;
     uint32_t original_value_size;
     uint8_t* data;
@@ -383,7 +383,7 @@ _update_array_map_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
+    uint8_t* entry = &map->data[key_value * map->ebpf_map_definition.value_size];
     if (data) {
         memcpy(entry, data, map->ebpf_map_definition.value_size);
     } else {
@@ -858,7 +858,7 @@ _create_hash_map_internal(
     const ebpf_hash_table_creation_options_t options = {
         .key_size = local_map->ebpf_map_definition.key_size,
         .value_size = local_map->ebpf_map_definition.value_size,
-        .bucket_count = local_map->ebpf_map_definition.max_entries,
+        .minimum_bucket_count = local_map->ebpf_map_definition.max_entries,
         .max_entries = local_map->ebpf_map_definition.max_entries,
         .extract_function = extract_function,
         .supplemental_value_size = supplemental_value_size,
@@ -1055,6 +1055,7 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t
     state = ebpf_lock_lock(&map->lock);
     lock_held = true;
 
+    key_state = _get_key_state(map, entry);
     if (key_state != EBPF_LRU_KEY_COLD) {
         goto Exit;
     }
@@ -1062,6 +1063,7 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t
     ebpf_list_remove_entry(&entry->list_entry);
     ebpf_list_insert_tail(&map->hot_list, &entry->list_entry);
     map->hot_list_size++;
+    entry->generation = map->current_generation;
 
     _merge_hot_into_cold_list_if_needed(map);
 
@@ -1524,7 +1526,6 @@ static ebpf_result_t
 _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
-    uint32_t max_cpu = map->ebpf_map_definition.value_size / EBPF_PAD_8(map->original_value_size);
 
     if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].per_cpu)) {
         return EBPF_SUCCESS;
@@ -1532,9 +1533,6 @@ _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 
     current_cpu = ebpf_get_current_cpu();
 
-    if (current_cpu > max_cpu) {
-        return EBPF_INVALID_ARGUMENT;
-    }
     (*value) += EBPF_PAD_8((size_t)map->original_value_size) * current_cpu;
     return EBPF_SUCCESS;
 }
@@ -2134,7 +2132,7 @@ _ebpf_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* object)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_create(
-    _In_ const ebpf_utf8_string_t* map_name,
+    _In_ const cxplat_utf8_string_t* map_name,
     _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_map_t** ebpf_map)

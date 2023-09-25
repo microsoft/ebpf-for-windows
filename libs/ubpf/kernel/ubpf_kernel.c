@@ -28,6 +28,7 @@
 #endif
 
 #undef stderr
+#undef errno
 #define stderr 0
 #define fprintf place_holder_fprintf
 #define strerror place_holder_strerror

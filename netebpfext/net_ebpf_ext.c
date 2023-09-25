@@ -247,10 +247,9 @@ net_ebpf_extension_wfp_filter_context_create(
     // Allocate buffer for WFP filter context.
     local_filter_context = (net_ebpf_extension_wfp_filter_context_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, filter_context_size, NET_EBPF_EXTENSION_POOL_TAG);
-    if (local_filter_context == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_filter_context, "local_filter_context", result);
+
     memset(local_filter_context, 0, filter_context_size);
     local_filter_context->reference_count = 1; // Initial reference.
     local_filter_context->client_context = client_context;
@@ -379,16 +378,17 @@ net_ebpf_extension_add_wfp_filters(
     NET_EBPF_EXT_LOG_ENTRY();
 
     if (filter_count == 0) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "Filter count is 0");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
     local_filter_ids = (uint64_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(uint64_t) * filter_count, NET_EBPF_EXTENSION_POOL_TAG);
-    if (local_filter_ids == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_filter_ids, "local_filter_ids", result);
+
     memset(local_filter_ids, 0, sizeof(uint64_t) * filter_count);
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
@@ -538,12 +538,14 @@ net_ebpf_ext_initialize_ndis_handles(_In_ const DRIVER_OBJECT* driver_object)
 {
     NTSTATUS status = STATUS_SUCCESS;
     NET_BUFFER_LIST_POOL_PARAMETERS nbl_pool_parameters = {0};
+    NDIS_HANDLE local_net_ebpf_ext_ndis_handle = NULL;
+    NDIS_HANDLE local_net_ebpf_ext_nbl_pool_handle = NULL;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    _net_ebpf_ext_ndis_handle =
+    local_net_ebpf_ext_ndis_handle =
         NdisAllocateGenericObject((DRIVER_OBJECT*)driver_object, NET_EBPF_EXTENSION_POOL_TAG, 0);
-    if (_net_ebpf_ext_ndis_handle == NULL) {
+    if (local_net_ebpf_ext_ndis_handle == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
             NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NdisAllocateGenericObject", status);
@@ -558,11 +560,19 @@ net_ebpf_ext_initialize_ndis_handles(_In_ const DRIVER_OBJECT* driver_object)
     nbl_pool_parameters.DataSize = 0;
     nbl_pool_parameters.PoolTag = NET_EBPF_EXTENSION_POOL_TAG;
 
-    _net_ebpf_ext_nbl_pool_handle = NdisAllocateNetBufferListPool(_net_ebpf_ext_ndis_handle, &nbl_pool_parameters);
-    if (_net_ebpf_ext_nbl_pool_handle == NULL) {
+    local_net_ebpf_ext_nbl_pool_handle =
+        NdisAllocateNetBufferListPool(local_net_ebpf_ext_ndis_handle, &nbl_pool_parameters);
+    if (local_net_ebpf_ext_nbl_pool_handle == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NdisAllocateNetBufferListPool", status);
+
+        NdisFreeGenericObject((PNDIS_GENERIC_OBJECT)local_net_ebpf_ext_ndis_handle);
         goto Exit;
     }
+
+    _net_ebpf_ext_ndis_handle = local_net_ebpf_ext_ndis_handle;
+    _net_ebpf_ext_nbl_pool_handle = local_net_ebpf_ext_nbl_pool_handle;
 
 Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
@@ -751,24 +761,44 @@ net_ebpf_ext_register_providers()
 
     status = net_ebpf_ext_xdp_register_providers();
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "net_ebpf_ext_xdp_register_providers failed.",
+            status);
         goto Exit;
     }
     _net_ebpf_xdp_providers_registered = true;
 
     status = net_ebpf_ext_bind_register_providers();
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "net_ebpf_ext_bind_register_providers failed.",
+            status);
         goto Exit;
     }
     _net_ebpf_bind_providers_registered = true;
 
     status = net_ebpf_ext_sock_addr_register_providers();
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "net_ebpf_ext_bind_register_providers failed.",
+            status);
         goto Exit;
     }
     _net_ebpf_sock_addr_providers_registered = true;
 
     status = net_ebpf_ext_sock_ops_register_providers();
     if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "net_ebpf_ext_sock_ops_register_providers failed.",
+            status);
         goto Exit;
     }
     _net_ebpf_sock_ops_providers_registered = true;

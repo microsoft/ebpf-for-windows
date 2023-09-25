@@ -377,7 +377,7 @@ ebpf_program_load(
             if (program != nullptr) {
                 const char* log_buffer_str = bpf_program__log_buf(program, &log_buffer_size);
                 if (log_buffer_str != nullptr) {
-                    *log_buffer = ebpf_duplicate_string(log_buffer_str);
+                    *log_buffer = cxplat_duplicate_string(log_buffer_str);
                 }
             }
         }
