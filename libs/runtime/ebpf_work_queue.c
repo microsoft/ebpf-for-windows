@@ -15,9 +15,9 @@ typedef struct _ebpf_timed_work_queue
     void* context;
 } ebpf_timed_work_queue_t;
 
-KDEFERRED_ROUTINE ebpf_timed_work_queue_timer_callback;
+KDEFERRED_ROUTINE _ebpf_timed_work_queue_timer_callback;
 
-static void
+void
 _ebpf_timed_work_queue_timer_callback(
     _In_ KDPC* dpc, _In_opt_ void* deferred_context, _In_opt_ void* system_argument1, _In_opt_ void* system_argument2);
 
@@ -127,7 +127,7 @@ ebpf_timed_work_queued_poll(_In_ ebpf_timed_work_queue_t* work_queue)
     ebpf_lock_unlock(&work_queue->lock, lock_state);
 }
 
-static void
+void
 _ebpf_timed_work_queue_timer_callback(
     _In_ KDPC* dpc, _In_opt_ void* context, _In_opt_ void* system_argument1, _In_opt_ void* system_argument2)
 {
