@@ -854,7 +854,6 @@ function Restart-GuestProxyAgent-Service {
 #######################################################
 # VM Extension Handler Functions
 #######################################################
-
 function Reset-eBPF-Handler {
     # NOP for this current implementation.
     # Reset does not need to generate a status file.
