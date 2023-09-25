@@ -73,6 +73,9 @@
     <ClCompile Include="..\ebpf_random.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_work_queue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ebpf_epoch.h">
@@ -145,6 +148,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\external\usersim\cxplat\inc\winkernel\cxplat_winkernel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ebpf_work_queue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

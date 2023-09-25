@@ -17,6 +17,7 @@
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
+#include "ebpf_work_queue.h"
 #include "helpers.h"
 
 #include <winsock2.h>
@@ -1224,4 +1225,80 @@ TEST_CASE("verify random", "[platform]")
 
     // Verify that the random number generators do not have a dominant frequency.
     REQUIRE(!has_dominant_frequency(SEQUENCE_LENGTH, ebpf_random_uint32));
+}
+
+TEST_CASE("work_queue", "[platform]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+    struct _work_item_context
+    {
+        LIST_ENTRY list_entry;
+        KEVENT completion_event;
+    } work_item_context;
+
+    ebpf_list_initialize(&work_item_context.list_entry);
+
+    KeInitializeEvent(&work_item_context.completion_event, NotificationEvent, FALSE);
+
+    ebpf_timed_work_queue_t* work_queue;
+    LARGE_INTEGER interval;
+
+    interval.QuadPart = 10 * 1000 * 100; // 100ms
+
+    REQUIRE(
+        ebpf_timed_work_queue_create(
+            &work_queue,
+            0,
+            &interval,
+            [](_Inout_ void* context, _Inout_ ebpf_list_entry_t* entry) {
+                UNREFERENCED_PARAMETER(context);
+                auto work_item_context = reinterpret_cast<_work_item_context*>(entry);
+                KeSetEvent(&work_item_context->completion_event, 0, FALSE);
+            },
+            nullptr) == EBPF_SUCCESS);
+
+    // Unique ptr that will call ebpf_timed_work_queue_destroy when it goes out of scope.
+    std::unique_ptr<ebpf_timed_work_queue_t, decltype(&ebpf_timed_work_queue_destroy)> work_queue_ptr(
+        work_queue, &ebpf_timed_work_queue_destroy);
+
+    // Queue a work item with out flush.
+    ebpf_timed_work_queue_insert(work_queue, &work_item_context.list_entry, false);
+
+    LARGE_INTEGER timeout = {0};
+
+    // Verify that the work item is not signaled immediately.
+    REQUIRE(
+        KeWaitForSingleObject(&work_item_context.completion_event, Executive, KernelMode, FALSE, &timeout) ==
+        STATUS_TIMEOUT);
+
+    // Verify the queue is not empty.
+    REQUIRE(ebpf_timed_work_queue_is_empty(work_queue) == false);
+
+    timeout.QuadPart = -10 * 1000 * 1000; // 1s
+
+    // Verify that the work item is signaled after 100ms.
+    REQUIRE(
+        KeWaitForSingleObject(&work_item_context.completion_event, Executive, KernelMode, FALSE, &timeout) ==
+        STATUS_SUCCESS);
+
+    // Queue a work item with flush.
+    ebpf_timed_work_queue_insert(work_queue, &work_item_context.list_entry, true);
+    // Wait for active DPCs to complete.
+    KeFlushQueuedDpcs();
+
+    // Verify the queue is now empty.
+    REQUIRE(ebpf_timed_work_queue_is_empty(work_queue) == true);
+
+    // Queue a work item without flush.
+    ebpf_timed_work_queue_insert(work_queue, &work_item_context.list_entry, false);
+
+    // Verify the queue is not empty.
+    REQUIRE(ebpf_timed_work_queue_is_empty(work_queue) == false);
+
+    // Process the work queue.
+    ebpf_timed_work_queued_poll(work_queue);
+
+    // Verify the queue is now empty.
+    REQUIRE(ebpf_timed_work_queue_is_empty(work_queue) == true);
 }
