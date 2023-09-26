@@ -2,68 +2,58 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-// On Linux, including the bpf_helpers.h in libbpf must be done after including
-// a platform-specific include file such as vmlinux.h or linux/types.h which makes
-// it not quite platform-agnostic today.  We hope this to change in the future
-// once libbpf itself becomes cross-platform (issue #351).  In the meantime,
-// this version of bpf_helpers.h is already cross-platform.
-
 // Include platform-specific definitions.
 #include "bpf_helpers_platform.h"
 #include "ebpf_structs.h"
 
-// If we're compiling an actual eBPF program, then include
-// libbpf's bpf_helpers.h for the rest of the platform-agnostic
-// defines.
-#ifndef _MSC_VER
+#if !defined(_MSVC_VER)
 
-// Definitions lifted from libbpf's bpf_helpers.h.
-// Moved here to avoid including libbpf's bpf_helpers.h as that file
-// is not cross-platform.
+// BTF macros recreated from Linux kernel docs and dumping the BTF of the
+// compiled ELF files.
+//
+// __uint and __type
+// https://www.kernel.org/doc/html/latest/bpf/btf.html
+// __array
+// https://www.kernel.org/doc/html/next/bpf/map_of_maps.html
 
-#define __uint(name, val) int(*name)[val]
-#define __type(name, val) typeof(val)* name
-#define __array(name, val) typeof(val)* name[]
-
-/*
- * Helper macro to place programs, maps, license in
- * different sections in elf_bpf file. Section names
- * are interpreted by libbpf depending on the context (BPF programs, BPF maps,
- * extern variables, etc).
- * To allow use of SEC() with externs (e.g., for extern .maps declarations),
- * make sure __attribute__((unused)) doesn't trigger compilation warning.
+/**
+ * @brief Declare a field with a given size in a BPF map.
  */
-#if __GNUC__ && !__clang__
+#define __uint(field_name, field_value) int(*field_name)[field_value]
 
-/*
- * Pragma macros are broken on GCC
- * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=55578
- * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90400
+/**
+ * @brief Declare a field with a given type in a BPF map.
  */
-#define SEC(name) __attribute__((section(name), used))
+#define __type(field_name, field_type) typeof(field_type)* field_name
 
-#else
+/**
+ * @brief Declare the value in a BPF map of type map-in-map or program-in-map.
+ */
+#define __array(field_name, map_template) typeof(map_template)* field_name[]
 
-#define SEC(name)                                                                             \
-    _Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wignored-attributes\"") \
-        __attribute__((section(name), used)) _Pragma("GCC diagnostic pop")
+// SEC macro recreated from LLVM docs:
+// https://clang.llvm.org/docs/AttributeReference.html
 
-#endif
-
-#ifndef NULL
-#define NULL ((void*)0)
-#endif
+/**
+ * @brief LLVM attribute to place a variable in a specific ELF section.
+ */
+#define SEC(NAME) __attribute__((section(NAME)))
 
 #define bpf_map_def _ebpf_map_definition_in_file
 #include "ebpf_nethooks.h"
+
 #endif
 
-#ifndef __doxygen
+#if !defined(NULL)
+#define NULL ((void*)0)
+#endif
+
+#if !defined(__doxygen)
 #define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args
 #endif
 
 #include "bpf_helper_defs.h"
 
-#ifndef _WIN32
+#if !defined(_WIN32)
 #define _WIN32
 #endif
