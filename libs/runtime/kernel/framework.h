@@ -28,3 +28,4 @@
 #define ebpf_list_remove_head_entry RemoveHeadList
 #define ebpf_list_append_tail_list AppendTailList
 #define ebpf_probe_for_write ProbeForWrite
+#define ebpf_fault_injection_is_enabled() false

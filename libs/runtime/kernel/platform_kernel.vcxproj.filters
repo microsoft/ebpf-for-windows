@@ -135,5 +135,17 @@
     <ClInclude Include="..\ebpf_random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\external\usersim\cxplat\inc\cxplat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\external\usersim\cxplat\inc\cxplat_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\external\usersim\cxplat\inc\cxplat_size.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\external\usersim\cxplat\inc\winkernel\cxplat_winkernel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
