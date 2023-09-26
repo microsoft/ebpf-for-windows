@@ -854,6 +854,26 @@ function Restart-GuestProxyAgent-Service {
 #######################################################
 # VM Extension Handler Functions
 #######################################################
+# Given the ny-design command-sequence invoked by the VM Agent in the 4 main scenarios, 
+# the handler will perform the following actions for each command, in order to achieve the best performance:
+#
+# Install
+# 1- install command - NOP
+# 2- enable command - update or install to the target ebpf drivers
+#
+# Update TBD --> how to detect this case (eg env vars, etc.)? i.e. Change VM Extension status file to "transitioning"?
+# 1- disable command - NOP (or stop ebpf drivers)
+# 2- update command - NOP
+# 3- uninstall command - uninstall ebpf
+# 4- enable command - update or install to the target ebpf drivers --> status file has to have the right operation name, install/update?
+#
+# Uninstall
+# 1- disable command - NOP (or stop ebpf drivers)
+# 2- uninstall command - uninstall ebpf
+#
+# Reset - NOP
+
+
 function Reset-eBPF-Handler {
     # NOP for this current implementation.
     # Reset does not need to generate a status file.
@@ -864,30 +884,38 @@ function Enable-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler()"
 
-    # This is where any checks for prerequisites should be performed.
-    # Currently, we just check if the eBPF drivers are installed and registered.
     $statusInfo = [PSCustomObject]@{
         StatusCode = 0
         StatusString = $StatusSuccess
     }
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        $driverName = $_.Key
-        $currDriverPath = Get-FullDiskPathFromService -serviceName $driverName
-        if ($currDriverPath) {
-            if ($?) {
-                Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler: $driverName is registered correctly."
-            } else {
-                Write-Log -level $LogLevelError -message "Enable-eBPF-Handler: $driverName is NOT registered correctly!"
-                $statusInfo.StatusCode = 1
-                $statusInfo.StatusString = $StatusError
+
+    # Install or Update eBPF for Windows.
+    $statusInfo.StatusCode = InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
+    if ($statusInfo.StatusCode -eq 0) {
+
+        # Start the eBPF drivers.
+        $EbpfDrivers.GetEnumerator() | ForEach-Object {
+            $driverName = $_.Key
+            $currDriverPath = Get-FullDiskPathFromService -serviceName $driverName
+            if ($currDriverPath) {
+                if ($?) {
+                    Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler: $driverName is registered correctly."
+                } else {
+                    Write-Log -level $LogLevelError -message "Enable-eBPF-Handler: $driverName is NOT registered correctly!"
+                    $statusInfo.StatusCode = 1
+                    $statusInfo.StatusString = $StatusError
+                }
             }
         }
+    } else {        
+        $statusInfo.StatusCode = 1
+        $statusInfo.StatusString = $StatusError
     }
 
     # Generate the status file
     Report-Status -name $StatusName -operation $OperationNameEnable -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage "eBPF enabled"
 
-    return [int]$statusCode
+    return [int]$statusInfo.StatusCode
 }
 
 function Disable-eBPF-Handler {
@@ -896,15 +924,7 @@ function Disable-eBPF-Handler {
 
     # Disable does not need to generate a status file.
     $statusCode = Stop-eBPFDrivers
-    if ($statusCode -eq 0) {    
-        $statusString = $StatusSuccess
-        $statusMessage = "eBPF for Windows was successfully disabled."
-    }
-    else {
-        $statusString = $StatusError
-        $statusMessage = "eBPF for Windows was not disabled."
-    }
-    
+   
     return [int]$statusCode
 }
 
@@ -932,7 +952,7 @@ function Install-eBPF-Handler {
 
     # Install or Update eBPF for Windows.
     # NOTE: The install operation does not generate a status file, since the VM Agent will afterwards call the enable operation.
-    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
+    #return InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
 }
 
 function Update-eBPF-Handler {
@@ -943,7 +963,7 @@ function Update-eBPF-Handler {
     Report-Status -name $StatusName -operation $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -statusMessage "Starting update"
 
     # Update eBPF for Windows.
-    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
+    #return InstallOrUpdate-eBPF-Handler -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
 }
 
 #######################################################
