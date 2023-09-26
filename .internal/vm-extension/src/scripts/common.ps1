@@ -580,6 +580,21 @@ function Unregister-EbpfNetshExtension{
     return $LASTEXITCODE
 }
 
+function Start-eBPFDrivers {
+
+    Write-Log -level $LogLevelInfo -message "Start-eBPFDrivers()"
+
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        $driverName = $_.Key
+        Start-Service -Name $driverName -ErrorAction SilentlyContinue
+        if ($?) {
+            Write-Log -level $LogLevelInfo -message "Started driver: $driverName"
+        } else {
+            Write-Log -level $LogLevelError -message "Failed to start driver: $driverName"
+        }
+    }
+}
+
 function Stop-eBPFDrivers {
 
     Write-Log -level $LogLevelInfo -message "Stop-eBPFDrivers()"
@@ -854,8 +869,9 @@ function Restart-GuestProxyAgent-Service {
 #######################################################
 # VM Extension Handler Functions
 #######################################################
-# Given the ny-design command-sequence invoked by the VM Agent in the 4 main scenarios, 
+# Given the by-design command-sequence invoked by the VM Agent in the 4 main scenarios, 
 # the handler will perform the following actions for each command, in order to achieve the best performance:
+# See Feature request: https://msazure.visualstudio.com/One/_workitems/edit/25279093
 #
 # Install
 # 1- install command - NOP
@@ -865,14 +881,13 @@ function Restart-GuestProxyAgent-Service {
 # 1- disable command - NOP (or stop ebpf drivers)
 # 2- update command - NOP
 # 3- uninstall command - uninstall ebpf
-# 4- enable command - update or install to the target ebpf drivers --> status file has to have the right operation name, install/update?
+# 4- enable command - update or install to the target ebpf drivers
 #
 # Uninstall
 # 1- disable command - NOP (or stop ebpf drivers)
 # 2- uninstall command - uninstall ebpf
 #
 # Reset - NOP
-
 
 function Reset-eBPF-Handler {
     # NOP for this current implementation.
@@ -889,7 +904,8 @@ function Enable-eBPF-Handler {
         StatusString = $StatusSuccess
     }
 
-    # Install or Update eBPF for Windows.
+    # TEMP IMPLEMENTATION: Install or Update eBPF for Windows.
+    # See Feature request: https://msazure.visualstudio.com/One/_workitems/edit/25279093
     $statusInfo.StatusCode = InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
     if ($statusInfo.StatusCode -eq 0) {
 
@@ -900,6 +916,14 @@ function Enable-eBPF-Handler {
             if ($currDriverPath) {
                 if ($?) {
                     Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler: $driverName is registered correctly."
+                    Start-Service -Name $driverName -ErrorAction SilentlyContinue
+                    if ($?) {
+                        Write-Log -level $LogLevelInfo -message "Started driver: $driverName"
+                    } else {
+                        Write-Log -level $LogLevelError -message "Failed to start driver: $driverName"
+                        $statusInfo.StatusCode = 1
+                        $statusInfo.StatusString = $StatusError
+                    }
                 } else {
                     Write-Log -level $LogLevelError -message "Enable-eBPF-Handler: $driverName is NOT registered correctly!"
                     $statusInfo.StatusCode = 1
@@ -952,6 +976,8 @@ function Install-eBPF-Handler {
 
     # Install or Update eBPF for Windows.
     # NOTE: The install operation does not generate a status file, since the VM Agent will afterwards call the enable operation.
+
+    # TEMP DISABLED: See Feature request: https://msazure.visualstudio.com/One/_workitems/edit/25279093
     #return InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
 }
 
@@ -963,6 +989,9 @@ function Update-eBPF-Handler {
     Report-Status -name $StatusName -operation $OperationNameUpdate -status $StatusTransitioning -statusCode 0 -statusMessage "Starting update"
 
     # Update eBPF for Windows.
+    # NOTE: The uninstall operation does not generate a status file, since the VM Agent will afterwards call the enable operation.
+
+    # TEMP DISABLED: See Feature request: https://msazure.visualstudio.com/One/_workitems/edit/25279093
     #return InstallOrUpdate-eBPF-Handler -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
 }
 

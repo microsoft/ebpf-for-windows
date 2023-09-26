@@ -219,6 +219,17 @@ The logs from the VM-Agent will be located under `C:\WindowsAzure\Plugins\<full 
 - "`ebpf_handler.log`": contains the logs of the eBPF VM Extension Handler execution.
 
 
+#### Removing the VM Extension from the Test-VM
+
+Ref.docs: https://learn.microsoft.com/en-us/powershell/module/az.compute/remove-azvmextension?view=azps-10.3.0
+
+```PS
+$vmExtName = "eBpfForWindows" # NOTE: this is the given name of the extension on the Test-VM, not the VM Extension name!
+$vmResourceGroup = "eBpfVmExtension"
+$vmName = "eBpfVm-EastEUAP"
+Remove-AzVMExtension -ResourceGroupName $vmResourceGroup -Name $vmExtName -VMName $vmName
+```
+
 ## UNDEFINED TOPICS FROM THE DOCS
 
 ### 1.0 Partner Guide Overview
