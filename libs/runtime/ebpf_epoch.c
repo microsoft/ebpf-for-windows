@@ -117,10 +117,12 @@ typedef struct _ebpf_epoch_cpu_message
         {
             uint64_t current_epoch;          ///< The new current epoch.
             uint64_t proposed_release_epoch; ///< Minimum epoch of all threads on the CPU.
+            bool epoch_flush;                ///< True if this is from an ebpf_epoch_flush() call.
         } propose_epoch;
         struct
         {
             uint64_t released_epoch; ///< The newest epoch that can be released.
+            bool epoch_flush;        ///< True if this is from an ebpf_epoch_flush() call.
         } commit_epoch;
         struct
         {
@@ -509,6 +511,7 @@ ebpf_epoch_flush()
 
     ebpf_epoch_cpu_message_t message = {0};
     message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH;
+    message.message.propose_epoch.epoch_flush = true;
 
     _ebpf_epoch_send_message_and_wait(&message, 0, true);
 }
@@ -704,6 +707,7 @@ _ebpf_epoch_messenger_propose_release_epoch(
     ebpf_list_entry_t* entry = cpu_entry->epoch_state_list.Flink;
     ebpf_epoch_state_t* epoch_state;
     uint32_t next_cpu;
+    bool flush = message->message.propose_epoch.epoch_flush;
 
     // First CPU updates the current epoch and proposes the release epoch.
     if (current_cpu == 0) {
@@ -741,7 +745,7 @@ _ebpf_epoch_messenger_propose_release_epoch(
         next_cpu = current_cpu + 1;
     }
 
-    _ebpf_epoch_send_message_async(message, next_cpu, false);
+    _ebpf_epoch_send_message_async(message, next_cpu, flush);
 }
 
 /**
@@ -765,6 +769,8 @@ _ebpf_epoch_messenger_commit_release_epoch(
     _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
 {
     uint32_t next_cpu;
+    bool flush = message->message.commit_epoch.epoch_flush;
+
     cpu_entry->timer_armed = false;
     // Set the released_epoch to the value computed by the EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH message.
     cpu_entry->released_epoch = message->message.commit_epoch.released_epoch - 1;
@@ -778,7 +784,7 @@ _ebpf_epoch_messenger_commit_release_epoch(
         next_cpu = 0;
     }
 
-    _ebpf_epoch_send_message_async(message, next_cpu, false);
+    _ebpf_epoch_send_message_async(message, next_cpu, flush);
 
     _ebpf_epoch_release_free_list(cpu_entry, cpu_entry->released_epoch);
 }
@@ -858,7 +864,7 @@ _ebpf_epoch_messenger_rundown_in_progress(
         return;
     }
 
-    _ebpf_epoch_send_message_async(message, next_cpu, false);
+    _ebpf_epoch_send_message_async(message, next_cpu, true);
 }
 
 /**

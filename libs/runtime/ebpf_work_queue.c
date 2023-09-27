@@ -66,6 +66,10 @@ Done:
 void
 ebpf_timed_work_queue_destroy(_In_ ebpf_timed_work_queue_t* work_queue)
 {
+    if (!work_queue) {
+        return;
+    }
+
     // Cancel the timer.
     KeCancelTimer(&work_queue->timer);
 
