@@ -1285,6 +1285,7 @@ TEST_CASE("work_queue", "[platform]")
 
     // Queue a work item with flush.
     ebpf_timed_work_queue_insert(work_queue, &work_item_context.list_entry, true);
+
     // Wait for active DPCs to complete.
     KeFlushQueuedDpcs();
 
