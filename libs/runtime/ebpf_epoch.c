@@ -317,7 +317,7 @@ ebpf_epoch_terminate()
     // Cancel the timer.
     KeCancelTimer(&_ebpf_epoch_compute_release_epoch_timer);
 
-    // Wait for the DPC to complete.
+    // Wait for the active DPC to complete.
     KeFlushQueuedDpcs();
 
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {

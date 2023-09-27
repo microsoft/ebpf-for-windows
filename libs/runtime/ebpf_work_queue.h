@@ -19,7 +19,7 @@ extern "C"
     typedef struct _ebpf_timed_work_queue ebpf_timed_work_queue_t;
 
     typedef void (*ebpf_timed_work_queue_callback_t)(
-        _Inout_ void* context, _In_ uint32_t cpu_id, _Inout_ ebpf_list_entry_t*);
+        _Inout_ void* context, uint32_t cpu_id, _Inout_ ebpf_list_entry_t*);
 
     /**
      * @brief Create a timed work queue.
@@ -45,13 +45,13 @@ extern "C"
     /**
      * @brief Destroy a timed work queue.
      *
-     * @param work_queue
+     * @param[in] work_queue The timed work queue to destroy.
      */
     void
     ebpf_timed_work_queue_destroy(_In_ ebpf_timed_work_queue_t* work_queue);
 
     /**
-     * @brief Insert a work item into the timed work queue. If immediate is true, time timer will fire immediately.
+     * @brief Insert a work item into the timed work queue. If immediate is true, the timer will fire immediately.
      * immediately.
      *
      * @param[in] work_queue The work queue to insert the work item into.
@@ -63,7 +63,7 @@ extern "C"
         _In_ ebpf_timed_work_queue_t* work_queue, _In_ ebpf_list_entry_t* work_item, bool flush);
 
     /**
-     * @brief Check if the timed work queue is empty with out acquiring the lock.
+     * @brief Check if the timed work queue is empty without acquiring the lock.
      *
      * @param[in] work_queue The work queue to check.
      * @return true The work queue is empty.
