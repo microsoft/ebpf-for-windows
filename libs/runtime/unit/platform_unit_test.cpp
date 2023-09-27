@@ -1263,7 +1263,7 @@ TEST_CASE("work_queue", "[platform]")
     std::unique_ptr<ebpf_timed_work_queue_t, decltype(&ebpf_timed_work_queue_destroy)> work_queue_ptr(
         work_queue, &ebpf_timed_work_queue_destroy);
 
-    // Queue a work item with out flush.
+    // Queue a work item without flush.
     ebpf_timed_work_queue_insert(work_queue, &work_item_context.list_entry, false);
 
     LARGE_INTEGER timeout = {0};
