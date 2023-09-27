@@ -519,7 +519,7 @@ jobs:
 
   performance:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
