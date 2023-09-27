@@ -4,6 +4,7 @@
 #define CATCH_CONFIG_MAIN
 #include "bpf_helpers.h"
 #include "catch_wrapper.hpp"
+#include "cxplat_fault_injection.h"
 #include "cxplat_passed_test_log.h"
 #include "netebpf_ext_helper.h"
 #include "watchdog.h"

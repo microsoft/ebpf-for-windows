@@ -237,8 +237,8 @@ void
 ebpf_object_tracking_terminate()
 {
     for (int index = 0; index < EBPF_COUNT_OF(_ebpf_id_table); index++) {
-        ebpf_assert(_ebpf_id_table[index].object == NULL || cxplat_fault_injection_is_enabled());
-        ebpf_assert(_ebpf_id_table[index].reference_count == 0 || cxplat_fault_injection_is_enabled());
+        ebpf_assert(_ebpf_id_table[index].object == NULL || ebpf_fault_injection_is_enabled());
+        ebpf_assert(_ebpf_id_table[index].reference_count == 0 || ebpf_fault_injection_is_enabled());
     }
 }
 
