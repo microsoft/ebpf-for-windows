@@ -18,7 +18,7 @@ extern "C"
      */
     typedef struct _ebpf_timed_work_queue ebpf_timed_work_queue_t;
 
-    typedef void (*ebpf_timed_work_queue_callback_t)(
+    typedef _IRQL_requires_(DISPATCH_LEVEL) void (*ebpf_timed_work_queue_callback_t)(
         _Inout_ void* context, uint32_t cpu_id, _Inout_ ebpf_list_entry_t*);
 
     /**

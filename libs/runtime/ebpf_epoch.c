@@ -911,8 +911,6 @@ _IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_messenger_worker(
         return;
     }
 
-    _Analysis_assume_(arg1 != NULL);
-
     if (message->message_type > EBPF_COUNT_OF(_ebpf_epoch_messenger_workers) || message->message_type < 0) {
         ebpf_assert(!"Invalid message type");
         return;
