@@ -52,7 +52,6 @@ extern "C"
 
     /**
      * @brief Insert a work item into the timed work queue. If immediate is true, the timer will fire immediately.
-     * immediately.
      *
      * @param[in] work_queue The work queue to insert the work item into.
      * @param[in] work_item The work item to insert.
