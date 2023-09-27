@@ -18,6 +18,9 @@ extern "C"
      */
     typedef struct _ebpf_timed_work_queue ebpf_timed_work_queue_t;
 
+    typedef void (*ebpf_timed_work_queue_callback_t)(
+        _Inout_ void* context, _In_ uint32_t cpu_id, _Inout_ ebpf_list_entry_t*);
+
     /**
      * @brief Create a timed work queue.
      *
@@ -36,7 +39,7 @@ extern "C"
         _Out_ ebpf_timed_work_queue_t** work_queue,
         uint32_t cpu_id,
         LARGE_INTEGER* interval,
-        void (*callback)(_Inout_ void* context, _Inout_ ebpf_list_entry_t*),
+        ebpf_timed_work_queue_callback_t callback,
         void* context);
 
     /**

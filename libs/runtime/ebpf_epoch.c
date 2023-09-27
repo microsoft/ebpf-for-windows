@@ -3,6 +3,7 @@
 
 #include "ebpf_epoch.h"
 #include "ebpf_tracelog.h"
+#include "ebpf_work_queue.h"
 
 /**
  * @brief Epoch Base Memory Reclamation.
@@ -50,6 +51,7 @@ typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
     int timer_armed : 1;                   ///< Set if the flush timer is armed.
     int rundown_in_progress : 1;           ///< Set if rundown is in progress.
     int epoch_computation_in_progress : 1; ///< Set if epoch computation is in progress.
+    ebpf_timed_work_queue_t* work_queue;   ///< Work queue used to schedule work items.
 } ebpf_epoch_cpu_entry_t;
 
 /**
@@ -107,6 +109,7 @@ typedef enum _ebpf_epoch_cpu_message_type
  */
 typedef struct _ebpf_epoch_cpu_message
 {
+    LIST_ENTRY list_entry; ///< List entry used to insert the message into the message queue.
     ebpf_epoch_cpu_message_type_t message_type;
     union
     {
@@ -151,11 +154,6 @@ static ebpf_epoch_cpu_message_t _ebpf_epoch_compute_release_epoch_message = {0};
 static KDPC _ebpf_epoch_timer_dpc;
 
 /**
- * @brief DPC used to process epoch computation.
- */
-static KDPC _ebpf_epoch_compute_release_epoch_dpc;
-
-/**
  * @brief Type of entry in the free list.
  * There are two types of entries in the free list:
  * 1. Memory allocation. This is a block of memory that is returned to the memory pool.
@@ -198,14 +196,17 @@ cxplat_rundown_reference_t _ebpf_epoch_work_item_rundown_ref;
 static void
 _ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t released_epoch);
 
-_Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_messenger_worker(
-    _In_ KDPC* dpc, _In_opt_ void* cpu_entry, _In_opt_ void* message, _In_opt_ void* arg2);
+_IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_messenger_worker(
+    _Inout_ void* context, uint32_t cpu_id, _Inout_ ebpf_list_entry_t* message);
 
 _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_timer_worker(
     _In_ KDPC* dpc, _In_opt_ void* cpu_entry, _In_opt_ void* message, _In_opt_ void* arg2);
 
 _IRQL_requires_max_(APC_LEVEL) static void _ebpf_epoch_send_message_and_wait(
-    _In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id);
+    _In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id, bool flush);
+
+static void
+_ebpf_epoch_send_message_async(_In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id, bool flush);
 
 _IRQL_requires_same_ static void
 _ebpf_epoch_insert_in_free_list(_In_ ebpf_epoch_allocation_header_t* header);
@@ -276,11 +277,18 @@ ebpf_epoch_initiate()
         cpu_entry->current_epoch = 1;
         ebpf_list_initialize(&cpu_entry->epoch_state_list);
         ebpf_list_initialize(&cpu_entry->free_list);
+        LARGE_INTEGER interval;
+        interval.QuadPart = EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NANO_SECONDS_PER_FILETIME_TICK;
+
+        ebpf_result_t result = ebpf_timed_work_queue_create(
+            &cpu_entry->work_queue, cpu_id, &interval, _ebpf_epoch_messenger_worker, cpu_entry);
+        if (result != EBPF_SUCCESS) {
+            return_value = result;
+            goto Error;
+        }
     }
 
-    KeInitializeDpc(&_ebpf_epoch_compute_release_epoch_dpc, _ebpf_epoch_messenger_worker, NULL);
     KeInitializeDpc(&_ebpf_epoch_timer_dpc, _ebpf_epoch_timer_worker, NULL);
-    KeSetTargetProcessorDpc(&_ebpf_epoch_compute_release_epoch_dpc, 0);
     KeSetTargetProcessorDpc(&_ebpf_epoch_timer_dpc, 0);
 
     KeInitializeTimer(&_ebpf_epoch_compute_release_epoch_timer);
@@ -304,7 +312,7 @@ ebpf_epoch_terminate()
     }
 
     rundown_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_RUNDOWN_IN_PROGRESS;
-    _ebpf_epoch_send_message_and_wait(&rundown_message, 0);
+    _ebpf_epoch_send_message_and_wait(&rundown_message, 0, true);
 
     // Cancel the timer.
     KeCancelTimer(&_ebpf_epoch_compute_release_epoch_timer);
@@ -317,6 +325,7 @@ ebpf_epoch_terminate()
         // Release all memory that is still in the free list.
         _ebpf_epoch_release_free_list(cpu_entry, MAXINT64);
         ebpf_assert(ebpf_list_is_empty(&cpu_entry->free_list));
+        ebpf_timed_work_queue_destroy(cpu_entry->work_queue);
     }
 
     // Wait for all work items to complete.
@@ -331,9 +340,9 @@ ebpf_epoch_terminate()
 }
 
 #pragma warning(push)
-#pragma warning( \
-    disable : 28166) // warning C28166: The function 'ebpf_epoch_enter' does not restore the IRQL to the value that was
-                     // current at function entry and is required to do so. IRQL was last set to 2 at line 334.
+#pragma warning(disable : 28166) // warning C28166: The function 'ebpf_epoch_enter' does not restore the IRQL to the
+                                 // value that was current at function entry and is required to do so. IRQL was last set
+                                 // to 2 at line 334.
 _IRQL_requires_same_ void
 ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
 {
@@ -349,9 +358,9 @@ ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
 #pragma warning(pop)
 
 #pragma warning(push)
-#pragma warning( \
-    disable : 28166) // warning C28166: The function 'ebpf_epoch_exit' does not restore the IRQL to the value that was
-                     // current at function entry and is required to do so. IRQL was last set to 2 at line 353.
+#pragma warning(disable : 28166) // warning C28166: The function 'ebpf_epoch_exit' does not restore the IRQL to the
+                                 // value that was current at function entry and is required to do so. IRQL was last set
+                                 // to 2 at line 353.
 // the IRQL.
 _IRQL_requires_same_ void
 ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
@@ -384,7 +393,7 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
         KIRQL saved_irql = epoch_state->irql_at_enter;
         epoch_state->irql_at_enter = DISPATCH_LEVEL;
 
-        _ebpf_epoch_send_message_and_wait(&message, epoch_state->cpu_id);
+        _ebpf_epoch_send_message_and_wait(&message, epoch_state->cpu_id, true);
 
         // Restore the irql at enter.
         epoch_state->irql_at_enter = saved_irql;
@@ -393,6 +402,10 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
 
     ebpf_list_remove_entry(&epoch_state->epoch_list_entry);
     _ebpf_epoch_arm_timer_if_needed(&_ebpf_epoch_cpu_table[cpu_id]);
+
+    if (!ebpf_timed_work_queue_is_empty(_ebpf_epoch_cpu_table[cpu_id].work_queue)) {
+        ebpf_timed_work_queued_poll(_ebpf_epoch_cpu_table[cpu_id].work_queue);
+    }
 
     _ebpf_epoch_lower_to_previous_irql(epoch_state->irql_at_enter);
 }
@@ -497,7 +510,7 @@ ebpf_epoch_flush()
     ebpf_epoch_cpu_message_t message = {0};
     message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH;
 
-    _ebpf_epoch_send_message_and_wait(&message, 0);
+    _ebpf_epoch_send_message_and_wait(&message, 0, true);
 }
 
 bool
@@ -507,7 +520,7 @@ ebpf_epoch_is_free_list_empty(uint32_t cpu_id)
 
     message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY;
 
-    _ebpf_epoch_send_message_and_wait(&message, cpu_id);
+    _ebpf_epoch_send_message_and_wait(&message, cpu_id, true);
 
     return message.message.is_free_list_empty.is_empty;
 }
@@ -654,8 +667,7 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
         memset(&_ebpf_epoch_compute_release_epoch_message, 0, sizeof(_ebpf_epoch_compute_release_epoch_message));
         _ebpf_epoch_compute_release_epoch_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH;
         KeInitializeEvent(&_ebpf_epoch_compute_release_epoch_message.completion_event, NotificationEvent, false);
-        KeSetTargetProcessorDpc(&_ebpf_epoch_compute_release_epoch_dpc, 0);
-        KeInsertQueueDpc(&_ebpf_epoch_compute_release_epoch_dpc, &_ebpf_epoch_compute_release_epoch_message, NULL);
+        _ebpf_epoch_send_message_async(&_ebpf_epoch_compute_release_epoch_message, 0, false);
     } else {
         _ebpf_epoch_skipped_timers++;
         LARGE_INTEGER due_time;
@@ -668,10 +680,7 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
  * @brief DPC that runs when a message is sent between CPUs.
  */
 typedef void (*ebpf_epoch_messenger_worker_t)(
-    _In_ KDPC* dpc,
-    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry,
-    _Inout_ ebpf_epoch_cpu_message_t* message,
-    uint32_t current_cpu);
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu);
 
 /**
  * @brief Compute the next proposed release epoch and send it to the next CPU.
@@ -683,20 +692,14 @@ typedef void (*ebpf_epoch_messenger_worker_t)(
  * last CPU forwards the message to the next CPU. The last CPU then sends an
  * EBPF_EPOCH_CPU_MESSAGE_TYPE_COMMIT_RELEASE_EPOCH message to CPU 0 with the final proposed release epoch.
  *
- * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to compute the epoch for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
  */
 void
 _ebpf_epoch_messenger_propose_release_epoch(
-    _In_ KDPC* dpc,
-    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry,
-    _Inout_ ebpf_epoch_cpu_message_t* message,
-    uint32_t current_cpu)
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
 {
-    UNREFERENCED_PARAMETER(dpc);
-
     // Walk over each thread_entry in the epoch_state_list and compute the minimum epoch.
     ebpf_list_entry_t* entry = cpu_entry->epoch_state_list.Flink;
     ebpf_epoch_state_t* epoch_state;
@@ -738,9 +741,7 @@ _ebpf_epoch_messenger_propose_release_epoch(
         next_cpu = current_cpu + 1;
     }
 
-    // Queue the DPC to the next CPU.
-    KeSetTargetProcessorDpc(dpc, (uint8_t)next_cpu);
-    KeInsertQueueDpc(dpc, message, NULL);
+    _ebpf_epoch_send_message_async(message, next_cpu, false);
 }
 
 /**
@@ -755,17 +756,13 @@ _ebpf_epoch_messenger_propose_release_epoch(
  * 5. Forwards the message to the next CPU.
  * The last CPU then sends a EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_EPOCH_COMPLETE message to CPU 0.
  *
- * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to rearm the timer for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
  */
 void
 _ebpf_epoch_messenger_commit_release_epoch(
-    _In_ KDPC* dpc,
-    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry,
-    _Inout_ ebpf_epoch_cpu_message_t* message,
-    uint32_t current_cpu)
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
 {
     uint32_t next_cpu;
     cpu_entry->timer_armed = false;
@@ -781,9 +778,7 @@ _ebpf_epoch_messenger_commit_release_epoch(
         next_cpu = 0;
     }
 
-    // Queue the DPC to the next CPU.
-    KeSetTargetProcessorDpc(dpc, (uint8_t)next_cpu);
-    KeInsertQueueDpc(dpc, message, NULL);
+    _ebpf_epoch_send_message_async(message, next_cpu, false);
 
     _ebpf_epoch_release_free_list(cpu_entry, cpu_entry->released_epoch);
 }
@@ -795,21 +790,17 @@ _ebpf_epoch_messenger_commit_release_epoch(
  * CPU 0 clears the epoch computation in progress flag and signals the KEVENT associated with the message to signal any
  * waiting threads that the operation is completed.
  *
- * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to mark the computation as complete for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
  */
 void
 _ebpf_epoch_messenger_compute_epoch_complete(
-    _In_ KDPC* dpc,
-    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry,
-    _Inout_ ebpf_epoch_cpu_message_t* message,
-    uint32_t current_cpu)
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
 {
     UNREFERENCED_PARAMETER(current_cpu);
     // If this is the timer's DPC, then mark the computation as complete.
-    if (dpc == &_ebpf_epoch_compute_release_epoch_dpc) {
+    if (message == &_ebpf_epoch_compute_release_epoch_message) {
         cpu_entry->epoch_computation_in_progress = false;
     } else {
         // This is an adhoc flush. Signal the caller that the flush is complete.
@@ -824,19 +815,14 @@ _ebpf_epoch_messenger_compute_epoch_complete(
  * The CPU removes the ebpf_epoch_state_t from the per-CPU thread list and signals the KEVENT associated with the
  * message to signal any waiting threads that the operation is completed.
  *
- * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to call ebpf_epoch_exit() for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
  */
 void
 _ebpf_epoch_messenger_exit_epoch(
-    _In_ KDPC* dpc,
-    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry,
-    _Inout_ ebpf_epoch_cpu_message_t* message,
-    uint32_t current_cpu)
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
 {
-    UNREFERENCED_PARAMETER(dpc);
     UNREFERENCED_PARAMETER(current_cpu);
     UNREFERENCED_PARAMETER(cpu_entry);
 
@@ -850,20 +836,15 @@ _ebpf_epoch_messenger_exit_epoch(
  * Message is sent to each CPU to notify it that epoch code is shutting down and that no future timers should be armed
  * and future messages should be ignored.
  *
- * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to set the flag for.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
  */
 void
 _ebpf_epoch_messenger_rundown_in_progress(
-    _In_ KDPC* dpc,
-    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry,
-    _Inout_ ebpf_epoch_cpu_message_t* message,
-    uint32_t current_cpu)
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
 {
     uint32_t next_cpu;
-    UNREFERENCED_PARAMETER(dpc);
     cpu_entry->rundown_in_progress = true;
     // If this is the last CPU, then stop.
     if (current_cpu != _ebpf_epoch_cpu_count - 1) {
@@ -877,9 +858,7 @@ _ebpf_epoch_messenger_rundown_in_progress(
         return;
     }
 
-    // Queue the DPC to the next CPU.
-    KeSetTargetProcessorDpc(dpc, (uint8_t)next_cpu);
-    KeInsertQueueDpc(dpc, message, NULL);
+    _ebpf_epoch_send_message_async(message, next_cpu, false);
 }
 
 /**
@@ -887,19 +866,14 @@ _ebpf_epoch_messenger_rundown_in_progress(
  * EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY message:
  * Message is sent to each CPU to query if its local free list is empty.
  *
- * @param[in] dpc DPC that triggered this function.
  * @param[in] cpu_entry CPU entry to check.
  * @param[in] message Message to process.
  * @param[in] current_cpu Current CPU.
  */
 void
 _ebpf_epoch_messenger_is_free_list_empty(
-    _In_ KDPC* dpc,
-    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry,
-    _Inout_ ebpf_epoch_cpu_message_t* message,
-    uint32_t current_cpu)
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
 {
-    UNREFERENCED_PARAMETER(dpc);
     UNREFERENCED_PARAMETER(current_cpu);
     message->message.is_free_list_empty.is_empty = ebpf_list_is_empty(&cpu_entry->free_list);
     KeSetEvent(&message->completion_event, 0, FALSE);
@@ -921,19 +895,16 @@ static ebpf_epoch_messenger_worker_t _ebpf_epoch_messenger_workers[] = {
  *
  * If rundown is in progress, then the message is ignored.
  *
- * @param[in] dpc DPC that triggered this function.
  * @param[in] context Context passed to the DPC - not used.
- * @param[in] arg1 The ebpf_epoch_cpu_message_t to process.
- * @param[in] arg2 Not used.
+ * @param[in] list_entry List entry that contains the message to process.
  */
-_Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_messenger_worker(
-    _In_ KDPC* dpc, _In_opt_ void* context, _In_opt_ void* arg1, _In_opt_ void* arg2)
+_IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_messenger_worker(
+    _Inout_ void* context, uint32_t cpu_id, _Inout_ ebpf_list_entry_t* list_entry)
 {
     UNREFERENCED_PARAMETER(context);
-    UNREFERENCED_PARAMETER(arg2);
-    uint32_t cpu_id = ebpf_get_current_cpu();
+    ebpf_assert(ebpf_get_current_cpu() == cpu_id);
     ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
-    ebpf_epoch_cpu_message_t* message = (ebpf_epoch_cpu_message_t*)arg1;
+    ebpf_epoch_cpu_message_t* message = CONTAINING_RECORD(list_entry, ebpf_epoch_cpu_message_t, list_entry);
 
     // If rundown is in progress, then exit immediately.
     if (cpu_entry->rundown_in_progress) {
@@ -947,7 +918,7 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
         return;
     }
 
-    _ebpf_epoch_messenger_workers[message->message_type](dpc, cpu_entry, message, cpu_id);
+    _ebpf_epoch_messenger_workers[message->message_type](cpu_entry, message, cpu_id);
 }
 
 /**
@@ -955,24 +926,33 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
  *
  * @param[in] message Message to send.
  * @param[in] cpu_id CPU to send the message to.
+ * @param[in] flush If true, process all messages on the target CPU immediately.
  */
 _IRQL_requires_max_(APC_LEVEL) static void _ebpf_epoch_send_message_and_wait(
-    _In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id)
+    _In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id, bool flush)
 {
-    KDPC dpc;
-
     // Initialize the completion event.
     KeInitializeEvent(&message->completion_event, NotificationEvent, FALSE);
 
-    // Initialize the dpc.
-    KeInitializeDpc(&dpc, _ebpf_epoch_messenger_worker, NULL);
-    KeSetTargetProcessorDpc(&dpc, (uint8_t)cpu_id);
-
-    // Send the message.
-    KeInsertQueueDpc(&dpc, message, NULL);
+    // Queue the message to the specified CPU.
+    ebpf_timed_work_queue_insert(_ebpf_epoch_cpu_table[cpu_id].work_queue, &message->list_entry, flush);
 
     // Wait for the message to complete.
     KeWaitForSingleObject(&message->completion_event, Executive, KernelMode, FALSE, NULL);
+}
+
+/**
+ * @brief Send a message to the specified CPU asynchronously.
+ *
+ * @param[in] message Message to send.
+ * @param[in] cpu_id CPU to send the message to.
+ * @param[in] flush If true, process all messages on the target CPU immediately.
+ */
+static void
+_ebpf_epoch_send_message_async(_In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id, bool flush)
+{
+    // Queue the message to the specified CPU.
+    ebpf_timed_work_queue_insert(_ebpf_epoch_cpu_table[cpu_id].work_queue, &message->list_entry, flush);
 }
 
 /**

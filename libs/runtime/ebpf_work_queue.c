@@ -11,8 +11,9 @@ typedef struct _ebpf_timed_work_queue
     ebpf_lock_t lock;
     bool timer_armed;
     LARGE_INTEGER interval;
-    void (*callback)(void* context, ebpf_list_entry_t*);
+    ebpf_timed_work_queue_callback_t callback;
     void* context;
+    uint32_t cpu_id;
 } ebpf_timed_work_queue_t;
 
 KDEFERRED_ROUTINE _ebpf_timed_work_queue_timer_callback;
@@ -26,7 +27,7 @@ ebpf_timed_work_queue_create(
     _Out_ ebpf_timed_work_queue_t** work_queue,
     uint32_t cpu_id,
     LARGE_INTEGER* interval,
-    void (*callback)(void* context, ebpf_list_entry_t*),
+    ebpf_timed_work_queue_callback_t callback,
     void* context)
 {
     ebpf_timed_work_queue_t* local_work_queue = NULL;
@@ -41,6 +42,7 @@ ebpf_timed_work_queue_create(
     local_work_queue->callback = callback;
     local_work_queue->context = context;
     local_work_queue->interval = *interval;
+    local_work_queue->cpu_id = cpu_id;
 
     ebpf_lock_create(&local_work_queue->lock);
 
@@ -116,11 +118,16 @@ ebpf_timed_work_queued_poll(_In_ ebpf_timed_work_queue_t* work_queue)
 
     lock_state = ebpf_lock_lock(&work_queue->lock);
 
+    if (work_queue->timer_armed) {
+        KeCancelTimer(&work_queue->timer);
+        work_queue->timer_armed = false;
+    }
+
     while (!ebpf_list_is_empty(&work_queue->work_items)) {
         work_item = work_queue->work_items.Flink;
         ebpf_list_remove_entry(work_item);
         ebpf_lock_unlock(&work_queue->lock, lock_state);
-        work_queue->callback(work_queue->context, work_item);
+        work_queue->callback(work_queue->context, work_queue->cpu_id, work_item);
         lock_state = ebpf_lock_lock(&work_queue->lock);
     }
 

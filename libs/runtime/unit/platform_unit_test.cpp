@@ -1251,8 +1251,9 @@ TEST_CASE("work_queue", "[platform]")
             &work_queue,
             0,
             &interval,
-            [](_Inout_ void* context, _Inout_ ebpf_list_entry_t* entry) {
+            [](_Inout_ void* context, uint32_t cpu_id, _Inout_ ebpf_list_entry_t* entry) {
                 UNREFERENCED_PARAMETER(context);
+                UNREFERENCED_PARAMETER(cpu_id);
                 auto work_item_context = reinterpret_cast<_work_item_context*>(entry);
                 KeSetEvent(&work_item_context->completion_event, 0, FALSE);
             },
