@@ -48,7 +48,7 @@ extern "C"
      * @param[in] work_queue The timed work queue to destroy.
      */
     void
-    ebpf_timed_work_queue_destroy(_In_ ebpf_timed_work_queue_t* work_queue);
+    ebpf_timed_work_queue_destroy(_In_opt_ ebpf_timed_work_queue_t* work_queue);
 
     /**
      * @brief Insert a work item into the timed work queue. If immediate is true, the timer will fire immediately.

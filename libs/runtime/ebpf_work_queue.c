@@ -57,14 +57,13 @@ ebpf_timed_work_queue_create(
     return_value = EBPF_SUCCESS;
 
 Done:
-    if (local_work_queue) {
-        ebpf_timed_work_queue_destroy(local_work_queue);
-    }
+    ebpf_timed_work_queue_destroy(local_work_queue);
+
     return return_value;
 }
 
 void
-ebpf_timed_work_queue_destroy(_In_ ebpf_timed_work_queue_t* work_queue)
+ebpf_timed_work_queue_destroy(_In_opt_ ebpf_timed_work_queue_t* work_queue)
 {
     if (!work_queue) {
         return;
