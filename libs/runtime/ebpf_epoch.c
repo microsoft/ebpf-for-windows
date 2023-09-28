@@ -342,9 +342,9 @@ ebpf_epoch_terminate()
 }
 
 #pragma warning(push)
-#pragma warning(disable : 28166) // warning C28166: The function 'ebpf_epoch_enter' does not restore the IRQL to the
-                                 // value that was current at function entry and is required to do so. IRQL was last set
-                                 // to 2 at line 334.
+#pragma warning(disable : 28166) // warning C28166: Code analysis incorrectly reports that the function
+                                 // 'ebpf_epoch_enter' does not restore the IRQL to the value that was current at
+                                 // function entry.
 _IRQL_requires_same_ void
 ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
 {
@@ -360,10 +360,9 @@ ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
 #pragma warning(pop)
 
 #pragma warning(push)
-#pragma warning(disable : 28166) // warning C28166: The function 'ebpf_epoch_exit' does not restore the IRQL to the
-                                 // value that was current at function entry and is required to do so. IRQL was last set
-                                 // to 2 at line 353.
-// the IRQL.
+#pragma warning( \
+    disable : 28166) // warning C28166: Code analysis incorrectly reports that the function 'ebpf_epoch_exit'
+                     // does not restore the IRQL to the value that was current at function entry.
 _IRQL_requires_same_ void
 ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
 {

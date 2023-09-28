@@ -38,9 +38,9 @@ extern "C"
     ebpf_timed_work_queue_create(
         _Out_ ebpf_timed_work_queue_t** work_queue,
         uint32_t cpu_id,
-        LARGE_INTEGER* interval,
-        ebpf_timed_work_queue_callback_t callback,
-        void* context);
+        _In_ LARGE_INTEGER* interval,
+        _In_ ebpf_timed_work_queue_callback_t callback,
+        _In_ void* context);
 
     /**
      * @brief Destroy a timed work queue.
