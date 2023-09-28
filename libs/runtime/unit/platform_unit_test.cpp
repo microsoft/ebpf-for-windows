@@ -1245,7 +1245,7 @@ TEST_CASE("work_queue", "[platform]")
     LARGE_INTEGER interval;
 
     interval.QuadPart = 10 * 1000 * 100; // 100ms
-
+    int context = 1;
     REQUIRE(
         ebpf_timed_work_queue_create(
             &work_queue,
@@ -1257,7 +1257,7 @@ TEST_CASE("work_queue", "[platform]")
                 auto work_item_context = reinterpret_cast<_work_item_context*>(entry);
                 KeSetEvent(&work_item_context->completion_event, 0, FALSE);
             },
-            nullptr) == EBPF_SUCCESS);
+            &context) == EBPF_SUCCESS);
 
     // Unique ptr that will call ebpf_timed_work_queue_destroy when it goes out of scope.
     std::unique_ptr<ebpf_timed_work_queue_t, decltype(&ebpf_timed_work_queue_destroy)> work_queue_ptr(
