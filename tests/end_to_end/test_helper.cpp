@@ -6,6 +6,7 @@
 #include "bpf/bpf.h"
 #include "bpf2c.h"
 #include "catch_wrapper.hpp"
+#include "cxplat_fault_injection.h"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_platform.h"
