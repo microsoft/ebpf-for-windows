@@ -88,7 +88,10 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
 
     # Test cases
     #######################################################
-    # Raw environment cleanup.
+    # Raw environment cleanup.    
+    $null = Remove-Item -Path "$global:LogFilePath" -Recurse -Force 2>&1
+    # Re-run just to log the HandlerEnvironment contents (in path not available before reading it)
+    Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironmentFilePath"
     Write-Log -level $LogLevelInfo -message "= Cleaning up environment =================================================================================================="        
     $null = net stop eBPFCore 2>&1
     $null = sc.exe delete eBPFCore 2>&1
@@ -97,7 +100,6 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     $null = netsh delete helper ebpfnetsh.dll 2>&1
     $null = Remove-DirectoryFromSystemPath "$EbpfDefaultInstallPath" 2>&1
     $null = Remove-Item -Path "$EbpfDefaultInstallPath" -Recurse -Force 2>&1
-    $null = Remove-Item -Path "$global:LogFilePath" -Recurse -Force 2>&1
 
     # Clean-up and set up the test environment with two versions of the eBPF redist package.
     $testRedistTargetDirectory = ".\_ebpf-redist"
@@ -172,25 +174,25 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Setup-Test-Package -packageVersion "0.9.0" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
-    if ((Set-EnvironmentVariable -variableName $VmAgentEnvVar_VERSION -variableValue "0.9.0.0") -ne 0) {
-        Exit-Tests -testPass 1
-    }
     if ((Install-eBPF-Handler) -ne 0) {
         Exit-Tests -testPass 1
     } 
-    if ((Enable-eBPF-Handler) -ne 0) { # The VM Agent will then call 'Enable' on the handler
+    if ((Enable-eBPF-Handler) -ne 0) {
         Exit-Tests -testPass 1
     }
         
     # Simulate a handler-only update, by changing the handler's new target version in the VERSION environment variable.
     Write-Log -level $LogLevelInfo -message "= Simulate a handler-only update =========================================================================================="
-    if ((Set-EnvironmentVariable -variableName $VmAgentEnvVar_VERSION -variableValue "0.9.0.1") -ne 0) {
+    if ((Disable-eBPF-Handler) -ne 0) {
         Exit-Tests -testPass 1
     }
-    if ((Disable-eBPF-Handler) -ne 0) { # The VM Agent will first call 'Disable' on the handler
+    if ((Update-eBPF-Handler) -ne 0) { # Always NOP on update
         Exit-Tests -testPass 1
     }
-    if ((Update-eBPF-Handler) -ne 0) {
+    if ((Install-eBPF-Handler) -ne 0) {
+        Exit-Tests -testPass 1
+    }
+    if ((Enable-eBPF-Handler) -ne 0) {
         Exit-Tests -testPass 1
     }
 
@@ -199,13 +201,16 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Setup-Test-Package -packageVersion "0.9.1" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
-    if ((Set-EnvironmentVariable -variableName $VmAgentEnvVar_VERSION -variableValue "0.9.1.0") -ne 0) {
+    if ((Disable-eBPF-Handler) -ne 0) {
         Exit-Tests -testPass 1
     }
-    if ((Disable-eBPF-Handler) -ne 0) { # The VM Agent will first call 'Disable' on the handler
+    if ((Update-eBPF-Handler) -ne 0) { # Always NOP on update
         Exit-Tests -testPass 1
-    }    
-    if ((Update-eBPF-Handler) -ne 0) {
+    }
+    if ((Install-eBPF-Handler) -ne 0) {
+        Exit-Tests -testPass 1
+    }
+    if ((Enable-eBPF-Handler) -ne 0) {
         Exit-Tests -testPass 1
     }
     
@@ -214,13 +219,19 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Setup-Test-Package -packageVersion "0.9.0" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
-    if ((Set-EnvironmentVariable -variableName $VmAgentEnvVar_VERSION -variableValue "0.9.0.0") -ne 0) {
+    # if ((Set-EnvironmentVariable -variableName $VmAgentEnvVar_VERSION -variableValue "0.9.0.0") -ne 0) {
+    #     Exit-Tests -testPass 1
+    # }
+    if ((Disable-eBPF-Handler) -ne 0) {
         Exit-Tests -testPass 1
     }
-    if ((Disable-eBPF-Handler) -ne 0) { # The VM Agent will first call 'Disable' on the handler
+    if ((Update-eBPF-Handler) -ne 0) { # Always NOP on update
         Exit-Tests -testPass 1
-    }    
-    if ((Update-eBPF-Handler) -eq 0) {
+    }
+    if ((Install-eBPF-Handler) -eq 0) {
+        Exit-Tests -testPass 1
+    }
+    if ((Enable-eBPF-Handler) -ne 0) {
         Exit-Tests -testPass 1
     }
     
