@@ -66,8 +66,7 @@ function Test-CppBinaryDependencies {
 # Iterate over all the test cases
 $allTestsPassed = $true
 foreach ($filePath in $testCases[$BuildArtifact].Keys) {
-    $textFilePath = $testCases[$BuildArtifact][$filePath]
-    $res = Test-CppBinaryDependencies -FilePath $filePath -TextFilePath $textFilePath
+    $res = Test-CppBinaryDependencies -FilePath $filePath -TextFilePath $testCases[$BuildArtifact][$filePath]
     $allTestsPassed = $allTestsPassed -and $res
 }
 
