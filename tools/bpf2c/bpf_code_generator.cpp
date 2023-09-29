@@ -1473,11 +1473,27 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         auto& line_info = section_line_info[name];
         auto first_line_info = line_info.find(section.output.front().instruction_offset);
         std::string prolog_line_info;
+        uint32_t line_number = 0;
         if (first_line_info != line_info.end() && !first_line_info->second.file_name.empty()) {
-            prolog_line_info = std::format(
-                "#line {} {}\n",
-                std::to_string(first_line_info->second.line_number),
-                first_line_info->second.file_name.quoted_filename());
+            line_number = first_line_info->second.line_number;
+            if (line_number == 0) {
+                // Iterate over all the instructions to find a non-zero line number.
+                for (const auto& output : section.output) {
+                    if (output.lines.empty()) {
+                        continue;
+                    }
+                    auto current_line = line_info.find(output.instruction_offset);
+                    if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
+                        current_line->second.line_number != 0) {
+                        line_number = current_line->second.line_number;
+                        break;
+                    }
+                }
+            }
+            if (line_number != 0) {
+                prolog_line_info = std::format(
+                    "#line {} {}\n", std::to_string(line_number), first_line_info->second.file_name.quoted_filename());
+            }
         }
 
         // Emit entry point
