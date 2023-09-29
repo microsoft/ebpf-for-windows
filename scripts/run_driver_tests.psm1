@@ -194,8 +194,8 @@ function Invoke-ConnectRedirectTest
         --password $StandardUserPassword `
         --user-type $UserType
     Out-String -InputObject $Output | Write-Log
-    $ParsedOutput = $Output.Split(" ")
-    if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("Connect-Redirect Test Failed.") }
+    $ParsedOutput = $Output.Split([System.Environment]::NewLine)
+    if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -3] -like "*failed*")) { throw ("Connect-Redirect Test Failed.") }
 
     ## Run test with only v4 program attached.
     $Parameters = "--virtual-ip-v4 $VirtualIPv4Address --local-ip-v4 $LocalIPv4Address --remote-ip-v4 $RemoteIPv4Address --destination-port $DestinationPort --proxy-port $ProxyPort --user-type $UserType"
@@ -212,8 +212,8 @@ function Invoke-ConnectRedirectTest
         --user-type $UserType `
         "[connect_authorize_redirect_tests_v4]"
     Out-String -InputObject $Output | Write-Log
-    $ParsedOutput = $Output.Split(" ")
-    if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("Connect-Redirect Test Failed.") }
+    $ParsedOutput = $Output.Split([System.Environment]::NewLine)
+    if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -3] -like "*failed*")) { throw ("Connect-Redirect Test Failed.") }
 
     ## Run tests with only v6 program attached.
     $Parameters = "--virtual-ip-v6 $VirtualIPv6Address --local-ip-v6 $LocalIPv6Address --remote-ip-v6 $RemoteIPv6Address --destination-port $DestinationPort --proxy-port $ProxyPort --user-type $UserType"
@@ -230,8 +230,8 @@ function Invoke-ConnectRedirectTest
         --user-type $UserType `
         "[connect_authorize_redirect_tests_v6]"
     Out-String -InputObject $Output | Write-Log
-    $ParsedOutput = $Output.Split(" ")
-    if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("Connect-Redirect Test Failed.") }
+    $ParsedOutput = $Output.Split([System.Environment]::NewLine)
+    if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -3] -like "*failed*")) { throw ("Connect-Redirect Test Failed.") }
 
     Write-Log "Connect-Redirect Test Passed" -ForegroundColor Green
 
