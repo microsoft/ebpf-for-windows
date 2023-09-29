@@ -14,7 +14,7 @@ $testCases = @{
         "ebpfnetsh.dll" = "..\..\scripts\check_binary_dependencies_ebpfnetsh_dll_regular_debug.txt"
         "ebpfsvc.exe" = "..\..\scripts\check_binary_dependencies_ebpfsvc_exe_regular_debug.txt"
     }
-    "Build-x64-native-only_Release" = @{
+    "Build-x64-native-only_NativeOnlyRelease" = @{
         "bpftool.exe" = "..\..\scripts\check_binary_dependencies_bpftool_exe_nativeonly_release.txt"
         "ebpfapi.dll" = "..\..\scripts\check_binary_dependencies_ebpfapi_dll_nativeonly_release.txt"
         "ebpfnetsh.dll" = "..\..\scripts\check_binary_dependencies_ebpfnetsh_dll_nativeonly_release.txt"
@@ -65,14 +65,10 @@ function Test-CppBinaryDependencies {
 
 # Iterate over all the test cases
 $allTestsPassed = $true
-foreach ($buildArtifact in $testCases.Keys) {
-    if ($BuildArtifact -eq $buildArtifact) {
-        foreach ($filePath in $testCases[$buildArtifact].Keys) {
-            $textFilePath = $testCases[$buildArtifact][$filePath]
-            $res = Test-CppBinaryDependencies -FilePath $filePath -TextFilePath $textFilePath
-            $allTestsPassed = $allTestsPassed -and $res
-        }
-    }
+foreach ($filePath in $testCases[$BuildArtifact].Keys) {
+    $textFilePath = $testCases[$BuildArtifact][$filePath]
+    $res = Test-CppBinaryDependencies -FilePath $filePath -TextFilePath $textFilePath
+    $allTestsPassed = $allTestsPassed -and $res
 }
 
 Pop-Location
