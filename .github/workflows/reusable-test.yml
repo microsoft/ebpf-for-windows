@@ -41,6 +41,9 @@ on:
       capture_etw:
         required: false
         type: boolean
+      capture_etw_memory:
+        required: false
+        type: boolean
       # Set to true to use Visual Studio Developer command shell.
       vs_dev:
         required: false
@@ -154,13 +157,22 @@ jobs:
       run: |
         mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
 
-    - name: Start ETW tracing
+    - name: Start ETW tracing (File)
       id: start_etw_tracing
       if: (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
       shell: cmd
       run: |
         mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
         wpr.exe -start ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\ebpfforwindows.wprp -filemode
+
+    - name: Start ETW tracing (Memory)
+      id: start_etw_memory_tracing
+      if: (inputs.capture_etw_memory == true) && (steps.skip_check.outputs.should_skip != 'true')
+      shell: cmd
+      run: |
+        mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
+        wpr.exe -cancel
+        wpr.exe -start ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\ebpfforwindows_memory.wprp
 
     - name: Configure eBPF store
       if: steps.skip_check.outputs.should_skip != 'true'
@@ -323,9 +335,16 @@ jobs:
         if ($${{ steps.test.upload_code_coverage_report_4!='failure' }}) { exit 0 }
         exit 1
 
-    - name: Stop ETW tracing
+    - name: Stop ETW tracing (File)
       id: stop_etw_tracing
       if: always() && (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
+      shell: cmd
+      run: |
+          wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
+
+    - name: Stop ETW tracing (Memory)
+      id: stop_etw_memory_tracing
+      if: always() && (inputs.capture_etw_memory == true) && (steps.skip_check.outputs.should_skip != 'true')
       shell: cmd
       run: |
           wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl

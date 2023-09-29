@@ -426,6 +426,28 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
+
+
+# *** FOR PR DRAFT TESTING ONLY ***
+  xyzzy_km_mt_stress_tests:
+    needs: regular
+    # if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: xyzzy_km_mt_stress_tests
+      pre_test: .\setup_ebpf_cicd_stress_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      build_artifact: Build-x64
+      environment: ebpf_cicd_tests_ws2019
+      code_coverage: false
+      # For this test, we only want kernel mode dumps and not user mode dumps.
+      gather_dumps: false
+      capture_etw_memory: true
+
+
+
   # Additional jobs to run on a schedule only (skip push and pull request).
   # ---------------------------------------------------------------------------
   codeql:

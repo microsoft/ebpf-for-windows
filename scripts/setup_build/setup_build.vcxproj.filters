@@ -57,6 +57,8 @@
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\ebpfforwindows.wprp">
       <Filter>Source Files</Filter>
+    <CopyFileToFolders Include="..\ebpfforwindows_memory.wprp">
+      <Filter>Source Files</Filter>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\ebpf-printk.guid">
       <Filter>Source Files</Filter>
