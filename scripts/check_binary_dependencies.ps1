@@ -70,7 +70,7 @@ if ($BuildArtifact -eq "Build-x64-native-only") {
 Pop-Location
 
 if (-not $allTestsPassed) {
-    Write-Host "One or more tests failed. Exiting script." -ForegroundColor Red
+    Write-Host "One or more tests FAILED!" -ForegroundColor Red
     exit 1
 }
 exit 0

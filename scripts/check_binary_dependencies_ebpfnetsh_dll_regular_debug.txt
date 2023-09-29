@@ -1,13 +1,10 @@
 KERNEL32.dll
 ADVAPI32.dll
-MSVCP140.dll
+MSVCP140D.dll
 PSAPI.DLL
 ntdll.dll
-VCRUNTIME140_1.dll
-VCRUNTIME140.dll
-api-ms-win-crt-stdio-l1-1-0.dll
-api-ms-win-crt-runtime-l1-1-0.dll
-api-ms-win-crt-heap-l1-1-0.dll
-api-ms-win-crt-convert-l1-1-0.dll
+VCRUNTIME140D.dll
+VCRUNTIME140_1D.dll
+ucrtbased.dll
 IPHLPAPI.DLL
 EbpfApi.dll
