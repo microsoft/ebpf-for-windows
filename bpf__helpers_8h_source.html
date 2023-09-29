@@ -73,34 +73,49 @@ $(function() {
 <div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment">// SPDX-License-Identifier: MIT</span></div>
 <div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="preprocessor">#pragma once</span></div>
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160; </div>
-<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment">// On Linux, including the bpf_helpers.h in libbpf must be done after including</span></div>
-<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment">// a platform-specific include file such as vmlinux.h or linux/types.h which makes</span></div>
-<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="comment">// it not quite platform-agnostic today.  We hope this to change in the future</span></div>
-<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="comment">// once libbpf itself becomes cross-platform (issue #351).  In the meantime,</span></div>
-<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="comment">// this version of bpf_helpers.h is already cross-platform.</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment">// Include platform-specific definitions.</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="bpf__helpers__platform_8h.html">bpf_helpers_platform.h</a>&quot;</span></div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="ebpf__structs_8h.html">ebpf_structs.h</a>&quot;</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160; </div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="preprocessor">#if !defined(_MSVC_VER)</span></div>
 <div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160; </div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="comment">// Include platform-specific definitions.</span></div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="bpf__helpers__platform_8h.html">bpf_helpers_platform.h</a>&quot;</span></div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="ebpf__structs_8h.html">ebpf_structs.h</a>&quot;</span></div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="comment">// If we&#39;re compiling an actual eBPF program, then include</span></div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">// libbpf&#39;s bpf_helpers.h for the rest of the platform-agnostic</span></div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="comment">// defines.</span></div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">#ifndef _MSC_VER</span></div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="preprocessor">#include &quot;libbpf/src/bpf_helpers.h&quot;</span></div>
-<div class="line"><a name="l00020"></a><span class="lineno"><a class="line" href="bpf__helpers_8h.html#ad620d2ad52bd2eb6773430214adcd376">   20</a></span>&#160;<span class="preprocessor">#define bpf_map_def _ebpf_map_definition_in_file</span></div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="ebpf__nethooks_8h.html">ebpf_nethooks.h</a>&quot;</span></div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="comment">// BTF macros recreated from Linux kernel docs and dumping the BTF of the</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="comment">// compiled ELF files.</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">// __uint and __type</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="comment">// https://www.kernel.org/doc/html/latest/bpf/btf.html</span></div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">// __array</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="comment">// https://www.kernel.org/doc/html/next/bpf/map_of_maps.html</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160; </div>
+<div class="line"><a name="l00022"></a><span class="lineno"><a class="line" href="bpf__helpers_8h.html#a53eecf515a6f53b14bacff1706172981">   22</a></span>&#160;<span class="preprocessor">#define __uint(field_name, field_value) int(*field_name)[field_value]</span></div>
 <div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160; </div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="preprocessor">#define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args</span></div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160; </div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="bpf__helper__defs_8h.html">bpf_helper_defs.h</a>&quot;</span></div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160; </div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;<span class="preprocessor">#ifndef _WIN32</span></div>
-<div class="line"><a name="l00031"></a><span class="lineno"><a class="line" href="bpf__helpers_8h.html#a7d7e5874cd6f169187aac7db998625f3">   31</a></span>&#160;<span class="preprocessor">#define _WIN32</span></div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00027"></a><span class="lineno"><a class="line" href="bpf__helpers_8h.html#a8afc50e76565515dbc20be851740c541">   27</a></span>&#160;<span class="preprocessor">#define __type(field_name, field_type) typeof(field_type)* field_name</span></div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160; </div>
+<div class="line"><a name="l00032"></a><span class="lineno"><a class="line" href="bpf__helpers_8h.html#ab023071c0792362ab2bc8d6135a90d3a">   32</a></span>&#160;<span class="preprocessor">#define __array(field_name, map_template) typeof(map_template)* field_name[]</span></div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160; </div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="comment">// SEC macro recreated from LLVM docs:</span></div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;<span class="comment">// https://clang.llvm.org/docs/AttributeReference.html</span></div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160; </div>
+<div class="line"><a name="l00040"></a><span class="lineno"><a class="line" href="bpf__helpers_8h.html#af29983ea99e6131f7ec39892d6b20239">   40</a></span>&#160;<span class="preprocessor">#define SEC(NAME) __attribute__((section(NAME)))</span></div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160; </div>
+<div class="line"><a name="l00042"></a><span class="lineno"><a class="line" href="bpf__helpers_8h.html#ad620d2ad52bd2eb6773430214adcd376">   42</a></span>&#160;<span class="preprocessor">#define bpf_map_def _ebpf_map_definition_in_file</span></div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="ebpf__nethooks_8h.html">ebpf_nethooks.h</a>&quot;</span></div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160; </div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="preprocessor">#if !defined(NULL)</span></div>
+<div class="line"><a name="l00048"></a><span class="lineno"><a class="line" href="bpf__helpers_8h.html#a070d2ce7b6bb7e5c05602aa8c308d0c4">   48</a></span>&#160;<span class="preprocessor">#define NULL ((void*)0)</span></div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="preprocessor">#if !defined(__doxygen)</span></div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;<span class="preprocessor">#define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args</span></div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160; </div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="bpf__helper__defs_8h.html">bpf_helper_defs.h</a>&quot;</span></div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;<span class="preprocessor">#if !defined(_WIN32)</span></div>
+<div class="line"><a name="l00058"></a><span class="lineno"><a class="line" href="bpf__helpers_8h.html#a7d7e5874cd6f169187aac7db998625f3">   58</a></span>&#160;<span class="preprocessor">#define _WIN32</span></div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="ttc" id="abpf__helper__defs_8h_html"><div class="ttname"><a href="bpf__helper__defs_8h.html">bpf_helper_defs.h</a></div></div>
 <div class="ttc" id="abpf__helpers__platform_8h_html"><div class="ttname"><a href="bpf__helpers__platform_8h.html">bpf_helpers_platform.h</a></div><div class="ttdoc">This file contains platform specific defines used by eBPF programs.</div></div>
 <div class="ttc" id="aebpf__nethooks_8h_html"><div class="ttname"><a href="ebpf__nethooks_8h.html">ebpf_nethooks.h</a></div></div>

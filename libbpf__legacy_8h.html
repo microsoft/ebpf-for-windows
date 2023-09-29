@@ -145,8 +145,9 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<b>Value:</b><div class="fragment"><div class="line">    <span class="keywordflow">for</span> ((pos) = <a class="code" href="libbpf__legacy_8h.html#a02683bd38babc219a58fac60549b3733">bpf_object__next</a>(NULL), (tmp) = <a class="code" href="libbpf__legacy_8h.html#a02683bd38babc219a58fac60549b3733">bpf_object__next</a>(pos); (pos) != NULL; \</div>
+<b>Value:</b><div class="fragment"><div class="line">    <span class="keywordflow">for</span> ((pos) = <a class="code" href="libbpf__legacy_8h.html#a02683bd38babc219a58fac60549b3733">bpf_object__next</a>(<a class="code" href="bpf__helpers_8h.html#a070d2ce7b6bb7e5c05602aa8c308d0c4">NULL</a>), (tmp) = <a class="code" href="libbpf__legacy_8h.html#a02683bd38babc219a58fac60549b3733">bpf_object__next</a>(pos); (pos) != <a class="code" href="bpf__helpers_8h.html#a070d2ce7b6bb7e5c05602aa8c308d0c4">NULL</a>; \</div>
 <div class="line">         (pos) = (tmp), (tmp) = <a class="code" href="libbpf__legacy_8h.html#a02683bd38babc219a58fac60549b3733">bpf_object__next</a>(tmp))</div>
+<div class="ttc" id="abpf__helpers_8h_html_a070d2ce7b6bb7e5c05602aa8c308d0c4"><div class="ttname"><a href="bpf__helpers_8h.html#a070d2ce7b6bb7e5c05602aa8c308d0c4">NULL</a></div><div class="ttdeci">#define NULL</div><div class="ttdef"><b>Definition:</b> bpf_helpers.h:48</div></div>
 <div class="ttc" id="alibbpf__legacy_8h_html_a02683bd38babc219a58fac60549b3733"><div class="ttname"><a href="libbpf__legacy_8h.html#a02683bd38babc219a58fac60549b3733">bpf_object__next</a></div><div class="ttdeci">struct bpf_object * bpf_object__next(struct bpf_object *prev)</div><div class="ttdoc">Get the next eBPF object opened by the calling process.</div></div>
 </div><!-- fragment -->
 </div>
