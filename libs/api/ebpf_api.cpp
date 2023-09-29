@@ -2021,7 +2021,7 @@ _ebpf_pe_get_map_definitions(
                     pe_context->result = EBPF_NO_MEMORY;
                     goto Error;
                 }
-                if (map->map_definition.pinning == PIN_BY_NAME) {
+                if (map->map_definition.pinning == LIBBPF_PIN_BY_NAME) {
                     char pin_path_buffer[EBPF_MAX_PIN_PATH_LENGTH];
                     int len = snprintf(
                         pin_path_buffer,
@@ -2473,7 +2473,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
             break;
         }
 
-        if (map->map_definition.pinning == PIN_BY_NAME) {
+        if (map->map_definition.pinning == LIBBPF_PIN_BY_NAME) {
             result = _ebpf_object_reuse_map(map);
             if (result != EBPF_SUCCESS) {
                 break;

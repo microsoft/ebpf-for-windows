@@ -93,13 +93,13 @@ typedef enum ebpf_map_option
  */
 typedef enum ebpf_pin_type
 {
-    PIN_NONE,    ///< Object is not pinned.
-    PIN_BY_NAME, ///< Pinning with a global namespace.
+    LIBBPF_PIN_NONE = 0, ///< Object is not pinned.
+    LIBBPF_PIN_BY_NAME,  ///< Pinning with a global namespace.
 } ebpf_pin_type_t;
 
 static const char* const _ebpf_pin_type_names[] = {
-    BPF_ENUM_TO_STRING(PIN_NONE),
-    BPF_ENUM_TO_STRING(PIN_BY_NAME),
+    BPF_ENUM_TO_STRING(LIBBPF_PIN_NONE),
+    BPF_ENUM_TO_STRING(LIBBPF_PIN_BY_NAME),
 };
 
 typedef uint32_t ebpf_id_t;

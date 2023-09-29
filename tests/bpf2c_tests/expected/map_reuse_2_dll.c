@@ -47,7 +47,7 @@ static map_entry_t _maps[] = {
          4,                         // Size in bytes of a map value.
          1,                         // Maximum number of entries allowed in the map.
          0,                         // Inner map index.
-         PIN_BY_NAME,               // Pinning type for the map.
+         LIBBPF_PIN_BY_NAME,        // Pinning type for the map.
          15,                        // Identifier for a map template.
          11,                        // The id of the inner map template.
      },
@@ -59,7 +59,7 @@ static map_entry_t _maps[] = {
          4,                  // Size in bytes of a map value.
          1,                  // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
-         PIN_BY_NAME,        // Pinning type for the map.
+         LIBBPF_PIN_BY_NAME, // Pinning type for the map.
          17,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
@@ -71,7 +71,7 @@ static map_entry_t _maps[] = {
          4,                  // Size in bytes of a map value.
          1,                  // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
-         PIN_BY_NAME,        // Pinning type for the map.
+         LIBBPF_PIN_BY_NAME, // Pinning type for the map.
          11,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
