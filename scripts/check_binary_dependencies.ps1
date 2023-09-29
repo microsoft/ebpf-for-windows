@@ -2,10 +2,24 @@
 # SPDX-License-Identifier: MIT
 
 param ([Parameter(Mandatory=$true)][string] $BuildArtifact,
-       [Parameter(Mandatory=$true)][string] $BuildConfiguration,
        [Parameter(Mandatory=$true)][string] $VsToolsPath)
 
 Push-Location $WorkingDirectory
+
+# Define the test cases
+$testCases = @{
+    "Build-x64_Debug" = @{
+        "bpftool.exe" = "..\..\scripts\check_binary_dependencies_bpftool_exe_regular_debug.txt"
+        "ebpfapi.dll" = "..\..\scripts\check_binary_dependencies_ebpfapi_dll_regular_debug.txt"
+        "ebpfnetsh.dll" = "..\..\scripts\check_binary_dependencies_ebpfnetsh_dll_regular_debug.txt"
+        "ebpfsvc.exe" = "..\..\scripts\check_binary_dependencies_ebpfsvc_exe_regular_debug.txt"
+    }
+    "Build-x64-native-only_Release" = @{
+        "bpftool.exe" = "..\..\scripts\check_binary_dependencies_bpftool_exe_nativeonly_release.txt"
+        "ebpfapi.dll" = "..\..\scripts\check_binary_dependencies_ebpfapi_dll_nativeonly_release.txt"
+        "ebpfnetsh.dll" = "..\..\scripts\check_binary_dependencies_ebpfnetsh_dll_nativeonly_release.txt"
+    }
+}
 
 function Test-CppBinaryDependencies {
     param (
@@ -49,22 +63,16 @@ function Test-CppBinaryDependencies {
     }
 }
 
+# Iterate over all the test cases
 $allTestsPassed = $true
-if ($BuildArtifact -eq "Build-x64") {
-    $allTestsPassed = $allTestsPassed -and (Test-CppBinaryDependencies -FilePath "bpftool.exe" -TextFilePath "..\..\scripts\check_binary_dependencies_bpftool_exe_regular_debug.txt")
-    $res = Test-CppBinaryDependencies -FilePath "ebpfapi.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfapi_dll_regular_debug.txt"
-    $allTestsPassed = $allTestsPassed -and $res
-    $res = Test-CppBinaryDependencies -FilePath "ebpfnetsh.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfnetsh_dll_regular_debug.txt"
-    $allTestsPassed = $allTestsPassed -and $res
-    $res = Test-CppBinaryDependencies -FilePath "ebpfsvc.exe" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfsvc_exe_regular_debug.txt"
-    $allTestsPassed = $allTestsPassed -and $res
-}
-if ($BuildArtifact -eq "Build-x64-native-only") {
-    $allTestsPassed = $allTestsPassed -and (Test-CppBinaryDependencies -FilePath "bpftool.exe" -TextFilePath "..\..\scripts\check_binary_dependencies_bpftool_exe_nativeonly_release.txt")
-    $res = Test-CppBinaryDependencies -FilePath "ebpfapi.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfapi_dll_nativeonly_release.txt"
-    $allTestsPassed = $allTestsPassed -and $res
-    $res = Test-CppBinaryDependencies -FilePath "ebpfnetsh.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfnetsh_dll_nativeonly_release.txt"
-    $allTestsPassed = $allTestsPassed -and $res
+foreach ($buildArtifact in $testCases.Keys) {
+    if ($BuildArtifact -eq $buildArtifact) {
+        foreach ($filePath in $testCases[$buildArtifact].Keys) {
+            $textFilePath = $testCases[$buildArtifact][$filePath]
+            $res = Test-CppBinaryDependencies -FilePath $filePath -TextFilePath $textFilePath
+            $allTestsPassed = $allTestsPassed -and $res
+        }
+    }
 }
 
 Pop-Location

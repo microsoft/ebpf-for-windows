@@ -185,7 +185,7 @@ jobs:
       if: steps.skip_check.outputs.should_skip != 'true' && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
-        ..\..\scripts\check_binary_dependencies.ps1 -BuildArtifact "${{inputs.build_artifact}}" -BuildConfiguration "${{env.BUILD_CONFIGURATION}}" -VsToolsPath "${{env.msvc_tools_path}}"
+        ..\..\scripts\check_binary_dependencies.ps1 -BuildArtifact "${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}}" -VsToolsPath "${{env.msvc_tools_path}}"
 
     - name: Copy LLVM libs for Fuzzing & Address Sanitizing
       if: steps.skip_check.outputs.should_skip != 'true'
