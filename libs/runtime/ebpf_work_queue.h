@@ -21,6 +21,12 @@ extern "C"
     typedef _IRQL_requires_(DISPATCH_LEVEL) void (*ebpf_timed_work_queue_callback_t)(
         _Inout_ void* context, uint32_t cpu_id, _Inout_ ebpf_list_entry_t*);
 
+    typedef enum _ebpf_work_queue_wakeup_behavior
+    {
+        EBPF_WORK_QUEUE_WAKEUP_ON_INSERT = 0, ///< Wake up the work queue.
+        EBPF_WORK_QUEUE_WAKEUP_ON_TIMER = 1,  ///< Don't wake up the work queue.
+    } ebpf_work_queue_wakeup_behavior_t;
+
     /**
      * @brief Create a timed work queue.
      *
@@ -55,11 +61,13 @@ extern "C"
      *
      * @param[in] work_queue The work queue to insert the work item into.
      * @param[in] work_item The work item to insert.
-     * @param[in] flush Fire the timer immediately.
+     * @param[in] wake_behavior Wake up the work queue if true.
      */
     void
     ebpf_timed_work_queue_insert(
-        _In_ ebpf_timed_work_queue_t* work_queue, _In_ ebpf_list_entry_t* work_item, bool flush);
+        _In_ ebpf_timed_work_queue_t* work_queue,
+        _In_ ebpf_list_entry_t* work_item,
+        ebpf_work_queue_wakeup_behavior_t wake_behavior);
 
     /**
      * @brief Check if the timed work queue is empty without acquiring the lock.
@@ -77,7 +85,7 @@ extern "C"
      * @param[in] work_queue The work queue to execute the callback for.
      */
     void
-    ebpf_timed_work_queued_poll(_In_ ebpf_timed_work_queue_t* work_queue);
+    ebpf_timed_work_queued_flush(_In_ ebpf_timed_work_queue_t* work_queue);
 
 #ifdef __cplusplus
 }

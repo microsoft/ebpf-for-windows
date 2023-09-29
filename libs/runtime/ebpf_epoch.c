@@ -111,18 +111,17 @@ typedef struct _ebpf_epoch_cpu_message
 {
     LIST_ENTRY list_entry; ///< List entry used to insert the message into the message queue.
     ebpf_epoch_cpu_message_type_t message_type;
+    ebpf_work_queue_wakeup_behavior_t wake_behavior;
     union
     {
         struct
         {
             uint64_t current_epoch;          ///< The new current epoch.
             uint64_t proposed_release_epoch; ///< Minimum epoch of all threads on the CPU.
-            bool epoch_flush;                ///< True if this is from an ebpf_epoch_flush() call.
         } propose_epoch;
         struct
         {
             uint64_t released_epoch; ///< The newest epoch that can be released.
-            bool epoch_flush;        ///< True if this is from an ebpf_epoch_flush() call.
         } commit_epoch;
         struct
         {
@@ -205,10 +204,10 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
     _In_ KDPC* dpc, _In_opt_ void* cpu_entry, _In_opt_ void* message, _In_opt_ void* arg2);
 
 _IRQL_requires_max_(APC_LEVEL) static void _ebpf_epoch_send_message_and_wait(
-    _In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id, bool flush);
+    _In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id);
 
 static void
-_ebpf_epoch_send_message_async(_In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id, bool flush);
+_ebpf_epoch_send_message_async(_In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id);
 
 _IRQL_requires_same_ static void
 _ebpf_epoch_insert_in_free_list(_In_ ebpf_epoch_allocation_header_t* header);
@@ -314,7 +313,8 @@ ebpf_epoch_terminate()
     }
 
     rundown_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_RUNDOWN_IN_PROGRESS;
-    _ebpf_epoch_send_message_and_wait(&rundown_message, 0, true);
+    rundown_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
+    _ebpf_epoch_send_message_and_wait(&rundown_message, 0);
 
     // Cancel the timer.
     KeCancelTimer(&_ebpf_epoch_compute_release_epoch_timer);
@@ -387,6 +387,7 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
         ebpf_epoch_cpu_message_t message = {0};
         message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_EXIT_EPOCH;
         message.message.exit_epoch.epoch_state = epoch_state;
+        message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
 
         // The other CPU will call ebpf_epoch_exit() on our behalf.
         // The epoch was entered at < DISPATCH_LEVEL but will now exit at DISPATCH_LEVEL. To prevent the assert above
@@ -394,7 +395,7 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
         KIRQL saved_irql = epoch_state->irql_at_enter;
         epoch_state->irql_at_enter = DISPATCH_LEVEL;
 
-        _ebpf_epoch_send_message_and_wait(&message, epoch_state->cpu_id, true);
+        _ebpf_epoch_send_message_and_wait(&message, epoch_state->cpu_id);
 
         // Restore the irql at enter.
         epoch_state->irql_at_enter = saved_irql;
@@ -404,8 +405,9 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
     ebpf_list_remove_entry(&epoch_state->epoch_list_entry);
     _ebpf_epoch_arm_timer_if_needed(&_ebpf_epoch_cpu_table[cpu_id]);
 
+    // If there are items in the work queue, flush them.
     if (!ebpf_timed_work_queue_is_empty(_ebpf_epoch_cpu_table[cpu_id].work_queue)) {
-        ebpf_timed_work_queued_poll(_ebpf_epoch_cpu_table[cpu_id].work_queue);
+        ebpf_timed_work_queued_flush(_ebpf_epoch_cpu_table[cpu_id].work_queue);
     }
 
     _ebpf_epoch_lower_to_previous_irql(epoch_state->irql_at_enter);
@@ -510,9 +512,9 @@ ebpf_epoch_flush()
 
     ebpf_epoch_cpu_message_t message = {0};
     message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH;
-    message.message.propose_epoch.epoch_flush = true;
+    message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
 
-    _ebpf_epoch_send_message_and_wait(&message, 0, true);
+    _ebpf_epoch_send_message_and_wait(&message, 0);
 }
 
 bool
@@ -521,8 +523,9 @@ ebpf_epoch_is_free_list_empty(uint32_t cpu_id)
     ebpf_epoch_cpu_message_t message = {0};
 
     message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY;
+    message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
 
-    _ebpf_epoch_send_message_and_wait(&message, cpu_id, true);
+    _ebpf_epoch_send_message_and_wait(&message, cpu_id);
 
     return message.message.is_free_list_empty.is_empty;
 }
@@ -668,8 +671,9 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
         _ebpf_epoch_skipped_timers = 0;
         memset(&_ebpf_epoch_compute_release_epoch_message, 0, sizeof(_ebpf_epoch_compute_release_epoch_message));
         _ebpf_epoch_compute_release_epoch_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH;
+        _ebpf_epoch_compute_release_epoch_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_TIMER;
         KeInitializeEvent(&_ebpf_epoch_compute_release_epoch_message.completion_event, NotificationEvent, false);
-        _ebpf_epoch_send_message_async(&_ebpf_epoch_compute_release_epoch_message, 0, false);
+        _ebpf_epoch_send_message_async(&_ebpf_epoch_compute_release_epoch_message, 0);
     } else {
         _ebpf_epoch_skipped_timers++;
         LARGE_INTEGER due_time;
@@ -706,7 +710,6 @@ _ebpf_epoch_messenger_propose_release_epoch(
     ebpf_list_entry_t* entry = cpu_entry->epoch_state_list.Flink;
     ebpf_epoch_state_t* epoch_state;
     uint32_t next_cpu;
-    bool flush = message->message.propose_epoch.epoch_flush;
 
     // First CPU updates the current epoch and proposes the release epoch.
     if (current_cpu == 0) {
@@ -744,7 +747,7 @@ _ebpf_epoch_messenger_propose_release_epoch(
         next_cpu = current_cpu + 1;
     }
 
-    _ebpf_epoch_send_message_async(message, next_cpu, flush);
+    _ebpf_epoch_send_message_async(message, next_cpu);
 }
 
 /**
@@ -768,7 +771,6 @@ _ebpf_epoch_messenger_commit_release_epoch(
     _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
 {
     uint32_t next_cpu;
-    bool flush = message->message.commit_epoch.epoch_flush;
 
     cpu_entry->timer_armed = false;
     // Set the released_epoch to the value computed by the EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH message.
@@ -783,7 +785,7 @@ _ebpf_epoch_messenger_commit_release_epoch(
         next_cpu = 0;
     }
 
-    _ebpf_epoch_send_message_async(message, next_cpu, flush);
+    _ebpf_epoch_send_message_async(message, next_cpu);
 
     _ebpf_epoch_release_free_list(cpu_entry, cpu_entry->released_epoch);
 }
@@ -863,7 +865,7 @@ _ebpf_epoch_messenger_rundown_in_progress(
         return;
     }
 
-    _ebpf_epoch_send_message_async(message, next_cpu, true);
+    _ebpf_epoch_send_message_async(message, next_cpu);
 }
 
 /**
@@ -932,13 +934,14 @@ _IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_messenger_worker(
  * @param[in] flush If true, process all messages on the target CPU immediately.
  */
 _IRQL_requires_max_(APC_LEVEL) static void _ebpf_epoch_send_message_and_wait(
-    _In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id, bool flush)
+    _In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id)
 {
     // Initialize the completion event.
     KeInitializeEvent(&message->completion_event, NotificationEvent, FALSE);
 
     // Queue the message to the specified CPU.
-    ebpf_timed_work_queue_insert(_ebpf_epoch_cpu_table[cpu_id].work_queue, &message->list_entry, flush);
+    ebpf_timed_work_queue_insert(
+        _ebpf_epoch_cpu_table[cpu_id].work_queue, &message->list_entry, message->wake_behavior);
 
     // Wait for the message to complete.
     KeWaitForSingleObject(&message->completion_event, Executive, KernelMode, FALSE, NULL);
@@ -952,10 +955,11 @@ _IRQL_requires_max_(APC_LEVEL) static void _ebpf_epoch_send_message_and_wait(
  * @param[in] flush If true, process all messages on the target CPU immediately.
  */
 static void
-_ebpf_epoch_send_message_async(_In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id, bool flush)
+_ebpf_epoch_send_message_async(_In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id)
 {
     // Queue the message to the specified CPU.
-    ebpf_timed_work_queue_insert(_ebpf_epoch_cpu_table[cpu_id].work_queue, &message->list_entry, flush);
+    ebpf_timed_work_queue_insert(
+        _ebpf_epoch_cpu_table[cpu_id].work_queue, &message->list_entry, message->wake_behavior);
 }
 
 /**

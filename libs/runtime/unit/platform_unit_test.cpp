@@ -1264,7 +1264,7 @@ TEST_CASE("work_queue", "[platform]")
         work_queue, &ebpf_timed_work_queue_destroy);
 
     // Queue a work item without flush.
-    ebpf_timed_work_queue_insert(work_queue, &work_item_context.list_entry, false);
+    ebpf_timed_work_queue_insert(work_queue, &work_item_context.list_entry, EBPF_WORK_QUEUE_WAKEUP_ON_TIMER);
 
     LARGE_INTEGER timeout = {0};
 
@@ -1284,7 +1284,7 @@ TEST_CASE("work_queue", "[platform]")
         STATUS_SUCCESS);
 
     // Queue a work item with flush.
-    ebpf_timed_work_queue_insert(work_queue, &work_item_context.list_entry, true);
+    ebpf_timed_work_queue_insert(work_queue, &work_item_context.list_entry, EBPF_WORK_QUEUE_WAKEUP_ON_INSERT);
 
     // Wait for active DPCs to complete.
     KeFlushQueuedDpcs();
@@ -1293,13 +1293,13 @@ TEST_CASE("work_queue", "[platform]")
     REQUIRE(ebpf_timed_work_queue_is_empty(work_queue) == true);
 
     // Queue a work item without flush.
-    ebpf_timed_work_queue_insert(work_queue, &work_item_context.list_entry, false);
+    ebpf_timed_work_queue_insert(work_queue, &work_item_context.list_entry, EBPF_WORK_QUEUE_WAKEUP_ON_TIMER);
 
     // Verify the queue is not empty.
     REQUIRE(ebpf_timed_work_queue_is_empty(work_queue) == false);
 
     // Process the work queue.
-    ebpf_timed_work_queued_poll(work_queue);
+    ebpf_timed_work_queued_flush(work_queue);
 
     // Verify the queue is now empty.
     REQUIRE(ebpf_timed_work_queue_is_empty(work_queue) == true);

@@ -83,7 +83,10 @@ ebpf_timed_work_queue_destroy(_In_opt_ ebpf_timed_work_queue_t* work_queue)
 }
 
 void
-ebpf_timed_work_queue_insert(_In_ ebpf_timed_work_queue_t* work_queue, _In_ ebpf_list_entry_t* work_item, bool flush)
+ebpf_timed_work_queue_insert(
+    _In_ ebpf_timed_work_queue_t* work_queue,
+    _In_ ebpf_list_entry_t* work_item,
+    ebpf_work_queue_wakeup_behavior_t wake_behavior)
 {
     ebpf_lock_state_t lock_state;
     bool timer_armed;
@@ -93,7 +96,7 @@ ebpf_timed_work_queue_insert(_In_ ebpf_timed_work_queue_t* work_queue, _In_ ebpf
     timer_armed = work_queue->timer_armed;
     ebpf_list_insert_tail(&work_queue->work_items, work_item);
 
-    if (flush) {
+    if (wake_behavior == EBPF_WORK_QUEUE_WAKEUP_ON_INSERT) {
         KeCancelTimer(&work_queue->timer);
         work_queue->timer_armed = false;
         KeInsertQueueDpc(&work_queue->dpc, NULL, NULL);
@@ -114,7 +117,7 @@ ebpf_timed_work_queue_is_empty(_In_ ebpf_timed_work_queue_t* work_queue)
 }
 
 void
-ebpf_timed_work_queued_poll(_In_ ebpf_timed_work_queue_t* work_queue)
+ebpf_timed_work_queued_flush(_In_ ebpf_timed_work_queue_t* work_queue)
 {
     ebpf_lock_state_t lock_state;
     ebpf_list_entry_t* work_item;
@@ -146,6 +149,6 @@ _ebpf_timed_work_queue_timer_callback(
     UNREFERENCED_PARAMETER(system_argument2);
     ebpf_timed_work_queue_t* work_queue = (ebpf_timed_work_queue_t*)context;
     if (work_queue) {
-        ebpf_timed_work_queued_poll(work_queue);
+        ebpf_timed_work_queued_flush(work_queue);
     }
 }
