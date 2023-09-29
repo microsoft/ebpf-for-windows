@@ -13,12 +13,14 @@ api-ms-win-core-libraryloader-l1-2-0.dll
 api-ms-win-service-management-l2-1-0.dll
 api-ms-win-service-core-l1-1-0.dll
 ADVAPI32.dll
-MSVCP140.dll
-VCRUNTIME140.dll
-VCRUNTIME140_1.dll
+MSVCP140D.dll
+dbghelp.dll
+VCRUNTIME140D.dll
+VCRUNTIME140_1D.dll
 ucrtbased.dll
 api-ms-win-core-rtlsupport-l1-1-0.dll
 api-ms-win-core-processthreads-l1-1-0.dll
+api-ms-win-core-psapi-l1-1-0.dll
 api-ms-win-core-threadpool-l1-2-0.dll
 api-ms-win-eventing-provider-l1-1-0.dll
 api-ms-win-core-debug-l1-1-0.dll
