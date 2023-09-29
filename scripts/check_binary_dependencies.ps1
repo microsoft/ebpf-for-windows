@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 param ([Parameter(Mandatory=$true)][string] $BuildArtifact,
-       [Parameter(Mandatory=$false)][string] $VsToolsPath)
+       [Parameter(Mandatory=$true)][string] $BuildConfiguration,
+       [Parameter(Mandatory=$true)][string] $VsToolsPath)
 
 Push-Location $WorkingDirectory
 
@@ -50,19 +51,19 @@ function Test-CppBinaryDependencies {
 
 $allTestsPassed = $true
 if ($BuildArtifact -eq "Build-x64") {
-    $allTestsPassed = $allTestsPassed -and (Test-CppBinaryDependencies -FilePath "bpftool.exe" -TextFilePath "..\..\scripts\check_binary_dependencies_bpftool_exe_regular.txt")
-    $res = Test-CppBinaryDependencies -FilePath "ebpfapi.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfapi_dll_regular.txt"
+    $allTestsPassed = $allTestsPassed -and (Test-CppBinaryDependencies -FilePath "bpftool.exe" -TextFilePath "..\..\scripts\check_binary_dependencies_bpftool_exe_regular_debug.txt")
+    $res = Test-CppBinaryDependencies -FilePath "ebpfapi.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfapi_dll_regular_debug.txt"
     $allTestsPassed = $allTestsPassed -and $res
-    $res = Test-CppBinaryDependencies -FilePath "ebpfnetsh.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfnetsh_dll_regular.txt"
+    $res = Test-CppBinaryDependencies -FilePath "ebpfnetsh.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfnetsh_dll_regular_debug.txt"
     $allTestsPassed = $allTestsPassed -and $res
-    $res = Test-CppBinaryDependencies -FilePath "ebpfsvc.exe" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfsvc_exe_regular.txt"
+    $res = Test-CppBinaryDependencies -FilePath "ebpfsvc.exe" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfsvc_exe_regular_debug.txt"
     $allTestsPassed = $allTestsPassed -and $res
 }
 if ($BuildArtifact -eq "Build-x64-native-only") {
-    $allTestsPassed = $allTestsPassed -and (Test-CppBinaryDependencies -FilePath "bpftool.exe" -TextFilePath "..\..\scripts\check_binary_dependencies_bpftool_exe_nativeonly.txt")
-    $res = Test-CppBinaryDependencies -FilePath "ebpfapi.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfapi_dll_nativeonly.txt"
+    $allTestsPassed = $allTestsPassed -and (Test-CppBinaryDependencies -FilePath "bpftool.exe" -TextFilePath "..\..\scripts\check_binary_dependencies_bpftool_exe_nativeonly_release.txt")
+    $res = Test-CppBinaryDependencies -FilePath "ebpfapi.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfapi_dll_nativeonly_release.txt"
     $allTestsPassed = $allTestsPassed -and $res
-    $res = Test-CppBinaryDependencies -FilePath "ebpfnetsh.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfnetsh_dll_nativeonly.txt"
+    $res = Test-CppBinaryDependencies -FilePath "ebpfnetsh.dll" -TextFilePath "..\..\scripts\check_binary_dependencies_ebpfnetsh_dll_nativeonly_release.txt"
     $allTestsPassed = $allTestsPassed -and $res
 }
 
