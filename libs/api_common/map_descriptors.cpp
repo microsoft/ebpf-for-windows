@@ -24,7 +24,7 @@ cache_map_original_file_descriptors(const EbpfMapDescriptor* map_descriptors, ui
         // Temporarily store the original_fd as a mock handle.
         ebpf_handle_t handle = (ebpf_handle_t)(uintptr_t)descriptor.original_fd;
 
-        _map_file_descriptors.emplace_back(handle, 0, descriptor, PIN_NONE);
+        _map_file_descriptors.emplace_back(handle, 0, descriptor, LIBBPF_PIN_NONE);
     }
 }
 
@@ -114,7 +114,7 @@ cache_map_original_file_descriptor_with_handle(
         inner_map_original_fd,
         inner_id,
         section_offset,
-        PIN_NONE));
+        LIBBPF_PIN_NONE));
 }
 
 void
