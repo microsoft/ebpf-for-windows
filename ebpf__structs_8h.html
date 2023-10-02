@@ -129,6 +129,7 @@ Typedefs</h2></td></tr>
 <tr class="memitem:a2570d5b1e2c808efd04dfde574e29f23"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fc">ebpf_map_option</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a2570d5b1e2c808efd04dfde574e29f23">ebpf_map_option_t</a></td></tr>
 <tr class="separator:a2570d5b1e2c808efd04dfde574e29f23"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a87b463e49129922011bdd5bbb1134282"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20">ebpf_pin_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a87b463e49129922011bdd5bbb1134282">ebpf_pin_type_t</a></td></tr>
+<tr class="memdesc:a87b463e49129922011bdd5bbb1134282"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pinning type for eBPF objects. The values should match the LIBBPF_PIN_* pin types defined in libbpf.  <a href="ebpf__structs_8h.html#a87b463e49129922011bdd5bbb1134282">More...</a><br /></td></tr>
 <tr class="separator:a87b463e49129922011bdd5bbb1134282"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa03abb9b99ca6cfa2fa19f2fb8140df8"><td class="memItemLeft" align="right" valign="top">typedef uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a></td></tr>
 <tr class="separator:aa03abb9b99ca6cfa2fa19f2fb8140df8"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -171,11 +172,10 @@ Enumerations</h2></td></tr>
 , <a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fca9ce0edc2520ca685ab2da7cf4eea5f70">EBPF_EXIST</a>
  }</td></tr>
 <tr class="separator:ad2aa050648c308e0be8329a2ade170fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8a7e198659f6bcf766a110c6324e3a20"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20">ebpf_pin_type</a> { <a class="el" href="ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20ad2f867652c04c17517db7731af03bf20">PIN_NONE</a>
-, <a class="el" href="ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20a4a71f5c05f7ede69d9be1154eb0187da">PIN_OBJECT_NS</a>
-, <a class="el" href="ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20aa6430d431784655a347bc7fef9f284f5">PIN_GLOBAL_NS</a>
-, <a class="el" href="ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20a18c64756f865dd873896f919e4d02391">PIN_CUSTOM_NS</a>
+<tr class="memitem:a8a7e198659f6bcf766a110c6324e3a20"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20">ebpf_pin_type</a> { <a class="el" href="ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20a98998b54b842fdf6fea8c192efb97886">LIBBPF_PIN_NONE</a> = 0
+, <a class="el" href="ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20aa137d60a04fe8e53e6bde9fbf790c1a9">LIBBPF_PIN_BY_NAME</a>
  }</td></tr>
+<tr class="memdesc:a8a7e198659f6bcf766a110c6324e3a20"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pinning type for eBPF objects. The values should match the LIBBPF_PIN_* pin types defined in libbpf.  <a href="ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20">More...</a><br /></td></tr>
 <tr class="separator:a8a7e198659f6bcf766a110c6324e3a20"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa752b12bfaedda8a28a7a88c1b96f272"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272">ebpf_helper_id_t</a> { <br />
 &#160;&#160;<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272ac63c4bc22d3821feffcca941871808be">BPF_FUNC_map_lookup_elem</a> = 1
@@ -493,6 +493,8 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
+<p>Pinning type for eBPF objects. The values should match the LIBBPF_PIN_* pin types defined in libbpf. </p>
+
 </div>
 </div>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
@@ -740,14 +742,12 @@ Enumerations</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>Pinning type for eBPF objects. The values should match the LIBBPF_PIN_* pin types defined in libbpf. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a8a7e198659f6bcf766a110c6324e3a20ad2f867652c04c17517db7731af03bf20"></a>PIN_NONE&#160;</td><td class="fielddoc"><p>Object is not pinned. </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a8a7e198659f6bcf766a110c6324e3a20a98998b54b842fdf6fea8c192efb97886"></a>LIBBPF_PIN_NONE&#160;</td><td class="fielddoc"><p>Object is not pinned. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a8a7e198659f6bcf766a110c6324e3a20a4a71f5c05f7ede69d9be1154eb0187da"></a>PIN_OBJECT_NS&#160;</td><td class="fielddoc"><p>Pinning that is local to an object. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="a8a7e198659f6bcf766a110c6324e3a20aa6430d431784655a347bc7fef9f284f5"></a>PIN_GLOBAL_NS&#160;</td><td class="fielddoc"><p>Pinning with a global namespace. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="a8a7e198659f6bcf766a110c6324e3a20a18c64756f865dd873896f919e4d02391"></a>PIN_CUSTOM_NS&#160;</td><td class="fielddoc"><p>Pinning with a custom path given as section parameter. </p>
+<tr><td class="fieldname"><a id="a8a7e198659f6bcf766a110c6324e3a20aa137d60a04fe8e53e6bde9fbf790c1a9"></a>LIBBPF_PIN_BY_NAME&#160;</td><td class="fielddoc"><p>Pinning with a global namespace. </p>
 </td></tr>
 </table>
 

@@ -1,7 +1,5 @@
 var searchData=
 [
-  ['pin_5fcustom_5fns_1599',['PIN_CUSTOM_NS',['../ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20a18c64756f865dd873896f919e4d02391',1,'ebpf_structs.h']]],
-  ['pin_5fglobal_5fns_1600',['PIN_GLOBAL_NS',['../ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20aa6430d431784655a347bc7fef9f284f5',1,'ebpf_structs.h']]],
-  ['pin_5fnone_1601',['PIN_NONE',['../ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20ad2f867652c04c17517db7731af03bf20',1,'ebpf_structs.h']]],
-  ['pin_5fobject_5fns_1602',['PIN_OBJECT_NS',['../ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20a4a71f5c05f7ede69d9be1154eb0187da',1,'ebpf_structs.h']]]
+  ['libbpf_5fpin_5fby_5fname_1597',['LIBBPF_PIN_BY_NAME',['../ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20aa137d60a04fe8e53e6bde9fbf790c1a9',1,'ebpf_structs.h']]],
+  ['libbpf_5fpin_5fnone_1598',['LIBBPF_PIN_NONE',['../ebpf__structs_8h.html#a8a7e198659f6bcf766a110c6324e3a20a98998b54b842fdf6fea8c192efb97886',1,'ebpf_structs.h']]]
 ];
