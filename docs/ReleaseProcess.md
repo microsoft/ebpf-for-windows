@@ -15,7 +15,7 @@ eBPF for Windows, and how to service it later.
     .\scripts\update-release-version.ps1 X Y Z
     ```
 
-    a successful run of the script will produce similar output to the following:
+    A successful run of the script will produce output similar to the following:
 
     ```ps
     PS D:\work\ebpf-for-windows> .\scripts\update-release-version.ps1 0 12 0
@@ -33,7 +33,7 @@ eBPF for Windows, and how to service it later.
     Please verify all the changes then submit the pull-request into the 'release/0.12' branch.
     ```
 1. Verify all the changes then commit all in the working branch.
-    >NOTE: the pre-commit formatting rules may complain about the formatting of the `.c` files generated above by the 'bpf2c' tool, in this case, format them with the following command:
+    >NOTE: The pre-commit formatting rules may complain about the formatting of the `.c` files generated above by the 'bpf2c' tool. In this case, format them with the following command:
 
     >```bash
     ># In bash
