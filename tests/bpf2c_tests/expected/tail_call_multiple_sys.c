@@ -182,7 +182,7 @@ static map_entry_t _maps[] = {
          4,                       // Size in bytes of a map value.
          10,                      // Maximum number of entries allowed in the map.
          0,                       // Inner map index.
-         PIN_NONE,                // Pinning type for the map.
+         LIBBPF_PIN_NONE,         // Pinning type for the map.
          10,                      // Identifier for a map template.
          0,                       // The id of the inner map template.
      },
@@ -251,7 +251,7 @@ caller(void* context)
     if ((caller_helpers[0].tail_call) && (r0 == 0))
 #line 29 "sample/tail_call_multiple.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
+        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
 #line 32 "sample/tail_call_multiple.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
@@ -316,7 +316,7 @@ callee0(void* context)
     if ((callee0_helpers[0].tail_call) && (r0 == 0))
 #line 40 "sample/tail_call_multiple.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
+        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
 #line 43 "sample/tail_call_multiple.c"
     r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0

@@ -21,7 +21,7 @@ static map_entry_t _maps[] = {
          4,                       // Size in bytes of a map value.
          10,                      // Maximum number of entries allowed in the map.
          0,                       // Inner map index.
-         PIN_NONE,                // Pinning type for the map.
+         LIBBPF_PIN_NONE,         // Pinning type for the map.
          10,                      // Identifier for a map template.
          0,                       // The id of the inner map template.
      },
@@ -33,7 +33,7 @@ static map_entry_t _maps[] = {
          4,                  // Size in bytes of a map value.
          1,                  // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
-         PIN_NONE,           // Pinning type for the map.
+         LIBBPF_PIN_NONE,    // Pinning type for the map.
          16,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
@@ -110,7 +110,7 @@ caller(void* context)
     if ((caller_helpers[0].tail_call) && (r0 == 0))
 #line 37 "sample/tail_call.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=6 dst=r2 src=r10 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=6 dst=r2 src=r10 offset=0 imm=0
 #line 37 "sample/tail_call.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=7 dst=r2 src=r0 offset=0 imm=-4
@@ -128,12 +128,12 @@ caller(void* context)
     if ((caller_helpers[1].tail_call) && (r0 == 0))
 #line 40 "sample/tail_call.c"
         return 0;
-    // EBPF_OP_JEQ_IMM pc=11 dst=r0 src=r0 offset=2 imm=0
+        // EBPF_OP_JEQ_IMM pc=11 dst=r0 src=r0 offset=2 imm=0
 #line 41 "sample/tail_call.c"
     if (r0 == IMMEDIATE(0))
 #line 41 "sample/tail_call.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=12 dst=r1 src=r0 offset=0 imm=1
+        // EBPF_OP_MOV64_IMM pc=12 dst=r1 src=r0 offset=0 imm=1
 #line 41 "sample/tail_call.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXW pc=13 dst=r0 src=r1 offset=0 imm=0

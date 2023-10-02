@@ -47,7 +47,7 @@ static map_entry_t _maps[] = {
          4,                 // Size in bytes of a map value.
          1,                 // Maximum number of entries allowed in the map.
          0,                 // Inner map index.
-         PIN_NONE,          // Pinning type for the map.
+         LIBBPF_PIN_NONE,   // Pinning type for the map.
          8,                 // Identifier for a map template.
          0,                 // The id of the inner map template.
      },
@@ -59,7 +59,7 @@ static map_entry_t _maps[] = {
          4,                          // Size in bytes of a map value.
          1,                          // Maximum number of entries allowed in the map.
          0,                          // Inner map index.
-         PIN_NONE,                   // Pinning type for the map.
+         LIBBPF_PIN_NONE,            // Pinning type for the map.
          14,                         // Identifier for a map template.
          8,                          // The id of the inner map template.
      },
@@ -139,12 +139,12 @@ lookup(void* context)
     if ((lookup_helpers[0].tail_call) && (r0 == 0))
 #line 38 "sample/map_in_map_btf.c"
         return 0;
-    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=9 imm=0
+        // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=9 imm=0
 #line 39 "sample/map_in_map_btf.c"
     if (r0 == IMMEDIATE(0))
 #line 39 "sample/map_in_map_btf.c"
         goto label_2;
-    // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
 #line 39 "sample/map_in_map_btf.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=9 dst=r10 src=r6 offset=-8 imm=0
@@ -168,12 +168,12 @@ lookup(void* context)
     if ((lookup_helpers[0].tail_call) && (r0 == 0))
 #line 41 "sample/map_in_map_btf.c"
         return 0;
-    // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=1 imm=0
+        // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=1 imm=0
 #line 42 "sample/map_in_map_btf.c"
     if (r0 != IMMEDIATE(0))
 #line 42 "sample/map_in_map_btf.c"
         goto label_1;
-    // EBPF_OP_JA pc=15 dst=r0 src=r0 offset=1 imm=0
+        // EBPF_OP_JA pc=15 dst=r0 src=r0 offset=1 imm=0
 #line 42 "sample/map_in_map_btf.c"
     goto label_2;
 label_1:
