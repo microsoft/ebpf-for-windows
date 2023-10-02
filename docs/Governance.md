@@ -89,7 +89,7 @@ Minimum Requirements:
 * Has acted as a maintainer for at least 2 months
 * Has demonstrated an understanding of MSI installation
 * Has demonstrated an understanding of the eBPF for Windows release process
-* Has access to the Windows signing process
+* Has access to the Microsoft signing pipeline
 * Is approved by the existing [Project Admins](@project-admin)
 
 Responsibilities:
