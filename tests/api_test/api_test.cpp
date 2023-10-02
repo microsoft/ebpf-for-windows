@@ -708,8 +708,7 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
     if (outer_idx_map_fd <= 0) {
         cleanup();
     }
-    REQUIRE(outer_idx_map_fd < 0);
-    REQUIRE(false);
+    REQUIRE(outer_idx_map_fd > 0);
 
     // Clean up tail calls.
     cleanup();

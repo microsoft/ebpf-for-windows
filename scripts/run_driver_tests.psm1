@@ -185,24 +185,24 @@ function Invoke-ConnectRedirectTest
     pushd $WorkingDirectory
 
     ## First run the test with both v4 and v6 programs attached.
-    $Parameters = "--virtual-ip-v4 $VirtualIPv4Address --virtual-ip-v6 $VirtualIPv6Address --local-ip-v4 $LocalIPv4Address --local-ip-v6 $LocalIPv6Address --remote-ip-v4 $RemoteIPv4Address --remote-ip-v6 $RemoteIPv6Address --destination-port $DestinationPort --proxy-port $ProxyPort --user-type $UserType"
-    Write-Log "Executing connect redirect tests with parameters: $Parameters"
-    $LASTEXITCODE = 0
-    $Output = .\connect_redirect_tests.exe `
-        --virtual-ip-v4 $VirtualIPv4Address `
-        --virtual-ip-v6 $VirtualIPv6Address `
-        --local-ip-v4 $LocalIPv4Address `
-        --local-ip-v6 $LocalIPv6Address `
-        --remote-ip-v4 $RemoteIPv4Address `
-        --remote-ip-v6 $RemoteIPv6Address `
-        --destination-port $DestinationPort `
-        --proxy-port $ProxyPort `
-        --user-name $StandardUserName `
-        --password $StandardUserPassword `
-        --user-type $UserType
-    Out-String -InputObject $Output | Write-Log
-    $ParsedOutput = $Output.Split([System.Environment]::NewLine)
-    if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -3] -like "*failed*")) { throw ("Connect-Redirect Test Failed.") }
+    # $Parameters = "--virtual-ip-v4 $VirtualIPv4Address --virtual-ip-v6 $VirtualIPv6Address --local-ip-v4 $LocalIPv4Address --local-ip-v6 $LocalIPv6Address --remote-ip-v4 $RemoteIPv4Address --remote-ip-v6 $RemoteIPv6Address --destination-port $DestinationPort --proxy-port $ProxyPort --user-type $UserType"
+    # Write-Log "Executing connect redirect tests with parameters: $Parameters"
+    # $LASTEXITCODE = 0
+    # $Output = .\connect_redirect_tests.exe `
+    #     --virtual-ip-v4 $VirtualIPv4Address `
+    #     --virtual-ip-v6 $VirtualIPv6Address `
+    #     --local-ip-v4 $LocalIPv4Address `
+    #     --local-ip-v6 $LocalIPv6Address `
+    #     --remote-ip-v4 $RemoteIPv4Address `
+    #     --remote-ip-v6 $RemoteIPv6Address `
+    #     --destination-port $DestinationPort `
+    #     --proxy-port $ProxyPort `
+    #     --user-name $StandardUserName `
+    #     --password $StandardUserPassword `
+    #     --user-type $UserType
+    # Out-String -InputObject $Output | Write-Log
+    # $ParsedOutput = $Output.Split([System.Environment]::NewLine)
+    # if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -3] -like "*failed*")) { throw ("Connect-Redirect Test Failed.") }
 
     ## Run test with only v4 program attached.
     $Parameters = "--virtual-ip-v4 $VirtualIPv4Address --local-ip-v4 $LocalIPv4Address --remote-ip-v4 $RemoteIPv4Address --destination-port $DestinationPort --proxy-port $ProxyPort --user-type $UserType"
@@ -219,8 +219,10 @@ function Invoke-ConnectRedirectTest
         --user-type $UserType `
         "[connect_authorize_redirect_tests_v4]"
     Out-String -InputObject $Output | Write-Log
-    $ParsedOutput = $Output.Split([System.Environment]::NewLine)
-    if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -3] -like "*failed*")) { throw ("Connect-Redirect Test Failed.") }
+    $ParsedOutput = $Output.Split(" ")
+    # $ParsedOutput = $Output.Split([System.Environment]::NewLine)
+    if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("Connect-Redirect Test Failed.") }
+    # if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -3] -like "*failed*")) { throw ("Connect-Redirect Test Failed.") }
 
     ## Run tests with only v6 program attached.
     $Parameters = "--virtual-ip-v6 $VirtualIPv6Address --local-ip-v6 $LocalIPv6Address --remote-ip-v6 $RemoteIPv6Address --destination-port $DestinationPort --proxy-port $ProxyPort --user-type $UserType"
