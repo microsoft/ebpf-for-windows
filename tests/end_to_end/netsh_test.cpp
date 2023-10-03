@@ -6,6 +6,7 @@
 #pragma warning(disable : 4200)
 #include "bpf/libbpf.h"
 #pragma warning(pop)
+#include "cxplat_fault_injection.h"
 #include "ebpf_epoch.h"
 #include "netsh_test_helper.h"
 #include "platform.h"
@@ -612,11 +613,11 @@ TEST_CASE("show maps", "[netsh][maps]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "                             Key  Value      Max  Inner\n"
-                  "    ID            Map Type  Size   Size  Entries     ID  Pins  Name\n"
-                  "======  ==================  ====  =====  =======  =====  ====  ========\n"
-                  " 65538                hash     4      4        1     -1     0  inner_map\n"
-                  "131073       array_of_maps     4      4        1  65538     0  outer_map\n");
+                  "                              Key  Value      Max  Inner\n"
+                  "     ID            Map Type  Size   Size  Entries     ID  Pins  Name\n"
+                  "=======  ==================  ====  =====  =======  =====  ====  ========\n"
+                  "  65538                hash     4      4        1     -1     0  inner_map\n"
+                  " 131073       array_of_maps     4      4        1  65538     0  outer_map\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -629,9 +630,9 @@ TEST_CASE("show maps", "[netsh][maps]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "                             Key  Value      Max  Inner\n"
-                  "    ID            Map Type  Size   Size  Entries     ID  Pins  Name\n"
-                  "======  ==================  ====  =====  =======  =====  ====  ========\n");
+                  "                              Key  Value      Max  Inner\n"
+                  "     ID            Map Type  Size   Size  Entries     ID  Pins  Name\n"
+                  "=======  ==================  ====  =====  =======  =====  ====  ========\n");
 }
 
 TEST_CASE("show links", "[netsh][links]")
