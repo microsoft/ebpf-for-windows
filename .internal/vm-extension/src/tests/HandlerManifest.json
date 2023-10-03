@@ -9,7 +9,7 @@
       "uninstallCommand": "..\\scripts\\uninstall.ps1",
       "rebootAfterInstall": false,
       "reportHeartbeat": false,
-      "updateMode": "UpdateWithoutInstall",
+      "updateMode": "UpdateWithInstall",
       "resetCommand": "..\\scripts\\reset.ps1",
       "supportsMultipleExtensions": false,
       "continueOnUpdateFailure": false
