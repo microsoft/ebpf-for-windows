@@ -12,6 +12,7 @@ Set-Variable -Name "EbpfTracingPeriodicTaskName" -Value "eBpfTracingPeriodicTask
 Set-Variable -Name "EbpfTracingPeriodicTaskFilename" -Value "ebpf_tracing_periodic_task.xml"
 Set-Variable -Name "EbpfTracingTaskCmd" -Value "ebpf_tracing.cmd"
 Set-Variable -Name "EbpfTracingPath" -Value "$env:SystemRoot\Logs\eBPF"
+Set-Variable -Name "EbpfStartTimeoutSeconds" -Value 60
 $EbpfDrivers =
 @{
     "EbpfCore" = "ebpfcore.sys";
@@ -596,7 +597,7 @@ function Stop-eBPFDrivers {
 
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         $driverName = $_.Key
-        Stop-Service -Name $driverName -ErrorAction SilentlyContinue
+        Stop-Service -Name $driverName -Force -ErrorAction SilentlyContinue
         if ($?) {
             Write-Log -level $LogLevelInfo -message "Stopped driver: $driverName"
         } else {
@@ -887,17 +888,26 @@ function Enable-eBPF-Handler {
         $currDriverPath = Get-FullDiskPathFromService -serviceName $driverName
         if ($currDriverPath) {
             if ($?) {
-                Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler: $driverName is registered correctly."
+                Write-Log -level $LogLevelInfo -message "[$driverName] is registered correctly, starting the driver service..."
+                
+                $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
                 Start-Service -Name $driverName -ErrorAction SilentlyContinue
-                if ($?) {
-                    Write-Log -level $LogLevelInfo -message "Started driver: $driverName"
-                } else {
-                    Write-Log -level $LogLevelError -message "Failed to start driver: $driverName"
-                    $statusInfo.StatusCode = 1
-                    $statusInfo.StatusString = $StatusError
+                while ((Get-Service -Name $driverName).Status -ne 'Running') {
+                    if ($stopwatch.Elapsed.TotalSeconds -ge $timEbpfStartTimeoutSecondseout) {
+                        Write-Log -level $LogLevelError -message "Timeout while starting driver [$driverName] (> $timEbpfStartTimeoutSeconds seconds)"
+                        $statusInfo.StatusCode = 1
+                        $statusInfo.StatusString = $StatusError
+                        break
+                    }
+                    Start-Sleep -Seconds 1 # releaf the CPU
+                }
+                $stopwatch.Stop()
+
+                if ($statusInfo.StatusCode -eq 0) {
+                    Write-Log -level $LogLevelInfo -message "Started driver [$driverName]"
                 }
             } else {
-                Write-Log -level $LogLevelError -message "Enable-eBPF-Handler: $driverName is NOT registered correctly!"
+                Write-Log -level $LogLevelError -message "[$driverName] is NOT registered correctly!"
                 $statusInfo.StatusCode = 1
                 $statusInfo.StatusString = $StatusError
             }
