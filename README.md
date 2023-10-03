@@ -5,6 +5,7 @@
 [![CI/CD](https://github.com/microsoft/ebpf-for-windows/actions/workflows/cicd.yml/badge.svg?branch=main&event=schedule)](https://github.com/microsoft/ebpf-for-windows/actions/workflows/cicd.yml?query=event%3Aschedule++)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5742/badge)](https://bestpractices.coreinfrastructure.org/projects/5742)
 [![codecov](https://codecov.io/gh/microsoft/ebpf-for-windows/branch/main/graph/badge.svg?token=TXa0UAMvYf)](https://codecov.io/gh/microsoft/ebpf-for-windows)
+[![Perf Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blue)](https://bpfperformancegrafana.azurewebsites.net/public-dashboards/3826972d0ff245158b6df21d5e6868a9?orgId=1)
 
 eBPF is a well-known technology for providing programmability and agility, especially for extending an
 OS kernel, for use cases such as DoS protection and observability. This project is a work-in-progress that

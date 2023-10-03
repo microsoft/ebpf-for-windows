@@ -38,7 +38,7 @@ typedef struct _map_cache
     uint32_t inner_id;
 
     _map_cache()
-        : handle(0), id(EBPF_ID_NONE), section_offset(0), verifier_map_descriptor(), pinning(PIN_NONE),
+        : handle(0), id(EBPF_ID_NONE), section_offset(0), verifier_map_descriptor(), pinning(LIBBPF_PIN_NONE),
           inner_id(EBPF_ID_NONE)
     {}
 

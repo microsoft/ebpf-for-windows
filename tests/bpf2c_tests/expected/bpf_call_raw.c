@@ -21,7 +21,7 @@ static map_entry_t _maps[] = {
          4,                  // Size in bytes of a map value.
          512,                // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
-         PIN_NONE,           // Pinning type for the map.
+         LIBBPF_PIN_NONE,    // Pinning type for the map.
          9,                  // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
@@ -114,7 +114,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 28 "sample/bpf_call.c"
         return 0;
-    // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
+        // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
 #line 29 "sample/bpf_call.c"
     return r0;
 #line 29 "sample/bpf_call.c"
