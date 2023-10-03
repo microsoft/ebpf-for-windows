@@ -1473,12 +1473,15 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         auto& line_info = section_line_info[name];
         auto first_line_info = line_info.find(section.output.front().instruction_offset);
         std::string prolog_line_info;
-        if (first_line_info != line_info.end() && !first_line_info->second.file_name.empty()) {
+
+        auto result = std::find_if(line_info.begin(), line_info.end(), [&prolog_line_info](const auto& pair) {
+            if (pair.second.file_name.empty() || pair.second.line_number == 0) {
+                return false;
+            }
             prolog_line_info = std::format(
-                "#line {} {}\n",
-                std::to_string(first_line_info->second.line_number),
-                first_line_info->second.file_name.quoted_filename());
-        }
+                "#line {} {}\n", std::to_string(pair.second.line_number), pair.second.file_name.quoted_filename());
+            return true;
+        });
 
         // Emit entry point
         output_stream << "#pragma code_seg(push, " << section.pe_section_name.quoted() << ")" << std::endl;

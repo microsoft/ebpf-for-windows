@@ -37,6 +37,8 @@ jobs:
 
     - name: Gather CSV results into results directory
       run: |
+        # Convert the UTF-16 encoded CSV files to UTF-8.
+        find ${{github.workspace}}/results_artifact -type f -name "*.csv" -exec sh -c 'iconv -f UTF-16 -t ISO-8859-1 "{}" > "{}.ansi" && mv "{}.ansi" "{}"' \;
         mkdir -p ${{github.workspace}}/results/${{github.sha}}
         curl https://raw.githubusercontent.com/microsoft/bpf_performance/1a50dae54c0c1d8b7f73331936e69a7154b3f659/scripts/gather_csv.sh > gather_csv.sh
         sha256sum gather_csv.sh | grep a279517d50093eaa46778642620ec11b2c07f47ace61c4d854982e23c46f22fa -q || exit 1
@@ -50,7 +52,14 @@ jobs:
         # Compare hash of downloaded script.
         sha256sum process_results.py | grep dc616f27b6d345e8086de451ffd3f73cc71b5d51d18894ce08c02db56d67e0f4 -q || exit 1
         # Run script to convert CSV to SQL.
-        python3 ./process_results.py --csv-directory ${{github.workspace}}/results/${{github.sha}}/results --sql-script-file ${{github.workspace}}/results/upload.sql --commit_id ${{github.sha}} --platform "Windows 2019" --repository ${{github.repository}}
+        python3 ./process_results.py --csv-directory ${{github.workspace}}/results/${{github.sha}} --sql-script-file ${{github.workspace}}/results/upload.sql --commit_id ${{github.sha}} --platform "Windows 2019" --repository ${{github.repository}}
+
+    # Grab the output from the results directory and upload it as an artifact to debug failures.
+    - name: Upload data as artifacts for debugging
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      with:
+        name: Test-Results-${{inputs.result_artifact}}
+        path: ${{github.workspace}}/results
 
     - name: Log into Azure
       uses: azure/login@v1
