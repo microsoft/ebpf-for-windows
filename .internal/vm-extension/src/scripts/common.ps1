@@ -673,7 +673,7 @@ function Uninstall-eBPF {
     # De-register the netsh extension
     Unregister-EbpfNetshExtension | Out-Null 
 
-    # Uninstall the eBPF services and use the results to generate the status file.
+    # Uninstall the eBPF services and use the results to generate the log message.
     $failedServices = @() 
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         $driverName = $_.Key
@@ -890,7 +890,7 @@ function Enable-eBPF-Handler {
             if ($?) {
                 Write-Log -level $LogLevelInfo -message "[$driverName] is registered correctly, starting the driver service..."
                 
-                # Start service in a background job
+                # Start the service in a background job
                 $job = Start-Job -ScriptBlock {
                     param($driverName)
                     Start-Service -Name $driverName -ErrorAction SilentlyContinue
