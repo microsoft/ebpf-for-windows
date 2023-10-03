@@ -890,11 +890,19 @@ function Enable-eBPF-Handler {
             if ($?) {
                 Write-Log -level $LogLevelInfo -message "[$driverName] is registered correctly, starting the driver service..."
                 
+                # Start service in a background job
+                $job = Start-Job -ScriptBlock {
+                    param($driverName)
+                    Start-Service -Name $driverName -ErrorAction SilentlyContinue
+                } -ArgumentList $driverName
+
+                # Wait for the service to start, or timeout.                
                 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-                Start-Service -Name $driverName -ErrorAction SilentlyContinue
                 while ((Get-Service -Name $driverName).Status -ne 'Running') {
-                    if ($stopwatch.Elapsed.TotalSeconds -ge $timEbpfStartTimeoutSecondseout) {
-                        Write-Log -level $LogLevelError -message "Timeout while starting driver [$driverName] (> $timEbpfStartTimeoutSeconds seconds)"
+                    if ($stopwatch.Elapsed.TotalSeconds -ge $EbpfStartTimeoutSeconds) {
+                        Write-Log -level $LogLevelError -message "Timeout while starting driver [$driverName] (> $EbpfStartTimeoutSeconds seconds)"
+                        Stop-Job -Job $job
+                        Remove-Job -Job $job
                         $statusInfo.StatusCode = 1
                         $statusInfo.StatusString = $StatusError
                         break
