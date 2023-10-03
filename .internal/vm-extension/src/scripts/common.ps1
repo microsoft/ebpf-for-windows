@@ -965,7 +965,7 @@ function Install-eBPF-Handler {
 
 function Update-eBPF-Handler {
 
-    Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler()"
+    Write-Log -level $LogLevelInfo -message "Update-eBPF-Handler()"
 
     # NOP for this current implementation.
     # Update does not need to generate a status file.
