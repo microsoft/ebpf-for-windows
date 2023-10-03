@@ -737,9 +737,11 @@ main(int argc, char* argv[])
 
     // Run the tests.
     printf("Running tests...\n");
-    session.run();
+    returnCode = session.run();
 
     // Clean up Windows Sockets.
     printf("Cleaning up Winsock.\n");
     WSACleanup();
+
+    return returnCode;
 }
