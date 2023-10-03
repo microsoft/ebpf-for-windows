@@ -665,7 +665,7 @@ function Uninstall-eBPF {
         [string]$installDirectory
     )
 
-    Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler($installDirectory, $createStatusFile)"
+    Write-Log -level $LogLevelInfo -message "Uninstall-eBPF($installDirectory)"
     
     # Stop all eBPF drivers (which will stop all the services which have a dependency on them).
     Stop-eBPFDrivers | Out-Null 
@@ -742,14 +742,14 @@ function Upgrade-eBPF {
     return [int]$statusCode
 }
 
-function InstallOrUpdate-eBPF-Handler {
+function InstallOrUpdate-eBPF {
     param (
         [string]$operationName,
         [string]$sourcePath,
         [string]$destinationPath
     )
 
-    Write-Log -level $LogLevelInfo -message "InstallOrUpdate-eBPF-Handler($operationName, $sourcePath, $destinationPath)"
+    Write-Log -level $LogLevelInfo -message "InstallOrUpdate-eBPF($operationName, $sourcePath, $destinationPath)"
 
     # Set the default product version to NULL (i.e. not installed).
     $currProductVersion = $null
@@ -960,7 +960,7 @@ function Install-eBPF-Handler {
 
     # Install or Update eBPF for Windows.
     # NOTE: The install operation does not generate a status file, since the VM Agent will afterwards call the enable operation.
-    return InstallOrUpdate-eBPF-Handler -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
+    return InstallOrUpdate-eBPF -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath"
 }
 
 function Update-eBPF-Handler {
