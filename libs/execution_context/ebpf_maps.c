@@ -807,12 +807,6 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
 {
     uint32_t index = *(uint32_t*)key;
 
-    // We need to take a lock here to make sure we can safely reference the object when another thread might be trying
-    // to delete the entry we find.
-    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-
-    ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
-
     ebpf_core_object_t* object = NULL;
     uint8_t* value = NULL;
     if (_find_array_map_entry(map, (uint8_t*)&index, false, &value) == EBPF_SUCCESS) {
@@ -826,8 +820,6 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
             (void)EBPF_OBJECT_REFERENCE_BY_ID(id, value_type, &object);
         }
     }
-
-    ebpf_lock_unlock(&object_map->lock, lock_state);
 
     return object;
 }
@@ -1297,21 +1289,12 @@ _find_hash_map_entry(
 static _Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
-    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-
-    // We need to take a lock here to make sure we can
-    // safely reference the object when another thread
-    // might be trying to delete the entry we find.
-    ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
-
     ebpf_core_object_t* object = NULL;
     uint8_t* value = NULL;
     if (_find_hash_map_entry(map, key, false, &value) == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)value;
         (void)EBPF_OBJECT_REFERENCE_BY_ID(id, EBPF_OBJECT_MAP, &object);
     }
-
-    ebpf_lock_unlock(&object_map->lock, lock_state);
 
     return object;
 }
