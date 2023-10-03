@@ -54,7 +54,7 @@ function Write-Log {
     )
 
     # Construct the log entry
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss.fff"
     switch ($level) {
         $LogLevelInfo { 
             $levelString = "INFO"
@@ -576,21 +576,6 @@ function Unregister-EbpfNetshExtension{
     return $LASTEXITCODE
 }
 
-function Start-eBPFDrivers {
-
-    Write-Log -level $LogLevelInfo -message "Start-eBPFDrivers()"
-
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        $driverName = $_.Key
-        Start-Service -Name $driverName -ErrorAction SilentlyContinue
-        if ($?) {
-            Write-Log -level $LogLevelInfo -message "Started driver: $driverName"
-        } else {
-            Write-Log -level $LogLevelError -message "Failed to start driver: $driverName"
-        }
-    }
-}
-
 function Stop-eBPFDrivers {
 
     Write-Log -level $LogLevelInfo -message "Stop-eBPFDrivers()"
@@ -791,7 +776,7 @@ function InstallOrUpdate-eBPF {
         if ($comparison -eq 2) {
             # If the product version is the same as the version distributed with the VM extension package, then we return a success code, as if the operation was successful.
             # This because it's a handler-only update, so we don't need to do anything to the current eBPF installation.
-            $statusCode = 2
+            $statusCode = 0
             $statusMessage = "This is a handler-only update to v($updateToVersion) -> no action taken."
             Write-Log -level $LogLevelInfo -message $statusMessage
         } else {
@@ -808,7 +793,7 @@ function InstallOrUpdate-eBPF {
                 Write-Log -level $LogLevelError -message $statusMessage
             } else {                
                 # If eBPF is already installed, then we return a success code, as if the operation was successful.
-                $statusCode = 2
+                $statusCode = 0
                 $statusMessage = "eBPF version is up to date (v$currProductVersion)."
                 Write-Log -level $LogLevelInfo -message $statusMessage
             }
@@ -827,16 +812,6 @@ function InstallOrUpdate-eBPF {
         }
     }
 
-    # Restart the Guest Proxy Agent service: this is an extended operation that is not part of the eBPF VM Extension's scope,
-    # therefore, we do not account success/failure of this operation in the update status.
-    if ($statusCode -eq 2) {
-        # If the result is 2, eBPF hasn't been updated therefore we don't need to restart the Guest Proxy Agent service, and the operation is successful.
-        $statusCode = 0
-    } elseif ($statusCode -eq 0) {        
-        # If the result is 0, eBPF has been installed or updated successfully, therefore we need to restart the Guest Proxy Agent service.
-        Restart-GuestProxyAgent-Service | Out-Null
-    }
-
     return [int]$statusCode
 }
 
@@ -853,8 +828,30 @@ function Restart-GuestProxyAgent-Service {
         } else {
             Write-Log -level $LogLevelInfo -message "Restarting service '$GuestProxyAgentServiceName'..."
             
-            Restart-Service -Name $GuestProxyAgentServiceName -Force -ErrorAction Stop
-            Write-Log -level $LogLevelInfo -message "Service '$GuestProxyAgentServiceName' was successfully restarted."
+            # Start the service in a background job
+            $job = Start-Job -ScriptBlock {
+                param($serviceName)
+                Restart-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
+            } -ArgumentList $GuestProxyAgentServiceName
+
+            # Wait for the service to start, or timeout.
+            $res = 0              
+            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+            while ((Get-Service -Name $GuestProxyAgentServiceName).Status -ne 'Running') {
+                if ($stopwatch.Elapsed.TotalSeconds -ge $EbpfStartTimeoutSeconds) {
+                    Write-Log -level $LogLevelError -message "Timeout while restarting [$GuestProxyAgentServiceName] (> $EbpfStartTimeoutSeconds seconds)"
+                    Stop-Job -Job $job
+                    Remove-Job -Job $job
+                    $res = 1
+                    break
+                }
+                Start-Sleep -MilliSeconds 100 # releaf the CPU
+            }
+            $stopwatch.Stop()
+
+            if ($res -eq 0) {
+                Write-Log -level $LogLevelInfo -message "Service '$GuestProxyAgentServiceName' was successfully restarted."
+            }
         }
     }
     catch {
@@ -866,7 +863,7 @@ function Restart-GuestProxyAgent-Service {
 # VM Extension Handler Functions
 #######################################################
 function Reset-eBPF-Handler {
-    Write-Log -level $LogLevelInfo -message "Reset-eBPF-Handler()"
+    Write-Log -level $LogLevelInfo -message "Reset-eBPF-Handler() -> NOP"
     
     # NOP for this current implementation.
     # Reset does not need to generate a status file.
@@ -882,48 +879,60 @@ function Enable-eBPF-Handler {
         StatusString = $StatusSuccess
     }
 
-    # Check if the eBPF drivers are registered correctly, and start them.
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        $driverName = $_.Key
-        $currDriverPath = Get-FullDiskPathFromService -serviceName $driverName
-        if ($currDriverPath) {
-            if ($?) {
-                Write-Log -level $LogLevelInfo -message "[$driverName] is registered correctly, starting the driver service..."
-                
-                # Start the service in a background job
-                $job = Start-Job -ScriptBlock {
-                    param($driverName)
-                    Start-Service -Name $driverName -ErrorAction SilentlyContinue
-                } -ArgumentList $driverName
+    try {
+        # Check if the eBPF drivers are registered correctly, and start them.
+        $EbpfDrivers.GetEnumerator() | ForEach-Object {
+            $driverName = $_.Key
+            $currDriverPath = Get-FullDiskPathFromService -serviceName $driverName
+            if ($currDriverPath) {
+                if ($?) {
+                    Write-Log -level $LogLevelInfo -message "[$driverName] is registered correctly, starting the driver service..."
+                    
+                    # Start the service in a background job
+                    $job = Start-Job -ScriptBlock {
+                        param($driverName)
+                        Start-Service -Name $driverName -ErrorAction SilentlyContinue
+                    } -ArgumentList $driverName
 
-                # Wait for the service to start, or timeout.                
-                $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-                while ((Get-Service -Name $driverName).Status -ne 'Running') {
-                    if ($stopwatch.Elapsed.TotalSeconds -ge $EbpfStartTimeoutSeconds) {
-                        Write-Log -level $LogLevelError -message "Timeout while starting driver [$driverName] (> $EbpfStartTimeoutSeconds seconds)"
-                        Stop-Job -Job $job
-                        Remove-Job -Job $job
-                        $statusInfo.StatusCode = 1
-                        $statusInfo.StatusString = $StatusError
-                        break
+                    # Wait for the service to start, or timeout.                
+                    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+                    while ((Get-Service -Name $driverName).Status -ne 'Running') {
+                        if ($stopwatch.Elapsed.TotalSeconds -ge $EbpfStartTimeoutSeconds) {
+                            Write-Log -level $LogLevelError -message "Timeout while starting driver [$driverName] (> $EbpfStartTimeoutSeconds seconds)"
+                            Stop-Job -Job $job
+                            Remove-Job -Job $job
+                            $statusInfo.StatusCode = 1
+                            $statusInfo.StatusString = $StatusError
+                            break
+                        }
+                        Start-Sleep -MilliSeconds 100 # releaf the CPU
                     }
-                    Start-Sleep -Seconds 1 # releaf the CPU
-                }
-                $stopwatch.Stop()
+                    $stopwatch.Stop()
 
-                if ($statusInfo.StatusCode -eq 0) {
-                    Write-Log -level $LogLevelInfo -message "Started driver [$driverName]"
+                    if ($statusInfo.StatusCode -eq 0) {
+                        Write-Log -level $LogLevelInfo -message "Started driver [$driverName]"
+                    }
+                } else {
+                    Write-Log -level $LogLevelError -message "[$driverName] is NOT registered correctly!"
+                    $statusInfo.StatusCode = 1
+                    $statusInfo.StatusString = $StatusError
                 }
-            } else {
-                Write-Log -level $LogLevelError -message "[$driverName] is NOT registered correctly!"
-                $statusInfo.StatusCode = 1
-                $statusInfo.StatusString = $StatusError
             }
         }
     }
+    catch {
+        Write-Log -level $LogLevelError -message "An error occurred while starting the eBPF drivers: $_"
+        $statusInfo.StatusCode = 1
+        $statusInfo.StatusString = $StatusError
+    }
 
     # Check if the eBPF drivers were started correctly, otherwise stop them and return an error.
-    if ($statusInfo.StatusCode -ne 0) {
+    if ($statusInfo.StatusCode -eq 0) {
+        # If the eBPF driveres are started successfully, we need to restart the Guest Proxy Agent service.
+        # NOTE: restarting the Guest Proxy Agent service: this is an extended operation that is not part of the eBPF VM Extension's scope,
+        # therefore, we do not account success/failure of this operation in the update status.
+        Restart-GuestProxyAgent-Service | Out-Null
+    } else {
         Stop-eBPFDrivers | Out-Null
         $statusInfo.StatusCode = 1
         $statusInfo.StatusString = $StatusError
@@ -965,7 +974,7 @@ function Install-eBPF-Handler {
 
 function Update-eBPF-Handler {
 
-    Write-Log -level $LogLevelInfo -message "Update-eBPF-Handler()"
+    Write-Log -level $LogLevelInfo -message "Update-eBPF-Handler() -> NOP"
 
     # NOP for this current implementation.
     # Update does not need to generate a status file.

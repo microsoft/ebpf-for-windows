@@ -4,7 +4,6 @@
 # The disable command will be invoked every time before:
 # - the VM Extension is uninstalled
 # - the VM Extension is updated
-# NOTE: A user might explicitly request to disable a handler without uninstalling it.
 #
 # On disable Azure VM Agent will execute the disable command in a separate process with ADMINISTRATIVE privileges.
 # On the execution of the disable command the handler is expected to complete the pending tasks and then 
