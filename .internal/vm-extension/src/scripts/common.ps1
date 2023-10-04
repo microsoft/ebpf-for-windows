@@ -580,16 +580,39 @@ function Stop-eBPFDrivers {
 
     Write-Log -level $LogLevelInfo -message "Stop-eBPFDrivers()"
 
+    $statusCode = 0
+    $originalStartupType = @{} # Store original startup types
+
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         $driverName = $_.Key
-        Stop-Service -Name $driverName -Force -ErrorAction SilentlyContinue
+
+        # Store the original startup type.
+        $originalStartupType[$driverName] = (Get-WmiObject -Class Win32_BaseService -Filter "Name='$driverName'").StartMode
+
+        # First, disable the driver, so that it doesn't eventually get restarted again after we stop it (i.e triggered by a service having a dependency).
+        Set-Service -Name $driverName -StartupType Disabled -ErrorAction SilentlyContinue
         if ($?) {
-            Write-Log -level $LogLevelInfo -message "Stopped driver: $driverName"
+            Write-Log -level $LogLevelInfo -message "Disabled driver: $driverName"
+        
+            # Then, stop the driver.
+            Stop-Service -Name $driverName -Force -ErrorAction SilentlyContinue
+            if ($?) {
+                Write-Log -level $LogLevelInfo -message "Stopped driver: $driverName"
+            } else {
+                Write-Log -level $LogLevelError -message "Failed to stop driver: $driverName"
+                $statusCode = 1;
+            }
         } else {
-            Write-Log -level $LogLevelError -message "Failed to stop driver: $driverName"
+            # If disabling failed, attempt to revert to the original startup type.
+            Set-Service -Name $driverName -StartupType $originalStartupType[$driverName] -ErrorAction SilentlyContinue
+            Write-Log -level $LogLevelError -message "Failed to disable driver: $driverName"
+            $statusCode = 1;
         }
     }
+
+    return [int]$statusCode
 }
+
 
 function Install-eBPF {
     param (
