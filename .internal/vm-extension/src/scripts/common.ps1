@@ -264,7 +264,7 @@ function Install-Driver {
 
     try {
         # Create the service using sc.exe (you'll need to replace this with the actual command).
-        $scCreateOutput = & "sc.exe" create $serviceName type=kernel start=demand binPath="$servicePath"
+        $scCreateOutput = & "sc.exe" create $serviceName type=kernel start=auto binPath="$servicePath"
 
         # Check the exit code to determine the result.
         if ($LASTEXITCODE -eq 0) {
