@@ -34,6 +34,7 @@
     <ClCompile Include="..\ebpf_ring_buffer.c" />
     <ClCompile Include="..\ebpf_state.c" />
     <ClCompile Include="..\ebpf_trampoline.c" />
+    <ClCompile Include="..\ebpf_work_queue.c" />
     <ClCompile Include="ebpf_handle_user.c" />
     <ClCompile Include="ebpf_native_user.c" />
     <ClCompile Include="ebpf_platform_user.cpp" />
@@ -48,6 +49,7 @@
     <ClInclude Include="..\ebpf_random.h" />
     <ClInclude Include="..\ebpf_ring_buffer.h" />
     <ClInclude Include="..\ebpf_state.h" />
+    <ClInclude Include="..\ebpf_work_queue.h" />
     <ClInclude Include="framework.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
