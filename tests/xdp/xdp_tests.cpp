@@ -118,6 +118,8 @@ main(int argc, char* argv[])
         return 1;
     }
 
-    session.run();
+    returnCode = session.run();
     WSACleanup();
+
+    return returnCode;
 }
