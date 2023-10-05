@@ -922,9 +922,13 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_t* module)
 
             ebpf_handle_t handle_to_insert = ebpf_handle_invalid;
             ebpf_map_definition_in_file_t map_def = native_map_to_update->entry->definition;
+            uint32_t key_size = map_def.key_size;
+            bool is_hash_of_maps_with_int_key = (map_def.type == BPF_MAP_TYPE_HASH_OF_MAPS) &&
+                                                (key_size == sizeof(uint8_t) ||
+                                                 key_size == sizeof(uint16_t) ||
+                                                 key_size == sizeof(uint32_t));
 
-            if (map_def.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
-                ((map_def.type == BPF_MAP_TYPE_HASH_OF_MAPS) && (map_def.key_size == sizeof(uint32_t)))) {
+            if (map_def.type == BPF_MAP_TYPE_ARRAY_OF_MAPS || is_hash_of_maps_with_int_key) {
                 ebpf_native_map_t* native_map_to_insert =
                     _ebpf_native_find_map_by_name(module, map_initial_values[i].values[j]);
                 if (native_map_to_update == NULL) {
