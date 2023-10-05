@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
+       [parameter(Mandatory=$true)][bool] $KmTracing,
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
@@ -20,7 +21,7 @@ $TestExecutionConfig = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJs
 $VMList = $TestExecutionConfig.VMMap.$SelfHostedRunnerName
 
 # Import logs from VMs.
-Import-ResultsFromVM -VMList $VMList
+Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing
 
 # Stop the VMs.
 Stop-AllVMs -VMList $VMList

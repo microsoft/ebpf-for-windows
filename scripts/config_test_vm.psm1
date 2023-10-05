@@ -215,7 +215,8 @@ function Export-BuildArtifactsToVMs
 
 function Import-ResultsFromVM
 {
-    param([Parameter(Mandatory=$True)] $VMList)
+    param([Parameter(Mandatory=$True)] $VMList,
+          [Parameter(Mandatory=$true)] $KmTracing)
 
     # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
     Wait-AllVMsToInitialize -VMList $VMList -UserName $Admin -AdminPassword $AdminPassword
@@ -258,23 +259,48 @@ function Import-ResultsFromVM
         Write-Log ("Copy CodeCoverage from eBPF on $VMName to $pwd\..\..")
         Copy-Item -FromSession $VMSession "$VMSystemDrive\eBPF\ebpf_for_windows.xml" -Destination "$pwd\..\.." -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
 
-        $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
+        # Copy kernel mode traces, if enabled.
+        if ($KmTracing) {
+            $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
+            # Stop KM ETW Traces.
+            Invoke-Command -Session $VMSession -ScriptBlock {
+                param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+                      [Parameter(Mandatory=$True)] [string] $LogFileName,
+                      [Parameter(Mandatory=$True)] [string] $EtlFile)
+                $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+                Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
-        # Stop ETW Traces.
-        Invoke-Command -Session $VMSession -ScriptBlock {
-            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-                  [Parameter(Mandatory=$True)] [string] $LogFileName,
-                  [Parameter(Mandatory=$True)] [string] $EtlFile)
-            $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+                Write-Log "Query KM ETL tracing status before trace stop"
+                $ProcInfo = Start-Process -FilePath "wpr.exe" `
+                    -ArgumentList "-status profiles collectors -details" `
+                    -NoNewWindow -Wait -PassThru `
+                    -RedirectStandardOut .\StdOut.txt -RedirectStandardError .\StdErr.txt
+                if ($ProcInfo.ExitCode -ne 0) {
+                    Write-log ("wpr.exe query ETL trace status failed. Exit code: " + $ProcInfo.ExitCode)
+                    Write-log "wpr.exe (query) error output: "
+                    foreach ($line in get-content -Path .\StdErr.txt) {
+                        write-log ( "`t" + $line)
+                    }
+                    throw "Query ETL trace status failed."
+                } else {
+                    Write-log "wpr.exe (query) results: "
+                    foreach ($line in get-content -Path .\StdOut.txt) {
+                        write-log ( "  `t" + $line)
+                    }
+                }
+                Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
 
-            Write-Log ("Stopping ETW tracing, creating file: " + $EtlFile)
-            Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", "$WorkingDirectory\$EtlFile") -NoNewWindow -Wait
-        } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
+                Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
+                wpr.exe -stop $WorkingDirectory\$EtlFile
 
-        # Copy ETL from Test VM.
-        Write-Log ("Copy $EtlFile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
-        Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\$EtlFile" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
+                $EtlFileSize = (Get-ChildItem $WorkingDirectory\$EtlFile).Length/1MB
+                Write-Log "ETL file Size: $EtlFileSize MB"
+            } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
+
+            # Copy ETL from Test VM.
+            Write-Log ("Copy $WorkingDirectory\$EtlFile on $VMName to $pwd\TestLogs\$VMName\Logs")
+            Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\$EtlFile" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
+        }
 
         # Copy performance results from Test VM.
         Write-Log ("Copy performance results from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
@@ -291,21 +317,25 @@ function Import-ResultsFromVM
 
 function Install-eBPFComponentsOnVM
 {
-    param([parameter(Mandatory=$true)] [string] $VMName)
+    param([parameter(Mandatory=$true)][string] $VMName,
+          [parameter(Mandatory=$true)][bool] $KmTracing,
+          [parameter(Mandatory=$true)][string] $KmTraceType)
 
     Write-Log "Installing eBPF components on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-              [Parameter(Mandatory=$True)] [string] $LogFileName)
+              [Parameter(Mandatory=$True)] [string] $LogFileName,
+              [Parameter(Mandatory=$true)] [bool] $KmTracing,
+              [Parameter(Mandatory=$true)] [string] $KmTraceType)
         $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Install-eBPFComponents -Tracing $true -KMDFVerifier $true
+        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true
         Enable-KMDFVerifier
-    } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
+    } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
 
