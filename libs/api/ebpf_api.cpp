@@ -1852,7 +1852,7 @@ _initialize_ebpf_object_from_file(
         map->object = new_object;
     }
 Done:
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 // Find a map that needs to be created and doesn't depend on
@@ -2306,6 +2306,9 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t 
     ebpf_assert(error_message);
     *error_message = nullptr;
 
+    EBPF_LOG_MESSAGE_STRING(
+        EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_API, "ebpf_object_open: loading (file)", path);
+
     ebpf_object_t* new_object = new (std::nothrow) ebpf_object_t();
     if (new_object == nullptr) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
@@ -2329,6 +2332,16 @@ Done:
     clear_map_descriptors();
     if (result != EBPF_SUCCESS) {
         _clean_up_ebpf_object(new_object);
+
+        // Libbpf API absorbs the error message string.
+        // Print it here for debugging purposes.
+        if (*error_message) {
+            EBPF_LOG_MESSAGE_STRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ebpf_object_open failed (error_message)",
+                *error_message);
+        }
     }
     EBPF_RETURN_RESULT(result);
 }

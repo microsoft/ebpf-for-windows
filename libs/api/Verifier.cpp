@@ -7,6 +7,7 @@
 #include "ebpf_api.h"
 #include "ebpf_program_types.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_tracelog.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "elfio_wrapper.hpp"
 #define ebpf_inst ebpf_inst_btf
@@ -474,7 +475,7 @@ Exit:
         clean_up_ebpf_maps(maps);
     }
 
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 static void
