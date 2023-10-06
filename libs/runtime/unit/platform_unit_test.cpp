@@ -1122,6 +1122,9 @@ passes_chi_squared_test(size_t sequence_length, std::function<uint32_t()> random
     double chi_squared_statistic = std::pow(zero_count - expected_value, 2) / expected_value;
     chi_squared_statistic += std::pow(one_count - expected_value, 2) / expected_value;
 
+    std::cout << "Zero count: " << zero_count << std::endl;
+    std::cout << "One count: " << one_count << std::endl;
+
     double critical_value = CHI_SQUARED_STATISTIC_THRESHOLD;
     std::cout << chi_squared_statistic << std::endl;
     return chi_squared_statistic < critical_value;
@@ -1212,19 +1215,47 @@ has_dominant_frequency(size_t sequence_length, std::function<uint32_t()> random_
             [&](double a, Complex b) { return a + std::pow(std::abs(b) - average_frequency, 2); }) /
         sequence_length);
 
+    std::cout << "Max frequency: " << std::abs(max_frequency) << std::endl;
+    std::cout << "Average frequency: " << average_frequency << std::endl;
+    std::cout << "Std dev frequency: " << std_dev_frequency << std::endl;
     return std::abs(max_frequency) > 6 * std_dev_frequency;
 }
 
 TEST_CASE("verify random", "[platform]")
 {
+    KIRQL old_irql = KeRaiseIrqlToDpcLevel();
+    LARGE_INTEGER p = KeQueryPerformanceCounter(NULL);
+    unsigned long seed = p.LowPart ^ (unsigned long)p.HighPart;
+
     _test_helper test_helper;
     test_helper.initialize();
 
+    std::cout << "ebpf_random_uint32" << std::endl;
     // Verify that the random number generators pass the chi-squared test.
     REQUIRE(passes_chi_squared_test(SEQUENCE_LENGTH, ebpf_random_uint32));
 
     // Verify that the random number generators do not have a dominant frequency.
+    std::cout << "ebpf_random_uint32" << std::endl;
     REQUIRE(!has_dominant_frequency(SEQUENCE_LENGTH, ebpf_random_uint32));
+
+    // Dump the a thousand bits from the random number generator for visual inspection.
+    std::cout << "ebpf_random_uint32" << std::endl;
+    for (size_t mask = 0; mask < 32; mask++) {
+        for (size_t i = 0; i < 1000; i++) {
+            uint32_t value = RtlRandomEx(&seed);
+            uint32_t test_mask = 1 << mask;
+            if ((value & test_mask) != 0) {
+                std::cout << "1";
+            } else {
+                std::cout << "0";
+            }
+            if (i % 40 == 39)
+                std::cout << std::endl;
+        }
+        std::cout << std::endl;
+    }
+
+    KeLowerIrql(old_irql);
 }
 
 TEST_CASE("work_queue", "[platform]")
