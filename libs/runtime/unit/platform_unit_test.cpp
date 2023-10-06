@@ -1238,7 +1238,7 @@ TEST_CASE("verify random", "[platform]")
     std::cout << "ebpf_random_uint32" << std::endl;
     REQUIRE(!has_dominant_frequency(SEQUENCE_LENGTH, ebpf_random_uint32));
 
-    // Dump the a thousand bits from the random number generator for visual inspection.
+    // Dump a thousand bits from the random number generator for visual inspection.
     std::cout << "ebpf_random_uint32" << std::endl;
     for (size_t mask = 0; mask < 32; mask++) {
         for (size_t i = 0; i < 1000; i++) {
