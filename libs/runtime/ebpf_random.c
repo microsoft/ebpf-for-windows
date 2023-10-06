@@ -20,7 +20,7 @@ typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_random_state
     // MT19937 state with names used in the reference implementation.
     uint32_t mt[N];
     uint32_t mti;
-    uint32_t padding[31];
+    uint32_t padding[15];
 } ebpf_random_state_t;
 
 static ebpf_random_state_t* _ebpf_random_number_generator_state = NULL;
