@@ -833,6 +833,12 @@ _ebpf_native_reuse_map(_Inout_ ebpf_native_map_t* map)
         if (result == EBPF_KEY_NOT_FOUND) {
             ebpf_assert(handle == ebpf_handle_invalid);
             result = EBPF_SUCCESS;
+        } else {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "ebpf_core_get_pinned_object returned error",
+                result);
         }
         goto Exit;
     }
