@@ -14,13 +14,33 @@ eBPF for Windows, and how to service it later.
     # Replace "X.Y.Z" with the new version number being released
     .\scripts\update-release-version.ps1 X Y Z
     ```
+
+    A successful run of the script will produce output similar to the following:
+
+    ```ps
+    PS D:\work\ebpf-for-windows> .\scripts\update-release-version.ps1 0 12 0
+    Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h' file...
+    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h
+    Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs' file...
+    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs
+    Rebuilding the solution, please wait...
+    Regenerating the expected 'bpf2c' output...
+    Generating output for atomic_instruction_fetch_add.o
+    ...
+    ...
+    Generating output for printk_unsafe.o
+    Expected 'bpf2c' output regenerated.
+    Please verify all the changes then submit the pull-request into the 'release/0.12' branch.
+    ```
 1. Verify all the changes then commit all in the working branch.
-    >NOTE: the formatting rules may complain about the formatting of the generated `.c` files from the script above, in this case, format them with the following:
+    >NOTE: The pre-commit formatting rules may complain about the formatting of the `.c` files generated above by the 'bpf2c' tool. In this case, format them with the following command:
+
     >```bash
     ># In bash
     >./scripts/format-code --staged
+    >
     ># In PowerShell
-    >.\\scripts\\format-code.ps1 --staged
+    >.\scripts\format-code.ps1 --staged
     >```
 1. Create a **Draft** pull-request for your branch into the main repo's "`main`" branch (which you created in step 1), and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Once the CI/CD pipeline for the PR completes, download the "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build artifacts
