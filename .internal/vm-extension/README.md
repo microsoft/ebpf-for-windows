@@ -105,6 +105,8 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 
 ### Creating the VM Extension Handler Package
 
+>IMPORTANT: ensure that all the Handler's scripts, *both PowerShell and CMDs in the "`\scripts`" folder*, are product-signed before zipping the package.
+
 1. Once you have the eBPF redistributable package to be released from the CI/CD pipeline, create the VM Extension ZIP file by executing the following PowerShell script from the `.azure` folder:
 
     ```PS
@@ -125,7 +127,7 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
     - `<publisher>` is the publisher name, i.e. `Microsoft.eBpfForWindows`.
     - `<extension name>` is the extension name, i.e. `eBpfForWindows`.
     - `<version>` is the VM Extension version, conventionally matching its first 3 digits with the eBPF version, e.g. `0.9.1.1` (`<MajorVersion.MinorVersion.PatchVersion.HotfixVersion>`, which we overlap with the `<Major.Minor.Patch>` versioning for eBPF).
-    
+
 1. Upload the zip file to the Azure Storage Account container named "`ebpf-vm-extension-artifacts`" within the "`eBPF-vm-extension`" resource group (see [Prerequisites](#Prerequisites)).
 
 ### Registering the VM Extension

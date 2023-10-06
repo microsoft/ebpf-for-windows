@@ -1,6 +1,6 @@
 ﻿[
   {
-    "version": 0.1,
+    "version": 1.0,
     "handlerManifest": {
       "installCommand": "..\\scripts\\install.ps1",
       "enableCommand": "..\\scripts\\enable.ps1",
