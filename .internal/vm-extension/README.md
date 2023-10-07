@@ -105,7 +105,7 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 
 ### Creating the VM Extension Handler Package
 
->IMPORTANT: ensure that all the Handler's scripts, *both PowerShell and CMDs in the "`\scripts`" folder*, are product-signed before zipping the package. The signing can be done through the [ESRP portal](https://portal.esrp.microsoft.com/), using the "`Legacy COPS 400`" certificate (aka `CP-230012`), which is recommended [here - "Parameters for signing task"](https://eng.ms/docs/cloud-ai-platform/azure-edge-platform-aep/aep-engineering-systems/productivity-and-experiences/onebranch-platform-services/onebranch/signing/containerbuildsigning).
+>IMPORTANT: ensure that all the VM Extension Handler's PowerShell scripts in the "`\scripts`" folder, are code-signed before zipping the package. The signing can be done through the [ESRP portal](https://portal.esrp.microsoft.com/), using the "`Legacy COPS 400`" certificate (aka `CP-230012`), which is recommended [here - "Parameters for signing task"](https://eng.ms/docs/cloud-ai-platform/azure-edge-platform-aep/aep-engineering-systems/productivity-and-experiences/onebranch-platform-services/onebranch/signing/containerbuildsigning).
 
 1. Once you have the eBPF redistributable package to be released from the CI/CD pipeline, create the VM Extension ZIP file by executing the following PowerShell script from the `.azure` folder:
 
