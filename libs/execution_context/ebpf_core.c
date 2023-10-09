@@ -1208,17 +1208,9 @@ ebpf_core_get_pinned_object(_In_ const cxplat_utf8_string_t* path, _Out_ ebpf_ha
 
     retval = ebpf_handle_create(handle, (ebpf_base_object_t*)object);
 
-    if (retval == EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_CORE,
-            "ebpf_core_get_pinned_object returned success",
-            retval);
-    }
-
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)object);
-    return retval;
+    EBPF_RETURN_RESULT(retval);
 }
 
 static ebpf_result_t
