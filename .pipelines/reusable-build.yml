@@ -130,13 +130,13 @@ jobs:
         displayName: 'Copy LLVM libs for Fuzzing & Address Sanitizing'
 
       - powershell: |
-          Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/$(BUILD_PLATFORM)-Debug-cilium-xdp.zip -OutFile x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
+          Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.2/$(BUILD_PLATFORM)-Debug-cilium-xdp.zip -OutFile x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
         workingDirectory: $(Build.SourcesDirectory)
         condition: or(eq(variables.buildConfiguration, 'Debug'), eq(variables.buildConfiguration, 'NativeOnlyDebug'))
         displayName: 'Download demo Debug repository'
 
       - powershell: |
-          Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.1/$(BUILD_PLATFORM)-Release-cilium-xdp.zip -OutFile x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
+          Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.2/$(BUILD_PLATFORM)-Release-cilium-xdp.zip -OutFile x64-$(BUILD_CONFIGURATION)-cilium-xdp.zip
         workingDirectory: $(Build.SourcesDirectory)
         condition: or(eq(variables.buildConfiguration, 'Release'), eq(variables.buildConfiguration, 'NativeOnlyRelease'))
         displayName: 'Download demo Release repository'
