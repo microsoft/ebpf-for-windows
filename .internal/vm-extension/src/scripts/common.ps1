@@ -2,7 +2,7 @@
 # Global Variables
 #######################################################
 # Define eBPF Handler Environment variables.
-Set-Variable -Name "EbpfExtensionName" -Value "eBPFforWindows"
+Set-Variable -Name "EbpfExtensionName" -Value "eBpfForWindows"
 Set-Variable -Name "EbpfPackagePath" -Value ".\"
 Set-Variable -Name "EbpfDefaultInstallPath" -Value "$env:ProgramFiles\ebpf-for-windows"
 Set-Variable -Name "EbpfNetshExtensionName" -Value "ebpfnetsh.dll"

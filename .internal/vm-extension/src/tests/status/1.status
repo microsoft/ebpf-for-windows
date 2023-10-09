@@ -3,7 +3,7 @@
         "status":  {
                        "operation":  "enable",
                        "code":  0,
-                       "name":  "eBPFforWindows",
+                       "name":  "eBpfForWindows",
                        "status":  "success",
                        "formattedMessage":  {
                                                 "message":  "eBPF enabled",
