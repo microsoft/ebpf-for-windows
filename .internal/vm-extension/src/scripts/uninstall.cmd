@@ -1,0 +1,1 @@
+powershell.exe .\scripts\uninstall.ps1
