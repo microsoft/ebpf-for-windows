@@ -9,8 +9,8 @@ param (
 )
 
 # Define constants for publisher name and type name
-$publisherName = "Microsoft.eBpfForWindows"
-$typeName = "eBpfForWindows"
+$publisherName = "Microsoft.EbpfForWindows"
+$typeName = "EbpfForWindows"
 
 # Verify that the specified source path exists
 if (-not (Test-Path -Path $ebpfBinPackagePath -PathType Container)) {

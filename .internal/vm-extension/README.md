@@ -119,13 +119,13 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
     The resulting ZIP file will be named after the following format:
     
     ```bash
-    <publisher>.<extension name>.<version>.zip # e.g.: Microsoft.eBpfForWindows.eBpfForWindows.0.9.1.1.zip
+    <publisher>.<extension name>.<version>.zip # e.g.: Microsoft.EbpfForWindows.EbpfForWindows.0.9.1.1.zip
     ```
 
     where:
 
-    - `<publisher>` is the publisher name, i.e. `Microsoft.eBpfForWindows`.
-    - `<extension name>` is the extension name, i.e. `eBpfForWindows`.
+    - `<publisher>` is the publisher name, i.e. `Microsoft.EbpfForWindows`.
+    - `<extension name>` is the extension name, i.e. `EbpfForWindows`.
     - `<version>` is the VM Extension version, conventionally matching its first 3 digits with the eBPF version, e.g. `0.9.1.1` (`<MajorVersion.MinorVersion.PatchVersion.HotfixVersion>`, which we overlap with the `<Major.Minor.Patch>` versioning for eBPF).
 
 1. Upload the zip file to the Azure Storage Account container named "`ebpf-vm-extension-artifacts`" within the "`eBPF-vm-extension`" resource group (see [Prerequisites](#Prerequisites)).
@@ -155,7 +155,7 @@ Make sure to update the following variables in the [*`.azure\eBpfArmPublishingTe
 
 ```json
 "version": "0.9.1.1", // The version of the VM Extension
-"mediaLink": "https://ebpfextstorageaccount.blob.core.windows.net/ebpf-ext-container/Microsoft.eBpfForWindows.eBpfForWindows.0.9.1.1.zip", // The URL of the ZIP file containing the VM Extension Handler
+"mediaLink": "https://ebpfextstorageaccount.blob.core.windows.net/ebpf-ext-container/Microsoft.EbpfForWindows.EbpfForWindows.0.9.1.1.zip", // The URL of the ZIP file containing the VM Extension Handler
 "regions": ["East US 2 EUAP", ...], // List of regions in which the extension will be published
 "isInternalExtension": "true/fase", // Whether the extension is internal or not. IMPORTANT!! This flag cannot be reverted once the extension has been made public!
 ``` 
@@ -180,8 +180,8 @@ When the extension is getting published, it can sometimes take a few hours in ce
 You can check/verify the regional status by using the following PowerShell commands. These commands must be executed **within the context of the publisher's subscription** (i.e. on the SAW machine):
 
 ```PS
-$publisherName="Microsoft.eBpfForWindows"
-$typeName="eBpfForWindows"
+$publisherName="Microsoft.EbpfForWindows"
+$typeName="EbpfForWindows"
 $version="0.9.1.1"
 $resourceGroupName = "eBpfVmExtension"
 $name = $publisherName + "." + $typeName + "/" + $version
@@ -231,12 +231,12 @@ Connect-AzAccount
 Select-AzSubscription -SubscriptionId 78a9bec8-945c-4cc0-83bf-77c6d384d2ca
 
 # Below are the eBPF VM Extension parameters
-$publisherName="Microsoft.eBpfForWindows"
-$typeName="eBpfForWindows"
+$publisherName="Microsoft.EbpfForWindows"
+$typeName="EbpfForWindows"
 $version="0.9" # NOTE: the VM Extension platform only supports 2 digits for the version number, when installed from the client, so we need to truncate the eBPF version number to 2 digits!
 
 # Below are the Test-VM parameters
-$vmExtName = "eBpfForWindows" # NOTE: this is the desired name for the extension on the Test-VM, not the VM Extension name!
+$vmExtName = "EbpfForWindows" # NOTE: this is the desired name for the extension on the Test-VM, not the VM Extension name!
 $vmResourceGroup = "eBpfVmExtension"
 $vmLocation = "eastus2euap"
 $vmName = "eBpfVm-EastEUAP"
@@ -256,7 +256,7 @@ The logs from the VM-Agent will be located under `C:\WindowsAzure\Plugins\<full 
 >Ref. docs: https://learn.microsoft.com/en-us/powershell/module/az.compute/remove-azvmextension?view=azps-10.3.0
 
 ```PS
-$vmExtName = "eBpfForWindows" # NOTE: this is the given name of the extension on the Test-VM, not the VM Extension name!
+$vmExtName = "EbpfForWindows" # NOTE: this is the given name of the extension on the Test-VM, not the VM Extension name!
 $vmResourceGroup = "eBpfVmExtension"
 $vmName = "eBpfVm-EastEUAP"
 Remove-AzVMExtension -ResourceGroupName $vmResourceGroup -Name $vmExtName -VMName $vmName
