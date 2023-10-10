@@ -65,8 +65,23 @@ _Guarded_by_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects
 
 #define NO_EXCEPT_TRY noexcept try
 
-#define CATCH_NO_MEMORY(X) \
-    catch (const std::bad_alloc&) { return X; }
+#define CATCH_NO_MEMORY_FD \
+    catch (const std::bad_alloc&) { EBPF_RETURN_FD(ebpf_fd_invalid); }
+
+#define CATCH_NO_MEMORY_EBPF_RESULT \
+    catch (const std::bad_alloc&) { EBPF_RETURN_RESULT(EBPF_NO_MEMORY); }
+
+#define CATCH_NO_MEMORY_PTR(T) \
+    catch (const std::bad_alloc&) { EBPF_RETURN_POINTER(T, nullptr); }
+
+#define CATCH_NO_MEMORY_WIN32 \
+    catch (const std::bad_alloc&) { EBPF_RETURN_ERROR(ERROR_OUTOFMEMORY); }
+
+#define CATCH_NO_MEMORY_BOOL \
+    catch (const std::bad_alloc&) { EBPF_RETURN_BOOL(false); }
+
+#define CATCH_NO_MEMORY_INT(X) \
+    catch (const std::bad_alloc&) { EBPF_RETURN_ERROR(X); }
 
 typedef class _ebpf_signal
 {
@@ -129,21 +144,21 @@ _create_file_descriptor_for_handle(ebpf_handle_t handle) NO_EXCEPT_TRY
 {
     return Platform::_open_osfhandle(handle, 0);
 }
-CATCH_NO_MEMORY(ebpf_fd_invalid)
+CATCH_NO_MEMORY_FD
 
 inline static ebpf_handle_t
 _get_handle_from_file_descriptor(fd_t fd) NO_EXCEPT_TRY
 {
     return Platform::_get_osfhandle(fd);
 }
-CATCH_NO_MEMORY(ebpf_handle_invalid)
+CATCH_NO_MEMORY_FD
 
 inline static int
 _ebpf_create_registry_key(HKEY root_key, _In_z_ const wchar_t* path) NO_EXCEPT_TRY
 {
     return Platform::_create_registry_key(root_key, path);
 }
-CATCH_NO_MEMORY(ERROR_OUTOFMEMORY)
+CATCH_NO_MEMORY_WIN32
 
 inline static int
 _ebpf_update_registry_value(
@@ -156,7 +171,7 @@ _ebpf_update_registry_value(
 {
     return Platform::_update_registry_value(root_key, sub_key, type, value_name, value, value_size);
 }
-CATCH_NO_MEMORY(ERROR_OUTOFMEMORY)
+CATCH_NO_MEMORY_WIN32
 
 static std::wstring
 _get_wstring_from_string(std::string& text) noexcept(false)
@@ -183,7 +198,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) inline static ebpf_map_t* _get_ebpf_
 
     EBPF_RETURN_POINTER(ebpf_map_t*, map);
 }
-CATCH_NO_MEMORY(NULL)
+CATCH_NO_MEMORY_PTR(ebpf_map_t*)
 
 _Requires_lock_not_held_(_ebpf_state_mutex) inline static ebpf_program_t* _get_ebpf_program_from_handle(
     ebpf_handle_t program_handle) NO_EXCEPT_TRY
@@ -200,7 +215,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) inline static ebpf_program_t* _get_e
 
     EBPF_RETURN_POINTER(ebpf_program_t*, program);
 }
-CATCH_NO_MEMORY(NULL)
+CATCH_NO_MEMORY_PTR(ebpf_program_t*)
 
 uint32_t
 ebpf_api_initiate() NO_EXCEPT_TRY
@@ -218,7 +233,7 @@ ebpf_api_initiate() NO_EXCEPT_TRY
 
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 void
 ebpf_api_terminate() noexcept
@@ -280,7 +295,7 @@ _create_map(
 Exit:
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_create(
@@ -342,7 +357,7 @@ Exit:
     }
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _map_lookup_element(
@@ -388,7 +403,7 @@ _map_lookup_element(
 Exit:
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static inline ebpf_result_t
 _get_map_descriptor_properties(
@@ -433,7 +448,7 @@ _get_map_descriptor_properties(
 Exit:
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ const void* key, _Out_ void* value)
@@ -482,7 +497,7 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ cons
 Exit:
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) NO_EXCEPT_TRY
@@ -492,7 +507,7 @@ ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value
     auto result = _ebpf_map_lookup_element_helper(map_fd, false, key, value);
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) NO_EXCEPT_TRY
@@ -501,7 +516,7 @@ ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ 
     auto result = _ebpf_map_lookup_element_helper(map_fd, true, key, value);
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _update_map_element(
@@ -545,7 +560,7 @@ _update_map_element(
 Exit:
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _update_map_element_with_handle(
@@ -567,7 +582,7 @@ _update_map_element_with_handle(
 
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer)));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* value, uint64_t flags) NO_EXCEPT_TRY
@@ -633,7 +648,7 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
         EBPF_RETURN_RESULT(_update_map_element(map_handle, key, key_size, value, value_size, flags));
     }
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) NO_EXCEPT_TRY
@@ -695,7 +710,7 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) NO_EXCEPT_TRY
 Exit:
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key) NO_EXCEPT_TRY
@@ -769,7 +784,7 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void
 Exit:
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static ebpf_result_t
@@ -855,7 +870,7 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) NO_EXCEPT_TRY
 
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_unpin(_In_z_ const char* path) NO_EXCEPT_TRY
@@ -872,7 +887,7 @@ ebpf_object_unpin(_In_z_ const char* path) NO_EXCEPT_TRY
     std::copy(path, path + path_length, request->path);
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer)));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_TRY
@@ -909,7 +924,7 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_TR
 
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_TRY
@@ -928,7 +943,7 @@ ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_
 
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_TRY
@@ -955,7 +970,7 @@ ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_
 
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 fd_t
 ebpf_object_get(_In_z_ const char* path) NO_EXCEPT_TRY
@@ -984,7 +999,7 @@ ebpf_object_get(_In_z_ const char* path) NO_EXCEPT_TRY
     }
     EBPF_RETURN_FD(fd);
 }
-CATCH_NO_MEMORY(ebpf_fd_invalid)
+CATCH_NO_MEMORY_FD
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_query_info(
@@ -1041,7 +1056,7 @@ ebpf_program_query_info(
 
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(retval));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _link_ebpf_program(
@@ -1115,7 +1130,7 @@ Exit:
     }
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static void
 _clean_up_ebpf_link(_Frees_ptr_opt_ ebpf_link_t* link) noexcept
@@ -1150,7 +1165,7 @@ _detach_link_by_handle(ebpf_handle_t link_handle) NO_EXCEPT_TRY
 
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request)));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_detach_link_by_fd(fd_t fd) NO_EXCEPT_TRY
@@ -1163,7 +1178,7 @@ ebpf_detach_link_by_fd(fd_t fd) NO_EXCEPT_TRY
 
     EBPF_RETURN_RESULT(_detach_link_by_handle(link_handle));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_attach(
@@ -1201,7 +1216,7 @@ ebpf_program_attach(
 Exit:
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_attach_by_fd(
@@ -1234,7 +1249,7 @@ ebpf_program_attach_by_fd(
     EBPF_RETURN_RESULT(
         _link_ebpf_program(program_handle, attach_type, link, (uint8_t*)attach_parameters, attach_parameters_size));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_api_unlink_program(ebpf_handle_t link_handle) NO_EXCEPT_TRY
@@ -1247,7 +1262,7 @@ ebpf_api_unlink_program(ebpf_handle_t link_handle) NO_EXCEPT_TRY
 
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request)));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_link_detach(_Inout_ struct bpf_link* link) NO_EXCEPT_TRY
@@ -1256,7 +1271,7 @@ ebpf_link_detach(_Inout_ struct bpf_link* link) NO_EXCEPT_TRY
     ebpf_assert(link);
     EBPF_RETURN_RESULT(_detach_link_by_handle(link->handle));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_detach(
@@ -1299,7 +1314,7 @@ ebpf_program_detach(
 Exit:
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 void
 ebpf_link_close(_Frees_ptr_ struct bpf_link* link) noexcept
@@ -1319,7 +1334,7 @@ ebpf_api_close_handle(ebpf_handle_t handle) NO_EXCEPT_TRY
 
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request)));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_api_get_pinned_map_info(
@@ -1422,7 +1437,7 @@ Exit:
 
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 void
 ebpf_api_map_info_free(
@@ -1635,7 +1650,7 @@ Exit:
     }
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _initialize_ebpf_programs_native(
@@ -1677,7 +1692,7 @@ Exit:
     }
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _initialize_ebpf_object_native(
@@ -1724,7 +1739,7 @@ Exit:
     }
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _ebpf_enumerate_native_sections(
@@ -1818,7 +1833,7 @@ Exit:
     ebpf_free_sections(infos);
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _initialize_ebpf_object_from_elf(
@@ -1853,7 +1868,7 @@ Exit:
     }
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _initialize_ebpf_object_from_file(
@@ -1897,7 +1912,7 @@ _initialize_ebpf_object_from_file(
 Done:
     return result;
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 // Find a map that needs to be created and doesn't depend on
 // creating another map first.  That is, we want to create an
@@ -1949,7 +1964,7 @@ _get_next_map_to_create(std::vector<ebpf_map_t*>& maps) NO_EXCEPT_TRY
     // There are no maps left that we can create.
     EBPF_RETURN_POINTER(ebpf_map_t*, nullptr);
 }
-CATCH_NO_MEMORY(NULL)
+CATCH_NO_MEMORY_PTR(ebpf_map_t*)
 
 static void
 _ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info) noexcept
@@ -2108,7 +2123,7 @@ Error:
     EBPF_LOG_FUNCTION_ERROR(pe_context->result);
     return 1;
 }
-CATCH_NO_MEMORY(1)
+CATCH_NO_MEMORY_INT(1)
 
 static _Ret_z_ const char*
 _ebpf_get_section_string(
@@ -2130,7 +2145,7 @@ _ebpf_get_section_string(
         EBPF_RETURN_POINTER(const char*, (const char*)(buffer->buf + offset));
     }
 }
-CATCH_NO_MEMORY(nullptr)
+CATCH_NO_MEMORY_PTR(const char*)
 
 static int
 _ebpf_pe_get_section_names(
@@ -2188,7 +2203,7 @@ _ebpf_pe_get_section_names(
     EBPF_LOG_EXIT();
     return 0;
 }
-CATCH_NO_MEMORY(1)
+CATCH_NO_MEMORY_INT(1)
 
 static int
 _ebpf_pe_add_section(
@@ -2274,7 +2289,7 @@ Exit:
     EBPF_LOG_EXIT();
     return return_value;
 }
-CATCH_NO_MEMORY(1)
+CATCH_NO_MEMORY_INT(1)
 
 static ebpf_result_t
 _ebpf_enumerate_native_sections(
@@ -2320,7 +2335,7 @@ _ebpf_enumerate_native_sections(
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_enumerate_sections(
@@ -2340,7 +2355,7 @@ ebpf_enumerate_sections(
             ebpf_api_elf_enumerate_sections(file, nullptr, verbose, infos, error_message) ? EBPF_FAILED : EBPF_SUCCESS);
     }
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t ebpf_object_open(
     _In_z_ const char* path,
@@ -2383,7 +2398,7 @@ Done:
     }
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static inline bool
 _ebpf_is_map_in_map(_In_ const ebpf_map_t* map) noexcept
@@ -2419,7 +2434,7 @@ ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution
     }
     return EBPF_SUCCESS;
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 ebpf_execution_type_t
 ebpf_object_get_execution_type(_In_ const struct bpf_object* object) noexcept
@@ -2473,7 +2488,7 @@ Exit:
     Platform::_close(inner_map_info_fd);
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _ebpf_object_reuse_map(_Inout_ ebpf_map_t* map) NO_EXCEPT_TRY
@@ -2508,7 +2523,7 @@ Exit:
     }
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
     _ebpf_object_create_maps(_Inout_ ebpf_object_t* object) noexcept(false)
@@ -2695,7 +2710,7 @@ ebpf_program_load_bytes(
 
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
     _ebpf_object_load_programs(_Inout_ struct bpf_object* object) noexcept(false)
@@ -2810,7 +2825,7 @@ Done:
     }
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 // This function is intended to work like libbpf's bpf_object__unload().
 _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t
@@ -2837,7 +2852,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t
 
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 // This function is intended to work like libbpf's bpf_program__unload().
 _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t
@@ -2857,7 +2872,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t
     }
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 /**
  * @brief Load native module for the specified driver service.
@@ -3236,7 +3251,7 @@ Done:
     Platform::_delete_service(service_handle);
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Requires_lock_not_held_(_ebpf_state_mutex) _Ret_maybenull_
     struct bpf_object* ebpf_object_next(_In_opt_ const struct bpf_object* previous) NO_EXCEPT_TRY
@@ -3259,7 +3274,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Ret_maybenull_
     }
     EBPF_RETURN_POINTER(struct bpf_object*, *it);
 }
-CATCH_NO_MEMORY(nullptr)
+CATCH_NO_MEMORY_PTR(struct bpf_object*)
 
 _Ret_maybenull_ struct bpf_program*
 ebpf_program_next(_In_opt_ const struct bpf_program* previous, _In_ const struct bpf_object* object) NO_EXCEPT_TRY
@@ -3285,7 +3300,7 @@ ebpf_program_next(_In_opt_ const struct bpf_program* previous, _In_ const struct
 Exit:
     EBPF_RETURN_POINTER(bpf_program*, program);
 }
-CATCH_NO_MEMORY(nullptr)
+CATCH_NO_MEMORY_PTR(bpf_program*)
 
 _Ret_maybenull_ struct bpf_program*
 ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct bpf_object* object) NO_EXCEPT_TRY
@@ -3311,7 +3326,7 @@ ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct
 Exit:
     EBPF_RETURN_POINTER(bpf_program*, program);
 }
-CATCH_NO_MEMORY(nullptr)
+CATCH_NO_MEMORY_PTR(struct bpf_program*)
 
 _Ret_maybenull_ struct bpf_map*
 ebpf_map_next(_In_opt_ const struct bpf_map* previous, _In_ const struct bpf_object* object) NO_EXCEPT_TRY
@@ -3337,7 +3352,7 @@ ebpf_map_next(_In_opt_ const struct bpf_map* previous, _In_ const struct bpf_obj
 Exit:
     EBPF_RETURN_POINTER(bpf_map*, map);
 }
-CATCH_NO_MEMORY(nullptr)
+CATCH_NO_MEMORY_PTR(struct bpf_map*)
 
 _Ret_maybenull_ struct bpf_map*
 ebpf_map_previous(_In_opt_ const struct bpf_map* next, _In_ const struct bpf_object* object) NO_EXCEPT_TRY
@@ -3363,7 +3378,7 @@ ebpf_map_previous(_In_opt_ const struct bpf_map* next, _In_ const struct bpf_obj
 Exit:
     EBPF_RETURN_POINTER(bpf_map*, map);
 }
-CATCH_NO_MEMORY(nullptr)
+CATCH_NO_MEMORY_PTR(bpf_map*)
 
 fd_t
 ebpf_program_get_fd(_In_ const struct bpf_program* program) noexcept
@@ -3404,7 +3419,7 @@ _get_fd_by_id(ebpf_operation_id_t operation, ebpf_id_t id, _Out_ int* fd) NO_EXC
     *fd = _create_file_descriptor_for_handle((ebpf_handle_t)reply.handle);
     EBPF_RETURN_RESULT((*fd == ebpf_fd_invalid) ? EBPF_NO_MEMORY : EBPF_SUCCESS);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_map_fd_by_id(ebpf_id_t id, _Out_ int* fd) NO_EXCEPT_TRY
@@ -3413,7 +3428,7 @@ ebpf_get_map_fd_by_id(ebpf_id_t id, _Out_ int* fd) NO_EXCEPT_TRY
     ebpf_assert(fd);
     EBPF_RETURN_RESULT(_get_fd_by_id(ebpf_operation_id_t::EBPF_OPERATION_GET_MAP_HANDLE_BY_ID, id, fd));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_program_fd_by_id(ebpf_id_t id, _Out_ int* fd) NO_EXCEPT_TRY
@@ -3422,7 +3437,7 @@ ebpf_get_program_fd_by_id(ebpf_id_t id, _Out_ int* fd) NO_EXCEPT_TRY
     ebpf_assert(fd);
     EBPF_RETURN_RESULT(_get_fd_by_id(ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_HANDLE_BY_ID, id, fd));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) NO_EXCEPT_TRY
@@ -3431,7 +3446,7 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) NO_EXCEPT_TRY
     ebpf_assert(fd);
     EBPF_RETURN_RESULT(_get_fd_by_id(ebpf_operation_id_t::EBPF_OPERATION_GET_LINK_HANDLE_BY_ID, id, fd));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_next_pinned_program_path(
@@ -3472,7 +3487,7 @@ ebpf_get_next_pinned_program_path(
 
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _get_next_id(ebpf_operation_id_t operation, ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) NO_EXCEPT_TRY
@@ -3492,7 +3507,7 @@ _get_next_id(ebpf_operation_id_t operation, ebpf_id_t start_id, _Out_ ebpf_id_t*
     *next_id = reply.next_id;
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_next_link_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) NO_EXCEPT_TRY
@@ -3501,7 +3516,7 @@ ebpf_get_next_link_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) NO_EXCEPT_TR
     ebpf_assert(next_id);
     EBPF_RETURN_RESULT(_get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_LINK_ID, start_id, next_id));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_next_map_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) NO_EXCEPT_TRY
@@ -3510,7 +3525,7 @@ ebpf_get_next_map_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) NO_EXCEPT_TRY
     ebpf_assert(next_id);
     EBPF_RETURN_RESULT(_get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_MAP_ID, start_id, next_id));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_next_program_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) NO_EXCEPT_TRY
@@ -3519,7 +3534,7 @@ ebpf_get_next_program_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) NO_EXCEPT
     ebpf_assert(next_id);
     EBPF_RETURN_RESULT(_get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM_ID, start_id, next_id));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info_by_fd(
@@ -3536,7 +3551,7 @@ ebpf_object_get_info_by_fd(
 
     EBPF_RETURN_RESULT(ebpf_object_get_info(handle, info, info_size));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_program_type_by_name(
@@ -3554,7 +3569,7 @@ ebpf_get_program_type_by_name(
 
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info) NO_EXCEPT_TRY
@@ -3566,7 +3581,7 @@ ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program
 
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Ret_maybenull_ const ebpf_program_type_t*
 ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) NO_EXCEPT_TRY
@@ -3577,7 +3592,7 @@ ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) NO_EXCEPT_TRY
 
     return get_ebpf_program_type(bpf_program_type);
 }
-CATCH_NO_MEMORY(nullptr)
+CATCH_NO_MEMORY_PTR(const ebpf_program_type_t*)
 
 _Ret_maybenull_z_ const char*
 ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type) NO_EXCEPT_TRY
@@ -3592,7 +3607,7 @@ ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type) NO_EXCE
         return nullptr;
     }
 }
-CATCH_NO_MEMORY(nullptr)
+CATCH_NO_MEMORY_PTR(const char*)
 
 _Ret_maybenull_z_ const char*
 ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type) NO_EXCEPT_TRY
@@ -3601,7 +3616,7 @@ ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type) NO_EXCEPT_
     ebpf_assert(attach_type);
     EBPF_RETURN_POINTER(const char*, get_attach_type_name(attach_type));
 }
-CATCH_NO_MEMORY(nullptr)
+CATCH_NO_MEMORY_PTR(const char*)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_bind_map(fd_t program_fd, fd_t map_fd) NO_EXCEPT_TRY
@@ -3625,7 +3640,7 @@ ebpf_program_bind_map(fd_t program_fd, fd_t map_fd) NO_EXCEPT_TRY
 
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request)));
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 typedef struct _ebpf_ring_buffer_subscription
 {
@@ -3778,7 +3793,7 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) N
 
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_subscribe(
@@ -3876,7 +3891,7 @@ ebpf_ring_buffer_map_subscribe(
         return EBPF_NO_MEMORY;
     }
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
 
 bool
 ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t* subscription) NO_EXCEPT_TRY
@@ -3919,7 +3934,7 @@ ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t*
 
     EBPF_RETURN_BOOL(cancel_result);
 }
-CATCH_NO_MEMORY(false)
+CATCH_NO_MEMORY_BOOL
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options) NO_EXCEPT_TRY
@@ -4029,4 +4044,4 @@ ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
 
     EBPF_RETURN_RESULT(result);
 }
-CATCH_NO_MEMORY(EBPF_NO_MEMORY)
+CATCH_NO_MEMORY_EBPF_RESULT
