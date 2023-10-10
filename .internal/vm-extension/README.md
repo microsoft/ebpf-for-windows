@@ -99,8 +99,8 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 ### Prerequisites
 
 - Ask to be "`Azure Service Deploy Release Management Contributor`" of the Team's Azure Prod subscription, currently "`eBPF for Windows`", SubscriptionID: `78a9bec8-945c-4cc0-83bf-77c6d384d2ca`.
-- Create a resource group named "`eBpfVmExtension`" in the Azure Prod subscription.
-- Create as Azure Storage Account account in the Azure Prod subscription, named "`ebpfstorageaccount`", within the "`eBpfVmExtension`" resource group.
+- Create a resource group named "`EbpfVmExtension`" in the Azure Prod subscription.
+- Create as Azure Storage Account account in the Azure Prod subscription, named "`ebpfstorageaccount`", within the "`EbpfVmExtension`" resource group.
 - Create an Azure Blob Container named "`ebpf-ext-container`" within the "`ebpfstorageaccount`" Storage Account.
 
 ### Creating the VM Extension Handler Package
@@ -145,7 +145,7 @@ Connect-AzAccount
 Select-AzSubscription -SubscriptionId 78a9bec8-945c-4cc0-83bf-77c6d384d2ca
 
 # CD to the path where a local copy of the publishing ARM template is located, and register the VM Extension within the created resource group, using the following commands:
-$resourceGroupName = "eBpfVmExtension"
+$resourceGroupName = "EbpfVmExtension"
 New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName $resourceGroupName -TemplateFile .\eBpfArmRegistrationTemplate.json -Verbose
 ```
 
@@ -169,7 +169,7 @@ Connect-AzAccount
 Select-AzSubscription -SubscriptionId 78a9bec8-945c-4cc0-83bf-77c6d384d2ca
 
 # CD to the path where a local copy of the publishing ARM template is located, and publish the VM Extension within the created resource group, using the following commands:
-$resourceGroupName = "eBpfVmExtension"
+$resourceGroupName = "EbpfVmExtension"
 New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName $resourceGroupName -TemplateFile .\eBpfArmPublishingTemplate.json -Verbose
 ```
 
@@ -183,7 +183,7 @@ You can check/verify the regional status by using the following PowerShell comma
 $publisherName="Microsoft.EbpfForWindows"
 $typeName="EbpfForWindows"
 $version="0.9.1.1"
-$resourceGroupName = "eBpfVmExtension"
+$resourceGroupName = "EbpfVmExtension"
 $name = $publisherName + "." + $typeName + "/" + $version
 (Get-AzResource -ResourceGroupName $resourceGroupName -Name $name -ExpandProperties).Properties.replicationStatus.summary | Sort-Object -Property "region" | Format-Table
 ```
@@ -194,14 +194,14 @@ $name = $publisherName + "." + $typeName + "/" + $version
 
 ### Prerequisites
 
-Request to be "`owner`" of the Team's Azure Prod subscription, currently "`eBPF for Windows`", SubscriptionID: `78a9bec8-945c-4cc0-83bf-77c6d384d2ca`.
+Request to be "`owner`" of the Team's Azure Prod subscription, currently "`eBPF for Windows`", SubscriptionID: "`78a9bec8-945c-4cc0-83bf-77c6d384d2ca`".
 
 ### Create a Test-VM
 
 Follow the steps below to create a Test-VM for testing the eBPF VM Extension:
 
 - The Test-VM for testing the VM Extension Handler must be created **from within the Team's Azure Production subscription**. 
-- Create the Test-VM within the same resource group named "`eBpfVmExtension`", in which the storage account was created earlier.
+- Create the Test-VM within the same resource group named "`EbpfVmExtension`", in which the storage account was created earlier.
 - The Test-VM **must** be created within the ***same region in which the VM Extension has been registered an published***, otherwise the VM Extension will not be found.
 - Due to the Production subscription's limitations, creating a VM from the Azure portal is denied, so it must be created it from PowerShell:
 
@@ -212,9 +212,9 @@ Follow the steps below to create a Test-VM for testing the eBPF VM Extension:
 
     # Setting up the environment variables, for a "WS2019 Datacenter Gen2" VM type
     $credential = Get-Credential
-    $resourceGroupName = 'eBpfVmExtension'
+    $resourceGroupName = 'EbpfVmExtension'
     $location = 'eastus2euap'
-    $vmName = 'eBpfVmM-EastEUAP'
+    $vmName = 'EbpfVm-EastEUAP'
     $vmSize = 'Standard_B2als_v2'
     $image = 'MicrosoftWindowsServer:WindowsServer:2019-datacenter-gensecond:latest'
 
@@ -237,9 +237,9 @@ $version="0.9" # NOTE: the VM Extension platform only supports 2 digits for the 
 
 # Below are the Test-VM parameters
 $vmExtName = "EbpfForWindows" # NOTE: this is the desired name for the extension on the Test-VM, not the VM Extension name!
-$vmResourceGroup = "eBpfVmExtension"
+$vmResourceGroup = "EbpfVmExtension"
 $vmLocation = "eastus2euap"
-$vmName = "eBpfVm-EastEUAP"
+$vmName = "EbpfVm-EastEUAP"
 $extSettings = @{"temp" = "";}; # NOTE! A dummy settings file is necessary for the VM Extension handler to retrieve a 'SequenceNumber' and generate status files, even if the VM Extension does not support user-settings! This is "by design".
 
 Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $vmExtName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $vmResourceGroup -VMName $vmName -Settings $extSettings
@@ -257,8 +257,8 @@ The logs from the VM-Agent will be located under `C:\WindowsAzure\Plugins\<full 
 
 ```PS
 $vmExtName = "EbpfForWindows" # NOTE: this is the given name of the extension on the Test-VM, not the VM Extension name!
-$vmResourceGroup = "eBpfVmExtension"
-$vmName = "eBpfVm-EastEUAP"
+$vmResourceGroup = "EbpfVmExtension"
+$vmName = "EbpfVm-EastEUAP"
 Remove-AzVMExtension -ResourceGroupName $vmResourceGroup -Name $vmExtName -VMName $vmName
 ```
 
