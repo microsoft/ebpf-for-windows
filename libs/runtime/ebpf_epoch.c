@@ -301,7 +301,7 @@ ebpf_epoch_initiate()
     KeInitializeTimer(&_ebpf_epoch_compute_release_epoch_timer);
 
 Error:
-    if (return_value != EBPF_SUCCESS) {
+    if (return_value != EBPF_SUCCESS && _ebpf_epoch_cpu_table) {
         for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
             ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
             ebpf_timed_work_queue_destroy(cpu_entry->work_queue);
