@@ -273,11 +273,17 @@ ebpf_epoch_initiate()
 
     ebpf_assert(EBPF_CACHE_ALIGN_POINTER(_ebpf_epoch_cpu_table) == _ebpf_epoch_cpu_table);
 
+    // Initialize the per-CPU state.
     for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
         cpu_entry->current_epoch = 1;
         ebpf_list_initialize(&cpu_entry->epoch_state_list);
         ebpf_list_initialize(&cpu_entry->free_list);
+    }
+
+    // Initialize the message queue.
+    for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
+        ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
         LARGE_INTEGER interval;
         interval.QuadPart = EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NANO_SECONDS_PER_FILETIME_TICK;
 
@@ -294,10 +300,16 @@ ebpf_epoch_initiate()
 
     KeInitializeTimer(&_ebpf_epoch_compute_release_epoch_timer);
 
-    return return_value;
-
 Error:
-    ebpf_epoch_terminate();
+    if (return_value != EBPF_SUCCESS && _ebpf_epoch_cpu_table) {
+        for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
+            ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
+            ebpf_timed_work_queue_destroy(cpu_entry->work_queue);
+        }
+        cxplat_free(
+            _ebpf_epoch_cpu_table, CXPLAT_POOL_FLAG_NON_PAGED | CXPLAT_POOL_FLAG_CACHE_ALIGNED, EBPF_POOL_TAG_EPOCH);
+    }
+
     EBPF_RETURN_RESULT(return_value);
 }
 
