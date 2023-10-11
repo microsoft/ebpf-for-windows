@@ -936,15 +936,22 @@ _IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_messenger_worker(
 _IRQL_requires_max_(APC_LEVEL) static void _ebpf_epoch_send_message_and_wait(
     _In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id)
 {
-    // Initialize the completion event.
-    KeInitializeEvent(&message->completion_event, NotificationEvent, FALSE);
+    // First, check if the work queue ptr for the specified _ebpf_epoch_cpu_table entry is valid.
+    // This ptr can be null if ebpf_epoch_initiate() fails to create a valid work queue for this
+    // entry. That failure leads to a call to ebpf_epoch_terminate() which ends up here with an
+    // entry with a null work_queue ptr.
+    if (_ebpf_epoch_cpu_table[cpu_id].work_queue) {
 
-    // Queue the message to the specified CPU.
-    ebpf_timed_work_queue_insert(
-        _ebpf_epoch_cpu_table[cpu_id].work_queue, &message->list_entry, message->wake_behavior);
+        // Initialize the completion event.
+        KeInitializeEvent(&message->completion_event, NotificationEvent, FALSE);
 
-    // Wait for the message to complete.
-    KeWaitForSingleObject(&message->completion_event, Executive, KernelMode, FALSE, NULL);
+        // Queue the message to the specified CPU.
+        ebpf_timed_work_queue_insert(
+            _ebpf_epoch_cpu_table[cpu_id].work_queue, &message->list_entry, message->wake_behavior);
+
+        // Wait for the message to complete.
+        KeWaitForSingleObject(&message->completion_event, Executive, KernelMode, FALSE, NULL);
+    }
 }
 
 /**
