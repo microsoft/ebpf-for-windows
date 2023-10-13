@@ -240,7 +240,9 @@ function Import-ResultsFromVM
             if (!(Test-Path "$Env:SystemDrive\KernelDumps")) {
                 New-Item -ItemType Directory -Path "$Env:SystemDrive\KernelDumps"
             }
-            Move-Item $Env:WinDir\*.dmp $Env:SystemDrive\KernelDumps -ErrorAction Ignore
+            tar czf $Env:SystemDrive\KernelDumps\km_dumps.zip -C $Env:WinDir *.dmp
+            #Move-Item $Env:WinDir\*.dmp $Env:SystemDrive\KernelDumps -ErrorAction Ignore
+
         }
         Copy-Item -FromSession $VMSession "$VMSystemDrive\KernelDumps" -Destination ".\TestLogs\$VMName" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
 

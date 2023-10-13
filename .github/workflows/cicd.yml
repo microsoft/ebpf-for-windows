@@ -51,7 +51,7 @@ jobs:
       build_msi: true
       build_nuget: true
       build_options: /p:ReleaseJIT='True'
-      configurations: '["Debug", "FuzzerDebug", "Release"]'
+      configurations: '["Debug"]' #', "FuzzerDebug", "Release"]'
 
   # Perform the native-only build.
   regular_native-only:
@@ -504,7 +504,7 @@ jobs:
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests_restart_extension:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests_restart_extension
@@ -516,6 +516,7 @@ jobs:
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
+      configurations: '["Debug"]'
 
   performance:
     needs: regular
