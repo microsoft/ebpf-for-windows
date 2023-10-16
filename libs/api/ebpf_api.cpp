@@ -1820,6 +1820,7 @@ _initialize_ebpf_object_from_file(
     _Out_ ebpf_object_t* new_object,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
 
     new_object->file_name = cxplat_duplicate_string(path);
