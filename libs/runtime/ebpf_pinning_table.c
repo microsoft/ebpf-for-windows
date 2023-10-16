@@ -195,7 +195,7 @@ ebpf_pinning_table_find(
     }
 
     ebpf_lock_unlock(&pinning_table->lock, state);
-
+    EBPF_LOG_EXIT();
     return return_value;
 }
 
