@@ -17,6 +17,7 @@ MSVCP140D.dll
 dbghelp.dll
 VCRUNTIME140D.dll
 VCRUNTIME140_1D.dll
+KERNEL32.dll
 ucrtbased.dll
 api-ms-win-core-rtlsupport-l1-1-0.dll
 api-ms-win-core-processthreads-l1-1-0.dll
