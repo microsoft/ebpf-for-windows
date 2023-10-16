@@ -71,7 +71,7 @@ jobs:
 
     - name: Run OSSAR (Open Source Static Analysis Runner)
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: github/ossar-action@c757d32d66bea728bc64e67e7d6de9696f7f37d3
+      uses: github/ossar-action@b51f8b4adb5a0d5dbcb24d9ae33488c56a4bd5dd
       id: ossar
 
     - name: Upload results to Security tab
