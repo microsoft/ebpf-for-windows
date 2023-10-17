@@ -201,6 +201,7 @@ ebpf_object_initialize(
     }
 
 #if !defined(NDEBUG)
+    ebpf_id_entry_t* new_entry = NULL;
     result = ebpf_hash_table_find(_ebpf_id_table, (const uint8_t*)&object->id, (uint8_t**)&new_entry);
     if (result != EBPF_SUCCESS) {
         __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
