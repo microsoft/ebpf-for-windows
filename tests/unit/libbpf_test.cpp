@@ -1977,6 +1977,9 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
         uint32_t temp = id1;
         id1 = id2;
         id2 = temp;
+        fd_t temp_fd = fd1;
+        fd1 = fd2;
+        fd2 = temp_fd;
     }
 
     // Get info on the first link.
