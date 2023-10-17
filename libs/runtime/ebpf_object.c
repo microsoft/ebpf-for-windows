@@ -307,41 +307,41 @@ ebpf_duplicate_utf8_string(_Out_ cxplat_utf8_string_t* destination, _In_ const c
     return ebpf_result_from_cxplat_status(status);
 }
 
+static bool
+_ebpf_object_match_object_type(_In_opt_ void* filter_context, _In_ const uint8_t* key, _In_ const uint8_t* value)
+{
+    ebpf_object_type_t* object_type = (ebpf_object_type_t*)filter_context;
+    ebpf_id_entry_t* entry = (ebpf_id_entry_t*)value;
+    UNREFERENCED_PARAMETER(key);
+    return (entry->type == *object_type);
+}
+
+static int
+_ebpf_object_id_sort(_In_ const uint8_t* key1, _In_ const uint8_t* key2)
+{
+    ebpf_id_t id1 = *(ebpf_id_t*)key1;
+    ebpf_id_t id2 = *(ebpf_id_t*)key2;
+    if (id1 < id2) {
+        return -1;
+    } else if (id1 > id2) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id)
 {
     ebpf_id_entry_t* entry = NULL;
-    ebpf_result_t result;
-    ebpf_id_t previous_key = start_id;
-    ebpf_id_t next_key;
-
-    for (;;) {
-        result = ebpf_hash_table_next_key_and_value(
-            _ebpf_id_table,
-            previous_key ? (const uint8_t*)&previous_key : NULL,
-            (uint8_t*)&next_key,
-            (uint8_t**)&entry);
-        if (result != EBPF_SUCCESS) {
-            break;
-        }
-
-        previous_key = next_key;
-
-        // Skip entries that have been deleted.
-        if (entry->object == NULL) {
-            continue;
-        }
-
-        // Skip entries that are not of the requested type.
-        if (entry->type != object_type) {
-            continue;
-        }
-
-        // Return this entry.
-        *next_id = next_key;
-        break;
-    }
-
+    ebpf_result_t result = ebpf_hash_table_next_key_and_value_sorted(
+        _ebpf_id_table,
+        start_id ? (const uint8_t*)&start_id : NULL,
+        _ebpf_object_id_sort,
+        &object_type,
+        _ebpf_object_match_object_type,
+        (uint8_t*)next_id,
+        (uint8_t**)&entry);
     if (result != EBPF_SUCCESS) {
         return EBPF_NO_MORE_KEYS;
     } else {
