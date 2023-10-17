@@ -162,6 +162,7 @@ ebpf_object_tracking_terminate()
 {
     ebpf_assert(ebpf_hash_table_key_count(_ebpf_id_table) == 0 || ebpf_fault_injection_is_enabled());
     ebpf_hash_table_destroy(_ebpf_id_table);
+    _ebpf_id_table = NULL;
 }
 
 _Must_inspect_result_ ebpf_result_t
