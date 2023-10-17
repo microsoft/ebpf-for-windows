@@ -1366,22 +1366,11 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     }
     REQUIRE(result == 0);
 
-    std::vector<ebpf_id_t> program_ids;
-    program_id = 0;
-    next_program_id = 0;
-    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
-    program_id = next_program_id;
-    program_ids.push_back(program_id);
-
-    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
-    program_id = next_program_id;
-    program_ids.push_back(program_id);
-
-    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == -ENOENT);
-    std::sort(program_ids.begin(), program_ids.end());
-
     ebpf_execution_type_t type;
-    fd_t program_fd = bpf_prog_get_fd_by_id(program_ids[0]);
+    program_id = 0;
+    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
+    program_id = next_program_id;
+    fd_t program_fd = bpf_prog_get_fd_by_id(program_id);
     REQUIRE(program_fd > 0);
     REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
     Platform::_close(program_fd);
@@ -1393,7 +1382,9 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     ebpf_free_string(section_name);
     section_name = nullptr;
 
-    program_fd = bpf_prog_get_fd_by_id(program_ids[1]);
+    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
+    program_id = next_program_id;
+    program_fd = bpf_prog_get_fd_by_id(program_id);
     REQUIRE(program_fd > 0);
     REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
     Platform::_close(program_fd);
@@ -1404,6 +1395,8 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     ebpf_free_string(section_name);
     file_name = nullptr;
     section_name = nullptr;
+
+    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == -ENOENT);
 
     for (int i = 0; i < _countof(unique_object); i++) {
         bpf_object__close(unique_object[i].release());

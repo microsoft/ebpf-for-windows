@@ -9,7 +9,6 @@
 #include "platform.h"
 #include "tokens.h"
 
-#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -40,16 +39,12 @@ handle_ebpf_show_maps(
     std::cout << "     ID            Map Type  Size   Size  Entries     ID  Pins  Name\n";
     std::cout << "=======  ==================  ====  =====  =======  =====  ====  ========\n";
 
-    std::vector<ebpf_id_t> map_ids;
-    {
-        uint32_t map_id = 0;
-        while (bpf_map_get_next_id(map_id, &map_id) == 0) {
-            map_ids.push_back(map_id);
+    uint32_t map_id = 0;
+    for (;;) {
+        if (bpf_map_get_next_id(map_id, &map_id) < 0) {
+            break;
         }
-    }
-    std::sort(map_ids.begin(), map_ids.end());
 
-    for (auto map_id : map_ids) {
         fd_t map_fd = bpf_map_get_fd_by_id(map_id);
         if (map_fd < 0) {
             break;
