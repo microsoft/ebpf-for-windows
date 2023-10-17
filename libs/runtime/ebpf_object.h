@@ -155,7 +155,7 @@ extern "C"
      * @brief Initiate object tracking.
      *
      */
-    void
+    ebpf_result_t
     ebpf_object_tracking_initiate();
 
     /**
@@ -316,10 +316,8 @@ extern "C"
      * @param[in] object_type Object type to match.
      * @param[in] file_id The file ID of the caller.
      * @param[in] line The line number of the caller.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
      */
-    _Must_inspect_result_ ebpf_result_t
+    void
     ebpf_object_release_id_reference(
         ebpf_id_t start_id, ebpf_object_type_t object_type, ebpf_file_id_t file_id, uint32_t line);
 

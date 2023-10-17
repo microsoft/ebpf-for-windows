@@ -1972,6 +1972,13 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) < 0);
     REQUIRE(errno == ENOENT);
 
+    // Sort the IDs.
+    if (id1 > id2) {
+        uint32_t temp = id1;
+        id1 = id2;
+        id2 = temp;
+    }
+
     // Get info on the first link.
     memset(&attr, 0, sizeof(attr));
     bpf_link_info info;
