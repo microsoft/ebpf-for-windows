@@ -75,14 +75,14 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 
 - **Install operation**:
     1. Calls the handler's *install command* -> install/update eBPF.
-    1. Calls the handler's *enable command* -> start eBPF drivers.
+    1. Calls the handler's *enable command* -> start eBPF drivers, restart the GuestProxyAgent service.
 
 - **Update operation**:
     1. Calls the handler's *disable command* (on the old handler) -> stop eBPF drivers.
     1. Calls the handler's *update command* (on the new handler) -> NOP.
     1. Calls the handler's *uninstall command* (on the old handler) -> uninstall eBPF.
     1. Calls the handler's *install command* (on the new handler) -> install/update eBPF.
-    1. Calls the handler's *enable command* (on the new handler) -> start eBPF drivers.
+    1. Calls the handler's *enable command* (on the new handler) -> start eBPF drivers, restart the GuestProxyAgent service.
 
 - **Uninstall operation**:
     1. Calls the handler's *disable command* -> stop eBPF drivers.
@@ -90,7 +90,8 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 
 - **Enable operation**, **Disable operation** and **Reset operation** simply call the corresponding handler command.
 
->**NOTE**: for each of the above operations, if the goal is to update the VM Extension only, then the eBPF Team will publish a new VM Extension with the same eBPF version number, but with a higher `HotfixVersion` number. The VM Agent will then call the VM Extension Handler with the `Update operation` command-sequence, in which the *install command* will recon if the eBPF bits' version is the same of the one currently installed, and in that case, it will not perform any action on the eBPF installation itself.
+>**NOTE**: the *enable command* will start the eBPF drivers, and upon success, it will also attempt to restart the GuestProxyAgent service.
+> Although restarting the GuestProxyAgent service is an extended operation that is not part of the eBPF VM Extension's scope, we account success/failure of this operation in the overall update status, so that the VM Agent will stop rolling out updates.
 
 ## Releasing the eBPF VM Extension Handler
 
