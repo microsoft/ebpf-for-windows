@@ -507,7 +507,7 @@ Done:
     return result;
 }
 
-_Must_inspect_result_ void
+void
 ebpf_object_release_id_reference(ebpf_id_t id, ebpf_object_type_t object_type, uint32_t file_id, uint32_t line)
 {
     ebpf_id_entry_t* entry = NULL;
@@ -531,6 +531,9 @@ ebpf_object_release_id_reference(ebpf_id_t id, ebpf_object_type_t object_type, u
 
     if (new_refcount == 0) {
         result = ebpf_hash_table_delete(_ebpf_id_table, (const uint8_t*)&id);
+        if (result != EBPF_SUCCESS) {
+            __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+        }
         ebpf_object_update_reference_history(entry, EBPF_OBJECT_DESTROY, file_id, line);
     }
 }
