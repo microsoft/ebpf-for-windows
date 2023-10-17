@@ -50,7 +50,7 @@ jobs:
 
     - name: Download build artifact
       if: (steps.skip_check.outputs.should_skip != 'true') && success()
-      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      uses: actions/download-artifact@88dadfbcfcdd10293192ac8ee1e3ffe61f7055ee
       id: download_artifact
       with:
         name: ${{inputs.build_artifact}}-${{matrix.configurations}}
