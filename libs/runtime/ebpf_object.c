@@ -198,6 +198,12 @@ ebpf_object_initialize(
     result = ebpf_hash_table_update(
         _ebpf_id_table, (const uint8_t*)&object->id, (const uint8_t*)&entry, EBPF_HASH_TABLE_OPERATION_INSERT);
     if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_POINTER_ENUM(
+            CASE_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "eBPF object failed to initialize due to insert in _ebpf_id_table failure",
+            object,
+            object_type);
         goto Done;
     }
 
