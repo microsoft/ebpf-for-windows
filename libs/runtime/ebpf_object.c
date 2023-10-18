@@ -308,7 +308,7 @@ ebpf_duplicate_utf8_string(_Out_ cxplat_utf8_string_t* destination, _In_ const c
 }
 
 static bool
-_ebpf_object_match_object_type(_In_opt_ void* filter_context, _In_ const uint8_t* key, _In_ const uint8_t* value)
+_ebpf_object_match_object_type(_In_ void* filter_context, _In_ const uint8_t* key, _In_ const uint8_t* value)
 {
     ebpf_object_type_t* object_type = (ebpf_object_type_t*)filter_context;
     ebpf_id_entry_t* entry = (ebpf_id_entry_t*)value;
