@@ -217,7 +217,7 @@ extern "C"
     ebpf_hash_table_key_count(_In_ const ebpf_hash_table_t* hash_table);
 
     /**
-     * @brief Returns the next (key, value) pair in the hash table in lexicographically order.
+     * @brief Returns the next (key, value) pair in the hash table in lexicographical order.
      * The keys are sorted using the supplied comparison function and filtered using the supplied filter function.
      * Note: This function has a cost of O(n) where n is the number of keys in the hash table. If order is not
      * important, use ebpf_hash_table_next_key_pointer_and_value instead.
