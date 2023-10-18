@@ -189,14 +189,16 @@ extern "C"
         _Inout_opt_ uint8_t** next_value);
 
     /**
-     * @brief Returns the next (key, value) pair in the hash table.
+     * @brief Returns the next (key, value) pair in the hash table in an unspecified order.
+     * This function is faster than ebpf_hash_table_next_key_and_value_sorted but the order of keys is unspecified.
+     * The keys are not sorted and no filter is applied.
      *
      * @param[in] hash_table Hash-table to query.
      * @param[in] previous_key Previous key or NULL to restart.
      * @param[out] next_key_pointer Pointer to next key if one exists.
      * @param[out] next_value If non-NULL, returns the next value if it exists.
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table.
+     * @retval EBPF_NO_MORE_KEYS No more keys exist in the hash table.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_next_key_pointer_and_value(
@@ -215,15 +217,20 @@ extern "C"
     ebpf_hash_table_key_count(_In_ const ebpf_hash_table_t* hash_table);
 
     /**
-     * @brief Returns the next (key, value) pair in the hash table that is lexicographically after the specified key
-     * using the provided comparison function and filter function.
+     * @brief Returns the next (key, value) pair in the hash table in lexicographically order.
+     * The keys are sorted using the supplied comparison function and filtered using the supplied filter function.
+     * Note: This function has a cost of O(n) where n is the number of keys in the hash table. If order is not
+     * important, use ebpf_hash_table_next_key_pointer_and_value instead.
      *
      * @param[in] hash_table Hash-table to query.
      * @param[in] previous_key Previous key or NULL to restart.
+     * @param[in] compare Comparison function to use to compare keys.
+     * @param[in] filter_context Context to pass to filter function.
+     * @param[in] filter Filter function to use to filter keys.
      * @param[out] next_key_pointer Pointer to next key if one exists.
      * @param[out] next_value If non-NULL, returns the next value if it exists.
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table.
+     * @retval EBPF_NO_MORE_KEYS No more keys exist in the hash table.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_next_key_and_value_sorted(
