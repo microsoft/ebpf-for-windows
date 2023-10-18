@@ -333,6 +333,8 @@ _ebpf_object_id_sort(_In_ const uint8_t* key1, _In_ const uint8_t* key2)
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id)
 {
+    // TODO: https://github.com/microsoft/ebpf-for-windows/issues/2985
+    // Switch this to a data structure that supports sorted iteration.
     ebpf_id_entry_t* entry = NULL;
     ebpf_result_t result = ebpf_hash_table_next_key_and_value_sorted(
         _ebpf_id_table,
