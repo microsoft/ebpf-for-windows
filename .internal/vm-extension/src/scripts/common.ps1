@@ -732,7 +732,7 @@ function Uninstall-eBPF {
         $statusCode = $EbpfStatusCode_SUCCESS
         Write-Log -level $LogLevelInfo -message "eBPF for Windows uninstalled successfully."
     } else {
-        $statusCode = $EbpfStatusCode_UNINSTALLING_DRIVER_FAILEDS
+        $statusCode = $EbpfStatusCode_UNINSTALLING_DRIVER_FAILED
         $failedServicesString = $failedServices -join ", "
         Write-Log -level $LogLevelError -message "Failed to uninstall service(s): $failedServicesString."
     }
