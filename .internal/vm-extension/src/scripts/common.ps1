@@ -809,7 +809,7 @@ function InstallOrUpdate-eBPF {
             if ($comparison -ne 0) {
                 # If the product version is lower than the version distributed with the VM extension, then upgrade it.
                 if ($comparison -gt 0) {
-                    # If the product version is greater than the version distributed with the VM extension, then just issue a warning, but allow th downgrade.
+                    # If the product version is greater than the version distributed with the VM extension, then just issue a warning, but allow the downgrade.
                     $statusMessage = "WARNING: The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will be downgraded to (v$newProductVersion)!."
                     Write-Log -level $LogLevelWarning -message $statusMessage
                 }
