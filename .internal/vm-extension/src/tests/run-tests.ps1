@@ -174,25 +174,25 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Setup-Test-Package -packageVersion "0.9.0" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
-    if ((Install-eBPF-Handler) -ne 0) {
+    if ((Install-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     } 
-    if ((Enable-eBPF-Handler) -ne 0) {
+    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
         
     # Simulate a handler-only update, by changing the handler's new target version in the VERSION environment variable.
     Write-Log -level $LogLevelInfo -message "= Simulate a handler-only update =========================================================================================="
-    if ((Disable-eBPF-Handler) -ne 0) {
+    if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Update-eBPF-Handler) -ne 0) { # Always NOP on update
+    if ((Update-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) { # Always NOP on update
         Exit-Tests -testPass 1
     }
-    if ((Install-eBPF-Handler) -ne 0) {
+    if ((Install-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Enable-eBPF-Handler) -ne 0) {
+    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
 
@@ -201,16 +201,16 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Setup-Test-Package -packageVersion "0.9.1" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
-    if ((Disable-eBPF-Handler) -ne 0) {
+    if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Update-eBPF-Handler) -ne 0) { # Always NOP on update
+    if ((Update-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) { # Always NOP on update
         Exit-Tests -testPass 1
     }
-    if ((Install-eBPF-Handler) -ne 0) {
+    if ((Install-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Enable-eBPF-Handler) -ne 0) {
+    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
     
@@ -222,25 +222,25 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     # if ((Set-EnvironmentVariable -variableName $VmAgentEnvVar_VERSION -variableValue "0.9.0.0") -ne 0) {
     #     Exit-Tests -testPass 1
     # }
-    if ((Disable-eBPF-Handler) -ne 0) {
+    if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Update-eBPF-Handler) -ne 0) { # Always NOP on update
+    if ((Update-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) { # Always NOP on update
         Exit-Tests -testPass 1
     }
-    if ((Install-eBPF-Handler) -ne 0) {
+    if ((Install-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Enable-eBPF-Handler) -ne 2) { # Ignoring failing to restart GuestProxyAgent (absent)
+    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_RESTARTING_GPA_SERVICE_FAILED) { # Ignoring failing to restart GuestProxyAgent (absent)
         Exit-Tests -testPass 1
     }
     
     # Uninstall, i.e. Remove a handler from the VM (Disable and Uninstall): https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#222-remove-a-handler-from-the-vm-disable-and-uninstall
     Write-Log -level $LogLevelInfo -message "= Uninstall ==============================================================================================================="
-    if ((Disable-eBPF-Handler) -ne 0) { # The VM Agent will first call 'Disable' on the handler
+    if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) { # The VM Agent will first call 'Disable' on the handler
         Exit-Tests -testPass 1
     }  
-    if ((Uninstall-eBPF-Handler) -ne 0) {
+    if ((Uninstall-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
 } else {

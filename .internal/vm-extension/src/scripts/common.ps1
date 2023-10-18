@@ -19,6 +19,27 @@ $EbpfDrivers =
     "NetEbpfExt" = "netebpfext.sys";
 }
 
+# eBPF Handler return codes (any non-zero value will be treated as an error by the VM Agent).
+Set-Variable -Name "EbpfStatusCode_SUCCESS" -Value 0
+Set-Variable -Name "EbpfStatusCode_ERROR" -Value 1001
+Set-Variable -Name "EbpfStatusCode_BAD_ENV_FILE" -Value 1002
+Set-Variable -Name "EbpfStatusCode_ENV_FILE_NOT_FOUND" -Value 1003
+Set-Variable -Name "EbpfStatusCode_INSTALLATION_UNALLOWED" -Value 1004
+Set-Variable -Name "EbpfStatusCode_COPY_FAILED" -Value 1005
+Set-Variable -Name "EbpfStatusCode_DELETE_DIR_FAILED" -Value 1006
+Set-Variable -Name "EbpfStatusCode_CREATE_DIR_FAILED" -Value 1007
+Set-Variable -Name "EbpfStatusCode_FIND_DIR_FAILED" -Value 1008
+Set-Variable -Name "EbpfStatusCode_CREATE_TASK_FAILED" -Value 1009
+Set-Variable -Name "EbpfStatusCode_DELETE_TASK_FAILED" -Value 1010
+Set-Variable -Name "EbpfStatusCode_STARTING_DRIVER_FAILED" -Value 1011
+Set-Variable -Name "EbpfStatusCode_STOPPING_DRIVER_FAILED" -Value 1012
+Set-Variable -Name "EbpfStatusCode_DISABLING_DRIVER_FAILED" -Value 1013
+Set-Variable -Name "EbpfStatusCode_INSTALLING_DRIVER_FAILED" -Value 1014
+Set-Variable -Name "EbpfStatusCode_UNINSTALLING_DRIVER_FAILED" -Value 1015
+Set-Variable -Name "EbpfStatusCode_REGISTERING_NETSH_EXTENSION_FAILED" -Value 1016
+Set-Variable -Name "EbpfStatusCode_UNREGISTERING_NETSH_EXTENSION_FAILED" -Value 1017
+Set-Variable -Name "EbpfStatusCode_RESTARTING_GPA_SERVICE_FAILED" -Value 1018
+
 # VM Agent-generated environment variables.
 Set-Variable -Name "VmAgentEnvVar_SEQUENCE_NO" -Value "ConfigSequenceNumber"
 
@@ -97,10 +118,10 @@ function Set-EnvironmentVariable {
     }
     catch {
         Write-Log -level $LogLevelError -message "Failed to set environment variable '$variableName'. Error: $_"
-        return 1
+        return $EbpfStatusCode_ERROR
     }
     
-    return 0
+    return $EbpfStatusCode_SUCCESS
 }
 
 function Get-EnvironmentVariable {
@@ -172,6 +193,11 @@ function Get-ProductVersionFromFile {
     return $null
 }
 
+# Compare-VersionNumbers compares two version numbers in the format "major.minor.patch.hotfix" and returns:
+#    0 - if version1 == version2
+#   -1 - if version1 < version2
+#    1 - if version1 > version2
+#    2 - if version1 and version2 are equal up to the 3rd digit (i.e. the patch number)
 function Compare-VersionNumbers {
     param (
         [string]$version1,
@@ -223,10 +249,10 @@ function Add-DirectoryToSystemPath {
     }
     catch {
         Write-Log -level $LogLevelError -message "An error occurred while adding '$directoryPath' to the system PATH: $_"
-        return 1
+        return $EbpfStatusCode_ERROR
     }
 
-    return 0
+    return $EbpfStatusCode_SUCCESS
 }
 
 function Remove-DirectoryFromSystemPath {
@@ -248,10 +274,10 @@ function Remove-DirectoryFromSystemPath {
     }
     catch {
         Write-Log -level $LogLevelError -message "An error occurred while removing '$directoryPath' from the system PATH: $_"
-        return 1
+        return $EbpfStatusCode_ERROR
     }
 
-    return 0
+    return $EbpfStatusCode_SUCCESS
 }
 
 function Install-Driver {
@@ -261,29 +287,35 @@ function Install-Driver {
     )
 
     Write-Log -level $LogLevelInfo -message "Install-Driver($serviceName, $servicePath)"
+    $res = $EbpfStatusCode_SUCCESS
 
     try {
         # Create the service using sc.exe (you'll need to replace this with the actual command).
         $scCreateOutput = & "sc.exe" create $serviceName type=kernel start=auto binPath="$servicePath"
 
         # Check the exit code to determine the result.
-        if ($LASTEXITCODE -eq 0) {
+        if ($LASTEXITCODE -eq 0) {            
             Write-Log -level $LogLevelInfo -message "'$serviceName' installed successfully."
         } else {
-            Write-Log -level $LogLevelError -message "Failed to install '$serviceName'. Error message: $scCreateOutput"
+            $res = $EbpfStatusCode_INSTALLING_DRIVER_FAILED
+            Write-Log -level $LogLevelError -message "Failed to install '$serviceName'. ErrorCode: $LASTEXITCODE, Error message: $scCreateOutput"
         }
     }
     catch {
         Write-Log -level $LogLevelError -message "An error occurred while installing '$serviceName': $_"
     }
 
-    return $LASTEXITCODE
+    return $res
 }
 
 function Uninstall-Driver {
     param (
         [string]$serviceName
     )
+
+    Write-Log -level $LogLevelInfo -message "Uninstall-Driver($serviceName)"
+    $res = $EbpfStatusCode_SUCCESS
+
     try {
         Write-Log -level $LogLevelInfo -message "Uninstall-Driver($serviceName)"
     
@@ -294,14 +326,15 @@ function Uninstall-Driver {
         if ($LASTEXITCODE -eq 0) {
             Write-Log -level $LogLevelInfo -message "'$serviceName' uninstalled successfully."
         } else {
-            Write-Log -level $LogLevelError -message "Failed to uninstall '$serviceName'. Error message: $scDeleteOutput"      
+            $res = $EbpfStatusCode_UNINSTALLING_DRIVER_FAILED
+            Write-Log -level $LogLevelError -message "Failed to uninstall '$serviceName'. ErrorCode: $LASTEXITCODE, Error message: $scDeleteOutput"      
         }
     }
     catch {
         Write-Log -level $LogLevelError -message "An error occurred while installing '$serviceName': $_"
     }
 
-    return $LASTEXITCODE
+    return $res
 }
 
 function Copy-Directory {
@@ -311,15 +344,15 @@ function Copy-Directory {
     )
 
     Write-Log -level $LogLevelInfo -message "Copy-Directory($sourcePath, $destinationPath)"
+    $res = $EbpfStatusCode_SUCCESS
 
-    $res = 0
     # Create the destination directory, if it doesn't exist.
     if (-not (Test-Path $destinationPath)) {
         try {
             New-Item -Path $destinationPath -ItemType Directory -ErrorAction Stop | Out-Null
         } catch {
             Write-Log -level $LogLevelError -message "Failed to create destination directory '$destinationPath': $_"
-            $res = 1
+            $res = $EbpfStatusCode_CREATE_DIR_FAILED
         }
     }
 
@@ -329,7 +362,7 @@ function Copy-Directory {
         Write-Log -level $LogLevelInfo -message "Files copied from '$sourcePath' to '$destinationPath'."
     } catch {
         Write-Log -level $LogLevelError -message "Error while copying files: $_"
-        $res = 1
+        $res = $EbpfStatusCode_COPY_FAILED
     }
     
     return $res
@@ -341,19 +374,19 @@ function Delete-Directory {
     )
     
     Write-Log -level $LogLevelInfo -message "Delete-Directory($destinationPath)"
-    
-    $res = 0
+    $res = $EbpfStatusCode_SUCCESS
+
     if (Test-Path $destinationPath) {
         try {
             Remove-Item -Path $destinationPath -Recurse -Force -ErrorAction Stop
             Write-Log -level $LogLevelInfo -message "Directory '$destinationPath' deleted successfully."            
         } catch {
             Write-Log -level $LogLevelError -message "Failed to delete directory '$destinationPath'. Error: $_"
-            $res = 1
+            $res = $EbpfStatusCode_DELETE_DIR_FAILED
         }
     } else {
         Write-Log -level $LogLevelWarning -message "Directory '$destinationPath' does not exist."
-        $res = 1
+        $res = $EbpfStatusCode_FIND_DIR_FAILED
     }
 
     return $res
@@ -373,11 +406,11 @@ function Create-Scheduled-Task {
         Register-ScheduledTask -Xml (Get-Content -Path $xmlPath -Raw) -TaskName $taskName | Out-Null
         Write-Log -level $LogLevelInfo -message "SUCCESS setting up the '$taskName' task."
     } catch {        
-        Write-Log -level $LogLevelError -message "FAILED setting up the '$taskName' task.  Error message: $($_.Exception.Message)"
-        return $_.Exception.HResult
+        Write-Log -level $LogLevelError -message "FAILED setting up the '$taskName' task. Error Code: $($_.Exception.HResult) Error message: $($_.Exception.Message)"
+        return $EbpfStatusCode_CREATE_TASK_FAILED
     }
 
-    return 0
+    return $EbpfStatusCode_SUCCESS
 }
 
 #######################################################
@@ -389,7 +422,7 @@ function Get-HandlerEnvironment {
         [string]$handlerEnvironmentFullPath = "$DefaultHandlerEnvironmentFilePath"
     )
 
-    $res = 0
+    $res = $EbpfStatusCode_SUCCESS
     if (Test-Path $handlerEnvironmentFullPath -PathType Leaf) {
         $jsonContent = Get-Content -Path $handlerEnvironmentFullPath -Raw
         $jsonContent = $jsonContent | ConvertFrom-Json
@@ -412,11 +445,11 @@ function Get-HandlerEnvironment {
             Write-Log -level $LogLevelInfo -message "Events Folder: $($global:eBPFHandlerEnvObj.handlerEnvironment.eventsFolder)"
         } else {
             Write-Error "$handlerEnvironmentFullPath does not contain a valid object."
-            $res = 1
+            $res = $EbpfStatusCode_BAD_ENV_FILE
         }
     } else {
         Write-Error "$handlerEnvironmentFullPath file not found."
-        $res = 1
+        $res = $EbpfStatusCode_ENV_FILE_NOT_FOUND
     }
 
     return $res
@@ -470,6 +503,9 @@ function Delete-Ebpf-Tracing-Tasks {
 
     Write-Log -level $LogLevelInfo -message "Delete-Ebpf-Tracing-Tasks($installDirectory)"
 
+    # In accounting that files & tasks could be manually deleted, we go through all the steps and just log any errors.
+    $res = $EbpfStatusCode_SUCCESS
+
     # Firstly, lets stop the tracing providers
     $scriptPath = Join-Path $installDirectory $EbpfTracingTaskCmd
     if (Test-Path $scriptPath -PathType Leaf) {
@@ -481,7 +517,6 @@ function Delete-Ebpf-Tracing-Tasks {
         }
     } else {
         Write-Log -level $LogLevelError -message "Tracing script not found '$scriptPath'."
-        return -1
     }
 
     # Lastly, lets delete the scheduled tasks
@@ -495,7 +530,7 @@ function Delete-Ebpf-Tracing-Tasks {
         }
     }
 
-    return 0
+    return $res
 }
 
 function Create-Ebpf-Tracing-Tasks {
@@ -507,7 +542,7 @@ function Create-Ebpf-Tracing-Tasks {
     Delete-Ebpf-Tracing-Tasks -installDirectory $installDirectory | Out-Null
 
     $res = Create-Scheduled-Task -installDirectory $installDirectory -taskName $EbpfTracingStartupTaskName -taskFile $EbpfTracingStartupTaskFilename
-    if ($res -eq 0) {
+    if ($res -eq  $EbpfStatusCode_SUCCESS) {
         $res = Create-Scheduled-Task -installDirectory $installDirectory -taskName $EbpfTracingPeriodicTaskName -taskFile $EbpfTracingPeriodicTaskFilename
     } else {
         Delete-Ebpf-Tracing-Tasks -installDirectory $installDirectory | Out-Null
@@ -531,8 +566,7 @@ function Disable-EbpfTracing {
     )
 
     Write-Log -level $LogLevelInfo -message "Disable-EbpfTracing($installDirectory)"
-
-    Delete-Ebpf-Tracing-Tasks -installDirectory $installDirectory | Out-Null
+    return Delete-Ebpf-Tracing-Tasks -installDirectory $installDirectory
 }
 
 function Register-EbpfNetshExtension{
@@ -541,6 +575,8 @@ function Register-EbpfNetshExtension{
     )
 
     Write-Log -level $LogLevelInfo -message "Register-EbpfNetshExtension($installDirectory)"
+    $res = $EbpfStatusCode_SUCCESS
+
     Push-Location -Path $installDirectory
 
     # Add the eBPF netsh helper.
@@ -550,16 +586,18 @@ function Register-EbpfNetshExtension{
     if ($LASTEXITCODE -eq 0) {
         Write-Log -level $LogLevelInfo -message "'$EbpfNetshExtensionName' registered successfully."
     } else {
+        $res = $EbpfStatusCode_REGISTERING_NETSH_EXTENSION_FAILED
         Write-Log -level $LogLevelError -message "Failed to register '$EbpfNetshExtensionName'. Error message: $installResult"
     }
 
     Pop-Location
-    return $LASTEXITCODE
+    return $res
 }
 
 function Unregister-EbpfNetshExtension{
 
     Write-Log -level $LogLevelInfo -message "Unregister-EbpfNetshExtension"
+    $res = $EbpfStatusCode_SUCCESS
     Push-Location -Path $EbpfDefaultInstallPath
 
     # Add the eBPF netsh helper.
@@ -569,18 +607,19 @@ function Unregister-EbpfNetshExtension{
     if ($LASTEXITCODE -eq 0) {
         Write-Log -level $LogLevelInfo -message "'$EbpfNetshExtensionName' unregistered successfully."
     } else {
+        $res = $EbpfStatusCode_UNREGISTERING_NETSH_EXTENSION_FAILED
         Write-Log -level $LogLevelError -message "Failed to unregister '$EbpfNetshExtensionName'. Error message: $installResult"
     }
 
     Pop-Location
-    return $LASTEXITCODE
+    return $res
 }
 
 function Stop-eBPFDrivers {
 
     Write-Log -level $LogLevelInfo -message "Stop-eBPFDrivers()"
 
-    $statusCode = 0
+    $statusCode = $EbpfStatusCode_SUCCESS
     $originalStartupType = @{} # Store original startup types
 
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
@@ -600,19 +639,18 @@ function Stop-eBPFDrivers {
                 Write-Log -level $LogLevelInfo -message "Stopped driver: $driverName"
             } else {
                 Write-Log -level $LogLevelError -message "Failed to stop driver: $driverName"
-                $statusCode = 1;
+                $statusCode = $EbpfStatusCode_STOPPING_DRIVER_FAILED;
             }
         } else {
             # If disabling failed, attempt to revert to the original startup type.
             Set-Service -Name $driverName -StartupType $originalStartupType[$driverName] -ErrorAction SilentlyContinue
             Write-Log -level $LogLevelError -message "Failed to disable driver: $driverName"
-            $statusCode = 1;
+            $statusCode = $EbpfStatusCode_DISABLING_DRIVER_FAILED;
         }
     }
 
     return [int]$statusCode
 }
-
 
 function Install-eBPF {
     param (
@@ -623,15 +661,15 @@ function Install-eBPF {
     Write-Log -level $LogLevelInfo -message "Install-eBPF($sourcePath, $destinationPath)"
 
     # Copy the eBPF files to the destination folder.
-    $copyResult = Copy-Directory -sourcePath "$sourcePath\bin" -destinationPath $destinationPath
-    if ($copyResult -eq 0) {
+    $statusCode = Copy-Directory -sourcePath "$sourcePath\bin" -destinationPath $destinationPath
+    if ($statusCode -eq $EbpfStatusCode_SUCCESS) {
 
         # Install the eBPF services and use the results to generate the status file  .      
         $failedServices = @() 
         $EbpfDrivers.GetEnumerator() | ForEach-Object {
             $driverName = $_.Key
             $installResult = Install-Driver -serviceName $driverName -servicePath "$destinationPath\drivers\$driverName.sys"
-            if ($installResult -ne 0) {
+            if ($installResult -ne $EbpfStatusCode_SUCCESS) {
                 $failedServices += $driverName
             }
         }
@@ -648,10 +686,9 @@ function Install-eBPF {
             # Register the trace providers.
             Enable-EbpfTracing -installDirectory $destinationPath | Out-Null 
 
-            $statusCode = 0
             Write-Log -level $LogLevelInfo -message "eBPF for Windows installed successfully."
         } else {
-            $statusCode = 1
+            $statusCode = $EbpfStatusCode_INSTALLING_DRIVER_FAILED
             $failedServicesString = $failedServices -join ", "
             Write-Log -level $LogLevelError -message "Failed to install service(s): $failedServicesString -> reverting registration for the ones that succeded."
 
@@ -661,7 +698,6 @@ function Install-eBPF {
             }
         }
     } else {
-        $statusCode = 1
         Write-Log -level $LogLevelError -message "Failed to copy eBPF files to the destination folder."
     }
 
@@ -693,10 +729,10 @@ function Uninstall-eBPF {
 
     # Determine the overall installation status
     if ($failedServices.Length -eq 0) {
-        $statusCode = 0
+        $statusCode = $EbpfStatusCode_SUCCESS
         Write-Log -level $LogLevelInfo -message "eBPF for Windows uninstalled successfully."
     } else {
-        $statusCode = 1
+        $statusCode = $EbpfStatusCode_UNINSTALLING_DRIVER_FAILEDS
         $failedServicesString = $failedServices -join ", "
         Write-Log -level $LogLevelError -message "Failed to uninstall service(s): $failedServicesString."
     }
@@ -728,13 +764,13 @@ function Upgrade-eBPF {
 
         # For the moment, we just uninstall and install from/to the given installation folder.
         $statusCode = Uninstall-eBPF-Handler -installDirectory "$installDirectory" -createStatusFile $false
-        if ($statusCode -ne 0) {
+        if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
             $statusMessage = "eBPF $operationName FAILED (Uninstall failed)."
             Write-Log -level $LogLevelError -message $statusMessage
         } else {
             Write-Log -level $LogLevelInfo -message "eBPF v$currProductVersion uninstalled successfully."
             $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$installDirectory"
-            if ($statusCode -ne 0) {
+            if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
                 $statusMessage = "eBPF $operationName FAILED (Install failed)."
                 Write-Log -level $LogLevelError -message $statusMessage
             } else {
@@ -743,7 +779,7 @@ function Upgrade-eBPF {
             }
         } 
     } else {       
-        $statusCode = 1
+        $statusCode = $EbpfStatusCode_INSTALLATION_UNALLOWED
         Write-Log -level $LogLevelError -message "eBPF [$operationName] not allowed in the current environment."
     }
 
@@ -799,7 +835,7 @@ function InstallOrUpdate-eBPF {
         if ($comparison -eq 2) {
             # If the product version is the same as the version distributed with the VM extension package, then we return a success code, as if the operation was successful.
             # This because it's a handler-only update, so we don't need to do anything to the current eBPF installation.
-            $statusCode = 0
+            $statusCode = $EbpfStatusCode_SUCCESS
             $statusMessage = "This is a handler-only update to v($updateToVersion) -> no action taken."
             Write-Log -level $LogLevelInfo -message $statusMessage
         } else {
@@ -816,7 +852,7 @@ function InstallOrUpdate-eBPF {
                 [int]$statusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
             } else {                
                 # If eBPF is already installed with the same version, then we return a success code, as if the operation was successful.
-                $statusCode = 0
+                $statusCode = $EbpfStatusCode_SUCCESS
                 $statusMessage = "eBPF version is up to date (v$currProductVersion)."
                 Write-Log -level $LogLevelInfo -message $statusMessage
             }
@@ -826,7 +862,7 @@ function InstallOrUpdate-eBPF {
         
         # Proceed with a new installation from the artifact package within the extension ZIP file.
         $statusCode = Install-eBPF -sourcePath "$sourcePath" -destinationPath "$currInstallPath"
-        if ($statusCode -ne 0) {
+        if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
             Write-Log -level $LogLevelError -message "Failed to install eBPF v$newProductVersion."
             Report-Status -name $StatusName -operation $operationName -status $StatusError -statusCode 1 -statusMessage "eBPF $operationName FAILED (Clean install failed)."
         } else {
@@ -842,7 +878,7 @@ function Restart-GuestProxyAgent-Service {
 
     Write-Log -level $LogLevelInfo -message "Restart-GuestProxyAgent-Service()"
 
-    $res = 0
+    $res = $EbpfStatusCode_SUCCESS
     $GuestProxyAgentServiceName = "GuestProxyAgent"
     try {
         $service = Get-Service -Name $GuestProxyAgentServiceName -ErrorAction Stop
@@ -866,20 +902,20 @@ function Restart-GuestProxyAgent-Service {
                     Write-Log -level $LogLevelError -message "Timeout while restarting [$GuestProxyAgentServiceName] (> $EbpfStartTimeoutSeconds seconds)"
                     Stop-Job -Job $job
                     Remove-Job -Job $job
-                    $res = 1
+                    $res = $EbpfStatusCode_RESTARTING_GPA_SERVICE_FAILED
                     break
                 }
                 Start-Sleep -MilliSeconds 100 # releaf the CPU
             }
             $stopwatch.Stop()
 
-            if ($res -eq 0) {
+            if ($res -eq $EbpfStatusCode_SUCCESS) {
                 Write-Log -level $LogLevelInfo -message "Service '$GuestProxyAgentServiceName' was successfully restarted."
             }
         }
     }
     catch {
-        $res = 1
+        $res = $EbpfStatusCode_RESTARTING_GPA_SERVICE_FAILED
         Write-Log -level $LogLevelError -message "An error occurred while restarting service '$GuestProxyAgentServiceName': $_"
     }
 
@@ -894,7 +930,7 @@ function Reset-eBPF-Handler {
     
     # NOP for this current implementation.
     # Reset does not need to generate a status file.
-    return 0
+    return $EbpfStatusCode_SUCCESS
 }
 
 function Enable-eBPF-Handler {
@@ -902,7 +938,7 @@ function Enable-eBPF-Handler {
     Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler()"
 
     $statusInfo = [PSCustomObject]@{
-        StatusCode = 0
+        StatusCode = $EbpfStatusCode_SUCCESS
         StatusString = $StatusSuccess
     }
 
@@ -928,7 +964,7 @@ function Enable-eBPF-Handler {
                             Write-Log -level $LogLevelError -message "Timeout while starting driver [$driverName] (> $EbpfStartTimeoutSeconds seconds)"
                             Stop-Job -Job $job
                             Remove-Job -Job $job
-                            $statusInfo.StatusCode = 1
+                            $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
                             $statusInfo.StatusString = $StatusError
                             break
                         }
@@ -936,12 +972,12 @@ function Enable-eBPF-Handler {
                     }
                     $stopwatch.Stop()
 
-                    if ($statusInfo.StatusCode -eq 0) {
+                    if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
                         Write-Log -level $LogLevelInfo -message "Started driver [$driverName]"
                     }
                 } else {
                     Write-Log -level $LogLevelError -message "[$driverName] is NOT registered correctly!"
-                    $statusInfo.StatusCode = 1
+                    $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
                     $statusInfo.StatusString = $StatusError
                 }
             }
@@ -949,22 +985,21 @@ function Enable-eBPF-Handler {
     }
     catch {
         Write-Log -level $LogLevelError -message "An error occurred while starting the eBPF drivers: $_"
-        $statusInfo.StatusCode = 1
+        $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
         $statusInfo.StatusString = $StatusError
     }
 
     # Check if the eBPF drivers were started correctly, otherwise stop them and return an error.
-    if ($statusInfo.StatusCode -eq 0) {
+    if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
         # If the eBPF drivers are started successfully, we need to restart the GuestProxyAgent service.
         $res = Restart-GuestProxyAgent-Service
-        if ($res -ne 0) {            
+        if ($res -ne $EbpfStatusCode_SUCCESS) {            
             Write-Log -level $LogLevelError -message "eBPF was successfully installed, but restarting the GuestProxyAgent service FAILED -> Failing the overall operation."
-            $statusInfo.StatusCode = 2
+            $statusInfo.StatusCode = $res
             $statusInfo.StatusString = $StatusError
         }
     } else {
         Stop-eBPFDrivers | Out-Null
-        $statusInfo.StatusCode = 1
         $statusInfo.StatusString = $StatusError
     }
 
@@ -1008,7 +1043,7 @@ function Update-eBPF-Handler {
 
     # NOP for this current implementation.
     # Update does not need to generate a status file.
-    return 0
+    return $EbpfStatusCode_SUCCESS
 }
 
 #######################################################

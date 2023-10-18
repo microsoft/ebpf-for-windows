@@ -92,6 +92,8 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 
 >**NOTE**: the *enable command* will start the eBPF drivers, and upon success, it will also attempt to restart the GuestProxyAgent service.
 > Although restarting the GuestProxyAgent service is an extended operation that is not part of the eBPF VM Extension's scope, we account success/failure of this operation in the overall update status, so that the VM Agent will stop rolling out updates.
+>
+>By design, if the GuestProxyAgent fails to restart, eBPF will *not* be uninstalled, as upon this failure, the VM Agent will rollback by calling the *Update operation* on the old handler, thus, downgrading eBPF to the previous version.
 
 ## Releasing the eBPF VM Extension Handler
 
