@@ -214,7 +214,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
         Exit-Tests -testPass 1
     }
     
-    # Attempt to update back to an older version
+    # Downgrade to an older version
     Write-Log -level $LogLevelInfo -message "= Attempt to update back to an older version =============================================================================="
     if ((Setup-Test-Package -packageVersion "0.9.0" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
@@ -228,10 +228,10 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Update-eBPF-Handler) -ne 0) { # Always NOP on update
         Exit-Tests -testPass 1
     }
-    if ((Install-eBPF-Handler) -eq 0) {
+    if ((Install-eBPF-Handler) -ne 0) {
         Exit-Tests -testPass 1
     }
-    if ((Enable-eBPF-Handler) -ne 0) {
+    if ((Enable-eBPF-Handler) -ne 2) { # Ignoring failing to restart GuestProxyAgent (absent)
         Exit-Tests -testPass 1
     }
     

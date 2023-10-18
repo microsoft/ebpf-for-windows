@@ -958,8 +958,8 @@ function Enable-eBPF-Handler {
         # If the eBPF drivers are started successfully, we need to restart the GuestProxyAgent service.
         $res = Restart-GuestProxyAgent-Service
         if ($res -ne 0) {            
-            Write-Log -level $LogLevelError -message "eBPF was successfully installed, restarting the GuestProxyAgent service FAILED -> Failing the overall operation."
-            $statusInfo.StatusCode = 1
+            Write-Log -level $LogLevelError -message "eBPF was successfully installed, but restarting the GuestProxyAgent service FAILED -> Failing the overall operation."
+            $statusInfo.StatusCode = 2
             $statusInfo.StatusString = $StatusError
         }
     } else {
