@@ -104,11 +104,11 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     # Clean-up and set up the test environment with two versions of the eBPF redist package.
     $testRedistTargetDirectory = ".\_ebpf-redist"
     Delete-Directory -destinationPath $testRedistTargetDirectory | Out-Null
-    $res = DownloadAndUnpackEbpfRedistPackage -packageVersion "0.9.0" -targetDirectory $testRedistTargetDirectory
+    $res = DownloadAndUnpackEbpfRedistPackage -packageVersion "0.9.1" -targetDirectory $testRedistTargetDirectory
     if ($res -ne 0) {
         Exit-Tests -testPass 1
     }
-    $res = DownloadAndUnpackEbpfRedistPackage -packageVersion "0.9.1" -targetDirectory $testRedistTargetDirectory
+    $res = DownloadAndUnpackEbpfRedistPackage -packageVersion "0.11.0.2" -targetDirectory $testRedistTargetDirectory
     if ($res -ne 0) { 
         Exit-Tests -testPass 1
     }
@@ -171,7 +171,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
 
     # Install an old version, i.e. Add a new handler on the VM (Install and Enable)
     Write-Log -level $LogLevelInfo -message "= Install an old version =================================================================================================="
-    if ((Setup-Test-Package -packageVersion "0.9.0" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
+    if ((Setup-Test-Package -packageVersion "0.9.1" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
     if ((Install-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
@@ -198,7 +198,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
 
     # Update to a newer version, i.e. handler's update is called (Disable and Update).
     Write-Log -level $LogLevelInfo -message "= Update to newer version ================================================================================================="
-    if ((Setup-Test-Package -packageVersion "0.9.1" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
+    if ((Setup-Test-Package -packageVersion "0.11.0.2" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
     if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
@@ -215,8 +215,8 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     }
     
     # Downgrade to an older version
-    Write-Log -level $LogLevelInfo -message "= Attempt to update back to an older version =============================================================================="
-    if ((Setup-Test-Package -packageVersion "0.9.0" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
+    Write-Log -level $LogLevelInfo -message "= Downgrade to an older version =============================================================================="
+    if ((Setup-Test-Package -packageVersion "0.9.1" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
     # if ((Set-EnvironmentVariable -variableName $VmAgentEnvVar_VERSION -variableValue "0.9.0.0") -ne 0) {
@@ -231,7 +231,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Install-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_RESTARTING_GPA_SERVICE_FAILED) { # Ignoring failing to restart GuestProxyAgent (absent)
+    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
     

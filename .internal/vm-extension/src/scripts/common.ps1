@@ -38,7 +38,7 @@ Set-Variable -Name "EbpfStatusCode_INSTALLING_DRIVER_FAILED" -Value 1014
 Set-Variable -Name "EbpfStatusCode_UNINSTALLING_DRIVER_FAILED" -Value 1015
 Set-Variable -Name "EbpfStatusCode_REGISTERING_NETSH_EXTENSION_FAILED" -Value 1016
 Set-Variable -Name "EbpfStatusCode_UNREGISTERING_NETSH_EXTENSION_FAILED" -Value 1017
-Set-Variable -Name "EbpfStatusCode_RESTARTING_GPA_SERVICE_FAILED" -Value 1018
+Set-Variable -Name "EbpfStatusCode_RESTARTING_SERVICE_FAILED" -Value 1018
 
 # VM Agent-generated environment variables.
 Set-Variable -Name "VmAgentEnvVar_SEQUENCE_NO" -Value "ConfigSequenceNumber"
@@ -836,8 +836,7 @@ function InstallOrUpdate-eBPF {
             # If the product version is the same as the version distributed with the VM extension package, then we return a success code, as if the operation was successful.
             # This because it's a handler-only update, so we don't need to do anything to the current eBPF installation.
             $statusCode = $EbpfStatusCode_SUCCESS
-            $statusMessage = "This is a handler-only update to v($updateToVersion) -> no action taken."
-            Write-Log -level $LogLevelInfo -message $statusMessage
+            Write-Log -level $LogLevelInfo -message "This is a handler-only update to v($updateToVersion) -> no action taken."
         } else {
 
             # Depending on the version comparison, we either install/upgrade, downgrade or do nothing if the version is the same.
@@ -846,15 +845,13 @@ function InstallOrUpdate-eBPF {
                 # If the product version is lower than the version distributed with the VM extension, then upgrade it.
                 if ($comparison -gt 0) {
                     # If the product version is greater than the version distributed with the VM extension, then just issue a warning, but allow the downgrade.
-                    $statusMessage = "WARNING: The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will be downgraded to (v$newProductVersion)!."
-                    Write-Log -level $LogLevelWarning -message $statusMessage
+                    Write-Log -level $LogLevelWarning -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will be downgraded to (v$newProductVersion)!."
                 }
                 [int]$statusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
             } else {                
                 # If eBPF is already installed with the same version, then we return a success code, as if the operation was successful.
                 $statusCode = $EbpfStatusCode_SUCCESS
-                $statusMessage = "eBPF version is up to date (v$currProductVersion)."
-                Write-Log -level $LogLevelInfo -message $statusMessage
+                Write-Log -level $LogLevelInfo -message "eBPF version is up to date (v$currProductVersion)."
             }
         }
     } else {
@@ -863,46 +860,47 @@ function InstallOrUpdate-eBPF {
         # Proceed with a new installation from the artifact package within the extension ZIP file.
         $statusCode = Install-eBPF -sourcePath "$sourcePath" -destinationPath "$currInstallPath"
         if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
-            Write-Log -level $LogLevelError -message "Failed to install eBPF v$newProductVersion."
-            Report-Status -name $StatusName -operation $operationName -status $StatusError -statusCode 1 -statusMessage "eBPF $operationName FAILED (Clean install failed)."
+            Write-Log -level $LogLevelError -message "Failed to install eBPF v$newProductVersion (new installation)."
         } else {
             Write-Log -level $LogLevelInfo -message "eBPF v$newProductVersion installed successfully."
-            # If this was an 'Install' operation, the VM Agent will then call 'Enable' on the handler.
         }
     }
 
     return [int]$statusCode
 }
 
-function Restart-GuestProxyAgent-Service {
+function Restart-Service {
+    param (
+        [string]$ServiceName
+    )
 
-    Write-Log -level $LogLevelInfo -message "Restart-GuestProxyAgent-Service()"
+    Write-Log -level $LogLevelInfo -message "Restart-Service($ServiceName)"
 
     $res = $EbpfStatusCode_SUCCESS
-    $GuestProxyAgentServiceName = "GuestProxyAgent"
     try {
-        $service = Get-Service -Name $GuestProxyAgentServiceName -ErrorAction Stop
+        $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
         if ($null -eq $service) {
-            Write-Log -level $LogLevelWarning -message "Service '$GuestProxyAgentServiceName' is not installed -> no action taken."
+            # If the service is not installed, then we return a success code, as if the operation was successful.
+            Write-Log -level $LogLevelWarning -message "Service '$ServiceName' is not installed -> no action taken."
         } else {
-            Write-Log -level $LogLevelInfo -message "Restarting service '$GuestProxyAgentServiceName'..."
+            Write-Log -level $LogLevelInfo -message "Restarting service '$ServiceName'..."
             
             # Start the service in a background job
             $job = Start-Job -ScriptBlock {
                 param($serviceName)
                 Restart-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
-            } -ArgumentList $GuestProxyAgentServiceName
+            } -ArgumentList $ServiceName
 
             # Wait for the service to start, or timeout.
             
             $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-            while ((Get-Service -Name $GuestProxyAgentServiceName).Status -ne 'Running') {
+            while ((Get-Service -Name $ServiceName).Status -ne 'Running') {
                 if ($stopwatch.Elapsed.TotalSeconds -ge $EbpfStartTimeoutSeconds) {
-                    Write-Log -level $LogLevelError -message "Timeout while restarting [$GuestProxyAgentServiceName] (> $EbpfStartTimeoutSeconds seconds)"
+                    Write-Log -level $LogLevelError -message "Timeout while restarting [$ServiceName] (> $EbpfStartTimeoutSeconds seconds)"
                     Stop-Job -Job $job
                     Remove-Job -Job $job
-                    $res = $EbpfStatusCode_RESTARTING_GPA_SERVICE_FAILED
+                    $res = $EbpfStatusCode_RESTARTING_SERVICE_FAILED
                     break
                 }
                 Start-Sleep -MilliSeconds 100 # releaf the CPU
@@ -910,13 +908,13 @@ function Restart-GuestProxyAgent-Service {
             $stopwatch.Stop()
 
             if ($res -eq $EbpfStatusCode_SUCCESS) {
-                Write-Log -level $LogLevelInfo -message "Service '$GuestProxyAgentServiceName' was successfully restarted."
+                Write-Log -level $LogLevelInfo -message "Service '$ServiceName' was successfully restarted."
             }
         }
     }
     catch {
-        $res = $EbpfStatusCode_RESTARTING_GPA_SERVICE_FAILED
-        Write-Log -level $LogLevelError -message "An error occurred while restarting service '$GuestProxyAgentServiceName': $_"
+        $res = $EbpfStatusCode_RESTARTING_SERVICE_FAILED
+        Write-Log -level $LogLevelError -message "An error occurred while restarting service '$ServiceName': $_"
     }
 
     return [int]$res
@@ -940,6 +938,7 @@ function Enable-eBPF-Handler {
     $statusInfo = [PSCustomObject]@{
         StatusCode = $EbpfStatusCode_SUCCESS
         StatusString = $StatusSuccess
+        StatusMessage = "eBPF enabled"
     }
 
     try {
@@ -961,11 +960,12 @@ function Enable-eBPF-Handler {
                     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
                     while ((Get-Service -Name $driverName).Status -ne 'Running') {
                         if ($stopwatch.Elapsed.TotalSeconds -ge $EbpfStartTimeoutSeconds) {
-                            Write-Log -level $LogLevelError -message "Timeout while starting driver [$driverName] (> $EbpfStartTimeoutSeconds seconds)"
                             Stop-Job -Job $job
                             Remove-Job -Job $job
                             $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
                             $statusInfo.StatusString = $StatusError
+                            $statusInfo.StatusMessage = "Timeout while starting driver [$driverName] (> $EbpfStartTimeoutSeconds seconds)"
+                            Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
                             break
                         }
                         Start-Sleep -MilliSeconds 100 # releaf the CPU
@@ -976,27 +976,31 @@ function Enable-eBPF-Handler {
                         Write-Log -level $LogLevelInfo -message "Started driver [$driverName]"
                     }
                 } else {
-                    Write-Log -level $LogLevelError -message "[$driverName] is NOT registered correctly!"
                     $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
                     $statusInfo.StatusString = $StatusError
+                    $statusInfo.StatusMessage = "[$driverName] is NOT registered correctly!"
+                    Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
                 }
             }
         }
     }
     catch {
-        Write-Log -level $LogLevelError -message "An error occurred while starting the eBPF drivers: $_"
         $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
         $statusInfo.StatusString = $StatusError
+        $statusInfo.StatusMessage = "An error occurred while starting the eBPF drivers: $_"
+        Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
     }
 
     # Check if the eBPF drivers were started correctly, otherwise stop them and return an error.
     if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
         # If the eBPF drivers are started successfully, we need to restart the GuestProxyAgent service.
-        $res = Restart-GuestProxyAgent-Service
-        if ($res -ne $EbpfStatusCode_SUCCESS) {            
-            Write-Log -level $LogLevelError -message "eBPF was successfully installed, but restarting the GuestProxyAgent service FAILED -> Failing the overall operation."
+        $serviceName = "GuestProxyAgent"
+        $res = Restart-Service -ServiceName $serviceName
+        if ($res -ne $EbpfStatusCode_SUCCESS) {
             $statusInfo.StatusCode = $res
             $statusInfo.StatusString = $StatusError
+            $statusInfo.StatusMessage = "eBPF was successfully installed, but restarting the '$serviceName' service FAILED -> Failing the overall operation."
+            Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
         }
     } else {
         Stop-eBPFDrivers | Out-Null
@@ -1004,7 +1008,7 @@ function Enable-eBPF-Handler {
     }
 
     # Generate the status file
-    Report-Status -name $StatusName -operation $OperationNameEnable -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage "eBPF enabled"
+    Report-Status -name $StatusName -operation $OperationNameEnable -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage $statusInfo.StatusMessage
 
     return [int]$statusInfo.StatusCode
 }
@@ -1041,8 +1045,14 @@ function Update-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Update-eBPF-Handler() -> NOP"
 
-    # NOP for this current implementation.
     # Update does not need to generate a status file.
+
+    # TBD: revert and block again downgrade on 'InstallOrUpdate-eBPF', and implement the following logic:
+    # Verify the follwing calling context:
+    # - Check if the "was updating to newer version" persistent flag is set -> if so, proceed with the update as we are being called from the VM Agent due to an upgrade failure (so, allow downgrade on the older handler)
+    # - Verify that installed version is lower than the one packaged in the handler -> if so, set a "was updating to newer version" persistent flag, and proceed with the update
+    # - Otherwise, return an error, as we are don't allow downgrades.
+    
     return $EbpfStatusCode_SUCCESS
 }
 
