@@ -20,16 +20,12 @@ ebpf_async_initiate()
 {
     EBPF_LOG_ENTRY();
 
-#if 1
-    EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
-#else
     const ebpf_hash_table_creation_options_t options = {
         .key_size = sizeof(ebpf_handle_t),
         .value_size = sizeof(ebpf_async_tracker_t),
     };
 
     EBPF_RETURN_RESULT(ebpf_hash_table_create(&_ebpf_async_tracker_table, &options));
-#endif
 }
 
 void
