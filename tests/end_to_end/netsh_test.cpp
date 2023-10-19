@@ -400,7 +400,7 @@ TEST_CASE("pin first program", "[netsh][programs]")
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"xdp", L"pinpath=mypinpath", &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     // Show programs in normal (table) format.
@@ -410,11 +410,11 @@ TEST_CASE("pin first program", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "196609     1      1  JIT        xdp            caller\n"
-                  "262145     0      0  JIT        xdp            callee\n");
+                  "     5     1      1  JIT        xdp            caller\n"
+                  "     6     0      0  JIT        xdp            callee\n");
 
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 196609 from mypinpath\n");
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 5 from mypinpath\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -429,7 +429,7 @@ TEST_CASE("pin all programs", "[netsh][programs]")
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinpath=mypinpath", L"pinned=all", &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     // Show programs in normal (table) format.
@@ -439,15 +439,15 @@ TEST_CASE("pin all programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "196609     1      1  JIT        xdp            caller\n"
-                  "262145     1      0  JIT        xdp            callee\n");
+                  "     5     1      1  JIT        xdp            caller\n"
+                  "     6     1      0  JIT        xdp            callee\n");
 
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 196609 from mypinpath/xdp_prog\n");
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 5 from mypinpath/xdp_prog\n");
     REQUIRE(result == NO_ERROR);
 
-    output = _run_netsh_command(handle_ebpf_delete_program, L"262145", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 262145 from mypinpath/xdp_prog_0\n");
+    output = _run_netsh_command(handle_ebpf_delete_program, L"6", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 6 from mypinpath/xdp_prog_0\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -462,7 +462,7 @@ TEST_CASE("show programs", "[netsh][programs]")
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinpath=mypinname", nullptr, &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     // Show programs in normal (table) format.
@@ -472,8 +472,8 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "196609     1      1  JIT        xdp            caller\n"
-                  "262145     0      0  JIT        xdp            callee\n");
+                  "     5     1      1  JIT        xdp            caller\n"
+                  "     6     0      0  JIT        xdp            callee\n");
 
     // Test filtering by "attached=yes".
     output = _run_netsh_command(handle_ebpf_show_programs, L"attached=yes", nullptr, nullptr, &result);
@@ -482,7 +482,7 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "196609     1      1  JIT        xdp            caller\n");
+                  "     5     1      1  JIT        xdp            caller\n");
 
     // Test filtering by "attached=no".
     output = _run_netsh_command(handle_ebpf_show_programs, L"attached=no", nullptr, nullptr, &result);
@@ -491,7 +491,7 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "262145     0      0  JIT        xdp            callee\n");
+                  "     6     0      0  JIT        xdp            callee\n");
 
     // Test filtering by "pinned=yes".
     output = _run_netsh_command(handle_ebpf_show_programs, L"pinned=yes", nullptr, nullptr, &result);
@@ -500,7 +500,7 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "196609     1      1  JIT        xdp            caller\n");
+                  "     5     1      1  JIT        xdp            caller\n");
 
     // Test filtering by "pinned=no".
     output = _run_netsh_command(handle_ebpf_show_programs, L"pinned=no", nullptr, nullptr, &result);
@@ -509,26 +509,26 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "262145     0      0  JIT        xdp            callee\n");
+                  "     6     0      0  JIT        xdp            callee\n");
 
     // Test verbose output format.
     output = _run_netsh_command(handle_ebpf_show_programs, L"level=verbose", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "ID             : 196609\n"
+                  "ID             : 5\n"
                   "File name      : tail_call.o\n"
                   "Section        : xdp_prog\n"
                   "Name           : caller\n"
                   "Program type   : xdp\n"
                   "Mode           : JIT\n"
                   "# map IDs      : 2\n"
-                  "map IDs        : 131073\n"
-                  "                 65538\n"
+                  "map IDs        : 4\n"
+                  "                 3\n"
                   "# pinned paths : 1\n"
                   "# links        : 1\n"
                   "\n"
-                  "ID             : 262145\n"
+                  "ID             : 6\n"
                   "File name      : tail_call.o\n"
                   "Section        : xdp_prog/0\n"
                   "Name           : callee\n"
@@ -538,8 +538,8 @@ TEST_CASE("show programs", "[netsh][programs]")
                   "# pinned paths : 0\n"
                   "# links        : 0\n");
 
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 196609 from mypinname\n");
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 5 from mypinname\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -552,13 +552,13 @@ TEST_CASE("set program", "[netsh][programs]")
 
     int result;
     std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinned=none", nullptr, &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     // Detach the program. This won't delete the program since
     // the containing object is still associated with the netsh process,
     // and could still be enumerated by it with bpf_object__next().
-    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"5", L"", nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
 
@@ -568,11 +568,11 @@ TEST_CASE("set program", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "196609     0      0  JIT        xdp            caller\n"
-                  "262145     0      0  JIT        xdp            callee\n");
+                  "     5     0      0  JIT        xdp            caller\n"
+                  "     6     0      0  JIT        xdp            callee\n");
 
     // Try to detach an unattached program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"5", L"", nullptr, &result);
     REQUIRE(output == "error 1168: could not detach program\n");
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
 
@@ -580,18 +580,18 @@ TEST_CASE("set program", "[netsh][programs]")
     REQUIRE(UuidToStringW(&EBPF_ATTACH_TYPE_XDP, &attach_type_string) == 0);
 
     // Attach the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"xdp", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"5", L"xdp", nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
 
     // Detach the program again.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"5", L"", nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
 
     // Verify we can delete a detached program.
     RpcStringFreeW(&attach_type_string);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == NO_ERROR);
 
@@ -607,7 +607,7 @@ TEST_CASE("show maps", "[netsh][maps]")
     int result;
     std::string output = _run_netsh_command(handle_ebpf_add_program, L"map_in_map_btf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
 
     output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -616,12 +616,12 @@ TEST_CASE("show maps", "[netsh][maps]")
                   "                              Key  Value      Max  Inner\n"
                   "     ID            Map Type  Size   Size  Entries     ID  Pins  Name\n"
                   "=======  ==================  ====  =====  =======  =====  ====  ========\n"
-                  "  65538                hash     4      4        1     -1     0  inner_map\n"
-                  " 131073       array_of_maps     4      4        1  65538     0  outer_map\n");
+                  "      3                hash     4      4        1     -1     0  inner_map\n"
+                  "      4       array_of_maps     4      4        1      3     0  outer_map\n");
 
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 196609 from lookup\n");
+    REQUIRE(output == "Unpinned 5 from lookup\n");
     verify_no_programs_exist();
 
     ebpf_epoch_flush();
@@ -643,7 +643,7 @@ TEST_CASE("show links", "[netsh][links]")
     // Load and attach a program.
     int result;
     std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinned=none", nullptr, &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     output = _run_netsh_command(handle_ebpf_show_links, nullptr, nullptr, nullptr, &result);
@@ -653,9 +653,9 @@ TEST_CASE("show links", "[netsh][links]")
                   "   Link  Program  Attach\n"
                   "     ID       ID  Type\n"
                   "=======  =======  =============\n"
-                  " 327681   196609  xdp\n");
+                  "      7        5  xdp\n");
 
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == NO_ERROR);
     verify_no_programs_exist();
@@ -678,7 +678,7 @@ TEST_CASE("show pins", "[netsh][pins]")
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinned=all", L"pinpath=mypinpath", &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     output = _run_netsh_command(handle_ebpf_show_pins, nullptr, nullptr, nullptr, &result);
@@ -687,15 +687,15 @@ TEST_CASE("show pins", "[netsh][pins]")
         output == "\n"
                   "     ID     Type  Path\n"
                   "=======  =======  ==============\n"
-                  " 196609  Program  mypinpath/xdp_prog\n"
-                  " 262145  Program  mypinpath/xdp_prog_0\n");
+                  "      5  Program  mypinpath/xdp_prog\n"
+                  "      6  Program  mypinpath/xdp_prog_0\n");
 
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 196609 from mypinpath/xdp_prog\n");
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 5 from mypinpath/xdp_prog\n");
     REQUIRE(result == NO_ERROR);
 
-    output = _run_netsh_command(handle_ebpf_delete_program, L"262145", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 262145 from mypinpath/xdp_prog_0\n");
+    output = _run_netsh_command(handle_ebpf_delete_program, L"6", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 6 from mypinpath/xdp_prog_0\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -709,22 +709,22 @@ TEST_CASE("delete pinned program", "[netsh][programs]")
     // Load a program unpinned.
     int result;
     std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinned=none", nullptr, &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     // Pin the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"pinpath=mypinname", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"5", L"pinpath=mypinname", nullptr, &result);
     REQUIRE(result == ERROR_OKAY);
     REQUIRE(output == "");
 
     // Pin the program to a second path.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"pinpath=mypinname2", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"5", L"pinpath=mypinname2", nullptr, &result);
     REQUIRE(result == ERROR_OKAY);
     REQUIRE(output == "");
 
     // Verify we can delete a pinned program.
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 196609 from mypinname\nUnpinned 196609 from mypinname2\n");
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 5 from mypinname\nUnpinned 5 from mypinname2\n");
     REQUIRE(result == NO_ERROR);
 
     // Verify the program ID doesn't exist any more.
@@ -739,17 +739,17 @@ TEST_CASE("unpin program", "[netsh][programs]")
     // Load a program pinned.
     int result;
     std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"xdp", L"mypinname", &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     // Unpin the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"5", L"", nullptr, &result);
     REQUIRE(result == ERROR_OKAY);
     REQUIRE(output == "");
 
     // Verify we can delete the unpinned program.
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 196609 from mypinname\n");
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 5 from mypinname\n");
     REQUIRE(result == NO_ERROR);
 
     // Verify the program ID doesn't exist any more.
@@ -767,30 +767,30 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     // Load program with pinpath and loopback interface alias.
     std::string output = run_netsh_command_with_args(
         handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"Loopback Pseudo-Interface 1");
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 196609 from mypinpath\n");
+    REQUIRE(output == "Unpinned 5 from mypinpath\n");
     verify_no_programs_exist();
 
     // Load program with pinpath and loopback interface name.
     output = run_netsh_command_with_args(
         handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"loopback_0");
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196610\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 10\n") == 0);
     REQUIRE(result == NO_ERROR);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196610", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"10", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 196610 from mypinpath\n");
+    REQUIRE(output == "Unpinned 10 from mypinpath\n");
     verify_no_programs_exist();
 
     // Load program with loopback interface index.
     output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=1", &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196611\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 15\n") == 0);
     REQUIRE(result == NO_ERROR);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196611", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"15", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 196611 from DropPacket\n");
+    REQUIRE(output == "Unpinned 15 from DropPacket\n");
     verify_no_programs_exist();
 
     // (Negative) Load program with incorrect interface name.
@@ -810,11 +810,11 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
 
     // Add program with no interface parameter.
     output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", nullptr, nullptr, &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196614\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 29\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     // Detach the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196614", L"", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"29", L"", nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
 
@@ -824,13 +824,13 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "196614     1      0  JIT        xdp            DropPacket\n");
+                  "    29     1      0  JIT        xdp            DropPacket\n");
 
     // Re-attach the program with interface index parameter.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196614", nullptr, L"interface=1", &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"29", nullptr, L"interface=1", &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196614", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"29", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
     ebpf_epoch_flush();
@@ -847,11 +847,11 @@ TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
     // Load program with pinpath and compaetment=1.
     std::string output = run_netsh_command_with_args(
         handle_ebpf_add_program, &result, 4, L"cgroup_sock_addr.o", L"cgroup/connect4", L"mypinpath", L"compartment=1");
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 196609 from mypinpath\n");
+    REQUIRE(output == "Unpinned 5 from mypinpath\n");
     verify_no_programs_exist();
 
     // (Negative) Load program with incorrect compartment id.

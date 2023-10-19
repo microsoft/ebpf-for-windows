@@ -919,3 +919,47 @@ ebpf_hash_table_iterate(
     *count = index;
     return EBPF_SUCCESS;
 }
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_hash_table_next_key_and_value_sorted(
+    _In_ const ebpf_hash_table_t* hash_table,
+    _In_opt_ const uint8_t* previous_key,
+    _In_ int (*compare)(_In_ const uint8_t* key1, _In_ const uint8_t* key2),
+    _In_opt_ void* filter_context,
+    _In_ bool (*filter)(_In_opt_ void* filter_context, _In_ const uint8_t* key, _In_ const uint8_t* value),
+    _Out_ uint8_t* next_key,
+    _Inout_opt_ uint8_t** next_value)
+{
+    uint8_t* next_key_pointer = NULL;
+    uint8_t* next_value_pointer = NULL;
+    for (size_t bucket_index = 0; bucket_index < hash_table->bucket_count; bucket_index++) {
+        ebpf_hash_bucket_header_t* bucket_header = hash_table->buckets[bucket_index].header;
+        if (!bucket_header) {
+            continue;
+        }
+        for (size_t i = 0; i < bucket_header->count; i++) {
+            ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket_header, i);
+            if (!entry) {
+                return EBPF_INVALID_ARGUMENT;
+            }
+            if (previous_key == NULL || compare(previous_key, entry->key) < 0) {
+                if (next_key_pointer == NULL || compare(next_key_pointer, entry->key) > 0) {
+                    if (filter(filter_context, entry->key, entry->data)) {
+                        next_key_pointer = entry->key;
+                        next_value_pointer = entry->data;
+                    }
+                }
+            }
+        }
+    }
+    if (next_key_pointer == NULL) {
+        return EBPF_NO_MORE_KEYS;
+    }
+
+    memcpy(next_key, next_key_pointer, hash_table->key_size);
+    if (next_value) {
+        *next_value = next_value_pointer;
+    }
+
+    return EBPF_SUCCESS;
+}
