@@ -92,6 +92,8 @@ static _Guarded_by_(_ebpf_object_reference_history_lock) size_t _ebpf_object_ref
 
 static ebpf_lock_t _ebpf_object_reference_history_lock = {0};
 
+cxplat_rundown_reference_t _ebpf_object_rundown_ref;
+
 static inline void
 _update_reference_history(void* object, ebpf_object_reference_operation_t operation, uint32_t file_id, uint32_t line)
 {
@@ -155,6 +157,8 @@ ebpf_object_tracking_initiate()
     memset(_ebpf_object_reference_history, 0, sizeof(_ebpf_object_reference_history));
     _ebpf_object_reference_history_index = 0;
 
+    cxplat_initialize_rundown_protection(&_ebpf_object_rundown_ref);
+
     return ebpf_hash_table_create(&_ebpf_id_table, &options);
 }
 
@@ -164,11 +168,9 @@ ebpf_object_tracking_terminate()
     if (!_ebpf_id_table) {
         return;
     }
-    if (!ebpf_fault_injection_is_enabled()) {
-        while (ebpf_hash_table_key_count(_ebpf_id_table)) {
-            ebpf_epoch_flush();
-        }
-    }
+
+    cxplat_wait_for_rundown_protection_release(&_ebpf_object_rundown_ref);
+
     ebpf_hash_table_destroy(_ebpf_id_table);
     _ebpf_id_table = NULL;
 }
@@ -182,6 +184,7 @@ _ebpf_object_epoch_free(_Inout_ void* context)
 
     object->base.marker = ~object->base.marker;
     object->free_function(object);
+    cxplat_release_rundown_protection(&_ebpf_object_rundown_ref);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -245,6 +248,8 @@ ebpf_object_initialize(
     }
     _update_reference_history(new_entry, EBPF_OBJECT_CREATE, file_id, line);
 #endif
+
+    cxplat_acquire_rundown_protection(&_ebpf_object_rundown_ref);
 
     object->free_work_item = free_work_item;
     free_work_item = NULL;
