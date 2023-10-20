@@ -77,8 +77,6 @@ typedef struct _ebpf_program
     uint32_t* helper_function_ids;
     bool helper_ids_set;
 
-    ebpf_epoch_work_item_t* cleanup_work_item;
-
     // Lock protecting the fields below.
     ebpf_lock_t lock;
 
@@ -545,7 +543,7 @@ _ebpf_program_type_specific_program_information_detach_provider(void* client_bin
  * @param[in] object Pointer to ebpf_core_object_t whose ref-count reached zero.
  */
 static void
-_ebpf_program_free(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
+_ebpf_program_zero_ref_count(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
     size_t index;
@@ -561,11 +559,6 @@ _ebpf_program_free(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
     for (index = 0; index < program->count_of_maps; index++) {
         EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program->maps[index]);
     }
-
-    ebpf_epoch_work_item_t* cleanup_work_item = program->cleanup_work_item;
-    program->cleanup_work_item = NULL;
-
-    ebpf_epoch_schedule_work_item(cleanup_work_item);
 
     EBPF_RETURN_VOID();
 }
@@ -590,7 +583,7 @@ _ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
  * @param[in] context Pointer to the ebpf_program_t passed as context in the
  * work-item.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_epoch_free(_In_opt_ _Post_invalid_ void* context)
+_IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_free(_In_opt_ _Post_invalid_ void* context)
 {
     if (!context) {
         return;
@@ -652,7 +645,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_epoch_free(_In_opt_
 
     ebpf_free(program->helper_function_ids);
 
-    ebpf_epoch_cancel_work_item(program->cleanup_work_item);
     ebpf_free(program);
     EBPF_RETURN_VOID();
 }
@@ -689,12 +681,6 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     local_program->module_id.Length = sizeof(local_program->module_id);
     retval = ebpf_guid_create(&local_program->module_id.Guid);
     if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    local_program->cleanup_work_item = ebpf_epoch_allocate_work_item(local_program, _ebpf_program_epoch_free);
-    if (!local_program->cleanup_work_item) {
-        retval = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -816,7 +802,11 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     // Note: This is performed after initializing the program as it inserts the program into the global list.
     // From this point on, the program can be found by other threads.
     retval = EBPF_OBJECT_INITIALIZE(
-        &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
+        &local_program->object,
+        EBPF_OBJECT_PROGRAM,
+        _ebpf_program_free,
+        _ebpf_program_zero_ref_count,
+        _ebpf_program_get_program_type);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -831,7 +821,7 @@ Done:
     ebpf_free(local_section_name.value);
     ebpf_free(local_file_name.value);
 
-    _ebpf_program_epoch_free(local_program);
+    _ebpf_program_free(local_program);
 
     EBPF_RETURN_RESULT(retval);
 }
@@ -1373,7 +1363,6 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
     }
 
     if (state->tail_call_state.count == (MAX_TAIL_CALL_CNT)) {
-        EBPF_OBJECT_RELEASE_REFERENCE(&((ebpf_program_t*)next_program)->object);
         return EBPF_NO_MORE_TAIL_CALLS;
     }
 
@@ -1431,11 +1420,6 @@ ebpf_program_invoke(
 #else
             *result = 0;
 #endif
-        }
-
-        if (execution_state->tail_call_state.count != 0) {
-            EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)current_program);
-            current_program = NULL;
         }
 
         if (execution_state->tail_call_state.next_program == NULL) {

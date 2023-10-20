@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "cxplat.h"
+#include "ebpf_epoch.h"
 #include "ebpf_handle.h"
 #include "ebpf_hash_table.h"
 #include "ebpf_object.h"
@@ -160,20 +161,41 @@ ebpf_object_tracking_initiate()
 void
 ebpf_object_tracking_terminate()
 {
-    ebpf_assert(!_ebpf_id_table || ebpf_hash_table_key_count(_ebpf_id_table) == 0 || ebpf_fault_injection_is_enabled());
+    if (!_ebpf_id_table) {
+        return;
+    }
+    if (!ebpf_fault_injection_is_enabled()) {
+        while (ebpf_hash_table_key_count(_ebpf_id_table)) {
+            ebpf_epoch_flush();
+        }
+    }
     ebpf_hash_table_destroy(_ebpf_id_table);
     _ebpf_id_table = NULL;
+}
+
+static void
+_ebpf_object_epoch_free(_Inout_ void* context)
+{
+    ebpf_core_object_t* object = (ebpf_core_object_t*)context;
+    EBPF_LOG_MESSAGE_POINTER_ENUM(
+        EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object terminated", object, object->type);
+
+    object->base.marker = ~object->base.marker;
+    object->free_function(object);
 }
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_initialize(
     _Inout_ ebpf_core_object_t* object,
     ebpf_object_type_t object_type,
-    ebpf_free_object_t free_function,
+    _In_ ebpf_free_object_t free_function,
+    _In_opt_ ebpf_zero_ref_count_t zero_ref_count_function,
     ebpf_object_get_program_type_t get_program_type_function,
     ebpf_file_id_t file_id,
     uint32_t line)
 {
+    ebpf_result_t result;
+
     EBPF_LOG_MESSAGE_POINTER_ENUM(
         EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object initialized", object, object_type);
     object->base.marker = _ebpf_object_marker;
@@ -182,6 +204,7 @@ ebpf_object_initialize(
     object->base.release_reference = ebpf_object_release_reference;
     object->type = object_type;
     object->free_function = free_function;
+    object->zero_ref_count = zero_ref_count_function;
     object->get_program_type = get_program_type_function;
     object->id = ebpf_interlocked_increment_int32((volatile int32_t*)&_ebpf_next_id);
     // Skip invalid IDs.
@@ -189,9 +212,16 @@ ebpf_object_initialize(
         object->id = ebpf_interlocked_increment_int32((volatile int32_t*)&_ebpf_next_id);
     }
     ebpf_list_initialize(&object->object_list_entry);
+    ebpf_epoch_work_item_t* free_work_item = NULL;
+
+    free_work_item = ebpf_epoch_allocate_work_item(object, _ebpf_object_epoch_free);
+    if (!free_work_item) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
     _update_reference_history(object, EBPF_OBJECT_CREATE, file_id, line);
 
-    ebpf_result_t result;
     ebpf_id_entry_t entry = {.reference_count = 1, .type = object_type, .object = object};
 
     // Use EBPF_HASH_TABLE_OPERATION_INSERT so that it fails if the key already exists.
@@ -216,7 +246,11 @@ ebpf_object_initialize(
     _update_reference_history(new_entry, EBPF_OBJECT_CREATE, file_id, line);
 #endif
 
+    object->free_work_item = free_work_item;
+    free_work_item = NULL;
+
 Done:
+    ebpf_epoch_cancel_work_item(free_work_item);
     return result;
 }
 
@@ -288,15 +322,12 @@ ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object, uint32_t f
     }
 
     if (new_ref_count == 0) {
-        EBPF_LOG_MESSAGE_POINTER_ENUM(
-            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object terminated", object, object->type);
-
         _ebpf_object_tracking_list_remove(object, file_id, line);
-
         _update_reference_history(object, EBPF_OBJECT_DESTROY, file_id, line);
-
-        object->base.marker = ~object->base.marker;
-        object->free_function(object);
+        if (object->zero_ref_count) {
+            object->zero_ref_count(object);
+        }
+        ebpf_epoch_schedule_work_item(object->free_work_item);
     }
 }
 
@@ -448,6 +479,38 @@ ebpf_object_reference_by_id(
     *object = found_object;
 Done:
 
+    return result;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_object_pointer_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
+{
+    ebpf_result_t result;
+    ebpf_id_entry_t* entry = NULL;
+    ebpf_core_object_t* found_object = NULL;
+
+    result = ebpf_hash_table_find(_ebpf_id_table, (const uint8_t*)&id, (uint8_t**)&entry);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    found_object = entry->object;
+    // Skip entries that have been deleted.
+    if (found_object == NULL) {
+        result = EBPF_KEY_NOT_FOUND;
+        goto Done;
+    }
+
+    // Skip entries that are not of the requested type.
+    if (entry->type != object_type) {
+        result = EBPF_KEY_NOT_FOUND;
+        goto Done;
+    }
+
+    result = EBPF_SUCCESS;
+    *object = found_object;
+
+Done:
     return result;
 }
 

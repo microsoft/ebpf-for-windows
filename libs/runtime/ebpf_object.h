@@ -94,13 +94,14 @@ extern "C"
  * @brief Macro to initialize an object and record the file and line number of the reference.
  *EBPF_OBJECT_INITIALIZE
  */
-#define EBPF_OBJECT_INITIALIZE(object, object_type, free_function, get_program_type_function) \
-    ebpf_object_initialize(                                                                   \
-        (ebpf_core_object_t*)(object),                                                        \
-        (object_type),                                                                        \
-        (free_function),                                                                      \
-        (get_program_type_function),                                                          \
-        EBPF_FILE_ID,                                                                         \
+#define EBPF_OBJECT_INITIALIZE(object, object_type, free_function, zero_ref_function, get_program_type_function) \
+    ebpf_object_initialize(                                                                                      \
+        (ebpf_core_object_t*)(object),                                                                           \
+        (object_type),                                                                                           \
+        (free_function),                                                                                         \
+        (zero_ref_function),                                                                                     \
+        (get_program_type_function),                                                                             \
+        EBPF_FILE_ID,                                                                                            \
         __LINE__)
 
     typedef enum _ebpf_object_type
@@ -116,6 +117,7 @@ extern "C"
     typedef void (*ebpf_base_acquire_reference_t)(_Inout_ void* base_object, ebpf_file_id_t file_id, uint32_t line);
 
     typedef struct _ebpf_core_object ebpf_core_object_t;
+    typedef void (*ebpf_zero_ref_count_t)(ebpf_core_object_t* object);
     typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);
     typedef const ebpf_program_type_t (*ebpf_object_get_program_type_t)(_In_ const ebpf_core_object_t* object);
 
@@ -141,7 +143,9 @@ extern "C"
     {
         ebpf_base_object_t base;
         ebpf_object_type_t type;
-        ebpf_free_object_t free_function;
+        ebpf_free_object_t free_function;     ///< Function to free this object.
+        ebpf_zero_ref_count_t zero_ref_count; ///< Function to notify the object that the reference count has reached
+                                              ///< zero.
         ebpf_object_get_program_type_t get_program_type;
         // ID for this object.
         ebpf_id_t id;
@@ -149,6 +153,7 @@ extern "C"
         ebpf_list_entry_t object_list_entry;
         // # of pinned paths, for diagnostic purposes.
         volatile int32_t pinned_path_count;
+        struct _ebpf_epoch_work_item* free_work_item; ///< Work item to free this object when the epoch ends.
     } ebpf_core_object_t;
 
     /**
@@ -185,7 +190,8 @@ extern "C"
     ebpf_object_initialize(
         _Inout_ ebpf_core_object_t* object,
         ebpf_object_type_t object_type,
-        ebpf_free_object_t free_function,
+        _In_ ebpf_free_object_t free_function,
+        _In_opt_ ebpf_zero_ref_count_t zero_ref_count_function,
         ebpf_object_get_program_type_t get_program_type_function,
         ebpf_file_id_t file_id,
         uint32_t line);
@@ -259,6 +265,19 @@ extern "C"
         _Outptr_ ebpf_core_object_t** object,
         ebpf_file_id_t file_id,
         uint32_t line);
+
+    /**
+     * @brief Obtain pointer to object given its ID and type and do not acquire a reference.
+     * Note: The object returned may have a zero reference count and may be freed at the end of the current epoch.
+     *
+     * @param[in] id ID to find in table.
+     * @param[in] object_type Object type to match.
+     * @param[out] object Pointer to memory that contains object success.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_object_pointer_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object);
 
     /**
      * @brief Find the object of a given type with the next ID greater than a given ID.

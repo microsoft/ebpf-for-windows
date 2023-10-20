@@ -383,10 +383,10 @@ TEST_CASE("pinning_test", "[platform]")
 
     REQUIRE(
         EBPF_OBJECT_INITIALIZE(
-            &an_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
+            &an_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL, NULL) == EBPF_SUCCESS);
     REQUIRE(
         EBPF_OBJECT_INITIALIZE(
-            &another_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
+            &another_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL, NULL) == EBPF_SUCCESS);
 
     ebpf_pinning_table_ptr pinning_table;
     {
