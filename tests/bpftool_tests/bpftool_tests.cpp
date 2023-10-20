@@ -102,15 +102,13 @@ TEST_CASE("prog load map_in_map", "[prog][load]")
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
+    std::string expected_output = "\n\n     ID     Type  Path\n";
+    expected_output += "=======  =======  ==============\n";
+    expected_output += std::format("{:>7s}  Program  map_in_map\n", id);
+    expected_output += std::format("{:>7s}  Program  pin2\n", id);
+
     output = run_command("netsh ebpf show pins", &result);
-    REQUIRE(
-        output == "\n\n     ID     Type  Path\n"
-                  "=======  =======  ==============\n"
-                  " " +
-                      id +
-                      "  Program  map_in_map\n"
-                      " " +
-                      id + "  Program  pin2\n");
+    REQUIRE(output == expected_output);
     REQUIRE(result == 0);
 
     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
