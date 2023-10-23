@@ -276,6 +276,9 @@ ebpf_core_terminate()
 
     ebpf_state_terminate();
 
+    // Verify that all ebpf_core_object_t objects have been freed.
+    ebpf_object_tracking_terminate();
+
     // Shut down the epoch tracker and free any remaining memory or work items.
     // Note: Some objects may only be released on epoch termination.
     ebpf_epoch_flush();
@@ -286,9 +289,6 @@ ebpf_core_terminate()
     // to be called after ebpf_epoch_terminate() to ensure all the program epoch
     // cleanup work items have been executed by this time.
     ebpf_native_terminate();
-
-    // Verify that all ebpf_core_object_t objects have been freed.
-    ebpf_object_tracking_terminate();
 
     ebpf_trace_terminate();
 
