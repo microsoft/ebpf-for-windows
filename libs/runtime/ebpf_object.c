@@ -506,10 +506,10 @@ ebpf_object_pointer_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_
         goto Done;
     }
 
-    // Skip entries that are not of the requested type.
+    // If the type is wrong, then the caller's reference is invalid.
+    // This is a bug in the caller, so we fail fast.
     if (entry->type != object_type) {
-        result = EBPF_KEY_NOT_FOUND;
-        goto Done;
+        __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     }
 
     result = EBPF_SUCCESS;
