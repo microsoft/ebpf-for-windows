@@ -7,6 +7,7 @@
 #include "ebpf_api.h"
 #include "ebpf_program_types.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_tracelog.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "elfio_wrapper.hpp"
 #define ebpf_inst ebpf_inst_btf
@@ -288,6 +289,7 @@ load_byte_code(
     _Inout_ std::vector<ebpf_map_t*>& maps,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_t* program = nullptr;
     ebpf_map_t* map = nullptr;
@@ -474,7 +476,7 @@ Exit:
         clean_up_ebpf_maps(maps);
     }
 
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 static void
