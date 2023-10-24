@@ -24,5 +24,6 @@ Import-ResultsFromVM -VMList $VMList
 
 # Stop the VMs.
 Stop-AllVMs -VMList $VMList
+Restore-AllVMs -VMList $VMList
 
 Pop-Location
