@@ -7,6 +7,8 @@
  * Windows.
  */
 
+#include "ebpf_hash_table.h"
+#include "ebpf_platform.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_addr.h"
 
@@ -221,8 +223,8 @@ typedef struct _net_ebpf_ext_sock_addr_statistics
 static net_ebpf_ext_sock_addr_statistics_t _net_ebpf_ext_statistics;
 
 static EX_SPIN_LOCK _net_ebpf_ext_sock_addr_lock;
-// TODO: Issue #1675 (Use hash table to store connection contexts in netebpfext)
 _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_connect_context_list;
+_Guarded_by_(_net_ebpf_ext_sock_addr_lock) static ebpf_hash_table_t* _net_ebpf_ext_connect_context_hash_table;
 static uint32_t _net_ebpf_ext_connect_context_count = 0;
 
 static SECURITY_DESCRIPTOR* _net_ebpf_ext_security_descriptor_admin = NULL;
@@ -749,10 +751,15 @@ _net_ebpf_sock_addr_clean_up_security_descriptor()
     }
 }
 
-static void
+static ebpf_result_t
 _net_ebpf_sock_addr_initialize_globals()
 {
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = EBPF_OFFSET_OF(net_ebpf_extension_connection_context_t, timestamp),
+        .value_size = sizeof(net_ebpf_extension_connection_context_t*)};
+
     InitializeListHead(&_net_ebpf_ext_connect_context_list);
+    return ebpf_hash_table_create(&_net_ebpf_ext_connect_context_hash_table, &options);
 }
 
 /**
@@ -807,26 +814,26 @@ _net_ebpf_ext_get_and_remove_connection_context(
 {
     KIRQL old_irql;
     net_ebpf_extension_connection_context_t local_connection_context = {0};
+    net_ebpf_extension_connection_context_t* hash_table_connection_context = NULL;
     net_ebpf_extension_connection_context_t* connection_context = NULL;
 
     _net_ebpf_extension_connection_context_initialize(
         sock_addr_ctx, transport_endpoint_handle, 0, &local_connection_context);
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
 
-    LIST_ENTRY* list_entry = _net_ebpf_ext_connect_context_list.Flink;
-    while (list_entry != &_net_ebpf_ext_connect_context_list) {
-        net_ebpf_extension_connection_context_t* entry =
-            CONTAINING_RECORD(list_entry, net_ebpf_extension_connection_context_t, list_entry);
-        if (memcmp(
-                &local_connection_context, entry, EBPF_OFFSET_OF(net_ebpf_extension_connection_context_t, timestamp)) ==
-            0) {
-            // Found matching entry. Remove it from the list and return.
-            RemoveEntryList(&entry->list_entry);
-            _net_ebpf_ext_connect_context_count--;
-            connection_context = entry;
-            break;
-        }
-        list_entry = list_entry->Flink;
+    // Find and remove the entry
+    if ((ebpf_hash_table_find(
+             _net_ebpf_ext_connect_context_hash_table,
+             (uint8_t*)&local_connection_context,
+             (uint8_t**)&hash_table_connection_context) == EBPF_SUCCESS) &&
+        (ebpf_hash_table_delete(_net_ebpf_ext_connect_context_hash_table, (uint8_t*)&local_connection_context) ==
+         EBPF_SUCCESS)) {
+        // Remove from LRU list
+        RemoveEntryList(&hash_table_connection_context->list_entry);
+        _net_ebpf_ext_connect_context_count--;
+
+        // Pass back to caller
+        connection_context = hash_table_connection_context;
     }
 
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
@@ -846,6 +853,12 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_lock) static void _net_eb
         if (!delete_all && entry->timestamp > expiry_time) {
             break;
         }
+
+        if (ebpf_hash_table_delete(_net_ebpf_ext_connect_context_hash_table, (uint8_t*)entry) != EBPF_SUCCESS) {
+            // If we fail to delete it, leave it in the list so that we can try again later
+            continue;
+        }
+
 #pragma warning(suppress : 6001) /* list entry is non-null */
         list_entry = list_entry->Blink;
         RemoveEntryList(&entry->list_entry);
@@ -876,10 +889,19 @@ _net_ebpf_ext_purge_lru_contexts(BOOLEAN delete_all)
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 }
 
-static void
+static ebpf_result_t
 _net_ebpf_ext_insert_connection_context_to_list(_Inout_ net_ebpf_extension_connection_context_t* connection_context)
 {
+    ebpf_result_t result = EBPF_SUCCESS;
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
+
+    // Insert into hash table
+    result = ebpf_hash_table_update(
+        _net_ebpf_ext_connect_context_hash_table,
+        (uint8_t*)connection_context,
+        (uint8_t*)connection_context,
+        EBPF_HASH_TABLE_OPERATION_INSERT);
+    NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
     // Insert the most recent entry at the head.
     InsertHeadList(&_net_ebpf_ext_connect_context_list, &connection_context->list_entry);
@@ -888,7 +910,9 @@ _net_ebpf_ext_insert_connection_context_to_list(_Inout_ net_ebpf_extension_conne
     // Purge stale entries from the list.
     _net_ebpf_ext_purge_lru_contexts_under_lock(FALSE);
 
+Exit:
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
+    return result;
 }
 
 NTSTATUS
@@ -922,7 +946,15 @@ net_ebpf_ext_sock_addr_register_providers()
         goto Exit;
     }
 
-    _net_ebpf_sock_addr_initialize_globals();
+    status = ebpf_result_to_ntstatus(_net_ebpf_sock_addr_initialize_globals());
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "_net_ebpf_sock_addr_initialize_globals failed.",
+            status);
+        goto Exit;
+    }
     sock_addr_globals_initialized = TRUE;
 
     // Set the program type as the provider module id.
@@ -996,6 +1028,8 @@ net_ebpf_ext_sock_addr_unregister_providers()
     }
 
     _net_ebpf_ext_purge_lru_contexts(TRUE);
+    ebpf_hash_table_destroy(_net_ebpf_ext_connect_context_hash_table);
+    _net_ebpf_ext_connect_context_hash_table = NULL;
     _net_ebpf_sock_addr_clean_up_security_descriptor();
 }
 
@@ -1696,9 +1730,13 @@ Exit:
             CONNECTION_CONTEXT_INITIALIZATION_SET_TIMESTAMP,
             blocked_connection_context);
 
-        _net_ebpf_ext_insert_connection_context_to_list(blocked_connection_context);
-
-        InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
+        if (_net_ebpf_ext_insert_connection_context_to_list(blocked_connection_context) == EBPF_SUCCESS) {
+            InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
+        } else {
+            // Failed to insert - clean up memory.
+            ExFreePool(blocked_connection_context);
+            blocked_connection_context = NULL;
+        }
     }
     // Callout at CONNECT_REDIRECT layer always returns WFP action PERMIT.
     // If the eBPF program was invoked and it returned a REJECT verdict, it would be enforced by the callout at

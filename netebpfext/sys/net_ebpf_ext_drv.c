@@ -178,3 +178,9 @@ Exit:
     NET_EBPF_EXT_LOG_EXIT();
     return status;
 }
+
+_Ret_notnull_ DEVICE_OBJECT*
+ebpf_driver_get_device_object()
+{
+    return _net_ebpf_ext_driver_device_object;
+}
