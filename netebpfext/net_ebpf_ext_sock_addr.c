@@ -846,7 +846,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_lock) static void _net_eb
     uint64_t expiry_time = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime()) - EXPIRY_TIME;
 
     LIST_ENTRY* list_entry = _net_ebpf_ext_connect_context_list.Blink;
-    while (list_entry && (list_entry != &_net_ebpf_ext_connect_context_list)) {
+    while (list_entry != &_net_ebpf_ext_connect_context_list) {
         net_ebpf_extension_connection_context_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_connection_context_t, list_entry);
         if (!delete_all && entry->timestamp > expiry_time) {
