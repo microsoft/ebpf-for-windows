@@ -49,28 +49,6 @@ eBPF for Windows, and how to service it later.
 
     - `eBPF-for-Windows.X.Y.Z.msi`
     - `eBPF-for-Windows.X.Y.Z.nupkg`
-
-1. Test the MSI manually (since not yet tested in CI/CD):
-    1. Copy the MSI into a VM.
-        >**Note**: currently only test-signed VMs are supported.
-    1. Install the MSI by *enabling all its features* from the GUI.
-    1. **After** the MSI has successfully installed, open a **new** *Admin Command Prompt*, and run the following commands to make sure the eBPF platform is correctly installed and working, e.g.:
-
-        ```bash
-        # Verify that the eBPF drivers are running:
-        sc.exe query eBPFCore
-        sc.exe query NetEbpfExt
-
-        # Verify that the netsh extension is operational:
-        netsh ebpf show prog
-
-        # Run the unit tests, and expect a full pass:
-        cd <eBPF install folder>\testing
-        unit_tests.exe -d yes
-
-        # Test some additional commands, e.g.:
-        bpftool prog show
-        ```
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`main`" branch.
 1. On the main `ebpf-for-windows` repo, create a new release branch from `main` **corresponding to the previous PR's commit**, name it "`release/X.Y`" (replace "X.Y" with the version number being released).
 1. Request the Admin of the main `ebpf-for-windows` repo to protect and apply release policies to the "`release/X.Y`" branch.
