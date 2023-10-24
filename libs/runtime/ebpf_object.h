@@ -131,29 +131,26 @@ extern "C"
      */
     typedef struct _ebpf_base_object
     {
-        uint32_t marker; // Contains the 32bit value 'eobj' when the object is valid and is inverted when the object is
-                         // freed.
-        uint32_t zero_fill; // Zero fill to make the reference count is 8-byte aligned.
-        volatile int64_t reference_count;
-        ebpf_base_acquire_reference_t acquire_reference;
-        ebpf_base_release_reference_t release_reference;
+        uint32_t marker; ///< Contains the 32bit value 'eobj' when the object is valid and is inverted when the object
+                         ///< is freed.
+        uint32_t zero_fill;                              ///< Zero fill to make the reference count is 8-byte aligned.
+        volatile int64_t reference_count;                ///< Reference count for the object.
+        ebpf_base_acquire_reference_t acquire_reference; ///< Function to acquire a reference on this object.
+        ebpf_base_release_reference_t release_reference; ///< Function to release a reference on this object.
     } ebpf_base_object_t;
 
     typedef struct _ebpf_core_object
     {
-        ebpf_base_object_t base;
-        ebpf_object_type_t type;
+        ebpf_base_object_t base;              ///< Base object for all reference counted eBPF objects.
+        ebpf_object_type_t type;              ///< Type of this object.
         ebpf_free_object_t free_function;     ///< Function to free this object.
         ebpf_zero_ref_count_t zero_ref_count; ///< Function to notify the object that the reference count has reached
                                               ///< zero.
-        ebpf_object_get_program_type_t get_program_type;
-        // ID for this object.
-        ebpf_id_t id;
-        // Used to insert object in an object specific list.
-        ebpf_list_entry_t object_list_entry;
-        // # of pinned paths, for diagnostic purposes.
-        volatile int32_t pinned_path_count;
-        struct _ebpf_epoch_work_item* free_work_item; ///< Work item to free this object when the epoch ends.
+        ebpf_object_get_program_type_t get_program_type; ///< Function to get the program type of this object.
+        ebpf_id_t id;                                    ///< ID of this object.
+        ebpf_list_entry_t object_list_entry;             ///< Entry in the object list.
+        volatile int32_t pinned_path_count;              ///< Number of pinned paths for this object.
+        struct _ebpf_epoch_work_item* free_work_item;    ///< Work item to free this object when the epoch ends.
     } ebpf_core_object_t;
 
     /**

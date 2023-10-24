@@ -801,9 +801,9 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
         ebpf_object_type_t value_type =
             (map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) ? EBPF_OBJECT_PROGRAM : EBPF_OBJECT_MAP;
         if (id != 0) {
-            if (ebpf_object_pointer_by_id(id, value_type, &object) != EBPF_SUCCESS) {
-                object = NULL;
-            }
+            // Find the object by id.
+            // Ignore the returned status as the object may have been deleted.
+            (void)ebpf_object_pointer_by_id(id, value_type, &object);
         }
     }
 
