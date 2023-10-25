@@ -67,7 +67,7 @@ typedef std::unique_ptr<ebpf_trampoline_table_t, free_trampoline_table_t> ebpf_t
 class _test_helper
 {
   public:
-    _test_helper() { ebpf_object_tracking_initiate(); }
+    _test_helper() {}
     void
     initialize()
     {
@@ -76,6 +76,8 @@ class _test_helper
         REQUIRE(ebpf_random_initiate() == EBPF_SUCCESS);
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
         epoch_initiated = true;
+        REQUIRE(ebpf_object_tracking_initiate() == EBPF_SUCCESS);
+        object_tracking_initiated = true;
         REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
         async_initiated = true;
         REQUIRE(ebpf_state_initiate() == EBPF_SUCCESS);
@@ -89,6 +91,9 @@ class _test_helper
         if (async_initiated) {
             ebpf_async_terminate();
         }
+        if (object_tracking_initiated) {
+            ebpf_object_tracking_terminate();
+        }
         if (epoch_initiated) {
             ebpf_epoch_flush();
             ebpf_epoch_terminate();
@@ -97,7 +102,6 @@ class _test_helper
         if (platform_initiated) {
             ebpf_platform_terminate();
         }
-        ebpf_object_tracking_terminate();
     }
 
   private:
@@ -105,6 +109,7 @@ class _test_helper
     bool epoch_initiated = false;
     bool async_initiated = false;
     bool state_initiated = false;
+    bool object_tracking_initiated = false;
 };
 
 struct ebpf_hash_table_destroyer_t
