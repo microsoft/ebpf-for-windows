@@ -1224,12 +1224,22 @@ has_dominant_frequency(size_t sequence_length, std::function<uint32_t()> random_
     return (std::abs(max_frequency) - average_frequency) > 10 * std_dev_frequency;
 }
 
+class _raise_irql_to_dpc_helper
+{
+  public:
+    _raise_irql_to_dpc_helper() { old_irql = KeRaiseIrqlToDpcLevel(); }
+    ~_raise_irql_to_dpc_helper() { KeLowerIrql(old_irql); }
+
+  private:
+    KIRQL old_irql{0};
+};
+
 TEST_CASE("verify random", "[platform]")
 {
-    KIRQL old_irql = KeRaiseIrqlToDpcLevel();
-
     _test_helper test_helper;
     test_helper.initialize();
+
+    _raise_irql_to_dpc_helper irql_helper;
 
     bool odd = false;
     std::function<uint32_t()> ebpf_random_uint32_biased = [&odd]() {
@@ -1272,8 +1282,6 @@ TEST_CASE("verify random", "[platform]")
         }
         std::cout << std::endl;
     }
-
-    KeLowerIrql(old_irql);
 }
 
 TEST_CASE("work_queue", "[platform]")
