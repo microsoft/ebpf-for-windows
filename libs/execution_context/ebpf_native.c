@@ -824,6 +824,7 @@ Exit:
 static ebpf_result_t
 _ebpf_native_reuse_map(_Inout_ ebpf_native_map_t* map)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t handle = ebpf_handle_invalid;
     // Check if a map is already present with this pin path.
@@ -833,12 +834,6 @@ _ebpf_native_reuse_map(_Inout_ ebpf_native_map_t* map)
         if (result == EBPF_KEY_NOT_FOUND) {
             ebpf_assert(handle == ebpf_handle_invalid);
             result = EBPF_SUCCESS;
-        } else {
-            EBPF_LOG_MESSAGE_UINT64(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_NATIVE,
-                "ebpf_core_get_pinned_object returned error",
-                result);
         }
         goto Exit;
     }
@@ -859,7 +854,7 @@ Exit:
     if (result != EBPF_SUCCESS) {
         ebpf_assert_success(ebpf_handle_close(handle));
     }
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 /**
