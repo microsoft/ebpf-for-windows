@@ -414,7 +414,7 @@ jobs:
   # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
   quick_user_mode_multi_threaded_stress_test:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: quick_user_mode_multi_threaded_stress
