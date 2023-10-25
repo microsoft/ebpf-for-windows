@@ -6,6 +6,7 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_mt_stress.h"
+#include "ebpf_tracelog.h"
 #include "program_helper.h"
 #include "test_helper.hpp"
 
@@ -231,6 +232,13 @@ static void
 um_test_init()
 {
     std::call_once(_um_test_init_done, [&]() {
+        usersim_trace_logging_set_enabled(
+            true,
+            EBPF_TRACELOG_LEVEL_INFO,
+            (EBPF_TRACELOG_KEYWORD_BASE | EBPF_TRACELOG_KEYWORD_ERROR | EBPF_TRACELOG_KEYWORD_EPOCH |
+             EBPF_TRACELOG_KEYWORD_CORE | EBPF_TRACELOG_KEYWORD_LINK | EBPF_TRACELOG_KEYWORD_MAP |
+             EBPF_TRACELOG_KEYWORD_PROGRAM | EBPF_TRACELOG_KEYWORD_API));
+
         _test_helper_end_to_end* local_test_helper = new _test_helper_end_to_end;
         REQUIRE(local_test_helper != nullptr);
         local_test_helper->initialize();

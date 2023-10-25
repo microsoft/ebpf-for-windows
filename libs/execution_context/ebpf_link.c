@@ -155,7 +155,7 @@ _ebpf_link_client_attach_provider(
     }
 
     EBPF_LOG_MESSAGE_GUID_GUID(
-        EBPF_TRACELOG_LEVEL_LOG_ALWAYS,
+        EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_LINK,
         "Client attach provider - Provider GUID, link attach type: ",
         &provider_registration_instance->ModuleId->Guid,
@@ -175,7 +175,7 @@ _ebpf_link_client_attach_provider(
     }
 
     EBPF_LOG_MESSAGE_GUID_GUID(
-        EBPF_TRACELOG_LEVEL_LOG_ALWAYS,
+        EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_LINK,
         "Attach provider - Provider program type, link program type:",
         &attach_provider_data->supported_program_type,
@@ -223,7 +223,7 @@ _ebpf_link_client_attach_provider(
     lock_held = true;
     link->provider_attached = true;
 
-    EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_LOG_ALWAYS, EBPF_TRACELOG_KEYWORD_LINK, "Client attach provider - success.");
+    EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_LINK, "Client attach provider - success.");
 
 Done:
     if (lock_held)
