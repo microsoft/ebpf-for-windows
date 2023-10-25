@@ -64,6 +64,29 @@ typedef struct _free_trampoline_table
 
 typedef std::unique_ptr<ebpf_trampoline_table_t, free_trampoline_table_t> ebpf_trampoline_table_ptr;
 
+typedef class _signal
+{
+  public:
+    void
+    wait()
+    {
+        std::unique_lock l(lock);
+        condition_variable.wait(l, [&]() { return signaled; });
+    }
+    void
+    signal()
+    {
+        std::unique_lock l(lock);
+        signaled = true;
+        condition_variable.notify_all();
+    }
+
+  private:
+    std::mutex lock;
+    std::condition_variable condition_variable;
+    bool signaled = false;
+} signal_t;
+
 class _test_helper
 {
   public:
@@ -373,6 +396,7 @@ TEST_CASE("pinning_test", "[platform]")
     {
         ebpf_core_object_t object{};
         std::string name;
+        signal_t signal;
     } some_object_t;
 
     some_object_t an_object;
@@ -383,10 +407,24 @@ TEST_CASE("pinning_test", "[platform]")
 
     REQUIRE(
         EBPF_OBJECT_INITIALIZE(
-            &an_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
+            &an_object.object,
+            EBPF_OBJECT_MAP,
+            [](ebpf_core_object_t* object) {
+                auto some_object = reinterpret_cast<some_object_t*>(object);
+                some_object->signal.signal();
+            },
+            NULL,
+            NULL) == EBPF_SUCCESS);
     REQUIRE(
         EBPF_OBJECT_INITIALIZE(
-            &another_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
+            &another_object.object,
+            EBPF_OBJECT_MAP,
+            [](ebpf_core_object_t* object) {
+                auto some_object = reinterpret_cast<some_object_t*>(object);
+                some_object->signal.signal();
+            },
+            NULL,
+            NULL) == EBPF_SUCCESS);
 
     ebpf_pinning_table_ptr pinning_table;
     {
@@ -412,6 +450,9 @@ TEST_CASE("pinning_test", "[platform]")
 
     EBPF_OBJECT_RELEASE_REFERENCE(&an_object.object);
     EBPF_OBJECT_RELEASE_REFERENCE(&another_object.object);
+
+    an_object.signal.wait();
+    another_object.signal.wait();
 }
 
 TEST_CASE("epoch_test_single_epoch", "[platform]")
@@ -448,29 +489,6 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     thread_1.join();
     thread_2.join();
 }
-
-class _signal
-{
-  public:
-    void
-    wait()
-    {
-        std::unique_lock l(lock);
-        condition_variable.wait(l, [&]() { return signaled; });
-    }
-    void
-    signal()
-    {
-        std::unique_lock l(lock);
-        signaled = true;
-        condition_variable.notify_all();
-    }
-
-  private:
-    std::mutex lock;
-    std::condition_variable condition_variable;
-    bool signaled = false;
-};
 
 /**
  * @brief Verify that the stale item worker runs.
