@@ -1886,7 +1886,7 @@ ebpf_ring_buffer_map_return_buffer(_In_ const ebpf_map_t* map, size_t consumer_o
     }
 
     ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, &old_consumer_offset, &producer_offset);
-    ebpf_result_t result = ebpf_safe_size_t_subtract(consumer_offset, old_consumer_offset, &consumed_data_length);
+    result = ebpf_safe_size_t_subtract(consumer_offset, old_consumer_offset, &consumed_data_length);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
