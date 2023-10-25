@@ -1208,8 +1208,6 @@ has_dominant_frequency(size_t sequence_length, std::function<uint32_t()> random_
 
 void
 verify_random()
-
-    void verify_random()
 {
     bool odd = false;
     std::function<uint32_t()> ebpf_random_uint32_biased = [&odd]() {
