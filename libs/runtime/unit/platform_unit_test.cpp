@@ -396,7 +396,36 @@ TEST_CASE("pinning_test", "[platform]")
     {
         ebpf_core_object_t object{};
         std::string name;
+        bool finalized = true;
         signal_t signal;
+        ebpf_result_t
+        initialize()
+        {
+            ebpf_result_t return_value = EBPF_OBJECT_INITIALIZE(
+                &object,
+                EBPF_OBJECT_MAP,
+                [](ebpf_core_object_t* object) {
+                    auto some_object = reinterpret_cast<_some_object*>(object);
+                    some_object->signal.signal();
+                },
+                NULL,
+                NULL);
+            if (return_value == EBPF_SUCCESS) {
+                finalized = false;
+            }
+            return return_value;
+        }
+
+        void
+        finalize()
+        {
+            if (!finalized) {
+                EBPF_OBJECT_RELEASE_REFERENCE(&object);
+                finalized = true;
+            }
+        }
+
+        ~_some_object() { finalize(); }
     } some_object_t;
 
     some_object_t an_object;
@@ -405,26 +434,8 @@ TEST_CASE("pinning_test", "[platform]")
     cxplat_utf8_string_t foo = CXPLAT_UTF8_STRING_FROM_CONST_STRING("foo");
     cxplat_utf8_string_t bar = CXPLAT_UTF8_STRING_FROM_CONST_STRING("bar");
 
-    REQUIRE(
-        EBPF_OBJECT_INITIALIZE(
-            &an_object.object,
-            EBPF_OBJECT_MAP,
-            [](ebpf_core_object_t* object) {
-                auto some_object = reinterpret_cast<some_object_t*>(object);
-                some_object->signal.signal();
-            },
-            NULL,
-            NULL) == EBPF_SUCCESS);
-    REQUIRE(
-        EBPF_OBJECT_INITIALIZE(
-            &another_object.object,
-            EBPF_OBJECT_MAP,
-            [](ebpf_core_object_t* object) {
-                auto some_object = reinterpret_cast<some_object_t*>(object);
-                some_object->signal.signal();
-            },
-            NULL,
-            NULL) == EBPF_SUCCESS);
+    REQUIRE(an_object.initialize() == EBPF_SUCCESS);
+    REQUIRE(another_object.initialize() == EBPF_SUCCESS);
 
     ebpf_pinning_table_ptr pinning_table;
     {
@@ -448,8 +459,8 @@ TEST_CASE("pinning_test", "[platform]")
     REQUIRE(an_object.object.base.reference_count == 1);
     REQUIRE(another_object.object.base.reference_count == 1);
 
-    EBPF_OBJECT_RELEASE_REFERENCE(&an_object.object);
-    EBPF_OBJECT_RELEASE_REFERENCE(&another_object.object);
+    an_object.finalize();
+    another_object.finalize();
 
     an_object.signal.wait();
     another_object.signal.wait();
