@@ -140,9 +140,9 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_ws2019
       build_artifact: Build-x64
       environment: ebpf_cicd_tests_ws2019
@@ -159,9 +159,9 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_ws2022
       build_artifact: Build-x64
       environment: ebpf_cicd_tests_ws2022
@@ -178,9 +178,9 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_native_only_ws2019
       build_artifact: Build-x64-native-only
       environment: ebpf_cicd_tests_ws2019
@@ -197,9 +197,9 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_native_only_ws2022
       build_artifact: Build-x64-native-only
       environment: ebpf_cicd_tests_ws2022
@@ -491,9 +491,9 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests
-      pre_test: .\setup_ebpf_cicd_stress_tests.ps1
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
       environment: ebpf_cicd_tests_ws2019
       code_coverage: false
@@ -508,9 +508,9 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests_restart_extension
-      pre_test: .\setup_ebpf_cicd_stress_tests.ps1
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
-      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
       environment: ebpf_cicd_tests_ws2019
       code_coverage: false
@@ -523,9 +523,9 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
-      pre_test: .\setup_ebpf_cicd_tests.ps1
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
       environment: ebpf_cicd_perf_ws2022
       configurations: '["Release"]'
@@ -536,9 +536,9 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
-      pre_test: .\setup_ebpf_cicd_tests.ps1
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
-      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
       configurations: '["Release"]'
       environment: ebpf_cicd_perf_ws2022
