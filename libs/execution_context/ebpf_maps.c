@@ -1877,16 +1877,10 @@ ebpf_ring_buffer_map_return_buffer(_In_ const ebpf_map_t* map, size_t consumer_o
     size_t producer_offset;
     size_t old_consumer_offset;
     size_t consumed_data_length;
-    ebpf_result_t result = EBPF_SUCCESS;
     EBPF_LOG_ENTRY();
 
-    // If the consumer offset is 0, then we don't have any delta to return.
-    if (consumer_offset == 0) {
-        goto Exit;
-    }
-
     ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, &old_consumer_offset, &producer_offset);
-    result = ebpf_safe_size_t_subtract(consumer_offset, old_consumer_offset, &consumed_data_length);
+    ebpf_result_t result = ebpf_safe_size_t_subtract(consumer_offset, old_consumer_offset, &consumed_data_length);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }

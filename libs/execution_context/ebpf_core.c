@@ -1847,6 +1847,7 @@ _ebpf_core_protocol_ring_buffer_map_async_query(
 {
     UNREFERENCED_PARAMETER(reply_length);
 
+    static bool first_subscription = true;
     ebpf_map_t* map = NULL;
     bool reference_taken = FALSE;
 
@@ -1862,10 +1863,16 @@ _ebpf_core_protocol_ring_buffer_map_async_query(
         goto Exit;
     }
 
-    // Return buffer already consumed by caller in previous notification.
-    result = ebpf_ring_buffer_map_return_buffer(map, request->consumer_offset);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
+    // If this is the first subscription since the driver was loaded, then we don't have any previous notification
+    // to return to the caller.
+    if (first_subscription) {
+        first_subscription = false;
+    } else {
+        // Return buffer already consumed by caller in previous notification.
+        result = ebpf_ring_buffer_map_return_buffer(map, request->consumer_offset);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
     }
 
     reply->header.id = EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY;

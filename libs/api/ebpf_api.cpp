@@ -3882,8 +3882,7 @@ ebpf_ring_buffer_map_subscribe(
         ebpf_operation_ring_buffer_map_async_query_request_t async_query_request{
             sizeof(async_query_request),
             ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
-            local_subscription->ring_buffer_map_handle,
-            0};
+            local_subscription->ring_buffer_map_handle};
         result = win32_error_code_to_ebpf_result(invoke_ioctl(
             async_query_request,
             local_subscription->reply,
