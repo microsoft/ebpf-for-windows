@@ -1878,7 +1878,6 @@ ebpf_ring_buffer_map_return_buffer(_In_ const ebpf_map_t* map, size_t consumer_o
     size_t old_consumer_offset;
     size_t consumed_data_length;
     EBPF_LOG_ENTRY();
-
     ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, &old_consumer_offset, &producer_offset);
     ebpf_result_t result = ebpf_safe_size_t_subtract(consumer_offset, old_consumer_offset, &consumed_data_length);
     if (result != EBPF_SUCCESS) {
@@ -1897,6 +1896,7 @@ ebpf_ring_buffer_map_async_query(
 {
     ebpf_result_t result = EBPF_PENDING;
     EBPF_LOG_ENTRY();
+
     ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
 
     ebpf_lock_state_t state = ebpf_lock_lock(&ring_buffer_map->lock);
