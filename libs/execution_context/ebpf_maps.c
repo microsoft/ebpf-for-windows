@@ -1897,7 +1897,6 @@ ebpf_ring_buffer_map_async_query(
 {
     ebpf_result_t result = EBPF_PENDING;
     EBPF_LOG_ENTRY();
-
     ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
 
     ebpf_lock_state_t state = ebpf_lock_lock(&ring_buffer_map->lock);
