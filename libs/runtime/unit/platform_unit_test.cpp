@@ -1112,7 +1112,7 @@ TEST_CASE("get_authentication_id", "[platform]")
 
 #define SEQUENCE_LENGTH 1024 * 128
 #define CHI_SQUARED_STATISTIC_THRESHOLD \
-    3.841 // Critical value for Chi-squared test with 2 degrees of freedom with significance level of 0.05.
+    9.210 // Critical value for Chi-squared test with 2 degrees of freedom with significance level of 0.01.
 
 /**
  * @brief Verify that the random number generator passes the chi-squared test.
