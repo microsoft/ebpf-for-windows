@@ -1868,9 +1868,9 @@ _ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_query_buffer(
-    _In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer, _Outptr_ size_t** consumer_offset)
+    _In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer, _Outptr_ size_t* consumer_offset)
 {
-    ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, (size_t**)consumer_offset, NULL);
+    ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, consumer_offset, NULL);
     return ebpf_ring_buffer_map_buffer((ebpf_ring_buffer_t*)map->data, buffer);
 }
 

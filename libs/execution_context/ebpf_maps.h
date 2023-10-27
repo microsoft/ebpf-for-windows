@@ -196,7 +196,8 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT Unable to map the ring buffer.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer);
+    ebpf_ring_buffer_map_query_buffer(
+        _In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer, _Outptr_ size_t* consumer_offset);
 
     /**
      * @brief Return consumed buffer back to the ring buffer map.

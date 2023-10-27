@@ -896,11 +896,13 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
     struct _completion
     {
         uint8_t* buffer = nullptr;
+        size_t consumer_offset;
         ebpf_ring_buffer_map_async_query_result_t async_query_result = {};
         uint64_t value{};
     } completion;
 
-    REQUIRE(ebpf_ring_buffer_map_query_buffer(map.get(), &completion.buffer) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_ring_buffer_map_query_buffer(map.get(), &completion.buffer, &completion.consumer_offset) == EBPF_SUCCESS);
 
     REQUIRE(
         ebpf_async_set_completion_callback(
