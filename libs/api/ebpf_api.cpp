@@ -3856,8 +3856,7 @@ ebpf_ring_buffer_map_subscribe(
         ebpf_operation_ring_buffer_map_query_buffer_request_t query_buffer_request{
             sizeof(query_buffer_request),
             ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER,
-            local_subscription->ring_buffer_map_handle,
-            query_buffer_reply.consumer_offset};
+            local_subscription->ring_buffer_map_handle};
         ebpf_operation_ring_buffer_map_query_buffer_reply_t query_buffer_reply{};
         result = win32_error_code_to_ebpf_result(invoke_ioctl(query_buffer_request, query_buffer_reply));
         if (result != EBPF_SUCCESS) {
