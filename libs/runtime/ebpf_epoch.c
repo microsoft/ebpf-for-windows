@@ -308,6 +308,7 @@ Error:
         }
         cxplat_free(
             _ebpf_epoch_cpu_table, CXPLAT_POOL_FLAG_NON_PAGED | CXPLAT_POOL_FLAG_CACHE_ALIGNED, EBPF_POOL_TAG_EPOCH);
+        _ebpf_epoch_cpu_table = NULL;
     }
 
     EBPF_RETURN_RESULT(return_value);
