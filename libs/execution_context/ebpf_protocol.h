@@ -377,6 +377,8 @@ typedef struct _ebpf_operation_ring_buffer_map_query_buffer_reply
     struct _ebpf_operation_header header;
     // Address to user-space read-only buffer for the ring-buffer records.
     uint64_t buffer_address;
+    // Return the current consumer offset, so that subsequent reads can start from here.
+    size_t consumer_offset;
 } ebpf_operation_ring_buffer_map_query_buffer_reply_t;
 
 typedef struct _ebpf_operation_ring_buffer_map_async_query_request
