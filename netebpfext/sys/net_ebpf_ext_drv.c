@@ -7,7 +7,9 @@
  * 2. Registers as an eBPF program information provider and hook provider.
  */
 
+#include "ebpf_epoch.h"
 #include "ebpf_platform.h"
+#include "ebpf_random.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_version.h"
 #include "git_commit_id.h"
@@ -49,6 +51,13 @@ _net_ebpf_ext_driver_uninitialize_objects()
     net_ebpf_extension_uninitialize_wfp_components();
 
     net_ebpf_ext_uninitialize_ndis_handles();
+
+    ebpf_epoch_flush();
+    ebpf_epoch_terminate();
+
+    ebpf_random_terminate();
+
+    ebpf_platform_terminate();
 
     net_ebpf_ext_trace_terminate();
 
@@ -158,6 +167,23 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 
     // Request NX Non-Paged Pool when available
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
+
+    status = ebpf_result_to_ntstatus(ebpf_platform_initiate());
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
+    status = ebpf_result_to_ntstatus(ebpf_random_initiate());
+    if (!NT_SUCCESS(status)) {
+
+        goto Exit;
+    }
+
+    status = ebpf_result_to_ntstatus(ebpf_epoch_initiate());
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
     status = _net_ebpf_ext_driver_initialize_objects(driver_object, registry_path);
     if (!NT_SUCCESS(status)) {
 
