@@ -34,12 +34,14 @@ typedef class _netebpf_ext_helper
   public:
     // If the caller invokes platform functions itself, the caller must pass initialize_platform = false
     // and initialize/terminate the platform itself as needed.
-    _netebpf_ext_helper(bool initialize_platform = true);
+    _netebpf_ext_helper(bool initialize_platform = true, bool initialize_random = true, bool initialize_epoch = true);
     _netebpf_ext_helper(
         _In_opt_ const void* npi_specific_characteristics,
         _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
         _In_opt_ netebpfext_helper_base_client_context_t* client_context,
-        bool initialize_platform = true);
+        bool initialize_platform = true,
+        bool initialize_random = true,
+        bool initialize_epoch = true);
     ~_netebpf_ext_helper();
 
     std::vector<GUID>
@@ -93,6 +95,8 @@ typedef class _netebpf_ext_helper
     bool provider_registered = false;
     bool wfp_initialized = false;
     bool platform_initialized = false;
+    bool random_initialized = false;
+    bool epoch_initialized = false;
     DRIVER_OBJECT* driver_object = reinterpret_cast<DRIVER_OBJECT*>(this);
     DEVICE_OBJECT* device_object = reinterpret_cast<DEVICE_OBJECT*>(this);
 

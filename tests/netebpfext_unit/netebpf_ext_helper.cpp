@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_epoch.h"
+#include "ebpf_random.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_addr.h"
 #include "netebpf_ext_helper.h"
@@ -38,15 +40,17 @@ netebpfext_initialize_fwp_classify_parameters(_Out_ fwp_classify_parameters_t* p
     parameters->user_id = _test_user_id;
 }
 
-_netebpf_ext_helper::_netebpf_ext_helper(bool initialize_platform)
-    : _netebpf_ext_helper(nullptr, nullptr, nullptr, initialize_platform)
+_netebpf_ext_helper::_netebpf_ext_helper(bool initialize_platform, bool initialize_random, bool initialize_epoch)
+    : _netebpf_ext_helper(nullptr, nullptr, nullptr, initialize_platform, initialize_random, initialize_epoch)
 {}
 
 _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ const void* npi_specific_characteristics,
     _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
     _In_opt_ netebpfext_helper_base_client_context_t* client_context,
-    bool initialize_platform)
+    bool initialize_platform,
+    bool initialize_random,
+    bool initialize_epoch)
 {
     // Do not use REQUIRE() in this constructor or the destructor will never be called
     // to clean up any state allocated before the REQUIRE.
@@ -61,6 +65,20 @@ _netebpf_ext_helper::_netebpf_ext_helper(
             return;
         }
         platform_initialized = true;
+    }
+
+    if (initialize_random) {
+        if (ebpf_random_initiate() != EBPF_SUCCESS) {
+            return;
+        }
+        random_initialized = true;
+    }
+
+    if (initialize_epoch) {
+        if (ebpf_epoch_initiate() != EBPF_SUCCESS) {
+            return;
+        }
+        epoch_initialized = true;
     }
 
     if (!NT_SUCCESS(net_ebpf_ext_initialize_ndis_handles(driver_object))) {
@@ -114,6 +132,15 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
 
     if (ndis_handle_initialized) {
         net_ebpf_ext_uninitialize_ndis_handles();
+    }
+
+    if (epoch_initialized) {
+        ebpf_epoch_flush();
+        ebpf_epoch_terminate();
+    }
+
+    if (random_initialized) {
+        ebpf_random_terminate();
     }
 
     if (platform_initialized) {
