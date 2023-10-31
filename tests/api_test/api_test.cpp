@@ -1047,7 +1047,7 @@ test_sock_addr_native_program_load_attach(const char* file_name)
 }
 
 #define DECLARE_REGRESSION_TEST_CASE(version)                                                         \
-    TEST_CASE("test_native_program_load_attach-regression-" #version)                                 \
+    TEST_CASE("test_native_program_load_attach-regression-" #version, "[regression_tests]")           \
     {                                                                                                 \
         test_sock_addr_native_program_load_attach((const char*)"cgroup_sock_addr2_"##version ".sys"); \
     }
