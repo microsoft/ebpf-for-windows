@@ -40,10 +40,11 @@ connection_test(
     helper.initialize("cgroup_sock_addr");
 
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
-
     const char* connect_program_name = (address_family == AF_INET) ? "authorize_connect4" : "authorize_connect6";
     bpf_program* connect_program = bpf_object__find_program_by_name(object, connect_program_name);
     REQUIRE(connect_program != nullptr);
@@ -128,8 +129,6 @@ connection_test(
     // destination.
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
     receiver_socket.complete_async_receive();
-
-    bpf_object__close(object);
 }
 
 TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]")
@@ -171,6 +170,8 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     helper.initialize("cgroup_sock_addr");
 
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -249,7 +250,6 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         BPF_CGROUP_INET6_RECV_ACCEPT,
         0);
     REQUIRE(result == 0);
-    bpf_object__close(object);
 }
 
 void
@@ -263,6 +263,8 @@ connection_monitor_test(
     native_module_helper_t helper;
     helper.initialize("sockops");
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -375,8 +377,6 @@ connection_monitor_test(
 
     // Unsubscribe.
     raw_context->unsubscribe();
-
-    bpf_object__close(object);
 }
 
 TEST_CASE("connection_monitor_test_udp_v4", "[sock_ops_tests]")
@@ -444,6 +444,8 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
     native_module_helper_t helper;
     helper.initialize("sockops");
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
     REQUIRE(object != nullptr);
     // Load the programs.
     REQUIRE(bpf_object__load(object) == 0);
@@ -453,8 +455,6 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 
     int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
     REQUIRE(result == 0);
-
-    bpf_object__close(object);
 }
 
 int
