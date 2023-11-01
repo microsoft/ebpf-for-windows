@@ -1029,8 +1029,6 @@ net_ebpf_ext_sock_addr_unregister_providers()
     }
 
     _net_ebpf_ext_purge_lru_contexts(TRUE);
-    ebpf_hash_table_destroy(_net_ebpf_ext_connect_context_hash_table);
-    _net_ebpf_ext_connect_context_hash_table = NULL;
     _net_ebpf_sock_addr_clean_up_security_descriptor();
 }
 
