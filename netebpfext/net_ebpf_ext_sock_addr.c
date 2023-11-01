@@ -224,7 +224,7 @@ static net_ebpf_ext_sock_addr_statistics_t _net_ebpf_ext_statistics;
 
 static EX_SPIN_LOCK _net_ebpf_ext_sock_addr_lock;
 _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_connect_context_list;
-_Guarded_by_(_net_ebpf_ext_sock_addr_lock) static ebpf_hash_table_t* _net_ebpf_ext_connect_context_hash_table;
+_Guarded_by_(_net_ebpf_ext_sock_addr_lock) static ebpf_hash_table_t* _net_ebpf_ext_connect_context_hash_table = NULL;
 static uint32_t _net_ebpf_ext_connect_context_count = 0;
 
 static SECURITY_DESCRIPTOR* _net_ebpf_ext_security_descriptor_admin = NULL;
@@ -885,6 +885,8 @@ _net_ebpf_ext_purge_lru_contexts(BOOLEAN delete_all)
 {
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
     _net_ebpf_ext_purge_lru_contexts_under_lock(delete_all);
+    ebpf_hash_table_destroy(_net_ebpf_ext_connect_context_hash_table);
+    _net_ebpf_ext_connect_context_hash_table = NULL;
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 }
 
@@ -1027,8 +1029,6 @@ net_ebpf_ext_sock_addr_unregister_providers()
     }
 
     _net_ebpf_ext_purge_lru_contexts(TRUE);
-    ebpf_hash_table_destroy(_net_ebpf_ext_connect_context_hash_table);
-    _net_ebpf_ext_connect_context_hash_table = NULL;
     _net_ebpf_sock_addr_clean_up_security_descriptor();
 }
 
