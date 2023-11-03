@@ -113,12 +113,12 @@ lookup(void* context)
     if ((lookup_helpers[0].tail_call) && (r0 == 0))
 #line 32 "sample/map_in_map_legacy_idx.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=9 imm=0
+    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=9 imm=0
 #line 33 "sample/map_in_map_legacy_idx.c"
     if (r0 == IMMEDIATE(0))
 #line 33 "sample/map_in_map_legacy_idx.c"
         goto label_2;
-        // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
 #line 33 "sample/map_in_map_legacy_idx.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=9 dst=r10 src=r6 offset=-8 imm=0
@@ -142,12 +142,12 @@ lookup(void* context)
     if ((lookup_helpers[0].tail_call) && (r0 == 0))
 #line 35 "sample/map_in_map_legacy_idx.c"
         return 0;
-        // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=1 imm=0
+    // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=1 imm=0
 #line 36 "sample/map_in_map_legacy_idx.c"
     if (r0 != IMMEDIATE(0))
 #line 36 "sample/map_in_map_legacy_idx.c"
         goto label_1;
-        // EBPF_OP_JA pc=15 dst=r0 src=r0 offset=1 imm=0
+    // EBPF_OP_JA pc=15 dst=r0 src=r0 offset=1 imm=0
 #line 36 "sample/map_in_map_legacy_idx.c"
     goto label_2;
 label_1:
@@ -197,7 +197,7 @@ _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
     version->minor = 12;
-    version->revision = 0;
+    version->revision = 1;
 }
 
 static void
