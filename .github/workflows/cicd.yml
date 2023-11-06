@@ -41,17 +41,17 @@ jobs:
   # ---------------------------------------------------------------------------
 
   # Perform the regular build.
-  regular:
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      build_artifact: Build-x64
-      generate_release_package: true
-      build_msi: true
-      build_nuget: true
-      build_options: /p:ReleaseJIT='True'
-      configurations: '["Debug"]' #', "FuzzerDebug", "Release"]'
+  # regular:
+  #   # Always run this job.
+  #   if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+  #   uses: ./.github/workflows/reusable-build.yml
+  #   with:
+  #     build_artifact: Build-x64
+  #     generate_release_package: true
+  #     build_msi: true
+  #     build_nuget: true
+  #     build_options: /p:ReleaseJIT='True'
+  #     configurations: '["Debug"]' #', "FuzzerDebug", "Release"]'
 
   # # Perform the native-only build.
   # regular_native-only:
@@ -500,23 +500,34 @@ jobs:
   #     # For this test, we only want kernel mode dumps and not user mode dumps.
   #     gather_dumps: false
 
-  # Run multi-threaded stress tests with 'restart extension' enabled
-  # against the kernel mode eBPF sub-system.
-  km_mt_stress_tests_restart_extension:
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: km_mt_stress_tests_restart_extension
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      build_artifact: Build-x64
-      environment: test_runner
-      code_coverage: false
-      # For this test, we only want kernel mode dumps and not user mode dumps.
-      gather_dumps: false
-      configurations: '["Debug"]'
+
+
+  # # Run multi-threaded stress tests with 'restart extension' enabled
+  # # against the kernel mode eBPF sub-system.
+  # km_mt_stress_tests_restart_extension:
+  #   needs: regular
+  #   if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: km_mt_stress_tests_restart_extension
+  #     pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
+  #     test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
+  #     post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+  #     build_artifact: Build-x64
+  #     environment: test_runner
+  #     code_coverage: false
+  #     # For this test, we only want kernel mode dumps and not user mode dumps.
+  #     gather_dumps: false
+  #     configurations: '["Debug"]'
+  test_upload:
+    runs-on: test_runner
+    steps:
+      - uses: actions/upload-artifact@v3
+        with:
+          name: my_art
+          path: C:\actions_runner_test\_work\mem_work_zip.zip
+
+
 
   # performance:
   #   needs: regular
