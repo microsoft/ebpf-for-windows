@@ -68,7 +68,7 @@
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
-      <AdditionalOptions>/spgo %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/spgo %(AdditionalOptions)</AdditionalOptions>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
