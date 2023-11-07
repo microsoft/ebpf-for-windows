@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
+       [parameter(Mandatory=$true)][bool] $KmTracing,
+       [parameter(Mandatory=$true)][string] $KmTraceType,
+       [parameter(Mandatory=$false)][string] $TestMode = "CI/CD",
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
@@ -30,8 +33,11 @@ Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 # Get all VMs to ready state.
 Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
-# Download the release artifacts for regression tests.
-Get-RegressionTestArtifacts
+if ($TestMode -eq "CI/CD") {
+
+    # Download the release artifacts for regression tests.
+    Get-RegressionTestArtifacts
+}
 
 Get-Duonic
 
@@ -44,7 +50,7 @@ Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
 # Install eBPF Components on the test VM.
 foreach($VM in $VMList) {
     $VMName = $VM.Name
-    Install-eBPFComponentsOnVM -VMName $VMname -ErrorAction Stop
+    Install-eBPFComponentsOnVM -VMName $VMname -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
 }
 
 Pop-Location

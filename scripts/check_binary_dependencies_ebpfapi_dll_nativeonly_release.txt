@@ -25,7 +25,6 @@ api-ms-win-core-profile-l1-1-0.dll
 api-ms-win-core-sysinfo-l1-1-0.dll
 api-ms-win-core-interlocked-l1-1-0.dll
 api-ms-win-core-debug-l1-1-0.dll
-api-ms-win-core-libraryloader-l1-2-0.dll
 KERNEL32.dll
 api-ms-win-core-memory-l1-1-0.dll
 api-ms-win-core-string-l1-1-0.dll
