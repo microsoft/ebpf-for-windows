@@ -896,7 +896,7 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
     struct _completion
     {
         uint8_t* buffer = nullptr;
-        size_t consumer_offset;
+        size_t consumer_offset = 0;
         ebpf_ring_buffer_map_async_query_result_t async_query_result = {};
         uint64_t value{};
     } completion;
