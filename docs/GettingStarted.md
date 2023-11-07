@@ -303,7 +303,7 @@ by having the mocked extensions emit events.
 This test exercises various eBPF user mode eBPF APIs, including those to load programs,
 enumerate maps and programs etc. This test requires the eBPF user mode service (EbpfSvc), and the
 kernel execution context (`EbpfCore.sys`) and the Network Extension (`NetEbpfExt.sys`) to be running.
-There is a group of tests in this suite with tag"*regression-tests*". These tests are used to ensure
+There is a group of tests in this suite with tag "*regression-tests*". These tests are used to ensure
 any release of the eBPF framework is backwards compatible, so that a program from
 a previous release can run against the latest release. If this test suite is run manually, then the corresponding
 test from the previous release would need to be copied locally on the test machine. Alternatively `~[regression_tests]`
