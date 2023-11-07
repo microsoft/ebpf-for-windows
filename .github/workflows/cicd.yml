@@ -525,7 +525,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: my_art
-          path: C:\actions_runner_test\_work\mem_work_zip.zip
+          path: C:\test_runner\_work\mem_work_zip.zip
 
 
 
