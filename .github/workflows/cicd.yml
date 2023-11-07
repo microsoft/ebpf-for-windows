@@ -520,7 +520,7 @@ jobs:
   #     gather_dumps: false
   #     configurations: '["Debug"]'
   test_upload:
-    runs-on: test_runner
+    runs-on: ebpf_cicd_tests_ws2022
     steps:
       - uses: actions/upload-artifact@v3
         with:
