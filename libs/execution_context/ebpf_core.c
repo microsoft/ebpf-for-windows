@@ -1831,7 +1831,8 @@ _ebpf_core_protocol_ring_buffer_map_query_buffer(
         goto Exit;
     }
 
-    result = ebpf_ring_buffer_map_query_buffer(map, (uint8_t**)(uintptr_t*)&reply->buffer_address);
+    result =
+        ebpf_ring_buffer_map_query_buffer(map, (uint8_t**)(uintptr_t*)&reply->buffer_address, &reply->consumer_offset);
 
 Exit:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);

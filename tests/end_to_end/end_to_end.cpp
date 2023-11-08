@@ -924,12 +924,17 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
-    ring_buffer_api_test_helper(process_map_fd, fake_app_ids, [&](int i) {
-        // Emulate bind operation.
-        std::vector<char> fake_app_id = fake_app_ids[i];
-        fake_app_id.push_back('\0');
-        REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT);
-    });
+    // Test multiple subscriptions to the same ring buffer map, to ensure that the ring buffer map will continue
+    // to provide notifications to the subscriber.
+    for (int i = 0; i < 3; i++) {
+
+        ring_buffer_api_test_helper(process_map_fd, fake_app_ids, [&](int i) {
+            // Emulate bind operation.
+            std::vector<char> fake_app_id = fake_app_ids[i];
+            fake_app_id.push_back('\0');
+            REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT);
+        });
+    }
 
     hook.detach_and_close_link(&link);
 
