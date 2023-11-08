@@ -264,6 +264,7 @@ function Invoke-CICDStressTests
         .\ebpf_stress_tests_km -tt=8 -td=5
     } else {
         write-host "Test command-line: .\ebpf_stress_tests_km -tt=8 -td=5 -erd=1000 -er=1"
+        .\ebpf_stress_tests_km bindmonitor_tail_call_invoke_program_test -tt=8 -td=10 -erd=1000 -er=1
         .\ebpf_stress_tests_km -tt=8 -td=5 -erd=1000 -er=1
     }
 
