@@ -310,7 +310,7 @@ function Import-ResultsFromVM
         Write-Log ("Copy performance results from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
         Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\*.csv" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
 
-        # Copy the performance profile if present.
+        # Compress and copy the performance profile if present.
         Invoke-Command -Session $VMSession -ScriptBlock {
             if (Test-Path $Env:SystemDrive\eBPF\bpf_performance*.etl -PathType Leaf) {
                 tar czf $Env:SystemDrive\eBPF\bpf_perf_etls.tgz -C $Env:SystemDrive\eBPF bpf_performance*.etl
