@@ -312,14 +312,14 @@ function Import-ResultsFromVM
 
         # Copy the performance profile if present.
         Invoke-Command -Session $VMSession -ScriptBlock {
-            if (Test-Path $Env:WinDir\eBPF\bpf_performance*.etl -PathType Leaf) {
-                tar czf $Env:WinDir\eBPF\bpf_perf_etls.tgz -C $Env:WinDir\eBPF bpf_performance*.etl
-                dir $Env:WinDir\eBPF\bpf_performance*.etl
-                Remove-Item -Path $Env:WinDir\eBPF\bpf_performance*.etl
+            if (Test-Path $Env:SystemDrive\eBPF\bpf_performance*.etl -PathType Leaf) {
+                tar czf $Env:SystemDrive\eBPF\bpf_perf_etls.tgz -C $Env:SystemDrive\eBPF bpf_performance*.etl
+                dir $Env:SystemDrive\eBPF\bpf_performance*.etl
+                Remove-Item -Path $Env:SystemDrive\eBPF\bpf_performance*.etl
             }
         }
         Write-Log ("Copy performance profile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
-        Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\bpf_performance*.etl" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
+        Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\bpf_perf_etls.tgz" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
     }
     # Move runner test logs to TestLogs folder.
     Write-Host ("Copy $LogFileName from $env:TEMP on host runner to $pwd\TestLogs")
