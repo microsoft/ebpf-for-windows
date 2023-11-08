@@ -33,14 +33,9 @@ eBPF for Windows, and how to service it later.
     Please verify all the changes then submit the pull-request into the 'release/0.12' branch.
     ```
 1. Verify all the changes then commit all in the working branch.
-    >NOTE: The pre-commit formatting rules may complain about the formatting of the `.c` files generated above by the 'bpf2c' tool. In this case, format them with the following command:
-
+    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, override them with the following (so they'll work with the `bpf2c_tests` verifying their content):
     >```bash
-    ># In bash
-    >./scripts/format-code --staged
-    >
-    ># In PowerShell
-    >.\scripts\format-code.ps1 --staged
+    >git commit --no-verify
     >```
 1. Create a **Draft** pull-request for your branch into the main repo's "`main`" branch (which you created in step 1), and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Once the CI/CD pipeline for the PR completes, download the "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build artifacts
@@ -80,7 +75,7 @@ Servicing a release has two main scenarios:
     git mergetool
     ```
 1. Verify all the changes then commit all in the working branch.
-    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, override them with the following:
+    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, override them with the following (so they'll work with the `bpf2c_tests` verifying their content):
     >```bash
     >git commit --no-verify
     >```
