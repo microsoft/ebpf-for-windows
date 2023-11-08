@@ -312,9 +312,10 @@ function Import-ResultsFromVM
 
         # Copy the performance profile if present.
         Invoke-Command -Session $VMSession -ScriptBlock {
-            if (Test-Path $Env:WinDir\eBPF bpf_performance*.etl -PathType Leaf) {
+            if (Test-Path $Env:WinDir\eBPF\bpf_performance*.etl -PathType Leaf) {
                 tar czf $Env:WinDir\eBPF\bpf_perf_etls.tgz -C $Env:WinDir\eBPF bpf_performance*.etl
-                Remove-Item -Path $Env:WinDir\eBPF bpf_performance*.etl
+                dir $Env:WinDir\eBPF\bpf_performance*.etl
+                Remove-Item -Path $Env:WinDir\eBPF\bpf_performance*.etl
             }
         }
         Write-Log ("Copy performance profile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
