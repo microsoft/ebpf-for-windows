@@ -24,9 +24,11 @@ on:
     branches: [ main ]
 
 concurrency:
-  # Cancel any CI/CD workflow currently in progress for the same PR.
-  # Allow running concurrently with any other commits.
-  group: cicd-${{ github.event.pull_request.number || github.sha }}
+  # Cancel any in-progress instance of this workflow (CI/CD) for the same PR.
+  # Allow running concurrently with any commits on any other branch.
+  # Using GITHUB_REF instead of GITHUB_SHA allows parallel runs on
+  # different branches with the same HEAD commit.
+  group: cicd-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -56,7 +58,7 @@ jobs:
   # Perform the native-only build.
   regular_native-only:
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-native-only
@@ -68,7 +70,7 @@ jobs:
   unit_tests:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -86,7 +88,7 @@ jobs:
   netebpf_ext_unit_tests:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpf_ext_unit_tests
@@ -103,7 +105,7 @@ jobs:
   bpf2c:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       test_command: .\bpf2c_tests.exe -d yes
@@ -119,7 +121,7 @@ jobs:
   bpf2c_conformance:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.4/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
@@ -137,7 +139,7 @@ jobs:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
@@ -156,7 +158,7 @@ jobs:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
@@ -175,7 +177,7 @@ jobs:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
@@ -194,7 +196,7 @@ jobs:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group')
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
@@ -212,7 +214,7 @@ jobs:
   ossar:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/ossar-scan.yml
     with:
       build_artifact: Build-x64
@@ -222,7 +224,7 @@ jobs:
   # Build with C++ static analyzer.
   analyze:
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Analyze
@@ -232,7 +234,7 @@ jobs:
   # Build with C++ address sanitizer.
   sanitize:
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Sanitize
@@ -267,7 +269,7 @@ jobs:
   execution_context_fuzzer:
     needs: regular
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
@@ -310,7 +312,7 @@ jobs:
   core_helper_fuzzer:
     needs: regular
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
@@ -324,7 +326,7 @@ jobs:
   netebpfext_fuzzer:
     needs: regular
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fuzzer
@@ -339,7 +341,7 @@ jobs:
   cilium_tests:
     needs: regular
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: cilium_tests
@@ -353,7 +355,7 @@ jobs:
   stress:
     needs: regular
     # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: stress
@@ -368,7 +370,7 @@ jobs:
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     needs: sanitize
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -383,7 +385,7 @@ jobs:
   # Run the fault injection simulator in GitHub.
   fault_injection:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection
@@ -398,7 +400,7 @@ jobs:
   # Run the low memory simulator for netebpfext_unit tests.
   fault_injection_netebpfext_unit:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection
@@ -529,19 +531,6 @@ jobs:
       build_artifact: Build-x64
       environment: ebpf_cicd_perf_ws2022
       configurations: '["Release"]'
-
-  performance_with_profile:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: km_performance
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      build_artifact: Build-x64
-      configurations: '["Release"]'
-      environment: ebpf_cicd_perf_ws2022
 
   upload_perf_results:
     needs: performance
