@@ -545,7 +545,7 @@ jobs:
 
   upload_perf_results:
     needs: performance
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_perf_results
