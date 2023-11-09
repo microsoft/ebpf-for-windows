@@ -74,10 +74,10 @@ extern "C"
     ebpf_epoch_free(_Frees_ptr_opt_ void* memory);
 
     /**
-     * @Brief Release any memory that is associated with expired epochs.
+     * @brief Wait for the current epoch to end.
      */
     void
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
 
     /**
      * @brief Allocate an epoch work item; a work item that can be scheduled to
