@@ -7,6 +7,7 @@
  * Windows.
  */
 
+#include "ebpf_epoch.h"
 #include "ebpf_hash_table.h"
 #include "ebpf_platform.h"
 #include "ebpf_store_helper.h"
@@ -754,12 +755,18 @@ _net_ebpf_sock_addr_clean_up_security_descriptor()
 static ebpf_result_t
 _net_ebpf_sock_addr_initialize_globals()
 {
+    ebpf_result_t ebpf_result = EBPF_SUCCESS;
+    ebpf_epoch_state_t epoch_state = {0};
     const ebpf_hash_table_creation_options_t options = {
         .key_size = EBPF_OFFSET_OF(net_ebpf_extension_connection_context_t, timestamp),
         .value_size = sizeof(net_ebpf_extension_connection_context_t*)};
 
     InitializeListHead(&_net_ebpf_ext_connect_context_list);
-    return ebpf_hash_table_create(&_net_ebpf_ext_connect_context_hash_table, &options);
+    ebpf_epoch_enter(&epoch_state);
+    ebpf_result = ebpf_hash_table_create(&_net_ebpf_ext_connect_context_hash_table, &options);
+    ebpf_epoch_exit(&epoch_state);
+
+    return ebpf_result;
 }
 
 /**
@@ -816,10 +823,13 @@ _net_ebpf_ext_get_and_remove_connection_context(
     net_ebpf_extension_connection_context_t local_connection_context = {0};
     net_ebpf_extension_connection_context_t** hash_table_connection_context = NULL;
     net_ebpf_extension_connection_context_t* connection_context = NULL;
+    ebpf_epoch_state_t epoch_state = {0};
 
     _net_ebpf_extension_connection_context_initialize(
         sock_addr_ctx, transport_endpoint_handle, 0, &local_connection_context);
+
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
+    ebpf_epoch_enter(&epoch_state);
 
     // Find and remove the entry
     if ((ebpf_hash_table_find(
@@ -835,6 +845,7 @@ _net_ebpf_ext_get_and_remove_connection_context(
         _net_ebpf_ext_connect_context_count--;
     }
 
+    ebpf_epoch_exit(&epoch_state);
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 
     NET_EBPF_EXT_RETURN_POINTER(net_ebpf_extension_connection_context_t*, connection_context);
@@ -883,10 +894,15 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_lock) static void _net_eb
 static void
 _net_ebpf_ext_purge_lru_contexts(BOOLEAN delete_all)
 {
+    ebpf_epoch_state_t epoch_state = {0};
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
+    ebpf_epoch_enter(&epoch_state);
+
     _net_ebpf_ext_purge_lru_contexts_under_lock(delete_all);
     ebpf_hash_table_destroy(_net_ebpf_ext_connect_context_hash_table);
     _net_ebpf_ext_connect_context_hash_table = NULL;
+
+    ebpf_epoch_exit(&epoch_state);
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 }
 
@@ -894,7 +910,9 @@ static ebpf_result_t
 _net_ebpf_ext_insert_connection_context_to_list(_Inout_ net_ebpf_extension_connection_context_t* connection_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_epoch_state_t epoch_state = {0};
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
+    ebpf_epoch_enter(&epoch_state);
 
     // Insert into hash table
     result = ebpf_hash_table_update(
@@ -912,6 +930,7 @@ _net_ebpf_ext_insert_connection_context_to_list(_Inout_ net_ebpf_extension_conne
     _net_ebpf_ext_purge_lru_contexts_under_lock(FALSE);
 
 Exit:
+    ebpf_epoch_exit(&epoch_state);
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
     return result;
 }
