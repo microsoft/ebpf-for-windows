@@ -118,7 +118,7 @@ class _test_helper
             ebpf_object_tracking_terminate();
         }
         if (epoch_initiated) {
-            ebpf_epoch_flush();
+            ebpf_epoch_synchronize();
             ebpf_epoch_terminate();
         }
         ebpf_random_terminate();
@@ -476,7 +476,7 @@ TEST_CASE("epoch_test_single_epoch", "[platform]")
     void* memory = ebpf_epoch_allocate(10);
     ebpf_epoch_free(memory);
     ebpf_epoch_exit(&epoch_state);
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
 }
 
 TEST_CASE("epoch_test_two_threads", "[platform]")
@@ -492,7 +492,7 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
 
         ebpf_epoch_free(memory);
         ebpf_epoch_exit(&epoch_state);
-        ebpf_epoch_flush();
+        ebpf_epoch_synchronize();
     };
 
     std::thread thread_1(epoch);

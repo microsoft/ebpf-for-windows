@@ -281,7 +281,7 @@ ebpf_core_terminate()
 
     // Shut down the epoch tracker and free any remaining memory or work items.
     // Note: Some objects may only be released on epoch termination.
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
     ebpf_epoch_terminate();
 
     // Terminate native module. This is a blocking call and will return only when

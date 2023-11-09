@@ -624,7 +624,7 @@ TEST_CASE("show maps", "[netsh][maps]")
     REQUIRE(output == "Unpinned 5 from lookup\n");
     verify_no_programs_exist();
 
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
 
     output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -833,7 +833,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     output = _run_netsh_command(handle_ebpf_delete_program, L"29", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
 }
 
 TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
@@ -870,7 +870,7 @@ TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     verify_no_programs_exist();
 
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
 }
 
 TEST_CASE("show processes", "[netsh][processes]")

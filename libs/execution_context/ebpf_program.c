@@ -2198,6 +2198,8 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     }
     thread_affinity_set = true;
 
+    ebpf_epoch_synchronize();
+
     old_irql = ebpf_raise_irql(context->required_irql);
     irql_raised = true;
 
