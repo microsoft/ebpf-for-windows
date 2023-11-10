@@ -128,7 +128,7 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
 static void
 _droppacket_stress_thread_function(const stress_test_thread_context& test_params)
 {
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     UNREFERENCED_PARAMETER(test_params);
     uint32_t count{0};
@@ -243,7 +243,7 @@ um_test_init()
 
         program_info_provider_t* local_xdp_program_info_provider = new program_info_provider_t();
         REQUIRE(local_xdp_program_info_provider != nullptr);
-        REQUIRE(local_xdp_program_info_provider->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+        REQUIRE(local_xdp_program_info_provider->initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
         _xdp_program_info_provider.reset(local_xdp_program_info_provider);
 
         _test_control_info = get_test_control_info();

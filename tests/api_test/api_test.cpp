@@ -319,7 +319,7 @@ DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY,
 DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
 // Load droppacket with providing expected program type.
-DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
+DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_XDP_TEST, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
 // Load bindmonitor (JIT) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
@@ -331,7 +331,7 @@ DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INT
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 
 // Try to load bindmonitor with providing wrong program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, _get_expected_jit_result(-EACCES));
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_XDP_TEST, EBPF_EXECUTION_ANY, _get_expected_jit_result(-EACCES));
 
 // Try to load an unsafe program.
 DECLARE_LOAD_TEST_CASE(
@@ -341,14 +341,14 @@ DECLARE_LOAD_TEST_CASE(
 TEST_CASE("test_ebpf_multiple_programs_load_jit")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
-        {"droppacket.o", BPF_PROG_TYPE_XDP}, {"bindmonitor.o", BPF_PROG_TYPE_BIND}};
+        {"droppacket.o", BPF_PROG_TYPE_XDP_TEST}, {"bindmonitor.o", BPF_PROG_TYPE_BIND}};
     _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 }
 
 TEST_CASE("test_ebpf_multiple_programs_load_interpret")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
-        {"droppacket.o", BPF_PROG_TYPE_XDP}, {"bindmonitor.o", BPF_PROG_TYPE_BIND}};
+        {"droppacket.o", BPF_PROG_TYPE_XDP_TEST}, {"bindmonitor.o", BPF_PROG_TYPE_BIND}};
     _test_multiple_programs_load(
         _countof(test_parameters), test_parameters, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 }
@@ -551,7 +551,7 @@ tailcall_load_test(_In_z_ const char* file_name)
     struct bpf_object* object = nullptr;
     fd_t program_fd;
 
-    result = _program_load_helper(file_name, BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, &object, &program_fd);
+    result = _program_load_helper(file_name, BPF_PROG_TYPE_XDP_TEST, EBPF_EXECUTION_ANY, &object, &program_fd);
     REQUIRE(result == 0);
 
     REQUIRE(program_fd > 0);
@@ -568,7 +568,7 @@ tailcall_load_test(_In_z_ const char* file_name)
     REQUIRE(callee1_fd > 0);
 
     // Test a legacy libbpf api alias.
-    REQUIRE(bpf_program__get_type(callee0) == BPF_PROG_TYPE_XDP);
+    REQUIRE(bpf_program__get_type(callee0) == BPF_PROG_TYPE_XDP_TEST);
 
     fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "map");
     REQUIRE(prog_map_fd > 0);

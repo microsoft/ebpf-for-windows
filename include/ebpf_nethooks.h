@@ -28,7 +28,7 @@ typedef enum _xdp_action
 /**
  * @brief Handle an incoming packet as early as possible.
  *
- * Program type: \ref EBPF_PROGRAM_TYPE_XDP
+ * Program type: \ref EBPF_PROGRAM_TYPE_XDP_TEST
  *
  * @param[in] context Packet metadata.
  * @retval XDP_PASS Allow the packet to pass.
@@ -36,7 +36,7 @@ typedef enum _xdp_action
  * @retval XDP_TX Bounce the received packet back out the same NIC it arrived on.
  */
 typedef xdp_action_t
-xdp_hook_t(xdp_md_t* context);
+xdp_test_hook_t(xdp_md_t* context);
 
 // XDP helper functions.
 #define XDP_EXT_HELPER_FN_BASE 0xFFFF
