@@ -129,7 +129,11 @@ typedef class _datagram_client_socket : public _client_socket
     complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::SUCCESS);
 
   private:
+    // Indicates if connected UDP should be used.
     bool connected_udp = false;
+
+    // Indicates if we have already called connect on this socket.
+    bool connected = false;
 } datagram_client_socket_t;
 
 /**

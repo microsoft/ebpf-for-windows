@@ -238,13 +238,14 @@ _datagram_client_socket::send_message_to_remote_host(
     ((PSOCKADDR_IN6)&remote_address)->sin6_port = htons(remote_port);
 
     // If this is a connected socket, issue a connect call prior to sending traffic.
-    if (connected_udp) {
+    if (connected_udp && !connected) {
         error = WSAConnect(
             socket, (const SOCKADDR*)&remote_address, sizeof(remote_address), nullptr, nullptr, nullptr, nullptr);
         if (error != 0) {
             FAIL("WSAConnect failed with " << WSAGetLastError());
             return;
         }
+        connected = true;
     }
 
     // Send a message to the remote host using the sender socket.

@@ -164,9 +164,8 @@ _get_ip_proto_from_protocol_type(protocol_type_t protocol)
         return IPPROTO_TCP;
     default:
         REQUIRE(false);
+        return IPPROTO_IPV4;
     }
-
-    return IPPROTO_IPV4;
 }
 
 inline static protocol_type_t
