@@ -201,8 +201,8 @@ static helper_function_entry_t caller_helpers[] = {
     {NULL, 5, "helper_id_5"},
 };
 
-static GUID caller_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
-static GUID caller_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+static GUID caller_program_type_guid = {0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
+static GUID caller_attach_type_guid = {0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 static uint16_t caller_maps[] = {
     0,
 };
@@ -251,7 +251,7 @@ caller(void* context)
     if ((caller_helpers[0].tail_call) && (r0 == 0))
 #line 29 "sample/tail_call_multiple.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
+        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
 #line 32 "sample/tail_call_multiple.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
@@ -266,8 +266,8 @@ static helper_function_entry_t callee0_helpers[] = {
     {NULL, 5, "helper_id_5"},
 };
 
-static GUID callee0_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
-static GUID callee0_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+static GUID callee0_program_type_guid = {0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
+static GUID callee0_attach_type_guid = {0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 static uint16_t callee0_maps[] = {
     0,
 };
@@ -316,7 +316,7 @@ callee0(void* context)
     if ((callee0_helpers[0].tail_call) && (r0 == 0))
 #line 40 "sample/tail_call_multiple.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
+        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
 #line 43 "sample/tail_call_multiple.c"
     r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
@@ -327,8 +327,8 @@ callee0(void* context)
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
 
-static GUID callee1_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
-static GUID callee1_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+static GUID callee1_program_type_guid = {0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
+static GUID callee1_attach_type_guid = {0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 #pragma code_seg(push, "xdp_pr~2")
 static uint64_t
 callee1(void* context)

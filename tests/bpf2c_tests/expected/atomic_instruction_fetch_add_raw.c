@@ -40,8 +40,8 @@ static helper_function_entry_t func_helpers[] = {
     {NULL, 1, "helper_id_1"},
 };
 
-static GUID func_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
-static GUID func_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+static GUID func_program_type_guid = {0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
+static GUID func_attach_type_guid = {0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 static uint16_t func_maps[] = {
     0,
 };
@@ -99,12 +99,12 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 27 "sample/atomic_instruction_fetch_add.c"
         return 0;
-    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=2 imm=0
+        // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=2 imm=0
 #line 28 "sample/atomic_instruction_fetch_add.c"
     if (r0 == IMMEDIATE(0))
 #line 28 "sample/atomic_instruction_fetch_add.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=8 dst=r1 src=r0 offset=0 imm=1
+        // EBPF_OP_MOV64_IMM pc=8 dst=r1 src=r0 offset=0 imm=1
 #line 28 "sample/atomic_instruction_fetch_add.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_ATOMIC64_ADD pc=9 dst=r0 src=r1 offset=0 imm=0
