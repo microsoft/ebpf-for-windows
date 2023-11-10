@@ -54,8 +54,8 @@ static helper_function_entry_t recurse_helpers[] = {
     {NULL, 5, "helper_id_5"},
 };
 
-static GUID recurse_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
-static GUID recurse_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+static GUID recurse_program_type_guid = {0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
+static GUID recurse_attach_type_guid = {0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 static uint16_t recurse_maps[] = {
     0,
     1,
@@ -123,7 +123,7 @@ recurse(void* context)
     if ((recurse_helpers[0].tail_call) && (r0 == 0))
 #line 50 "sample/tail_call_recursive.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
 #line 50 "sample/tail_call_recursive.c"
     r7 = r0;
     // EBPF_OP_JEQ_IMM pc=9 dst=r7 src=r0 offset=22 imm=0
@@ -131,7 +131,7 @@ recurse(void* context)
     if (r7 == IMMEDIATE(0))
 #line 51 "sample/tail_call_recursive.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=10 dst=r1 src=r0 offset=0 imm=680997
+        // EBPF_OP_MOV64_IMM pc=10 dst=r1 src=r0 offset=0 imm=680997
 #line 51 "sample/tail_call_recursive.c"
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=11 dst=r10 src=r1 offset=-8 imm=0
@@ -170,7 +170,7 @@ recurse(void* context)
     if ((recurse_helpers[1].tail_call) && (r0 == 0))
 #line 55 "sample/tail_call_recursive.c"
         return 0;
-    // EBPF_OP_LDXW pc=23 dst=r1 src=r7 offset=0 imm=0
+        // EBPF_OP_LDXW pc=23 dst=r1 src=r7 offset=0 imm=0
 #line 58 "sample/tail_call_recursive.c"
     r1 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
     // EBPF_OP_ADD64_IMM pc=24 dst=r1 src=r0 offset=0 imm=1
@@ -197,7 +197,7 @@ recurse(void* context)
     if ((recurse_helpers[2].tail_call) && (r0 == 0))
 #line 61 "sample/tail_call_recursive.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=31 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=31 dst=r8 src=r0 offset=0 imm=0
 #line 61 "sample/tail_call_recursive.c"
     r8 = r0;
 label_1:

@@ -66,9 +66,9 @@ static helper_function_entry_t lookup_update_helpers[] = {
 };
 
 static GUID lookup_update_program_type_guid = {
-    0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
+    0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
 static GUID lookup_update_attach_type_guid = {
-    0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+    0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 static uint16_t lookup_update_maps[] = {
     0,
     1,
@@ -131,12 +131,12 @@ lookup_update(void* context)
     if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
 #line 54 "sample/map_reuse_2.c"
         return 0;
-    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=21 imm=0
+        // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=21 imm=0
 #line 55 "sample/map_reuse_2.c"
     if (r0 == IMMEDIATE(0))
 #line 55 "sample/map_reuse_2.c"
         goto label_2;
-    // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
 #line 55 "sample/map_reuse_2.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=9 dst=r10 src=r6 offset=-8 imm=0
@@ -160,7 +160,7 @@ lookup_update(void* context)
     if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
 #line 57 "sample/map_reuse_2.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=14 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=14 dst=r7 src=r0 offset=0 imm=0
 #line 57 "sample/map_reuse_2.c"
     r7 = r0;
     // EBPF_OP_JNE_IMM pc=15 dst=r7 src=r0 offset=1 imm=0
@@ -168,7 +168,7 @@ lookup_update(void* context)
     if (r7 != IMMEDIATE(0))
 #line 58 "sample/map_reuse_2.c"
         goto label_1;
-    // EBPF_OP_JA pc=16 dst=r0 src=r0 offset=12 imm=0
+        // EBPF_OP_JA pc=16 dst=r0 src=r0 offset=12 imm=0
 #line 58 "sample/map_reuse_2.c"
     goto label_2;
 label_1:
@@ -208,7 +208,7 @@ label_1:
     if ((lookup_update_helpers[1].tail_call) && (r0 == 0))
 #line 62 "sample/map_reuse_2.c"
         return 0;
-    // EBPF_OP_LDXW pc=28 dst=r6 src=r7 offset=0 imm=0
+        // EBPF_OP_LDXW pc=28 dst=r6 src=r7 offset=0 imm=0
 #line 64 "sample/map_reuse_2.c"
     r6 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
 label_2:
