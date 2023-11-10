@@ -24,12 +24,16 @@ static const ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
     EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 
 static const ebpf_program_info_t _ebpf_xdp_program_info = {
-    {"xdp", &_ebpf_xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP_GUID, BPF_PROG_TYPE_XDP},
+    {"xdp", &_ebpf_xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP_TEST_GUID, BPF_PROG_TYPE_XDP_TEST},
     EBPF_COUNT_OF(_xdp_ebpf_extension_helper_function_prototype),
     _xdp_ebpf_extension_helper_function_prototype};
 
 static const ebpf_program_section_info_t _ebpf_xdp_section_info[] = {
-    {(const wchar_t*)L"xdp", &EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP, BPF_PROG_TYPE_XDP, BPF_XDP}};
+    {(const wchar_t*)L"xdp",
+     &EBPF_PROGRAM_TYPE_XDP_TEST,
+     &EBPF_ATTACH_TYPE_XDP_TEST,
+     BPF_PROG_TYPE_XDP_TEST,
+     BPF_XDP_TEST}};
 
 // Bind program information.
 static const ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {

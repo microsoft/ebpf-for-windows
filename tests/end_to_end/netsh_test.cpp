@@ -577,7 +577,7 @@ TEST_CASE("set program", "[netsh][programs]")
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
 
     RPC_WSTR attach_type_string;
-    REQUIRE(UuidToStringW(&EBPF_ATTACH_TYPE_XDP, &attach_type_string) == 0);
+    REQUIRE(UuidToStringW(&EBPF_ATTACH_TYPE_XDP_TEST, &attach_type_string) == 0);
 
     // Attach the program.
     output = _run_netsh_command(handle_ebpf_set_program, L"5", L"xdp", nullptr, &result);

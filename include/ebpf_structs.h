@@ -175,13 +175,13 @@ enum bpf_prog_type
 
     /** @brief Program type for handling incoming packets as early as possible.
      *
-     * **eBPF program prototype:** \ref xdp_hook_t
+     * **eBPF program prototype:** \ref xdp_test_hook_t
      *
-     * **Attach type(s):** \ref BPF_XDP
+     * **Attach type(s):** \ref BPF_XDP_TEST
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
-    BPF_PROG_TYPE_XDP,
+    BPF_PROG_TYPE_XDP_TEST,
 
     /** @brief Program type for handling socket bind() requests.
      *
@@ -237,10 +237,10 @@ typedef enum bpf_prog_type bpf_prog_type_t;
 // per union member.
 enum bpf_link_type
 {
-    BPF_LINK_TYPE_UNSPEC, ///< Unspecified link type.
-    BPF_LINK_TYPE_PLAIN,  ///< No union members are used in bpf_link_info.
-    BPF_LINK_TYPE_CGROUP, ///< cgroup struct is present in bpf_link_info.
-    BPF_LINK_TYPE_XDP,    ///< xdp struct is present in bpf_link_info.
+    BPF_LINK_TYPE_UNSPEC,   ///< Unspecified link type.
+    BPF_LINK_TYPE_PLAIN,    ///< No union members are used in bpf_link_info.
+    BPF_LINK_TYPE_CGROUP,   ///< cgroup struct is present in bpf_link_info.
+    BPF_LINK_TYPE_XDP_TEST, ///< xdp struct is present in bpf_link_info.
 };
 
 static const char* const _ebpf_link_display_names[] = {
@@ -254,9 +254,9 @@ enum bpf_attach_type
 
     /** @brief Attach type for handling incoming packets as early as possible.
      *
-     * **Program type:** \ref BPF_PROG_TYPE_XDP
+     * **Program type:** \ref BPF_PROG_TYPE_XDP_TEST
      */
-    BPF_XDP,
+    BPF_XDP_TEST,
 
     /** @brief Attach type for handling socket bind() requests.
      *

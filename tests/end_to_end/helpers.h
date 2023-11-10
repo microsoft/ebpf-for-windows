@@ -547,7 +547,7 @@ typedef class _program_info_provider
 
         if (custom_provider_data != nullptr) {
             provider_data = custom_provider_data;
-        } else if (program_type == EBPF_PROGRAM_TYPE_XDP) {
+        } else if (program_type == EBPF_PROGRAM_TYPE_XDP_TEST) {
             provider_data = &_ebpf_xdp_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_BIND) {
             provider_data = &_ebpf_bind_program_info_provider_data;

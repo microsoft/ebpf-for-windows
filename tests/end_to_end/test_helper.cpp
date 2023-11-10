@@ -795,8 +795,8 @@ _test_helper_libbpf::initialize()
     test_helper_end_to_end.initialize();
 
     xdp_program_info = new program_info_provider_t();
-    REQUIRE(xdp_program_info->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
-    xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(xdp_program_info->initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+    xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
     REQUIRE(xdp_hook->initialize() == EBPF_SUCCESS);
 
     bind_program_info = new program_info_provider_t();
