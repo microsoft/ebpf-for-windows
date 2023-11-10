@@ -255,7 +255,7 @@ jobs:
 
   bpf2c_fuzzer_scheduled:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -298,7 +298,7 @@ jobs:
   verifier_fuzzer_scheduled:
     needs: regular
     # Always run this job.
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -432,7 +432,7 @@ jobs:
   # ---------------------------------------------------------------------------
   codeql:
     # Only run during daily scheduled run
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-CodeQl
@@ -443,7 +443,7 @@ jobs:
   # Runs on a schedule as this takes a long time to run.
   fault_injection_full:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection_full
@@ -459,7 +459,7 @@ jobs:
   # Runs on a schedule as this takes a long time to run.
   netebpfext_fault_injection_full:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection_full
@@ -473,7 +473,7 @@ jobs:
   # Run multi-threaded stress tests against the user mode 'mock' framework.
   user_mode_multi_threaded_stress_test:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
@@ -489,7 +489,7 @@ jobs:
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests
@@ -506,7 +506,7 @@ jobs:
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests_restart_extension:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests_restart_extension
@@ -521,7 +521,7 @@ jobs:
 
   performance:
     needs: regular
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
