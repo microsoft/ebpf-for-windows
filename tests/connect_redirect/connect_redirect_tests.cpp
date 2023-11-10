@@ -21,6 +21,7 @@
 #include "socket_tests_common.h"
 #include "watchdog.h"
 
+#include <iostream>
 #include <mstcpip.h>
 #include <ntsecapi.h>
 
@@ -388,6 +389,7 @@ update_policy_map_and_test_connection(
         REQUIRE(authentication_id != 0);
 
         // Try to send and receive message to "destination". It should succeed.
+        std::cout << "Expecting succeeded connection" << std::endl;
         sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
         sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
 
@@ -429,6 +431,7 @@ authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& de
         authentication_id = _get_current_thread_authentication_id();
         REQUIRE(authentication_id != 0);
 
+        std::cout << "Initial connection - expected fail" << std::endl;
         sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
         sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
 
