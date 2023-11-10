@@ -156,30 +156,14 @@ _log_on_user(std::string& user_name, std::string& password)
 inline static IPPROTO
 _get_ip_proto_from_protocol_type(protocol_type_t protocol)
 {
-    switch (protocol) {
-    case protocol_type_t::UDP:
-    case protocol_type_t::CONNECTED_UDP:
-        return IPPROTO_UDP;
-    case protocol_type_t::TCP:
+    if (protocol == protocol_type_t::TCP) {
         return IPPROTO_TCP;
-    default:
-        REQUIRE(false);
-        return IPPROTO_IPV4;
-    }
-}
-
-inline static protocol_type_t
-_get_protocol_from_string(std::string protocol)
-{
-    if (protocol.compare("udp") == 0 || protocol.compare("UDP") == 0) {
-        return protocol_type_t::UDP;
-    } else if (protocol.compare("connected_udp") || protocol.compare("CONNECTED_UDP") == 0) {
-        return protocol_type_t::CONNECTED_UDP;
-    } else if (protocol.compare("tcp") == 0 || protocol.compare("TCP") == 0) {
-        return protocol_type_t::TCP;
+    } else if ((protocol == protocol_type_t::UDP) || (protocol == protocol_type_t::CONNECTED_UDP)) {
+        return IPPROTO_UDP;
     }
 
     REQUIRE(false);
+    return IPPROTO_MAX;
 }
 
 static user_type_t
@@ -372,7 +356,7 @@ _update_policy_map(
 }
 
 void
-connect_redirect_test(
+update_policy_map_and_test_connection(
     _In_ client_socket_t* sender_socket,
     _Inout_ sockaddr_storage& destination,
     _In_ const sockaddr_storage& proxy,
@@ -456,7 +440,7 @@ authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& de
     _validate_audit_map_entry(authentication_id);
 
     // Now update the policy map to allow the connection and test again.
-    connect_redirect_test(
+    update_policy_map_and_test_connection(
         sender_socket, destination, destination, _globals.destination_port, _globals.destination_port, dual_stack);
 }
 
@@ -503,7 +487,7 @@ connect_redirect_test_wrapper(
     client_socket_t* sender_socket = nullptr;
 
     get_client_socket(dual_stack, &sender_socket, source_address);
-    connect_redirect_test(
+    update_policy_map_and_test_connection(
         sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
     delete sender_socket;
 }
