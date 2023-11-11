@@ -813,6 +813,15 @@ ebpf_hash_table_next_key_pointer_and_value(
                 found_entry = true;
             }
         }
+
+        // If there was a previous key that was not present in the bucket, then it is not present in the hash table
+        // either. In this case, we return EBPF_KEY_NOT_FOUND, so that the caller can detect that the key is missing,
+        // and return the first key (as per 'bpf_map_get_next_key' specs).
+        if (!found_entry && previous_key != NULL) {
+            result = EBPF_KEY_NOT_FOUND;
+            goto Done;
+        }
+
         if (next_entry) {
             break;
         }
