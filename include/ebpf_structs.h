@@ -175,7 +175,7 @@ enum bpf_prog_type
 
     /** @brief Program type for handling incoming packets as early as possible.
      *
-     * **eBPF program prototype:** \ref xdp_test_hook_t
+     * **eBPF program prototype:** \ref xdp_hook_t
      *
      * **Attach type(s):** \ref BPF_XDP_TEST
      *
