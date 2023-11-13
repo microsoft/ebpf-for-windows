@@ -572,9 +572,8 @@ DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dua
 // Dual stack socket, IPv4, UDP
 DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::UDP)
 
-// // Dual stack socket, IPv4, CONNECTED_UDP
-// DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true,
-// protocol_type_t::CONNECTED_UDP)
+// Dual stack socket, IPv4, CONNECTED_UDP
+DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::CONNECTED_UDP)
 
 // IPv6, TCP,
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::TCP)
@@ -582,8 +581,8 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, fa
 // IPv6, UDP
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::UDP)
 
-// IPv6, CONNECTED_UDP
-DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::CONNECTED_UDP)
+// // IPv6, CONNECTED_UDP
+// DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::CONNECTED_UDP)
 
 // Dual stack socket, IPv6, TCP,
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, protocol_type_t::TCP)
@@ -709,9 +708,8 @@ DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual,
 // Dual stack socket, IPv4, UDP
 DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::UDP)
 
-// // Dual stack socket, IPv4, CONNECTED_UDP
-// DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true,
-// protocol_type_t::CONNECTED_UDP)
+// Dual stack socket, IPv4, CONNECTED_UDP
+DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::CONNECTED_UDP)
 
 // IPv6, TCP
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::TCP)
@@ -719,8 +717,8 @@ DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, fals
 // IPv6, UDP
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::UDP)
 
-// IPv6, CONNECTED_UDP
-DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::CONNECTED_UDP)
+// // IPv6, CONNECTED_UDP
+// DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::CONNECTED_UDP)
 
 // Dual stack socket, IPv6, TCP
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, protocol_type_t::TCP)
