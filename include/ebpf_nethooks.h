@@ -36,7 +36,7 @@ typedef enum _xdp_action
  * @retval XDP_TX Bounce the received packet back out the same NIC it arrived on.
  */
 typedef xdp_action_t
-xdp_test_hook_t(xdp_md_t* context);
+xdp_hook_t(xdp_md_t* context);
 
 // XDP helper functions.
 #define XDP_EXT_HELPER_FN_BASE 0xFFFF
