@@ -36,9 +36,6 @@ permissions:
   issues: write # Required to create issues.
 
 jobs:
-  # Jobs to run on pull, push, and schedule.
-  # ---------------------------------------------------------------------------
-
   # Perform the regular build.
   regular:
     if: github.event_name == 'workflow_dispatch'
@@ -221,71 +218,6 @@ jobs:
     with:
       build_artifact: Build-x64-Sanitize
       build_options: /p:AddressSanitizer='True'
-
-  bpf2c_fuzzer:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: bpf2c_fuzzer
-      test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
-
-  execution_context_fuzzer:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: execution_context_fuzzer
-      test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
-
-  verifier_fuzzer:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: verifier_fuzzer
-      test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
-
-  core_helper_fuzzer:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: core_helper_fuzzer
-      test_command: .\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
-
-  netebpfext_fuzzer:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: netebpfext_fuzzer
-      test_command: .\netebpfext_fuzzer netebpfext_corpus -max_len=12 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
 
   # Run Cilium regression tests in GitHub.
   cilium_tests:
@@ -497,3 +429,69 @@ jobs:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  # Run indeterministic tests multiple times (3 times).
+  bpf2c_fuzzer:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: bpf2c_fuzzer
+      test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
+  verifier_fuzzer:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: verifier_fuzzer
+      test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
+  execution_context_fuzzer:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: execution_context_fuzzer
+      test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
+  core_helper_fuzzer:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: core_helper_fuzzer
+      test_command: .\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=3000 -use_value_profile=1 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
+  netebpfext_fuzzer:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: netebpfext_fuzzer
+      test_command: .\netebpfext_fuzzer netebpfext_corpus -max_len=12 -runs=3000 -use_value_profile=1 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
