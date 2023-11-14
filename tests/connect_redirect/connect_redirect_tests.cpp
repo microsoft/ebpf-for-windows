@@ -43,14 +43,6 @@ typedef enum _user_type
     STANDARD_USER
 } user_type_t;
 
-typedef enum _protocol_type
-{
-    INVALID,
-    TCP,
-    UDP,
-    CONNECTED_UDP
-} protocol_type_t;
-
 typedef struct _test_addresses
 {
     struct sockaddr_storage loopback_address;
@@ -319,10 +311,11 @@ _update_policy_map(
     _In_ const sockaddr_storage& proxy,
     uint16_t destination_port,
     uint16_t proxy_port,
-    uint32_t protocol,
+    protocol_type_t protocol,
     bool dual_stack,
     bool add)
 {
+    IPPROTO ip_proto = _get_ip_proto_from_protocol_type(protocol);
     bpf_map* policy_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "policy_map");
     REQUIRE(policy_map != nullptr);
 
@@ -347,7 +340,10 @@ _update_policy_map(
 
     key.destination_port = htons(destination_port);
     value.destination_port = htons(proxy_port);
-    key.protocol = protocol;
+    key.protocol = ip_proto;
+    // The value uses the protocol_type_t to allow the program to differentiate between
+    // unconnnected and connected UDP.
+    value.protocol = protocol;
 
     if (add) {
         std::cout << "Adding map entry [key]: " << get_string_from_address((SOCKADDR*)&destination)
@@ -375,7 +371,6 @@ update_policy_map_and_test_connection(
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
     bool redirected = (destination_port != proxy_port || !INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&proxy));
-    IPPROTO ip_proto = _get_ip_proto_from_protocol_type(_globals.protocol);
     // IPv6 redirect tests always redirect to the IPv6 address. The IPv4 address may be the dual stack or IPv4 address,
     // depending on the inputs.
     socket_family_t remote_address_family = (_globals.family == AF_INET6)
@@ -385,7 +380,7 @@ update_policy_map_and_test_connection(
         !INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[remote_address_family].remote_address);
 
     // Update policy in the map to redirect the connection to the proxy.
-    _update_policy_map(destination, proxy, destination_port, proxy_port, ip_proto, dual_stack, add_policy);
+    _update_policy_map(destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
 
     // For local redirection, the redirect context is expected to be set and returned.
     // If the connection is not redirected or is redirected to a remote address,
@@ -422,7 +417,7 @@ update_policy_map_and_test_connection(
 
     // Remove entry from policy map.
     add_policy = false;
-    _update_policy_map(destination, proxy, destination_port, proxy_port, ip_proto, dual_stack, add_policy);
+    _update_policy_map(destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
 }
 
 void

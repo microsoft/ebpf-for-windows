@@ -69,13 +69,19 @@ redirect_v4(bpf_sock_addr_t* ctx)
         return verdict;
     }
 
-    if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
-        return verdict;
-    }
-
     // Find the entry in the policy map.
     destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
     if (policy != NULL) {
+        // Currently, we are unable to validate the redirect context path for connected UDP.
+        // Tracking issue: <>
+        // When the above issue is resolved, we should validate setting the redirect_context unconditionally,
+        // including when the verdict is BPF_SOCK_ADDR_VERDICT_REJECT.
+        if (policy->protocol != (uint32_t)CONNECTED_UDP) {
+            if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
+                return verdict;
+            }
+        }
+
         bpf_printk("Found v4 proxy entry value: %u, %u", policy->destination_ip.ipv4, policy->destination_port);
         ctx->user_ip4 = policy->destination_ip.ipv4;
         ctx->user_port = policy->destination_port;

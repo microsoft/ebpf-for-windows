@@ -296,9 +296,17 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
         goto Exit;
     }
     memcpy(redirect_context, data, data_size);
+    TraceLoggingWrite(
+        net_ebpf_ext_tracelog_provider,
+        "[maige] Allocate redirect context",
+        TraceLoggingPointer(redirect_context, "redirect_context"));
 
     // If a redirect context already exists, free the existing buffer.
     if (sock_addr_ctx->redirect_context != NULL) {
+        TraceLoggingWrite(
+            net_ebpf_ext_tracelog_provider,
+            "[maige] Freeing redirect context 1",
+            TraceLoggingPointer(sock_addr_ctx->redirect_context, "redirect_context"));
         ExFreePool(sock_addr_ctx->redirect_context);
     }
 
@@ -1439,6 +1447,10 @@ _net_ebpf_ext_process_redirect_verdict(
         connect_request->localRedirectTargetPID = TARGET_PROCESS_ID;
         connect_request->localRedirectHandle = redirect_handle;
 
+        TraceLoggingWrite(
+            net_ebpf_ext_tracelog_provider,
+            "[maige] Transferring redirect context to WFP",
+            TraceLoggingPointer(sock_addr_ctx->redirect_context, "redirect_context"));
         connect_request->localRedirectContext = sock_addr_ctx->redirect_context;
         connect_request->localRedirectContextSize = sock_addr_ctx->redirect_context_size;
         // Ownership transferred to WFP.
@@ -1749,7 +1761,13 @@ Exit:
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
 
+    // TODO - this looks like it should always free the context properly. But we need to double check
+
     if (net_ebpf_sock_addr_ctx.redirect_context != NULL) {
+        TraceLoggingWrite(
+            net_ebpf_ext_tracelog_provider,
+            "[maige] Freeing redirect context 2",
+            TraceLoggingPointer(net_ebpf_sock_addr_ctx.redirect_context, "redirect_context"));
         ExFreePool(net_ebpf_sock_addr_ctx.redirect_context);
     }
 

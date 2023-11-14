@@ -18,6 +18,14 @@ typedef struct _ip_address
     };
 } ip_address_t;
 
+typedef enum _protocol_type
+{
+    INVALID,
+    TCP,
+    UDP,
+    CONNECTED_UDP
+} protocol_type_t;
+
 typedef struct _connection_tuple
 {
     ip_address_t src_ip;
