@@ -44,21 +44,3 @@ jobs:
         uses: actions/checkout@v2
       - name: Run cicd.yml
         run: gh workflow run cicd.yml -r ${{ github.event.inputs.branch }}
-
-  cicd-run2:
-    runs-on: windows-2022
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Trigger cicd.yml - Run 2
-        uses: actions/checkout@v2
-      - name: Run cicd.yml
-        run: gh workflow run cicd.yml -r ${{ github.event.inputs.branch }}
-
-  cicd-run3:
-    runs-on: windows-2022
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Trigger cicd.yml - Run 3
-        uses: actions/checkout@v2
-      - name: Run cicd.yml
-        run: gh workflow run cicd.yml -r ${{ github.event.inputs.branch }}
