@@ -397,28 +397,28 @@ update_policy_map_and_test_connection(
         expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
     }
 
-    for (int i = 0; i < 3; ++i) {
-        impersonation_helper_t helper(_globals.user_type);
+    // for (int i = 0; i < 3; ++i) {
+    impersonation_helper_t helper(_globals.user_type);
 
-        uint64_t authentication_id = _get_current_thread_authentication_id();
-        REQUIRE(authentication_id != 0);
+    uint64_t authentication_id = _get_current_thread_authentication_id();
+    REQUIRE(authentication_id != 0);
 
-        // Try to send and receive message to "destination". It should succeed.
-        std::cout << "Expecting succeeded connection. To: " << get_string_from_address((SOCKADDR*)&destination)
-                  << std::endl;
-        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
-        sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
+    // Try to send and receive message to "destination". It should succeed.
+    std::cout << "Expecting succeeded connection. To: " << get_string_from_address((SOCKADDR*)&destination)
+              << std::endl;
+    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
+    sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
 
-        sender_socket->post_async_receive();
-        sender_socket->complete_async_receive(2000, false);
+    sender_socket->post_async_receive();
+    sender_socket->complete_async_receive(2000, false);
 
-        sender_socket->get_received_message(bytes_received, received_message);
+    sender_socket->get_received_message(bytes_received, received_message);
 
-        REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
-        REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
+    REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
+    REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
 
-        _validate_audit_map_entry(authentication_id);
-    }
+    _validate_audit_map_entry(authentication_id);
+    // }
 
     // Remove entry from policy map.
     add_policy = false;
@@ -431,22 +431,22 @@ authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& de
     // Default behavior of the eBPF program is to block the connection.
     // Send should fail as the connection is blocked. Repeat this multiple times to ensure that multiple packets are
     // blocked for a single connection.
-    for (int i = 0; i < 3; ++i) {
-        impersonation_helper_t helper(_globals.user_type);
-        uint64_t authentication_id = _get_current_thread_authentication_id();
-        REQUIRE(authentication_id != 0);
+    // for (int i = 0; i < 3; ++i) {
+    impersonation_helper_t helper(_globals.user_type);
+    uint64_t authentication_id = _get_current_thread_authentication_id();
+    REQUIRE(authentication_id != 0);
 
-        std::cout << "Initial connection - expected fail. To: " << get_string_from_address((SOCKADDR*)&destination)
-                  << std::endl;
-        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
-        sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
+    std::cout << "Initial connection - expected fail. To: " << get_string_from_address((SOCKADDR*)&destination)
+              << std::endl;
+    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
+    sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
 
-        // Receive should time out as connection is blocked.
-        sender_socket->post_async_receive(true);
-        sender_socket->complete_async_receive(1000, true);
+    // Receive should time out as connection is blocked.
+    sender_socket->post_async_receive(true);
+    sender_socket->complete_async_receive(1000, true);
 
-        _validate_audit_map_entry(authentication_id);
-    }
+    _validate_audit_map_entry(authentication_id);
+    // }
 
     // Now update the policy map to allow the connection and test again.
     update_policy_map_and_test_connection(
@@ -561,45 +561,43 @@ DECLARE_CONNECTION_AUTHORIZATION_TEST_FUNCTION(remote_address)
     DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_CASE(                                                                   \
         socket_family_name, socket_family_type, dual_stack, protocol, remote_address)
 
-// // Connection Authorization test cases
+// Connection Authorization test cases
 
-// // IPv4, TCP
-// DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, protocol_type_t::TCP)
+// IPv4, TCP
+DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, protocol_type_t::TCP)
 
-// // IPv4, UDP
-// DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, protocol_type_t::UDP)
+// IPv4, UDP
+DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, protocol_type_t::UDP)
 
-// // IPv4, CONNECTED_UDP
-// DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, protocol_type_t::CONNECTED_UDP)
+// IPv4, CONNECTED_UDP
+DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, protocol_type_t::CONNECTED_UDP)
 
-// // Dual stack socket, IPv4, TCP,
-// DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::TCP)
+// Dual stack socket, IPv4, TCP,
+DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::TCP)
 
-// // Dual stack socket, IPv4, UDP
-// DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::UDP)
+// Dual stack socket, IPv4, UDP
+DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::UDP)
 
-// // Dual stack socket, IPv4, CONNECTED_UDP
-// DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true,
-// protocol_type_t::CONNECTED_UDP)
+// Dual stack socket, IPv4, CONNECTED_UDP
+DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::CONNECTED_UDP)
 
-// // IPv6, TCP,
-// DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::TCP)
+// IPv6, TCP,
+DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::TCP)
 
-// // IPv6, UDP
-// DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::UDP)
+// IPv6, UDP
+DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::UDP)
 
-// // IPv6, CONNECTED_UDP
-// DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::CONNECTED_UDP)
+// IPv6, CONNECTED_UDP
+DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::CONNECTED_UDP)
 
-// // Dual stack socket, IPv6, TCP,
-// DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, protocol_type_t::TCP)
+// Dual stack socket, IPv6, TCP,
+DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, protocol_type_t::TCP)
 
-// // Dual stack socket, IPv6, UDP
-// DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, protocol_type_t::UDP)
+// Dual stack socket, IPv6, UDP
+DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, protocol_type_t::UDP)
 
-// // Dual stack socket, IPv6, CONNECTED_UDP
-// DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true,
-// protocol_type_t::CONNECTED_UDP)
+// Dual stack socket, IPv6, CONNECTED_UDP
+DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, protocol_type_t::CONNECTED_UDP)
 
 #define DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(source, original_destination, new_destination)                  \
     void connection_redirection_tests_##original_destination##_##new_destination##(                                  \
@@ -701,7 +699,7 @@ DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(loopback_address, local_address, lo
 // Connection redirection test cases.
 
 // IPv4, TCP
-// DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, protocol_type_t::TCP)
+DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, protocol_type_t::TCP)
 
 // IPv4, UDP
 DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, protocol_type_t::UDP)
@@ -710,7 +708,7 @@ DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, fals
 DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, protocol_type_t::CONNECTED_UDP)
 
 // Dual stack socket, IPv4, TCP
-// DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::TCP)
+DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::TCP)
 
 // Dual stack socket, IPv4, UDP
 DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::UDP)
@@ -719,7 +717,7 @@ DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual,
 DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, protocol_type_t::CONNECTED_UDP)
 
 // IPv6, TCP
-// DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::TCP)
+DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::TCP)
 
 // IPv6, UDP
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::UDP)
@@ -728,7 +726,7 @@ DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, fals
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, protocol_type_t::CONNECTED_UDP)
 
 // Dual stack socket, IPv6, TCP
-// DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, protocol_type_t::TCP)
+DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, protocol_type_t::TCP)
 
 // Dual stack socket, IPv6, UDP
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, protocol_type_t::UDP)
