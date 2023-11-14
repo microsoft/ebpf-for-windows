@@ -1,0 +1,64 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+# This is the top-level workflow that runs on release branches.
+# It invokes other jobs to perform builds and run tests.
+# All jobs run in parallel, using build artifacts to synchronize jobs.
+#
+# If you add or remove any tests that use reusable-test.yml on a pull request,
+# you must update codecov.yml to match.
+
+name: CI/CD - Release validation
+
+on:
+  # Permit manual runs of the workflow.
+  workflow_dispatch:
+    inputs:
+      # Request a target branch to run CI/CD on.
+      branch:
+        description: 'Target branch to run CI/CD on.'
+        required: true
+        default: 'main'
+
+concurrency:
+  # Cancel any in-progress instance of this workflow (CI/CD) for the same PR.
+  # Allow running concurrently with any commits on any other branch.
+  # Using GITHUB_REF instead of GITHUB_SHA allows parallel runs on
+  # different branches with the same HEAD commit.
+  group: cicd-release-validation-${{ github.event.schedule || github.event.after || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write # Required to log in to Azure.
+  contents: read
+  checks: read  # Required by reusable-test.yml to check build status.
+  security-events: write # Required by codeql task.
+  issues: write # Required to create issues.
+
+jobs:
+  cicd-run1:
+    runs-on: windows-2022
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Trigger cicd.yml - Run 1
+        uses: actions/checkout@v2
+      - name: Run cicd.yml
+        run: gh workflow run cicd.yml -r ${{ github.repository }} -B ${{ github.event.inputs.branch }}
+
+  cicd-run2:
+    runs-on: windows-2022
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Trigger cicd.yml - Run 2
+        uses: actions/checkout@v2
+      - name: Run cicd.yml
+        run: gh workflow run cicd.yml -r ${{ github.repository }} -B ${{ github.event.inputs.branch }}
+
+  cicd-run3:
+    runs-on: windows-2022
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Trigger cicd.yml - Run 3
+        uses: actions/checkout@v2
+      - name: Run cicd.yml
+        run: gh workflow run cicd.yml -r ${{ github.repository }} -B ${{ github.event.inputs.branch }}
