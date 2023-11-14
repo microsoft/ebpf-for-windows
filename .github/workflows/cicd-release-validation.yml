@@ -392,45 +392,10 @@ jobs:
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
-  performance:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: km_performance
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      build_artifact: Build-x64
-      environment: ebpf_cicd_perf_ws2022
-      configurations: '["Release"]'
-
-  performance_with_profile:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: km_performance
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      build_artifact: Build-x64
-      configurations: '["Release"]'
-      environment: ebpf_cicd_perf_ws2022
-
-  upload_perf_results:
-    needs: performance
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/upload-perf-results.yml
-    with:
-      name: upload_perf_results
-      result_artifact: km_performance-x64-Release
-    secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
+  ######################################################
   # Run indeterministic tests multiple times (3 times).
+  ######################################################
+  # FUZZERS ############################################
   bpf2c_fuzzer:
     needs: regular
     if: github.event_name == 'workflow_dispatch'
@@ -495,3 +460,121 @@ jobs:
       code_coverage: false
       gather_dumps: true
       configurations: '["FuzzerDebug"]'
+
+# PREFORMANCE  ############################################
+# Iteration 1
+  performance-1:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      environment: ebpf_cicd_perf_ws2022
+      configurations: '["Release"]'
+
+  performance_with_profile-1:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      configurations: '["Release"]'
+      environment: ebpf_cicd_perf_ws2022
+
+  upload_perf_results-1:
+    needs: performance-1
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_perf_results
+      result_artifact: km_performance-x64-Release-1
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+# Iteration 2
+  performance-2:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      environment: ebpf_cicd_perf_ws2022
+      configurations: '["Release"]'
+
+  performance_with_profile-2:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      configurations: '["Release"]'
+      environment: ebpf_cicd_perf_ws2022
+
+  upload_perf_results-2:
+    needs: performance-2
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_perf_results
+      result_artifact: km_performance-x64-Release-1
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+# Iteration 3
+  performance-3:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      environment: ebpf_cicd_perf_ws2022
+      configurations: '["Release"]'
+
+  performance_with_profile-3:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      configurations: '["Release"]'
+      environment: ebpf_cicd_perf_ws2022
+
+  upload_perf_results-3:
+    needs: performance-3
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_perf_results
+      result_artifact: km_performance-x64-Release-3
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
