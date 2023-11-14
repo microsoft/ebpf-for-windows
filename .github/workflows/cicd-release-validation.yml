@@ -39,6 +39,8 @@ jobs:
   cicd-run1:
     runs-on: windows-2022
     if: github.event_name == 'workflow_dispatch'
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Trigger cicd.yml - Run 1
         uses: actions/checkout@v2
@@ -48,6 +50,8 @@ jobs:
   cicd-run2:
     runs-on: windows-2022
     if: github.event_name == 'workflow_dispatch'
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Trigger cicd.yml - Run 2
         uses: actions/checkout@v2
@@ -57,6 +61,8 @@ jobs:
   cicd-run3:
     runs-on: windows-2022
     if: github.event_name == 'workflow_dispatch'
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Trigger cicd.yml - Run 3
         uses: actions/checkout@v2
