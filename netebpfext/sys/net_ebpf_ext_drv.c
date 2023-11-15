@@ -8,6 +8,7 @@
  */
 
 #include "ebpf_platform.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_version.h"
 #include "git_commit_id.h"

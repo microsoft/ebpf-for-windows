@@ -4,6 +4,7 @@
 #pragma once
 
 #include "ebpf_program_types.h"
+#include "ebpf_windows.h"
 #ifdef USER_MODE
 #include "ebpf_utilities.h"
 #else
