@@ -73,7 +73,7 @@ redirect_v4(bpf_sock_addr_t* ctx)
     destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
     if (policy != NULL) {
         // Currently, we are unable to validate the redirect context path for connected UDP.
-        // Tracking issue: <>
+        // Tracking issue #3052
         // When the above issue is resolved, we should validate setting the redirect_context unconditionally,
         // including when the verdict is BPF_SOCK_ADDR_VERDICT_REJECT.
         if (policy->protocol != (uint32_t)CONNECTED_UDP) {
