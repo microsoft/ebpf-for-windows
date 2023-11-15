@@ -8,6 +8,7 @@
 
 #include "ebpf_registry_helper.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_windows.h"
 
 #include <rpc.h>
 #include <string>

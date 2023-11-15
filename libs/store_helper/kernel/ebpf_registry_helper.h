@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "ebpf_shared_framework.h"
 #include "ebpf_store_helper.h"
 
 #define REG_CREATE_FLAGS 0

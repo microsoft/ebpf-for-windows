@@ -4,13 +4,10 @@
 #pragma once
 
 #include "ebpf_program_types.h"
-#include "ebpf_shared_framework.h"
-#include "ebpf_windows.h"
 #ifdef USER_MODE
 #include "ebpf_utilities.h"
 #else
 #include <minwindef.h>
-#include <wdm.h>
 #endif
 
 #define GUID_STRING_LENGTH 38 // not including the null terminator.

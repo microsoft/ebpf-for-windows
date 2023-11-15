@@ -7,6 +7,7 @@
  */
 
 #include "ebpf_registry_helper.h"
+#include "ebpf_windows.h"
 
 #define _EBPF_RESULT(x) (NT_SUCCESS(x) ? EBPF_SUCCESS : EBPF_FAILED)
 
