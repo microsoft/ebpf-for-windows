@@ -1210,7 +1210,7 @@ ebpf_core_get_pinned_object(_In_ const cxplat_utf8_string_t* path, _Out_ ebpf_ha
 
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)object);
-    EBPF_RETURN_RESULT(retval);
+    EBPF_RETURN_FUNCTION_RESULT(retval);
 }
 
 static ebpf_result_t
