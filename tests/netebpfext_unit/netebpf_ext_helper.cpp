@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_epoch.h"
 #include "ebpf_random.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_addr.h"
@@ -68,11 +67,6 @@ _netebpf_ext_helper::_netebpf_ext_helper(
             return;
         }
         random_initialized = true;
-
-        if (ebpf_epoch_initiate() != EBPF_SUCCESS) {
-            return;
-        }
-        epoch_initialized = true;
     }
 
     if (!NT_SUCCESS(net_ebpf_ext_initialize_ndis_handles(driver_object))) {
@@ -126,11 +120,6 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
 
     if (ndis_handle_initialized) {
         net_ebpf_ext_uninitialize_ndis_handles();
-    }
-
-    if (epoch_initialized) {
-        ebpf_epoch_flush();
-        ebpf_epoch_terminate();
     }
 
     if (random_initialized) {
