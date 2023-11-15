@@ -21,7 +21,6 @@
 #include "socket_tests_common.h"
 #include "watchdog.h"
 
-#include <iostream>
 #include <mstcpip.h>
 #include <ntsecapi.h>
 
@@ -346,14 +345,8 @@ _update_policy_map(
     value.protocol = protocol;
 
     if (add) {
-        std::cout << "Adding map entry [key]: " << get_string_from_address((SOCKADDR*)&destination)
-                  << ", port: " << key.destination_port << ", proto" << key.protocol << std::endl;
-        std::cout << "Adding map entry [value]: " << get_string_from_address((SOCKADDR*)&proxy)
-                  << ", port: " << value.destination_port << std::endl;
         REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
     } else {
-        std::cout << "Removing map entry [key]: " << get_string_from_address((SOCKADDR*)&destination)
-                  << ", port: " << key.destination_port << ", proto" << key.protocol << std::endl;
         REQUIRE(bpf_map_delete_elem(map_fd, &key) == 0);
     }
 }
@@ -370,6 +363,7 @@ update_policy_map_and_test_connection(
     bool add_policy = true;
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
+    uint64_t authentication_id;
     bool redirected = (destination_port != proxy_port || !INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&proxy));
     // IPv6 redirect tests always redirect to the IPv6 address. The IPv4 address may be the dual stack or IPv4 address,
     // depending on the inputs.
@@ -382,38 +376,35 @@ update_policy_map_and_test_connection(
     // Update policy in the map to redirect the connection to the proxy.
     _update_policy_map(destination, proxy, destination_port, proxy_port, _globals.protocol, dual_stack, add_policy);
 
-    // For local redirection, the redirect context is expected to be set and returned.
-    // If the connection is not redirected or is redirected to a remote address,
-    // check for the SERVER_MESSAGE generic response.
-    std::string expected_response;
-    if (redirected && local_redirect && (_globals.protocol == protocol_type_t::TCP)) {
-        expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
-    } else {
-        expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
+    {
+        impersonation_helper_t helper(_globals.user_type);
+
+        authentication_id = _get_current_thread_authentication_id();
+        REQUIRE(authentication_id != 0);
+
+        // Try to send and receive message to "destination". It should succeed.
+        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
+        sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
+
+        sender_socket->post_async_receive();
+        sender_socket->complete_async_receive(2000, false);
+
+        sender_socket->get_received_message(bytes_received, received_message);
+
+        // For local redirection, the redirect context is expected to be set and returned.
+        // If the connection is not redirected or is redirected to a remote address,
+        // check for the SERVER_MESSAGE generic response.
+        std::string expected_response;
+        if (redirected && local_redirect && (_globals.protocol == IPPROTO_TCP)) {
+            expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
+        } else {
+            expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
+        }
+        REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
+        REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
     }
 
-    // for (int i = 0; i < 3; ++i) {
-    impersonation_helper_t helper(_globals.user_type);
-
-    uint64_t authentication_id = _get_current_thread_authentication_id();
-    REQUIRE(authentication_id != 0);
-
-    // Try to send and receive message to "destination". It should succeed.
-    std::cout << "Expecting succeeded connection. To: " << get_string_from_address((SOCKADDR*)&destination)
-              << std::endl;
-    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
-    sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
-
-    sender_socket->post_async_receive();
-    sender_socket->complete_async_receive(2000, false);
-
-    sender_socket->get_received_message(bytes_received, received_message);
-
-    REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
-    REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
-
     _validate_audit_map_entry(authentication_id);
-    // }
 
     // Remove entry from policy map.
     add_policy = false;
@@ -423,25 +414,25 @@ update_policy_map_and_test_connection(
 void
 authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& destination, bool dual_stack)
 {
+    uint64_t authentication_id;
     // Default behavior of the eBPF program is to block the connection.
-    // Send should fail as the connection is blocked. Repeat this multiple times to ensure that multiple packets are
-    // blocked for a single connection.
-    // for (int i = 0; i < 3; ++i) {
-    impersonation_helper_t helper(_globals.user_type);
-    uint64_t authentication_id = _get_current_thread_authentication_id();
-    REQUIRE(authentication_id != 0);
 
-    std::cout << "Initial connection - expected fail. To: " << get_string_from_address((SOCKADDR*)&destination)
-              << std::endl;
-    sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
-    sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
+    // Send should fail as the connection is blocked.
+    {
+        impersonation_helper_t helper(_globals.user_type);
 
-    // Receive should time out as connection is blocked.
-    sender_socket->post_async_receive(true);
-    sender_socket->complete_async_receive(1000, true);
+        authentication_id = _get_current_thread_authentication_id();
+        REQUIRE(authentication_id != 0);
+
+        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
+        sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
+
+        // Receive should time out as connection is blocked.
+        sender_socket->post_async_receive(true);
+        sender_socket->complete_async_receive(1000, true);
+    }
 
     _validate_audit_map_entry(authentication_id);
-    // }
 
     // Now update the policy map to allow the connection and test again.
     update_policy_map_and_test_connection(

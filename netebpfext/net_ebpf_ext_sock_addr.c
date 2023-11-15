@@ -296,17 +296,9 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
         goto Exit;
     }
     memcpy(redirect_context, data, data_size);
-    TraceLoggingWrite(
-        net_ebpf_ext_tracelog_provider,
-        "[maige] Allocate redirect context",
-        TraceLoggingPointer(redirect_context, "redirect_context"));
 
     // If a redirect context already exists, free the existing buffer.
     if (sock_addr_ctx->redirect_context != NULL) {
-        TraceLoggingWrite(
-            net_ebpf_ext_tracelog_provider,
-            "[maige] Freeing redirect context 1",
-            TraceLoggingPointer(sock_addr_ctx->redirect_context, "redirect_context"));
         ExFreePool(sock_addr_ctx->redirect_context);
     }
 
@@ -839,19 +831,6 @@ _net_ebpf_ext_get_and_remove_connection_context(
 
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
 
-    // if (connection_context) {
-    //     TraceLoggingWrite(
-    //         net_ebpf_ext_tracelog_provider,
-    //         "_net_ebpf_ext_get_and_remove_connection_context[maige]",
-    //         TraceLoggingPointer(connection_context, "connection_context_pointer"),
-    //         TraceLoggingUInt64((connection_context->transport_endpoint_handle), "transport_endpoint_handle"),
-    //         TraceLoggingIPv4Address((connection_context->address_info.destination_ip.ipv4), "destination_ip"),
-    //         TraceLoggingUInt16((connection_context->address_info.destination_port), "destination_port"),
-    //         TraceLoggingUInt16((connection_context->address_info.source_port), "source_port"));
-    // } else {
-    //     TraceLoggingWrite(
-    //         net_ebpf_ext_tracelog_provider, "_net_ebpf_ext_get_and_remove_connection_context[maige]::NULL");
-    // }
     NET_EBPF_EXT_RETURN_POINTER(net_ebpf_extension_connection_context_t*, connection_context);
 }
 
@@ -910,20 +889,6 @@ _net_ebpf_ext_insert_connection_context_to_list(_Inout_ net_ebpf_extension_conne
     _net_ebpf_ext_purge_lru_contexts_under_lock(FALSE);
 
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
-
-    // if (connection_context) {
-    //     TraceLoggingWrite(
-    //         net_ebpf_ext_tracelog_provider,
-    //         "_net_ebpf_ext_insert_connection_context_to_list[maige]",
-    //         TraceLoggingPointer(connection_context, "connection_context_pointer"),
-    //         TraceLoggingUInt64((connection_context->transport_endpoint_handle), "transport_endpoint_handle"),
-    //         TraceLoggingIPv4Address((connection_context->address_info.destination_ip.ipv4), "destination_ip"),
-    //         TraceLoggingUInt16((connection_context->address_info.destination_port), "destination_port"),
-    //         TraceLoggingUInt16((connection_context->address_info.source_port), "source_port"));
-    // } else {
-    //     TraceLoggingWrite(
-    //         net_ebpf_ext_tracelog_provider, "_net_ebpf_ext_insert_connection_context_to_list[maige]::NULL");
-    // }
 }
 
 NTSTATUS
@@ -1447,10 +1412,6 @@ _net_ebpf_ext_process_redirect_verdict(
         connect_request->localRedirectTargetPID = TARGET_PROCESS_ID;
         connect_request->localRedirectHandle = redirect_handle;
 
-        TraceLoggingWrite(
-            net_ebpf_ext_tracelog_provider,
-            "[maige] Transferring redirect context to WFP",
-            TraceLoggingPointer(sock_addr_ctx->redirect_context, "redirect_context"));
         connect_request->localRedirectContext = sock_addr_ctx->redirect_context;
         connect_request->localRedirectContextSize = sock_addr_ctx->redirect_context_size;
         // Ownership transferred to WFP.
@@ -1761,13 +1722,7 @@ Exit:
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
 
-    // TODO - this looks like it should always free the context properly. But we need to double check
-
     if (net_ebpf_sock_addr_ctx.redirect_context != NULL) {
-        TraceLoggingWrite(
-            net_ebpf_ext_tracelog_provider,
-            "[maige] Freeing redirect context 2",
-            TraceLoggingPointer(net_ebpf_sock_addr_ctx.redirect_context, "redirect_context"));
         ExFreePool(net_ebpf_sock_addr_ctx.redirect_context);
     }
 
