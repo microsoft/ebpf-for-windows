@@ -828,17 +828,18 @@ _net_ebpf_ext_get_and_remove_connection_context(
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
 
     // Find and remove the entry
-    if ((ebpf_hash_table_find(
-             _net_ebpf_ext_connect_context_hash_table,
-             (uint8_t*)&local_connection_context,
-             (uint8_t**)&hash_table_connection_context) == EBPF_SUCCESS) &&
-        (ebpf_hash_table_delete(_net_ebpf_ext_connect_context_hash_table, (uint8_t*)&local_connection_context) ==
-         EBPF_SUCCESS)) {
+    if (ebpf_hash_table_find(
+            _net_ebpf_ext_connect_context_hash_table,
+            (uint8_t*)&local_connection_context,
+            (uint8_t**)&hash_table_connection_context) == EBPF_SUCCESS) {
         connection_context = *hash_table_connection_context;
 
-        // Remove from LRU list
-        RemoveEntryList(&connection_context->list_entry);
-        _net_ebpf_ext_connect_context_count--;
+        if (ebpf_hash_table_delete(_net_ebpf_ext_connect_context_hash_table, (uint8_t*)&local_connection_context) ==
+            EBPF_SUCCESS) {
+            // Remove from LRU list
+            RemoveEntryList(&connection_context->list_entry);
+            _net_ebpf_ext_connect_context_count--;
+        }
     }
 
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock, old_irql);
@@ -909,7 +910,7 @@ _net_ebpf_ext_insert_connection_context_to_list(_Inout_ net_ebpf_extension_conne
         _net_ebpf_ext_connect_context_hash_table,
         (uint8_t*)connection_context,
         (uint8_t*)&connection_context,
-        EBPF_HASH_TABLE_OPERATION_INSERT);
+        EBPF_HASH_TABLE_OPERATION_ANY);
     NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
     // Insert the most recent entry at the head.
