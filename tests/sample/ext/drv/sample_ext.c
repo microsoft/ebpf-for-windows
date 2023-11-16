@@ -8,18 +8,26 @@
 
 #define INITGUID
 
+// clang-format off
+#include <ntifs.h>
+#include <netioddk.h>
+#include <ntstatus.h>
+
+#include "ebpf_extension.h"
 #include "ebpf_extension_uuids.h"
-#include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_structs.h"
 #include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"
 #include "sample_ext_program_info.h"
+// clang-format on
 
 #define SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
 #define SAMPLE_PID_TGID_VALUE 9999
+
+#define SAMPLE_EXT_POOL_TAG_DEFAULT 'txes'
 
 // Sample Extension helper function addresses table.
 static uint64_t
@@ -277,13 +285,14 @@ _sample_ebpf_extension_program_info_provider_attach_client(
     *provider_binding_context = NULL;
     *provider_dispatch = NULL;
 
-    program_info_client = (sample_ebpf_extension_program_info_client_t*)ebpf_allocate(
-        sizeof(sample_ebpf_extension_program_info_client_t));
-
+    program_info_client = ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(sample_ebpf_extension_program_info_client_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
     if (program_info_client == NULL) {
         status = STATUS_NO_MEMORY;
         goto Exit;
     }
+
+    RtlZeroMemory(program_info_client, sizeof(sample_ebpf_extension_program_info_client_t));
 
     program_info_client->nmr_binding_handle = nmr_binding_handle;
     program_info_client->client_module_id = client_registration_instance->ModuleId->Guid;
@@ -293,7 +302,7 @@ Exit:
         *provider_binding_context = program_info_client;
         program_info_client = NULL;
     } else {
-        ebpf_free(program_info_client);
+        ExFreePool(program_info_client);
     }
     return status;
 }
@@ -311,7 +320,7 @@ _sample_ebpf_extension_program_info_provider_detach_client(_In_ const void* prov
 static void
 _sample_ebpf_extension_program_info_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
 {
-    ebpf_free(provider_binding_context);
+    ExFreePool(provider_binding_context);
 }
 
 void
@@ -425,7 +434,14 @@ _sample_ebpf_extension_hook_provider_attach_client(
     *provider_binding_context = NULL;
     *provider_dispatch = NULL;
 
-    hook_client = (sample_ebpf_extension_hook_client_t*)ebpf_allocate(sizeof(sample_ebpf_extension_hook_client_t));
+    hook_client = ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(sample_ebpf_extension_hook_client_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
+    if (hook_client == NULL) {
+        status = STATUS_NO_MEMORY;
+        goto Exit;
+    }
+
+    RtlZeroMemory(hook_client, sizeof(sample_ebpf_extension_hook_client_t));
 
     if (hook_client == NULL) {
         status = STATUS_NO_MEMORY;
@@ -454,7 +470,7 @@ Exit:
         *provider_binding_context = hook_client;
         hook_client = NULL;
     } else {
-        ebpf_free(hook_client);
+        ExFreePool(hook_client);
     }
 
     return status;
@@ -484,7 +500,7 @@ Exit:
 static void
 _sample_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
 {
-    ebpf_free(provider_binding_context);
+    ExFreePool(provider_binding_context);
 }
 
 void
