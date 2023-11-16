@@ -14,7 +14,7 @@ on:
   # Trigger the workflow when a release-tag is created, or a commit is pushed on a release branch.
   push:
     tags:
-      - 'v0.*' # To be updated on GA
+      - 'v0.*' # To be updated on GA, and after that on every major release.
     branches:
       - 'release/*'
 
