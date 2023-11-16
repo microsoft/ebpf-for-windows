@@ -70,7 +70,7 @@ jobs:
   unit_tests_appverif:
     # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
