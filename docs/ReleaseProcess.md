@@ -109,9 +109,9 @@ As a result of creating new release or servicing an existing one, the following 
 
 ### Publishing the Release to GitHub
 
-1. Create a tag for the PR's commit number, on the main repo's "`release/X.Y`" branch being released, with the version number being released, using this notation: "`vX.Y.Z`".
-1. Wait for the "`CI/CD - Release validation`" workflow for the PR to complete successfully.
-1. Once the CI/CD pipeline completes successfully, wait for the `sign-off` label to be added from the Triage meeting, on the automated "release-issue".
+1. On the main repo, create a tag for the release-PR's commit. The tag should reflect the version number being released and adhere to the following notation: "`vX.Y.Z`".
+1. The tag creation will automatically trigger the "`CI/CD - Release validation`" workflow for the PR: wait for it to complete successfully.
+1. Once the CI/CD pipeline completes successfully, wait for the `sign-off` label to be added from the Triage meeting, on the automated "release-issue" associated to the release to be published.
 1. Go to the repo on GitHub and click on "`<Code>`" and click on right the "`Create a new release`" link.
 1. Click on the "`Choose a tag`" combo box and select the tag with new "`vX.Y.Z`" version number, as created earlier.
 1. Fill in the release title as "`vX.Y.Z`" (replace "`X.Y.Z`" with the version number being released).
