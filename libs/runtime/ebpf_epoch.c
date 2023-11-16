@@ -655,6 +655,12 @@ _ebpf_epoch_insert_in_free_list(_In_ ebpf_epoch_allocation_header_t* header)
             cxplat_queue_preemptible_work_item(work_item->preemptible_work_item);
             break;
         }
+        case EBPF_EPOCH_ALLOCATION_SYNCHRONIZATION: {
+            ebpf_epoch_synchronization_t* synchronization =
+                CONTAINING_RECORD(header, ebpf_epoch_synchronization_t, header);
+            KeSetEvent(&synchronization->event, 0, false);
+            break;
+        }
         default:
             ebpf_assert(!"Invalid entry type");
         }
