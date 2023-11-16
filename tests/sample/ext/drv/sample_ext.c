@@ -301,7 +301,7 @@ Exit:
     if (NT_SUCCESS(status)) {
         *provider_binding_context = program_info_client;
         program_info_client = NULL;
-    } else {
+    } else if (program_info_client != NULL) {
         ExFreePool(program_info_client);
     }
     return status;
@@ -469,7 +469,7 @@ Exit:
     if (NT_SUCCESS(status)) {
         *provider_binding_context = hook_client;
         hook_client = NULL;
-    } else {
+    } else if (hook_client != NULL) {
         ExFreePool(hook_client);
     }
 
