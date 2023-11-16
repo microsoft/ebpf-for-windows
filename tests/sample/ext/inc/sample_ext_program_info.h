@@ -15,7 +15,6 @@
 
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
-#define EBPF_FROM_FIELD(s, m, o) (s*)((uint8_t*)o - EBPF_OFFSET_OF(s, m))
 
 static const ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
     sizeof(sample_program_context_t),
