@@ -82,7 +82,6 @@ Servicing a release has two main scenarios:
 1. Create a **Draft** pull-request for your working branch into the main repo's "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Wait for  the CI/CD pipeline for the PR to complete successfully.
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`release/X.Y`" branch.
-1. Create a tag for the PR's commit number, on the main repo's "`release/X.Y`" branch, with the version number being released, i.e., "`vX.Y.Z`".
 1. Publish the release as per the "[Publishing a Release](ReleaseProcess.md#publishing-a-release)" process.
 
 
@@ -112,7 +111,9 @@ As a result of creating new release or servicing an existing one, the following 
 
 ### Publishing the Release to GitHub
 
-1. Create a tag for the PR's commit number, with the version number being released, i.e. "`vX.Y.Z`".
+1. Create a tag for the PR's commit number, on the main repo's "`release/X.Y`" branch being released, with the version number being released, i.e., "`vX.Y.Z`".
+1. Wait for the `cicd-release-validation` CI/CD pipeline for the PR to complete successfully.
+1. Once the CI/CD pipeline completes successfully, wait for the `sign-off` label to be added from the Triage meeting, on the automated "release-issue".
 1. Go to the repo on GitHub and click on "`<Code>`" and click on right the "`Create a new release`" link.
 1. Click on the "`Choose a tag`" combo box and select the tag with new "`vX.Y.Z`" version number, as created earlier.
 1. Fill in the release title as "`vX.Y.Z`" (replace "`X.Y.Z`" with the version number being released).
