@@ -537,6 +537,12 @@ ebpf_epoch_synchronize()
     KeInitializeEvent(&synchronization.event, NotificationEvent, false);
     _ebpf_epoch_insert_in_free_list(&synchronization.header);
 
+    // Trigger epoch computation.
+    ebpf_epoch_cpu_message_t message = {0};
+    message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH;
+    message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
+    _ebpf_epoch_send_message_and_wait(&message, 0);
+
     KeWaitForSingleObject(&synchronization.event, Executive, KernelMode, false, NULL);
 }
 
