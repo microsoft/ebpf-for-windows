@@ -35,7 +35,8 @@ typedef ebpf_result_t (*ebpf_program_invoke_function_t)(
  *
  * @param[in] extension_client_binding_context The context provided by the extension client when the binding was
  * created.
- * @param[in] state_size The size of the state to be allocated.
+ * @param[in] state_size The size of the state to be allocated, should be greater than or equal to
+ * sizeof(ebpf_execution_context_state_t).
  * @param[out] state The state to be used for batch invocation.
  *
  * @retval EBPF_SUCCESS if successful or an appropriate error code.
