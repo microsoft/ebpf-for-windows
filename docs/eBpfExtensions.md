@@ -269,7 +269,8 @@ typedef ebpf_result_t (*ebpf_program_invoke_function_t)(
  * @brief Prepare the eBPF program for batch invocation.
  *
  * @param[in] extension_client_binding_context The context provided by the extension client when the binding was created.
- * @param[in] state_size The size of the state to be allocated.
+ * @param[in] state_size The size of the state to be allocated, should be greater than or equal to
+ * sizeof(ebpf_execution_context_state_t).
  * @param[out] state The state to be used for batch invocation.
  *
  * @retval EBPF_SUCCESS if successful or an appropriate error code.
@@ -322,9 +323,12 @@ post execution.
 In cases where the same eBPF program will be invoked sequentially with different context data (aka batch invocation),
 the caller can reduce the overhead of by using the batch invocation APIs. Prior to the first invocation, the batch
 begin API is called, which caches state used by the eBPf program and prevents the program from being unloaded. The
-caller is responsible for providing storage of large enough to store an instance of ebpf_execution_context_state_t and
+caller is responsible for providing storage arge enough to store an instance of ebpf_execution_context_state_t and
 ensuring that it remain valid until calling the batch end API. Between the begin and end calls, the caller may call
-the batch invoke API multiple times to invoke the BPF program with minimal overhead.
+the batch invoke API multiple times to invoke the BPF program with minimal overhead. Callers must limit the length
+of time a batch is open and must not change IRQL between calling batch begin and end. Batch end cost may scale with
+the number of times the program has been invoked, so callers should limit the number of calls within a batch to
+prevent long delays in batch end.
 
 ### 2.6 Authoring Helper Functions
 An extension can provide an implementation of helper functions that can be invoked by the eBPF programs. The helper
