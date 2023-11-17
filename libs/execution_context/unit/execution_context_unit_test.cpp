@@ -740,8 +740,8 @@ TEST_CASE("program", "[execution_context]")
     ebpf_program_invoke(program.get(), &ctx, &result, &state);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
-    std::vector<uint8_t> input_buffer(10);
-    std::vector<uint8_t> output_buffer(10);
+    std::vector<uint8_t> input_buffer(sizeof(sample_program_context_t));
+    std::vector<uint8_t> output_buffer(sizeof(sample_program_context_t));
     ebpf_program_test_run_options_t options = {0};
     options.data_in = input_buffer.data();
     options.data_size_in = input_buffer.size();
@@ -962,11 +962,11 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
 }
 
 std::vector<GUID> _program_types = {
-    EBPF_PROGRAM_TYPE_XDP_TEST,
     EBPF_PROGRAM_TYPE_BIND,
     EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
     EBPF_PROGRAM_TYPE_SOCK_OPS,
-    EBPF_PROGRAM_TYPE_SAMPLE};
+    EBPF_PROGRAM_TYPE_SAMPLE,
+    EBPF_PROGRAM_TYPE_XDP_TEST};
 
 std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
     {
