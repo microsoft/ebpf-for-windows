@@ -96,7 +96,7 @@ TEST_CASE("prog load map_in_map", "[prog][load]")
     size_t offset = output.find(" map_ids ");
     REQUIRE(offset != std::string::npos);
     std::string map_id = std::to_string(atoi(output.substr(offset + 9).c_str()));
-    REQUIRE(output == id + ": xdp  name lookup  \n  map_ids " + map_id + "\n");
+    REQUIRE(output == id + ": sample  name lookup  \n  map_ids " + map_id + "\n");
 
     output = run_command(("bpftool prog pin id " + id + " pin2").c_str(), &result);
     REQUIRE(output == "");
@@ -145,10 +145,11 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     offset = output.find(",");
     REQUIRE(offset != std::string::npos);
     std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
-    REQUIRE(output == id + ": xdp  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
+    REQUIRE(output == id + ": xdp_test  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
     // Try attaching to an interface by friendly name.
-    output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(), &result);
+    output =
+        run_command(("bpftool net attach xdp_test id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(), &result);
     REQUIRE(result == 0);
 
     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
@@ -232,7 +233,7 @@ TEST_CASE("prog prog run", "[prog][load]")
     offset = output.find(",");
     REQUIRE(offset != std::string::npos);
     std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
-    REQUIRE(output == id + ": xdp  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
+    REQUIRE(output == id + ": xdp_test  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
     // Create temporary files for input and output.
     std::filesystem::path input_file = std::filesystem::temp_directory_path() / "data_in.txt";
