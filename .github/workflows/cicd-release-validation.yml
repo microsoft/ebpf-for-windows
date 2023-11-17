@@ -11,21 +11,24 @@
 name: CI/CD - Release validation
 
 on:
+  # Trigger the workflow when a release-tag is created, or a commit is pushed on a release branch.
+  push:
+    tags:
+      - 'v0.*' # To be updated on GA, and after that on every major release.
+    branches:
+      - 'release/*'
+
   # Permit manual runs of the workflow.
   workflow_dispatch:
     inputs:
-      # Request a branch to build.
+      # Request a target release branch to run CI/CD on.
       branch:
-        description: 'Branch to build'
+        description: 'Target release branch to run CI/CD on.'
         required: true
-        default: 'main'
+        default: 'release/'
 
 concurrency:
-  # Cancel any in-progress instance of this workflow (CI/CD) for the same PR.
-  # Allow running concurrently with any commits on any other branch.
-  # Using GITHUB_REF instead of GITHUB_SHA allows parallel runs on
-  # different branches with the same HEAD commit.
-  group: cicd-release-validation-${{ github.event.schedule || github.event.after || github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -476,19 +479,6 @@ jobs:
       environment: ebpf_cicd_perf_ws2022
       configurations: '["Release"]'
 
-  performance_with_profile-1:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: km_performance
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      build_artifact: Build-x64
-      configurations: '["Release"]'
-      environment: ebpf_cicd_perf_ws2022
-
   upload_perf_results-1:
     needs: performance-1
     if: github.event_name == 'workflow_dispatch'
@@ -515,19 +505,6 @@ jobs:
       environment: ebpf_cicd_perf_ws2022
       configurations: '["Release"]'
 
-  performance_with_profile-2:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: km_performance
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      build_artifact: Build-x64
-      configurations: '["Release"]'
-      environment: ebpf_cicd_perf_ws2022
-
   upload_perf_results-2:
     needs: performance-2
     if: github.event_name == 'workflow_dispatch'
@@ -553,19 +530,6 @@ jobs:
       build_artifact: Build-x64
       environment: ebpf_cicd_perf_ws2022
       configurations: '["Release"]'
-
-  performance_with_profile-3:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: km_performance
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance" -Options @("CaptureProfile")
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      build_artifact: Build-x64
-      configurations: '["Release"]'
-      environment: ebpf_cicd_perf_ws2022
 
   upload_perf_results-3:
     needs: performance-3
