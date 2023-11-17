@@ -27,7 +27,7 @@ static GUID decapsulate_permit_packet_program_type_guid = {
     0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
 static GUID decapsulate_permit_packet_attach_type_guid = {
     0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
-#pragma code_seg(push, "xdp/de~1")
+#pragma code_seg(push, "xdp_te~1")
 static uint64_t
 decapsulate_permit_packet(void* context)
 #line 88 "sample/decap_permit_packet.c"
@@ -437,8 +437,8 @@ static program_entry_t _programs[] = {
     {
         0,
         decapsulate_permit_packet,
-        "xdp/de~1",
-        "xdp/decapsulate_reflect",
+        "xdp_te~1",
+        "xdp_test/decapsulate_reflect",
         "decapsulate_permit_packet",
         NULL,
         0,

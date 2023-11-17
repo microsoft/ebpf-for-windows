@@ -45,9 +45,9 @@ TEST_CASE("query program info", "[netebpfext]")
     std::vector<GUID> expected_guids = {
         EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
         EBPF_PROGRAM_TYPE_SOCK_OPS,
-        EBPF_PROGRAM_TYPE_XDP_TEST,
-        EBPF_PROGRAM_TYPE_BIND};
-    std::vector<std::string> expected_program_names = {"sock_addr", "sockops", "bind", "xdp"};
+        EBPF_PROGRAM_TYPE_BIND,
+        EBPF_PROGRAM_TYPE_XDP_TEST};
+    std::vector<std::string> expected_program_names = {"sock_addr", "sockops", "bind", "xdp_test"};
 
     auto guid_less = [](const GUID& lhs, const GUID& rhs) { return memcmp(&lhs, &rhs, sizeof(lhs)) < 0; };
 

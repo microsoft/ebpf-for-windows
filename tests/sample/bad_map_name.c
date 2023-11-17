@@ -12,6 +12,7 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
+#include "sample_ext_helpers.h"
 
 struct
 {
@@ -21,7 +22,7 @@ struct
     __uint(max_entries, 1);
 } this_map_has_a_name_that_is_longer_than_what_the_ebpfcore_driver_can_support SEC(".maps");
 
-SEC("xdp_prog") int lookup(struct xdp_md* ctx)
+SEC("sample_ext") int lookup(sample_program_context_t* ctx)
 {
     uint32_t key = 0;
     void* value =

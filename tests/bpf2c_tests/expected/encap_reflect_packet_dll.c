@@ -54,7 +54,7 @@ static GUID encap_reflect_packet_program_type_guid = {
     0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
 static GUID encap_reflect_packet_attach_type_guid = {
     0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
-#pragma code_seg(push, "xdp/en~1")
+#pragma code_seg(push, "xdp_te~1")
 static uint64_t
 encap_reflect_packet(void* context)
 #line 167 "sample/encap_reflect_packet.c"
@@ -1143,8 +1143,8 @@ static program_entry_t _programs[] = {
     {
         0,
         encap_reflect_packet,
-        "xdp/en~1",
-        "xdp/encap_reflect",
+        "xdp_te~1",
+        "xdp_test/encap_reflect",
         "encap_reflect_packet",
         NULL,
         0,

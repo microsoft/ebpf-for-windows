@@ -72,10 +72,10 @@ function Update-ExpectedOutput
     foreach ($file in $SampleFiles)
     {
         $additional_options = ""
-        # If file is in the set $CustomSampleFiles, then add the --type xdp option.
+        # If file is in the set $CustomSampleFiles, then add the --type sample_ext option.
         if ($CustomSampleFiles -contains $file)
         {
-            $additional_options = "--type xdp"
+            $additional_options = "--type sample_ext"
         }
 
         # If file is in the set $UnsafeSampleFiles, then add the --no-verify option.

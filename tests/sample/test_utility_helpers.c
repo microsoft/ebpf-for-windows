@@ -15,6 +15,7 @@
 
 #include "bpf_helpers.h"
 #include "sample_common_routines.h"
+#include "sample_ext_helpers.h"
 #include "sample_test_common.h"
 
 #define VALUE_SIZE 32
@@ -27,9 +28,9 @@ struct
     __uint(max_entries, UTILITY_MAP_SIZE);
 } utility_map SEC(".maps");
 
-SEC("xdp")
+SEC("sample_ext")
 int
-test_utility_helpers(xdp_md_t* context)
+test_utility_helpers(sample_program_context_t* context)
 {
     return test_utility_helper_functions(&utility_map);
 }

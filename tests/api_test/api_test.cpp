@@ -331,7 +331,7 @@ DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INT
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 
 // Try to load bindmonitor with providing wrong program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_XDP_TEST, EBPF_EXECUTION_ANY, _get_expected_jit_result(-EACCES));
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_ANY, _get_expected_jit_result(-EACCES));
 
 // Try to load an unsafe program.
 DECLARE_LOAD_TEST_CASE(
@@ -551,7 +551,7 @@ tailcall_load_test(_In_z_ const char* file_name)
     struct bpf_object* object = nullptr;
     fd_t program_fd;
 
-    result = _program_load_helper(file_name, BPF_PROG_TYPE_XDP_TEST, EBPF_EXECUTION_ANY, &object, &program_fd);
+    result = _program_load_helper(file_name, BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_ANY, &object, &program_fd);
     REQUIRE(result == 0);
 
     REQUIRE(program_fd > 0);
@@ -568,7 +568,7 @@ tailcall_load_test(_In_z_ const char* file_name)
     REQUIRE(callee1_fd > 0);
 
     // Test a legacy libbpf api alias.
-    REQUIRE(bpf_program__get_type(callee0) == BPF_PROG_TYPE_XDP_TEST);
+    REQUIRE(bpf_program__get_type(callee0) == BPF_PROG_TYPE_SAMPLE);
 
     fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "map");
     REQUIRE(prog_map_fd > 0);
