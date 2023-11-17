@@ -22,7 +22,6 @@
 extern "C" size_t ebpf_fuzzing_memory_limit;
 
 static std::vector<GUID> _program_types = {
-    EBPF_PROGRAM_TYPE_XDP_ORIG,
     EBPF_PROGRAM_TYPE_BIND,
     EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
     EBPF_PROGRAM_TYPE_SOCK_OPS,
