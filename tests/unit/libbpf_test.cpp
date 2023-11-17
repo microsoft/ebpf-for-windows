@@ -1587,6 +1587,21 @@ _enumerate_program_ids_test(ebpf_execution_type_t execution_type)
 
 DECLARE_JIT_TEST_CASES("enumerate program IDs", "[libbpf]", _enumerate_program_ids_test);
 
+static uint32_t
+_ebpf_test_count_entries_map_in_map(int outer_map_fd)
+{
+    uint32_t entries_count = 0;
+    uint32_t outer_key = 0;
+    void* old_key = nullptr;
+    void* key = &outer_key;
+
+    while (bpf_map_get_next_key(outer_map_fd, old_key, key) == 0) {
+        old_key = key;
+        entries_count++;
+    }
+    return entries_count;
+}
+
 static void
 _ebpf_test_map_in_map(ebpf_map_type_t type)
 {
@@ -1616,6 +1631,15 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     int error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error == 0);
 
+    uint32_t count = _ebpf_test_count_entries_map_in_map(outer_map_fd);
+    // Verify the number of elements in the outer map.
+    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+        REQUIRE(count == 1);
+    } else {
+        // For ARRAY_OF_MAPS, the count is max_entries.
+        REQUIRE(count == 2);
+    }
+
     // Verify that we can read it back.
     ebpf_id_t inner_map_id;
     REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
@@ -1644,6 +1668,14 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     outer_key = 0;
     error = bpf_map_delete_elem(outer_map_fd, &outer_key);
     REQUIRE(error == 0);
+
+    // Verify the number of elements in the outer map is 0.
+    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+        REQUIRE(_ebpf_test_count_entries_map_in_map(outer_map_fd) == 0);
+    } else {
+        // For ARRAY_OF_MAPS, the count is max_entries.
+        REQUIRE(_ebpf_test_count_entries_map_in_map(outer_map_fd) == 2);
+    }
 
     Platform::_close(inner_map_fd);
     Platform::_close(outer_map_fd);

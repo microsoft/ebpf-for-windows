@@ -1061,7 +1061,7 @@ _ebpf_core_protocol_program_test_run(
     options->context_size_in = context_size_in;
     options->context_size_out = context_size_out;
     options->data_size_out = data_size_out;
-    options->repeat_count = request->repeat_count;
+    options->repeat_count = request->repeat_count ? request->repeat_count : 1;
     options->flags = request->flags;
     options->cpu = request->cpu;
     options->batch_size = request->batch_size;
@@ -1210,7 +1210,7 @@ ebpf_core_get_pinned_object(_In_ const cxplat_utf8_string_t* path, _Out_ ebpf_ha
 
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)object);
-    EBPF_RETURN_RESULT(retval);
+    EBPF_RETURN_FUNCTION_RESULT(retval);
 }
 
 static ebpf_result_t

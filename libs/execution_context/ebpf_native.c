@@ -824,6 +824,7 @@ Exit:
 static ebpf_result_t
 _ebpf_native_reuse_map(_Inout_ ebpf_native_map_t* map)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t handle = ebpf_handle_invalid;
     // Check if a map is already present with this pin path.
@@ -853,7 +854,7 @@ Exit:
     if (result != EBPF_SUCCESS) {
         ebpf_assert_success(ebpf_handle_close(handle));
     }
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 /**
