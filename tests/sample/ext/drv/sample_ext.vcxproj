@@ -208,15 +208,6 @@
     <ClInclude Include="..\inc\sample_ext_helpers.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="$(SolutionDir)libs\execution_context\kernel\execution_context_kernel.vcxproj">
-      <Project>{26e7ed0b-c128-4d7c-a90e-c246def40ad3}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\external\usersim\cxplat\src\cxplat_winkernel\cxplat_winkernel.vcxproj">
-      <Project>{1ebe3966-7dc4-49b4-b840-3d33d63415ec}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\libs\runtime\kernel\platform_kernel.vcxproj">
-      <Project>{fc3f9998-4085-4767-8386-5453f07c3aad}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\..\libs\store_helper\kernel\ebpf_store_helper_km.vcxproj">
       <Project>{3569e946-c8b4-49ee-a89d-edd09dc9f36e}</Project>
     </ProjectReference>
