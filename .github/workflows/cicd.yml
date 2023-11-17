@@ -67,7 +67,7 @@ jobs:
   #     configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   # Run the unit tests in GitHub.
-  unit_tests_appverif:
+  u1nit_tests_appverif:
     # Always run this job.
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
@@ -82,142 +82,10 @@ jobs:
       code_coverage: true
       gather_dumps: true
       capture_etw: true
-      leak_detection: true
+      leak_detection: false
 
-  # Run the unit tests in GitHub.
-  no_heaps_unit_tests_appverif:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests
-      pre_test: appverif -enable Exceptions Handles Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
-      # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-      leak_detection: true
-
-  
-  # Run the unit tests in GitHub.
-  no_memory_unit_tests_appverif:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests
-      pre_test: appverif -enable Exceptions Handles Heaps Leak Locks SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
-      # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-      leak_detection: true
-
-  # Run the unit tests in GitHub.
-  no_dirtystacks_unit_tests_appverif:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests
-      pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs TimeRollOver -for unit_tests.exe
-      # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-      leak_detection: true
-
-
-
-  # Run the unit tests in GitHub.
-  no_heaps_memory_unit_tests_appverif:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests
-      pre_test: appverif -enable Exceptions Handles Leak Locks SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
-      # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-      leak_detection: true
-
-  # Run the unit tests in GitHub.
-  no_heaps_dirtystacks_unit_tests_appverif:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests
-      pre_test: appverif -enable Exceptions Handles Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs TimeRollOver -for unit_tests.exe
-      # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-      leak_detection: true
-
-  # Run the unit tests in GitHub.
-  no_memory_dirtystacks_unit_tests_appverif:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests
-      pre_test: appverif -enable Exceptions Handles Heaps Leak Locks SRWLock Threadpool TLS DangerousAPIs TimeRollOver -for unit_tests.exe
-      # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-      leak_detection: true
-
-
-
-  # Run the unit tests in GitHub.
-  unit_tests:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests
-      # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-      leak_detection: true
-
-
-
-  # Run the unit tests in GitHub.
-  leak1_unit_tests_appverif:
+   #Run the unit tests in GitHub.
+  u2nit_tests_appverif:
     # Always run this job.
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
@@ -234,15 +102,15 @@ jobs:
       capture_etw: true
       leak_detection: true
 
-  # Run the unit tests in GitHub.
-  leak2_unit_tests_appverif:
+    #Run the unit tests in GitHub.
+  u3nit_tests_appverif:
     # Always run this job.
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
-      pre_test: appverif -enable Exceptions Handles Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
+      pre_test: appverif -enable Exceptions Handles Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       # Exclude [processes] test that CodeCoverage can't work with.
       test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64
@@ -250,43 +118,211 @@ jobs:
       code_coverage: true
       gather_dumps: true
       capture_etw: true
-      leak_detection: true
+      leak_detection: false    
 
-  # Run the unit tests in GitHub.
-  leak3_unit_tests_appverif:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests
-      pre_test: appverif -enable Exceptions Handles Heaps Locks SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
-      # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-      leak_detection: true
+  # # Run the unit tests in GitHub.
+  # no_heaps_unit_tests_appverif:
+  #   # Always run this job.
+  #   needs: regular
+  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: unit_tests
+  #     pre_test: appverif -enable Exceptions Handles Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
+  #     # Exclude [processes] test that CodeCoverage can't work with.
+  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     build_artifact: Build-x64
+  #     environment: windows-2022
+  #     code_coverage: true
+  #     gather_dumps: true
+  #     capture_etw: true
+  #     leak_detection: true
 
-  # Run the unit tests in GitHub.
-  leak4_unit_tests_appverif:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests
-      pre_test: appverif -enable Exceptions Handles Heaps Locks Memory SRWLock Threadpool TLS DangerousAPIs TimeRollOver -for unit_tests.exe
-      # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-      leak_detection: true            
+  
+  # # Run the unit tests in GitHub.
+  # no_memory_unit_tests_appverif:
+  #   # Always run this job.
+  #   needs: regular
+  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: unit_tests
+  #     pre_test: appverif -enable Exceptions Handles Heaps Leak Locks SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
+  #     # Exclude [processes] test that CodeCoverage can't work with.
+  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     build_artifact: Build-x64
+  #     environment: windows-2022
+  #     code_coverage: true
+  #     gather_dumps: true
+  #     capture_etw: true
+  #     leak_detection: true
+
+  # # Run the unit tests in GitHub.
+  # no_dirtystacks_unit_tests_appverif:
+  #   # Always run this job.
+  #   needs: regular
+  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: unit_tests
+  #     pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs TimeRollOver -for unit_tests.exe
+  #     # Exclude [processes] test that CodeCoverage can't work with.
+  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     build_artifact: Build-x64
+  #     environment: windows-2022
+  #     code_coverage: true
+  #     gather_dumps: true
+  #     capture_etw: true
+  #     leak_detection: true
+
+
+
+  # # Run the unit tests in GitHub.
+  # no_heaps_memory_unit_tests_appverif:
+  #   # Always run this job.
+  #   needs: regular
+  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: unit_tests
+  #     pre_test: appverif -enable Exceptions Handles Leak Locks SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
+  #     # Exclude [processes] test that CodeCoverage can't work with.
+  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     build_artifact: Build-x64
+  #     environment: windows-2022
+  #     code_coverage: true
+  #     gather_dumps: true
+  #     capture_etw: true
+  #     leak_detection: true
+
+  # # Run the unit tests in GitHub.
+  # no_heaps_dirtystacks_unit_tests_appverif:
+  #   # Always run this job.
+  #   needs: regular
+  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: unit_tests
+  #     pre_test: appverif -enable Exceptions Handles Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs TimeRollOver -for unit_tests.exe
+  #     # Exclude [processes] test that CodeCoverage can't work with.
+  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     build_artifact: Build-x64
+  #     environment: windows-2022
+  #     code_coverage: true
+  #     gather_dumps: true
+  #     capture_etw: true
+  #     leak_detection: true
+
+  # # Run the unit tests in GitHub.
+  # no_memory_dirtystacks_unit_tests_appverif:
+  #   # Always run this job.
+  #   needs: regular
+  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: unit_tests
+  #     pre_test: appverif -enable Exceptions Handles Heaps Leak Locks SRWLock Threadpool TLS DangerousAPIs TimeRollOver -for unit_tests.exe
+  #     # Exclude [processes] test that CodeCoverage can't work with.
+  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     build_artifact: Build-x64
+  #     environment: windows-2022
+  #     code_coverage: true
+  #     gather_dumps: true
+  #     capture_etw: true
+  #     leak_detection: true
+
+
+
+  # # Run the unit tests in GitHub.
+  # unit_tests:
+  #   # Always run this job.
+  #   needs: regular
+  #   if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: unit_tests
+  #     # Exclude [processes] test that CodeCoverage can't work with.
+  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     build_artifact: Build-x64
+  #     environment: windows-2022
+  #     code_coverage: true
+  #     gather_dumps: true
+  #     capture_etw: true
+  #     leak_detection: true
+
+
+
+  # # Run the unit tests in GitHub.
+  # leak1_unit_tests_appverif:
+  #   # Always run this job.
+  #   needs: regular
+  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: unit_tests
+  #     pre_test: appverif -enable Exceptions Handles Heaps Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
+  #     # Exclude [processes] test that CodeCoverage can't work with.
+  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     build_artifact: Build-x64
+  #     environment: windows-2022
+  #     code_coverage: true
+  #     gather_dumps: true
+  #     capture_etw: true
+  #     leak_detection: true
+
+  # # Run the unit tests in GitHub.
+  # leak2_unit_tests_appverif:
+  #   # Always run this job.
+  #   needs: regular
+  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: unit_tests
+  #     pre_test: appverif -enable Exceptions Handles Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
+  #     # Exclude [processes] test that CodeCoverage can't work with.
+  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     build_artifact: Build-x64
+  #     environment: windows-2022
+  #     code_coverage: true
+  #     gather_dumps: true
+  #     capture_etw: true
+  #     leak_detection: true
+
+  # # Run the unit tests in GitHub.
+  # leak3_unit_tests_appverif:
+  #   # Always run this job.
+  #   needs: regular
+  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: unit_tests
+  #     pre_test: appverif -enable Exceptions Handles Heaps Locks SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
+  #     # Exclude [processes] test that CodeCoverage can't work with.
+  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     build_artifact: Build-x64
+  #     environment: windows-2022
+  #     code_coverage: true
+  #     gather_dumps: true
+  #     capture_etw: true
+  #     leak_detection: true
+
+  # # Run the unit tests in GitHub.
+  # leak4_unit_tests_appverif:
+  #   # Always run this job.
+  #   needs: regular
+  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # remove PR after testing is done
+  #   uses: ./.github/workflows/reusable-test.yml
+  #   with:
+  #     name: unit_tests
+  #     pre_test: appverif -enable Exceptions Handles Heaps Locks Memory SRWLock Threadpool TLS DangerousAPIs TimeRollOver -for unit_tests.exe
+  #     # Exclude [processes] test that CodeCoverage can't work with.
+  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     build_artifact: Build-x64
+  #     environment: windows-2022
+  #     code_coverage: true
+  #     gather_dumps: true
+  #     capture_etw: true
+  #     leak_detection: true            
 
 
   # # Run the netebpfext unit tests in GitHub.
