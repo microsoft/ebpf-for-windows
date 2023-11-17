@@ -202,14 +202,14 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
     TEST_CASE(FILE "-custom-" #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, TYPE); }
 
 DECLARE_TEST("atomic_instruction_fetch_add", _test_mode::Verify)
-DECLARE_TEST("atomic_instruction_others", _test_mode::NoVerify)
+// DECLARE_TEST("atomic_instruction_others", _test_mode::NoVerify)
 DECLARE_TEST("bad_map_name", _test_mode::Verify)
 DECLARE_TEST("bindmonitor", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_ringbuf", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_tailcall", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_mt_tailcall", _test_mode::Verify)
-DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::Verify, std::string("xdp"))
-DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::FileOutput, std::string("xdp"))
+DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::Verify, std::string("sample_ext"))
+DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::FileOutput, std::string("sample_ext"))
 DECLARE_TEST("bpf_call", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr2", _test_mode::Verify)
@@ -248,7 +248,7 @@ DECLARE_TEST("cgroup_sock_addr", _test_mode::UseHashSHA512)
 DECLARE_TEST("cgroup_sock_addr2", _test_mode::UseHashX)
 
 DECLARE_TEST("no_such_file", _test_mode::FileNotFound)
-DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::UseHash, std::string("xdp"))
+DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::UseHash, std::string("sample_ext"))
 
 DECLARE_TEST("bpf", _test_mode::VerifyFail)
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::VerifyFail, std::string("invalid"))

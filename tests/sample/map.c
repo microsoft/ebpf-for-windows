@@ -17,6 +17,7 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
+#include "sample_ext_helpers.h"
 
 #define FALSE 0
 #define TRUE 1
@@ -286,7 +287,7 @@ test_PUSH_POP_map(struct _ebpf_map_definition_in_file* map)
     return 0;
 }
 
-SEC("xdp_prog") int test_maps(struct xdp_md* ctx)
+SEC("sample_ext") int test_maps(sample_program_context_t* ctx)
 {
     int result;
     TEST_MAP(HASH, GENERAL);

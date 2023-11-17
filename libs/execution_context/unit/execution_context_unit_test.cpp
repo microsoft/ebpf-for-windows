@@ -667,11 +667,11 @@ TEST_CASE("program", "[execution_context]")
     end_to_end.initialize();
 
     program_info_provider_t program_info_provider;
-    REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+    REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     const cxplat_utf8_string_t program_name{(uint8_t*)("foo"), 3};
     const cxplat_utf8_string_t section_name{(uint8_t*)("bar"), 3};
     const ebpf_program_parameters_t program_parameters{
-        EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST, program_name, section_name};
+        EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE, program_name, section_name};
     program_ptr program;
     {
         ebpf_program_t* local_program = nullptr;
@@ -793,30 +793,30 @@ TEST_CASE("program", "[execution_context]")
 
     // Correct attach type, but wrong program type.
     {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_XDP_TEST);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP_TEST, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
         REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
     }
 
     // Wrong attach type, but correct program type.
     {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_BIND);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_BIND);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP_TEST, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
         REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
     }
 
     // Correct attach type and correct program type.
     {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP_TEST, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
 
         // Attach should succeed.

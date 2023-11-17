@@ -568,8 +568,8 @@ TEST_CASE("set program", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     0      0  JIT        xdp            caller\n"
-                  "     6     0      0  JIT        xdp            callee\n");
+                  "     5     0      0  JIT        sample_ext     caller\n"
+                  "     6     0      0  JIT        sample_ext     callee\n");
 
     // Try to detach an unattached program.
     output = _run_netsh_command(handle_ebpf_set_program, L"5", L"", nullptr, &result);
@@ -577,10 +577,10 @@ TEST_CASE("set program", "[netsh][programs]")
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
 
     RPC_WSTR attach_type_string;
-    REQUIRE(UuidToStringW(&EBPF_ATTACH_TYPE_XDP_TEST, &attach_type_string) == 0);
+    REQUIRE(UuidToStringW(&EBPF_ATTACH_TYPE_SAMPLE, &attach_type_string) == 0);
 
     // Attach the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"5", L"xdp", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"5", L"sample_ext", nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
 

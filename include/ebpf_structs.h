@@ -177,11 +177,11 @@ enum bpf_prog_type
      *
      * **eBPF program prototype:** \ref xdp_hook_t
      *
-     * **Attach type(s):** \ref BPF_XDP_TEST
+     * **Attach type(s):** \ref BPF_XDP
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
-    BPF_PROG_TYPE_XDP_TEST,
+    BPF_PROG_TYPE_XDP_ORIG, // TODO rename to XDP before check in
 
     /** @brief Program type for handling socket bind() requests.
      *
@@ -218,6 +218,16 @@ enum bpf_prog_type
      */
     BPF_PROG_TYPE_SOCK_OPS,
 
+    /** @brief Program type for handling incoming packets as early as possible.
+     *
+     * **eBPF program prototype:** \ref xdp_hook_t
+     *
+     * **Attach type(s):** \ref BPF_XDP_TEST
+     *
+     * **Helpers available:** all helpers defined in bpf_helpers.h
+     */
+    BPF_PROG_TYPE_XDP_TEST,
+
     /** @brief Program type for handling calls from the eBPF sample extension. Used for
      * testing.
      *
@@ -240,6 +250,7 @@ enum bpf_link_type
     BPF_LINK_TYPE_UNSPEC,   ///< Unspecified link type.
     BPF_LINK_TYPE_PLAIN,    ///< No union members are used in bpf_link_info.
     BPF_LINK_TYPE_CGROUP,   ///< cgroup struct is present in bpf_link_info.
+    BPF_LINK_TYPE_XDP_ORIG, ///< xdp struct is present in bpf_link_info. // TODO - Should be just XDP
     BPF_LINK_TYPE_XDP_TEST, ///< xdp struct is present in bpf_link_info.
 };
 
@@ -254,9 +265,9 @@ enum bpf_attach_type
 
     /** @brief Attach type for handling incoming packets as early as possible.
      *
-     * **Program type:** \ref BPF_PROG_TYPE_XDP_TEST
+     * **Program type:** \ref BPF_PROG_TYPE_XDP
      */
-    BPF_XDP_TEST,
+    BPF_XDP_ORIG, // TODO - should be just XDP
 
     /** @brief Attach type for handling socket bind() requests.
      *
@@ -303,6 +314,12 @@ enum bpf_attach_type
      * **Program type:** \ref BPF_PROG_TYPE_SAMPLE
      */
     BPF_ATTACH_TYPE_SAMPLE,
+
+    /** @brief Attach type for handling incoming packets as early as possible.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_XDP_TEST
+     */
+    BPF_XDP_TEST,
 
     __MAX_BPF_ATTACH_TYPE,
 };

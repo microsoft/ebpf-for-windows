@@ -48,7 +48,7 @@ static uint16_t DropPacket_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "xdp")
+#pragma code_seg(push, "xdp_test")
 static uint64_t
 DropPacket(void* context)
 #line 34 "sample/unsafe/droppacket_unsafe.c"
@@ -160,8 +160,8 @@ static program_entry_t _programs[] = {
     {
         0,
         DropPacket,
-        "xdp",
-        "xdp",
+        "xdp_test",
+        "xdp_test",
         "DropPacket",
         DropPacket_maps,
         1,
