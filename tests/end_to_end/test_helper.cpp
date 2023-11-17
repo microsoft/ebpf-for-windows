@@ -784,7 +784,7 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 
 _test_helper_libbpf::_test_helper_libbpf()
     : bind_program_info(nullptr), bind_hook(nullptr), cgroup_sock_addr_program_info(nullptr),
-      cgroup_inet4_connect_hook(nullptr)
+      cgroup_inet4_connect_hook(nullptr), sample_program_info(nullptr), sample_hook(nullptr)
 {
     ebpf_clear_thread_local_storage();
 }

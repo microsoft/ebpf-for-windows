@@ -734,7 +734,7 @@ TEST_CASE("program", "[execution_context]")
             program.get(), EBPF_CODE_JIT, nullptr, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
         EBPF_SUCCESS);
     uint32_t result = 0;
-    bind_md_t ctx{0};
+    sample_program_context_t ctx{0};
     ebpf_execution_context_state_t state{};
     ebpf_get_execution_context_state(&state);
     ebpf_program_invoke(program.get(), &ctx, &result, &state);
