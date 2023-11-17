@@ -2006,7 +2006,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .get_object_from_entry = _get_object_from_hash_map_entry,
         .update_entry_with_handle = _update_map_hash_map_entry_with_handle,
         .delete_entry = _delete_map_hash_map_entry,
-        .next_key = _next_array_map_key,
+        .next_key = _next_hash_map_key,
     },
     {
         .map_type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
