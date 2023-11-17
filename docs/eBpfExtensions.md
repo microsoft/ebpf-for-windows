@@ -248,7 +248,7 @@ the provider must free the per-client context passed in via `ProviderBindingCont
 
 ### 2.5 Invoking an eBPF program from Hook NPI Provider
 To invoke an eBPF program, the extension uses the dispatch table supplied by the Hook NPI client during attaching.
-The client dispatch table contains the four functions, with the following type prototypes:
+The client dispatch table contains the functions, with the following type prototypes:
 
 ```
 /**
