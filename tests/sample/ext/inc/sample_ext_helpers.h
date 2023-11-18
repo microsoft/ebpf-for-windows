@@ -8,7 +8,14 @@
  * exposed by the sample extension.
  */
 
-#include <stdint.h>
+// #include <stdint.h>
+// #include <ebpf_structs.h>
+
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
+typedef long long int64_t;
 
 // Sample extension program context.
 typedef struct _sample_program_context

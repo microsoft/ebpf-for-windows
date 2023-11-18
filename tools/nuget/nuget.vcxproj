@@ -94,6 +94,14 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>pushd $(OutDir)
+if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
+type nul &amp;gt; $(OutDir)undocked\ebpf-for-windows.zip
+xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
+powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
+popd $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
     <ClCompile>
@@ -106,6 +114,14 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>pushd $(OutDir)
+if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
+type nul &amp;amp;gt; $(OutDir)undocked\ebpf-for-windows.zip
+xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
+powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
+popd $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -122,6 +138,14 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>pushd $(OutDir)
+if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
+type nul &amp;amp;gt; $(OutDir)undocked\ebpf-for-windows.zip
+xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
+powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
+popd $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
     <ClCompile>
@@ -138,6 +162,14 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>pushd $(OutDir)
+if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
+type nul &amp;amp;gt; $(OutDir)undocked\ebpf-for-windows.zip
+xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
+powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
+popd $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CustomBuild Include="ebpf-for-windows.nuspec.in">
