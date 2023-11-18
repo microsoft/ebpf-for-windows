@@ -352,7 +352,7 @@ jobs:
       gather_dumps: true
 
   # Run the quick stress tests in GitHub.
-  stress:
+  stress_1:
     needs: regular
     # Only run on schedule and pull request.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
@@ -360,7 +360,23 @@ jobs:
     with:
       name: stress
       # Until there is a dedicated stress test, re-use the perf test.
-      test_command: .\ebpf_performance.exe -d yes
+      test_command: .\ebpf_performance_1.exe -d yes
+      build_artifact: Build-x64
+      environment: windows-2022
+      # No code coverage on stress.
+      code_coverage: false
+      gather_dumps: true
+
+  # Run the quick stress tests in GitHub.
+  stress_2:
+    needs: regular
+    # Only run on schedule and pull request.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: stress
+      # Until there is a dedicated stress test, re-use the perf test.
+      test_command: .\ebpf_performance_2.exe -d yes
       build_artifact: Build-x64
       environment: windows-2022
       # No code coverage on stress.
