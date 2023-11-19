@@ -97,7 +97,7 @@
     <PostBuildEvent>
       <Command>pushd $(OutDir)
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
-type nul &amp;gt; $(OutDir)undocked\ebpf-for-windows.zip
+type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
 xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
 powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
 popd $(OutDir)</Command>
@@ -117,7 +117,7 @@ popd $(OutDir)</Command>
     <PostBuildEvent>
       <Command>pushd $(OutDir)
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
-type nul &amp;gt; $(OutDir)undocked\ebpf-for-windows.zip
+type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
 xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
 powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
 popd $(OutDir)</Command>
@@ -141,7 +141,7 @@ popd $(OutDir)</Command>
     <PostBuildEvent>
       <Command>pushd $(OutDir)
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
-type nul &amp;gt; $(OutDir)undocked\ebpf-for-windows.zip
+type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
 xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
 powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
 popd $(OutDir)</Command>
@@ -165,7 +165,7 @@ popd $(OutDir)</Command>
     <PostBuildEvent>
       <Command>pushd $(OutDir)
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
-type nul &amp;gt; $(OutDir)undocked\ebpf-for-windows.zip
+type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
 xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
 powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
 popd $(OutDir)</Command>
