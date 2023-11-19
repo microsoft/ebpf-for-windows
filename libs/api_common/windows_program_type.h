@@ -7,8 +7,8 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_program_types.h"
 #include "net_ebpf_ext_program_info.h"
-#include "sample_ext_helpers.h"
-#include "sample_ext_program_info.h"
+// #include "sample_ext_helpers.h"
+// #include "sample_ext_program_info.h"
 
 #define PTYPE(name, descr, native_type, prefixes) \
     {                                             \
