@@ -852,8 +852,8 @@ _net_ebpf_extension_connection_context_initialize(
     }
 }
 
-_Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_lock) static bool _net_ebpf_ext_should_block_connection(
-    uint64_t transport_endpoint_handle, _In_ const bpf_sock_addr_t* sock_addr_ctx)
+static bool
+_net_ebpf_ext_should_block_connection(uint64_t transport_endpoint_handle, _In_ const bpf_sock_addr_t* sock_addr_ctx)
 {
     KIRQL old_irql;
     BOOL block_connection = FALSE;
