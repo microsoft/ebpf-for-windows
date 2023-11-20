@@ -179,7 +179,7 @@ jobs:
 
     - name: Configure eBPF store (undocked)
       if: (steps.skip_check.outputs.should_skip != 'true') && (matrix.configurations != 'FuzzerDebug')
-      id: configure_ebpf_store
+      id: configure_ebpf_store_undocked
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
         .\export_program_info_sample.exe
