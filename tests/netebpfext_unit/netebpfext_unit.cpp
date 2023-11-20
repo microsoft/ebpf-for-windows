@@ -10,6 +10,8 @@
 #include "watchdog.h"
 
 #include <map>
+#include <stop_token>
+#include <thread>
 
 CATCH_REGISTER_LISTENER(_watchdog)
 CATCH_REGISTER_LISTENER(cxplat_passed_test_log)
