@@ -167,7 +167,7 @@ jobs:
       id: configure_ebpf_store
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
-        set  ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true
+        set ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true
         .\export_program_info.exe --clear
         .\export_program_info.exe
 
