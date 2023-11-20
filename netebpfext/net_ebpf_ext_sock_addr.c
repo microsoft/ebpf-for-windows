@@ -946,13 +946,13 @@ _Requires_exclusive_lock_held_(
     // Free entries from low-memory list. These entries should be returned to the free list.
     list_entry = _net_ebpf_ext_low_memory_blocked_connect_context_list.Blink;
     while (list_entry != &_net_ebpf_ext_low_memory_blocked_connect_context_list) {
-#pragma warning(suppress : 6001) /* entry and list entry are non-null */
         net_ebpf_extension_connection_context_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_connection_context_t, list_entry);
         if (!delete_all && entry->timestamp > expiry_time) {
             break;
         }
 
+#pragma warning(suppress : 6001) /* entry and list entry are non-null */
         list_entry = list_entry->Blink;
         RemoveEntryList(&entry->list_entry);
 
