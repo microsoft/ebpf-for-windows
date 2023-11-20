@@ -165,8 +165,9 @@ jobs:
     - name: Set ASAN Environment Variable
       if: steps.skip_check.outputs.should_skip != 'true'
       id: set_asan_env_var
+      shell: cmd
       run: |
-        echo "ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true" >> "$GITHUB_ENV"
+        powershell.exe "echo 'ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
 
     - name: Configure eBPF store
       if: steps.skip_check.outputs.should_skip != 'true'
