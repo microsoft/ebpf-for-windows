@@ -230,7 +230,7 @@ _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_block
 // layer.
 _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static ebpf_hash_table_t* _net_ebpf_ext_blocked_connect_context_hash_table =
     NULL;
-_Guarded_by_(_net_ebpf_bpf_sock_addr_lock) static uint32_t _net_ebpf_ext_connect_context_count = 0;
+static uint32_t _net_ebpf_ext_connect_context_count = 0;
 
 // This list stores pre-allocated contexts, to be used under low memory conditions.
 _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_low_memory_free_connect_context_list;
