@@ -7,7 +7,6 @@
 typedef struct _net_ebpf_ext_hook_client_rundown
 {
     EX_RUNDOWN_REF protection;
-    bool rundown_reinitialized;
     bool rundown_occurred;
 } net_ebpf_ext_hook_client_rundown_t;
 
@@ -97,29 +96,10 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
 
     // Initialize the rundown and disable new references.
     ExInitializeRundownProtection(&rundown->protection);
-    ExWaitForRundownProtectionRelease(&rundown->protection);
-    rundown->rundown_reinitialized = FALSE;
     rundown->rundown_occurred = FALSE;
 
 Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
-}
-
-/**
- * @brief Enable acquisition of references to the client rundown.
- *
- * @param[in, out] rundown Rundown object to enable.
- *
- */
-static void
-_ebpf_ext_attach_enable_rundown(_Inout_ net_ebpf_ext_hook_client_rundown_t* rundown)
-{
-    NET_EBPF_EXT_LOG_ENTRY();
-
-    ExReInitializeRundownProtection(&rundown->protection);
-    rundown->rundown_reinitialized = TRUE;
-
-    NET_EBPF_EXT_LOG_EXIT();
 }
 
 /**
@@ -182,11 +162,12 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
     NET_EBPF_EXT_LOG_EXIT();
 }
 
-bool
+_Must_inspect_result_ bool
 net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    return ExAcquireRundownProtection(&rundown->protection);
+    bool status = ExAcquireRundownProtection(&rundown->protection);
+    return status;
 }
 
 void
@@ -389,7 +370,6 @@ _net_ebpf_extension_hook_provider_attach_client(
     result = local_provider_context->attach_callback(hook_client, local_provider_context);
 
     if (result == EBPF_SUCCESS) {
-        _ebpf_ext_attach_enable_rundown(&hook_client->rundown);
         ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
         InsertTailList(&local_provider_context->attached_clients_list, &hook_client->link);
         RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);

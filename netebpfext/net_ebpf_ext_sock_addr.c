@@ -1195,15 +1195,17 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (attached_client == NULL) {
+    if (filter_context->base.client_detached) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_authorize_recv_accept_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
         goto Exit;
     }
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
-        attached_client = NULL;
-        goto Exit;
-    }
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
+    ENTER_HOOK_CLIENT_RUNDOWN(attached_client);
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -1242,7 +1244,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
 
 Exit:
     if (attached_client) {
-        net_ebpf_extension_hook_client_leave_rundown(attached_client);
+        LEAVE_HOOK_CLIENT_RUNDOWN(attached_client);
     }
 
     NET_EBPF_EXT_LOG_EXIT();
@@ -1546,6 +1548,16 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         goto Exit;
     }
 
+    if (filter_context->base.client_detached) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_redirect_connection_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        goto Exit;
+    }
+
     // Populate the sock_addr context with WFP classify input fields.
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -1565,22 +1577,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (attached_client == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "attached_client is NULL.",
-            STATUS_INVALID_PARAMETER);
-        goto Exit;
-    }
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
-        attached_client = NULL;
-        // Client is detaching.
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Client is detaching.");
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
-        goto Exit;
-    }
+    ENTER_HOOK_CLIENT_RUNDOWN(attached_client);
 
     // Get the redirect handle for this filter.
     redirect_handle = filter_context->redirect_handle;
@@ -1711,7 +1708,7 @@ Exit:
     }
 
     if (attached_client) {
-        net_ebpf_extension_hook_client_leave_rundown(attached_client);
+        LEAVE_HOOK_CLIENT_RUNDOWN(attached_client);
     }
 
     if (net_ebpf_sock_addr_ctx.redirect_context != NULL) {
