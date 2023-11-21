@@ -4,17 +4,14 @@
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
 #include "ebpf_api.h"
-#include "ebpf_nethooks.h"
-#include "ebpf_store_helper.h"
-// #include "store_helper_internal.h"
 #include "ebpf_extension.h"
+#include "ebpf_nethooks.h"
 #include "ebpf_program_types.h"
+#include "ebpf_store_helper.h"
 #include "sample_ext_program_info.h"
 
 #include <codecvt>
 #include <vector>
-
-// #include "ebpf_general_helpers.c"
 
 #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)

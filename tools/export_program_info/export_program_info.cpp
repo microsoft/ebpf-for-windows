@@ -14,9 +14,6 @@
 
 #include "ebpf_general_helpers.c"
 
-// #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
-// #define REG_OPEN_FLAGS (DELETE | KEY_READ)
-
 // Export XDP program information to allow for our unit tests to mock the XDP API surface.
 static const ebpf_program_info_t _mock_xdp_program_info = {
     {"xdp", &_ebpf_xdp_test_context_descriptor, EBPF_PROGRAM_TYPE_XDP_GUID, BPF_PROG_TYPE_XDP},

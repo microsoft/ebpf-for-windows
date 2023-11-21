@@ -4,11 +4,6 @@
 
 #include "ebpf_windows.h"
 
-// #if !defined(NO_CRT) && !defined(_NO_CRT_STDIO_INLINE)
-// #include <stdbool.h>
-// #include <stdint.h>
-// #endif
-
 #ifdef __cplusplus
 extern "C"
 {
