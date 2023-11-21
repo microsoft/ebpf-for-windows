@@ -109,7 +109,7 @@ As a result of creating new release or servicing an existing one, the following 
 
 ### Publishing the Release to GitHub
 
-1. On the main repo, create a tag for the release-PR's commit. The tag should reflect the version number being released and adhere to the following notation: "`vX.Y.Z`".
+1. On the `microsoft/ebpf-for-windows` repo's `main` branch, create a tag for the release-PR's commit. The tag should reflect the version number being released and adhere to the following notation: "`vX.Y.Z`".
 1. The tag creation will automatically trigger the "`CI/CD - Release validation`" workflow for the PR: wait for it to complete successfully.
 1. Once the CI/CD pipeline completes successfully, wait for the `sign-off` label to be added from the Triage meeting, on the automated "release-issue" associated to the release to be published.
 1. Go to the repo on GitHub and click on "`<Code>`" and click on right the "`Create a new release`" link.
