@@ -26,7 +26,7 @@ on:
         default: 'release/'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: release-validation-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
