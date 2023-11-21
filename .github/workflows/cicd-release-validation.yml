@@ -15,8 +15,7 @@ on:
   push:
     tags:
       - 'v0.*' # To be updated on GA, and after that on every major release.
-    branches:
-      - 'release/*'
+
 
   # Permit manual runs of the workflow.
   workflow_dispatch:
