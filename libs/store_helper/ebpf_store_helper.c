@@ -33,8 +33,8 @@ Exit:
     return result;
 }
 
-ebpf_result_t
-ebpf_store_update_helper_prototype(
+static ebpf_result_t
+_ebpf_store_update_helper_prototype(
     ebpf_store_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -98,7 +98,7 @@ ebpf_store_update_global_helper_information(
 
     for (uint32_t i = 0; i < helper_info_count; i++) {
 
-        result = ebpf_store_update_helper_prototype(helper_info_key, &helper_info[i]);
+        result = _ebpf_store_update_helper_prototype(helper_info_key, &helper_info[i]);
         if (!IS_SUCCESS(result)) {
             goto Exit;
         }
@@ -289,7 +289,7 @@ ebpf_store_update_program_information(
 
             // Iterate over all the helper prototypes and save in registry.
             for (uint32_t count = 0; count < program_info[i].count_of_program_type_specific_helpers; count++) {
-                result = ebpf_store_update_helper_prototype(
+                result = _ebpf_store_update_helper_prototype(
                     helper_info_key, &(program_info[i].program_type_specific_helper_prototype[count]));
                 if (!IS_SUCCESS(result)) {
                     ebpf_close_registry_key(program_key);

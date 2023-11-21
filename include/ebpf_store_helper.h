@@ -24,18 +24,6 @@ extern "C"
     extern const wchar_t* ebpf_store_root_sub_key;
 
     /**
-     * @brief Update the provider prototype information in the eBPF store.
-     *
-     * @param[in] helper_info_key Pointer to the store key to be initialized.
-     * @param[in] helper_info Pointer to the helper function prototype.
-     *
-     * @return Status of the operation.
-     */
-    ebpf_result_t
-    ebpf_store_update_helper_prototype(
-        ebpf_store_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info);
-
-    /**
      * @brief Update global helper information in the eBPF store.
      *
      * @param[in] helper_info Pointer to an array of helper function prototypes.
