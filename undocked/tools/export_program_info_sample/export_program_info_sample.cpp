@@ -62,23 +62,3 @@ export_all_section_information()
 
     return status;
 }
-
-// int
-// export_global_helper_information()
-// {
-//     return ebpf_store_update_global_helper_information(
-//         ebpf_core_helper_function_prototype, ebpf_core_helper_functions_count);
-// }
-
-// uint32_t
-// clear_all_ebpf_stores()
-// {
-//     std::cout << "Clearing eBPF store" << std::endl;
-//     return ebpf_store_clear(ebpf_store_root_key);
-// }
-
-// void
-// print_help(_In_z_ const char* file_name)
-// {
-//     std::cerr << "Usage: " << file_name << " [--clear]" << std::endl;
-// }

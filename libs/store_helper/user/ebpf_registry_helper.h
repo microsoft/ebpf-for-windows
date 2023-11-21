@@ -46,6 +46,9 @@ extern "C"
     ebpf_delete_registry_tree(ebpf_store_key_t root_key, _In_opt_z_ const wchar_t* sub_key);
 
     _Must_inspect_result_ ebpf_result_t
+    ebpf_delete_registry_tree_ansi(ebpf_store_key_t root_key, _In_opt_z_ const char* sub_key);
+
+    _Must_inspect_result_ ebpf_result_t
     ebpf_read_registry_value_dword(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _Out_ uint32_t* value);
 
     _Must_inspect_result_ ebpf_result_t

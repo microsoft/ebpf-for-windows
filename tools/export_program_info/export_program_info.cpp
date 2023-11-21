@@ -29,7 +29,7 @@ typedef struct _ebpf_program_section_info_with_count
     size_t section_info_count;
 } ebpf_program_section_info_with_count_t;
 
-static const ebpf_program_info_t* program_information_array[] = {
+static const ebpf_program_info_t* _program_information_array[] = {
     &_ebpf_bind_program_info,
     &_ebpf_sock_addr_program_info,
     &_ebpf_sock_ops_program_info,
@@ -51,9 +51,9 @@ uint32_t
 export_all_program_information()
 {
     uint32_t status = ERROR_SUCCESS;
-    size_t array_size = _countof(program_information_array);
+    size_t array_size = _countof(_program_information_array);
     for (uint32_t i = 0; i < array_size; i++) {
-        status = ebpf_store_update_program_information(program_information_array[i], 1);
+        status = ebpf_store_update_program_information(_program_information_array[i], 1);
         if (status != ERROR_SUCCESS) {
             break;
         }
@@ -84,28 +84,32 @@ export_global_helper_information()
 }
 
 uint32_t
-clear_all_ebpf_stores()
+clear_ebpf_store()
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_result_t return_result = EBPF_SUCCESS;
 
-    std::cout << "Clearing eBPF store" << std::endl;
+    std::cout << "Clearing eBPF store (docked)" << std::endl;
     for (const auto& section : _section_information) {
         for (size_t i = 0; i < section.section_info_count; i++) {
             result = ebpf_store_delete_section_information(section.section_info + i);
             if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
-                // std::cout << "Failed to delete section information for \"" << ((section.section_info +
-                // i)->section_name) << "\"" << std::endl;
                 std::cout << "Failed to delete section information" << std::endl;
                 return_result = result;
             }
         }
-        // ebpf_store_delete_section_information(section.section_info);
     }
-    for (const auto& program : program_information_array) {
+    for (const auto& program : _program_information_array) {
         result = ebpf_store_delete_program_information(program);
         if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
             std::cout << "Failed to delete program information" << std::endl;
+            return_result = result;
+        }
+    }
+    for (size_t i = 0; i < ebpf_core_helper_functions_count; i++) {
+        result = ebpf_store_delete_global_helper_information(ebpf_core_helper_function_prototype + i);
+        if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
+            std::cout << "Failed to delete global helper information" << std::endl;
             return_result = result;
         }
     }

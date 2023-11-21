@@ -242,7 +242,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "export_program_info_sample"
 		{7629D5D0-5A80-4528-87ED-60FC83C5552B} = {7629D5D0-5A80-4528-87ED-60FC83C5552B}
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{984080A6-5890-4ADE-BF8C-DC78EBAB0E8B}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "drivers", "drivers", "{984080A6-5890-4ADE-BF8C-DC78EBAB0E8B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_ebpf_ext", "undocked\tests\sample\ext\drv\sample_ext.vcxproj", "{C8D46543-5AE5-4E66-B9CE-8B84588B1C9E}"
 	ProjectSection(ProjectDependencies) = postProject

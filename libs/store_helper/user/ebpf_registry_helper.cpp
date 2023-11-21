@@ -32,8 +32,9 @@ _get_wstring_from_string(std::string text)
 void
 ebpf_close_registry_key(ebpf_store_key_t key)
 {
-    ebpf_assert(key);
-    RegCloseKey(key);
+    if (key != nullptr) {
+        RegCloseKey(key);
+    }
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -108,7 +109,17 @@ ebpf_delete_registry_key(ebpf_store_key_t root_key, _In_z_ const wchar_t* sub_ke
 _Must_inspect_result_ ebpf_result_t
 ebpf_delete_registry_tree(ebpf_store_key_t root_key, _In_opt_z_ const wchar_t* sub_key)
 {
-    return _EBPF_RESULT(RegDeleteTree(root_key, sub_key));
+    return _EBPF_RESULT(RegDeleteTreeW(root_key, sub_key));
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_delete_registry_tree_ansi(ebpf_store_key_t root_key, _In_opt_z_ const char* sub_key)
+{
+    int32_t result = ERROR_SUCCESS;
+    result = RegDeleteTreeA(root_key, sub_key);
+
+    return _EBPF_RESULT(result);
+    // return _EBPF_RESULT(RegDeleteTreeA(root_key, sub_key));
 }
 
 _Must_inspect_result_ ebpf_result_t
