@@ -71,6 +71,26 @@ extern "C"
     ebpf_store_update_program_information(
         _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
 
+    /**
+     * @brief Delete program information from the eBPF store.
+     *
+     * @param[in] program_info Pointer to the program information.
+     *
+     * @returns Status of the operation.
+     */
+    ebpf_result_t
+    ebpf_store_delete_program_information(_In_ const ebpf_program_info_t* program_info);
+
+    /**
+     * @brief Delete section information from the eBPF store.
+     *
+     * @param[in] section_info Pointer to the section information.
+     *
+     * @returns Status of the operation.
+     */
+    ebpf_result_t
+    ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* section_info);
+
 #ifdef __cplusplus
 }
 #endif

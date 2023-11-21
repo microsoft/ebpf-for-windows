@@ -14,8 +14,8 @@
 
 #include "ebpf_general_helpers.c"
 
-#define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
-#define REG_OPEN_FLAGS (DELETE | KEY_READ)
+// #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
+// #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
 // Export XDP program information to allow for our unit tests to mock the XDP API surface.
 static const ebpf_program_info_t _mock_xdp_program_info = {
@@ -86,8 +86,31 @@ export_global_helper_information()
 uint32_t
 clear_all_ebpf_stores()
 {
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_result_t return_result = EBPF_SUCCESS;
+
     std::cout << "Clearing eBPF store" << std::endl;
-    return ebpf_store_clear(ebpf_store_root_key);
+    for (const auto& section : _section_information) {
+        for (size_t i = 0; i < section.section_info_count; i++) {
+            result = ebpf_store_delete_section_information(section.section_info + i);
+            if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
+                // std::cout << "Failed to delete section information for \"" << ((section.section_info +
+                // i)->section_name) << "\"" << std::endl;
+                std::cout << "Failed to delete section information" << std::endl;
+                return_result = result;
+            }
+        }
+        // ebpf_store_delete_section_information(section.section_info);
+    }
+    for (const auto& program : program_information_array) {
+        result = ebpf_store_delete_program_information(program);
+        if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
+            std::cout << "Failed to delete program information" << std::endl;
+            return_result = result;
+        }
+    }
+
+    return return_result;
 }
 
 void

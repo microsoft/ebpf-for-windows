@@ -7,6 +7,7 @@
 #include "ebpf_store_helper.h"
 
 #define REG_CREATE_FLAGS 0
+#define REG_DELETE_FLAGS 0
 
 ebpf_result_t
 ebpf_convert_guid_to_string(
@@ -32,3 +33,10 @@ ebpf_create_registry_key(
 _Must_inspect_result_ ebpf_result_t
 ebpf_create_registry_key_ansi(
     ebpf_store_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key);
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_delete_registry_tree(ebpf_store_key_t root_key, _In_opt_z_ const wchar_t* sub_key);
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_open_registry_key(
+    ebpf_store_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key);

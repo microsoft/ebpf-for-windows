@@ -110,6 +110,31 @@ ebpf_create_registry_key(
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_open_registry_key(
+    ebpf_store_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key)
+{
+    UNICODE_STRING registry_path;
+    OBJECT_ATTRIBUTES object_attributes = {0};
+
+    UNREFERENCED_PARAMETER(flags);
+
+    RtlInitUnicodeString(&registry_path, sub_key);
+    InitializeObjectAttributes(
+        &object_attributes, &registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_key, NULL);
+
+    return _EBPF_RESULT(ZwOpenKey(key, KEY_WRITE, &object_attributes));
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_delete_registry_tree(ebpf_store_key_t root_key, _In_opt_z_ const wchar_t* sub_key)
+{
+    UNREFERENCED_PARAMETER(root_key);
+    UNREFERENCED_PARAMETER(sub_key);
+
+    return EBPF_OPERATION_NOT_SUPPORTED;
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_create_registry_key_ansi(
     ebpf_store_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key)
 {

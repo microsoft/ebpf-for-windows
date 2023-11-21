@@ -309,3 +309,81 @@ Exit:
 
     return result;
 }
+
+ebpf_result_t
+ebpf_store_delete_program_information(_In_ const ebpf_program_info_t* program_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_store_key_t provider_key = NULL;
+    ebpf_store_key_t program_info_key = NULL;
+
+    // Open (or create) provider registry path.
+    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    // Open program data registry path.
+    result = ebpf_open_registry_key(provider_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, REG_CREATE_FLAGS, &program_info_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    // Convert program type GUID to string.
+    wchar_t guid_string[GUID_STRING_LENGTH + 1];
+    result = ebpf_convert_guid_to_string(
+        &program_info->program_type_descriptor.program_type, guid_string, GUID_STRING_LENGTH + 1);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_delete_registry_tree(program_info_key, guid_string);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+Exit:
+    if (program_info_key != NULL) {
+        ebpf_close_registry_key(program_info_key);
+    }
+    if (provider_key != NULL) {
+        ebpf_close_registry_key(provider_key);
+    }
+
+    return result;
+}
+
+ebpf_result_t
+ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* section_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_store_key_t provider_key = NULL;
+    ebpf_store_key_t section_info_key = NULL;
+
+    // Open (or create) provider registry path.
+    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    // Open (or create) section data key.
+    result = ebpf_open_registry_key(provider_key, EBPF_SECTIONS_REGISTRY_PATH, REG_DELETE_FLAGS, &section_info_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_delete_registry_tree(section_info_key, section_info->section_name);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+Exit:
+    if (section_info_key != NULL) {
+        ebpf_close_registry_key(section_info_key);
+    }
+    if (provider_key != NULL) {
+        ebpf_close_registry_key(provider_key);
+    }
+
+    return result;
+}
