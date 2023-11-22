@@ -741,6 +741,10 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
     ebpf_program_test_run_options_t options = {0};
+    options.context_in = reinterpret_cast<uint8_t*>(&ctx);
+    options.context_size_in = sizeof(sample_program_context_t);
+    options.context_out = reinterpret_cast<uint8_t*>(&ctx);
+    options.context_size_out = sizeof(sample_program_context_t);
     options.repeat_count = 10;
 
     ebpf_async_wrapper_t async_context;
