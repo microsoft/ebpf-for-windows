@@ -46,4 +46,4 @@ SEC("sample_ext") int caller(sample_program_context_t* ctx)
     return (int)error;
 }
 
-SEC("sample_ext/0") int callee(struct xdp_md* ctx) { return 42; }
+SEC("sample_ext/0") int callee(sample_program_context_t* ctx) { return 42; }

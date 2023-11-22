@@ -27,7 +27,7 @@ static const ebpf_program_info_t* program_information_array[] = {
     &_ebpf_bind_program_info,
     &_ebpf_sock_addr_program_info,
     &_ebpf_sock_ops_program_info,
-    &_ebpf_xdp_program_info,
+    &_ebpf_xdp_test_program_info,
     &_sample_ebpf_extension_program_info};
 
 ebpf_program_section_info_t _sample_ext_section_info[] = {
@@ -35,7 +35,7 @@ ebpf_program_section_info_t _sample_ext_section_info[] = {
 
 static std::vector<ebpf_program_section_info_with_count_t> _section_information = {
     {&_ebpf_bind_section_info[0], _countof(_ebpf_bind_section_info)},
-    {&_ebpf_xdp_section_info[0], _countof(_ebpf_xdp_section_info)},
+    {&_ebpf_xdp_test_section_info[0], _countof(_ebpf_xdp_test_section_info)},
     {&_ebpf_sock_addr_section_info[0], _countof(_ebpf_sock_addr_section_info)},
     {&_ebpf_sock_ops_section_info[0], _countof(_ebpf_sock_ops_section_info)},
     {&_sample_ext_section_info[0], _countof(_sample_ext_section_info)},

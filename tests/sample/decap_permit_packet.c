@@ -14,7 +14,7 @@
 #include "xdp_common.h"
 
 inline int
-decapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
+decapsulate_ipv4_reflect_packet(xdp_test_md_t* ctx)
 {
     int rc = XDP_DROP;
 
@@ -37,8 +37,8 @@ decapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
     }
     __builtin_memcpy(new_ethernet_header, old_ethernet_header, sizeof(ETHERNET_HEADER));
 
-    // Adjust XDP context to free space for outer IPv4 header.
-    if (bpf_xdp_adjust_head(ctx, sizeof(IPV4_HEADER)) < 0) {
+    // Adjust XDP_TEST context to free space for outer IPv4 header.
+    if (bpf_xdp_test_adjust_head(ctx, sizeof(IPV4_HEADER)) < 0) {
         goto Done;
     }
 
@@ -49,7 +49,7 @@ Done:
 }
 
 inline int
-decapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
+decapsulate_ipv6_reflect_packet(xdp_test_md_t* ctx)
 {
     int rc = XDP_DROP;
 
@@ -66,8 +66,8 @@ decapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
     }
     __builtin_memcpy(new_ethernet_header, old_ethernet_header, sizeof(ETHERNET_HEADER));
 
-    // Adjust XDP context to free space for outer IPv6 header.
-    if (bpf_xdp_adjust_head(ctx, sizeof(IPV6_HEADER)) < 0) {
+    // Adjust XDP_TEST context to free space for outer IPv6 header.
+    if (bpf_xdp_test_adjust_head(ctx, sizeof(IPV6_HEADER)) < 0) {
         goto Done;
     }
 
@@ -79,13 +79,13 @@ Done:
 
 //
 // This program performs de-capsulation of the outer IP header of IP-in-IP packets.
-// This program uses the bpf_xdp_adjust_head helper function.
+// This program uses the bpf_xdp_test_adjust_head helper function.
 // (This program can only perform de-capsulation for v4 in v4 and v6 in v6 packets.)
 // (This program assumes Ethernet II frames.)
 //
 SEC("xdp_test/decapsulate_reflect")
 int
-decapsulate_permit_packet(xdp_md_t* ctx)
+decapsulate_permit_packet(xdp_test_md_t* ctx)
 {
     int rc = XDP_PASS;
 

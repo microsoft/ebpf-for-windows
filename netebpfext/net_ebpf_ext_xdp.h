@@ -27,17 +27,17 @@ net_ebpf_ext_layer_2_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 /**
- * @brief Unregister XDP NPI providers.
+ * @brief Unregister XDP_TEST NPI providers.
  *
  */
 void
-net_ebpf_ext_xdp_unregister_providers();
+net_ebpf_ext_xdp_test_unregister_providers();
 
 /**
- * @brief Register XDP NPI providers.
+ * @brief Register XDP_TEST NPI providers.
  *
  * @retval STATUS_SUCCESS Operation succeeded.
  * @retval STATUS_UNSUCCESSFUL Operation failed.
  */
 NTSTATUS
-net_ebpf_ext_xdp_register_providers();
+net_ebpf_ext_xdp_test_register_providers();

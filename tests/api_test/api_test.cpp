@@ -333,10 +333,8 @@ DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, 
 // Try to load bindmonitor with providing wrong program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_ANY, _get_expected_jit_result(-EACCES));
 
-// TODO - need to add this back in
-// // Try to load an unsafe program.
-// DECLARE_LOAD_TEST_CASE(
-//     "droppacket_unsafe.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, _get_expected_jit_result(-EACCES));
+// Try to load an unsafe program.
+DECLARE_LOAD_TEST_CASE("printk_unsafe.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, _get_expected_jit_result(-EACCES));
 
 // Try to load multiple programs of different program types
 TEST_CASE("test_ebpf_multiple_programs_load_jit")

@@ -75,26 +75,26 @@ TEST_CASE("query program info", "[netebpfext]")
     REQUIRE(expected_program_names == program_names);
 }
 
-#pragma region xdp
+#pragma region xdp_test
 
-typedef struct _test_xdp_client_context
+typedef struct _test_xdp_test_client_context
 {
     netebpfext_helper_base_client_context_t base;
     void* provider_binding_context;
-    xdp_test_action_t xdp_action;
-} test_xdp_client_context_t;
+    xdp_test_action_t xdp_test_action;
+} test_xdp_test_client_context_t;
 
 // This callback occurs when netebpfext gets a packet and submits it to our dummy
 // eBPF program to handle.
 _Must_inspect_result_ ebpf_result_t
-netebpfext_unit_invoke_xdp_program(
+netebpfext_unit_invoke_xdp_test_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
 {
     ebpf_result_t return_result = EBPF_SUCCESS;
-    auto client_context = (test_xdp_client_context_t*)client_binding_context;
+    auto client_context = (test_xdp_test_client_context_t*)client_binding_context;
     UNREFERENCED_PARAMETER(context);
 
-    switch (client_context->xdp_action) {
+    switch (client_context->xdp_test_action) {
     case XDP_TEST_ACTION_PASS:
         *result = XDP_PASS;
         break;
@@ -119,31 +119,31 @@ TEST_CASE("classify_packet", "[netebpfext]")
 {
     NET_IFINDEX if_index = 0;
     ebpf_extension_data_t npi_specific_characteristics = {.size = sizeof(if_index), .data = &if_index};
-    test_xdp_client_context_t client_context = {};
+    test_xdp_test_client_context_t client_context = {};
     client_context.base.desired_attach_type = BPF_XDP_TEST;
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
-        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_xdp_program,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_xdp_test_program,
         (netebpfext_helper_base_client_context_t*)&client_context);
 
     // Classify an inbound packet that should pass.
-    client_context.xdp_action = XDP_TEST_ACTION_PASS;
+    client_context.xdp_test_action = XDP_TEST_ACTION_PASS;
     FWP_ACTION_TYPE result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify an inbound packet that should be hairpinned.
-    client_context.xdp_action = XDP_TEST_ACTION_TX;
+    client_context.xdp_test_action = XDP_TEST_ACTION_TX;
     result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
     // Classify an inbound packet that should be dropped.
-    client_context.xdp_action = XDP_TEST_ACTION_DROP;
+    client_context.xdp_test_action = XDP_TEST_ACTION_DROP;
     result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
     // Classify an inbound packet when eBPF program invocation failed.
-    client_context.xdp_action = XDP_TEST_ACTION_FAILURE;
+    client_context.xdp_test_action = XDP_TEST_ACTION_FAILURE;
     result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_BLOCK);
 }
@@ -151,16 +151,16 @@ TEST_CASE("classify_packet", "[netebpfext]")
 TEST_CASE("xdp_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
-    auto xdp_extension_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_XDP_TEST);
-    auto xdp_program_data = (ebpf_program_data_t*)xdp_extension_data.data;
+    auto xdp_test_extension_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_XDP_TEST);
+    auto xdp_test_program_data = (ebpf_program_data_t*)xdp_test_extension_data.data;
 
     std::vector<uint8_t> input_data(100);
     std::vector<uint8_t> output_data(100);
     size_t output_data_size = output_data.size();
-    xdp_md_t input_context = {};
-    size_t output_context_size = sizeof(xdp_md_t);
-    xdp_md_t output_context = {};
-    xdp_md_t* xdp_context = nullptr;
+    xdp_test_md_t input_context = {};
+    size_t output_context_size = sizeof(xdp_test_md_t);
+    xdp_test_md_t output_context = {};
+    xdp_test_md_t* xdp_test_context = nullptr;
 
     input_context.data_meta = 12345;
     input_context.ingress_ifindex = 67890;
@@ -168,46 +168,46 @@ TEST_CASE("xdp_context", "[netebpfext]")
     // Negative test:
     // Null data
     REQUIRE(
-        xdp_program_data->context_create(
-            nullptr, 0, (const uint8_t*)&input_context, sizeof(input_context), (void**)&xdp_context) ==
+        xdp_test_program_data->context_create(
+            nullptr, 0, (const uint8_t*)&input_context, sizeof(input_context), (void**)&xdp_test_context) ==
         EBPF_INVALID_ARGUMENT);
 
     // Positive test:
     // Null context
-    xdp_context = nullptr;
+    xdp_test_context = nullptr;
     REQUIRE(
-        xdp_program_data->context_create(input_data.data(), input_data.size(), nullptr, 0, (void**)&xdp_context) ==
-        EBPF_SUCCESS);
+        xdp_test_program_data->context_create(
+            input_data.data(), input_data.size(), nullptr, 0, (void**)&xdp_test_context) == EBPF_SUCCESS);
 
-    xdp_program_data->context_destroy(xdp_context, nullptr, &output_data_size, nullptr, &output_context_size);
+    xdp_test_program_data->context_destroy(xdp_test_context, nullptr, &output_data_size, nullptr, &output_context_size);
 
     REQUIRE(
-        xdp_program_data->context_create(
+        xdp_test_program_data->context_create(
             input_data.data(),
             input_data.size(),
             (const uint8_t*)&input_context,
             sizeof(input_context),
-            (void**)&xdp_context) == 0);
+            (void**)&xdp_test_context) == 0);
 
-    bpf_xdp_adjust_head_t adjust_head = reinterpret_cast<bpf_xdp_adjust_head_t>(
-        xdp_program_data->program_type_specific_helper_function_addresses->helper_function_address[0]);
+    bpf_xdp_test_adjust_head_t adjust_head = reinterpret_cast<bpf_xdp_test_adjust_head_t>(
+        xdp_test_program_data->program_type_specific_helper_function_addresses->helper_function_address[0]);
 
     // Modify the context.
-    REQUIRE(adjust_head(xdp_context, 10) == 0);
-    xdp_context->data_meta++;
-    xdp_context->ingress_ifindex--;
+    REQUIRE(adjust_head(xdp_test_context, 10) == 0);
+    xdp_test_context->data_meta++;
+    xdp_test_context->ingress_ifindex--;
 
     output_data_size = output_data.size();
 
-    xdp_program_data->context_destroy(
-        xdp_context, output_data.data(), &output_data_size, (uint8_t*)&output_context, &output_context_size);
+    xdp_test_program_data->context_destroy(
+        xdp_test_context, output_data.data(), &output_data_size, (uint8_t*)&output_context, &output_context_size);
 
     REQUIRE(output_data_size == 90);
     REQUIRE(output_context.data_meta == 12346);
     REQUIRE(output_context.ingress_ifindex == 67889);
 }
 
-#pragma endregion xdp
+#pragma endregion xdp_test
 #pragma region bind
 
 typedef struct test_bind_client_context_t

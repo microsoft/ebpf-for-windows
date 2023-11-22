@@ -18,8 +18,8 @@
 #include <map>
 #include <vector>
 
-// Currently the only program type with helpers is XDP. Although this test just
-// uses the mock helper for XDP, it does result in exercising the core path for
+// Currently the only program type with helpers is XDP_TEST. Although this test just
+// uses the mock helper for XDP_TEST, it does result in exercising the core path for
 // ids out of range of the core ones.
 static std::vector<GUID> _program_types = {EBPF_PROGRAM_TYPE_XDP_TEST};
 
@@ -314,7 +314,7 @@ fuzz_program(
     // Declare some memory usable when calling a helper.
     uint8_t packet_buffer[MAX_BUFFER_SIZE] = {0};
     std::vector<uint8_t> packet{packet_buffer, packet_buffer + sizeof(packet_buffer)};
-    xdp_md_helper_t xdp_helper(packet);
+    xdp_test_md_helper_t xdp_test_helper(packet);
     char writable_buffer[MAX_BUFFER_SIZE] = {0};
     int readable_buffer_index = 0;
     char readable_buffer[5][MAX_BUFFER_SIZE];
@@ -391,7 +391,7 @@ fuzz_program(
         }
         case EBPF_ARGUMENT_TYPE_PTR_TO_CTX:
             // Put the context into the argument.
-            argument[arg_count] = (uint64_t)&xdp_helper;
+            argument[arg_count] = (uint64_t)&xdp_test_helper;
             break;
         case EBPF_ARGUMENT_TYPE_PTR_TO_MAP: {
             // Put a map pointer into the argument.

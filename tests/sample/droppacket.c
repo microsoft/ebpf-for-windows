@@ -40,7 +40,7 @@ struct
 
 SEC("xdp_test")
 int
-DropPacket(xdp_md_t* ctx)
+DropPacket(xdp_test_md_t* ctx)
 {
     int rc = XDP_PASS;
     ETHERNET_HEADER* ethernet_header = NULL;

@@ -2323,6 +2323,8 @@ ebpf_program_execute_test_run(
     program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
 
     if (program_data->context_create == NULL || program_data->context_destroy == NULL) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "context_create or context_destroy is NULL")
         return_value = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -2331,6 +2333,7 @@ ebpf_program_execute_test_run(
     return_value = program_data->context_create(
         options->data_in, options->data_size_in, options->context_in, options->context_size_in, &context);
     if (return_value != 0) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "context_create failed");
         return_value = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -2338,6 +2341,7 @@ ebpf_program_execute_test_run(
     test_run_context = (ebpf_program_test_run_context_t*)ebpf_allocate_with_tag(
         sizeof(ebpf_program_test_run_context_t), EBPF_POOL_TAG_PROGRAM);
     if (test_run_context == NULL) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "failed to alloc mem");
         return_value = EBPF_NO_MEMORY;
         goto Exit;
     }
