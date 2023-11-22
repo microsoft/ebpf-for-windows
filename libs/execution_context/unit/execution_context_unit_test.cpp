@@ -740,13 +740,7 @@ TEST_CASE("program", "[execution_context]")
     ebpf_program_invoke(program.get(), &ctx, &result, &state);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
-    std::vector<uint8_t> input_buffer(sizeof(sample_program_context_t));
-    std::vector<uint8_t> output_buffer(sizeof(sample_program_context_t));
     ebpf_program_test_run_options_t options = {0};
-    options.data_in = input_buffer.data();
-    options.data_size_in = input_buffer.size();
-    options.data_out = output_buffer.data();
-    options.data_size_out = output_buffer.size();
     options.repeat_count = 10;
 
     ebpf_async_wrapper_t async_context;
