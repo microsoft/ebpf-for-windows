@@ -19,12 +19,12 @@ codecov:
     #   - If the task does not have the 'configurations: ...' clause,
     #         add 2 (two) to after_n_builds.
     #     else
-    #         add the number of comma-sepatated configurations to after_n_builds.
+    #         add the number of comma-separated configurations to after_n_builds.
     # 'after_n_builds' is now set to the right count.
     #
-    after_n_builds: 14
+    after_n_builds: 20
 comment:
-    after_n_builds: 14
+    after_n_builds: 20
 coverage:
   status:
     project:
