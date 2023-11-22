@@ -124,6 +124,7 @@
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
+$(OutputPath)export_program_info_sample.exe --clear
 $(OutputPath)export_program_info_sample.exe</Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -146,6 +147,7 @@ $(OutputPath)export_program_info_sample.exe</Command>
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
+$(OutputPath)export_program_info_sample.exe --clear
 $(OutputPath)export_program_info_sample.exe</Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -168,6 +170,7 @@ $(OutputPath)export_program_info_sample.exe</Command>
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
+$(OutputPath)export_program_info_sample.exe --clear
 $(OutputPath)export_program_info_sample.exe</Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -192,6 +195,7 @@ $(OutputPath)export_program_info_sample.exe</Command>
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
+$(OutputPath)export_program_info_sample.exe --clear
 $(OutputPath)export_program_info_sample.exe</Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -216,6 +220,7 @@ $(OutputPath)export_program_info_sample.exe</Command>
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
+$(OutputPath)export_program_info_sample.exe --clear
 $(OutputPath)export_program_info_sample.exe</Command>
     </CustomBuildStep>
     <CustomBuildStep>

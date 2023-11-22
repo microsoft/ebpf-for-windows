@@ -12,7 +12,7 @@ main(int argc, char** argv)
 {
     bool clear = false;
 
-    if (argc != 1 && argc != 2) {
+    if (argc > 2) {
         print_help(argv[0]);
         return 1;
     }

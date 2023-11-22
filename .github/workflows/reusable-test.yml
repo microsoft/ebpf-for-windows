@@ -182,6 +182,7 @@ jobs:
       id: configure_ebpf_store_undocked
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
+        .\export_program_info_sample.exe --clear
         .\export_program_info_sample.exe
 
     - name: Run pre test command

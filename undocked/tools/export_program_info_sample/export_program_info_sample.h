@@ -15,7 +15,13 @@ void
 print_help(_In_z_ const char* file_name);
 
 uint32_t
-export_all_program_information();
+export_program_information();
 
 uint32_t
-export_all_section_information();
+export_section_information();
+
+uint32_t
+clear_ebpf_store();
+
+void
+print_help(_In_z_ const char* file_name);
