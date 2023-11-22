@@ -118,7 +118,7 @@ function Set-eBPFProgramOnVM
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Write-Log "Setting program $ProgId at interface $Interface on $VM."
-        Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp interface=""$Interface"""
+        Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp_test interface=""$Interface"""
     } -ArgumentList ($VM, $ProgId, $Interface, "eBPF", $LogFileName) -ErrorAction Stop
 }
 function Remove-eBPFProgramFromVM
