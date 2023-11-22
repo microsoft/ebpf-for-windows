@@ -343,12 +343,8 @@ ebpf_store_delete_program_information(_In_ const ebpf_program_info_t* program_in
     }
 
 Exit:
-    if (program_info_key != NULL) {
-        ebpf_close_registry_key(program_info_key);
-    }
-    if (provider_key != NULL) {
-        ebpf_close_registry_key(provider_key);
-    }
+    ebpf_close_registry_key(program_info_key);
+    ebpf_close_registry_key(provider_key);
 
     return result;
 }
@@ -378,12 +374,8 @@ ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* se
     }
 
 Exit:
-    if (section_info_key != NULL) {
-        ebpf_close_registry_key(section_info_key);
-    }
-    if (provider_key != NULL) {
-        ebpf_close_registry_key(provider_key);
-    }
+    ebpf_close_registry_key(section_info_key);
+    ebpf_close_registry_key(provider_key);
 
     return result;
 }
