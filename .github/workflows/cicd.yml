@@ -28,7 +28,7 @@ concurrency:
   # Allow running concurrently with any commits on any other branch.
   # Using GITHUB_REF instead of GITHUB_SHA allows parallel runs on
   # different branches with the same HEAD commit.
-  group: cicd-${{ github.event.schedule || github.event.after || github.event.pull_request.number || github.ref }}
+  group: cicd-${{ github.event.schedule || github.event.pull_request.number || github.event.after || github.ref }}
   cancel-in-progress: true
 
 permissions:
