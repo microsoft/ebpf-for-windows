@@ -12,7 +12,7 @@ on:
 concurrency:
   # Cancel any CI/CD workflow currently in progress for the same PR.
   # Allow running concurrently with any other commits.
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: perf-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
