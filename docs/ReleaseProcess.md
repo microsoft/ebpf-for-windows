@@ -46,8 +46,6 @@ eBPF for Windows, and how to service it later.
     - `eBPF-for-Windows.X.Y.Z.nupkg`
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`main`" branch.
 1. On the main `ebpf-for-windows` repo, create a new release branch from `main` **corresponding to the previous PR's commit**, name it "`release/X.Y`" (replace "X.Y" with the version number being released).
-1. Request the Admin of the main `ebpf-for-windows` repo to protect and apply release policies to the "`release/X.Y`" branch.
-1. Wait for the main `ebpf-for-windows` repo's Admin to complete the previous step.
 1. Publish the release as per the "[Publishing a Release](ReleaseProcess.md#publishing-a-release)" process.
 
 ## Servicing a release
@@ -82,7 +80,6 @@ Servicing a release has two main scenarios:
 1. Create a **Draft** pull-request for your working branch into the main repo's "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Wait for  the CI/CD pipeline for the PR to complete successfully.
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`release/X.Y`" branch.
-1. Create a tag for the PR's commit number, on the main repo's "`release/X.Y`" branch, with the version number being released, i.e., "`vX.Y.Z`".
 1. Publish the release as per the "[Publishing a Release](ReleaseProcess.md#publishing-a-release)" process.
 
 
