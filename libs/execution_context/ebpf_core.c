@@ -96,7 +96,7 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_time_ns,
     (void*)&ebpf_core_csum_diff,
     // Ring buffer output.
-    (void*)&ebpf_ring_buffer_map_output,
+    (void*)&_ebpf_core_ring_buffer_output,
     (void*)&_ebpf_core_trace_printk2,
     (void*)&_ebpf_core_trace_printk3,
     (void*)&_ebpf_core_trace_printk4,
