@@ -235,7 +235,7 @@ utility_helpers_test(ebpf_execution_type_t execution_type)
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     native_module_helper_t native_module_helper;
-    native_module_helper.initialize("test_sample_ebpf", execution_type);
+    native_module_helper.initialize("test_utility_helpers", execution_type);
     program_load_attach_helper_t _helper;
     _helper.initialize(
         native_module_helper.get_file_name().c_str(),

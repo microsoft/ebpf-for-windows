@@ -88,14 +88,14 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
     REQUIRE(object != nullptr);
     REQUIRE(program_fd != ebpf_fd_invalid);
 
-    auto packet = prepare_udp_packet(100, ETHERNET_TYPE_IPV4);
-
     bpf_test_run_opts opts = {};
+    sample_program_context_t in_ctx{0};
+    sample_program_context_t out_ctx{0};
     opts.repeat = 10;
-    opts.data_in = packet.data();
-    opts.data_size_in = static_cast<uint32_t>(packet.size());
-    opts.data_out = nullptr;
-    opts.data_size_out = 0;
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    opts.ctx_size_out = sizeof(out_ctx);
 
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
 
@@ -106,57 +106,37 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
     // Bad fd
     REQUIRE(bpf_prog_test_run_opts(nonexistent_fd, &opts) == -EINVAL);
 
-    // NULL data
-    opts.data_in = nullptr;
-    opts.data_size_in = 0;
+    // NULL context
+    opts.ctx_in = nullptr;
+    opts.ctx_size_in = 0;
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
 
-    // Zero length data
-    opts.data_in = packet.data();
-    opts.data_size_in = 0;
+    // Zero length context
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = 0;
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
 
     // Context out is too small
-    std::vector<uint8_t> context(1);
-    opts.data_in = packet.data();
-    opts.data_size_in = static_cast<uint32_t>(packet.size());
-    opts.ctx_in = context.data();
-    opts.ctx_size_in = static_cast<uint32_t>(context.size());
-    opts.ctx_out = context.data();
-    opts.ctx_size_out = static_cast<uint32_t>(context.size());
+    std::vector<uint8_t> small_context(1);
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = small_context.data();
+    opts.ctx_size_out = static_cast<uint32_t>(small_context.size());
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
 
-    // Data in, null data out
-    opts.data_in = packet.data();
-    opts.data_size_in = static_cast<uint32_t>(packet.size());
-    opts.data_out = nullptr;
-    opts.data_size_out = 0;
-    opts.ctx_in = nullptr;
-    opts.ctx_size_in = 0;
+    // context in, null context out
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = nullptr;
+    opts.ctx_size_out = 0;
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
 
     // No context in, Context out
     std::vector<uint8_t> context_out(1024);
-    opts.data_in = packet.data();
-    opts.data_size_in = static_cast<uint32_t>(packet.size());
-    opts.data_out = nullptr;
-    opts.data_size_out = 0;
     opts.ctx_in = nullptr;
     opts.ctx_size_in = 0;
-    opts.ctx_out = context_out.data();
-    opts.ctx_size_out = static_cast<uint32_t>(context_out.size());
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
-    REQUIRE(opts.ctx_size_out == 0);
-
-    // Data out and context out
-    context_out.resize(100);
-    sample_program_context_t context_in{0};
-    opts.ctx_in = &context_in;
-    opts.ctx_size_in = sizeof(context_in);
-    opts.data_out = packet.data();
-    opts.data_size_out = static_cast<uint32_t>(packet.size());
-    opts.ctx_out = context_out.data();
-    opts.ctx_size_out = static_cast<uint32_t>(context_out.size());
+    opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    opts.ctx_size_out = sizeof(out_ctx);
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
     REQUIRE(opts.ctx_size_out == sizeof(sample_program_context_t));
 
@@ -164,14 +144,14 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
     bpf_attr attr = {};
     attr.test.prog_fd = program_fd;
     attr.test.repeat = 1000;
-    attr.test.data_in = reinterpret_cast<uint64_t>(packet.data());
-    attr.test.data_out = reinterpret_cast<uint64_t>(packet.data());
-    attr.test.data_size_in = static_cast<uint32_t>(packet.size());
-    attr.test.data_size_out = static_cast<uint32_t>(packet.size());
-    attr.test.ctx_in = reinterpret_cast<uint64_t>(&context_in);
-    attr.test.ctx_out = reinterpret_cast<uint64_t>(context_out.data());
-    attr.test.ctx_size_in = sizeof(context_in);
-    attr.test.ctx_size_out = static_cast<uint32_t>(context_out.size());
+    attr.test.data_in = reinterpret_cast<uint64_t>(nullptr);
+    attr.test.data_out = reinterpret_cast<uint64_t>(nullptr);
+    attr.test.data_size_in = 0;
+    attr.test.data_size_out = 0;
+    attr.test.ctx_in = reinterpret_cast<uint64_t>(&in_ctx);
+    attr.test.ctx_size_in = sizeof(in_ctx);
+    attr.test.ctx_out = reinterpret_cast<uint64_t>(&out_ctx);
+    attr.test.ctx_size_out = sizeof(out_ctx);
     REQUIRE(bpf(BPF_PROG_TEST_RUN, &attr, sizeof(attr)) == 0);
     REQUIRE(attr.test.ctx_size_out == sizeof(sample_program_context_t));
     REQUIRE(attr.test.duration > 0);
@@ -495,7 +475,7 @@ TEST_CASE("libbpf program", "[libbpf]")
     const char* name = bpf_object__name(object);
     REQUIRE(strcmp(name, "test_sample_ebpf.o") == 0);
 
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "TestSampleEbpf");
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
     REQUIRE(program != nullptr);
 
     REQUIRE(bpf_object__find_program_by_name(object, "not_a_valid_name") == NULL);
@@ -505,7 +485,7 @@ TEST_CASE("libbpf program", "[libbpf]")
     REQUIRE(strcmp(name, "sample_ext") == 0);
 
     name = bpf_program__name(program);
-    REQUIRE(strcmp(name, "TestSampleEbpf") == 0);
+    REQUIRE(strcmp(name, "test_program_entry") == 0);
 
     int fd2 = bpf_program__fd(program);
     REQUIRE(fd2 != ebpf_fd_invalid);
@@ -536,7 +516,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "TestSampleEbpf");
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
     REQUIRE(program != nullptr);
 
     // Try to pin the program.
@@ -594,7 +574,7 @@ TEST_CASE("libbpf program attach", "[libbpf]")
     struct bpf_object* object = bpf_object__open("test_sample_ebpf.o");
     REQUIRE(object != nullptr);
 
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "TestSampleEbpf");
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
     REQUIRE(program != nullptr);
 
     // Based on the program type, verify that the/ default attach type is set correctly.
@@ -1510,7 +1490,7 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     REQUIRE(sample_object != nullptr);
     // Load the program(s).
     REQUIRE(bpf_object__load(sample_object) == 0);
-    struct bpf_program* sample_program = bpf_object__find_program_by_name(sample_object, "TestSampleEbpf");
+    struct bpf_program* sample_program = bpf_object__find_program_by_name(sample_object, "test_program_entry");
     int sample_program_fd = bpf_program__fd(const_cast<const bpf_program*>(sample_program));
 
     struct bpf_object* bind_object = bpf_object__open("bindmonitor.o");
@@ -1928,7 +1908,7 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     sample_helper.initialize(
         "test_sample_ebpf.o",
         BPF_PROG_TYPE_SAMPLE,
-        "TestSampleEbpf",
+        "test_program_entry",
         EBPF_EXECUTION_JIT,
         &ifindex,
         sizeof(ifindex),
@@ -1984,7 +1964,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     sample_helper.initialize(
         "test_sample_ebpf.o",
         BPF_PROG_TYPE_SAMPLE,
-        "TestSampleEbpf",
+        "test_program_entry",
         EBPF_EXECUTION_JIT,
         &ifindex,
         sizeof(ifindex),
@@ -2118,7 +2098,7 @@ TEST_CASE("bpf_link__pin", "[libbpf]")
     struct bpf_object* object = bpf_object__open("test_sample_ebpf.o");
     REQUIRE(object != nullptr);
 
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "TestSampleEbpf");
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
     REQUIRE(program != nullptr);
 
     // Load and pin the program.
@@ -2170,7 +2150,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     sample_helper.initialize(
         "test_sample_ebpf.o",
         BPF_PROG_TYPE_SAMPLE,
-        "TestSampleEbpf",
+        "test_program_entry",
         EBPF_EXECUTION_JIT,
         &ifindex,
         sizeof(ifindex),

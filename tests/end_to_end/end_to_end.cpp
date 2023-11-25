@@ -2559,7 +2559,6 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
 // Load native module and then try to load programs with incorrect params.
 TEST_CASE("load_native_program_negative4", "[end-to-end]")
 {
-#define INCORRECT_MAP_COUNT 2
 #define PROGRAM_COUNT 1
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -2571,15 +2570,13 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     size_t count_of_programs = 0;
     std::wstring file_path(L"test_sample_ebpf_um.dll");
     _test_handle_helper module_handle;
-    ebpf_handle_t map_handles[INCORRECT_MAP_COUNT];
     ebpf_handle_t program_handles[PROGRAM_COUNT];
 
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
 
     // First try to load native program without loading the native module.
     REQUIRE(
-        test_ioctl_load_native_programs(
-            &provider_module_id, nullptr, INCORRECT_MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, nullptr, 0, nullptr, PROGRAM_COUNT, program_handles) ==
         ERROR_PATH_NOT_FOUND);
 
     // Creating valid service with valid driver.
@@ -2598,8 +2595,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // Try to load the programs by passing wrong map and program handles size. This should fail.
     REQUIRE(
-        test_ioctl_load_native_programs(
-            &provider_module_id, nullptr, INCORRECT_MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, nullptr, 0, nullptr, PROGRAM_COUNT, program_handles) ==
         ERROR_INVALID_PARAMETER);
 
     // Delete the created service.
