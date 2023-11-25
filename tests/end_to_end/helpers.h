@@ -456,7 +456,7 @@ _xdp_test_context_destroy(
     _In_opt_ void* context,
     _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
     _Inout_ size_t* data_size_out,
-    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* context_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out)
 {
     if (!context) {
@@ -592,7 +592,7 @@ _sample_test_context_destroy(
     _In_opt_ void* context,
     _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
     _Inout_ size_t* data_size_out,
-    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* context_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out)
 {
     UNREFERENCED_PARAMETER(data_out);

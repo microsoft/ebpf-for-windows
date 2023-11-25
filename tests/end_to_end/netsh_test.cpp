@@ -76,26 +76,26 @@ TEST_CASE("show disassembly bpf_call.o", "[netsh][disassembly]")
     REQUIRE(result == NO_ERROR);
     output = strip_paths(output);
     REQUIRE(
-        output == "; ./tests/sample/bpf_call.c:24\n"
-                  "; SEC(\"xdp_prog\") int func(struct xdp_md* ctx)\n"
+        output == "; ./tests/sample/bpf_call.c:25\n"
+                  "; SEC(\"sample_ext\") int func(sample_program_context_t* ctx)\n"
                   "       0:	r1 = 0\n"
-                  "; ./tests/sample/bpf_call.c:26\n"
+                  "; ./tests/sample/bpf_call.c:27\n"
                   ";     uint32_t key = 0;\n"
                   "       1:	*(u32 *)(r10 - 4) = r1\n"
                   "       2:	r1 = 42\n"
-                  "; ./tests/sample/bpf_call.c:27\n"
+                  "; ./tests/sample/bpf_call.c:28\n"
                   ";     uint32_t value = 42;\n"
                   "       3:	*(u32 *)(r10 - 8) = r1\n"
                   "       4:	r2 = r10\n"
                   "       5:	r2 += -4\n"
                   "       6:	r3 = r10\n"
                   "       7:	r3 += -8\n"
-                  "; ./tests/sample/bpf_call.c:28\n"
+                  "; ./tests/sample/bpf_call.c:29\n"
                   ";     int result = bpf_map_update_elem(&map, &key, &value, 0);\n"
                   "       8:	r1 = map_fd 1\n"
                   "      10:	r4 = 0\n"
                   "      11:	r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)\n"
-                  "; ./tests/sample/bpf_call.c:29\n"
+                  "; ./tests/sample/bpf_call.c:30\n"
                   ";     return result;\n"
                   "      12:	exit\n\n");
 }
@@ -206,7 +206,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
                   "                                    Size\n"
                   "             Section       Type  (bytes)\n"
                   "====================  =========  =======\n"
-                  "               .text        xdp     1768\n"
+                  "               .text     sample     1768\n"
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
@@ -227,7 +227,7 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                   "                                    Size\n"
                   "             Section       Type  (bytes)\n"
                   "====================  =========  =======\n"
-                  "            xdp_prog        xdp     1087\n"
+                  "          sample_ext     sample     1087\n"
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
@@ -252,9 +252,9 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
                   "                                    Size\n"
                   "             Section       Type  (bytes)\n"
                   "====================  =========  =======\n"
-                  "            xdp_prog        xdp      413\n"
-                  "          xdp_prog/0        xdp      413\n"
-                  "          xdp_prog/1        xdp      190\n"
+                  "          sample_ext     sample      413\n"
+                  "        sample_ext/0     sample      413\n"
+                  "        sample_ext/1     sample      190\n"
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
@@ -306,7 +306,7 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
     test_helper.initialize();
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"xdp", &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"sample_ext", &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
@@ -321,7 +321,8 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
     test_helper.initialize();
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp", nullptr, &result);
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp_test", nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
@@ -337,7 +338,7 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
 
     int result;
     std::string output =
-        _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp", nullptr, &result);
+        _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp_test", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     output = strip_paths(output);
     REQUIRE(
@@ -399,7 +400,7 @@ TEST_CASE("pin first program", "[netsh][programs]")
     // Load a program to show.
     int result;
     std::string output =
-        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"xdp", L"pinpath=mypinpath", &result);
+        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"sample_ext", L"pinpath=mypinpath", &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
@@ -410,8 +411,8 @@ TEST_CASE("pin first program", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     1      1  JIT        xdp            caller\n"
-                  "     6     0      0  JIT        xdp            callee\n");
+                  "     5     1      1  JIT        sample         caller\n"
+                  "     6     0      0  JIT        sample         callee\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(output == "Unpinned 5 from mypinpath\n");
@@ -439,15 +440,15 @@ TEST_CASE("pin all programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     1      1  JIT        xdp            caller\n"
-                  "     6     1      0  JIT        xdp            callee\n");
+                  "     5     1      1  JIT        sample         caller\n"
+                  "     6     1      0  JIT        sample         callee\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 5 from mypinpath/xdp_prog\n");
+    REQUIRE(output == "Unpinned 5 from mypinpath/sample_ext\n");
     REQUIRE(result == NO_ERROR);
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"6", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 6 from mypinpath/xdp_prog_0\n");
+    REQUIRE(output == "Unpinned 6 from mypinpath/sample_ext_0\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -466,14 +467,14 @@ TEST_CASE("show programs", "[netsh][programs]")
     REQUIRE(result == NO_ERROR);
 
     // Show programs in normal (table) format.
-    output = _run_netsh_command(handle_ebpf_show_programs, L"xdp", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_show_programs, L"sample_ext", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     1      1  JIT        xdp            caller\n"
-                  "     6     0      0  JIT        xdp            callee\n");
+                  "     5     1      1  JIT        sample         caller\n"
+                  "     6     0      0  JIT        sample         callee\n");
 
     // Test filtering by "attached=yes".
     output = _run_netsh_command(handle_ebpf_show_programs, L"attached=yes", nullptr, nullptr, &result);
@@ -482,7 +483,7 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     1      1  JIT        xdp            caller\n");
+                  "     5     1      1  JIT        sample         caller\n");
 
     // Test filtering by "attached=no".
     output = _run_netsh_command(handle_ebpf_show_programs, L"attached=no", nullptr, nullptr, &result);
@@ -491,7 +492,7 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     6     0      0  JIT        xdp            callee\n");
+                  "     6     0      0  JIT        sample         callee\n");
 
     // Test filtering by "pinned=yes".
     output = _run_netsh_command(handle_ebpf_show_programs, L"pinned=yes", nullptr, nullptr, &result);
@@ -500,7 +501,7 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     1      1  JIT        xdp            caller\n");
+                  "     5     1      1  JIT        sample         caller\n");
 
     // Test filtering by "pinned=no".
     output = _run_netsh_command(handle_ebpf_show_programs, L"pinned=no", nullptr, nullptr, &result);
@@ -509,7 +510,7 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     6     0      0  JIT        xdp            callee\n");
+                  "     6     0      0  JIT        sample         callee\n");
 
     // Test verbose output format.
     output = _run_netsh_command(handle_ebpf_show_programs, L"level=verbose", nullptr, nullptr, &result);
@@ -518,9 +519,9 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "ID             : 5\n"
                   "File name      : tail_call.o\n"
-                  "Section        : xdp_prog\n"
+                  "Section        : sample_ext\n"
                   "Name           : caller\n"
-                  "Program type   : xdp\n"
+                  "Program type   : sample\n"
                   "Mode           : JIT\n"
                   "# map IDs      : 2\n"
                   "map IDs        : 4\n"
@@ -530,9 +531,9 @@ TEST_CASE("show programs", "[netsh][programs]")
                   "\n"
                   "ID             : 6\n"
                   "File name      : tail_call.o\n"
-                  "Section        : xdp_prog/0\n"
+                  "Section        : sample_ext/0\n"
                   "Name           : callee\n"
-                  "Program type   : xdp\n"
+                  "Program type   : sample\n"
                   "Mode           : JIT\n"
                   "# map IDs      : 0\n"
                   "# pinned paths : 0\n"
@@ -653,7 +654,7 @@ TEST_CASE("show links", "[netsh][links]")
                   "   Link  Program  Attach\n"
                   "     ID       ID  Type\n"
                   "=======  =======  =============\n"
-                  "      7        5  xdp\n");
+                  "      7        5  sample\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(output == "");
@@ -687,15 +688,15 @@ TEST_CASE("show pins", "[netsh][pins]")
         output == "\n"
                   "     ID     Type  Path\n"
                   "=======  =======  ==============\n"
-                  "      5  Program  mypinpath/xdp_prog\n"
-                  "      6  Program  mypinpath/xdp_prog_0\n");
+                  "      5  Program  mypinpath/sample_ext\n"
+                  "      6  Program  mypinpath/sample_ext_0\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 5 from mypinpath/xdp_prog\n");
+    REQUIRE(output == "Unpinned 5 from mypinpath/sample_ext\n");
     REQUIRE(result == NO_ERROR);
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"6", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 6 from mypinpath/xdp_prog_0\n");
+    REQUIRE(output == "Unpinned 6 from mypinpath/sample_ext_0\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -738,7 +739,8 @@ TEST_CASE("unpin program", "[netsh][programs]")
 
     // Load a program pinned.
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"xdp", L"mypinname", &result);
+    std::string output =
+        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"sample_ext", L"mypinname", &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
@@ -756,7 +758,7 @@ TEST_CASE("unpin program", "[netsh][programs]")
     verify_no_programs_exist();
 }
 
-TEST_CASE("xdp interface parameter", "[netsh][programs]")
+TEST_CASE("xdp_test interface parameter", "[netsh][programs]")
 {
     _test_helper_netsh test_helper;
     test_helper.initialize();
@@ -766,7 +768,13 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
 
     // Load program with pinpath and loopback interface alias.
     std::string output = run_netsh_command_with_args(
-        handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"Loopback Pseudo-Interface 1");
+        handle_ebpf_add_program,
+        &result,
+        4,
+        L"droppacket.o",
+        L"xdp_test",
+        L"mypinpath",
+        L"Loopback Pseudo-Interface 1");
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
@@ -776,7 +784,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
 
     // Load program with pinpath and loopback interface name.
     output = run_netsh_command_with_args(
-        handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"loopback_0");
+        handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp_test", L"mypinpath", L"loopback_0");
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 10\n") == 0);
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"10", nullptr, nullptr, &result);
@@ -785,7 +793,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     verify_no_programs_exist();
 
     // Load program with loopback interface index.
-    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=1", &result);
+    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp_test", L"interface=1", &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 15\n") == 0);
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"15", nullptr, nullptr, &result);
@@ -794,7 +802,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     verify_no_programs_exist();
 
     // (Negative) Load program with incorrect interface name.
-    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=foo", &result);
+    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp_test", L"interface=foo", &result);
     REQUIRE(strcmp(output.c_str(), "Interface parameter is invalid.\n") == 0);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     verify_no_programs_exist();
@@ -824,7 +832,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "    29     1      0  JIT        xdp            DropPacket\n");
+                  "    29     1      0  JIT        xdp_test       DropPacket\n");
 
     // Re-attach the program with interface index parameter.
     output = _run_netsh_command(handle_ebpf_set_program, L"29", nullptr, L"interface=1", &result);
