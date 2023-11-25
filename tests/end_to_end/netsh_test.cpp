@@ -569,8 +569,8 @@ TEST_CASE("set program", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     0      0  JIT        sample_ext     caller\n"
-                  "     6     0      0  JIT        sample_ext     callee\n");
+                  "     5     0      0  JIT        sample         caller\n"
+                  "     6     0      0  JIT        sample         callee\n");
 
     // Try to detach an unattached program.
     output = _run_netsh_command(handle_ebpf_set_program, L"5", L"", nullptr, &result);

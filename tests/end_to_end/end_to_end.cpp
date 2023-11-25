@@ -964,7 +964,7 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 0);
 
-    verify_utility_helper_results(object, false);
+    verify_utility_helper_results(object, true);
 }
 
 void
@@ -1031,7 +1031,7 @@ TEST_CASE("enum section", "[end_to_end]")
     uint32_t result;
 
     REQUIRE(
-        (result = ebpf_enumerate_sections(SAMPLE_PATH "droppacket.o", true, &section_data, &error_message),
+        (result = ebpf_enumerate_sections(SAMPLE_PATH "test_sample_ebpf.o", true, &section_data, &error_message),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
@@ -1052,13 +1052,13 @@ TEST_CASE("verify section", "[end_to_end]")
     const char* error_message = nullptr;
     const char* report = nullptr;
     uint32_t result;
-    program_info_provider_t xdp_test_program_info;
-    REQUIRE(xdp_test_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+    program_info_provider_t sample_test_program_info;
+    REQUIRE(sample_test_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     ebpf_api_verifier_stats_t stats;
     REQUIRE(
         (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "droppacket.o", "xdp_test", nullptr, false, &report, &error_message, &stats),
+             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", nullptr, false, &report, &error_message, &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
@@ -1074,12 +1074,18 @@ TEST_CASE("verify section with invalid program type", "[end_to_end]")
     const char* error_message = nullptr;
     const char* report = nullptr;
     uint32_t result;
-    program_info_provider_t xdp_test_program_info;
-    REQUIRE(xdp_test_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t sample_test_program_info;
+    REQUIRE(sample_test_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
 
     ebpf_api_verifier_stats_t stats;
     result = ebpf_api_elf_verify_section_from_file(
-        SAMPLE_PATH "droppacket.o", "xdp_test", &EBPF_PROGRAM_TYPE_UNSPECIFIED, false, &report, &error_message, &stats);
+        SAMPLE_PATH "test_sample_ebpf.o",
+        "sample_ext",
+        &EBPF_PROGRAM_TYPE_UNSPECIFIED,
+        false,
+        &report,
+        &error_message,
+        &stats);
 
     REQUIRE(result == 1);
     REQUIRE(error_message != nullptr);
@@ -2491,7 +2497,8 @@ TEST_CASE("load_native_program_negative2", "[end-to-end]")
 
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
 
-    _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+    _create_service_helper(
+        L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
     // Create invalid service path and pass to EC.
     service_path += NATIVE_DRIVER_SERVICE_NAME_2;
@@ -2582,7 +2589,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     std::wstring service_path(SERVICE_PATH_PREFIX);
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
-    std::wstring file_path(L"droppacket_um.dll");
+    std::wstring file_path(L"test_sample_ebpf_um.dll");
     _test_handle_helper module_handle;
     ebpf_handle_t map_handles[INCORRECT_MAP_COUNT];
     ebpf_handle_t program_handles[PROGRAM_COUNT];
@@ -2596,7 +2603,8 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
         ERROR_PATH_NOT_FOUND);
 
     // Creating valid service with valid driver.
-    _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+    _create_service_helper(
+        L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
@@ -2660,7 +2668,8 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
 
     // Create a valid service with valid driver.
-    _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+    _create_service_helper(
+        L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
@@ -2673,7 +2682,8 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
             &count_of_programs) == ERROR_SUCCESS);
 
     // Create a new service with same driver and same module id.
-    _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME_2, &provider_module_id, &service_handle2);
+    _create_service_helper(
+        L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME_2, &provider_module_id, &service_handle2);
 
     set_native_module_failures(true);
 
@@ -2704,7 +2714,7 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
     std::wstring service_path(SERVICE_PATH_PREFIX);
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
-    std::wstring file_path(L"droppacket_um.dll");
+    std::wstring file_path(L"test_sample_ebpf_um.dll");
     ebpf_handle_t map_handles;
     ebpf_handle_t program_handles;
     _test_handle_helper module_handle;
@@ -2825,7 +2835,8 @@ TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
 
     // Create a valid service with valid driver.
-    _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+    _create_service_helper(
+        L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
@@ -2953,7 +2964,7 @@ TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
     test_helper.initialize();
 
     // First open a .dll file
-    bpf_object* native_object = bpf_object__open("droppacket_um.dll");
+    bpf_object* native_object = bpf_object__open("test_sample_ebpf_um.dll");
     REQUIRE(native_object != nullptr);
 
     // Try to set incorrect execution type.
@@ -2969,7 +2980,7 @@ TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
     bpf_object__close(native_object);
 
     // Open a .o file
-    bpf_object* jit_object = bpf_object__open("droppacket.o");
+    bpf_object* jit_object = bpf_object__open("test_sample_ebpf.o");
     REQUIRE(jit_object != nullptr);
 
     // Try to set incorrect execution type.
