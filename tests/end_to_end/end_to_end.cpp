@@ -533,8 +533,7 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
     }
     REQUIRE(result == 0);
 
-    uint32_t ifindex = 0;
-    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
 
@@ -949,12 +948,11 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-    uint32_t ifindex = 0;
     const char* file_name =
         (execution_type == EBPF_EXECUTION_NATIVE ? "test_utility_helpers_um.dll" : "test_utility_helpers.o");
     program_load_attach_helper_t program_helper;
     program_helper.initialize(
-        file_name, BPF_PROG_TYPE_SAMPLE, "test_utility_helpers", execution_type, &ifindex, sizeof(ifindex), hook);
+        file_name, BPF_PROG_TYPE_SAMPLE, "test_utility_helpers", execution_type, nullptr, 0, hook);
     bpf_object* object = program_helper.get_object();
 
     // Dummy context (not used by the eBPF program).
@@ -995,12 +993,7 @@ map_test(ebpf_execution_type_t execution_type)
     }
     REQUIRE(result == 0);
 
-    uint32_t ifindex = 0;
-    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
-
-    // auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
-    // xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
-
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
     uint32_t hook_result;
     sample_program_context_t ctx = {0};
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
@@ -1038,7 +1031,7 @@ TEST_CASE("enum section", "[end_to_end]")
     for (auto current_section = section_data; current_section != nullptr; current_section = current_section->next) {
         ebpf_stat_t* stat = current_section->stats;
         REQUIRE(strcmp(stat->key, "Instructions") == 0);
-        REQUIRE(stat->value == 47);
+        REQUIRE(stat->value == 40);
     }
     ebpf_free_sections(section_data);
     ebpf_free_string(error_message);
@@ -1255,7 +1248,7 @@ TEST_CASE("verify_test1", "[sample_extension]")
 
     REQUIRE(
         (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext/utility", nullptr, false, &report, &error_message, &stats),
+             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", nullptr, false, &report, &error_message, &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
@@ -1460,8 +1453,7 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     }
     REQUIRE(result == 0);
 
-    uint32_t ifindex = 0;
-    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
 
     // Call bpf_object__close() which will close the program fd. That should
     // detach the program from the hook and unload the program.
@@ -1513,8 +1505,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     }
     REQUIRE(result == 0);
 
-    uint32_t ifindex = 0;
-    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
 
     // Call bpf_object__close() which will close the program fd. That should
     // detach the program from the hook and unload the program.
@@ -1567,8 +1558,7 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     }
     REQUIRE(result == 0);
 
-    uint32_t ifindex = 0;
-    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
 
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test
@@ -1616,8 +1606,7 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     }
     REQUIRE(result == 0);
 
-    uint32_t ifindex = 0;
-    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
 
     // Close program handle. That should detach the program from the hook
     // and unload the program.
@@ -1956,10 +1945,9 @@ TEST_CASE("link_tests", "[end_to_end]")
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper;
     program_helper.initialize(
-        SAMPLE_PATH "bpf.o", BPF_PROG_TYPE_SAMPLE, "func", EBPF_EXECUTION_INTERPRET, &ifindex, sizeof(ifindex), hook);
+        SAMPLE_PATH "bpf.o", BPF_PROG_TYPE_SAMPLE, "func", EBPF_EXECUTION_INTERPRET, nullptr, 0, hook);
 
     // Dummy context (not used by the eBPF program).
     sample_program_context_t ctx = {0};
@@ -2024,10 +2012,8 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
     error = bpf_map_update_elem(inner_map_fd, &key, &value, BPF_ANY);
     REQUIRE(error == 0);
 
-    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper;
-    program_helper.initialize(
-        file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
+    program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_ANY, nullptr, 0, hook);
 
     // The outer map we created earlier should still not have a name even though there is a name in the file,
     // since the unnamed map was reused.
@@ -2122,10 +2108,8 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
 
-    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper;
-    program_helper.initialize(
-        file_name, BPF_PROG_TYPE_XDP_TEST, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
+    program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_ANY, nullptr, 0, hook);
 
     fd_t outer_map_fd = bpf_obj_get("/ebpf/global/outer_map");
     REQUIRE(outer_map_fd > 0);
@@ -2327,10 +2311,8 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
     error = bpf_map_update_elem(inner_map_fd, &key, &value, BPF_ANY);
     REQUIRE(error == 0);
 
-    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper;
-    program_helper.initialize(
-        file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
+    program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_ANY, nullptr, 0, hook);
 
     sample_program_context_t ctx{0};
     uint32_t hook_result;
@@ -2405,10 +2387,8 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_2_um.dll" : "map_reuse_2.o");
 
-    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper;
-    program_helper.initialize(
-        file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
+    program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_ANY, nullptr, 0, hook);
 
     sample_program_context_t ctx{0};
     uint32_t hook_result;
@@ -2579,7 +2559,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
 // Load native module and then try to load programs with incorrect params.
 TEST_CASE("load_native_program_negative4", "[end-to-end]")
 {
-#define INCORRECT_MAP_COUNT 1
+#define INCORRECT_MAP_COUNT 2
 #define PROGRAM_COUNT 1
     _test_helper_end_to_end test_helper;
     test_helper.initialize();

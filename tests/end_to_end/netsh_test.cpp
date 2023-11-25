@@ -654,7 +654,7 @@ TEST_CASE("show links", "[netsh][links]")
                   "   Link  Program  Attach\n"
                   "     ID       ID  Type\n"
                   "=======  =======  =============\n"
-                  "      7        5  sample\n");
+                  "      7        5  sample_ext\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(output == "");
