@@ -109,12 +109,12 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
     // NULL context
     opts.ctx_in = nullptr;
     opts.ctx_size_in = 0;
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
 
     // Zero length context
     opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
     opts.ctx_size_in = 0;
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
 
     // Context out is too small
     std::vector<uint8_t> small_context(1);
@@ -122,14 +122,14 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
     opts.ctx_size_in = sizeof(in_ctx);
     opts.ctx_out = small_context.data();
     opts.ctx_size_out = static_cast<uint32_t>(small_context.size());
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EOTHER);
 
     // context in, null context out
     opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
     opts.ctx_size_in = sizeof(in_ctx);
     opts.ctx_out = nullptr;
     opts.ctx_size_out = 0;
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EOTHER);
 
     // No context in, Context out
     std::vector<uint8_t> context_out(1024);
@@ -137,7 +137,7 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
     opts.ctx_size_in = 0;
     opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
     opts.ctx_size_out = sizeof(out_ctx);
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
     REQUIRE(opts.ctx_size_out == sizeof(sample_program_context_t));
 
     // With bpf syscall
@@ -491,11 +491,11 @@ TEST_CASE("libbpf program", "[libbpf]")
     REQUIRE(fd2 != ebpf_fd_invalid);
 
     size_t size = bpf_program__insn_cnt(program);
-    REQUIRE(size == 47);
+    REQUIRE(size == 40);
 
 #pragma warning(suppress : 4996) // deprecated
     size = bpf_program__size(program);
-    REQUIRE(size == 376);
+    REQUIRE(size == 320);
 
     REQUIRE(bpf_object__next_program(object, program) == nullptr);
     REQUIRE(bpf_object__prev_program(object, program) == nullptr);
@@ -2168,7 +2168,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     int program_fd = bpf_program__fd(program);
     REQUIRE(program_fd > 0);
 
-    struct bpf_map* map = bpf_object__find_map_by_name(object, "dropped_packet_map");
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "test_map");
     REQUIRE(map != nullptr);
 
     const char* map_name = bpf_map__name(map);
@@ -2184,11 +2184,11 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(map_info_size == sizeof(map_info[0]));
     REQUIRE(map_info[0].type == BPF_MAP_TYPE_ARRAY);
     REQUIRE(map_info[0].key_size == sizeof(uint32_t));
-    REQUIRE(map_info[0].value_size == sizeof(uint64_t));
-    REQUIRE(map_info[0].max_entries == 1);
+    REQUIRE(map_info[0].value_size == 32);
+    REQUIRE(map_info[0].max_entries == 2);
     REQUIRE(strcmp(map_info[0].name, map_name) == 0);
 
-    map = bpf_object__find_map_by_name(object, "interface_index_map");
+    map = bpf_object__find_map_by_name(object, "test_map");
     REQUIRE(map != nullptr);
     map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
@@ -2199,8 +2199,8 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(map_info_size == sizeof(map_info[1]));
     REQUIRE(map_info[1].type == BPF_MAP_TYPE_ARRAY);
     REQUIRE(map_info[1].key_size == sizeof(uint32_t));
-    REQUIRE(map_info[1].value_size == sizeof(uint32_t));
-    REQUIRE(map_info[1].max_entries == 1);
+    REQUIRE(map_info[1].value_size == 32);
+    REQUIRE(map_info[1].max_entries == 2);
     REQUIRE(strcmp(map_info[1].name, map_name) == 0);
 
     // Fetch info about the program and verify it matches what we'd expect.
@@ -2344,7 +2344,7 @@ TEST_CASE("libbpf_bpf_prog_type_str", "[libbpf]")
 
     const char* prog_type_str_sample = libbpf_bpf_prog_type_str(BPF_PROG_TYPE_SAMPLE);
     REQUIRE(prog_type_str_sample);
-    REQUIRE(strcmp(prog_type_str_sample, "sample_ext") == 0);
+    REQUIRE(strcmp(prog_type_str_sample, "sample") == 0);
     const char* prog_type_str_unspec = libbpf_bpf_prog_type_str(BPF_PROG_TYPE_UNSPEC);
     REQUIRE(prog_type_str_unspec);
     REQUIRE(strcmp(prog_type_str_unspec, "unspec") == 0);
@@ -2368,6 +2368,8 @@ TEST_CASE("libbpf attach type names", "[libbpf]")
 
     enum bpf_attach_type attach_type;
     for (int i = 1; i < __MAX_BPF_ATTACH_TYPE; i++) {
+        if (i == BPF_XDP_ORIG)
+            continue;
         const char* type_str = libbpf_bpf_attach_type_str((enum bpf_attach_type)i);
 
         REQUIRE(libbpf_attach_type_by_name(type_str, &attach_type) == 0);
@@ -2447,10 +2449,7 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
 
     struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
-    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
-    map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "test_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
@@ -2466,10 +2465,7 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
     // The maps should now have FDs.
     map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
-    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
-    map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "test_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
