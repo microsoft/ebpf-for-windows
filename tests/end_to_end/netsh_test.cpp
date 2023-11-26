@@ -775,7 +775,6 @@ TEST_CASE("xdp_test interface parameter", "[netsh][programs]")
         L"xdp_test",
         L"mypinpath",
         L"Loopback Pseudo-Interface 1");
-    printf("output: %s\n", output.c_str());
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
@@ -786,7 +785,6 @@ TEST_CASE("xdp_test interface parameter", "[netsh][programs]")
     // Load program with pinpath and loopback interface name.
     output = run_netsh_command_with_args(
         handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp_test", L"mypinpath", L"loopback_0");
-    printf("output: %s\n", output.c_str());
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 10\n") == 0);
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"10", nullptr, nullptr, &result);

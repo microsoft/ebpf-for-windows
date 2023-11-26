@@ -2738,26 +2738,6 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
         result = _create_program(
             program->program_type, object->object_name, program->section_name, program->program_name, &program->handle);
         if (result != EBPF_SUCCESS) {
-            printf("create program failed\n");
-            GUID myGuid = program->program_type;
-            printf(
-                "prog_type GUID: %08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX\n",
-                myGuid.Data1,
-                myGuid.Data2,
-                myGuid.Data3,
-                myGuid.Data4[0],
-                myGuid.Data4[1],
-                myGuid.Data4[2],
-                myGuid.Data4[3],
-                myGuid.Data4[4],
-                myGuid.Data4[5],
-                myGuid.Data4[6],
-                myGuid.Data4[7]);
-
-            // printf("program type %d\n", (uint32_t) program->program_type);
-            printf("object name %s\n", object->object_name);
-            printf("section name %s\n", program->section_name);
-            printf("program name %s\n", program->program_name);
             break;
         }
 
@@ -2792,7 +2772,6 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
 
         result = ebpf_rpc_load_program(&load_info, &program->log_buffer, &program->log_buffer_size);
         if (result != EBPF_SUCCESS) {
-            printf(" rpc_load program failed\n");
             break;
         }
     }
@@ -2815,14 +2794,12 @@ ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
     EBPF_LOG_ENTRY();
     ebpf_assert(object);
     if (object->loaded) {
-        printf("Object already loaded\n");
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
     if (Platform::_is_native_program(object->file_name)) {
         struct bpf_program* program = bpf_object__next_program(object, nullptr);
         if (program == nullptr) {
-            printf("next program is null\n");
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
         fd_t program_fd;
@@ -2838,7 +2815,6 @@ ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
     try {
         result = _ebpf_object_create_maps(object);
         if (result != EBPF_SUCCESS) {
-            printf("failed to create maps\n");
             goto Done;
         }
 
@@ -2861,7 +2837,6 @@ Done:
     if (result != EBPF_SUCCESS) {
         ebpf_assert_success(ebpf_object_unload(object));
     }
-    printf("returning %d\n", result);
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
