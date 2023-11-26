@@ -6,8 +6,8 @@
 // This file contains APIs for hooks and helpers that are
 // exposed by netebpfext.sys for use by eBPF programs.
 
-// XDP_TEST hook.  We use "struct xdp_test_md" for cross-platform compatibility.
-typedef struct xdp_md_test_
+// XDP_TEST hook.  We use "struct xdp_md" for cross-platform compatibility.
+typedef struct xdp_md_
 {
     void* data;               ///< Pointer to start of packet data.
     void* data_end;           ///< Pointer to end of packet data.
@@ -16,7 +16,7 @@ typedef struct xdp_md_test_
 
     /* size: 26, cachelines: 1, members: 4 */
     /* last cacheline: 26 bytes */
-} xdp_test_md_t;
+} xdp_md_t;
 
 typedef enum _xdp_action
 {
@@ -36,10 +36,10 @@ typedef enum _xdp_action
  * @retval XDP_TX Bounce the received packet back out the same NIC it arrived on.
  */
 typedef xdp_action_t
-xdp_test_hook_t(xdp_test_md_t* context);
+xdp_hook_t(xdp_md_t* context);
 
 // XDP_TEST helper functions.
-#define XDP_TEST_EXT_HELPER_FN_BASE 0xFFFF
+#define XDP_EXT_HELPER_FN_BASE 0xFFFF
 
 #ifndef __doxygen
 #define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args
@@ -47,7 +47,7 @@ xdp_test_hook_t(xdp_test_md_t* context);
 
 typedef enum
 {
-    BPF_FUNC_xdp_test_adjust_head = XDP_TEST_EXT_HELPER_FN_BASE + 1,
+    BPF_FUNC_xdp_adjust_head = XDP_EXT_HELPER_FN_BASE + 1,
 } ebpf_nethook_helper_id_t;
 
 /**
@@ -59,9 +59,9 @@ typedef enum
  * @retval 0 The operation was successful.
  * @retval <0 A failure occurred.
  */
-EBPF_HELPER(int, bpf_xdp_test_adjust_head, (xdp_test_md_t * ctx, int delta));
+EBPF_HELPER(int, bpf_xdp_adjust_head, (xdp_md_t * ctx, int delta));
 #ifndef __doxygen
-#define bpf_xdp_test_adjust_head ((bpf_xdp_test_adjust_head_t)BPF_FUNC_xdp_test_adjust_head)
+#define bpf_xdp_adjust_head ((bpf_xdp_adjust_head_t)BPF_FUNC_xdp_adjust_head)
 #endif
 
 // BIND hook

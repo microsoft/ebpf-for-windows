@@ -783,8 +783,9 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 }
 
 _test_helper_libbpf::_test_helper_libbpf()
-    : bind_program_info(nullptr), bind_hook(nullptr), cgroup_sock_addr_program_info(nullptr),
-      cgroup_inet4_connect_hook(nullptr), sample_program_info(nullptr), sample_hook(nullptr)
+    : xdp_program_info(nullptr), xdp_hook(nullptr), bind_program_info(nullptr), bind_hook(nullptr),
+      cgroup_sock_addr_program_info(nullptr), cgroup_inet4_connect_hook(nullptr), sample_program_info(nullptr),
+      sample_hook(nullptr)
 {
     ebpf_clear_thread_local_storage();
 }
@@ -793,6 +794,11 @@ void
 _test_helper_libbpf::initialize()
 {
     test_helper_end_to_end.initialize();
+
+    xdp_program_info = new program_info_provider_t();
+    REQUIRE(xdp_program_info->initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+    xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
+    REQUIRE(xdp_hook->initialize() == EBPF_SUCCESS);
 
     bind_program_info = new program_info_provider_t();
     REQUIRE(bind_program_info->initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
@@ -813,6 +819,9 @@ _test_helper_libbpf::initialize()
 
 _test_helper_libbpf::~_test_helper_libbpf()
 {
+    delete xdp_hook;
+    delete xdp_program_info;
+
     delete bind_hook;
     delete bind_program_info;
 

@@ -759,7 +759,7 @@ net_ebpf_ext_register_providers()
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    status = net_ebpf_ext_xdp_test_register_providers();
+    status = net_ebpf_ext_xdp_register_providers();
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -814,7 +814,7 @@ void
 net_ebpf_ext_unregister_providers()
 {
     if (_net_ebpf_xdp_providers_registered) {
-        net_ebpf_ext_xdp_test_unregister_providers();
+        net_ebpf_ext_xdp_unregister_providers();
         _net_ebpf_xdp_providers_registered = false;
     }
     if (_net_ebpf_bind_providers_registered) {

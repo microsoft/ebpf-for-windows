@@ -339,11 +339,11 @@ typedef class _single_instance_hook : public _hook_helper
     bpf_link* link_object = nullptr;
 } single_instance_hook_t;
 
-typedef class xdp_test_md_helper : public xdp_test_md_t
+typedef class xdp_md_helper : public xdp_md_t
 {
   public:
-    xdp_test_md_helper(std::vector<uint8_t>& packet)
-        : xdp_test_md_t{packet.data(), packet.data() + packet.size()}, _packet(&packet), _begin(0), _end(packet.size()),
+    xdp_md_helper(std::vector<uint8_t>& packet)
+        : xdp_md_t{packet.data(), packet.data() + packet.size()}, _packet(&packet), _begin(0), _end(packet.size()),
           cloned_nbl(nullptr)
     {
         original_nbl = &_original_nbl_storage;
@@ -385,7 +385,7 @@ typedef class xdp_test_md_helper : public xdp_test_md_t
                 _end += additional_space_needed;
             }
         }
-        // Adjust xdp_test_md data pointers.
+        // Adjust xdp_md data pointers.
         data = _packet->data() + _begin;
         data_end = _packet->data() + _end;
     Done:
@@ -401,21 +401,21 @@ typedef class xdp_test_md_helper : public xdp_test_md_t
     std::vector<uint8_t>* _packet;
     size_t _begin;
     size_t _end;
-} xdp_test_md_helper_t;
+} xdp_md_helper_t;
 
-typedef class _test_xdp_test_helper
+typedef class _test_xdp_helper
 {
   public:
     static int
-    adjust_head(_In_ const xdp_test_md_t* ctx, int delta)
+    adjust_head(_In_ const xdp_md_t* ctx, int delta)
     {
-        return ((xdp_test_md_helper_t*)ctx)->adjust_head(delta);
+        return ((xdp_md_helper_t*)ctx)->adjust_head(delta);
     }
-} test_xdp_test_helper_t;
+} test_xdp_helper_t;
 
-// These are test xdp_test context creation functions.
+// These are test xdp context creation functions.
 static ebpf_result_t
-_xdp_test_context_create(
+_xdp_context_create(
     _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
     _In_ size_t data_size_in,
     _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
@@ -425,47 +425,47 @@ _xdp_test_context_create(
     ebpf_result_t retval = EBPF_FAILED;
     *context = nullptr;
 
-    xdp_test_md_t* xdp_test_context = reinterpret_cast<xdp_test_md_t*>(malloc(sizeof(xdp_test_md_t)));
-    if (xdp_test_context == nullptr) {
+    xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(malloc(sizeof(xdp_md_t)));
+    if (xdp_context == nullptr) {
         goto Done;
     }
 
     if (context_in) {
-        if (context_size_in < sizeof(xdp_test_md_t)) {
+        if (context_size_in < sizeof(xdp_md_t)) {
             goto Done;
         }
-        xdp_test_md_t* provided_context = (xdp_test_md_t*)context_in;
-        xdp_test_context->ingress_ifindex = provided_context->ingress_ifindex;
-        xdp_test_context->data_meta = provided_context->data_meta;
+        xdp_md_t* provided_context = (xdp_md_t*)context_in;
+        xdp_context->ingress_ifindex = provided_context->ingress_ifindex;
+        xdp_context->data_meta = provided_context->data_meta;
     }
 
-    xdp_test_context->data = (void*)data_in;
-    xdp_test_context->data_end = (void*)(data_in + data_size_in);
+    xdp_context->data = (void*)data_in;
+    xdp_context->data_end = (void*)(data_in + data_size_in);
 
-    *context = xdp_test_context;
-    xdp_test_context = nullptr;
+    *context = xdp_context;
+    xdp_context = nullptr;
     retval = EBPF_SUCCESS;
 Done:
-    free(xdp_test_context);
-    xdp_test_context = nullptr;
+    free(xdp_context);
+    xdp_context = nullptr;
     return retval;
 }
 
 static void
-_xdp_test_context_destroy(
+_xdp_context_destroy(
     _In_opt_ void* context,
     _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
     _Inout_ size_t* data_size_out,
-    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out)
 {
     if (!context) {
         return;
     }
 
-    xdp_test_md_t* xdp_test_context = reinterpret_cast<xdp_test_md_t*>(context);
-    uint8_t* data = reinterpret_cast<uint8_t*>(xdp_test_context->data);
-    uint8_t* data_end = reinterpret_cast<uint8_t*>(xdp_test_context->data_end);
+    xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(context);
+    uint8_t* data = reinterpret_cast<uint8_t*>(xdp_context->data);
+    uint8_t* data_end = reinterpret_cast<uint8_t*>(xdp_context->data_end);
     size_t data_length = data_end - data;
     if (data_length <= *data_size_out) {
         memmove(data_out, data, data_length);
@@ -474,11 +474,11 @@ _xdp_test_context_destroy(
         *data_size_out = 0;
     }
 
-    if (context_out && *context_size_out >= sizeof(xdp_test_md_t)) {
-        xdp_test_md_t* provided_context = (xdp_test_md_t*)context_out;
-        provided_context->ingress_ifindex = xdp_test_context->ingress_ifindex;
-        provided_context->data_meta = xdp_test_context->data_meta;
-        *context_size_out = sizeof(xdp_test_md_t);
+    if (context_out && *context_size_out >= sizeof(xdp_md_t)) {
+        xdp_md_t* provided_context = (xdp_md_t*)context_out;
+        provided_context->ingress_ifindex = xdp_context->ingress_ifindex;
+        provided_context->data_meta = xdp_context->data_meta;
+        *context_size_out = sizeof(xdp_md_t);
     }
 
     free(context);
@@ -617,21 +617,21 @@ _sample_test_context_destroy(
 
 // program info provider data for various program types.
 
-// XDP_TEST.
-static const void* _test_ebpf_xdp_test_helper_functions[] = {(void*)&test_xdp_test_helper_t::adjust_head};
+// XDP.
+static const void* _test_ebpf_xdp_helper_functions[] = {(void*)&test_xdp_helper_t::adjust_head};
 
-static ebpf_helper_function_addresses_t _test_ebpf_xdp_test_helper_function_address_table = {
-    EBPF_COUNT_OF(_test_ebpf_xdp_test_helper_functions), (uint64_t*)_test_ebpf_xdp_test_helper_functions};
+static ebpf_helper_function_addresses_t _test_ebpf_xdp_helper_function_address_table = {
+    EBPF_COUNT_OF(_test_ebpf_xdp_helper_functions), (uint64_t*)_test_ebpf_xdp_helper_functions};
 
-static ebpf_program_data_t _ebpf_xdp_test_program_data = {
-    &_ebpf_xdp_test_program_info,
-    &_test_ebpf_xdp_test_helper_function_address_table,
+static ebpf_program_data_t _ebpf_xdp_program_data = {
+    &_ebpf_xdp_program_info,
+    &_test_ebpf_xdp_helper_function_address_table,
     nullptr,
-    _xdp_test_context_create,
-    _xdp_test_context_destroy};
+    _xdp_context_create,
+    _xdp_context_destroy};
 
-static ebpf_extension_data_t _ebpf_xdp_test_program_info_provider_data = {
-    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_test_program_data), &_ebpf_xdp_test_program_data};
+static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
+    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
 
 // Bind.
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
@@ -695,7 +695,7 @@ typedef class _program_info_provider
         if (custom_provider_data != nullptr) {
             provider_data = custom_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_XDP_TEST) {
-            provider_data = &_ebpf_xdp_test_program_info_provider_data;
+            provider_data = &_ebpf_xdp_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_BIND) {
             provider_data = &_ebpf_bind_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) {

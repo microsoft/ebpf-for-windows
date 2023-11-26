@@ -653,6 +653,7 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
     bpf_prog_info program_info[2] = {};
 
     for (int i = 0; i < 2; i++) {
+        printf("attempt i=%d\n", i);
         object[i] = bpf_object__open("droppacket.o");
         REQUIRE(object[i] != nullptr);
         // Load the program(s).
@@ -2900,7 +2901,13 @@ TEST_CASE("recursive_tail_call", "[libbpf]")
     REQUIRE(bpf_map_update_elem(canary_map_fd, &key, &value, 0) == 0);
 
     bpf_test_run_opts opts = {};
+    sample_program_context_t in_ctx{0};
+    sample_program_context_t out_ctx{0};
     opts.repeat = 1;
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    opts.ctx_size_out = sizeof(out_ctx);
 
     capture_helper_t capture;
     std::vector<std::string> output;
@@ -2970,7 +2977,13 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
 
     // Invoke the first program in the chain.
     bpf_test_run_opts opts = {};
+    sample_program_context_t in_ctx{0};
+    sample_program_context_t out_ctx{0};
     opts.repeat = 1;
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    opts.ctx_size_out = sizeof(out_ctx);
 
     capture_helper_t capture;
     std::vector<std::string> output;

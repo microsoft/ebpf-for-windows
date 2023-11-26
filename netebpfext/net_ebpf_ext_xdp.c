@@ -38,34 +38,34 @@ Exit:
 // WFP filter related types & globals for XDP hook.
 //
 
-const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_xdp_test_wfp_filter_parameters[] = {
+const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_xdp_wfp_filter_parameters[] = {
     {&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE,
      NULL, // Default sublayer.
      &EBPF_HOOK_INBOUND_L2_CALLOUT,
-     L"net eBPF xdp test hook",
-     L"net eBPF xdp test hook WFP filter"},
+     L"net eBPF xdp hook",
+     L"net eBPF xdp hook WFP filter"},
     {&FWPM_LAYER_OUTBOUND_MAC_FRAME_NATIVE,
      NULL, // Default sublayer.
      &EBPF_HOOK_OUTBOUND_L2_CALLOUT,
-     L"net eBPF xdp test hook",
-     L"net eBPF xdp test hook WFP filter"}};
+     L"net eBPF xdp hook",
+     L"net eBPF xdp hook WFP filter"}};
 
-#define NET_EBPF_XDP_TEST_FILTER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_xdp_test_wfp_filter_parameters)
+#define NET_EBPF_XDP_FILTER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_xdp_wfp_filter_parameters)
 
-typedef struct _net_ebpf_extension_xdp_test_wfp_filter_context
+typedef struct _net_ebpf_extension_xdp_wfp_filter_context
 {
     net_ebpf_extension_wfp_filter_context_t base;
     uint32_t if_index;
-} net_ebpf_extension_xdp_test_wfp_filter_context_t;
+} net_ebpf_extension_xdp_wfp_filter_context_t;
 
 //
-// XDP_TEST Program Information NPI Provider.
+// XDP Program Information NPI Provider.
 //
 static int
-_net_ebpf_xdp_test_adjust_head(_Inout_ xdp_test_md_t* ctx, int delta);
+_net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta);
 
 static ebpf_result_t
-_ebpf_xdp_test_context_create(
+_ebpf_xdp_context_create(
     _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
     size_t data_size_in,
     _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
@@ -73,54 +73,52 @@ _ebpf_xdp_test_context_create(
     _Outptr_ void** context);
 
 static void
-_ebpf_xdp_test_context_delete(
+_ebpf_xdp_context_delete(
     _In_opt_ void* context,
     _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
     _Inout_ size_t* data_size_out,
     _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out);
 
-static const void* _ebpf_xdp_test_helper_functions[] = {(void*)&_net_ebpf_xdp_test_adjust_head};
+static const void* _ebpf_xdp_helper_functions[] = {(void*)&_net_ebpf_xdp_adjust_head};
 
-static ebpf_helper_function_addresses_t _ebpf_xdp_test_helper_function_address_table = {
-    EBPF_COUNT_OF(_ebpf_xdp_test_helper_functions), (uint64_t*)_ebpf_xdp_test_helper_functions};
+static ebpf_helper_function_addresses_t _ebpf_xdp_helper_function_address_table = {
+    EBPF_COUNT_OF(_ebpf_xdp_helper_functions), (uint64_t*)_ebpf_xdp_helper_functions};
 
-static ebpf_program_data_t _ebpf_xdp_test_program_data = {
-    .program_info = &_ebpf_xdp_test_program_info,
-    .program_type_specific_helper_function_addresses = &_ebpf_xdp_test_helper_function_address_table,
-    .context_create = _ebpf_xdp_test_context_create,
-    .context_destroy = _ebpf_xdp_test_context_delete,
+static ebpf_program_data_t _ebpf_xdp_program_data = {
+    .program_info = &_ebpf_xdp_program_info,
+    .program_type_specific_helper_function_addresses = &_ebpf_xdp_helper_function_address_table,
+    .context_create = _ebpf_xdp_context_create,
+    .context_destroy = _ebpf_xdp_context_delete,
     .required_irql = DISPATCH_LEVEL,
 };
 
-static ebpf_extension_data_t _ebpf_xdp_test_program_info_provider_data = {
-    NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_test_program_data), &_ebpf_xdp_test_program_data};
+static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
+    NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
 
-NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_test_program_info_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
+NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_program_info_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
-static net_ebpf_extension_program_info_provider_t* _ebpf_xdp_test_program_info_provider_context = NULL;
+static net_ebpf_extension_program_info_provider_t* _ebpf_xdp_program_info_provider_context = NULL;
 
 //
-// XDP_TEST Hook NPI Provider.
+// XDP Hook NPI Provider.
 //
 
-ebpf_attach_provider_data_t _net_ebpf_xdp_test_hook_provider_data;
+ebpf_attach_provider_data_t _net_ebpf_xdp_hook_provider_data;
 
-ebpf_extension_data_t _net_ebpf_extension_xdp_test_hook_provider_data = {
-    EBPF_ATTACH_PROVIDER_DATA_VERSION,
-    sizeof(_net_ebpf_xdp_test_hook_provider_data),
-    &_net_ebpf_xdp_test_hook_provider_data};
+ebpf_extension_data_t _net_ebpf_extension_xdp_hook_provider_data = {
+    EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(_net_ebpf_xdp_hook_provider_data), &_net_ebpf_xdp_hook_provider_data};
 
-NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_test_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
+NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
-static net_ebpf_extension_hook_provider_t* _ebpf_xdp_test_hook_provider_context = NULL;
+static net_ebpf_extension_hook_provider_t* _ebpf_xdp_hook_provider_context = NULL;
 
 //
 // NMR Registration Helper Routines.
 //
 
 static ebpf_result_t
-net_ebpf_extension_xdp_test_on_client_attach(
+net_ebpf_extension_xdp_on_client_attach(
     _In_ const net_ebpf_extension_hook_client_t* attaching_client,
     _In_ const net_ebpf_extension_hook_provider_t* provider_context)
 {
@@ -130,11 +128,11 @@ net_ebpf_extension_xdp_test_on_client_attach(
     uint32_t wild_card_if_index = 0;
     uint32_t filter_count;
     FWPM_FILTER_CONDITION condition = {0};
-    net_ebpf_extension_xdp_test_wfp_filter_context_t* filter_context = NULL;
+    net_ebpf_extension_xdp_wfp_filter_context_t* filter_context = NULL;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    // XDP_TEST hook clients must always provide data.
+    // XDP hook clients must always provide data.
     if (client_data == NULL) {
         result = EBPF_INVALID_ARGUMENT;
         NET_EBPF_EXT_LOG_MESSAGE(
@@ -183,7 +181,7 @@ net_ebpf_extension_xdp_test_on_client_attach(
     }
 
     result = net_ebpf_extension_wfp_filter_context_create(
-        sizeof(net_ebpf_extension_xdp_test_wfp_filter_context_t),
+        sizeof(net_ebpf_extension_xdp_wfp_filter_context_t),
         attaching_client,
         (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
     if (result != EBPF_SUCCESS) {
@@ -195,13 +193,13 @@ net_ebpf_extension_xdp_test_on_client_attach(
         goto Exit;
     }
     filter_context->if_index = if_index;
-    filter_context->base.filter_ids_count = NET_EBPF_XDP_TEST_FILTER_COUNT;
+    filter_context->base.filter_ids_count = NET_EBPF_XDP_FILTER_COUNT;
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
-    filter_count = NET_EBPF_XDP_TEST_FILTER_COUNT;
+    filter_count = NET_EBPF_XDP_FILTER_COUNT;
     result = net_ebpf_extension_add_wfp_filters(
         filter_count,
-        _net_ebpf_extension_xdp_test_wfp_filter_parameters,
+        _net_ebpf_extension_xdp_wfp_filter_parameters,
         (if_index == 0) ? 0 : 1,
         (if_index == 0) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
@@ -230,10 +228,10 @@ Exit:
 }
 
 static void
-_net_ebpf_extension_xdp_test_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
+_net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
 {
-    net_ebpf_extension_xdp_test_wfp_filter_context_t* filter_context =
-        (net_ebpf_extension_xdp_test_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
+    net_ebpf_extension_xdp_wfp_filter_context_t* filter_context =
+        (net_ebpf_extension_xdp_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
             detaching_client);
 
     NET_EBPF_EXT_LOG_ENTRY();
@@ -246,13 +244,13 @@ _net_ebpf_extension_xdp_test_on_client_detach(_In_ const net_ebpf_extension_hook
 }
 
 static NTSTATUS
-_net_ebpf_xdp_test_update_store_entries()
+_net_ebpf_xdp_update_store_entries()
 {
     NTSTATUS status;
 
     // Update section information.
-    uint32_t section_info_count = sizeof(_ebpf_xdp_test_section_info) / sizeof(ebpf_program_section_info_t);
-    status = ebpf_store_update_section_information(&_ebpf_xdp_test_section_info[0], section_info_count);
+    uint32_t section_info_count = sizeof(_ebpf_xdp_section_info) / sizeof(ebpf_program_section_info_t);
+    status = ebpf_store_update_section_information(&_ebpf_xdp_section_info[0], section_info_count);
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -263,7 +261,7 @@ _net_ebpf_xdp_test_update_store_entries()
     }
 
     // Update program information.
-    status = ebpf_store_update_program_information(&_ebpf_xdp_test_program_info, 1);
+    status = ebpf_store_update_program_information(&_ebpf_xdp_program_info, 1);
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -278,18 +276,18 @@ Exit:
 }
 
 NTSTATUS
-net_ebpf_ext_xdp_test_register_providers()
+net_ebpf_ext_xdp_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
 
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
-        &_ebpf_xdp_test_program_info_provider_moduleid, &_ebpf_xdp_test_program_info_provider_data};
+        &_ebpf_xdp_program_info_provider_moduleid, &_ebpf_xdp_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &_ebpf_xdp_test_hook_provider_moduleid, &_net_ebpf_extension_xdp_test_hook_provider_data};
+        &_ebpf_xdp_hook_provider_moduleid, &_net_ebpf_extension_xdp_hook_provider_data};
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    status = _net_ebpf_xdp_test_update_store_entries();
+    status = _net_ebpf_xdp_update_store_entries();
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -300,9 +298,9 @@ net_ebpf_ext_xdp_test_register_providers()
     }
 
     // Set the program type as the provider module id.
-    _ebpf_xdp_test_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_XDP_TEST;
+    _ebpf_xdp_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_XDP_TEST;
     status = net_ebpf_extension_program_info_provider_register(
-        &program_info_provider_parameters, &_ebpf_xdp_test_program_info_provider_context);
+        &program_info_provider_parameters, &_ebpf_xdp_program_info_provider_context);
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -312,17 +310,17 @@ net_ebpf_ext_xdp_test_register_providers()
         goto Exit;
     }
 
-    _net_ebpf_xdp_test_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_XDP_TEST;
+    _net_ebpf_xdp_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_XDP_TEST;
     // Set the attach type as the provider module id.
-    _ebpf_xdp_test_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_XDP_TEST;
-    _net_ebpf_xdp_test_hook_provider_data.bpf_attach_type = BPF_XDP_TEST;
-    _net_ebpf_xdp_test_hook_provider_data.link_type = BPF_LINK_TYPE_XDP_TEST;
+    _ebpf_xdp_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_XDP_TEST;
+    _net_ebpf_xdp_hook_provider_data.bpf_attach_type = BPF_XDP_TEST;
+    _net_ebpf_xdp_hook_provider_data.link_type = BPF_LINK_TYPE_XDP_TEST;
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
-        net_ebpf_extension_xdp_test_on_client_attach,
-        _net_ebpf_extension_xdp_test_on_client_detach,
+        net_ebpf_extension_xdp_on_client_attach,
+        _net_ebpf_extension_xdp_on_client_detach,
         NULL,
-        &_ebpf_xdp_test_hook_provider_context);
+        &_ebpf_xdp_hook_provider_context);
     if (status != EBPF_SUCCESS) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -334,33 +332,33 @@ net_ebpf_ext_xdp_test_register_providers()
 
 Exit:
     if (!NT_SUCCESS(status)) {
-        net_ebpf_ext_xdp_test_unregister_providers();
+        net_ebpf_ext_xdp_unregister_providers();
     }
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
-net_ebpf_ext_xdp_test_unregister_providers()
+net_ebpf_ext_xdp_unregister_providers()
 {
-    if (_ebpf_xdp_test_hook_provider_context) {
-        net_ebpf_extension_hook_provider_unregister(_ebpf_xdp_test_hook_provider_context);
-        _ebpf_xdp_test_hook_provider_context = NULL;
+    if (_ebpf_xdp_hook_provider_context) {
+        net_ebpf_extension_hook_provider_unregister(_ebpf_xdp_hook_provider_context);
+        _ebpf_xdp_hook_provider_context = NULL;
     }
-    if (_ebpf_xdp_test_program_info_provider_context) {
-        net_ebpf_extension_program_info_provider_unregister(_ebpf_xdp_test_program_info_provider_context);
-        _ebpf_xdp_test_program_info_provider_context = NULL;
+    if (_ebpf_xdp_program_info_provider_context) {
+        net_ebpf_extension_program_info_provider_unregister(_ebpf_xdp_program_info_provider_context);
+        _ebpf_xdp_program_info_provider_context = NULL;
     }
 }
 
 /**
- *  @brief This is the internal data structure for XDP_TEST context.
+ *  @brief This is the internal data structure for XDP context.
  */
-typedef struct _net_ebpf_xdp_test_md
+typedef struct _net_ebpf_xdp_md
 {
-    xdp_test_md_t base;
+    xdp_md_t base;
     NET_BUFFER_LIST* original_nbl;
     NET_BUFFER_LIST* cloned_nbl;
-} net_ebpf_xdp_test_md_t;
+} net_ebpf_xdp_md_t;
 
 //
 // NBL Clone Functions.
@@ -370,7 +368,7 @@ static void
 _net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl, BOOLEAN free_data);
 
 static NTSTATUS
-_net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_test_md_t* net_xdp_test_ctx, uint32_t unused_header_length)
+_net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32_t unused_header_length)
 {
     NTSTATUS status = STATUS_SUCCESS;
     uint8_t* old_data;
@@ -382,7 +380,7 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_test_md_t* net_xdp_test_c
     MDL* mdl_chain = NULL;
 
     // Either original or cloned NBL must be present.
-    if ((net_xdp_test_ctx->original_nbl == NULL) && (net_xdp_test_ctx->cloned_nbl == NULL)) {
+    if ((net_xdp_ctx->original_nbl == NULL) && (net_xdp_ctx->cloned_nbl == NULL)) {
         status = STATUS_INVALID_PARAMETER;
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -391,9 +389,9 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_test_md_t* net_xdp_test_c
         goto Exit;
     }
 
-    old_data = (uint8_t*)net_xdp_test_ctx->base.data;
+    old_data = (uint8_t*)net_xdp_ctx->base.data;
 
-    old_nbl = (net_xdp_test_ctx->cloned_nbl != NULL) ? net_xdp_test_ctx->cloned_nbl : net_xdp_test_ctx->original_nbl;
+    old_nbl = (net_xdp_ctx->cloned_nbl != NULL) ? net_xdp_ctx->cloned_nbl : net_xdp_ctx->original_nbl;
     ASSERT(old_nbl != NULL);
     old_net_buffer = NET_BUFFER_LIST_FIRST_NB(old_nbl);
 
@@ -426,9 +424,9 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_test_md_t* net_xdp_test_c
         }
     }
 
-    // Adjust the XDP_TEST context data pointers.
-    net_xdp_test_ctx->base.data = packet_buffer;
-    net_xdp_test_ctx->base.data_end = packet_buffer + cloned_net_buffer_length;
+    // Adjust the XDP context data pointers.
+    net_xdp_ctx->base.data = packet_buffer;
+    net_xdp_ctx->base.data_end = packet_buffer + cloned_net_buffer_length;
 
     // Create a MDL with the packet buffer.
     mdl_chain = IoAllocateMdl(packet_buffer, cloned_net_buffer_length, FALSE, FALSE, NULL);
@@ -450,11 +448,11 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_test_md_t* net_xdp_test_c
     mdl_chain = NULL;
     packet_buffer = NULL;
 
-    // Set the new NBL as the cloned NBL in XDP_TEST context, after disposing any previous clones.
-    if (net_xdp_test_ctx->cloned_nbl != NULL) {
-        _net_ebpf_ext_free_nbl(net_xdp_test_ctx->cloned_nbl, TRUE);
+    // Set the new NBL as the cloned NBL in XDP context, after disposing any previous clones.
+    if (net_xdp_ctx->cloned_nbl != NULL) {
+        _net_ebpf_ext_free_nbl(net_xdp_ctx->cloned_nbl, TRUE);
     }
-    net_xdp_test_ctx->cloned_nbl = new_nbl;
+    net_xdp_ctx->cloned_nbl = new_nbl;
 
 Exit:
     if (mdl_chain != NULL) {
@@ -483,26 +481,26 @@ _net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl, BOOLEAN free_data)
 }
 
 //
-// XDP_TEST Helper Functions.
+// XDP Helper Functions.
 //
 
 static int
-_net_ebpf_xdp_test_adjust_head(_Inout_ xdp_test_md_t* ctx, int delta)
+_net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta)
 {
     int return_value = 0;
     NDIS_STATUS ndis_status = NDIS_STATUS_SUCCESS;
-    net_ebpf_xdp_test_md_t* net_xdp_test_ctx = (net_ebpf_xdp_test_md_t*)ctx;
+    net_ebpf_xdp_md_t* net_xdp_ctx = (net_ebpf_xdp_md_t*)ctx;
     NET_BUFFER_LIST* nbl = NULL;
     NET_BUFFER* net_buffer = NULL;
     uint8_t* packet_buffer = NULL;
 
     // Either original or cloned NBL must be present.
-    if ((net_xdp_test_ctx->original_nbl == NULL) && (net_xdp_test_ctx->cloned_nbl == NULL)) {
+    if ((net_xdp_ctx->original_nbl == NULL) && (net_xdp_ctx->cloned_nbl == NULL)) {
         return_value = -1;
         goto Exit;
     }
 
-    nbl = (net_xdp_test_ctx->cloned_nbl != NULL) ? net_xdp_test_ctx->cloned_nbl : net_xdp_test_ctx->original_nbl;
+    nbl = (net_xdp_ctx->cloned_nbl != NULL) ? net_xdp_ctx->cloned_nbl : net_xdp_ctx->original_nbl;
     ASSERT(nbl != NULL);
     net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
 
@@ -521,20 +519,20 @@ _net_ebpf_xdp_test_adjust_head(_Inout_ xdp_test_md_t* ctx, int delta)
         }
         packet_buffer = (uint8_t*)NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, 1, 0);
         if (packet_buffer != NULL) {
-            net_xdp_test_ctx->base.data = packet_buffer;
+            net_xdp_ctx->base.data = packet_buffer;
         } else {
             // Data in net_buffer not contiguous.
             // Restore net_buffer.
             NdisAdvanceNetBufferDataStart(net_buffer, absolute_delta, TRUE, NULL);
             // Allocate a cloned NBL with contiguous data.
-            _net_ebpf_ext_allocate_cloned_nbl(net_xdp_test_ctx, absolute_delta);
+            _net_ebpf_ext_allocate_cloned_nbl(net_xdp_ctx, absolute_delta);
         }
     } else {
         // delta > 0.
         NdisAdvanceNetBufferDataStart(net_buffer, delta, FALSE, NULL);
         packet_buffer = (uint8_t*)NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, 1, 0);
         ASSERT(packet_buffer != NULL);
-        net_xdp_test_ctx->base.data = packet_buffer;
+        net_xdp_ctx->base.data = packet_buffer;
     }
 
 Exit:
@@ -603,8 +601,8 @@ _net_ebpf_ext_l2_inject_send_complete(
 }
 
 static void
-_net_ebpf_ext_handle_xdp_test_tx(
-    _Inout_ net_ebpf_xdp_test_md_t* net_xdp_test_ctx, _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values)
+_net_ebpf_ext_handle_xdp_tx(
+    _Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values)
 {
     NET_BUFFER_LIST* nbl = NULL;
     NTSTATUS status = STATUS_SUCCESS;
@@ -616,13 +614,13 @@ _net_ebpf_ext_handle_xdp_test_tx(
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_NDIS_PORT].value.uint32;
 
     // Either original or cloned NBL must be present.
-    ASSERT((net_xdp_test_ctx->original_nbl != NULL) || (net_xdp_test_ctx->cloned_nbl != NULL));
+    ASSERT((net_xdp_ctx->original_nbl != NULL) || (net_xdp_ctx->cloned_nbl != NULL));
 
-    if (net_xdp_test_ctx->cloned_nbl != NULL) {
+    if (net_xdp_ctx->cloned_nbl != NULL) {
         // No need to clone an already cloned NBL.
-        nbl = net_xdp_test_ctx->cloned_nbl;
+        nbl = net_xdp_ctx->cloned_nbl;
     } else {
-        status = FwpsAllocateCloneNetBufferList(net_xdp_test_ctx->original_nbl, NULL, NULL, 0, &nbl);
+        status = FwpsAllocateCloneNetBufferList(net_xdp_ctx->original_nbl, NULL, NULL, 0, &nbl);
         if (status != STATUS_SUCCESS) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
                 NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "FwpsAllocateCloneNetBufferList", status);
@@ -677,8 +675,8 @@ net_ebpf_ext_layer_2_classify(
     NET_BUFFER* net_buffer = NULL;
     uint8_t* packet_buffer;
     uint32_t result = 0;
-    net_ebpf_xdp_test_md_t net_xdp_test_ctx = {0};
-    net_ebpf_extension_xdp_test_wfp_filter_context_t* filter_context = NULL;
+    net_ebpf_xdp_md_t net_xdp_ctx = {0};
+    net_ebpf_extension_xdp_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
     uint32_t client_if_index;
 
@@ -701,7 +699,7 @@ net_ebpf_ext_layer_2_classify(
         goto Exit;
     }
 
-    filter_context = (net_ebpf_extension_xdp_test_wfp_filter_context_t*)filter->context;
+    filter_context = (net_ebpf_extension_xdp_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
     if (filter_context == NULL) {
         goto Exit;
@@ -722,17 +720,17 @@ net_ebpf_ext_layer_2_classify(
         goto Exit;
     }
 
-    net_xdp_test_ctx.base.ingress_ifindex =
+    net_xdp_ctx.base.ingress_ifindex =
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
 
     client_if_index = filter_context->if_index;
-    ASSERT((client_if_index == 0) || (client_if_index == net_xdp_test_ctx.base.ingress_ifindex));
-    if (client_if_index != 0 && client_if_index != net_xdp_test_ctx.base.ingress_ifindex) {
+    ASSERT((client_if_index == 0) || (client_if_index == net_xdp_ctx.base.ingress_ifindex));
+    if (client_if_index != 0 && client_if_index != net_xdp_ctx.base.ingress_ifindex) {
         // The client is not interested in this ingress ifindex.
         goto Exit;
     }
 
-    net_xdp_test_ctx.original_nbl = nbl;
+    net_xdp_ctx.original_nbl = nbl;
 
     net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
     if (net_buffer == NULL) {
@@ -745,7 +743,7 @@ net_ebpf_ext_layer_2_classify(
     if (!packet_buffer) {
         // Data in net_buffer not contiguous.
         // Allocate a cloned NBL with contiguous data.
-        status = _net_ebpf_ext_allocate_cloned_nbl(&net_xdp_test_ctx, 0);
+        status = _net_ebpf_ext_allocate_cloned_nbl(&net_xdp_ctx, 0);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -755,24 +753,24 @@ net_ebpf_ext_layer_2_classify(
             goto Exit;
         }
     } else {
-        net_xdp_test_ctx.base.data = packet_buffer;
-        net_xdp_test_ctx.base.data_end = packet_buffer + net_buffer->DataLength;
+        net_xdp_ctx.base.data = packet_buffer;
+        net_xdp_ctx.base.data_end = packet_buffer + net_buffer->DataLength;
     }
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_test_ctx, &result) != EBPF_SUCCESS) {
+    if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_ctx, &result) != EBPF_SUCCESS) {
         // Perform a default action if the program fails.
         result = XDP_DROP;
     }
 
     switch (result) {
     case XDP_PASS:
-        if (net_xdp_test_ctx.cloned_nbl != NULL) {
+        if (net_xdp_ctx.cloned_nbl != NULL) {
             // Drop the original NBL.
             classify_output->actionType = FWP_ACTION_BLOCK;
             classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
 
             // Inject the cloned NBL in receive path.
-            status = _net_ebpf_ext_receive_inject_cloned_nbl(net_xdp_test_ctx.cloned_nbl, incoming_fixed_values);
+            status = _net_ebpf_ext_receive_inject_cloned_nbl(net_xdp_ctx.cloned_nbl, incoming_fixed_values);
             if (NT_SUCCESS(status)) {
                 // If cloned packet could be successfully injected, no need to audit for dropping the original.
                 // So absorb the original packet.
@@ -789,7 +787,7 @@ net_ebpf_ext_layer_2_classify(
         // The inbound original NBL will be allowed to proceed in the ingress path.
         break;
     case XDP_TX:
-        _net_ebpf_ext_handle_xdp_test_tx(&net_xdp_test_ctx, incoming_fixed_values);
+        _net_ebpf_ext_handle_xdp_tx(&net_xdp_ctx, incoming_fixed_values);
         // Absorb the original NBL.
         classify_output->actionType = FWP_ACTION_BLOCK;
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
@@ -804,8 +802,8 @@ net_ebpf_ext_layer_2_classify(
         // Do not audit XDP drops.
         classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
         // Free cloned NBL, if any.
-        if (net_xdp_test_ctx.cloned_nbl != NULL) {
-            _net_ebpf_ext_free_nbl(net_xdp_test_ctx.cloned_nbl, TRUE);
+        if (net_xdp_ctx.cloned_nbl != NULL) {
+            _net_ebpf_ext_free_nbl(net_xdp_ctx.cloned_nbl, TRUE);
         }
         break;
     }
@@ -817,7 +815,7 @@ Exit:
 }
 
 /**
- * @brief Build a xdp_test_md_t context for the eBPF program. This includes copying the packet data and
+ * @brief Build a xdp_md_t context for the eBPF program. This includes copying the packet data and
  * metadata into a contiguous buffer and building an MDL chain for the same.
  *
  * @param[in] data_in The packet data.
@@ -830,7 +828,7 @@ Exit:
  * @retval STATUS_NO_MEMORY Failed to allocate resources for this operation.
  */
 static ebpf_result_t
-_ebpf_xdp_test_context_create(
+_ebpf_xdp_context_create(
     _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
     size_t data_size_in,
     _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
@@ -839,7 +837,7 @@ _ebpf_xdp_test_context_create(
 {
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result;
-    net_ebpf_xdp_test_md_t* new_context = NULL;
+    net_ebpf_xdp_md_t* new_context = NULL;
     MDL* mdl_chain = NULL;
     NET_BUFFER_LIST* new_nbl = NULL;
 
@@ -856,11 +854,11 @@ _ebpf_xdp_test_context_create(
         goto Exit;
     }
 
-    new_context = (net_ebpf_xdp_test_md_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(net_ebpf_xdp_test_md_t), NET_EBPF_EXTENSION_POOL_TAG);
+    new_context = (net_ebpf_xdp_md_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_xdp_md_t), NET_EBPF_EXTENSION_POOL_TAG);
     NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, new_context, "new_context", result);
 
-    memset(new_context, 0, sizeof(net_ebpf_xdp_test_md_t));
+    memset(new_context, 0, sizeof(net_ebpf_xdp_md_t));
 
     // Create a MDL with the packet buffer.
     mdl_chain = IoAllocateMdl((void*)data_in, (unsigned long)data_size_in, FALSE, FALSE, NULL);
@@ -889,10 +887,10 @@ _ebpf_xdp_test_context_create(
     new_context->base.data = (void*)data_in;
     new_context->base.data_end = (void*)(data_in + data_size_in);
 
-    if (context_in != NULL && context_size_in >= sizeof(xdp_test_md_t)) {
-        xdp_test_md_t* xdp_test_context = (xdp_test_md_t*)context_in;
-        new_context->base.data_meta = xdp_test_context->data_meta;
-        new_context->base.ingress_ifindex = xdp_test_context->ingress_ifindex;
+    if (context_in != NULL && context_size_in >= sizeof(xdp_md_t)) {
+        xdp_md_t* xdp_context = (xdp_md_t*)context_in;
+        new_context->base.data_meta = xdp_context->data_meta;
+        new_context->base.ingress_ifindex = xdp_context->ingress_ifindex;
     }
 
     *context = new_context;
@@ -916,14 +914,14 @@ Exit:
 }
 
 static void
-_ebpf_xdp_test_context_delete(
+_ebpf_xdp_context_delete(
     _In_opt_ void* context,
     _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
     _Inout_ size_t* data_size_out,
     _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out)
 {
-    net_ebpf_xdp_test_md_t* xdp_test_context = (net_ebpf_xdp_test_md_t*)context;
+    net_ebpf_xdp_md_t* xdp_context = (net_ebpf_xdp_md_t*)context;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
@@ -932,13 +930,13 @@ _ebpf_xdp_test_context_delete(
     }
 
     // Copy the packet data to the output buffer.
-    if (data_out != NULL && data_size_out != NULL && xdp_test_context->base.data != NULL) {
+    if (data_out != NULL && data_size_out != NULL && xdp_context->base.data != NULL) {
         size_t data_size = *data_size_out;
-        size_t xdp_test_data_size = (char*)(xdp_test_context->base.data_end) - (char*)(xdp_test_context->base.data);
-        if (data_size > xdp_test_data_size) {
-            data_size = xdp_test_data_size;
+        size_t xdp_data_size = (char*)(xdp_context->base.data_end) - (char*)(xdp_context->base.data);
+        if (data_size > xdp_data_size) {
+            data_size = xdp_data_size;
         }
-        memcpy(data_out, xdp_test_context->base.data, data_size);
+        memcpy(data_out, xdp_context->base.data, data_size);
         *data_size_out = data_size;
     } else {
         *data_size_out = 0;
@@ -947,27 +945,27 @@ _ebpf_xdp_test_context_delete(
     // Copy some fields from the context to the output buffer.
     if (context_out != NULL && context_size_out != NULL) {
         size_t context_size = *context_size_out;
-        if (context_size > sizeof(xdp_test_md_t)) {
-            context_size = sizeof(xdp_test_md_t);
+        if (context_size > sizeof(xdp_md_t)) {
+            context_size = sizeof(xdp_md_t);
         }
 
-        xdp_test_md_t* xdp_test_context_out = (xdp_test_md_t*)context_out;
-        xdp_test_context_out->data_meta = xdp_test_context->base.data_meta;
-        xdp_test_context_out->ingress_ifindex = xdp_test_context->base.ingress_ifindex;
+        xdp_md_t* xdp_context_out = (xdp_md_t*)context_out;
+        xdp_context_out->data_meta = xdp_context->base.data_meta;
+        xdp_context_out->ingress_ifindex = xdp_context->base.ingress_ifindex;
         *context_size_out = context_size;
     } else {
         *context_size_out = 0;
     }
 
-    if (xdp_test_context->original_nbl != NULL) {
-        _net_ebpf_ext_free_nbl(xdp_test_context->original_nbl, FALSE);
+    if (xdp_context->original_nbl != NULL) {
+        _net_ebpf_ext_free_nbl(xdp_context->original_nbl, FALSE);
     }
 
-    if (xdp_test_context->cloned_nbl != NULL) {
-        _net_ebpf_ext_free_nbl(xdp_test_context->cloned_nbl, TRUE);
+    if (xdp_context->cloned_nbl != NULL) {
+        _net_ebpf_ext_free_nbl(xdp_context->cloned_nbl, TRUE);
     }
 
-    ExFreePool(xdp_test_context);
+    ExFreePool(xdp_context);
 
 Exit:
     NET_EBPF_EXT_LOG_EXIT();

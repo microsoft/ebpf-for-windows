@@ -404,8 +404,8 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t xdp_test_program_info;
-    REQUIRE(xdp_test_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o");
     result =
@@ -434,7 +434,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_update_elem(dropped_packet_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
 
     // Test that we drop the packet and increment the map
-    xdp_test_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
+    xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
 
     uint32_t hook_result;
     REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
@@ -450,7 +450,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     // Create a normal (not 0-byte) UDP packet.
     auto packet10 = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
-    xdp_test_md_t ctx10{packet10.data(), packet10.data() + packet10.size(), 0, TEST_IFINDEX};
+    xdp_md_t ctx10{packet10.data(), packet10.data() + packet10.size(), 0, TEST_IFINDEX};
 
     // Test that we don't drop the normal packet.
     REQUIRE(hook.fire(&ctx10, &hook_result) == EBPF_SUCCESS);
@@ -495,7 +495,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
 
     // Fire a 0-length packet on any interface that is not in the map, which should be allowed.
-    xdp_test_md_t ctx4{packet0.data(), packet0.data() + packet0.size(), 0, if_index + 1};
+    xdp_md_t ctx4{packet0.data(), packet0.data() + packet0.size(), 0, if_index + 1};
     REQUIRE(hook.fire(&ctx4, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_PASS);
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
@@ -1687,14 +1687,14 @@ TEST_CASE("create_map_name", "[end_to_end]")
 }
 
 static void
-_xdp_test_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
+_xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t xdp_test_program_info;
-    REQUIRE(xdp_test_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper;
     program_helper.initialize(
@@ -1710,7 +1710,7 @@ _xdp_test_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMI
     udp_packet_t packet(address_family);
     packet.set_destination_port(ntohs(REFLECTION_TEST_PORT));
 
-    xdp_test_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
     uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
@@ -1732,14 +1732,14 @@ _xdp_test_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMI
 }
 
 static void
-_xdp_test_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
+_xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t xdp_test_program_info;
-    REQUIRE(xdp_test_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper;
     program_helper.initialize(
@@ -1756,7 +1756,7 @@ _xdp_test_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRES
     packet.set_destination_port(ntohs(REFLECTION_TEST_PORT));
 
     // Dummy context (not used by the eBPF program).
-    xdp_test_md_helper_t ctx(packet.packet());
+    xdp_md_helper_t ctx(packet.packet());
 
     uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
@@ -1844,43 +1844,31 @@ TEST_CASE("printk", "[end_to_end]")
 }
 #endif
 
-TEST_CASE("xdp-test-reflect-v4-jit", "[xdp_tests]") { _xdp_test_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
-TEST_CASE("xdp-test-reflect-v6-jit", "[xdp_tests]") { _xdp_test_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET6); }
-TEST_CASE("xdp-test-reflect-v4-interpret", "[xdp_tests]")
+TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
+TEST_CASE("xdp-reflect-v6-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET6); }
+TEST_CASE("xdp-reflect-v4-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET); }
+TEST_CASE("xdp-reflect-v6-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6); }
+TEST_CASE("xdp-encap-reflect-v4-jit", "[xdp_tests]") { _xdp_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
+TEST_CASE("xdp-encap-reflect-v6-jit", "[xdp_tests]") { _xdp_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET6); }
+TEST_CASE("xdp-encap-reflect-v4-interpret", "[xdp_tests]")
 {
-    _xdp_test_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
+    _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
 }
-TEST_CASE("xdp-test-reflect-v6-interpret", "[xdp_tests]")
+TEST_CASE("xdp-encap-reflect-v6-interpret", "[xdp_tests]")
 {
-    _xdp_test_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
-}
-TEST_CASE("xdp-test-encap-reflect-v4-jit", "[xdp_tests]")
-{
-    _xdp_test_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET);
-}
-TEST_CASE("xdp-test-encap-reflect-v6-jit", "[xdp_tests]")
-{
-    _xdp_test_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET6);
-}
-TEST_CASE("xdp-test-encap-reflect-v4-interpret", "[xdp_tests]")
-{
-    _xdp_test_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
-}
-TEST_CASE("xdp-test-encap-reflect-v6-interpret", "[xdp_tests]")
-{
-    _xdp_test_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
+    _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
 }
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED) || !defined(CONFIG_BPF_JIT_DISABLED)
 static void
-_xdp_test_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
+_xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t xdp_test_program_info;
-    REQUIRE(xdp_test_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper;
     program_helper.initialize(
@@ -1901,7 +1889,7 @@ _xdp_test_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, A
     std::vector<uint8_t> inner_ip_datagram(inner_ip_header, packet.packet().data() + packet.packet().size());
 
     uint32_t hook_result;
-    xdp_test_md_helper_t ctx(packet.packet());
+    xdp_md_helper_t ctx(packet.packet());
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_PASS);
 
@@ -1918,23 +1906,23 @@ _xdp_test_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, A
 #endif
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("xdp-test-decapsulate-permit-v4-jit", "[xdp_tests]")
+TEST_CASE("xdp-decapsulate-permit-v4-jit", "[xdp_tests]")
 {
-    _xdp_test_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET);
+    _xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET);
 }
-TEST_CASE("xdp-test-decapsulate-permit-v6-jit", "[xdp_tests]")
+TEST_CASE("xdp-decapsulate-permit-v6-jit", "[xdp_tests]")
 {
-    _xdp_test_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET6);
+    _xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET6);
 }
 #endif
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("xdp-test-decapsulate-permit-v4-interpret", "[xdp_tests]")
+TEST_CASE("xdp-decapsulate-permit-v4-interpret", "[xdp_tests]")
 {
-    _xdp_test_decapsulate_permit_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
+    _xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
 }
-TEST_CASE("xdp-test-decapsulate-permit-v6-interpret", "[xdp_tests]")
+TEST_CASE("xdp-decapsulate-permit-v6-interpret", "[xdp_tests]")
 {
-    _xdp_test_decapsulate_permit_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
+    _xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
 }
 
 TEST_CASE("link_tests", "[end_to_end]")
@@ -2982,7 +2970,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     auto packet0 = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
 
     // Test that we drop the packet and increment the map.
-    xdp_test_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
+    xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
 
     // Try loading without the extension loaded.
     bpf_object_ptr unique_droppacket_object;
@@ -3005,8 +2993,8 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     {
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
-        program_info_provider_t xdp_test_program_info;
-        REQUIRE(xdp_test_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+        program_info_provider_t xdp_program_info;
+        REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
 
         REQUIRE(
             ebpf_program_load(
@@ -3029,15 +3017,15 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
         REQUIRE(hook_result == XDP_PASS);
 
-        // Unload the extension (xdp_test_program_info and hook will be destroyed).
+        // Unload the extension (xdp_program_info and hook will be destroyed).
     }
 
     // Reload the extension provider with unchanged data.
     {
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
-        program_info_provider_t xdp_test_program_info;
-        REQUIRE(xdp_test_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+        program_info_provider_t xdp_program_info;
+        REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
 
         // Program should re-attach to the hook.
 
@@ -3050,8 +3038,8 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     // Reload the extension provider with missing helper function.
     {
         ebpf_helper_function_addresses_t changed_helper_function_address_table =
-            _test_ebpf_xdp_test_helper_function_address_table;
-        ebpf_program_data_t changed_program_data = _ebpf_xdp_test_program_data;
+            _test_ebpf_xdp_helper_function_address_table;
+        ebpf_program_data_t changed_program_data = _ebpf_xdp_program_data;
         changed_program_data.program_type_specific_helper_function_addresses = &changed_helper_function_address_table;
         changed_helper_function_address_table.helper_function_count = 0;
 
@@ -3060,8 +3048,8 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
-        program_info_provider_t xdp_test_program_info;
-        REQUIRE(xdp_test_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST, &changed_provider_data) == EBPF_SUCCESS);
+        program_info_provider_t xdp_program_info;
+        REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST, &changed_provider_data) == EBPF_SUCCESS);
 
         // Program should re-attach to the hook.
 
@@ -3073,12 +3061,12 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
     // Reload the extension provider with changed helper function data.
     {
-        ebpf_program_info_t changed_program_info = _ebpf_xdp_test_program_info;
+        ebpf_program_info_t changed_program_info = _ebpf_xdp_program_info;
         ebpf_helper_function_prototype_t helper_function_prototypes[] = {
-            _xdp_test_ebpf_extension_helper_function_prototype[0]};
+            _xdp_ebpf_extension_helper_function_prototype[0]};
         helper_function_prototypes[0].return_type = EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL;
         changed_program_info.program_type_specific_helper_prototype = helper_function_prototypes;
-        ebpf_program_data_t changed_program_data = _ebpf_xdp_test_program_data;
+        ebpf_program_data_t changed_program_data = _ebpf_xdp_program_data;
         changed_program_data.program_info = &changed_program_info;
 
         ebpf_extension_data_t changed_provider_data = {
@@ -3086,8 +3074,8 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
-        program_info_provider_t xdp_test_program_info;
-        REQUIRE(xdp_test_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST, &changed_provider_data) == EBPF_SUCCESS);
+        program_info_provider_t xdp_program_info;
+        REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST, &changed_provider_data) == EBPF_SUCCESS);
 
         // Program should re-attach to the hook.
 

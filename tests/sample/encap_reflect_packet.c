@@ -14,12 +14,12 @@
 #include "xdp_common.h"
 
 inline int
-encapsulate_ipv4_reflect_packet(xdp_test_md_t* ctx)
+encapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;
 
-    // Adjust XDP_TEST context to allocate space for outer IPv4 header.
-    if (bpf_xdp_test_adjust_head(ctx, (int)-sizeof(IPV4_HEADER)) < 0) {
+    // Adjust XDP context to allocate space for outer IPv4 header.
+    if (bpf_xdp_adjust_head(ctx, (int)-sizeof(IPV4_HEADER)) < 0) {
         goto Done;
     }
 
@@ -30,7 +30,7 @@ encapsulate_ipv4_reflect_packet(xdp_test_md_t* ctx)
     }
     ETHERNET_HEADER* new_ethernet_header = (ETHERNET_HEADER*)next_header;
 
-    // The old ethernet header is at an offset sizeof(IPV4_HEADER) from the start of the XDP_TEST buffer.
+    // The old ethernet header is at an offset sizeof(IPV4_HEADER) from the start of the XDP buffer.
     next_header = (char*)ctx->data;
     if (next_header + sizeof(IPV4_HEADER) > (char*)ctx->data_end) {
         goto Done;
@@ -88,12 +88,12 @@ Done:
 }
 
 inline int
-encapsulate_ipv6_reflect_packet(xdp_test_md_t* ctx)
+encapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;
 
-    // Adjust XDP_TEST context to allocate space for outer IPv6 header.
-    if (bpf_xdp_test_adjust_head(ctx, (int)-sizeof(IPV6_HEADER)) < 0) {
+    // Adjust XDP context to allocate space for outer IPv6 header.
+    if (bpf_xdp_adjust_head(ctx, (int)-sizeof(IPV6_HEADER)) < 0) {
         goto Done;
     }
 
@@ -104,7 +104,7 @@ encapsulate_ipv6_reflect_packet(xdp_test_md_t* ctx)
     }
     ETHERNET_HEADER* new_ethernet_header = (ETHERNET_HEADER*)next_header;
 
-    // The old ethernet header is at an offset sizeof(IPV6_HEADER) from the start of the XDP_TEST buffer.
+    // The old ethernet header is at an offset sizeof(IPV6_HEADER) from the start of the XDP buffer.
     next_header = (char*)ctx->data;
     if (next_header + sizeof(IPV6_HEADER) > (char*)ctx->data_end) {
         goto Done;
@@ -159,12 +159,12 @@ Done:
 //
 // Same as the reflect_packet function, except the reflected packet is encapsulated in a new IP header.
 // The addresses on the outer IP header are the reverse of those on the inner IP header.
-// This program uses the bpf_xdp_test_adjust_head helper function.
+// This program uses the bpf_xdp_adjust_head helper function.
 // (This program can only perform v4 in v4 and v6 in v6 encapsulation.)
 //
 SEC("xdp_test/encap_reflect")
 int
-encap_reflect_packet(xdp_test_md_t* ctx)
+encap_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_PASS;
 
