@@ -23,9 +23,9 @@ typedef struct _ebpf_extension_dispatch_table
  * @param[in,out] program_context The context for this invocation of the eBPF program.
  * @param[out] result The result of the eBPF program.
  *
- * @retval EBPF_SUCCESS if successful or an appropriate error code.
- * @retval EBPF_NO_MEMORY if memory allocation fails.
- * @retval EBPF_EXTENSION_FAILED_TO_LOAD if required extension is not loaded.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY The operation failed due to lack of memory.
+ * @retval EBPF_EXTENSION_FAILED_TO_LOAD The required extension is not loaded.
  */
 typedef ebpf_result_t (*ebpf_program_invoke_function_t)(
     _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result);
@@ -39,9 +39,9 @@ typedef ebpf_result_t (*ebpf_program_invoke_function_t)(
  * sizeof(ebpf_execution_context_state_t).
  * @param[out] state The state to be used for batch invocation.
  *
- * @retval EBPF_SUCCESS if successful or an appropriate error code.
- * @retval EBPF_NO_MEMORY if memory allocation fails.
- * @retval EBPF_EXTENSION_FAILED_TO_LOAD if required extension is not loaded.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY The operation failed due to lack of memory.
+ * @retval EBPF_EXTENSION_FAILED_TO_LOAD The required extension is not loaded.
  */
 typedef ebpf_result_t (*ebpf_program_batch_begin_invoke_function_t)(
     _In_ const void* extension_client_binding_context, size_t state_size, _Out_writes_(state_size) void* state);
@@ -55,7 +55,7 @@ typedef ebpf_result_t (*ebpf_program_batch_begin_invoke_function_t)(
  * @param[out] result The result of the eBPF program.
  * @param[in] state The state to be used for batch invocation.
  *
- * @retval EBPF_SUCCESS.
+ * @retval EBPF_SUCCESS The operation was successful.
  */
 typedef ebpf_result_t (*ebpf_program_batch_invoke_function_t)(
     _In_ const void* extension_client_binding_context,
@@ -70,7 +70,7 @@ typedef ebpf_result_t (*ebpf_program_batch_invoke_function_t)(
  * created.
  * @param[in,out] state The state to be used for batch invocation.
  *
- * @retval EBPF_SUCCESS.
+ * @retval EBPF_SUCCESS The operation was successful.
  */
 typedef ebpf_result_t (*ebpf_program_batch_end_invoke_function_t)(
     _In_ const void* extension_client_binding_context, _Inout_ void* state);
