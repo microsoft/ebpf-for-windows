@@ -297,7 +297,7 @@ typedef ebpf_result_t (*ebpf_program_batch_invoke_function_t)(
     _In_ const void* state);
 
 /**
- * @brief Cleanup the eBPF program after batch invocation.
+ * @brief Clean up the eBPF program after batch invocation.
  *
  * @param[in] extension_client_binding_context The context provided by the extension client when the binding was created.
  * @param[in,out] state The state to be used for batch invocation.
