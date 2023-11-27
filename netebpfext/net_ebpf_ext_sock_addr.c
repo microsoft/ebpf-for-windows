@@ -1055,6 +1055,7 @@ _net_ebpf_ext_insert_connection_context_to_list(
 
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
     locked = true;
+    locked = false;
 
     // Insert into hash table.
     result = ebpf_hash_table_update(
