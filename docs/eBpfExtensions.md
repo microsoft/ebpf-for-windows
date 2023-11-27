@@ -322,7 +322,7 @@ post execution.
 
 In cases where the same eBPF program will be invoked sequentially with different context data (aka batch invocation),
 the caller can reduce the overhead of by using the batch invocation APIs. Prior to the first invocation, the batch
-begin API is called, which caches state used by the eBPf program and prevents the program from being unloaded. The
+begin API is called, which caches state used by the eBPF program and prevents the program from being unloaded. The
 caller is responsible for providing storage large enough to store an instance of ebpf_execution_context_state_t and
 ensuring that it remain valid until calling the batch end API. Between the begin and end calls, the caller may call
 the batch invoke API multiple times to invoke the BPF program with minimal overhead. Callers must limit the length
