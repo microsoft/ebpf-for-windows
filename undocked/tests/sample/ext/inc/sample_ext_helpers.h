@@ -17,7 +17,6 @@ typedef unsigned int uint32_t;
 typedef unsigned long long uint64_t;
 typedef long long int64_t;
 #endif
-// #include <ebpf_structs.h>
 
 // Sample extension program context.
 typedef struct _sample_program_context

@@ -192,7 +192,13 @@
       <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
-  <!-- Build undocked BPF programs that pass verification and build native images for them only when configuration is NOT FuzzerDebug -->
+  <!-- Build undocked BPF programs that pass verification and build native images for them only when configuration is NOT FuzzerDebug.
+       Background:
+       Some projects today are skipped for FuzzerDebug configuration, hence the NuGet package is also not generated for FuzzerDebug.
+       Since undocked components rely on the NuGet package to be built, export_program_info_sample is also not built in FuzzerDebug
+       configuration. As a result of that, the eBPF store cannot be populated for sample program types and hence bpf2c cannot convert
+       the sample program types to native images (as it needs program information for offline verification).
+  -->
   <ItemGroup Condition="'$(Configuration)'!='FuzzerDebug'">
     <CustomBuild Include="undocked\*.c">
       <FileType>CppCode</FileType>
