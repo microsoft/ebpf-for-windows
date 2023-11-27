@@ -148,8 +148,7 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     REQUIRE(output == id + ": xdp_test  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
     // Try attaching to an interface by friendly name.
-    output =
-        run_command(("bpftool net attach xdp_test id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(), &result);
+    output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(), &result);
     REQUIRE(result == 0);
 
     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
