@@ -225,7 +225,7 @@ typedef struct _net_ebpf_ext_sock_addr_statistics
 
 static net_ebpf_ext_sock_addr_statistics_t _net_ebpf_ext_statistics;
 
-static EX_SPIN_LOCK _net_ebpf_ext_sock_addr_lock = {0};
+static EX_SPIN_LOCK _net_ebpf_ext_sock_addr_lock;
 // This list is used to ensure that contexts are never leaked and are freed after some time.
 _Guarded_by_(_net_ebpf_ext_sock_addr_lock) static LIST_ENTRY _net_ebpf_ext_blocked_connect_context_lru_list;
 // This list stores blocked connection contexts at the connect_redirect, to be retrieved and removed at the connect
