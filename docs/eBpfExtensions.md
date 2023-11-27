@@ -321,7 +321,7 @@ client hosted by the Execution Context. The `result` output parameter holds the 
 post execution.
 
 In cases where the same eBPF program will be invoked sequentially with different context data (aka batch invocation),
-the caller can reduce the overhead of by using the batch invocation APIs. Prior to the first invocation, the batch
+the caller can reduce the overhead by using the batch invocation APIs. Prior to the first invocation, the batch
 begin API is called, which caches state used by the eBPF program and prevents the program from being unloaded. The
 caller is responsible for providing storage large enough to store an instance of ebpf_execution_context_state_t and
 ensuring that it remain valid until calling the batch end API. Between the begin and end calls, the caller may call
