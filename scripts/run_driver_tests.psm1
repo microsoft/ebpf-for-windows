@@ -108,7 +108,7 @@ function Invoke-CICDTests
     try {
         $TestList = @(
             "api_test.exe",
-#            "bpftool_tests.exe",
+            "bpftool_tests.exe",
             "sample_ext_app.exe",
             "socket_tests.exe")
 
