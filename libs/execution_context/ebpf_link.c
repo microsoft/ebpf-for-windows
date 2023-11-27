@@ -485,6 +485,8 @@ _ebpf_link_instance_invoke_batch_begin(
         goto Done;
     }
 
+    memset(execution_context_state, 0, sizeof(ebpf_execution_context_state_t));
+
     ebpf_get_execution_context_state(execution_context_state);
     return_value = ebpf_state_store(ebpf_program_get_state_index(), (uintptr_t)state, execution_context_state);
     if (return_value != EBPF_SUCCESS) {

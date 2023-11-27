@@ -248,16 +248,66 @@ the provider must free the per-client context passed in via `ProviderBindingCont
 
 ### 2.5 Invoking an eBPF program from Hook NPI Provider
 To invoke an eBPF program, the extension uses the dispatch table supplied by the Hook NPI client during attaching.
-There is only one function in the client dispatch table, which is of the following type:
+The client dispatch table contains the functions, with the following type prototypes:
 
 ```
 /**
- *  @brief This is the only mandatory function in the eBPF Hook NPI client dispatch table.
+ * @brief Invoke the eBPF program.
+ *
+ * @param[in] extension_client_binding_context The context provided by the extension client when the binding was created.
+ * @param[in,out] program_context The context for this invocation of the eBPF program.
+ * @param[out] result The result of the eBPF program.
+ *
+ * @retval EBPF_SUCCESS if successful or an appropriate error code.
+ * @retval EBPF_NO_MEMORY if memory allocation fails.
+ * @retval EBPF_EXTENSION_FAILED_TO_LOAD if required extension is not loaded.
  */
 typedef ebpf_result_t (*ebpf_program_invoke_function_t)(
-    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result);
+    _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result);
 
+/**
+ * @brief Prepare the eBPF program for batch invocation.
+ *
+ * @param[in] extension_client_binding_context The context provided by the extension client when the binding was created.
+ * @param[in] state_size The size of the state to be allocated, which should be greater than or equal to
+ * sizeof(ebpf_execution_context_state_t).
+ * @param[out] state The state to be used for batch invocation.
+ *
+ * @retval EBPF_SUCCESS if successful or an appropriate error code.
+ * @retval EBPF_NO_MEMORY if memory allocation fails.
+ * @retval EBPF_EXTENSION_FAILED_TO_LOAD if required extension is not loaded.
+ */
+typedef ebpf_result_t (*ebpf_program_batch_begin_invoke_function_t)(
+    _In_ const void* extension_client_binding_context, size_t state_size, _Out_writes_(state_size) void* state);
+
+/**
+ * @brief Invoke the eBPF program in batch mode.
+ *
+ * @param[in] extension_client_binding_context The context provided by the extension client when the binding was created.
+ * @param[in,out] program_context The context for this invocation of the eBPF program.
+ * @param[out] result The result of the eBPF program.
+ * @param[in] state The state to be used for batch invocation.
+ *
+ * @retval EBPF_SUCCESS.
+ */
+typedef ebpf_result_t (*ebpf_program_batch_invoke_function_t)(
+    _In_ const void* extension_client_binding_context,
+    _Inout_ void* program_context,
+    _Out_ uint32_t* result,
+    _In_ const void* state);
+
+/**
+ * @brief Clean up the eBPF program after batch invocation.
+ *
+ * @param[in] extension_client_binding_context The context provided by the extension client when the binding was created.
+ * @param[in,out] state The state to be used for batch invocation.
+ *
+ * @retval EBPF_SUCCESS.
+ */
+typedef ebpf_result_t (*ebpf_program_batch_end_invoke_function_t)(
+    _In_ const void* extension_client_binding_context, _Inout_ void* state);
 ```
+
 The function pointer can be obtained from the client dispatch table as follows:
 ```
 invoke_program = (ebpf_program_invoke_function_t)client_dispatch_table->function[0];
@@ -269,6 +319,16 @@ must pass the program type specific context data structure. Note that the Progra
 the context descriptor (using the `ebpf_context_descriptor_t` type) to the eBPF verifier and JIT-compiler via the NPI
 client hosted by the Execution Context. The `result` output parameter holds the return value from the eBPF program
 post execution.
+
+In cases where the same eBPF program will be invoked sequentially with different context data (aka batch invocation),
+the caller can reduce the overhead by using the batch invocation APIs. Prior to the first invocation, the batch
+begin API is called, which caches state used by the eBPF program and prevents the program from being unloaded. The
+caller is responsible for providing storage large enough to store an instance of ebpf_execution_context_state_t and
+ensuring that it remain valid until calling the batch end API. Between the begin and end calls, the caller may call
+the batch invoke API multiple times to invoke the BPF program with minimal overhead. Callers must limit the length
+of time a batch is open and must not change IRQL between calling batch begin and end. Batch end cost may scale with
+the number of times the program has been invoked, so callers should limit the number of calls within a batch to
+prevent long delays in batch end.
 
 ### 2.6 Authoring Helper Functions
 An extension can provide an implementation of helper functions that can be invoked by the eBPF programs. The helper
