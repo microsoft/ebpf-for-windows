@@ -16,7 +16,7 @@ jobs:
       issues: write
     steps:
       - name: Create release task
-        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         env:
           TITLE: Scheduled eBPF release is due
           LABELS: release
