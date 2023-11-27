@@ -182,7 +182,7 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 
 static GUID test_program_type_guid = {0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
 static GUID test_attach_type_guid = {0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
-#pragma code_seg(push, "xdp_prog")
+#pragma code_seg(push, "xdp_test")
 static uint64_t
 test(void* context)
 {
@@ -261,8 +261,8 @@ static program_entry_t _programs[] = {
     {
         0,
         test,
-        "xdp_prog",
-        "xdp_prog",
+        "xdp_test",
+        "xdp_test",
         "test",
         NULL,
         0,
