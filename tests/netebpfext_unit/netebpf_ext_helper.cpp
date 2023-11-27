@@ -61,10 +61,12 @@ _netebpf_ext_helper::_netebpf_ext_helper(
         if (ebpf_platform_initiate() != EBPF_SUCCESS) {
             return;
         }
+        platform_initialized = true;
 
         if (ebpf_random_initiate() != EBPF_SUCCESS) {
             return;
         }
+        random_initialized = true;
     }
 
     if (!NT_SUCCESS(net_ebpf_ext_initialize_ndis_handles(driver_object))) {
@@ -120,9 +122,13 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
         net_ebpf_ext_uninitialize_ndis_handles();
     }
 
-    ebpf_random_terminate();
+    if (random_initialized) {
+        ebpf_random_terminate();
+    }
 
-    ebpf_platform_terminate();
+    if (platform_initialized) {
+        ebpf_platform_terminate();
+    }
 
     if (trace_initiated) {
         net_ebpf_ext_trace_terminate();
