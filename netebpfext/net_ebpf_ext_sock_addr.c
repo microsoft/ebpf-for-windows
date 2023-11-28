@@ -883,25 +883,23 @@ _net_ebpf_ext_should_block_connection(uint64_t transport_endpoint_handle, _In_ c
 
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_lock);
 
-    // First, check the hash table for the entry. If found, remove it and free the memory.
+    // Check the hash table for the entry.
     if (ebpf_hash_table_find(
             _net_ebpf_ext_blocked_connect_context_hash_table,
             (uint8_t*)&local_connection_context,
             (uint8_t**)&hash_table_connection_context) == EBPF_SUCCESS) {
+        block_connection = TRUE;
         net_ebpf_extension_connection_context_t* connection_context = *hash_table_connection_context;
 
+        // Delete from hash table. If this succeeds, remove the entry from the LRU list and free the memory.
+        // If the delete operation fails, the entry remains in the LRU list for future clean up.
         if (ebpf_hash_table_delete(
                 _net_ebpf_ext_blocked_connect_context_hash_table, (uint8_t*)&local_connection_context) ==
             EBPF_SUCCESS) {
-            // Remove from LRU list.
             RemoveEntryList(&connection_context->list_entry);
             _net_ebpf_ext_connect_context_count--;
-
-            // We have found the entry and have removed it from the hash table - free the memory now.
             ExFreePool(connection_context);
         }
-
-        block_connection = TRUE;
     } else {
         // The entry was not found in the hash table. Check the low-memory list to see if the entry is there.
         LIST_ENTRY* entry = _net_ebpf_ext_low_memory_blocked_connect_context_list.Flink;
@@ -1029,7 +1027,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_lock) static ebpf_result_
     InterlockedIncrement(&_net_ebpf_ext_statistics.low_memory_context_count);
 
 Exit:
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
