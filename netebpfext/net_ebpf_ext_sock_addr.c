@@ -1027,7 +1027,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_lock) static ebpf_result_
     InterlockedIncrement(&_net_ebpf_ext_statistics.low_memory_context_count);
 
 Exit:
-    EBPF_RETURN_RESULT(result);
+    return result;
 }
 
 static ebpf_result_t
