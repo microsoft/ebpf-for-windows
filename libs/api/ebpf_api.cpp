@@ -39,8 +39,11 @@ typedef unsigned char boolean;
 #include <codecvt>
 #include <fcntl.h>
 #include <io.h>
+#include <iomanip>
+#include <iostream>
 #include <mutex>
 #include <rpc.h>
+#include <string>
 
 using namespace peparse;
 using namespace Platform;
@@ -2786,20 +2789,61 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
 }
 #endif
 
+std::string
+guidToString(const GUID& guid)
+{
+    std::stringstream stream;
+
+    stream << std::hex << std::setfill('0');
+    stream << std::setw(8) << guid.Data1 << '-';
+    stream << std::setw(4) << guid.Data2 << '-';
+    stream << std::setw(4) << guid.Data3 << '-';
+    stream << std::setw(2) << static_cast<int>(guid.Data4[0]);
+    stream << std::setw(2) << static_cast<int>(guid.Data4[1]) << '-';
+    for (int i = 2; i < 8; ++i)
+        stream << std::setw(2) << static_cast<int>(guid.Data4[i]);
+
+    return stream.str();
+}
+
 // This logic is intended to be similar to libbpf's bpf_object__load_xattr().
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
 {
     ebpf_result_t result;
     EBPF_LOG_ENTRY();
+
+    std::string debug_message =
+        "object_name: " + std::string(object->object_name) + "file_name: " + std::string(object->file_name);
+    for (const auto& prog : object->programs) {
+        debug_message +=
+            "program_name: " + std::string(prog->program_name) + "section_name: " + std::string(prog->section_name) +
+            "program_type: " + guidToString(prog->program_type) + "attach_type: " + guidToString(prog->attach_type);
+    }
+    for (const auto& map : object->maps) {
+        debug_message += "map_name: " + std::string(map->name);
+    }
+
+    EBPF_LOG_MESSAGE_STRING(
+        EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "[maige] ebpf_object_load", debug_message.c_str());
+
     ebpf_assert(object);
     if (object->loaded) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "[maige] ebpf_object_load failed because object->loaded is true");
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
     if (Platform::_is_native_program(object->file_name)) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "[maige] is_native_program is TRUE");
         struct bpf_program* program = bpf_object__next_program(object, nullptr);
         if (program == nullptr) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "[maige] bpf_object__next_program returned nullptr");
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
         fd_t program_fd;
@@ -2815,6 +2859,8 @@ ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
     try {
         result = _ebpf_object_create_maps(object);
         if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "[maige] ebpf_object_create_maps failed");
             goto Done;
         }
 
