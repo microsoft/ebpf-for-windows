@@ -181,7 +181,7 @@ enum bpf_prog_type
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
-    BPF_PROG_TYPE_XDP_ORIG, // TODO rename to XDP before check in
+    BPF_PROG_TYPE_XDP,
 
     /** @brief Program type for handling socket bind() requests.
      *
@@ -250,7 +250,7 @@ enum bpf_link_type
     BPF_LINK_TYPE_UNSPEC,   ///< Unspecified link type.
     BPF_LINK_TYPE_PLAIN,    ///< No union members are used in bpf_link_info.
     BPF_LINK_TYPE_CGROUP,   ///< cgroup struct is present in bpf_link_info.
-    BPF_LINK_TYPE_XDP_ORIG, ///< xdp struct is present in bpf_link_info. // TODO - Should be just XDP
+    BPF_LINK_TYPE_XDP,      ///< xdp struct is present in bpf_link_info.
     BPF_LINK_TYPE_XDP_TEST, ///< xdp struct is present in bpf_link_info.
 };
 
@@ -267,7 +267,7 @@ enum bpf_attach_type
      *
      * **Program type:** \ref BPF_PROG_TYPE_XDP
      */
-    BPF_XDP_ORIG, // TODO - should be just XDP
+    BPF_XDP,
 
     /** @brief Attach type for handling socket bind() requests.
      *

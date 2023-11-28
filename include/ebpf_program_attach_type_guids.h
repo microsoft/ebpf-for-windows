@@ -21,7 +21,7 @@ extern "C"
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_XDP
      */
-    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_XDP_ORIG = {
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_XDP = {
         0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
 
     /** @brief Attach type for handling socket bind() requests.
@@ -94,7 +94,7 @@ extern "C"
 
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_UNSPECIFIED = {0};
 
-#define EBPF_PROGRAM_TYPE_XDP_ORIG_GUID                                                \
+#define EBPF_PROGRAM_TYPE_XDP_GUID                                                     \
     {                                                                                  \
         0xf1832a85, 0x85d5, 0x45b0, { 0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0 } \
     }
@@ -107,7 +107,7 @@ extern "C"
      *
      * Helpers available: see bpf_helpers.h
      */
-    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_XDP_ORIG = EBPF_PROGRAM_TYPE_XDP_ORIG_GUID;
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_XDP = EBPF_PROGRAM_TYPE_XDP_GUID;
 
 #define EBPF_PROGRAM_TYPE_BIND_GUID                                                    \
     {                                                                                  \

@@ -537,7 +537,7 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
 
-    // Dummy context (not used by the eBPF program).
+    // Empty context (not used by the eBPF program).
     sample_program_context_t ctx{0};
 
     uint32_t hook_result;

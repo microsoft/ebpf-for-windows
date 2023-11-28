@@ -129,30 +129,10 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     int result;
     std::string output;
     char command[80];
-    output = run_command("sc.exe queryex netebpfext", &result);
-    printf("sc.exe queryex netebpfext: [%s]\n", output.c_str());
-
-    output = run_command("ipconfig /all", &result);
-    printf("ipconfig /all: [%s]\n", output.c_str());
-
-    output = run_command("reg query HKEY_CURRENT_USER\\Software\\eBPF /s", &result);
-    printf("reg result: [%s]\n", output.c_str());
-
     sprintf_s(
         command, sizeof(command), "bpftool --legacy prog load droppacket%s droppacket", EBPF_PROGRAM_FILE_EXTENSION);
 
     output = run_command(command, &result);
-    {
-        int res2;
-        std::string output2 = run_command("sc.exe queryex netebpfext", &res2);
-        printf("sc.exe queryex netebpfext: [%s]\n", output2.c_str());
-
-        output2 = run_command("ipconfig /all", &res2);
-        printf("ipconfig /all: [%s]\n", output2.c_str());
-
-        output2 = run_command("reg query HKEY_CURRENT_USER\\Software\\eBPF /s", &res2);
-        printf("reg result: [%s]\n", output2.c_str());
-    }
     REQUIRE(output == "");
     REQUIRE(result == 0);
 
