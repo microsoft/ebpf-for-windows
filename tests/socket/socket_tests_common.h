@@ -20,10 +20,10 @@ typedef struct _ip_address
 
 typedef struct _connection_tuple
 {
-    ip_address_t src_ip;
-    uint16_t src_port;
-    ip_address_t dst_ip;
-    uint16_t dst_port;
+    ip_address_t local_ip;
+    uint16_t local_port;
+    ip_address_t remote_ip;
+    uint16_t remote_port;
     uint32_t protocol;
     uint64_t interface_luid;
 } connection_tuple_t;
