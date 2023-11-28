@@ -135,6 +135,9 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     output = run_command("ipconfig /all", &result);
     printf("ipconfig /all: [%s]\n", output.c_str());
 
+    output = run_command("reg query HKEY_CURRENT_USER\\Software\\eBPF /s", &result);
+    printf("reg result: [%s]\n", output.c_str());
+
     sprintf_s(
         command, sizeof(command), "bpftool --legacy prog load droppacket%s droppacket", EBPF_PROGRAM_FILE_EXTENSION);
 
@@ -146,6 +149,9 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
 
         output2 = run_command("ipconfig /all", &res2);
         printf("ipconfig /all: [%s]\n", output2.c_str());
+
+        output2 = run_command("reg query HKEY_CURRENT_USER\\Software\\eBPF /s", &res2);
+        printf("reg result: [%s]\n", output2.c_str());
     }
     REQUIRE(output == "");
     REQUIRE(result == 0);
