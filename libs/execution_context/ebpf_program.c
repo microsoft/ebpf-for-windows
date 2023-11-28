@@ -1152,6 +1152,7 @@ _ebpf_program_update_jit_helpers(
             goto Exit;
         }
 
+        uint32_t index = 0;
         if (helper_function_addresses != NULL) {
             helper_prototypes = program_info->program_type_specific_helper_prototype;
             if (helper_prototypes == NULL) {
@@ -1166,10 +1167,13 @@ _ebpf_program_update_jit_helpers(
 
 #pragma warning(push)
 #pragma warning(disable : 6386) // Buffer overrun while writing to 'total_helper_function_ids'.
-            for (uint32_t index = 0; index < program->program_type_specific_helper_function_count; index++) {
-                total_helper_function_ids[index] = helper_prototypes[index].helper_id;
-                total_helper_function_addresses->helper_function_address[index] =
-                    helper_function_addresses->helper_function_address[index];
+            for (uint32_t program_helper_index = 0;
+                 program_helper_index < helper_function_addresses->helper_function_count;
+                 program_helper_index++) {
+                total_helper_function_ids[index] = helper_prototypes[program_helper_index].helper_id;
+                total_helper_function_addresses->helper_function_address[program_helper_index] =
+                    helper_function_addresses->helper_function_address[program_helper_index];
+                index++;
             }
         }
 #pragma warning(pop)
@@ -1189,12 +1193,13 @@ _ebpf_program_update_jit_helpers(
 #pragma warning(push)
 #pragma warning( \
     disable : 6386) // Buffer overrun while writing to 'total_helper_function_addresses->helper_function_address'
-            for (uint32_t index = program->program_type_specific_helper_function_count; index < total_helper_count;
-                 index++) {
-                uint32_t global_helper_index = index - program->program_type_specific_helper_function_count;
+            for (uint32_t global_helper_index = 0;
+                 global_helper_index < global_helper_function_addresses->helper_function_count;
+                 global_helper_index++) {
                 total_helper_function_ids[index] = helper_prototypes[global_helper_index].helper_id;
                 total_helper_function_addresses->helper_function_address[index] =
                     global_helper_function_addresses->helper_function_address[global_helper_index];
+                index++;
             }
         }
 #pragma warning(pop)
