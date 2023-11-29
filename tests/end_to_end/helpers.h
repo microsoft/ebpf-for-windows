@@ -558,13 +558,13 @@ _sample_test_context_create(
     sample_program_context_t* sample_context = nullptr;
     *context = nullptr;
 
-    // Data is not supported
+    // Data is not supported.
     if (data_in || data_size_in != 0) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    // Context is required
+    // Context is required.
     if (!context_in || context_size_in < sizeof(sample_program_context_t)) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -600,7 +600,7 @@ _sample_test_context_destroy(
         return;
     }
 
-    // Data is not supported
+    // Data is not supported.
     *data_size_out = 0;
 
     if (context_out && *context_size_out >= sizeof(sample_program_context_t)) {

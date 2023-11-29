@@ -226,7 +226,7 @@ enum bpf_prog_type
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
-    BPF_PROG_TYPE_XDP_TEST,
+    BPF_PROG_TYPE_XDP_TEST = 998,
 
     /** @brief Program type for handling calls from the eBPF sample extension. Used for
      * testing.
@@ -247,11 +247,10 @@ typedef enum bpf_prog_type bpf_prog_type_t;
 // per union member.
 enum bpf_link_type
 {
-    BPF_LINK_TYPE_UNSPEC,   ///< Unspecified link type.
-    BPF_LINK_TYPE_PLAIN,    ///< No union members are used in bpf_link_info.
-    BPF_LINK_TYPE_CGROUP,   ///< cgroup struct is present in bpf_link_info.
-    BPF_LINK_TYPE_XDP,      ///< xdp struct is present in bpf_link_info.
-    BPF_LINK_TYPE_XDP_TEST, ///< xdp struct is present in bpf_link_info.
+    BPF_LINK_TYPE_UNSPEC, ///< Unspecified link type.
+    BPF_LINK_TYPE_PLAIN,  ///< No union members are used in bpf_link_info.
+    BPF_LINK_TYPE_CGROUP, ///< cgroup struct is present in bpf_link_info.
+    BPF_LINK_TYPE_XDP,    ///< xdp struct is present in bpf_link_info.
 };
 
 static const char* const _ebpf_link_display_names[] = {

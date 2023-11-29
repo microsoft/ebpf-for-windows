@@ -1165,8 +1165,6 @@ _ebpf_program_update_jit_helpers(
                 goto Exit;
             }
 
-#pragma warning(push)
-#pragma warning(disable : 6386) // Buffer overrun while writing to 'total_helper_function_ids'.
             for (uint32_t program_helper_index = 0;
                  program_helper_index < helper_function_addresses->helper_function_count;
                  program_helper_index++) {
@@ -1176,7 +1174,6 @@ _ebpf_program_update_jit_helpers(
                 index++;
             }
         }
-#pragma warning(pop)
 
         if (global_helper_function_addresses != NULL) {
             helper_prototypes = program_info->global_helper_prototype;
@@ -1190,9 +1187,6 @@ _ebpf_program_update_jit_helpers(
                 goto Exit;
             }
 
-#pragma warning(push)
-#pragma warning( \
-    disable : 6386) // Buffer overrun while writing to 'total_helper_function_addresses->helper_function_address'
             for (uint32_t global_helper_index = 0;
                  global_helper_index < global_helper_function_addresses->helper_function_count;
                  global_helper_index++) {
@@ -1202,7 +1196,6 @@ _ebpf_program_update_jit_helpers(
                 index++;
             }
         }
-#pragma warning(pop)
 
         return_value = ebpf_update_trampoline_table(
             program->trampoline_table,

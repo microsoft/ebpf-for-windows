@@ -101,22 +101,22 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
 
     REQUIRE(opts.duration > 0);
 
-    // Negative tests
+    // Negative tests.
 
-    // Bad fd
+    // Bad fd.
     REQUIRE(bpf_prog_test_run_opts(nonexistent_fd, &opts) == -EINVAL);
 
-    // NULL context
+    // NULL context.
     opts.ctx_in = nullptr;
     opts.ctx_size_in = 0;
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
 
-    // Zero length context
+    // Zero length context.
     opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
     opts.ctx_size_in = 0;
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
 
-    // Context out is too small
+    // Context out is too small.
     std::vector<uint8_t> small_context(1);
     opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
     opts.ctx_size_in = sizeof(in_ctx);
@@ -124,14 +124,14 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
     opts.ctx_size_out = static_cast<uint32_t>(small_context.size());
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EOTHER);
 
-    // context in, null context out
+    // Context in, null context out.
     opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
     opts.ctx_size_in = sizeof(in_ctx);
     opts.ctx_out = nullptr;
     opts.ctx_size_out = 0;
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EOTHER);
 
-    // No context in, Context out
+    // No context in, Context out.
     std::vector<uint8_t> context_out(1024);
     opts.ctx_in = nullptr;
     opts.ctx_size_in = 0;
@@ -140,7 +140,7 @@ TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
     REQUIRE(opts.ctx_size_out == sizeof(sample_program_context_t));
 
-    // With bpf syscall
+    // With bpf syscall.
     bpf_attr attr = {};
     attr.test.prog_fd = program_fd;
     attr.test.repeat = 1000;
@@ -653,7 +653,6 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
     bpf_prog_info program_info[2] = {};
 
     for (int i = 0; i < 2; i++) {
-        printf("attempt i=%d\n", i);
         object[i] = bpf_object__open("droppacket.o");
         REQUIRE(object[i] != nullptr);
         // Load the program(s).
@@ -2003,7 +2002,6 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     attr.info.info_len = sizeof(info);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
     REQUIRE(info.attach_type_uuid == EBPF_ATTACH_TYPE_SAMPLE);
-    // REQUIRE(info.xdp.ifindex == ifindex);
 
     // Detach the first link.
     memset(&attr, 0, sizeof(attr));
@@ -2017,7 +2015,6 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     attr.info.info_len = sizeof(info);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
     REQUIRE(info.attach_type_uuid == EBPF_ATTACH_TYPE_SAMPLE);
-    // REQUIRE(info.xdp.ifindex == 0);
 
     // Pin the detached link.
     memset(&attr, 0, sizeof(attr));
@@ -2041,7 +2038,6 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     attr.info.info_len = sizeof(info);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
     REQUIRE(info.id == id1);
-    // REQUIRE(info.xdp.ifindex == 0);
 
     // And for completeness, try an invalid bpf() call.
     REQUIRE(bpf(-1, &attr, sizeof(attr)) < 0);
@@ -2320,10 +2316,10 @@ TEST_CASE("libbpf_prog_type_by_name_test", "[libbpf]")
     bpf_prog_type prog_type;
     bpf_attach_type expected_attach_type;
 
-    // // Try a cross-platform type.
-    // REQUIRE(libbpf_prog_type_by_name("xdp", &prog_type, &expected_attach_type) == 0);
-    // REQUIRE(prog_type == BPF_PROG_TYPE_XDP_TEST);
-    // REQUIRE(expected_attach_type == BPF_XDP_TEST);
+    // Try a cross-platform type.
+    REQUIRE(libbpf_prog_type_by_name("xdp_test", &prog_type, &expected_attach_type) == 0);
+    REQUIRE(prog_type == BPF_PROG_TYPE_XDP_TEST);
+    REQUIRE(expected_attach_type == BPF_XDP_TEST);
 
     // Try a Windows-specific type.
     REQUIRE(libbpf_prog_type_by_name("bind", &prog_type, &expected_attach_type) == 0);

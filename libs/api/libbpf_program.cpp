@@ -206,7 +206,7 @@ bpf_program__attach_xdp(const struct bpf_program* program, int ifindex)
     }
 
     bpf_link* link = nullptr;
-    ebpf_result_t result = ebpf_program_attach(program, &EBPF_ATTACH_TYPE_XDP_TEST, &ifindex, sizeof(ifindex), &link);
+    ebpf_result_t result = ebpf_program_attach(program, &EBPF_ATTACH_TYPE_XDP, &ifindex, sizeof(ifindex), &link);
     if (result) {
         errno = ebpf_result_to_errno(result);
     }
