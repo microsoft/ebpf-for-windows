@@ -46,8 +46,6 @@ eBPF for Windows, and how to service it later.
     - `eBPF-for-Windows.X.Y.Z.nupkg`
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`main`" branch.
 1. On the main `ebpf-for-windows` repo, create a new release branch from `main` **corresponding to the previous PR's commit**, name it "`release/X.Y`" (replace "X.Y" with the version number being released).
-1. Request the Admin of the main `ebpf-for-windows` repo to protect and apply release policies to the "`release/X.Y`" branch.
-1. Wait for the main `ebpf-for-windows` repo's Admin to complete the previous step.
 1. Publish the release as per the "[Publishing a Release](ReleaseProcess.md#publishing-a-release)" process.
 
 ## Servicing a release
@@ -82,7 +80,6 @@ Servicing a release has two main scenarios:
 1. Create a **Draft** pull-request for your working branch into the main repo's "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Wait for  the CI/CD pipeline for the PR to complete successfully.
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`release/X.Y`" branch.
-1. Create a tag for the PR's commit number, on the main repo's "`release/X.Y`" branch, with the version number being released, i.e., "`vX.Y.Z`".
 1. Publish the release as per the "[Publishing a Release](ReleaseProcess.md#publishing-a-release)" process.
 
 
@@ -112,9 +109,14 @@ As a result of creating new release or servicing an existing one, the following 
 
 ### Publishing the Release to GitHub
 
-1. Create a tag for the PR's commit number, with the version number being released, i.e. "`vX.Y.Z`".
+1. On the `microsoft/ebpf-for-windows` repo's `main` branch, create a tag for the release-PR's commit. The tag should reflect the version number being released and adhere to the following notation: "`vX.Y.Z`".
+1. Wait for the `sign-off` label to be added from the Triage meeting, on the automated "release-issue" associated to the release to be published.
+   >**IMPORTANT:** While awaiting sign-off, **only bug-fix PRs are allowed into the `release/X.Y` branch**. In case bug-fix PRs are merged into the `release/X.Y` branch, it is crucial to **designate the latest commit `release/X.Y` branch as the commit for release**.
+1. Once the `sign-off` label has been added, on the `microsoft/ebpf-for-windows` repo's `release/X.Y` branch, create a tag for the *latest commit on the `release/X.Y` branch*. The tag should reflect the version number being released and adhere to the following notation: "`Release vX.Y.Z`".
+1. The tag creation will automatically trigger the "`CI/CD - Release validation`" workflow for the `release/X.Y` branch: wait for it to complete successfully.
+    >**NOTE:** If the release validation fails, it is the responsibility of the release manager to trigger further investigations, including eventually the submission of necessary issues. Once the issue(s) is(are) resolved, potentially through other PRs, it is important to **delete the previous tag**. Subsequently, recreate the same tag for the *latest commit* on the `release/X.Y` branch, wait for the "`CI/CD - Release validation`" workflow to complete successfully.
 1. Go to the repo on GitHub and click on "`<Code>`" and click on right the "`Create a new release`" link.
-1. Click on the "`Choose a tag`" combo box and select the tag with new "`vX.Y.Z`" version number, as created earlier.
+1. Click on the "`Choose a tag`" combo box and select the tag with new "`Release vX.Y.Z`" version number, as created earlier.
 1. Fill in the release title as "`vX.Y.Z`" (replace "`X.Y.Z`" with the version number being released).
 1. Manually enter release notes or click "`Generate release notes`" and then edit as desired.
 1. Attach the `.msi`, the (non-redist) `.nupkg`, and the `Build-x64-native-only-Release.X.Y.Z.zip` build (from the CI/CD artifacts), by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area. For example, the file list for `v0.11.0` should be:

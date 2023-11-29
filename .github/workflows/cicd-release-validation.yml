@@ -1,34 +1,32 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
-# This is the top-level workflow that runs on each pull request and push to main.
+# This is the top-level workflow that runs on release branches.
 # It invokes other jobs to perform builds and run tests.
 # All jobs run in parallel, using build artifacts to synchronize jobs.
 #
 # If you add or remove any tests that use reusable-test.yml on a pull request,
 # you must update codecov.yml to match.
 
-name: CI/CD
+name: CI/CD - Release validation
 
 on:
-  # Run on a daily schedule to perform the full set of tests.
-  schedule:
-    - cron: '00 8 * * *'
-  # Run on pull request to validate code changes.
-  pull_request:
-  merge_group:
+  # Trigger the workflow when a release-tag is created.
+  push:
+    tags:
+      - 'Release v0.*' # To be updated on GA, and after that on every major release.
+
   # Permit manual runs of the workflow.
   workflow_dispatch:
-  # Run on push so we can capture the baseline code coverage.
-  push:
-    branches: [ main ]
+    inputs:
+      # Request a target release branch to run CI/CD on.
+      branch:
+        description: 'Target release branch to run CI/CD on.'
+        required: true
+        default: 'release/'
 
 concurrency:
-  # Cancel any in-progress instance of this workflow (CI/CD) for the same PR.
-  # Allow running concurrently with any commits on any other branch.
-  # Using GITHUB_REF instead of GITHUB_SHA allows parallel runs on
-  # different branches with the same HEAD commit.
-  group: cicd-${{ github.event.schedule || github.event.pull_request.number || github.event.after || github.ref }}
+  group: release-validation-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -39,13 +37,9 @@ permissions:
   issues: write # Required to create issues.
 
 jobs:
-  # Jobs to run on pull, push, and schedule.
-  # ---------------------------------------------------------------------------
-
   # Perform the regular build.
   regular:
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64
@@ -57,8 +51,7 @@ jobs:
 
   # Perform the native-only build.
   regular_native-only:
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-native-only
@@ -67,10 +60,9 @@ jobs:
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   # Run the unit tests in GitHub.
-  unit_tests_appverif:
-    # Always run this job.
+  unit_tests:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -84,29 +76,10 @@ jobs:
       capture_etw: true
       leak_detection: true
 
-  # Run the unit tests in GitHub.
-  unit_tests:
-    # Always run this job.
-    needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: unit_tests
-      pre_test: appverif -enable Exceptions Handles Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
-      # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: true
-      gather_dumps: true
-      capture_etw: true
-      leak_detection: true
-
   # Run the netebpfext unit tests in GitHub.
   netebpf_ext_unit_tests:
-    # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpf_ext_unit_tests
@@ -121,9 +94,8 @@ jobs:
 
   # Run the bpf2c tests in GitHub.
   bpf2c:
-    # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       test_command: .\bpf2c_tests.exe -d yes
@@ -137,9 +109,8 @@ jobs:
 
   # Run the bpf2c conformance tests in GitHub.
   bpf2c_conformance:
-    # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.4/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
@@ -154,10 +125,9 @@ jobs:
 
   # Run the driver tests on self-hosted runners.
   driver_ws2019:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
     needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    # Only run this on repos that have self-host runners.
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
@@ -173,10 +143,9 @@ jobs:
 
   # Run the driver tests on self-hosted runners.
   driver_ws2022:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
     needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    # Only run this on repos that have self-host runners.
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
@@ -192,10 +161,9 @@ jobs:
 
   # Run the native-only driver tests on self-hosted runners.
   driver_native_only_ws2019:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    # Only run this on repos that have self-host runners.
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
@@ -211,10 +179,9 @@ jobs:
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   driver_native_only_ws2022:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    # Only run this on repos that have self-host runners.
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
@@ -230,19 +197,15 @@ jobs:
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   ossar:
-    # Always run this job.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/ossar-scan.yml
     with:
       build_artifact: Build-x64
 
-  # Additional jobs to run on pull and schedule only (skip push).
-  # ---------------------------------------------------------------------------
   # Build with C++ static analyzer.
   analyze:
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Analyze
@@ -251,115 +214,16 @@ jobs:
 
   # Build with C++ address sanitizer.
   sanitize:
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Sanitize
       build_options: /p:AddressSanitizer='True'
 
-  bpf2c_fuzzer:
-    needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: bpf2c_fuzzer
-      test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=300 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
-
-  bpf2c_fuzzer_scheduled:
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: bpf2c_fuzzer
-      test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
-
-  execution_context_fuzzer:
-    needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: execution_context_fuzzer
-      test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
-
-  # Run the verifier fuzzer.
-  verifier_fuzzer:
-    needs: regular
-    # Always run this job.
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: verifier_fuzzer
-      test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=300 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
-
-  verifier_fuzzer_scheduled:
-    needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: verifier_fuzzer
-      test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
-
-  core_helper_fuzzer:
-    needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: core_helper_fuzzer
-      test_command: .\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
-
-  netebpfext_fuzzer:
-    needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: netebpfext_fuzzer
-      test_command: .\netebpfext_fuzzer netebpfext_corpus -max_len=12 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
-      build_artifact: Build-x64
-      environment: windows-2022
-      code_coverage: false
-      gather_dumps: true
-      configurations: '["FuzzerDebug"]'
-
   # Run Cilium regression tests in GitHub.
   cilium_tests:
     needs: regular
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: cilium_tests
@@ -372,8 +236,7 @@ jobs:
   # Run the quick stress tests in GitHub.
   stress:
     needs: regular
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: stress
@@ -388,7 +251,7 @@ jobs:
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     needs: sanitize
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -403,7 +266,7 @@ jobs:
   # Run the fault injection simulator in GitHub.
   fault_injection:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection
@@ -418,7 +281,7 @@ jobs:
   # Run the low memory simulator for netebpfext_unit tests.
   fault_injection_netebpfext_unit:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection
@@ -434,7 +297,7 @@ jobs:
   # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
   quick_user_mode_multi_threaded_stress_test:
     needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: quick_user_mode_multi_threaded_stress
@@ -446,22 +309,16 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
-  # Additional jobs to run on a schedule only (skip push and pull request).
-  # ---------------------------------------------------------------------------
   codeql:
-    # Only run during daily scheduled run
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-CodeQl
       build_codeql: true
 
-
-  # Run the complete fault injection simulator in GitHub.
-  # Runs on a schedule as this takes a long time to run.
+  # Run the complete fault injection simulator in GitHub (this takes a long time to run).
   fault_injection_full:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection_full
@@ -473,11 +330,10 @@ jobs:
       fault_injection: true
       leak_detection: true
 
-  # Run the complete fault injection simulator for netebpfext in GitHub.
-  # Runs on a schedule as this takes a long time to run.
+  # Run the complete fault injection simulator for netebpfext in GitHub (this takes a long time to run).
   netebpfext_fault_injection_full:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection_full
@@ -491,7 +347,7 @@ jobs:
   # Run multi-threaded stress tests against the user mode 'mock' framework.
   user_mode_multi_threaded_stress_test:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
@@ -507,7 +363,7 @@ jobs:
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests
@@ -524,7 +380,7 @@ jobs:
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests_restart_extension:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests_restart_extension
@@ -537,12 +393,83 @@ jobs:
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
-  performance:
+  ######################################################
+  # Run indeterministic tests multiple times (3 times).
+  ######################################################
+  # FUZZERS ############################################
+  bpf2c_fuzzer:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: km_performance
+      name: bpf2c_fuzzer
+      test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
+  verifier_fuzzer:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: verifier_fuzzer
+      test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
+  execution_context_fuzzer:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: execution_context_fuzzer
+      test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
+  core_helper_fuzzer:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: core_helper_fuzzer
+      test_command: .\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=3000 -use_value_profile=1 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
+  netebpfext_fuzzer:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: netebpfext_fuzzer
+      test_command: .\netebpfext_fuzzer netebpfext_corpus -max_len=12 -runs=3000 -use_value_profile=1 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: windows-2022
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
+# PREFORMANCE  ############################################
+# Iteration 1
+  performance-1:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance_1
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
@@ -550,13 +477,65 @@ jobs:
       environment: ebpf_cicd_perf_ws2022
       configurations: '["Release"]'
 
-  upload_perf_results:
-    needs: performance
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+  upload_perf_results-1:
+    needs: performance-1
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_perf_results
-      result_artifact: km_performance-x64-Release
+      result_artifact: km_performance_1-x64-Release
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+# Iteration 2
+  performance-2:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance_2
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      environment: ebpf_cicd_perf_ws2022
+      configurations: '["Release"]'
+
+  upload_perf_results-2:
+    needs: performance-2
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_perf_results
+      result_artifact: km_performance_2-x64-Release
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+# Iteration 3
+  performance-3:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance_3
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      environment: ebpf_cicd_perf_ws2022
+      configurations: '["Release"]'
+
+  upload_perf_results-3:
+    needs: performance-3
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_perf_results
+      result_artifact: km_performance_3-x64-Release
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
