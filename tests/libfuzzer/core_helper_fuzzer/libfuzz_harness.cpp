@@ -18,9 +18,8 @@
 #include <map>
 #include <vector>
 
-// Currently the only program type with helpers is XDP. Although this test just
-// uses the mock helper for XDP, it does result in exercising the core path for
-// ids out of range of the core ones.
+// This test uses the mock helper for XDP_TEST which results in exercising the
+// core path for ids out of range of the core ones.
 static std::vector<GUID> _program_types = {EBPF_PROGRAM_TYPE_XDP_TEST};
 
 static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
