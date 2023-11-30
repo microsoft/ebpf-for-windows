@@ -124,44 +124,44 @@ TEST_CASE("prog load map_in_map", "[prog][load]")
     REQUIRE(result == 0);
 }
 
-// Once the libbpf APIs are implemented in the xdp-for-windows repo, these tests should be migrated.
-// For now, they are commented out so they are not lost. They should be removed as part of
-// completion of issue 2974.
-// TEST_CASE("prog attach by interface alias", "[prog][load]")
-// {
-//     int result;
-//     std::string output;
-//     char command[80];
-//     sprintf_s(
-//         command, sizeof(command), "bpftool --legacy prog load droppacket%s droppacket", EBPF_PROGRAM_FILE_EXTENSION);
+#if 0
+// TODO(#2974): Once the libbpf APIs are implemented in the xdp-for-windows repo, these tests should be migrated.
+TEST_CASE("prog attach by interface alias", "[prog][load]")
+{
+    int result;
+    std::string output;
+    char command[80];
+    sprintf_s(
+        command, sizeof(command), "bpftool --legacy prog load droppacket%s droppacket", EBPF_PROGRAM_FILE_EXTENSION);
 
-//     output = run_command(command, &result);
-//     REQUIRE(output == "");
-//     REQUIRE(result == 0);
+    output = run_command(command, &result);
+    REQUIRE(output == "");
+    REQUIRE(result == 0);
 
-//     output = run_command("bpftool prog show", &result);
-//     REQUIRE(result == 0);
-//     std::string id = std::to_string(atoi(output.c_str()));
-//     size_t offset = output.find(" map_ids ");
-//     REQUIRE(offset != std::string::npos);
-//     std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
-//     offset = output.find(",");
-//     REQUIRE(offset != std::string::npos);
-//     std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
-//     REQUIRE(output == id + ": xdp_test  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
+    output = run_command("bpftool prog show", &result);
+    REQUIRE(result == 0);
+    std::string id = std::to_string(atoi(output.c_str()));
+    size_t offset = output.find(" map_ids ");
+    REQUIRE(offset != std::string::npos);
+    std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
+    offset = output.find(",");
+    REQUIRE(offset != std::string::npos);
+    std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
+    REQUIRE(output == id + ": xdp_test  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
-//     // Try attaching to an interface by friendly name.
-//     output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(),
-//     &result); REQUIRE(result == 0);
+    // Try attaching to an interface by friendly name.
+    output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(),
+    &result); REQUIRE(result == 0);
 
-//     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
-//     REQUIRE(output == "\nUnpinned " + id + " from droppacket\n");
-//     REQUIRE(result == 0);
+    output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
+    REQUIRE(output == "\nUnpinned " + id + " from droppacket\n");
+    REQUIRE(result == 0);
 
-//     output = run_command("bpftool prog show", &result);
-//     REQUIRE(output == "");
-//     REQUIRE(result == 0);
-// }
+    output = run_command("bpftool prog show", &result);
+    REQUIRE(output == "");
+    REQUIRE(result == 0);
+}
+#endif
 
 TEST_CASE("map create", "[map]")
 {
@@ -241,8 +241,8 @@ TEST_CASE("prog prog run", "[prog][load]")
     REQUIRE(output == id + ": sample  name test_program_entry  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
     // Create temporary files for input and output.
-    std::filesystem::path input_file = std::filesystem::temp_directory_path() / "data_in.txt";
-    std::filesystem::path output_file = std::filesystem::temp_directory_path() / "data_out.txt";
+    std::filesystem::path input_file = std::filesystem::temp_directory_path() / "ctx_in.txt";
+    std::filesystem::path output_file = std::filesystem::temp_directory_path() / "ctx_out.txt";
 
     // Write input data to file.
     std::ofstream output_stream(input_file, std::ios::out | std::ios::binary);
@@ -253,9 +253,9 @@ TEST_CASE("prog prog run", "[prog][load]")
     }
     output_stream.close();
 
-    // Try attaching to an interface by friendly name.
+    // Run program
     output = run_command(
-        ("bpftool prog run id " + id + " data_in \"" + input_file.string() + "\" data_out \"" + output_file.string() +
+        ("bpftool prog run id " + id + " ctx_in \"" + input_file.string() + "\" ctx_out \"" + output_file.string() +
          "\" repeat 1000000")
             .c_str(),
         &result);
