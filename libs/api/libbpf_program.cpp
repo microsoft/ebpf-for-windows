@@ -577,7 +577,7 @@ __bpf_set_link_xdp_fd_replace(int ifindex, int fd, int old_fd, __u32 flags)
             }
 
             // Verify that the program is actually an XDP program.
-            if (prog_info.type != BPF_PROG_TYPE_XDP_TEST) {
+            if (prog_info.type != BPF_PROG_TYPE_XDP) {
                 return libbpf_err(-EINVAL);
             }
 
@@ -611,7 +611,7 @@ __bpf_set_link_xdp_fd_replace(int ifindex, int fd, int old_fd, __u32 flags)
     if (fd != ebpf_fd_invalid) {
         // Link the new program fd to the specified ifindex.
         struct bpf_link* link = nullptr;
-        result = ebpf_program_attach_by_fd(fd, &EBPF_ATTACH_TYPE_XDP_TEST, &ifindex, sizeof(ifindex), &link);
+        result = ebpf_program_attach_by_fd(fd, &EBPF_ATTACH_TYPE_XDP, &ifindex, sizeof(ifindex), &link);
         if (result == EBPF_SUCCESS) {
             // Disconnect and destroy the link object.
             bpf_link__disconnect(link);
@@ -674,8 +674,7 @@ bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id)
             return err;
         }
 
-        if ((memcmp(&link_info.program_type_uuid, &EBPF_PROGRAM_TYPE_XDP_TEST, sizeof(link_info.program_type_uuid)) ==
-             0) &&
+        if ((memcmp(&link_info.program_type_uuid, &EBPF_PROGRAM_TYPE_XDP, sizeof(link_info.program_type_uuid)) == 0) &&
             (link_info.xdp.ifindex == (uint32_t)ifindex) && (link_info.prog_id != EBPF_ID_NONE)) {
             *prog_id = link_info.prog_id;
             return 0;
