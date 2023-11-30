@@ -235,14 +235,20 @@ TEST_CASE("prog prog run", "[prog][load]")
     size_t offset = output.find(" map_ids ");
     REQUIRE(offset != std::string::npos);
     std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
-    offset = output.find(",");
-    REQUIRE(offset != std::string::npos);
-    std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
-    REQUIRE(output == id + ": sample  name test_program_entry  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
-    // Create temporary files for input and output.
-    std::filesystem::path input_file = std::filesystem::temp_directory_path() / "ctx_in.txt";
-    std::filesystem::path output_file = std::filesystem::temp_directory_path() / "ctx_out.txt";
+    // The sample program is expected to have a single map. The output format
+    // differs based on whether the program is loaded as a native driver or not.
+    if (std::string(EBPF_PROGRAM_FILE_EXTENSION) == ".sys") {
+        REQUIRE(output == id + ": sample  name test_program_entry  \n  map_ids " + map_id1 + "\n");
+    } else {
+        offset = output.find(",");
+        REQUIRE(offset != std::string::npos);
+        std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
+        REQUIRE(output == id + ": sample  name test_program_entry  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
+    }
+
+    std::filesystem::path input_file = "ctx_in.txt";
+    std::filesystem::path output_file = "ctx_out.txt";
 
     // Write input data to file.
     std::ofstream output_stream(input_file, std::ios::out | std::ios::binary);
