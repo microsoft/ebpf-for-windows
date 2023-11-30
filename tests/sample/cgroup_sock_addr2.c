@@ -59,10 +59,13 @@ redirect_v4(bpf_sock_addr_t* ctx)
 
     entry.destination_ip.ipv4 = ctx->user_ip4;
     entry.destination_port = ctx->user_port;
-    entry.protocol = ctx->protocol;
 
-    if (ctx->protocol != IPPROTO_TCP && ctx->protocol != IPPROTO_UDP) {
-        return verdict;
+    if (ctx->protocol == IPPROTO_TCP) {
+        entry.connection_type = connection_type_t::TCP;
+    } else if (ctx->protocol == IPPROTO_UDP) {
+        entry.connection_type = connection_type_t::UDP;
+    else {
+        return verdict
     }
 
     if (ctx->family != AF_INET) {
@@ -78,7 +81,7 @@ redirect_v4(bpf_sock_addr_t* ctx)
         // Tracking issue #3052
         // When the above issue is resolved, we should validate setting the redirect_context unconditionally,
         // including when the verdict is BPF_SOCK_ADDR_VERDICT_REJECT.
-        if (policy->protocol != CONNECTED_UDP) {
+        if (policy->connection_type != connection_type_t::CONNECTED_UDP) {
             if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
                 return verdict;
             }
@@ -102,10 +105,6 @@ redirect_v6(bpf_sock_addr_t* ctx)
     destination_entry_t entry = {0};
     char redirect_context[] = REDIRECT_CONTEXT_MESSAGE;
 
-    if (ctx->protocol != IPPROTO_TCP && ctx->protocol != IPPROTO_UDP) {
-        return verdict;
-    }
-
     if (ctx->family != AF_INET6) {
         return verdict;
     }
@@ -115,7 +114,13 @@ redirect_v6(bpf_sock_addr_t* ctx)
     // wrong address.
     __builtin_memcpy(entry.destination_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
     entry.destination_port = ctx->user_port;
-    entry.protocol = ctx->protocol;
+    if (ctx->protocol == IPPROTO_TCP) {
+        entry.connection_type = connection_type_t::TCP;
+    } else if (ctx->protocol == IPPROTO_UDP) {
+        entry.connection_type = connection_type_t::UDP;
+    else {
+        return verdict
+    }
 
     // Find the entry in the policy map.
     destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
@@ -126,7 +131,7 @@ redirect_v6(bpf_sock_addr_t* ctx)
         // Tracking issue #3052
         // When the above issue is resolved, we should validate setting the redirect_context unconditionally,
         // including when the verdict is BPF_SOCK_ADDR_VERDICT_REJECT.
-        if (policy->protocol != CONNECTED_UDP) {
+        if (policy->connection_type != CONNECTED_UDP) {
             if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
                 return verdict;
             }

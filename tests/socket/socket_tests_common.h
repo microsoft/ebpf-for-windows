@@ -18,13 +18,13 @@ typedef struct _ip_address
     };
 } ip_address_t;
 
-typedef enum _protocol_type
+typedef enum _connection_type
 {
     INVALID,
     TCP,
     UDP,
     CONNECTED_UDP
-} protocol_type_t;
+} connection_type_t;
 
 typedef struct _connection_tuple
 {
@@ -47,7 +47,7 @@ typedef struct _destination_entry
 {
     ip_address_t destination_ip;
     uint16_t destination_port;
-    uint32_t protocol;
+    uint32_t connection_type;
 } destination_entry_t;
 
 typedef struct _sock_addr_audit_entry
