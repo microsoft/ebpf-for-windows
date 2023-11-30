@@ -235,7 +235,10 @@ TEST_CASE("prog prog run", "[prog][load]")
     size_t offset = output.find(" map_ids ");
     REQUIRE(offset != std::string::npos);
     std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
-    REQUIRE(output == id + ": sample_ext  name test_sample_ebpf  \n  map_ids " + map_id1 + "\n");
+    offset = output.find(",");
+    REQUIRE(offset != std::string::npos);
+    std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
+    REQUIRE(output == id + ": sample  name test_program_entry  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
     // Create temporary files for input and output.
     std::filesystem::path input_file = std::filesystem::temp_directory_path() / "data_in.txt";
