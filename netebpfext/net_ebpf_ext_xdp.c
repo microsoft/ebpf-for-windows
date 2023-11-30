@@ -705,15 +705,17 @@ net_ebpf_ext_layer_2_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (attached_client == NULL) {
+    if (filter_context->base.client_detached) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "net_ebpf_ext_layer_2_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
         goto Exit;
     }
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
-        attached_client = NULL;
-        goto Exit;
-    }
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
+    ENTER_HOOK_CLIENT_RUNDOWN(attached_client);
 
     if (nbl == NULL) {
         NET_EBPF_EXT_LOG_MESSAGE(NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "Null NBL");
@@ -810,7 +812,7 @@ net_ebpf_ext_layer_2_classify(
 
 Exit:
     if (attached_client) {
-        net_ebpf_extension_hook_client_leave_rundown(attached_client);
+        LEAVE_HOOK_CLIENT_RUNDOWN(attached_client);
     }
 }
 
