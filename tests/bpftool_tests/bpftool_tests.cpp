@@ -261,8 +261,8 @@ TEST_CASE("prog prog run", "[prog][load]")
         &result);
     REQUIRE(result == 0);
 
-    // Check if output contains: "Return value: 1, duration (average): 222ns"
-    REQUIRE(output.find("Return value: 1, duration (average): ") != std::string::npos);
+    // Check if output contains: "Return value: 42, duration (average): 222ns"
+    REQUIRE(output.find("Return value: 42, duration (average): ") != std::string::npos);
 
     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
     REQUIRE(output == "\nUnpinned " + id + " from test_sample_ebpf\n");
