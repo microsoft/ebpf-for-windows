@@ -253,6 +253,7 @@ net_ebpf_extension_wfp_filter_context_create(
     memset(local_filter_context, 0, filter_context_size);
     local_filter_context->reference_count = 1; // Initial reference.
     local_filter_context->client_context = client_context;
+    ENTER_HOOK_CLIENT_RUNDOWN((net_ebpf_extension_hook_client_t*)local_filter_context->client_context);
 
     *filter_context = local_filter_context;
     local_filter_context = NULL;
@@ -268,10 +269,10 @@ void
 net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     // Since the hook client is detaching, the eBPF program should not be invoked any further.
-    // The client_context field in filter_context is set to NULL for this reason. This way any
-    // lingering WFP classify callbacks will exit as it would not find any hook client associated with the filter
-    // context. This is best effort & no locks are held.
-    filter_context->client_context = NULL;
+    // The client_detached field in filter_context is set to false for this reason. This way any
+    // lingering WFP classify callbacks will exit as it would not find any hook client associated
+    // with the filter context. This is best effort & no locks are held.
+    filter_context->client_detached = TRUE;
     filter_context->filter_ids = NULL;
     filter_context->filter_ids_count = 0;
     DEREFERENCE_FILTER_CONTEXT(filter_context);

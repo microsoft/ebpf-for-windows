@@ -25,9 +25,8 @@ typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context
     LIST_ENTRY link;                                         ///< Link to next flow context.
     net_ebpf_extension_flow_context_parameters_t parameters; ///< WFP flow parameters.
     struct _net_ebpf_extension_sock_ops_wfp_filter_context*
-        filter_context;       ///< WFP filter context associated with this flow.
-    bool client_detached : 1; ///< Flag indicating that the hook client has detached.
-    bpf_sock_ops_t context;   ///< sock_ops context.
+        filter_context;     ///< WFP filter context associated with this flow.
+    bpf_sock_ops_t context; ///< sock_ops context.
 } net_ebpf_extension_sock_ops_wfp_flow_context_t;
 
 typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context_list
@@ -233,7 +232,6 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
         InitializeListHead(entry);
         net_ebpf_extension_sock_ops_wfp_flow_context_t* flow_context =
             CONTAINING_RECORD(entry, net_ebpf_extension_sock_ops_wfp_flow_context_t, link);
-        flow_context->client_detached = TRUE;
 
         net_ebpf_extension_flow_context_parameters_t* flow_parameters = &flow_context->parameters;
 
@@ -453,15 +451,17 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (attached_client == NULL) {
+    if (filter_context->base.client_detached) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_sock_ops_flow_established_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
         goto Exit;
     }
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
-        attached_client = NULL;
-        goto Exit;
-    }
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
+    ENTER_HOOK_CLIENT_RUNDOWN(attached_client);
 
     local_flow_context = (net_ebpf_extension_sock_ops_wfp_flow_context_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t), NET_EBPF_EXTENSION_POOL_TAG);
@@ -540,7 +540,7 @@ Exit:
         ExFreePool(local_flow_context);
     }
     if (attached_client != NULL) {
-        net_ebpf_extension_hook_client_leave_rundown(attached_client);
+        LEAVE_HOOK_CLIENT_RUNDOWN(attached_client);
     }
 }
 
@@ -563,37 +563,28 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         goto Exit;
     }
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
-        "Flow deleted.",
-        local_flow_context->parameters.flow_id);
-
     filter_context = local_flow_context->filter_context;
     if (filter_context == NULL) {
         goto Exit;
     }
 
-    if (local_flow_context->client_detached) {
-        // Since the hook client is detached, exit the function.
+    if (filter_context->base.client_detached) {
         goto Exit;
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (attached_client == NULL) {
-        // This means that the eBPF program is detached and there is nothing to notify.
-        goto Exit;
-    }
-
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
-        attached_client = NULL;
-        goto Exit;
-    }
+    ENTER_HOOK_CLIENT_RUNDOWN(attached_client);
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
     RemoveEntryList(&local_flow_context->link);
     filter_context->flow_context_list.count--;
     KeReleaseSpinLock(&filter_context->lock, irql);
+
+    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        "Flow deleted.",
+        local_flow_context->parameters.flow_id);
 
     // Invoke eBPF program with connection deleted socket event.
     sock_ops_context = &local_flow_context->context;
@@ -606,11 +597,13 @@ Exit:
     if (filter_context) {
         DEREFERENCE_FILTER_CONTEXT(&filter_context->base);
     }
+
     if (local_flow_context != NULL) {
         ExFreePool(local_flow_context);
     }
+
     if (attached_client != NULL) {
-        net_ebpf_extension_hook_client_leave_rundown(attached_client);
+        LEAVE_HOOK_CLIENT_RUNDOWN(attached_client);
     }
 }
 
