@@ -613,65 +613,68 @@ TEST_CASE("libbpf program attach", "[libbpf]")
 }
 #endif
 
-void
-test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info[2])
-{
-    // Verify there's no program attached to the specified ifindex.
-    uint32_t program_id;
-    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
-    REQUIRE(errno == ENOENT);
+// Once the libbpf APIs are implemented in the xdp-for-windows repo, these tests should be migrated.
+// For now, they are commented out so they are not lost. They should be removed as part of
+// completion of issue 2974.
+// void
+// test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info[2])
+// {
+//     // Verify there's no program attached to the specified ifindex.
+//     uint32_t program_id;
+//     REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
+//     REQUIRE(errno == ENOENT);
 
-    // Attach the first program to the specified ifindex.
-    REQUIRE(bpf_xdp_attach(ifindex, program_fd[0], 0, nullptr) == 0);
-    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) == 0);
-    REQUIRE(program_id == program_info[0].id);
+//     // Attach the first program to the specified ifindex.
+//     REQUIRE(bpf_xdp_attach(ifindex, program_fd[0], 0, nullptr) == 0);
+//     REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) == 0);
+//     REQUIRE(program_id == program_info[0].id);
 
-    // Replace it with the second program.
-    REQUIRE(bpf_xdp_attach(ifindex, program_fd[1], XDP_FLAGS_REPLACE, nullptr) == 0);
-    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) == 0);
-    REQUIRE(program_id == program_info[1].id);
+//     // Replace it with the second program.
+//     REQUIRE(bpf_xdp_attach(ifindex, program_fd[1], XDP_FLAGS_REPLACE, nullptr) == 0);
+//     REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) == 0);
+//     REQUIRE(program_id == program_info[1].id);
 
-    // Detach the second program.
-    REQUIRE(bpf_xdp_detach(ifindex, XDP_FLAGS_REPLACE, nullptr) == 0);
+//     // Detach the second program.
+//     REQUIRE(bpf_xdp_detach(ifindex, XDP_FLAGS_REPLACE, nullptr) == 0);
 
-    // Verify there's no program attached to this ifindex.
-    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
-    REQUIRE(errno == ENOENT);
-}
+//     // Verify there's no program attached to this ifindex.
+//     REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
+//     REQUIRE(errno == ENOENT);
+// }
 
-#define TEST_IFINDEX 17
+// #define TEST_IFINDEX 17
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
-{
-    _test_helper_libbpf test_helper;
-    test_helper.initialize();
+// TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
+// {
+//     _test_helper_libbpf test_helper;
+//     test_helper.initialize();
 
-    struct bpf_object* object[2];
-    struct bpf_program* program[2];
-    int program_fd[2];
-    bpf_prog_info program_info[2] = {};
+//     struct bpf_object* object[2];
+//     struct bpf_program* program[2];
+//     int program_fd[2];
+//     bpf_prog_info program_info[2] = {};
 
-    for (int i = 0; i < 2; i++) {
-        object[i] = bpf_object__open("droppacket.o");
-        REQUIRE(object[i] != nullptr);
-        // Load the program(s).
-        REQUIRE(bpf_object__load(object[i]) == 0);
+//     for (int i = 0; i < 2; i++) {
+//         object[i] = bpf_object__open("droppacket.o");
+//         REQUIRE(object[i] != nullptr);
+//         // Load the program(s).
+//         REQUIRE(bpf_object__load(object[i]) == 0);
 
-        program[i] = bpf_object__find_program_by_name(object[i], "DropPacket");
-        REQUIRE(program[i] != nullptr);
-        program_fd[i] = bpf_program__fd(const_cast<const bpf_program*>(program[i]));
+//         program[i] = bpf_object__find_program_by_name(object[i], "DropPacket");
+//         REQUIRE(program[i] != nullptr);
+//         program_fd[i] = bpf_program__fd(const_cast<const bpf_program*>(program[i]));
 
-        uint32_t program_info_size = sizeof(program_info[i]);
-        REQUIRE(bpf_obj_get_info_by_fd(program_fd[i], &program_info[i], &program_info_size) == 0);
-    }
+//         uint32_t program_info_size = sizeof(program_info[i]);
+//         REQUIRE(bpf_obj_get_info_by_fd(program_fd[i], &program_info[i], &program_info_size) == 0);
+//     }
 
-    test_xdp_ifindex(TEST_IFINDEX, program_fd, program_info);
-    test_xdp_ifindex(0, program_fd, program_info);
+//     test_xdp_ifindex(TEST_IFINDEX, program_fd, program_info);
+//     test_xdp_ifindex(0, program_fd, program_info);
 
-    bpf_object__close(object[0]);
-    bpf_object__close(object[1]);
-}
+//     bpf_object__close(object[0]);
+//     bpf_object__close(object[1]);
+// }
 
 TEST_CASE("libbpf map", "[libbpf]")
 {

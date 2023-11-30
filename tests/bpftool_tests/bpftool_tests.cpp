@@ -124,41 +124,44 @@ TEST_CASE("prog load map_in_map", "[prog][load]")
     REQUIRE(result == 0);
 }
 
-TEST_CASE("prog attach by interface alias", "[prog][load]")
-{
-    int result;
-    std::string output;
-    char command[80];
-    sprintf_s(
-        command, sizeof(command), "bpftool --legacy prog load droppacket%s droppacket", EBPF_PROGRAM_FILE_EXTENSION);
+// Once the libbpf APIs are implemented in the xdp-for-windows repo, these tests should be migrated.
+// For now, they are commented out so they are not lost. They should be removed as part of
+// completion of issue 2974.
+// TEST_CASE("prog attach by interface alias", "[prog][load]")
+// {
+//     int result;
+//     std::string output;
+//     char command[80];
+//     sprintf_s(
+//         command, sizeof(command), "bpftool --legacy prog load droppacket%s droppacket", EBPF_PROGRAM_FILE_EXTENSION);
 
-    output = run_command(command, &result);
-    REQUIRE(output == "");
-    REQUIRE(result == 0);
+//     output = run_command(command, &result);
+//     REQUIRE(output == "");
+//     REQUIRE(result == 0);
 
-    output = run_command("bpftool prog show", &result);
-    REQUIRE(result == 0);
-    std::string id = std::to_string(atoi(output.c_str()));
-    size_t offset = output.find(" map_ids ");
-    REQUIRE(offset != std::string::npos);
-    std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
-    offset = output.find(",");
-    REQUIRE(offset != std::string::npos);
-    std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
-    REQUIRE(output == id + ": xdp_test  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
+//     output = run_command("bpftool prog show", &result);
+//     REQUIRE(result == 0);
+//     std::string id = std::to_string(atoi(output.c_str()));
+//     size_t offset = output.find(" map_ids ");
+//     REQUIRE(offset != std::string::npos);
+//     std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
+//     offset = output.find(",");
+//     REQUIRE(offset != std::string::npos);
+//     std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
+//     REQUIRE(output == id + ": xdp_test  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
-    // Try attaching to an interface by friendly name.
-    output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(), &result);
-    REQUIRE(result == 0);
+//     // Try attaching to an interface by friendly name.
+//     output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(),
+//     &result); REQUIRE(result == 0);
 
-    output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
-    REQUIRE(output == "\nUnpinned " + id + " from droppacket\n");
-    REQUIRE(result == 0);
+//     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
+//     REQUIRE(output == "\nUnpinned " + id + " from droppacket\n");
+//     REQUIRE(result == 0);
 
-    output = run_command("bpftool prog show", &result);
-    REQUIRE(output == "");
-    REQUIRE(result == 0);
-}
+//     output = run_command("bpftool prog show", &result);
+//     REQUIRE(output == "");
+//     REQUIRE(result == 0);
+// }
 
 TEST_CASE("map create", "[map]")
 {
@@ -217,7 +220,10 @@ TEST_CASE("prog prog run", "[prog][load]")
     std::string output;
     char command[80];
     sprintf_s(
-        command, sizeof(command), "bpftool --legacy prog load droppacket%s droppacket", EBPF_PROGRAM_FILE_EXTENSION);
+        command,
+        sizeof(command),
+        "bpftool --legacy prog load test_sample_ebpf%s test_sample_ebpf",
+        EBPF_PROGRAM_FILE_EXTENSION);
 
     output = run_command(command, &result);
     REQUIRE(output == "");
@@ -229,10 +235,7 @@ TEST_CASE("prog prog run", "[prog][load]")
     size_t offset = output.find(" map_ids ");
     REQUIRE(offset != std::string::npos);
     std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
-    offset = output.find(",");
-    REQUIRE(offset != std::string::npos);
-    std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
-    REQUIRE(output == id + ": xdp_test  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
+    REQUIRE(output == id + ": sample_ext  name test_sample_ebpf  \n  map_ids " + map_id1 + "\n");
 
     // Create temporary files for input and output.
     std::filesystem::path input_file = std::filesystem::temp_directory_path() / "data_in.txt";
@@ -259,7 +262,7 @@ TEST_CASE("prog prog run", "[prog][load]")
     REQUIRE(output.find("Return value: 1, duration (average): ") != std::string::npos);
 
     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
-    REQUIRE(output == "\nUnpinned " + id + " from droppacket\n");
+    REQUIRE(output == "\nUnpinned " + id + " from test_sample_ebpf\n");
     REQUIRE(result == 0);
 
     output = run_command("bpftool prog show", &result);
