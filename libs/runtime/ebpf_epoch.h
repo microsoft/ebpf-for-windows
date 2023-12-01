@@ -76,8 +76,7 @@ extern "C"
     /**
      * @brief Wait for the current epoch to end.
      */
-    void
-    ebpf_epoch_synchronize();
+    _IRQL_requires_max_(PASSIVE_LEVEL) void ebpf_epoch_synchronize();
 
     /**
      * @brief Allocate an epoch work item; a work item that can be scheduled to

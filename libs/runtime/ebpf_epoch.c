@@ -523,8 +523,7 @@ ebpf_epoch_cancel_work_item(_In_opt_ _Frees_ptr_opt_ ebpf_epoch_work_item_t* wor
     cxplat_release_rundown_protection(&_ebpf_epoch_work_item_rundown_ref);
 }
 
-void
-ebpf_epoch_synchronize()
+_IRQL_requires_max_(PASSIVE_LEVEL) void ebpf_epoch_synchronize()
 {
     if (!_ebpf_epoch_cpu_table) {
         return;
