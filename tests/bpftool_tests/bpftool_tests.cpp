@@ -125,7 +125,7 @@ TEST_CASE("prog load map_in_map", "[prog][load]")
 }
 
 #if 0
-// TODO(#2974): Once the libbpf APIs are implemented in the xdp-for-windows repo, these tests should be migrated.
+// TODO(#2974): Once XDP support has fully migrated to xdp-for-windows repo, these tests should be migrated.
 TEST_CASE("prog attach by interface alias", "[prog][load]")
 {
     int result;

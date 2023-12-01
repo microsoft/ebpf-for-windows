@@ -637,7 +637,7 @@ TEST_CASE("libbpf xdp negative", "[libbpf]")
 }
 
 #if 0
-// TODO(#2974): Once the libbpf APIs are implemented in the xdp-for-windows repo, these tests should be migrated.
+// TODO(#2974): Once XDP support has fully migrated to xdp-for-windows repo, these tests should be migrated.
 void
 test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info[2])
 {
