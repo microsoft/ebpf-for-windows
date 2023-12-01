@@ -613,6 +613,29 @@ TEST_CASE("libbpf program attach", "[libbpf]")
 }
 #endif
 
+#define TEST_IFINDEX 17
+// This is a set of tests which utilize the libbpf XDP APIs.
+// The XDP extension is built outside of the ebpf-for-windows repo
+// and therefore these APIs are expected to gracefully fail.
+TEST_CASE("libbpf xdp negative", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    uint32_t program_id;
+    REQUIRE(bpf_xdp_query_id(TEST_IFINDEX, 0, &program_id) < 0);
+
+    REQUIRE(bpf_xdp_attach(TEST_IFINDEX, 0, 0, nullptr) < 0);
+
+    REQUIRE(bpf_xdp_detach(TEST_IFINDEX, 0, nullptr) == 0);
+
+#pragma warning(suppress : 4996) // deprecated
+    REQUIRE(bpf_set_link_xdp_fd(TEST_IFINDEX, 0, 0) < 0);
+
+#pragma warning(suppress : 4996) // deprecated
+    REQUIRE(bpf_program__attach_xdp(nullptr, TEST_IFINDEX) == nullptr);
+}
+
 #if 0
 // TODO(#2974): Once the libbpf APIs are implemented in the xdp-for-windows repo, these tests should be migrated.
 void
@@ -640,8 +663,6 @@ test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info
     REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
     REQUIRE(errno == ENOENT);
 }
-
-#define TEST_IFINDEX 17
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
@@ -1906,16 +1927,9 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     REQUIRE(errno == ENOENT);
 
     // Load and attach some programs.
-    uint32_t ifindex = 0;
     program_load_attach_helper_t sample_helper;
     sample_helper.initialize(
-        "test_sample_ebpf.o",
-        BPF_PROG_TYPE_SAMPLE,
-        "test_program_entry",
-        EBPF_EXECUTION_JIT,
-        &ifindex,
-        sizeof(ifindex),
-        sample_hook);
+        "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_JIT, nullptr, 0, sample_hook);
     program_load_attach_helper_t bind_helper;
     bind_helper.initialize(
         "bindmonitor.o", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, bind_hook);
@@ -1962,16 +1976,9 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     REQUIRE(errno == ENOENT);
 
     // Load and attach some programs.
-    uint32_t ifindex = 1;
     program_load_attach_helper_t sample_helper;
     sample_helper.initialize(
-        "test_sample_ebpf.o",
-        BPF_PROG_TYPE_SAMPLE,
-        "test_program_entry",
-        EBPF_EXECUTION_JIT,
-        &ifindex,
-        sizeof(ifindex),
-        sample_hook);
+        "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_JIT, nullptr, 0, sample_hook);
     program_load_attach_helper_t bind_helper;
     bind_helper.initialize(
         "bindmonitor.o", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, bind_hook);
@@ -2145,16 +2152,9 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
-    uint32_t ifindex = 0;
     program_load_attach_helper_t sample_helper;
     sample_helper.initialize(
-        "test_sample_ebpf.o",
-        BPF_PROG_TYPE_SAMPLE,
-        "test_program_entry",
-        EBPF_EXECUTION_JIT,
-        &ifindex,
-        sizeof(ifindex),
-        sample_hook);
+        "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_JIT, nullptr, 0, sample_hook);
 
     struct bpf_object* object = sample_helper.get_object();
     REQUIRE(object != nullptr);
