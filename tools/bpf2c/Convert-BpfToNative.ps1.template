@@ -13,7 +13,7 @@
     Specifies the name of the ELF file containing the BPF program.
 
 .PARAMETER Type
-    Specifies the type of the BPF program. Valid values include "xdp_test", "bind", "sockops", "sample_ext", and other BPF program types.
+    Specifies the type of the BPF program. Valid values include "xdp", "bind", "sockops", and other BPF program types.
 
 .PARAMETER IncludeDir
     Specifies the directory containing the bpf2c include files.

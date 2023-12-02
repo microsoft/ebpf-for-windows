@@ -45,11 +45,8 @@ TEST_CASE("query program info", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
     std::vector<GUID> expected_guids = {
-        EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
-        EBPF_PROGRAM_TYPE_SOCK_OPS,
-        EBPF_PROGRAM_TYPE_BIND,
-        EBPF_PROGRAM_TYPE_XDP_TEST};
-    std::vector<std::string> expected_program_names = {"sock_addr", "sockops", "bind", "xdp_test"};
+        EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_PROGRAM_TYPE_XDP, EBPF_PROGRAM_TYPE_BIND};
+    std::vector<std::string> expected_program_names = {"sock_addr", "sockops", "bind", "xdp"};
 
     auto guid_less = [](const GUID& lhs, const GUID& rhs) { return memcmp(&lhs, &rhs, sizeof(lhs)) < 0; };
 
@@ -120,7 +117,7 @@ TEST_CASE("classify_packet", "[netebpfext]")
     NET_IFINDEX if_index = 0;
     ebpf_extension_data_t npi_specific_characteristics = {.size = sizeof(if_index), .data = &if_index};
     test_xdp_client_context_t client_context = {};
-    client_context.base.desired_attach_type = BPF_XDP_TEST;
+    client_context.base.desired_attach_type = BPF_XDP;
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
@@ -151,7 +148,7 @@ TEST_CASE("classify_packet", "[netebpfext]")
 TEST_CASE("xdp_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
-    auto xdp_extension_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_XDP_TEST);
+    auto xdp_extension_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_XDP);
     auto xdp_program_data = (ebpf_program_data_t*)xdp_extension_data.data;
 
     std::vector<uint8_t> input_data(100);

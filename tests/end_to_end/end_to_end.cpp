@@ -402,10 +402,10 @@ droppacket_test(ebpf_execution_type_t execution_type)
     fd_t program_fd;
     bpf_link_ptr link;
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t xdp_program_info;
-    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o");
     result =

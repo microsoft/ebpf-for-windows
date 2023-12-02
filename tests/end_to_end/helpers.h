@@ -638,16 +638,16 @@ static ebpf_program_data_t _mock_xdp_program_data = {
 static ebpf_extension_data_t _mock_xdp_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_mock_xdp_program_data), &_mock_xdp_program_data};
 
-// // XDP_TEST
-// static ebpf_program_data_t _ebpf_xdp_test_program_data = {
-//     &_ebpf_xdp_test_program_info,
-//     &_mock_xdp_helper_function_address_table,
-//     nullptr,
-//     _xdp_context_create,
-//     _xdp_context_destroy};
+// XDP_TEST.
+static ebpf_program_data_t _ebpf_xdp_test_program_data = {
+    &_ebpf_xdp_test_program_info,
+    &_mock_xdp_helper_function_address_table,
+    nullptr,
+    _xdp_context_create,
+    _xdp_context_destroy};
 
-// static ebpf_extension_data_t _ebpf_xdp_test_program_info_provider_data = {
-//     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_test_program_data), &_ebpf_xdp_test_program_data};
+static ebpf_extension_data_t _ebpf_xdp_test_program_info_provider_data = {
+    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_test_program_data), &_ebpf_xdp_test_program_data};
 
 // Bind.
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
@@ -712,8 +712,8 @@ typedef class _program_info_provider
             provider_data = custom_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_XDP) {
             provider_data = &_mock_xdp_program_info_provider_data;
-            // } else if (program_type == EBPF_PROGRAM_TYPE_XDP_TEST) {
-            //     provider_data = &_ebpf_xdp_test_program_info_provider_data;
+        } else if (program_type == EBPF_PROGRAM_TYPE_XDP_TEST) {
+            provider_data = &_ebpf_xdp_test_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_BIND) {
             provider_data = &_ebpf_bind_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) {

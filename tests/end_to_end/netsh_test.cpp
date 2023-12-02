@@ -321,8 +321,7 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
     test_helper.initialize();
 
     int result;
-    std::string output =
-        _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp_test", nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp", nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
@@ -338,7 +337,7 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
 
     int result;
     std::string output =
-        _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp_test", nullptr, &result);
+        _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     output = strip_paths(output);
     REQUIRE(
@@ -758,7 +757,7 @@ TEST_CASE("unpin program", "[netsh][programs]")
     verify_no_programs_exist();
 }
 
-TEST_CASE("xdp_test interface parameter", "[netsh][programs]")
+TEST_CASE("xdp interface parameter", "[netsh][programs]")
 {
     _test_helper_netsh test_helper;
     test_helper.initialize();
@@ -768,13 +767,7 @@ TEST_CASE("xdp_test interface parameter", "[netsh][programs]")
 
     // Load program with pinpath and loopback interface alias.
     std::string output = run_netsh_command_with_args(
-        handle_ebpf_add_program,
-        &result,
-        4,
-        L"droppacket.o",
-        L"xdp_test",
-        L"mypinpath",
-        L"Loopback Pseudo-Interface 1");
+        handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"Loopback Pseudo-Interface 1");
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
@@ -784,7 +777,7 @@ TEST_CASE("xdp_test interface parameter", "[netsh][programs]")
 
     // Load program with pinpath and loopback interface name.
     output = run_netsh_command_with_args(
-        handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp_test", L"mypinpath", L"loopback_0");
+        handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"loopback_0");
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 10\n") == 0);
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"10", nullptr, nullptr, &result);
@@ -793,7 +786,7 @@ TEST_CASE("xdp_test interface parameter", "[netsh][programs]")
     verify_no_programs_exist();
 
     // Load program with loopback interface index.
-    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp_test", L"interface=1", &result);
+    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=1", &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 15\n") == 0);
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"15", nullptr, nullptr, &result);
@@ -802,7 +795,7 @@ TEST_CASE("xdp_test interface parameter", "[netsh][programs]")
     verify_no_programs_exist();
 
     // (Negative) Load program with incorrect interface name.
-    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp_test", L"interface=foo", &result);
+    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=foo", &result);
     REQUIRE(strcmp(output.c_str(), "Interface parameter is invalid.\n") == 0);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     verify_no_programs_exist();
@@ -832,7 +825,7 @@ TEST_CASE("xdp_test interface parameter", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "    29     1      0  JIT        xdp_test       DropPacket\n");
+                  "    29     1      0  JIT        xdp            DropPacket\n");
 
     // Re-attach the program with interface index parameter.
     output = _run_netsh_command(handle_ebpf_set_program, L"29", nullptr, L"interface=1", &result);

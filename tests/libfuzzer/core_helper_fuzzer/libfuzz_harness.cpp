@@ -18,9 +18,10 @@
 #include <map>
 #include <vector>
 
-// This test uses the mock helper for XDP_TEST which results in exercising the
-// core path for ids out of range of the core ones.
-static std::vector<GUID> _program_types = {EBPF_PROGRAM_TYPE_XDP_TEST};
+// Currently the only program type with helpers is XDP. Although this test just
+// uses the mock helper for XDP, it does result in exercising the core path for
+// ids out of range of the core ones.
+static std::vector<GUID> _program_types = {EBPF_PROGRAM_TYPE_XDP};
 
 static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
     {
@@ -491,7 +492,7 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     netebpf_ext_helper_t helper(false);
 
     // Get the program.
-    fuzz_state.make_program(EBPF_PROGRAM_TYPE_XDP_TEST);
+    fuzz_state.make_program(EBPF_PROGRAM_TYPE_XDP);
     ebpf_handle_t program_handle = fuzz_state.get_program_handle();
     ebpf_program_t* program = NULL;
     ebpf_result_t result =
