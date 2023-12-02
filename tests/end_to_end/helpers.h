@@ -617,21 +617,37 @@ _sample_test_context_destroy(
 
 // program info provider data for various program types.
 
-// XDP.
-static const void* _test_ebpf_xdp_helper_functions[] = {(void*)&test_xdp_helper_t::adjust_head};
+// Mock implementation of XDP.
+static const void* _mock_xdp_helper_functions[] = {(void*)&test_xdp_helper_t::adjust_head};
 
-static ebpf_helper_function_addresses_t _test_ebpf_xdp_helper_function_address_table = {
-    EBPF_COUNT_OF(_test_ebpf_xdp_helper_functions), (uint64_t*)_test_ebpf_xdp_helper_functions};
+static ebpf_helper_function_addresses_t _mock_xdp_helper_function_address_table = {
+    EBPF_COUNT_OF(_mock_xdp_helper_functions), (uint64_t*)_mock_xdp_helper_functions};
 
-static ebpf_program_data_t _ebpf_xdp_program_data = {
-    &_ebpf_xdp_program_info,
-    &_test_ebpf_xdp_helper_function_address_table,
+static const ebpf_program_info_t _mock_xdp_program_info = {
+    {"xdp", &_ebpf_xdp_test_context_descriptor, EBPF_PROGRAM_TYPE_XDP_GUID, BPF_PROG_TYPE_XDP},
+    EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
+    _xdp_test_ebpf_extension_helper_function_prototype};
+
+static ebpf_program_data_t _mock_xdp_program_data = {
+    &_mock_xdp_program_info,
+    &_mock_xdp_helper_function_address_table,
     nullptr,
     _xdp_context_create,
     _xdp_context_destroy};
 
-static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
-    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
+static ebpf_extension_data_t _mock_xdp_program_info_provider_data = {
+    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_mock_xdp_program_data), &_mock_xdp_program_data};
+
+// // XDP_TEST
+// static ebpf_program_data_t _ebpf_xdp_test_program_data = {
+//     &_ebpf_xdp_test_program_info,
+//     &_mock_xdp_helper_function_address_table,
+//     nullptr,
+//     _xdp_context_create,
+//     _xdp_context_destroy};
+
+// static ebpf_extension_data_t _ebpf_xdp_test_program_info_provider_data = {
+//     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_test_program_data), &_ebpf_xdp_test_program_data};
 
 // Bind.
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
@@ -694,8 +710,10 @@ typedef class _program_info_provider
 
         if (custom_provider_data != nullptr) {
             provider_data = custom_provider_data;
-        } else if (program_type == EBPF_PROGRAM_TYPE_XDP_TEST) {
-            provider_data = &_ebpf_xdp_program_info_provider_data;
+        } else if (program_type == EBPF_PROGRAM_TYPE_XDP) {
+            provider_data = &_mock_xdp_program_info_provider_data;
+            // } else if (program_type == EBPF_PROGRAM_TYPE_XDP_TEST) {
+            //     provider_data = &_ebpf_xdp_test_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_BIND) {
             provider_data = &_ebpf_bind_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) {

@@ -636,7 +636,7 @@ TEST_CASE("libbpf xdp negative", "[libbpf]")
     REQUIRE(bpf_program__attach_xdp(nullptr, TEST_IFINDEX) == nullptr);
 }
 
-#if 0
+// #if 0
 // TODO(#2974): Once XDP support has fully migrated to xdp-for-windows repo, these tests should be migrated.
 void
 test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info[2])
@@ -676,12 +676,12 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
     bpf_prog_info program_info[2] = {};
 
     for (int i = 0; i < 2; i++) {
-        object[i] = bpf_object__open("droppacket.o");
+        object[i] = bpf_object__open("test_sample_xdp.o");
         REQUIRE(object[i] != nullptr);
         // Load the program(s).
         REQUIRE(bpf_object__load(object[i]) == 0);
 
-        program[i] = bpf_object__find_program_by_name(object[i], "DropPacket");
+        program[i] = bpf_object__find_program_by_name(object[i], "sample_xdp");
         REQUIRE(program[i] != nullptr);
         program_fd[i] = bpf_program__fd(const_cast<const bpf_program*>(program[i]));
 
@@ -695,7 +695,7 @@ TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
     bpf_object__close(object[0]);
     bpf_object__close(object[1]);
 }
-#endif
+// #endif
 
 TEST_CASE("libbpf map", "[libbpf]")
 {

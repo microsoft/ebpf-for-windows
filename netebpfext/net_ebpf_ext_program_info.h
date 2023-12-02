@@ -10,25 +10,25 @@
 #define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
 
 // XDP_TEST helper function prototype descriptors.
-static const ebpf_helper_function_prototype_t _xdp_ebpf_extension_helper_function_prototype[] = {
+static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_function_prototype[] = {
     {XDP_EXT_HELPER_FUNCTION_START + 1,
      "bpf_xdp_adjust_head",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING}}};
 
 // XDP_TEST program information.
-static const ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
+static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {
     sizeof(xdp_md_t),
     EBPF_OFFSET_OF(xdp_md_t, data),
     EBPF_OFFSET_OF(xdp_md_t, data_end),
     EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 
-static const ebpf_program_info_t _ebpf_xdp_program_info = {
-    {"xdp_test", &_ebpf_xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP_TEST_GUID, BPF_PROG_TYPE_XDP_TEST},
-    EBPF_COUNT_OF(_xdp_ebpf_extension_helper_function_prototype),
-    _xdp_ebpf_extension_helper_function_prototype};
+static const ebpf_program_info_t _ebpf_xdp_test_program_info = {
+    {"xdp_test", &_ebpf_xdp_test_context_descriptor, EBPF_PROGRAM_TYPE_XDP_TEST_GUID, BPF_PROG_TYPE_XDP_TEST},
+    EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
+    _xdp_test_ebpf_extension_helper_function_prototype};
 
-static const ebpf_program_section_info_t _ebpf_xdp_section_info[] = {
+static const ebpf_program_section_info_t _ebpf_xdp_test_section_info[] = {
     {(const wchar_t*)L"xdp_test",
      &EBPF_PROGRAM_TYPE_XDP_TEST,
      &EBPF_ATTACH_TYPE_XDP_TEST,

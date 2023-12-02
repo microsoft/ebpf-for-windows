@@ -147,7 +147,7 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     offset = output.find(",");
     REQUIRE(offset != std::string::npos);
     std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
-    REQUIRE(output == id + ": xdp_test  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
+    REQUIRE(output == id + ": xdp  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
     // Try attaching to an interface by friendly name.
     output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(),

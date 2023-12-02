@@ -120,5 +120,8 @@
     <CustomBuild Include="cgroup_sendto_count3.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="test_sample_xdp.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

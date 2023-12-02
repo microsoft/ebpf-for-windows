@@ -2966,24 +2966,22 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
-    // Create a 0-byte UDP packet.
-    auto packet0 = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
 
-    // Test that we drop the packet and increment the map.
-    xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
+    // Empty context (not used by the eBPF program).
+    sample_program_context_t ctx{0};
 
     // Try loading without the extension loaded.
-    bpf_object_ptr unique_droppacket_object;
+    bpf_object_ptr unique_test_sample_ebpf_object;
     int program_fd = -1;
     const char* error_message = nullptr;
 
     // Should fail.
     REQUIRE(
         ebpf_program_load(
-            execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o",
+            execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o",
             BPF_PROG_TYPE_UNSPEC,
             execution_type,
-            &unique_droppacket_object,
+            &unique_test_sample_ebpf_object,
             &program_fd,
             &error_message) != 0);
 
@@ -2991,98 +2989,97 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
     // Load the program with the extension loaded.
     {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
-        program_info_provider_t xdp_program_info;
-        REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
         REQUIRE(
             ebpf_program_load(
-                execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o",
+                execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o",
                 BPF_PROG_TYPE_UNSPEC,
                 execution_type,
-                &unique_droppacket_object,
+                &unique_test_sample_ebpf_object,
                 &program_fd,
                 &error_message) == 0);
 
-        uint32_t if_index = TEST_IFINDEX;
         bpf_link* link = nullptr;
         // Attach only to the single interface being tested.
-        REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
+        REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
         bpf_link__disconnect(link);
         bpf_link__destroy(link);
 
         // Program should run.
         uint32_t hook_result = MAXUINT32;
-        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
-        REQUIRE(hook_result == XDP_PASS);
+        REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 42);
 
-        // Unload the extension (xdp_program_info and hook will be destroyed).
+        // Unload the extension (sample_program_info and hook will be destroyed).
     }
 
     // Reload the extension provider with unchanged data.
     {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
-        program_info_provider_t xdp_program_info;
-        REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
         // Program should re-attach to the hook.
 
         // Program should run.
         uint32_t hook_result = MAXUINT32;
-        REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
-        REQUIRE(hook_result == XDP_PASS);
+        REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 42);
     }
 
     // Reload the extension provider with missing helper function.
     {
         ebpf_helper_function_addresses_t changed_helper_function_address_table =
-            _test_ebpf_xdp_helper_function_address_table;
-        ebpf_program_data_t changed_program_data = _ebpf_xdp_program_data;
+            _sample_ebpf_ext_helper_function_address_table;
+        ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
         changed_program_data.program_type_specific_helper_function_addresses = &changed_helper_function_address_table;
         changed_helper_function_address_table.helper_function_count = 0;
 
         ebpf_extension_data_t changed_provider_data = {
             TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(changed_program_data), &changed_program_data};
 
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
-        program_info_provider_t xdp_program_info;
-        REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST, &changed_provider_data) == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_provider_data) == EBPF_SUCCESS);
 
         // Program should re-attach to the hook.
 
         // Program should not run.
         uint32_t hook_result = MAXUINT32;
-        REQUIRE(hook.fire(&ctx0, &hook_result) != EBPF_SUCCESS);
-        REQUIRE(hook_result != XDP_PASS);
+        REQUIRE(hook.fire(&ctx, &hook_result) != EBPF_SUCCESS);
+        REQUIRE(hook_result != 42);
     }
 
     // Reload the extension provider with changed helper function data.
     {
-        ebpf_program_info_t changed_program_info = _ebpf_xdp_program_info;
+        ebpf_program_info_t changed_program_info = _sample_ebpf_extension_program_info;
         ebpf_helper_function_prototype_t helper_function_prototypes[] = {
-            _xdp_ebpf_extension_helper_function_prototype[0]};
-        helper_function_prototypes[0].return_type = EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL;
+            _sample_ebpf_extension_global_helper_function_prototype[0]};
+        helper_function_prototypes[0].return_type = EBPF_RETURN_TYPE_INTEGER;
         changed_program_info.program_type_specific_helper_prototype = helper_function_prototypes;
-        ebpf_program_data_t changed_program_data = _ebpf_xdp_program_data;
+        ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
         changed_program_data.program_info = &changed_program_info;
 
         ebpf_extension_data_t changed_provider_data = {
             TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(changed_program_data), &changed_program_data};
 
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
-        program_info_provider_t xdp_program_info;
-        REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST, &changed_provider_data) == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_provider_data) == EBPF_SUCCESS);
 
         // Program should re-attach to the hook.
 
         // Program should not run.
         uint32_t hook_result = MAXUINT32;
-        REQUIRE(hook.fire(&ctx0, &hook_result) != EBPF_SUCCESS);
-        REQUIRE(hook_result != XDP_PASS);
+        REQUIRE(hook.fire(&ctx, &hook_result) != EBPF_SUCCESS);
+        REQUIRE(hook_result != 42);
     }
 }
 
