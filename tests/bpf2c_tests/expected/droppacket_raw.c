@@ -53,15 +53,15 @@ static helper_function_entry_t DropPacket_helpers[] = {
 };
 
 static GUID DropPacket_program_type_guid = {
-    0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
+    0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
 static GUID DropPacket_attach_type_guid = {
-    0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
+    0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
 static uint16_t DropPacket_maps[] = {
     0,
     1,
 };
 
-#pragma code_seg(push, "xdp_test")
+#pragma code_seg(push, "xdp")
 static uint64_t
 DropPacket(void* context)
 #line 43 "sample/droppacket.c"
@@ -119,7 +119,7 @@ DropPacket(void* context)
     if ((DropPacket_helpers[0].tail_call) && (r0 == 0))
 #line 56 "sample/droppacket.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 56 "sample/droppacket.c"
     r1 = r0;
     // EBPF_OP_JEQ_IMM pc=9 dst=r1 src=r0 offset=4 imm=0
@@ -127,7 +127,7 @@ DropPacket(void* context)
     if (r1 == IMMEDIATE(0))
 #line 57 "sample/droppacket.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=1
+        // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=1
 #line 57 "sample/droppacket.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_LDXW pc=11 dst=r1 src=r1 offset=0 imm=0
@@ -162,7 +162,7 @@ label_1:
     if (r3 > r2)
 #line 64 "sample/droppacket.c"
         goto label_2;
-    // EBPF_OP_LDXH pc=20 dst=r3 src=r1 offset=12 imm=0
+        // EBPF_OP_LDXH pc=20 dst=r3 src=r1 offset=12 imm=0
 #line 69 "sample/droppacket.c"
     r3 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(12));
     // EBPF_OP_JNE_IMM pc=21 dst=r3 src=r0 offset=24 imm=8
@@ -170,7 +170,7 @@ label_1:
     if (r3 != IMMEDIATE(8))
 #line 69 "sample/droppacket.c"
         goto label_2;
-    // EBPF_OP_LDXB pc=22 dst=r3 src=r1 offset=23 imm=0
+        // EBPF_OP_LDXB pc=22 dst=r3 src=r1 offset=23 imm=0
 #line 72 "sample/droppacket.c"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(23));
     // EBPF_OP_JNE_IMM pc=23 dst=r3 src=r0 offset=22 imm=17
@@ -178,7 +178,7 @@ label_1:
     if (r3 != IMMEDIATE(17))
 #line 72 "sample/droppacket.c"
         goto label_2;
-    // EBPF_OP_ADD64_IMM pc=24 dst=r1 src=r0 offset=0 imm=14
+        // EBPF_OP_ADD64_IMM pc=24 dst=r1 src=r0 offset=0 imm=14
 #line 72 "sample/droppacket.c"
     r1 += IMMEDIATE(14);
     // EBPF_OP_LDXB pc=25 dst=r3 src=r1 offset=0 imm=0
@@ -204,7 +204,7 @@ label_1:
     if (r3 > r2)
 #line 75 "sample/droppacket.c"
         goto label_2;
-    // EBPF_OP_LDXH pc=32 dst=r1 src=r1 offset=4 imm=0
+        // EBPF_OP_LDXH pc=32 dst=r1 src=r1 offset=4 imm=0
 #line 79 "sample/droppacket.c"
     r1 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(4));
     // EBPF_OP_BE pc=33 dst=r1 src=r0 offset=0 imm=16
@@ -217,7 +217,7 @@ label_1:
     if (r1 > IMMEDIATE(8))
 #line 79 "sample/droppacket.c"
         goto label_2;
-    // EBPF_OP_MOV64_REG pc=35 dst=r2 src=r10 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r2 src=r10 offset=0 imm=0
 #line 79 "sample/droppacket.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=36 dst=r2 src=r0 offset=0 imm=-8
@@ -235,7 +235,7 @@ label_1:
     if ((DropPacket_helpers[0].tail_call) && (r0 == 0))
 #line 80 "sample/droppacket.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=40 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=40 dst=r1 src=r0 offset=0 imm=0
 #line 80 "sample/droppacket.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=41 dst=r0 src=r0 offset=0 imm=2
@@ -246,7 +246,7 @@ label_1:
     if (r1 == IMMEDIATE(0))
 #line 81 "sample/droppacket.c"
         goto label_2;
-    // EBPF_OP_LDXDW pc=43 dst=r2 src=r1 offset=0 imm=0
+        // EBPF_OP_LDXDW pc=43 dst=r2 src=r1 offset=0 imm=0
 #line 82 "sample/droppacket.c"
     r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
     // EBPF_OP_ADD64_IMM pc=44 dst=r2 src=r0 offset=0 imm=1
@@ -269,8 +269,8 @@ static program_entry_t _programs[] = {
     {
         0,
         DropPacket,
-        "xdp_test",
-        "xdp_test",
+        "xdp",
+        "xdp",
         "DropPacket",
         DropPacket_maps,
         2,

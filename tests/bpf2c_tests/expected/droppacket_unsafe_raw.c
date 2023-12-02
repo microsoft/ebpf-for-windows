@@ -41,14 +41,14 @@ static helper_function_entry_t DropPacket_helpers[] = {
 };
 
 static GUID DropPacket_program_type_guid = {
-    0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
+    0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
 static GUID DropPacket_attach_type_guid = {
-    0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
+    0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
 static uint16_t DropPacket_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "xdp_test")
+#pragma code_seg(push, "xdp")
 static uint64_t
 DropPacket(void* context)
 #line 34 "sample/unsafe/droppacket_unsafe.c"
@@ -91,7 +91,7 @@ DropPacket(void* context)
     if (r2 != IMMEDIATE(17))
 #line 41 "sample/unsafe/droppacket_unsafe.c"
         goto label_2;
-    // EBPF_OP_LDXH pc=4 dst=r1 src=r1 offset=24 imm=0
+        // EBPF_OP_LDXH pc=4 dst=r1 src=r1 offset=24 imm=0
 #line 42 "sample/unsafe/droppacket_unsafe.c"
     r1 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(24));
     // EBPF_OP_BE pc=5 dst=r1 src=r0 offset=0 imm=16
@@ -104,7 +104,7 @@ DropPacket(void* context)
     if (r1 > IMMEDIATE(8))
 #line 42 "sample/unsafe/droppacket_unsafe.c"
         goto label_2;
-    // EBPF_OP_MOV64_IMM pc=7 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=7 dst=r1 src=r0 offset=0 imm=0
 #line 42 "sample/unsafe/droppacket_unsafe.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXDW pc=8 dst=r10 src=r1 offset=-8 imm=0
@@ -128,12 +128,12 @@ DropPacket(void* context)
     if ((DropPacket_helpers[0].tail_call) && (r0 == 0))
 #line 44 "sample/unsafe/droppacket_unsafe.c"
         return 0;
-    // EBPF_OP_JEQ_IMM pc=14 dst=r0 src=r0 offset=3 imm=0
+        // EBPF_OP_JEQ_IMM pc=14 dst=r0 src=r0 offset=3 imm=0
 #line 45 "sample/unsafe/droppacket_unsafe.c"
     if (r0 == IMMEDIATE(0))
 #line 45 "sample/unsafe/droppacket_unsafe.c"
         goto label_1;
-    // EBPF_OP_LDXDW pc=15 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_LDXDW pc=15 dst=r1 src=r0 offset=0 imm=0
 #line 46 "sample/unsafe/droppacket_unsafe.c"
     r1 = *(uint64_t*)(uintptr_t)(r0 + OFFSET(0));
     // EBPF_OP_ADD64_IMM pc=16 dst=r1 src=r0 offset=0 imm=1
@@ -160,8 +160,8 @@ static program_entry_t _programs[] = {
     {
         0,
         DropPacket,
-        "xdp_test",
-        "xdp_test",
+        "xdp",
+        "xdp",
         "DropPacket",
         DropPacket_maps,
         1,
