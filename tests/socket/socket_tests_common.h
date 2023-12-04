@@ -22,7 +22,7 @@ typedef enum _connection_type
 {
     INVALID,
     TCP,
-    UDP,
+    UNCONNECTED_UDP,
     CONNECTED_UDP
 } connection_type_t;
 
@@ -43,12 +43,19 @@ typedef struct _audit_entry
     bool connected : 1;
 } audit_entry_t;
 
-typedef struct _destination_entry
+typedef struct _destination_entry_key
+{
+    ip_address_t destination_ip;
+    uint16_t destination_port;
+    uint32_t protocol;
+} destination_entry_key_t;
+
+typedef struct _destination_entry_value
 {
     ip_address_t destination_ip;
     uint16_t destination_port;
     uint32_t connection_type;
-} destination_entry_t;
+} destination_entry_value_t;
 
 typedef struct _sock_addr_audit_entry
 {
