@@ -4,6 +4,7 @@
 #include "..\libs\store_helper\user\ebpf_registry_helper.h"
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_serialize.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_utilities.h"
 #include "store_helper_internal.h"
@@ -11,6 +12,16 @@
 
 ebpf_store_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
 ebpf_store_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
+
+static std::wstring
+_get_wstring_from_string(std::string text)
+{
+    int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
+    std::wstring wide(length, 0);
+    MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, &wide[0], length);
+
+    return wide;
+}
 
 static ebpf_result_t
 _open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
@@ -752,6 +763,55 @@ Exit:
     if (root_handle) {
         ebpf_close_registry_key(root_handle);
     }
+
+    return result;
+}
+
+ebpf_result_t
+ebpf_store_delete_global_helper_information(_In_ ebpf_helper_function_prototype_t* helper_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_store_key_t root_key = NULL;
+    ebpf_store_key_t provider_key = NULL;
+    ebpf_store_key_t helper_info_key = NULL;
+    std::wstring helper_name = _get_wstring_from_string(std::string(helper_info->name));
+
+    // Open root registry key.
+    result = ebpf_open_registry_key(ebpf_store_root_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
+    if (result != EBPF_SUCCESS) {
+        if (result == EBPF_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
+        }
+        goto Exit;
+    }
+
+    // Open "providers" registry key.
+    result = ebpf_open_registry_key(root_key, EBPF_PROVIDERS_REGISTRY_PATH, REG_CREATE_FLAGS, &provider_key);
+    if (result != EBPF_SUCCESS) {
+        if (result == EBPF_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
+        }
+        goto Exit;
+    }
+
+    // Open (or create) global helpers key.
+    result =
+        ebpf_open_registry_key(provider_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, REG_DELETE_FLAGS, &helper_info_key);
+    if (result != EBPF_SUCCESS) {
+        if (result == EBPF_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
+        }
+        goto Exit;
+    }
+
+    result = ebpf_delete_registry_tree(helper_info_key, helper_name.c_str());
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+Exit:
+    ebpf_close_registry_key(helper_info_key);
+    ebpf_close_registry_key(provider_key);
 
     return result;
 }

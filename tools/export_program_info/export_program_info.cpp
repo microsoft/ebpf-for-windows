@@ -7,6 +7,7 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_store_helper.h"
 #include "export_program_info.h"
+#include "net_ebpf_ext_program_info.h"
 #include "store_helper_internal.h"
 #include "windows_program_type.h"
 

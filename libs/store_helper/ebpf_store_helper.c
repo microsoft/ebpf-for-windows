@@ -379,35 +379,3 @@ Exit:
 
     return result;
 }
-
-ebpf_result_t
-ebpf_store_delete_global_helper_information(_In_ ebpf_helper_function_prototype_t* helper_info)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_store_key_t provider_key = NULL;
-    ebpf_store_key_t helper_info_key = NULL;
-
-    // Open (or create) provider registry path.
-    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
-    if (!IS_SUCCESS(result)) {
-        goto Exit;
-    }
-
-    // Open (or create) section data key.
-    result =
-        ebpf_open_registry_key(provider_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, REG_DELETE_FLAGS, &helper_info_key);
-    if (!IS_SUCCESS(result)) {
-        goto Exit;
-    }
-
-    result = ebpf_delete_registry_tree_ansi(helper_info_key, helper_info->name);
-    if (IS_SUCCESS(result)) {
-        goto Exit;
-    }
-
-Exit:
-    ebpf_close_registry_key(helper_info_key);
-    ebpf_close_registry_key(provider_key);
-
-    return result;
-}

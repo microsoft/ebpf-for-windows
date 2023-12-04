@@ -79,16 +79,6 @@ extern "C"
     ebpf_result_t
     ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* section_info);
 
-    /**
-     * @brief Delete global helper information from the eBPF store.
-     *
-     * @param[in] helper_info Pointer to the helper information.
-     *
-     * @returns Status of the operation.
-     */
-    ebpf_result_t
-    ebpf_store_delete_global_helper_information(_In_ ebpf_helper_function_prototype_t* helper_info);
-
 #ifdef __cplusplus
 }
 #endif

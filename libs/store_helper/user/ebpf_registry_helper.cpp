@@ -113,12 +113,6 @@ ebpf_delete_registry_tree(ebpf_store_key_t root_key, _In_opt_z_ const wchar_t* s
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_delete_registry_tree_ansi(ebpf_store_key_t root_key, _In_opt_z_ const char* sub_key)
-{
-    return _EBPF_RESULT(RegDeleteTreeA(root_key, sub_key));
-}
-
-_Must_inspect_result_ ebpf_result_t
 ebpf_create_registry_key_ansi(
     ebpf_store_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key)
 {

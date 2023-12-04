@@ -5,7 +5,6 @@
 
 #include "ebpf_api.h"
 #include "ebpf_extension.h"
-#include "ebpf_nethooks.h"
 #include "ebpf_program_types.h"
 #include "ebpf_store_helper.h"
 #include "sample_ext_program_info.h"
