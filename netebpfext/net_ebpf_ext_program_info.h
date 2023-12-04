@@ -7,6 +7,8 @@
 #include "ebpf_program_types.h"
 #include "ebpf_shared_framework.h"
 
+#define TRUE 1
+
 #define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
 
 // XDP helper function prototype descriptors.
@@ -14,7 +16,8 @@ static const ebpf_helper_function_prototype_t _xdp_ebpf_extension_helper_functio
     {XDP_EXT_HELPER_FUNCTION_START + 1,
      "bpf_xdp_adjust_head",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING},
+     TRUE}};
 
 // XDP program information.
 static const ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
