@@ -61,89 +61,102 @@ redirect_v4(bpf_sock_addr_t* ctx)
     entry.destination_port = ctx->user_port;
 
     if (ctx->protocol == IPPROTO_TCP) {
-        entry.connection_type = connection_type_t::TCP;
+        entry.connection_type = TCP;
     } else if (ctx->protocol == IPPROTO_UDP) {
-        entry.connection_type = connection_type_t::UDP;
-        else { return verdict }
-
-        if (ctx->family != AF_INET) {
-            return verdict;
-        }
-
-        // Find the entry in the policy map.
-        destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
-        if (policy != NULL) {
-            bpf_printk("Found v4 proxy entry value: %u, %u", policy->destination_ip.ipv4, policy->destination_port);
-
-            // Currently, we are unable to validate the redirect context path for connected UDP.
-            // Tracking issue #3052
-            // When the above issue is resolved, we should validate setting the redirect_context unconditionally,
-            // including when the verdict is BPF_SOCK_ADDR_VERDICT_REJECT.
-            if (policy->connection_type != connection_type_t::CONNECTED_UDP) {
-                if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
-                    return verdict;
-                }
-            }
-
-            ctx->user_ip4 = policy->destination_ip.ipv4;
-            ctx->user_port = policy->destination_port;
-
-            verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
-        }
-
-        update_audit_map_entry(ctx);
-
+        entry.connection_type = UDP;
+    } else {
         return verdict;
     }
 
-    __inline int redirect_v6(bpf_sock_addr_t * ctx)
-    {
-        int verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
-        destination_entry_t entry = {0};
-        char redirect_context[] = REDIRECT_CONTEXT_MESSAGE;
+    if (ctx->family != AF_INET) {
+        return verdict;
+    }
 
-        if (ctx->family != AF_INET6) {
-            return verdict;
-        }
+    // Find the entry in the policy map.
+    destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
+    if (policy != NULL) {
+        bpf_printk("Found v4 proxy entry value: %u, %u", policy->destination_ip.ipv4, policy->destination_port);
 
-        // Copy the IPv6 address. Note this has a design flaw for scoped IPv6 addresses
-        // where the scope id or interface is not provided, so the policy can match the
-        // wrong address.
-        __builtin_memcpy(entry.destination_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
-        entry.destination_port = ctx->user_port;
-        if (ctx->protocol == IPPROTO_TCP) {
-            entry.connection_type = connection_type_t::TCP;
-        } else if (ctx->protocol == IPPROTO_UDP) {
-            entry.connection_type = connection_type_t::UDP;
-            else {return verdict}
-
-            // Find the entry in the policy map.
-            destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
-            if (policy != NULL) {
-                bpf_printk("Found v6 proxy entry value");
-
-                // Currently, we are unable to validate the redirect context path for connected UDP.
-                // Tracking issue #3052
-                // When the above issue is resolved, we should validate setting the redirect_context unconditionally,
-                // including when the verdict is BPF_SOCK_ADDR_VERDICT_REJECT.
-                if (policy->connection_type != CONNECTED_UDP) {
-                    if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
-                        return verdict;
-                    }
-                }
-                __builtin_memcpy(ctx->user_ip6, policy->destination_ip.ipv6, sizeof(ctx->user_ip6));
-                ctx->user_port = policy->destination_port;
-
-                verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        // Currently, we are unable to validate the redirect context path for connected UDP.
+        // Tracking issue #3052
+        // When the above issue is resolved, we should validate setting the redirect_context unconditionally,
+        // including when the verdict is BPF_SOCK_ADDR_VERDICT_REJECT.
+        if (policy->connection_type != CONNECTED_UDP) {
+            if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
+                return verdict;
             }
-
-            update_audit_map_entry(ctx);
-
-            return verdict;
         }
 
-        SEC("cgroup/connect4")
-        int connect_redirect4(bpf_sock_addr_t * ctx) { return redirect_v4(ctx); }
+        ctx->user_ip4 = policy->destination_ip.ipv4;
+        ctx->user_port = policy->destination_port;
 
-        SEC("cgroup/connect6")
-        int connect_redirect6(bpf_sock_addr_t * ctx) { return redirect_v6(ctx); }
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    }
+
+    update_audit_map_entry(ctx);
+
+    return verdict;
+}
+
+__inline int
+redirect_v6(bpf_sock_addr_t* ctx)
+{
+    int verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    destination_entry_t entry = {0};
+    char redirect_context[] = REDIRECT_CONTEXT_MESSAGE;
+
+    if (ctx->family != AF_INET6) {
+        return verdict;
+    }
+
+    // Copy the IPv6 address. Note this has a design flaw for scoped IPv6 addresses
+    // where the scope id or interface is not provided, so the policy can match the
+    // wrong address.
+    __builtin_memcpy(entry.destination_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
+    entry.destination_port = ctx->user_port;
+    if (ctx->protocol == IPPROTO_TCP) {
+        entry.connection_type = TCP;
+    } else if (ctx->protocol == IPPROTO_UDP) {
+        entry.connection_type = UDP;
+    } else {
+        return verdict;
+    }
+
+    // Find the entry in the policy map.
+    destination_entry_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
+    if (policy != NULL) {
+        bpf_printk("Found v6 proxy entry value");
+
+        // Currently, we are unable to validate the redirect context path for connected UDP.
+        // Tracking issue #3052
+        // When the above issue is resolved, we should validate setting the redirect_context unconditionally,
+        // including when the verdict is BPF_SOCK_ADDR_VERDICT_REJECT.
+        if (policy->connection_type != CONNECTED_UDP) {
+            if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
+                return verdict;
+            }
+        }
+        __builtin_memcpy(ctx->user_ip6, policy->destination_ip.ipv6, sizeof(ctx->user_ip6));
+        ctx->user_port = policy->destination_port;
+
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    }
+
+    update_audit_map_entry(ctx);
+
+    return verdict;
+}
+
+SEC("cgroup/connect4")
+int
+connect_redirect4(bpf_sock_addr_t* ctx)
+{
+    return redirect_v4(ctx);
+}
+
+SEC("cgroup/connect6")
+int
+connect_redirect6(bpf_sock_addr_t* ctx)
+{
+    return redirect_v6(ctx);
+}

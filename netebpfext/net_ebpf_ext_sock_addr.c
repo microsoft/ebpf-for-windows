@@ -1701,6 +1701,10 @@ Exit:
         InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
     } else {
         // Remove any 'stale' connection context if found.
+        // A stale context is expected in the case of connected UDP, where the connect()
+        // call results in WFP invoking the callout at the connect_redirect layer, and the
+        // send() call results in WFP invoking the callout at the connect_redirect layer (again),
+        // followed by the connect layer.
         net_ebpf_extension_connection_context_t* stale_connection_context =
             _net_ebpf_ext_get_and_remove_connection_context(
                 incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);

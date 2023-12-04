@@ -146,7 +146,7 @@ _log_on_user(std::string& user_name, std::string& password)
 }
 
 inline static IPPROTO
-_get_ip_proto_from_connection_type(connetion_type_t connection_type)
+_get_ip_proto_from_connection_type(connection_type_t connection_type)
 {
     if (connection_type == connection_type_t::TCP) {
         return IPPROTO_TCP;
@@ -337,11 +337,11 @@ _update_policy_map(
     }
 
     // For the key, use only UDP or TCP type as the program will not be able to differentiate between
-    // connected and connectionless UDP.
+    // connected and connectionless UDP for the key of the map.
     if (connection_type == connection_type_t::CONNECTED_UDP) {
         key.connection_type = connection_type_t::UDP;
     } else {
-        key.connection_type = connection_type
+        key.connection_type = connection_type;
     }
     // For the value, use the actual connection type.
     value.connection_type = connection_type;
