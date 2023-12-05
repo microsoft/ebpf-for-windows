@@ -42,7 +42,12 @@ _ebpf_store_update_helper_prototype(
     ebpf_store_key_t helper_function_key = NULL;
     char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
 
-    result = ebpf_create_registry_key_ansi(helper_info_key, helper_info->name, REG_CREATE_FLAGS, &helper_function_key);
+    wchar_t* wide_helper_name = ebpf_get_wstring_from_string(helper_info->name);
+    if (wide_helper_name == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    result = ebpf_create_registry_key(helper_info_key, wide_helper_name, REG_CREATE_FLAGS, &helper_function_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -66,6 +71,7 @@ _ebpf_store_update_helper_prototype(
     }
 
 Exit:
+    ebpf_free_wstring(wide_helper_name);
     ebpf_close_registry_key(helper_function_key);
 
     return result;
@@ -236,12 +242,18 @@ ebpf_store_update_program_information(
         }
 
         // Save the friendly program type name.
-        result = ebpf_write_registry_value_ansi_string(
-            program_key, EBPF_PROGRAM_DATA_NAME, program_info[i].program_type_descriptor.name);
+        wchar_t* wide_program_name = ebpf_get_wstring_from_string(program_info[i].program_type_descriptor.name);
+        if (wide_program_name == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        result = ebpf_write_registry_value_string(program_key, EBPF_PROGRAM_DATA_NAME, wide_program_name);
         if (!IS_SUCCESS(result)) {
+            ebpf_free_wstring(wide_program_name);
             ebpf_close_registry_key(program_key);
             goto Exit;
         }
+        ebpf_free_wstring(wide_program_name);
 
         // Save context descriptor.
         result = ebpf_write_registry_value_binary(

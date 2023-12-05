@@ -9,10 +9,55 @@
 #include "ebpf_registry_helper.h"
 #include "ebpf_windows.h"
 
+#define EBPF_STORE_TAG 'OTSE'
+
 #define _EBPF_RESULT(x) (NT_SUCCESS(x) ? EBPF_SUCCESS : EBPF_FAILED)
 
 ebpf_store_key_t ebpf_store_root_key = NULL;
 const wchar_t* ebpf_store_root_sub_key = EBPF_ROOT_REGISTRY_PATH;
+
+wchar_t*
+ebpf_get_wstring_from_string(_In_ const char* text)
+{
+    NTSTATUS status;
+    ANSI_STRING ansi_string;
+    UNICODE_STRING unicode_string = {0};
+    uint32_t new_size;
+
+    RtlInitAnsiString(&ansi_string, text);
+    new_size = RtlAnsiStringToUnicodeSize(&ansi_string);
+
+    // Allocate memory for the unicode string.
+    wchar_t* return_string = ExAllocatePoolUninitialized(NonPagedPoolNx, new_size, EBPF_STORE_TAG);
+    if (return_string == NULL) {
+        status = STATUS_NO_MEMORY;
+        goto Exit;
+    }
+    unicode_string.Buffer = return_string;
+    unicode_string.MaximumLength = (USHORT)new_size;
+
+    status = RtlAnsiStringToUnicodeString(&unicode_string, &ansi_string, FALSE);
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
+Exit:
+    if (!NT_SUCCESS(status)) {
+        if (return_string != NULL) {
+            ExFreePool(return_string);
+        }
+        return_string = NULL;
+    }
+    return return_string;
+}
+
+void
+ebpf_free_wstring(_In_ wchar_t* wide)
+{
+    if (wide != NULL) {
+        ExFreePool(wide);
+    }
+}
 
 ebpf_result_t
 ebpf_convert_guid_to_string(
@@ -63,25 +108,18 @@ ebpf_write_registry_value_binary(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_write_registry_value_ansi_string(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
+ebpf_write_registry_value_string(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const wchar_t* value)
 {
     NTSTATUS status;
     UNICODE_STRING unicode_value;
     UNICODE_STRING unicode_value_name;
 
-    ANSI_STRING ansi_string;
-    RtlInitAnsiString(&ansi_string, value);
-
-    status = RtlAnsiStringToUnicodeString(&unicode_value, &ansi_string, TRUE);
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
+    RtlInitUnicodeString(&unicode_value, value);
     RtlInitUnicodeString(&unicode_value_name, value_name);
 
     status = ZwSetValueKey(key, &unicode_value_name, 0, REG_SZ, unicode_value.Buffer, unicode_value.Length);
     RtlFreeUnicodeString(&unicode_value);
 
-Exit:
     return _EBPF_RESULT(status);
 }
 
@@ -132,32 +170,4 @@ ebpf_delete_registry_tree(ebpf_store_key_t root_key, _In_opt_z_ const wchar_t* s
     UNREFERENCED_PARAMETER(sub_key);
 
     return EBPF_OPERATION_NOT_SUPPORTED;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_create_registry_key_ansi(
-    ebpf_store_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key)
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    UNICODE_STRING registry_path;
-    OBJECT_ATTRIBUTES object_attributes = {0};
-    ANSI_STRING ansi_string;
-    RtlInitAnsiString(&ansi_string, sub_key);
-
-    UNREFERENCED_PARAMETER(flags);
-    *key = NULL;
-
-    status = RtlAnsiStringToUnicodeString(&registry_path, &ansi_string, TRUE);
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
-
-    InitializeObjectAttributes(
-        &object_attributes, &registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_key, NULL);
-
-    status = ZwCreateKey(key, KEY_WRITE, &object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);
-    RtlFreeUnicodeString(&registry_path);
-
-Exit:
-    return _EBPF_RESULT(status);
 }

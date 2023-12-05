@@ -13,16 +13,6 @@
 ebpf_store_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
 ebpf_store_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
 
-static std::wstring
-_get_wstring_from_string(std::string text)
-{
-    int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
-    std::wstring wide(length, 0);
-    MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, &wide[0], length);
-
-    return wide;
-}
-
 static ebpf_result_t
 _open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
 {
@@ -774,7 +764,11 @@ ebpf_store_delete_global_helper_information(_In_ ebpf_helper_function_prototype_
     ebpf_store_key_t root_key = NULL;
     ebpf_store_key_t provider_key = NULL;
     ebpf_store_key_t helper_info_key = NULL;
-    std::wstring helper_name = _get_wstring_from_string(std::string(helper_info->name));
+    wchar_t* helper_name = ebpf_get_wstring_from_string(helper_info->name);
+    if (helper_name == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
 
     // Open root registry key.
     result = ebpf_open_registry_key(ebpf_store_root_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
@@ -804,12 +798,13 @@ ebpf_store_delete_global_helper_information(_In_ ebpf_helper_function_prototype_
         goto Exit;
     }
 
-    result = ebpf_delete_registry_tree(helper_info_key, helper_name.c_str());
+    result = ebpf_delete_registry_tree(helper_info_key, helper_name);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
 Exit:
+    ebpf_free(helper_name);
     ebpf_close_registry_key(helper_info_key);
     ebpf_close_registry_key(provider_key);
 

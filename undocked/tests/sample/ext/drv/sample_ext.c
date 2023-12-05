@@ -27,7 +27,7 @@
 
 #define SAMPLE_PID_TGID_VALUE 9999
 
-#define SAMPLE_EXT_POOL_TAG_DEFAULT 'txes'
+#define SAMPLE_EXT_POOL_TAG_DEFAULT 'lpms'
 
 // Sample Extension helper function addresses table.
 static uint64_t
