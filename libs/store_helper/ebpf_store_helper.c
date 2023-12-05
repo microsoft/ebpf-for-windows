@@ -112,6 +112,7 @@ Exit:
 }
 
 ebpf_result_t
+__declspec(dllexport)
 ebpf_store_update_section_information(
     _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count)
 {
@@ -194,6 +195,7 @@ Exit:
 }
 
 ebpf_result_t
+__declspec(dllexport)
 ebpf_store_update_program_information(
     _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count)
 {
