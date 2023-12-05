@@ -33,19 +33,9 @@ ebpf_get_wstring_from_string(_In_ const char* text)
 }
 
 void
-ebpf_free_wstring(_In_ wchar_t* wide)
+ebpf_free_wstring(_Frees_ptr_opt_ wchar_t* wide)
 {
     ebpf_free(wide);
-}
-
-static std::wstring
-_get_wstring_from_string(std::string text)
-{
-    int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
-    std::wstring wide(length, 0);
-    MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, &wide[0], length);
-
-    return wide;
 }
 
 void

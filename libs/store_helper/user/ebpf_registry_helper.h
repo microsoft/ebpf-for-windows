@@ -18,7 +18,7 @@ extern "C"
     ebpf_get_wstring_from_string(_In_ const char* text);
 
     void
-    ebpf_free_wstring(_In_ wchar_t* text);
+    ebpf_free_wstring(_Frees_ptr_opt_ wchar_t* text);
 
     void
     ebpf_close_registry_key(ebpf_store_key_t key);

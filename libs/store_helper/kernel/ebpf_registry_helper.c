@@ -52,7 +52,7 @@ Exit:
 }
 
 void
-ebpf_free_wstring(_In_ wchar_t* wide)
+ebpf_free_wstring(_Frees_ptr_opt_ wchar_t* wide)
 {
     if (wide != NULL) {
         ExFreePool(wide);

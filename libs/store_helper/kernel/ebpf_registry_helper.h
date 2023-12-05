@@ -13,7 +13,7 @@ wchar_t*
 ebpf_get_wstring_from_string(_In_ const char* text);
 
 void
-ebpf_free_wstring(_In_ wchar_t* wide);
+ebpf_free_wstring(_Frees_ptr_opt_ wchar_t* wide);
 
 ebpf_result_t
 ebpf_convert_guid_to_string(
