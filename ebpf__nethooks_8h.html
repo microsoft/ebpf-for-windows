@@ -81,7 +81,7 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Data Structures</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structxdp__md.html">xdp_md</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structxdp__md__.html">xdp_md_</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bind__md.html">_bind_md</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -104,11 +104,11 @@ Macros</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
-<tr class="memitem:ad23ae5164c0bc1b25cfc3c60ab24a781"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structxdp__md.html">xdp_md</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a></td></tr>
-<tr class="separator:ad23ae5164c0bc1b25cfc3c60ab24a781"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a952620b5302d8c52bd083d1b632539dc"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structxdp__md__.html">xdp_md_</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a952620b5302d8c52bd083d1b632539dc">xdp_md_t</a></td></tr>
+<tr class="separator:a952620b5302d8c52bd083d1b632539dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8e725c81ff0e90836d9dfcec34fb5aa3"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d">_xdp_action</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a8e725c81ff0e90836d9dfcec34fb5aa3">xdp_action_t</a></td></tr>
 <tr class="separator:a8e725c81ff0e90836d9dfcec34fb5aa3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8d57424dbe0e0cab6cb166f25557d6d6"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__nethooks_8h.html#a8e725c81ff0e90836d9dfcec34fb5aa3">xdp_action_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a8d57424dbe0e0cab6cb166f25557d6d6">xdp_hook_t</a>(<a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a> *context)</td></tr>
+<tr class="memitem:a8d57424dbe0e0cab6cb166f25557d6d6"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__nethooks_8h.html#a8e725c81ff0e90836d9dfcec34fb5aa3">xdp_action_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a8d57424dbe0e0cab6cb166f25557d6d6">xdp_hook_t</a>(<a class="el" href="ebpf__nethooks_8h.html#a952620b5302d8c52bd083d1b632539dc">xdp_md_t</a> *context)</td></tr>
 <tr class="memdesc:a8d57424dbe0e0cab6cb166f25557d6d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle an incoming packet as early as possible.  <a href="ebpf__nethooks_8h.html#a8d57424dbe0e0cab6cb166f25557d6d6">More...</a><br /></td></tr>
 <tr class="separator:a8d57424dbe0e0cab6cb166f25557d6d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a02ae42f0379561fed4edf984bebd5649"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fc">_bind_operation</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a02ae42f0379561fed4edf984bebd5649">bind_operation_t</a></td></tr>
@@ -166,8 +166,8 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:affc4b6ad0564d5788cf036749dff4e50"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50">bpf_xdp_adjust_head</a> (<a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a> *ctx, int delta)</td></tr>
-<tr class="memdesc:affc4b6ad0564d5788cf036749dff4e50"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adjust XDP context data pointer.  <a href="ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50">More...</a><br /></td></tr>
+<tr class="memitem:affc4b6ad0564d5788cf036749dff4e50"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50">bpf_xdp_adjust_head</a> (<a class="el" href="ebpf__nethooks_8h.html#a952620b5302d8c52bd083d1b632539dc">xdp_md_t</a> *ctx, int delta)</td></tr>
+<tr class="memdesc:affc4b6ad0564d5788cf036749dff4e50"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adjust XDP_TEST context data pointer.  <a href="ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50">More...</a><br /></td></tr>
 <tr class="separator:affc4b6ad0564d5788cf036749dff4e50"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a26e7a8b44782fb6df0944e67db68f2ca"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a26e7a8b44782fb6df0944e67db68f2ca">bpf_sock_addr_get_current_pid_tgid</a> (<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *ctx)</td></tr>
 <tr class="memdesc:a26e7a8b44782fb6df0944e67db68f2ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get current pid and tgid (sock_addr specific only).  <a href="ebpf__nethooks_8h.html#a26e7a8b44782fb6df0944e67db68f2ca">More...</a><br /></td></tr>
@@ -429,13 +429,13 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef <a class="el" href="ebpf__nethooks_8h.html#a8e725c81ff0e90836d9dfcec34fb5aa3">xdp_action_t</a> xdp_hook_t(<a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a> *context)</td>
+          <td class="memname">typedef <a class="el" href="ebpf__nethooks_8h.html#a8e725c81ff0e90836d9dfcec34fb5aa3">xdp_action_t</a> xdp_hook_t(<a class="el" href="ebpf__nethooks_8h.html#a952620b5302d8c52bd083d1b632539dc">xdp_md_t</a> *context)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>Handle an incoming packet as early as possible. </p>
-<p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#a2f642bba5fbe57aa899d778e9f650303">EBPF_PROGRAM_TYPE_XDP</a></p>
+<p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#a82b756d092ea30c75705657875e8a4cc">EBPF_PROGRAM_TYPE_XDP_TEST</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>Packet metadata. </td></tr>
@@ -453,14 +453,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="ad23ae5164c0bc1b25cfc3c60ab24a781"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad23ae5164c0bc1b25cfc3c60ab24a781">&#9670;&nbsp;</a></span>xdp_md_t</h2>
+<a id="a952620b5302d8c52bd083d1b632539dc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a952620b5302d8c52bd083d1b632539dc">&#9670;&nbsp;</a></span>xdp_md_t</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef struct <a class="el" href="structxdp__md.html">xdp_md</a> <a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a></td>
+          <td class="memname">typedef struct <a class="el" href="structxdp__md__.html">xdp_md_</a> <a class="el" href="ebpf__nethooks_8h.html#a952620b5302d8c52bd083d1b632539dc">xdp_md_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -680,7 +680,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int bpf_xdp_adjust_head </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a> *&#160;</td>
+          <td class="paramtype"><a class="el" href="ebpf__nethooks_8h.html#a952620b5302d8c52bd083d1b632539dc">xdp_md_t</a> *&#160;</td>
           <td class="paramname"><em>ctx</em>, </td>
         </tr>
         <tr>
@@ -697,10 +697,10 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Adjust XDP context data pointer. </p>
+<p>Adjust XDP_TEST context data pointer. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>XDP context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>XDP_TEST context. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">delta</td><td>Number of bytes to move the data pointer by.</td></tr>
   </table>
   </dd>
