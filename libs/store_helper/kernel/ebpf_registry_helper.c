@@ -20,13 +20,11 @@ wchar_t*
 ebpf_get_wstring_from_string(_In_ const char* text)
 {
     NTSTATUS status;
-    UTF8_STRING utf8_string;
     uint32_t unicode_string_size;
     wchar_t* unicode_string = NULL;
+    uint32_t utf8_string_size = (uint32_t)strlen(text);
 
-    RtlInitUTF8String(&utf8_string, text);
-
-    status = RtlUTF8ToUnicodeN(NULL, 0, &unicode_string_size, utf8_string.Buffer, utf8_string.Length);
+    status = RtlUTF8ToUnicodeN(NULL, 0, &unicode_string_size, text, utf8_string_size);
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
@@ -40,8 +38,7 @@ ebpf_get_wstring_from_string(_In_ const char* text)
     }
     memset(unicode_string, 0, unicode_string_size);
 
-    status = RtlUTF8ToUnicodeN(
-        unicode_string, unicode_string_size, &unicode_string_size, utf8_string.Buffer, utf8_string.Length);
+    status = RtlUTF8ToUnicodeN(unicode_string, unicode_string_size, &unicode_string_size, text, utf8_string_size);
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
