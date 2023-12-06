@@ -87,7 +87,7 @@ PE parse directory includes some malformed PE images as a part of the test suite
 
 The following steps need to be executed *once* before the first build on a new clone:
 
-1. Launch a PowerShell `Developer Command Prompt for VS 2022` session.
+1. Launch a `Developer PowerShell for VS 2022` session.
 1. Change directory to where the project is cloned (e.g. "`cd ebpf-for-windows`").
 1. Run the following script:
 
@@ -98,7 +98,7 @@ The following steps need to be executed *once* before the first build on a new c
       >
       >    `error : The WiX Toolset v3.11 build tools must be installed to build this project. To download the WiX Toolset, see https://wixtoolset.org/releases/v3.11/stable`
 
-> TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the **folders-only** (i.e. **not** the files) under the `\external` folder, and then re-run the above script.
+> TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the **folders-only** (i.e., **not** the files) under the `\external` folder, and then re-run the above script.
 
 #### Building using Developer Command Prompt for VS 2022
 
