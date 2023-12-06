@@ -87,23 +87,18 @@ PE parse directory includes some malformed PE images as a part of the test suite
 
 The following steps need to be executed *once* before the first build on a new clone:
 
-1. Launch `Developer Command Prompt for VS 2022` by running:
+1. Launch a PowerShell `Developer Command Prompt for VS 2022` session.
+1. Change directory to where the project is cloned (e.g. "`cd ebpf-for-windows`").
+1. Run the following script:
 
-   ```cmd
-   "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat"
+   ```ps
+   .\scripts\initialize_ebpf_repo.ps1
    ```
-1. Change directory to where the project is cloned (e.g. `cd ebpf-for-windows`), and run the following commands:
-
-   - `cmake -G "Visual Studio 17 2022" -S external\ebpf-verifier -B external\ebpf-verifier\build`
-   - `cmake -G "Visual Studio 17 2022" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF`
-   - `cmake -G "Visual Studio 17 2022" -S external\ubpf -B external\ubpf\build`
-   - `nuget restore ebpf-for-windows.sln`
-
       >**Note**: you may get the following transitory error, which can be safely ignored as the *WiX Toolset* nuget package will be installed immediately afterwards:
       >
       >    `error : The WiX Toolset v3.11 build tools must be installed to build this project. To download the WiX Toolset, see https://wixtoolset.org/releases/v3.11/stable`
 
-   - `del external\ebpf-verifier\build\obj\project.assets.json` (Note: the file may not be present)
+> TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the **folders-only** (i.e. **not** the files) under the `\external` folder, and then re-run the above script.
 
 #### Building using Developer Command Prompt for VS 2022
 
