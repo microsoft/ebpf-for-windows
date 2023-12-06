@@ -330,7 +330,7 @@ verification process, using the "level=verbose" option to "show section":
 > netsh ebpf show section bpf.o .text verbose
 
 Section      : .text
-Program Type : sample
+Program Type : sample_ext
 # Maps       : 0
 Size         : 2 instructions
 adjust_head  : 0
