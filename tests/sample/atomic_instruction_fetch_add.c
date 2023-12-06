@@ -12,6 +12,7 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
+#include "sample_ext_helpers.h"
 
 struct
 {
@@ -21,7 +22,7 @@ struct
     __uint(max_entries, 1);
 } map SEC(".maps");
 
-SEC("xdp_prog") uint64_t func(struct xdp_md* ctx)
+SEC("sample_ext") uint64_t func(sample_program_context_t* ctx)
 {
     uint32_t key = 0;
     uint64_t* count = bpf_map_lookup_elem(&map, &key);

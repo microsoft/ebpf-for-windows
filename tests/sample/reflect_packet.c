@@ -18,7 +18,7 @@
 // by swapping the MAC and IP addresses. The program will only work for packets where UDP is the next header
 // for IP header. For instance this will not work for AH packets.
 //
-SEC("xdp/reflect")
+SEC("xdp_test/reflect")
 int
 reflect_packet(xdp_md_t* ctx)
 {

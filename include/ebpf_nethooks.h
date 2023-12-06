@@ -6,8 +6,8 @@
 // This file contains APIs for hooks and helpers that are
 // exposed by netebpfext.sys for use by eBPF programs.
 
-// XDP hook.  We use "struct xdp_md" for cross-platform compatibility.
-typedef struct xdp_md
+// XDP_TEST hook.  We use "struct xdp_md" for cross-platform compatibility.
+typedef struct xdp_md_
 {
     void* data;               ///< Pointer to start of packet data.
     void* data_end;           ///< Pointer to end of packet data.
@@ -28,7 +28,7 @@ typedef enum _xdp_action
 /**
  * @brief Handle an incoming packet as early as possible.
  *
- * Program type: \ref EBPF_PROGRAM_TYPE_XDP
+ * Program type: \ref EBPF_PROGRAM_TYPE_XDP_TEST
  *
  * @param[in] context Packet metadata.
  * @retval XDP_PASS Allow the packet to pass.
@@ -38,7 +38,7 @@ typedef enum _xdp_action
 typedef xdp_action_t
 xdp_hook_t(xdp_md_t* context);
 
-// XDP helper functions.
+// XDP_TEST helper functions.
 #define XDP_EXT_HELPER_FN_BASE 0xFFFF
 
 #ifndef __doxygen
@@ -51,9 +51,9 @@ typedef enum
 } ebpf_nethook_helper_id_t;
 
 /**
- * @brief Adjust XDP context data pointer.
+ * @brief Adjust XDP_TEST context data pointer.
  *
- * @param[in] ctx XDP context.
+ * @param[in] ctx XDP_TEST context.
  * @param[in] delta Number of bytes to move the data pointer by.
  *
  * @retval 0 The operation was successful.
