@@ -12,93 +12,91 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
+#include "sample_ext_helpers.h"
 
 int
-sequential0(struct xdp_md* ctx);
+sequential0(sample_program_context_t* ctx);
 int
-sequential1(struct xdp_md* ctx);
+sequential1(sample_program_context_t* ctx);
 int
-sequential2(struct xdp_md* ctx);
+sequential2(sample_program_context_t* ctx);
 int
-sequential3(struct xdp_md* ctx);
+sequential3(sample_program_context_t* ctx);
 int
-sequential4(struct xdp_md* ctx);
+sequential4(sample_program_context_t* ctx);
 int
-sequential5(struct xdp_md* ctx);
+sequential5(sample_program_context_t* ctx);
 int
-sequential6(struct xdp_md* ctx);
+sequential6(sample_program_context_t* ctx);
 int
-sequential7(struct xdp_md* ctx);
+sequential7(sample_program_context_t* ctx);
 int
-sequential8(struct xdp_md* ctx);
+sequential8(sample_program_context_t* ctx);
 int
-sequential9(struct xdp_md* ctx);
+sequential9(sample_program_context_t* ctx);
 int
-sequential10(struct xdp_md* ctx);
+sequential10(sample_program_context_t* ctx);
 int
-sequential11(struct xdp_md* ctx);
+sequential11(sample_program_context_t* ctx);
 int
-sequential12(struct xdp_md* ctx);
+sequential12(sample_program_context_t* ctx);
 int
-sequential13(struct xdp_md* ctx);
+sequential13(sample_program_context_t* ctx);
 int
-sequential14(struct xdp_md* ctx);
+sequential14(sample_program_context_t* ctx);
 int
-sequential15(struct xdp_md* ctx);
+sequential15(sample_program_context_t* ctx);
 int
-sequential16(struct xdp_md* ctx);
+sequential16(sample_program_context_t* ctx);
 int
-sequential17(struct xdp_md* ctx);
+sequential17(sample_program_context_t* ctx);
 int
-sequential18(struct xdp_md* ctx);
+sequential18(sample_program_context_t* ctx);
 int
-sequential19(struct xdp_md* ctx);
+sequential19(sample_program_context_t* ctx);
 int
-sequential20(struct xdp_md* ctx);
+sequential20(sample_program_context_t* ctx);
 int
-sequential21(struct xdp_md* ctx);
+sequential21(sample_program_context_t* ctx);
 int
-sequential22(struct xdp_md* ctx);
+sequential22(sample_program_context_t* ctx);
 int
-sequential23(struct xdp_md* ctx);
+sequential23(sample_program_context_t* ctx);
 int
-sequential24(struct xdp_md* ctx);
+sequential24(sample_program_context_t* ctx);
 int
-sequential25(struct xdp_md* ctx);
+sequential25(sample_program_context_t* ctx);
 int
-sequential26(struct xdp_md* ctx);
+sequential26(sample_program_context_t* ctx);
 int
-sequential27(struct xdp_md* ctx);
+sequential27(sample_program_context_t* ctx);
 int
-sequential28(struct xdp_md* ctx);
+sequential28(sample_program_context_t* ctx);
 int
-sequential29(struct xdp_md* ctx);
+sequential29(sample_program_context_t* ctx);
 int
-sequential30(struct xdp_md* ctx);
+sequential30(sample_program_context_t* ctx);
 int
-sequential31(struct xdp_md* ctx);
+sequential31(sample_program_context_t* ctx);
 int
-sequential32(struct xdp_md* ctx);
+sequential32(sample_program_context_t* ctx);
 int
-sequential33(struct xdp_md* ctx);
+sequential33(sample_program_context_t* ctx);
 int
-sequential34(struct xdp_md* ctx);
+sequential34(sample_program_context_t* ctx);
 
 struct
 {
     __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
     __uint(max_entries, 35);
     __uint(key_size, sizeof(uint32_t));
-    __array(values, int(struct xdp_md* ctx));
+    __array(values, int(sample_program_context_t* ctx));
 } map SEC(".maps") = {
-    .values =
-        {
-            sequential0,  sequential1,  sequential2,  sequential3,  sequential4,  sequential5,  sequential6,
-            sequential7,  sequential8,  sequential9,  sequential10, sequential11, sequential12, sequential13,
-            sequential14, sequential15, sequential16, sequential17, sequential18, sequential19, sequential20,
-            sequential21, sequential22, sequential23, sequential24, sequential25, sequential26, sequential27,
-            sequential28, sequential29, sequential30, sequential31, sequential32, sequential33, sequential34
-        },
+    .values = {sequential0,  sequential1,  sequential2,  sequential3,  sequential4,  sequential5,  sequential6,
+               sequential7,  sequential8,  sequential9,  sequential10, sequential11, sequential12, sequential13,
+               sequential14, sequential15, sequential16, sequential17, sequential18, sequential19, sequential20,
+               sequential21, sequential22, sequential23, sequential24, sequential25, sequential26, sequential27,
+               sequential28, sequential29, sequential30, sequential31, sequential32, sequential33, sequential34},
 };
 
 struct
@@ -115,21 +113,21 @@ struct
 // Each program increments the value in the canary map at index 0.
 // If the canary value is not equal to the program index, the program returns 1
 // which will cause the test to fail.
-#define TAIL_CALL(X)                                           \
-    SEC("xdp_prog" #X) int sequential##X(struct xdp_md* ctx)   \
-    {                                                          \
-        uint32_t key = 0;                                      \
-        uint32_t* value;                                       \
-        value = (uint32_t*)bpf_map_lookup_elem(&canary, &key); \
-        if (!value) {                                          \
-            return 1;                                          \
-        }                                                      \
-        bpf_printk("sequential" #X ": *value=%d\n", *value);   \
-        if (*value != X) {                                     \
-            return 1;                                          \
-        }                                                      \
-        (*value)++;                                            \
-        return bpf_tail_call(ctx, &map, X + 1);                \
+#define TAIL_CALL(X)                                                      \
+    SEC("sample_ext" #X) int sequential##X(sample_program_context_t* ctx) \
+    {                                                                     \
+        uint32_t key = 0;                                                 \
+        uint32_t* value;                                                  \
+        value = (uint32_t*)bpf_map_lookup_elem(&canary, &key);            \
+        if (!value) {                                                     \
+            return 1;                                                     \
+        }                                                                 \
+        bpf_printk("sequential" #X ": *value=%d\n", *value);              \
+        if (*value != X) {                                                \
+            return 1;                                                     \
+        }                                                                 \
+        (*value)++;                                                       \
+        return bpf_tail_call(ctx, &map, X + 1);                           \
     }
 
 TAIL_CALL(0)

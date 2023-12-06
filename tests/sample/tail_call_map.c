@@ -12,15 +12,16 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
+#include "sample_ext_helpers.h"
 
-SEC("xdp_prog/0") int callee(struct xdp_md* ctx) { return 42; }
+SEC("sample_ext/0") int callee(sample_program_context_t* ctx) { return 42; }
 
 struct
 {
     __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
     __type(key, uint32_t);
     __uint(max_entries, 1);
-    __array(values, int(struct xdp_md* ctx));
+    __array(values, int(sample_program_context_t* ctx));
 } inner_map SEC(".maps") = {
     .values = {callee},
 };
@@ -36,7 +37,7 @@ struct
     .values = {&inner_map},
 };
 
-SEC("xdp_prog") int caller(struct xdp_md* ctx)
+SEC("sample_ext") int caller(sample_program_context_t* ctx)
 {
     uint32_t index = 0;
     struct bpf_map* inner_map = (struct bpf_map*)bpf_map_lookup_elem(&outer_map, &index);

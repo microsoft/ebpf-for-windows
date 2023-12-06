@@ -163,7 +163,7 @@ This will build the following binaries:
                 and EbpfCore and NetEbpfExt drivers to be loaded.
 - `sample_ebpf_ext.sys`: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
 - `sample_ext_app.exe`: A sample application for testing the sample extension driver.
-- `xdp_tests.exe`: Application for testing various XDP functionalities.  This requires the EbpfSvc service to be running,
+- `xdp_tests.exe`: Application for testing various XDP_TEST functionalities.  This requires the EbpfSvc service to be running,
                 and the EbpfCore and NetEbpfExt drivers to be loaded on a remote system to test.
 - `socket_tests.exe`: Application for testing the eBPF extension that implements the BPF_CGROUP_SOCK_ADDR program type and related attach types.
 
@@ -255,17 +255,17 @@ On the attacker machine, do the following:
    ```
 1. Show eBPF byte code for `droppacket.o`:
    ```cmd
-   netsh ebpf show disassembly droppacket.o xdp
+   netsh ebpf show disassembly droppacket.o xdp_test
    ```
 1. Show that the verifier checks the code:
    ```cmd
-   netsh ebpf show verification droppacket.o xdp
+   netsh ebpf show verification droppacket.o xdp_test
    ```
 1. Launch netsh `netsh`
 1. Switch to ebpf context `ebpf`
 1. Load eBPF program, and note the ID:
    ```cmd
-   add program droppacket.o xdp
+   add program droppacket.o xdp_test
    ```
 1. Show UDP datagrams received drop to under 10 per second
 1. Unload program:
@@ -280,11 +280,11 @@ On the attacker machine, do the following:
    ```
 1. Show that the verifier rejects the code:
    ```cmd
-   netsh ebpf show verification droppacket.o xdp
+   netsh ebpf show verification droppacket.o xdp_test
    ```
 1. Show that loading the program fails:
    ```cmd
-   netsh ebpf add program droppacket.o xdp
+   netsh ebpf add program droppacket.o xdp_test
    ```
 
 ## Tests in Ebpf-For-Windows
@@ -333,7 +333,7 @@ Other useful options include:
 
 ### xdp_tests.exe
 
-This application tests various XDP functionalities. These tests require two hosts to run. There are three variations of the XDP tests.
+This application tests various XDP_TEST functionalities. These tests require two hosts to run. There are three variations of the XDP_TEST tests.
 
 #### Reflection Test
 
@@ -343,7 +343,7 @@ This tests the XDP_TX functionality.
    1. [Install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
    1. Load the test eBPF program by running the following command, and note the ID (see **Note 3** below):
       ```cmd
-      netsh ebpf add program reflect_packet.o xdp
+      netsh ebpf add program reflect_packet.o xdp_test
       ```
 1. On the second host:
    1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
@@ -362,7 +362,7 @@ This uses `bpf_xdp_adjust_head` helper function to encapsulate an outer IP heade
    1. Load the test eBPF program by running the following command, and note the ID (see **Note 3** below):
 
       ```cmd
-      netsh ebpf add program encap_reflect_packet.o xdp
+      netsh ebpf add program encap_reflect_packet.o xdp_test
       ```
 1. On the second host:
    1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
@@ -379,12 +379,12 @@ This uses `bpf_xdp_adjust_head` helper function to decapsulate an outer IP heade
 1. On *both* the hosts, [install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
 1. On the first host load the first test eBPF program by running the following command. and note the ID (see **Note 3** below):
    ```cmd
-   netsh ebpf add program encap_reflect_packet.o xdp
+   netsh ebpf add program encap_reflect_packet.o xdp_test
    ```
 1. On the second host:
    1. Load the second test eBPF program by running the following command, and note the ID (see **Note 3** below):
       ```cmd
-      netsh ebpf add program decap_permit_packet.o xdp
+      netsh ebpf add program decap_permit_packet.o xdp_test
       ```
    2. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
    3. Run the following command (see **Note 3** below):

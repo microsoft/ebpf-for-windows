@@ -12,6 +12,7 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
+#include "sample_ext_helpers.h"
 
 struct
 {
@@ -21,7 +22,7 @@ struct
     __uint(max_entries, 10);
 } map SEC(".maps");
 
-SEC("xdp_prog") int caller(struct xdp_md* ctx)
+SEC("sample_ext") int caller(sample_program_context_t* ctx)
 {
     uint32_t index = 0;
 
@@ -32,7 +33,7 @@ SEC("xdp_prog") int caller(struct xdp_md* ctx)
     return 1;
 }
 
-SEC("xdp_prog/0") int callee0(struct xdp_md* ctx)
+SEC("sample_ext/0") int callee0(sample_program_context_t* ctx)
 {
     uint32_t index = 9;
 
@@ -43,4 +44,4 @@ SEC("xdp_prog/0") int callee0(struct xdp_md* ctx)
     return 2;
 }
 
-SEC("xdp_prog/1") int callee1(struct xdp_md* ctx) { return 3; }
+SEC("sample_ext/1") int callee1(sample_program_context_t* ctx) { return 3; }
