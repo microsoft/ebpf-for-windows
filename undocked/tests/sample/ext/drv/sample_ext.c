@@ -759,7 +759,8 @@ _sample_context_create(
         goto Exit;
     }
 
-    sample_context = (sample_program_context_t*)ebpf_allocate(sizeof(sample_program_context_t));
+    sample_context =
+        ExAllocatePoolUninitialized(NonPagedPoolNx, sizeof(sample_program_context_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
     if (sample_context == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -773,7 +774,7 @@ _sample_context_create(
 
 Exit:
     if (sample_context != NULL) {
-        ebpf_free(sample_context);
+        ExFreePool(sample_context);
     }
 
     return result;
@@ -802,5 +803,5 @@ _sample_context_destroy(
         *context_size_out = 0;
     }
 
-    ebpf_free(context);
+    ExFreePool(context);
 }
