@@ -20,35 +20,41 @@ wchar_t*
 ebpf_get_wstring_from_string(_In_ const char* text)
 {
     NTSTATUS status;
-    ANSI_STRING ansi_string;
-    UNICODE_STRING unicode_string = {0};
-    uint32_t new_size;
+    UTF8_STRING utf8_string;
+    uint32_t unicode_string_size;
+    wchar_t* unicode_string = NULL;
 
-    RtlInitAnsiString(&ansi_string, text);
-    new_size = RtlAnsiStringToUnicodeSize(&ansi_string);
+    RtlInitUTF8String(&utf8_string, text);
+
+    status = RtlUTF8ToUnicodeN(NULL, 0, &unicode_string_size, utf8_string.Buffer, utf8_string.Length);
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+    unicode_string_size += sizeof(wchar_t);
 
     // Allocate memory for the unicode string.
-    wchar_t* return_string = ExAllocatePoolUninitialized(NonPagedPoolNx, new_size, EBPF_STORE_TAG);
-    if (return_string == NULL) {
+    unicode_string = ExAllocatePoolUninitialized(NonPagedPoolNx, unicode_string_size, EBPF_STORE_TAG);
+    if (unicode_string == NULL) {
         status = STATUS_NO_MEMORY;
         goto Exit;
     }
-    unicode_string.Buffer = return_string;
-    unicode_string.MaximumLength = (USHORT)new_size;
+    memset(unicode_string, 0, unicode_string_size);
 
-    status = RtlAnsiStringToUnicodeString(&unicode_string, &ansi_string, FALSE);
+    status = RtlUTF8ToUnicodeN(
+        unicode_string, unicode_string_size, &unicode_string_size, utf8_string.Buffer, utf8_string.Length);
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
 
 Exit:
     if (!NT_SUCCESS(status)) {
-        if (return_string != NULL) {
-            ExFreePool(return_string);
+        if (unicode_string != NULL) {
+            ExFreePool(unicode_string);
+            unicode_string = NULL;
         }
-        return_string = NULL;
     }
-    return return_string;
+
+    return unicode_string;
 }
 
 void
@@ -118,7 +124,6 @@ ebpf_write_registry_value_string(ebpf_store_key_t key, _In_z_ const wchar_t* val
     RtlInitUnicodeString(&unicode_value_name, value_name);
 
     status = ZwSetValueKey(key, &unicode_value_name, 0, REG_SZ, unicode_value.Buffer, unicode_value.Length);
-    RtlFreeUnicodeString(&unicode_value);
 
     return _EBPF_RESULT(status);
 }
