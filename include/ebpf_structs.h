@@ -218,6 +218,16 @@ enum bpf_prog_type
      */
     BPF_PROG_TYPE_SOCK_OPS,
 
+    /** @brief Program type for handling incoming packets as early as possible.
+     *
+     * **eBPF program prototype:** \ref xdp_hook_t
+     *
+     * **Attach type(s):** \ref BPF_XDP_TEST
+     *
+     * **Helpers available:** all helpers defined in bpf_helpers.h
+     */
+    BPF_PROG_TYPE_XDP_TEST = 998,
+
     /** @brief Program type for handling calls from the eBPF sample extension. Used for
      * testing.
      *
@@ -303,6 +313,12 @@ enum bpf_attach_type
      * **Program type:** \ref BPF_PROG_TYPE_SAMPLE
      */
     BPF_ATTACH_TYPE_SAMPLE,
+
+    /** @brief Attach type for handling incoming packets as early as possible.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_XDP_TEST
+     */
+    BPF_XDP_TEST,
 
     __MAX_BPF_ATTACH_TYPE,
 };

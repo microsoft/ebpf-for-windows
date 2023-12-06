@@ -12,16 +12,17 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
+#include "sample_ext_helpers.h"
 
 int
-recurse(struct xdp_md* ctx);
+recurse(sample_program_context_t* ctx);
 
 struct
 {
     __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
     __uint(max_entries, 3);
     __uint(key_size, sizeof(uint32_t));
-    __array(values, int(struct xdp_md* ctx));
+    __array(values, int(sample_program_context_t* ctx));
 } map SEC(".maps") = {
     // First and last entries are NULL to test that we can handle cases where
     // the initial values are not at the beginning of the array.
@@ -41,7 +42,7 @@ struct
     __uint(value_size, sizeof(uint32_t));
 } canary SEC(".maps");
 
-SEC("xdp_prog") int recurse(struct xdp_md* ctx)
+SEC("sample_ext") int recurse(sample_program_context_t* ctx)
 {
     uint32_t key = 0;
     uint32_t* value;

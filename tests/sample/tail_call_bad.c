@@ -12,6 +12,7 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
+#include "sample_ext_helpers.h"
 
 struct
 {
@@ -29,7 +30,7 @@ struct
     __uint(max_entries, 1);
 } canary SEC(".maps");
 
-SEC("xdp_prog") int caller(struct xdp_md* ctx)
+SEC("sample_ext") int caller(sample_program_context_t* ctx)
 {
     uint32_t key = 0;
     uint32_t* value;
@@ -45,4 +46,4 @@ SEC("xdp_prog") int caller(struct xdp_md* ctx)
     return (int)error;
 }
 
-SEC("xdp_prog/0") int callee(struct xdp_md* ctx) { return 42; }
+SEC("sample_ext/0") int callee(sample_program_context_t* ctx) { return 42; }

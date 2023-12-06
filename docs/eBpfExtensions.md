@@ -99,9 +99,9 @@ invoking an eBPF program. The various fields of this struct are as follows.
 * `end`: Offset (in bytes) to the field in the context structure that is pointing to the end of context data.
 * `meta`: Offset (in bytes) to the field in the context structure that is pointing to the beginning of context metadata.
 
-For example, for the XDP program types, the context data structure is as follows:
+For example, for the XDP_TEST program types, the context data structure is as follows:
 ```
-// XDP hook.  We use "struct xdp_md" for cross-platform compatibility.
+// XDP_TEST hook.  We use "struct xdp_md" for cross-platform compatibility.
 typedef struct xdp_md
 {
     void* data;         ///< Pointer to start of packet data.
@@ -232,7 +232,7 @@ structure from the passed in parameters:
 * `ClientDispatch`: Client dispatch table (see section 2.5 below).
 * `NpiSpecificCharacteristics`: Obtained from `ClientRegistrationInstance` parameter. This contains attach-type
 specific data that may be used by an extension for attaching an eBPF program. For example, when an eBPF program is
-being attached to an XDP hook, the network interface index can be passed via this parameter. This tells the extension
+being attached to an XDP_TEST hook, the network interface index can be passed via this parameter. This tells the extension
 to invoke the eBPF program whenever there are any inbound packets on that network interface. The attach parameter can
 be obtained as follows:
 ```
@@ -358,8 +358,8 @@ The parameter and return types for these helper functions must adhere to the `eb
 
 ### 2.7 Registering Program Types and Attach Types - eBPF Store
 The eBPF Execution Context loads an eBPF program from an ELF file that has program section(s) with section names. The
-prefix to these names determines the program type. For example, the section name `"xdp"` implies that the corresponding
-program type is `EBPF_PROGRAM_TYPE_XDP`.
+prefix to these names determines the program type. For example, the section name `"xdp_test"` implies that the corresponding
+program type is `EBPF_PROGRAM_TYPE_XDP_TEST`.
 
 The *Execution Context* discovers the program type associated with a section prefix by reading the data from the ***"eBPF store"***, which is currently kept in the Windows registry.
 When an eBPF extension is installed, it must update the eBPF store with the program types it implements along with the associated section prefixes.
