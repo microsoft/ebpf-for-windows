@@ -64,9 +64,11 @@ function Update-ExpectedOutput
     $SampleFiles = Get-ChildItem -Path $SamplePath | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
     $CustomSampleFiles = Get-ChildItem -Path $SamplePath\custom_program_type | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
     $UnsafeSampleFiles = Get-ChildItem -Path $SamplePath\unsafe | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
+    $UndockedSampleFiles = Get-ChildItem -Path $SamplePath\undocked | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
 
     $SampleFiles += $CustomSampleFiles
     $SampleFiles += $UnsafeSampleFiles
+    $SampleFiles += $UndockedSampleFiles
 
     Set-Location $BuildPath
     foreach ($file in $SampleFiles)
