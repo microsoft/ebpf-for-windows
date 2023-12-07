@@ -12,6 +12,7 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
+#include "sample_ext_helpers.h"
 
 struct
 {
@@ -32,7 +33,7 @@ struct
     .values = {&inner_map},
 };
 
-SEC("xdp_prog") int lookup(struct xdp_md* ctx)
+SEC("sample_ext") int lookup(sample_program_context_t* ctx)
 {
     uint32_t outer_key = 0;
     void* inner_map = bpf_map_lookup_elem(&outer_map, &outer_key);

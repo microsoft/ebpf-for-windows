@@ -45,10 +45,28 @@ static const void* _sample_global_helpers[] = {(void*)&_sample_get_pid_tgid};
 static const ebpf_helper_function_addresses_t _sample_global_helper_function_address_table = {
     EBPF_COUNT_OF(_sample_global_helpers), (uint64_t*)_sample_global_helpers};
 
+static ebpf_result_t
+_sample_context_create(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context);
+
+static void
+_sample_context_destroy(
+    _In_opt_ void* context,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out);
+
 static ebpf_program_data_t _sample_ebpf_extension_program_data = {
-    &_sample_ebpf_extension_program_info,
-    &_sample_ebpf_extension_helper_function_address_table,
-    &_sample_global_helper_function_address_table};
+    .program_info = &_sample_ebpf_extension_program_info,
+    .program_type_specific_helper_function_addresses = &_sample_ebpf_extension_helper_function_address_table,
+    .global_helper_function_addresses = &_sample_global_helper_function_address_table,
+    .context_create = &_sample_context_create,
+    .context_destroy = &_sample_context_destroy};
 
 static const ebpf_extension_data_t _sample_ebpf_extension_program_info_provider_data = {
     SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION,
@@ -698,4 +716,75 @@ _sample_ebpf_extension_replace(
 
 Exit:
     return result;
+}
+
+static ebpf_result_t
+_sample_context_create(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context)
+{
+    ebpf_result_t result;
+    sample_program_context_t* sample_context = NULL;
+
+    *context = NULL;
+
+    // This provider doesn't support data.
+    if (data_in != NULL || data_size_in != 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    // This provider requires context.
+    if (context_in == NULL || context_size_in < sizeof(sample_program_context_t)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    sample_context = (sample_program_context_t*)ebpf_allocate(sizeof(sample_program_context_t));
+    if (sample_context == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    memcpy(sample_context, context_in, sizeof(sample_program_context_t));
+
+    *context = sample_context;
+    sample_context = NULL;
+    result = EBPF_SUCCESS;
+
+Exit:
+    if (sample_context != NULL) {
+        ebpf_free(sample_context);
+    }
+
+    return result;
+}
+
+static void
+_sample_context_destroy(
+    _In_opt_ void* context,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out)
+{
+    UNREFERENCED_PARAMETER(data_out);
+    if (context == NULL) {
+        return;
+    }
+
+    // This provider doesn't support data.
+    *data_size_out = 0;
+
+    if (context_out != NULL && *context_size_out >= sizeof(sample_program_context_t)) {
+        memcpy(context_out, context, sizeof(sample_program_context_t));
+        *context_size_out = sizeof(sample_program_context_t);
+    } else {
+        *context_size_out = 0;
+    }
+
+    ebpf_free(context);
 }

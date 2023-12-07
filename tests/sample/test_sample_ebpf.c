@@ -66,18 +66,3 @@ test_program_entry(sample_program_context_t* context)
 Exit:
     return result;
 }
-
-struct
-{
-    __uint(type, BPF_MAP_TYPE_ARRAY);
-    __type(key, uint32_t);
-    __type(value, ebpf_utility_helpers_data_t);
-    __uint(max_entries, UTILITY_MAP_SIZE);
-} utility_map SEC(".maps");
-
-SEC("sample_ext/utility")
-int
-test_utility_helpers(sample_program_context_t* context)
-{
-    return test_utility_helper_functions(&utility_map);
-}
