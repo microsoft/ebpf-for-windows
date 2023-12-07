@@ -8,11 +8,6 @@
 
 #define INITGUID
 
-// clang-format off
-#include <ntifs.h>
-#include <netioddk.h>
-#include <ntstatus.h>
-
 #include "ebpf_extension.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_program_types.h"
@@ -21,7 +16,9 @@
 #include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"
 #include "sample_ext_program_info.h"
-// clang-format on
+
+#include <netioddk.h>
+#include <ntstatus.h>
 
 #define SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 

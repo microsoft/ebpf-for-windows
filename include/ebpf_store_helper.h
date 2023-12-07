@@ -8,6 +8,7 @@
 #ifdef USER_MODE
 #include "ebpf_utilities.h"
 #else
+#include <ntifs.h>
 #include <minwindef.h>
 #endif
 
