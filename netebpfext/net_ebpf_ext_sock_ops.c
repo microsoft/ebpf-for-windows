@@ -8,6 +8,7 @@
  *
  */
 
+#include "ebpf_shared_framework.h"
 #include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_ops.h"
 

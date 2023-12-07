@@ -25,4 +25,4 @@ int
 export_global_helper_information();
 
 uint32_t
-clear_all_ebpf_stores();
+clear_ebpf_store();

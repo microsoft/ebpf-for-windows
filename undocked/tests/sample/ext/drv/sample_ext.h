@@ -7,8 +7,11 @@
  * @brief Header file for structures/prototypes of the driver.
  */
 
-#include "ebpf_platform.h"
+#include "ebpf_extension.h"
 #include "sample_ext_ioctls.h"
+
+#include <ntifs.h> // Must be included before ntddk.h
+#include <ntddk.h>
 
 typedef struct _sample_program_context sample_program_context_t;
 

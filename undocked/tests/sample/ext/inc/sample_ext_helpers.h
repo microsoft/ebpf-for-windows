@@ -8,7 +8,15 @@
  * exposed by the sample extension.
  */
 
+#if !defined(NO_CRT) && !defined(_NO_CRT_STDIO_INLINE)
 #include <stdint.h>
+#else
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
+typedef long long int64_t;
+#endif
 
 // Sample extension program context.
 typedef struct _sample_program_context
