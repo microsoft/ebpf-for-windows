@@ -75,10 +75,9 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><code>#include &quot;<a class="el" href="ebpf__program__types_8h_source.html">ebpf_program_types.h</a>&quot;</code><br />
-<code>#include &quot;ebpf_shared_framework.h&quot;</code><br />
 <code>#include &quot;<a class="el" href="ebpf__windows_8h_source.html">ebpf_windows.h</a>&quot;</code><br />
+<code>#include &lt;ntifs.h&gt;</code><br />
 <code>#include &lt;minwindef.h&gt;</code><br />
-<code>#include &lt;wdm.h&gt;</code><br />
 </div>
 <p><a href="ebpf__store__helper_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -94,9 +93,6 @@ Typedefs</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a42b9f64df180d218638a52756fdf7610"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#a42b9f64df180d218638a52756fdf7610">ebpf_store_update_helper_prototype</a> (<a class="el" href="ebpf__store__helper_8h.html#a2c2cbb58cc8cc7afd7f1e5177b6680b7">ebpf_store_key_t</a> helper_info_key, const <a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a> *helper_info)</td></tr>
-<tr class="memdesc:a42b9f64df180d218638a52756fdf7610"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update the provider prototype information in the eBPF store.  <a href="ebpf__store__helper_8h.html#a42b9f64df180d218638a52756fdf7610">More...</a><br /></td></tr>
-<tr class="separator:a42b9f64df180d218638a52756fdf7610"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac1f7c8f5ce16a53eebb619bd0ccc1030"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#ac1f7c8f5ce16a53eebb619bd0ccc1030">ebpf_store_update_global_helper_information</a> (_In_reads_(helper_info_count) <a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a> *helper_info, uint32_t helper_info_count)</td></tr>
 <tr class="memdesc:ac1f7c8f5ce16a53eebb619bd0ccc1030"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update global helper information in the eBPF store.  <a href="ebpf__store__helper_8h.html#ac1f7c8f5ce16a53eebb619bd0ccc1030">More...</a><br /></td></tr>
 <tr class="separator:ac1f7c8f5ce16a53eebb619bd0ccc1030"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -106,6 +102,12 @@ Functions</h2></td></tr>
 <tr class="memitem:a1a661e8bc901c25198f88497db7fcbeb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#a1a661e8bc901c25198f88497db7fcbeb">ebpf_store_update_program_information</a> (_In_reads_(program_info_count) const <a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a> *program_info, uint32_t program_info_count)</td></tr>
 <tr class="memdesc:a1a661e8bc901c25198f88497db7fcbeb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update program information in the eBPF store.  <a href="ebpf__store__helper_8h.html#a1a661e8bc901c25198f88497db7fcbeb">More...</a><br /></td></tr>
 <tr class="separator:a1a661e8bc901c25198f88497db7fcbeb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a83060ad08f2e024d37d1c1673229db3c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#a83060ad08f2e024d37d1c1673229db3c">ebpf_store_delete_program_information</a> (const <a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a> *program_info)</td></tr>
+<tr class="memdesc:a83060ad08f2e024d37d1c1673229db3c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete program information from the eBPF store.  <a href="ebpf__store__helper_8h.html#a83060ad08f2e024d37d1c1673229db3c">More...</a><br /></td></tr>
+<tr class="separator:a83060ad08f2e024d37d1c1673229db3c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad5f74d4ca63d4db326791eecb87424dd"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__store__helper_8h.html#ad5f74d4ca63d4db326791eecb87424dd">ebpf_store_delete_section_information</a> (const <a class="el" href="ebpf__program__types_8h.html#acd468780732b93cd71055799c732d4b0">ebpf_program_section_info_t</a> *section_info)</td></tr>
+<tr class="memdesc:ad5f74d4ca63d4db326791eecb87424dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete section information from the eBPF store.  <a href="ebpf__store__helper_8h.html#ad5f74d4ca63d4db326791eecb87424dd">More...</a><br /></td></tr>
+<tr class="separator:ad5f74d4ca63d4db326791eecb87424dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -145,6 +147,60 @@ Variables</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="a83060ad08f2e024d37d1c1673229db3c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a83060ad08f2e024d37d1c1673229db3c">&#9670;&nbsp;</a></span>ebpf_store_delete_program_information()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_store_delete_program_information </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a> *&#160;</td>
+          <td class="paramname"><em>program_info</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Delete program information from the eBPF store. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">program_info</td><td>Pointer to the program information.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Status of the operation. </dd></dl>
+
+</div>
+</div>
+<a id="ad5f74d4ca63d4db326791eecb87424dd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad5f74d4ca63d4db326791eecb87424dd">&#9670;&nbsp;</a></span>ebpf_store_delete_section_information()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_store_delete_section_information </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="ebpf__program__types_8h.html#acd468780732b93cd71055799c732d4b0">ebpf_program_section_info_t</a> *&#160;</td>
+          <td class="paramname"><em>section_info</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Delete section information from the eBPF store. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">section_info</td><td>Pointer to the section information.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Status of the operation. </dd></dl>
+
+</div>
+</div>
 <a id="ac1f7c8f5ce16a53eebb619bd0ccc1030"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac1f7c8f5ce16a53eebb619bd0ccc1030">&#9670;&nbsp;</a></span>ebpf_store_update_global_helper_information()</h2>
 
@@ -176,44 +232,6 @@ Variables</h2></td></tr>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">helper_info</td><td>Pointer to an array of helper function prototypes. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">helper_info_count</td><td>Count of helper function prototypes.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>Status of the operation. </dd></dl>
-
-</div>
-</div>
-<a id="a42b9f64df180d218638a52756fdf7610"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a42b9f64df180d218638a52756fdf7610">&#9670;&nbsp;</a></span>ebpf_store_update_helper_prototype()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_store_update_helper_prototype </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="ebpf__store__helper_8h.html#a2c2cbb58cc8cc7afd7f1e5177b6680b7">ebpf_store_key_t</a>&#160;</td>
-          <td class="paramname"><em>helper_info_key</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a> *&#160;</td>
-          <td class="paramname"><em>helper_info</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Update the provider prototype information in the eBPF store. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">helper_info_key</td><td>Pointer to the store key to be initialized. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">helper_info</td><td>Pointer to the helper function prototype.</td></tr>
   </table>
   </dd>
 </dl>

@@ -75,25 +75,23 @@ $(function() {
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160; </div>
 <div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="ebpf__windows_8h.html">ebpf_windows.h</a>&quot;</span></div>
 <div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160; </div>
-<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#include &lt;stdint.h&gt;</span></div>
-<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160; </div>
-<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="preprocessor">#ifdef __cplusplus</span></div>
-<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="keyword">extern</span> <span class="stringliteral">&quot;C&quot;</span></div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;{</div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;    <span class="comment">/* 2934ad50-2154-44b6-9622-6c528c068411 */</span></div>
-<div class="line"><a name="l00016"></a><span class="lineno"><a class="line" href="ebpf__extension__uuids_8h.html#ac98f7be2f127a3e32795d2921616d931">   16</a></span>&#160;    __declspec(selectany) <a class="code" href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a> <a class="code" href="ebpf__extension__uuids_8h.html#ac98f7be2f127a3e32795d2921616d931">EBPF_PROGRAM_INFO_EXTENSION_IID</a> = {</div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;        0x2934ad50, 0x2154, 0x44b6, {0x96, 0x22, 0x6c, 0x52, 0x8c, 0x06, 0x84, 0x11}};</div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160; </div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;    <span class="comment">/* 5d564054-2736-406d-8b22-12bcffaf0a9f */</span></div>
-<div class="line"><a name="l00022"></a><span class="lineno"><a class="line" href="ebpf__extension__uuids_8h.html#a4b09ac234ca80342c753e12a897d296b">   22</a></span>&#160;    __declspec(selectany) <a class="code" href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a> <a class="code" href="ebpf__extension__uuids_8h.html#a4b09ac234ca80342c753e12a897d296b">EBPF_HOOK_EXTENSION_IID</a> = {</div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;        0x5d564054, 0x2736, 0x406d, {0x8b, 0x22, 0x12, 0xbc, 0xff, 0xaf, 0x0a, 0x9f}};</div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160; </div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="preprocessor">#ifdef __cplusplus</span></div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;}</div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="ttc" id="aebpf__extension__uuids_8h_html_a4b09ac234ca80342c753e12a897d296b"><div class="ttname"><a href="ebpf__extension__uuids_8h.html#a4b09ac234ca80342c753e12a897d296b">EBPF_HOOK_EXTENSION_IID</a></div><div class="ttdeci">GUID EBPF_HOOK_EXTENSION_IID</div><div class="ttdoc">NPI ID for eBPF hook extension.</div><div class="ttdef"><b>Definition:</b> ebpf_extension_uuids.h:22</div></div>
-<div class="ttc" id="aebpf__extension__uuids_8h_html_ac98f7be2f127a3e32795d2921616d931"><div class="ttname"><a href="ebpf__extension__uuids_8h.html#ac98f7be2f127a3e32795d2921616d931">EBPF_PROGRAM_INFO_EXTENSION_IID</a></div><div class="ttdeci">GUID EBPF_PROGRAM_INFO_EXTENSION_IID</div><div class="ttdoc">NPI ID for eBPF program information extension.</div><div class="ttdef"><b>Definition:</b> ebpf_extension_uuids.h:16</div></div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="keyword">extern</span> <span class="stringliteral">&quot;C&quot;</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;{</div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;    <span class="comment">/* 2934ad50-2154-44b6-9622-6c528c068411 */</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno"><a class="line" href="ebpf__extension__uuids_8h.html#ac98f7be2f127a3e32795d2921616d931">   14</a></span>&#160;    __declspec(selectany) <a class="code" href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a> <a class="code" href="ebpf__extension__uuids_8h.html#ac98f7be2f127a3e32795d2921616d931">EBPF_PROGRAM_INFO_EXTENSION_IID</a> = {</div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;        0x2934ad50, 0x2154, 0x44b6, {0x96, 0x22, 0x6c, 0x52, 0x8c, 0x06, 0x84, 0x11}};</div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160; </div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;    <span class="comment">/* 5d564054-2736-406d-8b22-12bcffaf0a9f */</span></div>
+<div class="line"><a name="l00020"></a><span class="lineno"><a class="line" href="ebpf__extension__uuids_8h.html#a4b09ac234ca80342c753e12a897d296b">   20</a></span>&#160;    __declspec(selectany) <a class="code" href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a> <a class="code" href="ebpf__extension__uuids_8h.html#a4b09ac234ca80342c753e12a897d296b">EBPF_HOOK_EXTENSION_IID</a> = {</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;        0x5d564054, 0x2736, 0x406d, {0x8b, 0x22, 0x12, 0xbc, 0xff, 0xaf, 0x0a, 0x9f}};</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;}</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="ttc" id="aebpf__extension__uuids_8h_html_a4b09ac234ca80342c753e12a897d296b"><div class="ttname"><a href="ebpf__extension__uuids_8h.html#a4b09ac234ca80342c753e12a897d296b">EBPF_HOOK_EXTENSION_IID</a></div><div class="ttdeci">GUID EBPF_HOOK_EXTENSION_IID</div><div class="ttdoc">NPI ID for eBPF hook extension.</div><div class="ttdef"><b>Definition:</b> ebpf_extension_uuids.h:20</div></div>
+<div class="ttc" id="aebpf__extension__uuids_8h_html_ac98f7be2f127a3e32795d2921616d931"><div class="ttname"><a href="ebpf__extension__uuids_8h.html#ac98f7be2f127a3e32795d2921616d931">EBPF_PROGRAM_INFO_EXTENSION_IID</a></div><div class="ttdeci">GUID EBPF_PROGRAM_INFO_EXTENSION_IID</div><div class="ttdoc">NPI ID for eBPF program information extension.</div><div class="ttdef"><b>Definition:</b> ebpf_extension_uuids.h:14</div></div>
 <div class="ttc" id="aebpf__windows_8h_html"><div class="ttname"><a href="ebpf__windows_8h.html">ebpf_windows.h</a></div></div>
 <div class="ttc" id="aebpf__windows_8h_html_a774aa72faaf900258d045f091c6ebb3f"><div class="ttname"><a href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a></div><div class="ttdeci">uint8_t GUID[16]</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:13</div></div>
 </div><!-- fragment --></div><!-- contents -->
