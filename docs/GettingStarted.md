@@ -98,7 +98,7 @@ The following steps need to be executed *once* before the first build on a new c
       >
       >    `error : The WiX Toolset v3.11 build tools must be installed to build this project. To download the WiX Toolset, see https://wixtoolset.org/releases/v3.11/stable`
 
-> TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the **folders-only** (i.e., **not** the files) under the `\external` folder, and then re-run the above script.
+> TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the folders under the `\external` directory (but keep the files), and then re-run the above script.
 
 #### Building using Developer Command Prompt for VS 2022
 
