@@ -8,6 +8,7 @@
 
 #define INITGUID
 
+#include "cxplat.h"
 #include "ebpf_extension.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_program_types.h"
@@ -25,6 +26,8 @@
 #define SAMPLE_PID_TGID_VALUE 9999
 
 #define SAMPLE_EXT_POOL_TAG_DEFAULT 'lpms'
+
+#define CXPLAT_FREE(x) cxplat_free(x, CXPLAT_POOL_FLAG_NON_PAGED, SAMPLE_EXT_POOL_TAG_DEFAULT)
 
 // Sample Extension helper function addresses table.
 static uint64_t
@@ -282,8 +285,8 @@ _sample_ebpf_extension_program_info_provider_attach_client(
     *provider_binding_context = NULL;
     *provider_dispatch = NULL;
 
-    program_info_client = ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(sample_ebpf_extension_program_info_client_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
+    program_info_client = cxplat_allocate(
+        CXPLAT_POOL_FLAG_NON_PAGED, sizeof(sample_ebpf_extension_program_info_client_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
     if (program_info_client == NULL) {
         status = STATUS_NO_MEMORY;
         goto Exit;
@@ -299,7 +302,7 @@ Exit:
         *provider_binding_context = program_info_client;
         program_info_client = NULL;
     } else if (program_info_client != NULL) {
-        ExFreePool(program_info_client);
+        CXPLAT_FREE(program_info_client);
     }
     return status;
 }
@@ -317,7 +320,7 @@ _sample_ebpf_extension_program_info_provider_detach_client(_In_ const void* prov
 static void
 _sample_ebpf_extension_program_info_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
 {
-    ExFreePool(provider_binding_context);
+    CXPLAT_FREE(provider_binding_context);
 }
 
 void
@@ -431,8 +434,8 @@ _sample_ebpf_extension_hook_provider_attach_client(
     *provider_binding_context = NULL;
     *provider_dispatch = NULL;
 
-    hook_client = ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(sample_ebpf_extension_hook_client_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
+    hook_client = cxplat_allocate(
+        CXPLAT_POOL_FLAG_NON_PAGED, sizeof(sample_ebpf_extension_hook_client_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
     if (hook_client == NULL) {
         status = STATUS_NO_MEMORY;
         goto Exit;
@@ -467,7 +470,7 @@ Exit:
         *provider_binding_context = hook_client;
         hook_client = NULL;
     } else if (hook_client != NULL) {
-        ExFreePool(hook_client);
+        CXPLAT_FREE(hook_client);
     }
 
     return status;
@@ -497,7 +500,7 @@ Exit:
 static void
 _sample_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
 {
-    ExFreePool(provider_binding_context);
+    CXPLAT_FREE(provider_binding_context);
 }
 
 void
@@ -757,7 +760,7 @@ _sample_context_create(
     }
 
     sample_context =
-        ExAllocatePoolUninitialized(NonPagedPoolNx, sizeof(sample_program_context_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
+        cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, sizeof(sample_program_context_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
     if (sample_context == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -771,7 +774,7 @@ _sample_context_create(
 
 Exit:
     if (sample_context != NULL) {
-        ExFreePool(sample_context);
+        CXPLAT_FREE(sample_context);
     }
 
     return result;
@@ -800,5 +803,5 @@ _sample_context_destroy(
         *context_size_out = 0;
     }
 
-    ExFreePool(context);
+    CXPLAT_FREE(context);
 }

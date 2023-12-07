@@ -118,7 +118,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)undocked\tests\sample\ext\inc;$(OutDir)undocked\ebpf-for-windows\build\native\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)undocked\tests\sample\ext\inc;$(OutDir)undocked\ebpf-for-windows\build\native\include;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO;_NO_CRT_STDIO_INLINE=1</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -139,7 +139,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)undocked\tests\sample\ext\inc;$(OutDir)undocked\ebpf-for-windows\build\native\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)undocked\tests\sample\ext\inc;$(OutDir)undocked\ebpf-for-windows\build\native\include;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO;_NO_CRT_STDIO_INLINE=1</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -160,7 +160,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)undocked\tests\sample\ext\inc;$(OutDir)undocked\ebpf-for-windows\build\native\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)undocked\tests\sample\ext\inc;$(OutDir)undocked\ebpf-for-windows\build\native\include;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO;_NO_CRT_STDIO_INLINE=1</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -181,7 +181,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ResourceCompile>
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)undocked\tests\sample\ext\inc;$(OutDir)undocked\ebpf-for-windows\build\native\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)undocked\tests\sample\ext\inc;$(OutDir)undocked\ebpf-for-windows\build\native\include;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO;_NO_CRT_STDIO_INLINE=1</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -208,6 +208,9 @@
     <ClInclude Include="..\inc\sample_ext_helpers.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\external\usersim\cxplat\src\cxplat_winkernel\cxplat_winkernel.vcxproj">
+      <Project>{1ebe3966-7dc4-49b4-b840-3d33d63415ec}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\..\..\libs\store_helper\kernel\ebpf_store_helper_km.vcxproj">
       <Project>{3569e946-c8b4-49ee-a89d-edd09dc9f36e}</Project>
     </ProjectReference>
