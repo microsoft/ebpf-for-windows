@@ -306,7 +306,7 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
     test_helper.initialize();
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"sample_ext", &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"bind", &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
