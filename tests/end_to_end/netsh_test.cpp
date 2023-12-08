@@ -76,26 +76,26 @@ TEST_CASE("show disassembly bpf_call.o", "[netsh][disassembly]")
     REQUIRE(result == NO_ERROR);
     output = strip_paths(output);
     REQUIRE(
-        output == "; ./tests/sample/bpf_call.c:25\n"
+        output == "; ./tests/sample/undocked/bpf_call.c:25\n"
                   "; SEC(\"sample_ext\") int func(sample_program_context_t* ctx)\n"
                   "       0:	r1 = 0\n"
-                  "; ./tests/sample/bpf_call.c:27\n"
+                  "; ./tests/sample/undocked/bpf_call.c:27\n"
                   ";     uint32_t key = 0;\n"
                   "       1:	*(u32 *)(r10 - 4) = r1\n"
                   "       2:	r1 = 42\n"
-                  "; ./tests/sample/bpf_call.c:28\n"
+                  "; ./tests/sample/undocked/bpf_call.c:28\n"
                   ";     uint32_t value = 42;\n"
                   "       3:	*(u32 *)(r10 - 8) = r1\n"
                   "       4:	r2 = r10\n"
                   "       5:	r2 += -4\n"
                   "       6:	r3 = r10\n"
                   "       7:	r3 += -8\n"
-                  "; ./tests/sample/bpf_call.c:29\n"
+                  "; ./tests/sample/undocked/bpf_call.c:29\n"
                   ";     int result = bpf_map_update_elem(&map, &key, &value, 0);\n"
                   "       8:	r1 = map_fd 1\n"
                   "      10:	r4 = 0\n"
                   "      11:	r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)\n"
-                  "; ./tests/sample/bpf_call.c:30\n"
+                  "; ./tests/sample/undocked/bpf_call.c:30\n"
                   ";     return result;\n"
                   "      12:	exit\n\n");
 }
@@ -206,7 +206,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
                   "                                    Size\n"
                   "             Section       Type  (bytes)\n"
                   "====================  =========  =======\n"
-                  "               .text     sample     1768\n"
+                  "               .text       bind     1768\n"
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
@@ -306,7 +306,7 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
     test_helper.initialize();
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"sample_ext", &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"bind", &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"

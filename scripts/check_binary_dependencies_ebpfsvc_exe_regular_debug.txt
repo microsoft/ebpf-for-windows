@@ -31,3 +31,4 @@ api-ms-win-core-sysinfo-l1-1-0.dll
 api-ms-win-core-interlocked-l1-1-0.dll
 api-ms-win-core-heap-l1-1-0.dll
 api-ms-win-core-memory-l1-1-0.dll
+kernel32.dll
