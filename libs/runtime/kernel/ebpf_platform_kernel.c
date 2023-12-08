@@ -236,16 +236,6 @@ Done:
     return result;
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_update_global_helpers(
-    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
-{
-    NTSTATUS status = ebpf_store_update_global_helper_information(helper_info, helper_info_count);
-    ebpf_result_t result = NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_FAILED;
-
-    return result;
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
 {

@@ -23,7 +23,7 @@
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
     <Configuration>Debug</Configuration>
     <RootNamespace>store_helper_um</RootNamespace>
-    <ProjectName>ebpf_store_helper_um</ProjectName>
+    <ProjectName>ebpf_store_helper</ProjectName>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

@@ -8,7 +8,6 @@
  */
 
 #include "ebpf_shared_framework.h"
-#include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_addr.h"
 
 #define TARGET_PROCESS_ID 1234
@@ -648,25 +647,6 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
 }
 
 static NTSTATUS
-_net_ebpf_sock_addr_update_store_entries()
-{
-    NTSTATUS status;
-
-    // Update section information.
-    uint32_t section_info_count = sizeof(_ebpf_sock_addr_section_info) / sizeof(ebpf_program_section_info_t);
-    status = ebpf_store_update_section_information(&_ebpf_sock_addr_section_info[0], section_info_count);
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
-
-    // Update program information.
-    status = ebpf_store_update_program_information(&_ebpf_sock_addr_program_info, 1);
-
-Exit:
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
-}
-
-static NTSTATUS
 _net_ebpf_sock_addr_create_security_descriptor()
 {
     NTSTATUS status;
@@ -902,16 +882,6 @@ net_ebpf_ext_sock_addr_register_providers()
 
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_info_provider_data};
-
-    status = _net_ebpf_sock_addr_update_store_entries();
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "_net_ebpf_sock_addr_update_store_entries failed.",
-            status);
-        goto Exit;
-    }
 
     status = _net_ebpf_sock_addr_create_security_descriptor();
     if (!NT_SUCCESS(status)) {
