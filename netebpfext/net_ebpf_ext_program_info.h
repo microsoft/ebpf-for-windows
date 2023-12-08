@@ -7,9 +7,9 @@
 #include "ebpf_program_types.h"
 #include "ebpf_shared_framework.h"
 
-#define TRUE 1
-
 #define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
+
+#define HELPER_FUNCTION_REALLOCATE_PACKET 1
 
 // XDP_TEST helper function prototype descriptors.
 static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_function_prototype[] = {
@@ -17,7 +17,7 @@ static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_fu
      "bpf_xdp_adjust_head",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING},
-     TRUE}};
+     HELPER_FUNCTION_REALLOCATE_PACKET}};
 
 // XDP_TEST program information.
 static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {

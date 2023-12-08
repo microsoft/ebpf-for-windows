@@ -2131,7 +2131,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
         }
 
         if (helper_function_prototype->reallocate_packet) {
-            result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, "reallocate_packet");
+            result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(cryptographic_hash, "reallocate_packet");
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }

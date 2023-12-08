@@ -12,7 +12,7 @@
 #include "net/ip.h"
 #include "net/udp.h"
 
-SEC("xdp/xdp_adjust_head_unsafe")
+SEC("xdp")
 int
 xdp_adjust_head_unsafe(xdp_md_t* ctx)
 {

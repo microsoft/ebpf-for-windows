@@ -7,6 +7,7 @@
 
 #include <guiddef.h>
 #if !defined(NO_CRT) && !defined(_NO_CRT_STDIO_INLINE)
+#include <stdbool.h>
 #include <stdint.h>
 #else
 typedef unsigned char uint8_t;
