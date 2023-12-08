@@ -202,9 +202,6 @@
     <ProjectReference Include="..\..\rpc_interface\rpc_interface.vcxproj">
       <Project>{1423245d-0249-40fc-a077-ff7780acfe3f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\tools\export_program_info\export_program_info.vcxproj">
-      <Project>{fa9bb88d-8259-40c1-9422-bdedf9e9ce68}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\elf_spec\elf_spec.vcxproj">
       <Project>{c3d2cd73-bf4c-47df-8808-2a9996124d5b}</Project>
     </ProjectReference>

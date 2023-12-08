@@ -210,75 +210,75 @@ static uint16_t lookup_maps[] = {
 #pragma code_seg(push, "sample~1")
 static uint64_t
 lookup(void* context)
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
 {
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     // Prologue
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     register uint64_t r0 = 0;
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     register uint64_t r1 = 0;
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     register uint64_t r2 = 0;
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     register uint64_t r3 = 0;
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     register uint64_t r4 = 0;
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     register uint64_t r5 = 0;
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     register uint64_t r10 = 0;
 
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     r1 = (uintptr_t)context;
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r1 src=r0 offset=0 imm=0
-#line 25 "sample/bad_map_name.c"
+#line 25 "sample/undocked/bad_map_name.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1 dst=r10 src=r1 offset=-4 imm=0
-#line 27 "sample/bad_map_name.c"
+#line 27 "sample/undocked/bad_map_name.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r1;
     // EBPF_OP_MOV64_REG pc=2 dst=r2 src=r10 offset=0 imm=0
-#line 27 "sample/bad_map_name.c"
+#line 27 "sample/undocked/bad_map_name.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=3 dst=r2 src=r0 offset=0 imm=-4
-#line 27 "sample/bad_map_name.c"
+#line 27 "sample/undocked/bad_map_name.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=4 dst=r1 src=r0 offset=0 imm=0
-#line 29 "sample/bad_map_name.c"
+#line 29 "sample/undocked/bad_map_name.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
-#line 29 "sample/bad_map_name.c"
+#line 29 "sample/undocked/bad_map_name.c"
     r0 = lookup_helpers[0].address
-#line 29 "sample/bad_map_name.c"
+#line 29 "sample/undocked/bad_map_name.c"
          (r1, r2, r3, r4, r5);
-#line 29 "sample/bad_map_name.c"
+#line 29 "sample/undocked/bad_map_name.c"
     if ((lookup_helpers[0].tail_call) && (r0 == 0))
-#line 29 "sample/bad_map_name.c"
+#line 29 "sample/undocked/bad_map_name.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=7 dst=r1 src=r0 offset=0 imm=0
-#line 29 "sample/bad_map_name.c"
+        // EBPF_OP_MOV64_REG pc=7 dst=r1 src=r0 offset=0 imm=0
+#line 29 "sample/undocked/bad_map_name.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=8 dst=r0 src=r0 offset=0 imm=1
-#line 29 "sample/bad_map_name.c"
+#line 29 "sample/undocked/bad_map_name.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=9 dst=r1 src=r0 offset=1 imm=0
-#line 30 "sample/bad_map_name.c"
+#line 30 "sample/undocked/bad_map_name.c"
     if (r1 == IMMEDIATE(0))
-#line 30 "sample/bad_map_name.c"
+#line 30 "sample/undocked/bad_map_name.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=0
-#line 30 "sample/bad_map_name.c"
+        // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=0
+#line 30 "sample/undocked/bad_map_name.c"
     r0 = IMMEDIATE(0);
 label_1:
     // EBPF_OP_EXIT pc=11 dst=r0 src=r0 offset=0 imm=0
-#line 30 "sample/bad_map_name.c"
+#line 30 "sample/undocked/bad_map_name.c"
     return r0;
-#line 30 "sample/bad_map_name.c"
+#line 30 "sample/undocked/bad_map_name.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
