@@ -12,5 +12,6 @@ $commands = @(
 
 # Loop through each command and run them sequentially without opening a new window
 foreach ($command in $commands) {
+    Write-Host ">> Running command: $command"
     Invoke-Expression -Command $command
 }
