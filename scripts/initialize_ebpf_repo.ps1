@@ -14,4 +14,11 @@ $commands = @(
 foreach ($command in $commands) {
     Write-Host ">> Running command: $command"
     Invoke-Expression -Command $command
+
+    # Check the exit code
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Command failed. Exit code: $LASTEXITCODE"
+        Exit  $LASTEXITCODE
+    }
 }
+Write-Host "All commands succeeded."
