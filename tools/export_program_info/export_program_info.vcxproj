@@ -147,8 +147,6 @@ $(OutputPath)export_program_info.exe</Command>
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
-copy ..\Debug\usersim.dll .
-copy ..\Debug\usersim.pdb .
 $(OutputPath)export_program_info.exe --clear
 $(OutputPath)export_program_info.exe</Command>
     </CustomBuildStep>
@@ -172,8 +170,6 @@ $(OutputPath)export_program_info.exe</Command>
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
-copy ..\Debug\usersim.dll .
-copy ..\Debug\usersim.pdb .
 $(OutputPath)export_program_info.exe --clear
 $(OutputPath)export_program_info.exe</Command>
     </CustomBuildStep>
@@ -224,8 +220,6 @@ $(OutputPath)export_program_info.exe</Command>
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
-copy ..\Release\usersim.dll .
-copy ..\Release\usersim.pdb .
 $(OutputPath)export_program_info.exe --clear
 $(OutputPath)export_program_info.exe</Command>
     </CustomBuildStep>

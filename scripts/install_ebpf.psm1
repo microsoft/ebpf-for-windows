@@ -35,13 +35,23 @@ function Unregister-eBPFComponents
     # Delete the eBPF netsh helper.
     netsh delete helper ebpfnetsh.dll 2>&1 | Write-Log
 
-    # Execute export_program_info
+    # Execute "export_program_info.exe --clear"
     if (Test-Path -Path "export_program_info.exe") {
         .\export_program_info.exe --clear
         if ($LASTEXITCODE -ne 0) {
             throw ("Failed to run 'export_program_info.exe --clear'.");
         } else {
             Write-Log "'export_program_info.exe --clear' succeeded." -ForegroundColor Green
+        }
+    }
+
+    # Execute "export_program_info_sample.exe --clear"
+    if (Test-Path -Path "export_program_info_sample.exe") {
+        .\export_program_info_sample.exe --clear
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Failed to run 'export_program_info_sample.exe --clear'.");
+        } else {
+            Write-Log "'export_program_info_sample.exe --clear' succeeded." -ForegroundColor Green
         }
     }
 }
@@ -54,6 +64,24 @@ function Register-eBPFComponents
 {
     # Uninstall previous installations (if any).
     Unregister-eBPFComponents
+
+    # Export program info.
+    if (Test-Path -Path "export_program_info.exe") {
+        .\export_program_info.exe
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Failed to run 'export_program_info.exe'.");
+        } else {
+            Write-Log "'export_program_info.exe' succeeded." -ForegroundColor Green
+        }
+    }
+    if (Test-Path -Path "export_program_info_sample.exe") {
+        .\export_program_info_sample.exe
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Failed to run 'export_program_info_sample.exe'.");
+        } else {
+            Write-Log "'export_program_info_sample.exe' succeeded." -ForegroundColor Green
+        }
+    }
 
     # Install drivers.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
