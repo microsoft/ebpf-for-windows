@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_platform.h"
-#include "ebpf_store_helper.h"
 #include "ebpf_tracelog.h"
 
 extern _Ret_notnull_ DEVICE_OBJECT*
