@@ -29,6 +29,8 @@ typedef struct _ebpf_program_type_descriptor
     char is_privileged;
 } ebpf_program_type_descriptor_t;
 
+#define HELPER_FUNCTION_REALLOCATE_PACKET 0x1
+
 typedef struct _ebpf_helper_function_prototype
 {
     uint32_t helper_id;

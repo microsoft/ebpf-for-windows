@@ -20,22 +20,27 @@ xdp_adjust_head_unsafe(xdp_md_t* ctx)
 
     ETHERNET_HEADER* ethernet_header = NULL;
     char* next_header = (char*)ctx->data;
+
+    // Access the Ethernet header fields after checking for safety.
+    // This will pass verifier test.
     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {
+        rc = XDP_DROP;
         goto Done;
     }
+    ethernet_header = (ETHERNET_HEADER*)next_header;
+    ethernet_header->Type = 0x0800;
 
-    // Adjust the head of the packet
-    if (bpf_xdp_adjust_head(ctx, sizeof(ETHERNET_HEADER) < 0)) {
+    // Adjust the head of the packet by removing the Ethernet header.
+    if (bpf_xdp_adjust_head(ctx, sizeof(ETHERNET_HEADER)) < 0) {
         rc = XDP_DROP;
         goto Done;
     }
 
     // Access the packet without checking for safety.
-    next_header = (char*)ctx->data + sizeof(ETHERNET_HEADER);
-    ethernet_header = (ETHERNET_HEADER*)next_header;
-
-    // Access the Ethernet header fields.
+    // This will fail verifier test.
+    ethernet_header = (ETHERNET_HEADER*)ctx->data;
     ethernet_header->Type = 0x0800;
+
 Done:
     return rc;
 }

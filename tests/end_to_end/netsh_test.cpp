@@ -371,9 +371,9 @@ TEST_CASE("show verification xdp_adjust_head_unsafe.o", "[netsh][verification]")
                   "\n"
                   "Verification report:\n"
                   "\n"
-                  "; ./tests/sample/unsafe/xdp_adjust_head_unsafe.c:38\n"
+                  "; ./tests/sample/unsafe/xdp_adjust_head_unsafe.c:42\n"
                   ";     ethernet_header->Type = 0x0800;\n"
-                  "16: Upper bound must be at most packet_size (valid_access(r1.offset+26, width=2) for write)\n"
+                  "17: Upper bound must be at most packet_size (valid_access(r1.offset+12, width=2) for write)\n"
                   "\n"
                   "1 errors\n"
                   "\n");
